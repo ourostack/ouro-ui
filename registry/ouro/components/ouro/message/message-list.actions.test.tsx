@@ -117,13 +117,35 @@ describe("MessageList actions", () => {
     await expect.poll(() => bars()).toHaveLength(0);
   });
 
-  it("shows the bar within the pointer's own event, before the next frame", async () => {
+  it("shows the bar within the pointer's own event, before the next frame, and moves the same bar to the next message", async () => {
     await render(<Channel count={3} />);
     await ready("m2");
     await userEvent.unhover(document.body);
     await expect.poll(() => bars()).toHaveLength(0);
     message("m1").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
     expect(barIn("m1")).not.toBeNull();
+    // The same bar moves on, updated rather than built again, so the move costs little on a slow computer.
+    const first = barIn("m1");
+    message("m2").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+    expect(barIn("m2")).toBe(first);
+    expect(barIn("m1")).toBeNull();
+  });
+
+  it("moves its bar without the list measuring its layout again", async () => {
+    const { scroller } = await render(<Channel count={12} />);
+    await ready("m11");
+    const native = Object.getOwnPropertyDescriptor(Element.prototype, "scrollHeight")!;
+    let reads = 0;
+    Object.defineProperty(scroller, "scrollHeight", { configurable: true, get: () => (reads++, native.get!.call(scroller)) });
+    try {
+      for (const id of ["m10", "m9", "m11"]) {
+        await act(async () => void message(id).dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
+        expect(barIn(id)).not.toBeNull();
+      }
+      expect(reads).toBe(0);
+    } finally {
+      delete (scroller as { scrollHeight?: number }).scrollHeight;
+    }
   });
 
   it("leaves no bar behind when the pointer leaves, the list scrolls, the window loses focus or the menu opens", async () => {
@@ -161,9 +183,15 @@ describe("MessageList actions", () => {
     const onAction = vi.fn();
     await render(<Channel count={3} onAction={onAction} />);
     await ready("m2");
+    // The menu takes focus straight from the button: focus never stops on the message on the way, as the bar goes.
+    const stops: EventTarget[] = [];
+    const heard = (event: FocusEvent) => stops.push(event.target!);
+    document.addEventListener("focusin", heard);
     await userEvent.click(page.getByRole("button", { name: "More actions" }));
     const menu = page.getByRole("menu", { name: "Message actions for Mara Quill" });
     await expect.element(menu).toBeVisible();
+    document.removeEventListener("focusin", heard);
+    expect(stops).not.toContain(message("m2"));
     const reactions = menu.getByRole("group", { name: "Reactions" });
     await expect.element(reactions.getByRole("menuitem", { name: "Like" })).toBeVisible();
     await expect.element(reactions.getByRole("menuitem", { name: "More reactions" })).toBeVisible();

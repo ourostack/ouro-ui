@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type FocusEvent, type JSX, type KeyboardEvent, type RefObject, type SVGProps } from "react";
+import { useEffect, useLayoutEffect, useState, type CSSProperties, type FocusEvent, type JSX, type KeyboardEvent, type RefObject, type SVGProps } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -122,6 +122,7 @@ export function MessageActionBar({
   post,
   beside,
   onMenu,
+  row,
 }: {
   actions: readonly MessageAction[];
   menu: readonly MenuEntry[] | undefined;
@@ -144,6 +145,8 @@ export function MessageActionBar({
    * menu button opens the list's shared menu, from this button.
    */
   onMenu?: ((button: HTMLElement) => void) | undefined;
+  /** The message a shared bar is on; the Tab stop the bar remembers belongs to that message. */
+  row?: Element | undefined;
 }): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   // Menu, once this bar's menu button has been pressed: until then the button stands alone.
@@ -157,8 +160,8 @@ export function MessageActionBar({
   const hasMenu = (menu !== undefined && menu.length > 0) || (reactions !== undefined && reactions.length > 0);
   const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
   if (hasMenu) keys.push(MENU_KEY);
-  const [current, setCurrent] = useState<string | undefined>(undefined);
-  const tabStop = keys.find((key) => key === current) ?? keys[0];
+  const [current, setCurrent] = useState<{ row: Element | undefined; key: string } | undefined>(undefined);
+  const tabStop = keys.find((key) => current !== undefined && current.row === row && key === current.key) ?? keys[0];
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const list = buttons(event.currentTarget);
     const at = list.indexOf(event.target as HTMLElement);
@@ -173,7 +176,7 @@ export function MessageActionBar({
   const focus = (event: FocusEvent<HTMLDivElement>) => {
     const key = (event.target as HTMLElement).getAttribute("data-ouro-message-action");
     // Stryker disable next-line ConditionalExpression: only the bar's buttons take focus, and a key of null falls back to the first button anyway.
-    if (key !== null) setCurrent(key);
+    if (key !== null) setCurrent({ row, key });
   };
   const iconButton = "w-(--ouro-button-h) px-0";
   const more = <MoreIcon aria-hidden="true" className="size-4" />;
@@ -336,6 +339,20 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   const hover = useRowHover(scroller, layer, { menu: fromRow });
   const data = hover.row ? layer.get(hover.row) : undefined;
   const slot = data?.slot() ?? null;
+  // One bar for the list, drawn once and moved from message to message: its element goes into the slot of the message it
+  // is on, and out of the page while it is on none. Moving to another message only updates it, so it is in place within
+  // the pointer's event, before the next frame, even on a slow computer; drawing a new bar for each would build every
+  // button and tooltip again.
+  const [host] = useState(() => (typeof document === "undefined" ? null : Object.assign(document.createElement("span"), { className: "contents" })));
+  const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
+  const on = hover.row !== null && data !== undefined && slot !== null ? { row: hover.row, data } : null;
+  if (on !== null && (shown === null || shown.row !== on.row || shown.data !== on.data)) setShown(on);
+  useLayoutEffect(() => {
+    if (host === null) return;
+    if (slot === null) host.parentNode?.removeChild(host);
+    else if (host.parentNode !== slot) slot.appendChild(host);
+  });
+  useLayoutEffect(() => () => void host?.parentNode?.removeChild(host), [host]);
   // The menu's code, once the bar first shows, so the menu then opens at once.
   const showing = slot !== null;
   useEffect(() => {
@@ -348,23 +365,22 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   };
   return (
     <>
-      {hover.row !== null &&
-        data !== undefined &&
-        slot !== null &&
+      {shown !== null &&
+        host !== null &&
         createPortal(
           <MessageActionBar
-            key={rowKey(hover.row)}
-            actions={data.actions}
-            menu={data.menu}
-            reactions={data.reactions}
-            label={data.label}
-            menuLabel={data.menuLabel}
-            start={data.start}
-            post={data.post}
-            beside={data.beside}
-            onMenu={(button) => show(hover.row!, data, frozen(button))}
+            row={shown.row}
+            actions={shown.data.actions}
+            menu={shown.data.menu}
+            reactions={shown.data.reactions}
+            label={shown.data.label}
+            menuLabel={shown.data.menuLabel}
+            start={shown.data.start}
+            post={shown.data.post}
+            beside={shown.data.beside}
+            onMenu={(button) => show(shown.row, shown.data, frozen(button))}
           />,
-          slot,
+          host,
         )}
       {opened !== null && M !== undefined && (
         <M.Menu
@@ -389,15 +405,6 @@ const hasMenuEntries = (data: MessageBarData) => (data.menu !== undefined && dat
 function frozen(element: Element): MenuAnchor {
   const box = element.getBoundingClientRect();
   return { getBoundingClientRect: () => box };
-}
-
-// A key per row, so the bar's own state (which button has the Tab stop) starts afresh on each message.
-const rowKeys = new WeakMap<Element, number>();
-let lastRowKey = 0;
-function rowKey(row: Element): number {
-  let key = rowKeys.get(row);
-  if (key === undefined) rowKeys.set(row, (key = ++lastRowKey));
-  return key;
 }
 
 /** A row of dots: more actions. */
