@@ -236,9 +236,8 @@ export function MessageActionBar({
       {hasMenu &&
         (M && !layered ? (
           <M.Menu
-            {...(reactions !== undefined && reactions.length > 0
-              ? { children: <MessageMenuItems M={M} reactions={reactions} entries={menu} label={reactionsLabel} /> }
-              : { items: menu })}
+            // The reactions on top, if any, then the rest: with none, just the menu's entries.
+            children={<MessageMenuItems M={M} reactions={reactions} entries={menu} label={reactionsLabel} />}
             open={menuOpen}
             onOpenChange={setMenuOpen}
             // No tooltip here: one reopened as focus comes back from the menu would cover the bar of
@@ -315,14 +314,13 @@ const layerClass =
  * @internal
  */
 export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLElement | null>; layer: RowLayer<MessageBarData> }): JSX.Element {
-  const [opened, setOpened] = useState<{ row: HTMLElement; data: MessageBarData; anchor: MenuAnchor; open: boolean } | null>(null);
-  const [M, setM] = useState<MenuModule | undefined>(menuLoaded);
+  // The menu that opened, with Menu's code, which comes before it opens.
+  const [opened, setOpened] = useState<{ M: MenuModule; row: HTMLElement; data: MessageBarData; anchor: MenuAnchor; open: boolean } | null>(null);
   // A virtual element for where the menu opens: the bar goes as it opens, so a box measured now.
   const show = (row: HTMLElement, data: MessageBarData, anchor: MenuAnchor) => {
     const open = (Loaded: MenuModule) => {
       hover.hold(true);
-      setM(() => Loaded);
-      setOpened({ row, data, anchor, open: true });
+      setOpened({ M: Loaded, row, data, anchor, open: true });
     };
     // Loaded already (the bar's first showing loads it), it opens within this event, before the next frame.
     if (menuLoaded) flushSync(() => open(menuLoaded!));
@@ -367,6 +365,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   return (
     <>
       {shown !== null &&
+        // Stryker disable next-line ConditionalExpression: the host is null only where there is no document (a server's render), and the layer arrives in a browser.
         host !== null &&
         createPortal(
           <MessageActionBar
@@ -383,8 +382,8 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
           />,
           host,
         )}
-      {opened !== null && M !== undefined && (
-        <M.Menu
+      {opened !== null && (
+        <opened.M.Menu
           anchor={opened.anchor}
           open={opened.open}
           onOpenChange={close}
@@ -393,8 +392,8 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
           side="bottom"
           align="end"
         >
-          <MessageMenuItems M={M} reactions={opened.data.reactions} entries={opened.data.menu} label={opened.data.reactionsLabel} />
-        </M.Menu>
+          <MessageMenuItems M={opened.M} reactions={opened.data.reactions} entries={opened.data.menu} label={opened.data.reactionsLabel} />
+        </opened.M.Menu>
       )}
     </>
   );
