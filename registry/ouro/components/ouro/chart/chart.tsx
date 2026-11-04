@@ -262,7 +262,8 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   } = props;
   const type: ChartType = (types as readonly string[]).includes(typeProp ?? "bar") ? (typeProp as ChartType | undefined) ?? "bar" : "bar";
   const entries = config as Record<string, ChartSeries | undefined>;
-  const series = seriesOf(entries, categoryKey);
+  // The series once per config and category, so the memos built on them hold.
+  const series = useMemo(() => seriesOf(entries, categoryKey), [entries, categoryKey]);
   const category = entries[categoryKey]?.label ?? categoryKey;
   const rows = data as ReadonlyArray<Record<string, unknown>>;
   useAppearanceClassNameCheck(

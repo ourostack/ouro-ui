@@ -311,14 +311,14 @@ const serverNow = () => 0;
 const mutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 const mutedLineClass = "truncate text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 
+// The default for backgroundEvents: one array, so the layout is worked out again only when the events change.
+const noEvents: readonly TimeGridEvent[] = [];
+
 /**
  * One drawn piece of an event: a timed event has one per day it covers; an all-day event, one.
  *
  * @claim "One drawn piece of" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > puts a timed event of a day or more in the all-day row, and cuts one across midnight into each day)
  */
-// The default for backgroundEvents: one array, so the layout is worked out again only when the events change.
-const noEvents: readonly TimeGridEvent[] = [];
-
 interface Piece {
   key: string;
   event: TimeGridEvent;

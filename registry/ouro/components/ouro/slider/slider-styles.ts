@@ -90,7 +90,6 @@ function widestTexts(min: number, max: number, step: number, locale: Intl.Locale
     return decimals === 0 ? end : Math.sign(end || 1) * (Math.abs(whole) + Number(`0.${"8".repeat(decimals)}`));
   };
   const values = [withDecimals(min), withDecimals(max)];
-  // Stryker disable next-line EqualityOperator: a power as large as the larger end samples only values past both ends (1.8 and 8.8 times it, and 10 times it less a step), or one that snaps to an end a smaller power sampled.
   for (let power = 1; power <= Math.max(Math.abs(min), Math.abs(max)); power *= 10) {
     for (const magnitude of [1.8 * power, 8.8 * power, 10 * power - step]) {
       for (const value of [magnitude, -magnitude]) {

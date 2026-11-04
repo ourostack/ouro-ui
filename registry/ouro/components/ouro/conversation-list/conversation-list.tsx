@@ -203,6 +203,8 @@ const firstView = 1000;
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
 const noHeights: ReadonlyMap<string, number> = new Map();
+// The default for sections: one array, so the rows are put in order again only when they or their sections change.
+const noSections: readonly ConversationListSection[] = [];
 
 // What a windowed list's last render laid out, for the scroll, resize and measuring that follow it.
 interface Laid {
@@ -314,7 +316,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const {
     label,
     items,
-    sections = [],
+    sections = noSections,
     onSectionOpenChange,
     selectedId,
     onSelect,

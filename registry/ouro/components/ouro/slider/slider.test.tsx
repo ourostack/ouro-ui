@@ -364,6 +364,8 @@ describe("the value's widest texts", () => {
     // Every decimal of the step counts, and an end between whole numbers keeps its own value when the step is whole.
     expect(widestTexts(0, 1, 0.25, "en-US", undefined)).toEqual(["0.88", "1.88"]);
     expect(widestTexts(0.5, 10.5, 1, "en-US", undefined)).toEqual(["0.5", "10.5", "1.5", "8.5", "9.5"]);
+    // A larger end of exactly 1 still samples its power: here the step snaps a sample to the smaller end's own text.
+    expect(widestTexts(-0.95, 1, 1.8, "en-US", undefined)).toEqual(["-0.8", "1.8", "-0.95"]);
   });
 
   it("reserves the samples for the slider's own range, step and format, and Base UI's 0 to 100 by default", () => {
