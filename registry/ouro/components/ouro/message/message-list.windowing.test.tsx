@@ -1158,6 +1158,29 @@ describe("MessageList windowing", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("keeps a child that says it is busy drawn far from the view, by aria-busy as a boolean or a string", async () => {
+    const before = (id: number) =>
+      id === 300 ? (
+        <p key="busy-boolean" id="busy-boolean" aria-busy={true}>
+          Loading earlier replies
+        </p>
+      ) : id === 320 ? (
+        <p key="busy-string" id="busy-string" aria-busy="true">
+          Loading a file
+        </p>
+      ) : id === 340 ? (
+        <p key="idle" id="idle" aria-busy={false}>
+          Loaded
+        </p>
+      ) : null;
+    const { scroller } = await render(<Chat items={conversation(400, 0, true)} initialAnchor="m50" before={before} />);
+    expect(ids(scroller)).toContain(50);
+    expect(document.getElementById("busy-boolean")).not.toBeNull();
+    expect(document.getElementById("busy-string")).not.toBeNull();
+    expect(document.getElementById("idle")).toBeNull();
+    expect(document.getElementById("m300")).toBeNull();
+  });
+
   it("draws none of the newest messages it opened with, not for a moment, when it opens far up at an anchor", async () => {
     // Which messages go into the page, from before the list's first drawing.
     const added = new Set<string>();

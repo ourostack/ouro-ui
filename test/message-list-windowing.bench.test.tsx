@@ -107,9 +107,10 @@ const round = (value: number) => Math.round(value);
 const report = (name: string, numbers: Numbers) =>
   `${name}: ${numbers.messages} messages and ${numbers.elements} elements in the page; first draw ${round(numbers.firstDraw)} ms; redraw ${round(numbers.redraw)} ms; longest frame as a page of ${PAGE} older messages goes in ${round(numbers.prependFrame)} ms (this runner and React's development build, not a person's device)`;
 
-// One browser and a fine pointer: the timings compare like with like, and the touch project would only repeat them.
+// One browser and a fine pointer: the timings compare like with like, and the touch project would only repeat them. Drawing
+// 2000 messages whole, more than once, takes longer than a test's usual 15 seconds on a slow runner.
 describe("MessageList windowing benchmark", () => {
-  it.runIf(server.browser === "chromium" && matchMedia("(pointer: fine)").matches)("draws a conversation of 2000 messages in a fraction of the elements and time it takes drawn whole", async ({ annotate }) => {
+  it.runIf(server.browser === "chromium" && matchMedia("(pointer: fine)").matches)("draws a conversation of 2000 messages in a fraction of the elements and time it takes drawn whole", { timeout: 60_000 }, async ({ annotate }) => {
     const whole = await measure(false);
     const windowed = await measure(true);
     await annotate(report("whole (windowing={false})", whole), "benchmark");
