@@ -210,6 +210,39 @@ describe("MessageList actions", () => {
     expect(onAction).toHaveBeenCalledWith("m1", "menu-heart");
   });
 
+  it("puts a line between the reactions and the rest only when its menu has both", async () => {
+    const chose = vi.fn();
+    await render(
+      <MessageList label="Launch channel" style={{ height: 360 }}>
+        <Message id="entries" variant="chat" role="assistant" name="Grace Hopper" menu={[{ label: "Reply", onClick: chose }, { label: "Copy link", onClick: chose }]}>
+          Entries only
+        </Message>
+        <Message id="reactions" variant="chat" role="assistant" name="Ana Lind" quickReactions={[{ key: "like", label: "Like", icon: "👍", onClick: chose }, { key: "more", label: "More reactions", icon: "+", onClick: chose }]}>
+          Reactions only
+        </Message>
+        <Message id="empty" variant="chat" role="assistant" name="Mara Quill" quickReactions={[{ key: "like", label: "Like", icon: "👍", onClick: chose }]} menu={[]}>
+          Reactions and an empty menu
+        </Message>
+      </MessageList>,
+    );
+    const open = async (id: string, name: string) => {
+      await ready(id);
+      const text = message(id).querySelector("[data-ouro-message-content]")!;
+      const box = text.getBoundingClientRect();
+      await act(async () => void text.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.x + 4, clientY: box.y + 4 })));
+      const menu = page.getByRole("menu", { name });
+      await expect.element(menu).toBeVisible();
+      const element = menu.element();
+      const drawn = { items: [...element.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent), groups: element.querySelectorAll('[role="group"]').length, lines: element.querySelectorAll('[role="separator"]').length };
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => menus()).toHaveLength(0);
+      return drawn;
+    };
+    expect(await open("entries", "Message actions for Grace Hopper")).toEqual({ items: ["Reply", "Copy link"], groups: 0, lines: 0 });
+    expect(await open("reactions", "Message actions for Ana Lind")).toEqual({ items: ["👍Like", "+More reactions"], groups: 1, lines: 0 });
+    expect(await open("empty", "Message actions for Mara Quill")).toEqual({ items: ["👍Like"], groups: 1, lines: 0 });
+  });
+
   it("goes on from its bar as from the message's own controls: Tab leaves the list, never into the next message", async () => {
     await render(
       <>

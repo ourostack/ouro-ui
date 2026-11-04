@@ -345,6 +345,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   // button and tooltip again.
   const [host] = useState(() => (typeof document === "undefined" ? null : Object.assign(document.createElement("span"), { className: "contents" })));
   const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: the slot is found only through the row's data, and the data only through the row, so a slot holds the other two.
   const on = hover.row !== null && data !== undefined && slot !== null ? { row: hover.row, data } : null;
   if (on !== null && (shown === null || shown.row !== on.row || shown.data !== on.data)) setShown(on);
   useLayoutEffect(() => {
