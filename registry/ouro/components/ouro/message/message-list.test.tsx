@@ -2711,3 +2711,34 @@ describe("MessageList when no message starts in view", () => {
     expect(Math.abs(next.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
 });
+
+describe("MessageList's place, to the pixel", () => {
+  // A row with a fractional height, as text, pictures and zoom make them, and the content the list reads.
+  const row = (id: number) => (
+    <article key={id} data-ouro-message-list-item="" data-role="assistant">
+      <span data-ouro-message-author="">Ouro</span>
+      <p data-ouro-message-content="" style={{ margin: 0, height: "30.3px" }}>{`Post ${id}`}</p>
+    </article>
+  );
+  const page = (from: number, count: number) => Array.from({ length: count }, (_, index) => row(from + index));
+
+  it("keeps the reader's place to a pixel while older posts go in above a row at a time, where the scroll position is in whole pixels", async () => {
+    const posts = page(1000, 80);
+    const { scroller, rerender } = await render(<MessageList label="Channel" style={{ height: 300 }}>{posts}</MessageList>);
+    scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const reader = [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-item]")].find((post) => post.getBoundingClientRect().top >= scroller.getBoundingClientRect().top)!;
+    const top = reader.getBoundingClientRect().top;
+    // Forty rows, one per update, as an app draws an older page over later frames.
+    for (let drawn = 1; drawn <= 40; drawn++) {
+      await rerender(
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {[...page(1000 - drawn, drawn), ...posts]}
+        </MessageList>,
+      );
+    }
+    await settle(scroller);
+    expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+});
