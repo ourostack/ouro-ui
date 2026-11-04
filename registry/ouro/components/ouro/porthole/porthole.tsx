@@ -306,9 +306,11 @@ export function Porthole(props: PortholeProps): JSX.Element {
     () => {
     const box = pill.current!;
     const root = box.parentElement!;
-    // The cut is how much wider the whole line (its unseen, unwrapped copy) is than the room the line has.
-    const cut = sizer.current!.offsetWidth - words.current!.lastElementChild!.clientWidth;
-    box.style.width = `${content.current!.offsetWidth + cut + box.offsetWidth - box.clientWidth}px`;
+    // The cut is how much wider the whole line (its unseen, unwrapped copy) is than the room the line has. Widths are
+    // read unrounded and the pill's rounded up, so a line 196.4px wide gets its room, not 196px and an ellipsis.
+    const width = (element: Element) => element.getBoundingClientRect().width;
+    const cut = Math.max(0, width(sizer.current!) - width(words.current!.lastElementChild!));
+    box.style.width = `${Math.ceil(width(content.current!) + cut) + box.offsetWidth - box.clientWidth}px`;
     root.toggleAttribute("data-porthole-truncated", cut > 0);
     const host = root.parentElement!.getBoundingClientRect();
     const at = root.getBoundingClientRect();

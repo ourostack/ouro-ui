@@ -385,13 +385,31 @@ describe("Porthole", () => {
     const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
     const content = pill.firstElementChild as HTMLElement;
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
-    await expect.poll(() => pill.style.width === `${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
+    await expect.poll(() => pill.style.width === `${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
     expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color");
     await view.rerender(base(fixed([item("sync", "working", { label: "Catching up on a great many messages" })])));
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
-    await expect.poll(() => pill.style.width === `${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
+    await expect.poll(() => pill.style.width === `${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(pill).transitionProperty).toBe("none");
+  });
+
+  it("gives a line of a fractional width its whole room, rounding the pill up, and never cuts it short", async () => {
+    // Letter spacing of a third of a pixel makes the line's width fractional, as a 2x screen's text often is.
+    const view = await render(
+      <div style={{ letterSpacing: "0.33px" }}>
+        <Porthole label="Status" quiet={false} source={fixed([], { chats: area(Date.now() - 2 * SECOND, Date.now() - 6 * SECOND) })} />
+      </div>,
+    );
+    const sizer = view.host.querySelector<HTMLElement>('[data-porthole-part="sizer"]')!;
+    const words = view.host.querySelector<HTMLElement>('[data-ouro-part="spot"] span.block')!;
+    const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
+    const whole = sizer.getBoundingClientRect().width;
+    expect(whole % 1).not.toBe(0);
+    await expect.poll(() => getComputedStyle(pill).width).toBe(pill.style.width);
+    expect(view.porthole.hasAttribute("data-porthole-truncated")).toBe(false);
+    expect(words.getBoundingClientRect().width).toBeGreaterThanOrEqual(whole);
+    expect(words.textContent).toBe("Updated less than a minute ago");
   });
 
   it("sets its width as it mounts, before the size observer first reports", async () => {
@@ -400,7 +418,7 @@ describe("Porthole", () => {
       const view = await render(base(fixed()));
       const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
       const content = pill.firstElementChild as HTMLElement;
-      expect(pill.style.width).toBe(`${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px`);
+      expect(pill.style.width).toBe(`${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px`);
       // A new line, and the lines opening, measure again at once, with no observer to report them.
       const before = parseFloat(pill.style.width);
       await view.rerender(base(fixed([item("sync", "working", { label: "Catching up on a great many messages" })])));
