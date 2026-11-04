@@ -3105,6 +3105,11 @@ describe("MessageList switching conversations", () => {
     expect(messagesOf(list.scroller)).toHaveLength(1000);
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
     expect(document.activeElement).toBe(reading.message);
+    // A message comes in the conversation still showing: still nothing moves, and the name still waits.
+    await list.commit(<Switcher open="mara" keyed={false} called="theo" items={[...conversation("mara", 1000), { id: "mara-new", role: "assistant", text: "A reply." }]} />);
+    await settle(list.scroller);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    expect(messagesOf(list.scroller)).toHaveLength(1001);
     // Its messages come: it opens at their newest, drawing only the newest, with focus on the newest in view.
     await list.commit(<Switcher open="theo" keyed={false} named />);
     expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
@@ -3134,6 +3139,27 @@ describe("MessageList switching conversations", () => {
     await settle(list.scroller);
     expect(list.scroller.scrollTop).toBe(top);
     expect(messagesOf(list.scroller)).toHaveLength(1001);
+  });
+
+  it("adopts a name that comes after its messages, so switching back in one commit opens the last conversation at its newest", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named />);
+    await settle(list.scroller);
+    // Theo's messages come under Mara's name, then Theo is named.
+    await list.commit(<Switcher open="theo" keyed={false} called="mara" />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="theo" keyed={false} named />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    (firstVisible(list.scroller).message as HTMLElement).focus({ preventScroll: true });
+    // Back to Mara, her name and her messages together.
+    await list.commit(<Switcher open="mara" keyed={false} named />);
+    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+    expect(document.activeElement!.id).toBe("mara-999");
+    await settle(list.scroller);
+    expect(messagesOf(list.scroller)).toHaveLength(1000);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
   it("adopts a conversation first named for the messages it holds, leaving a scrolled-up reader where they are", async () => {
