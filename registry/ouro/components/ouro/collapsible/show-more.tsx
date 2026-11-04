@@ -60,7 +60,7 @@ export interface ShowMoreOpenProps {
  * say: a message's own components, or pictures that size themselves.
  */
 export interface ShowMoreEstimate {
-  /** Its plain text, as a reader would read it. */
+  /** Its plain text, as a reader would read it, with its line breaks, each of which starts a line as it shows. */
   text?: string | undefined;
   /** The CSS pixels its pictures, cards and other blocks of known size take, besides the text. @default 0 */
   height?: number | undefined;
@@ -460,8 +460,9 @@ const media = new Set(["img", "picture", "video", "canvas", "iframe", "object", 
  */
 function guessSize(node: ReactNode | ShowMoreEstimate): { lines: number; px: number; unseen: boolean } {
   if (isEstimate(node)) {
-    const text = node.text ?? "";
-    return { lines: Math.ceil((text.length + (text.match(wide)?.length ?? 0)) / GUESS_LINE), px: node.height ?? 0, unseen: false };
+    // An app's own text renders with its line breaks (a message's paragraphs), so each line counts on its own.
+    const lines = (node.text ?? "").split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil((line.length + (line.match(wide)?.length ?? 0)) / GUESS_LINE)), 0);
+    return { lines, px: node.height ?? 0, unseen: false };
   }
   let chars = 0;
   let blocksSeen = 0;
@@ -494,7 +495,8 @@ const isEstimate = (node: ReactNode | ShowMoreEstimate): node is ShowMoreEstimat
 /** Whether `node` is clearly shorter than `lines` lines: half of them or fewer, and all of it seen. */
 const clearlyFewerLines = (node: ReactNode | ShowMoreEstimate, lines: number) => {
   const size = guessSize(node);
-  return !size.unseen && size.lines <= lines / 2;
+  // A picture or card of a known height takes the lines it is as tall as.
+  return !size.unseen && size.lines + Math.ceil(size.px / GUESS_LINE_HEIGHT) <= lines / 2;
 };
 
 /** Whether `node` is clearly shorter than `height` px: half of it or less, and all of it seen. */

@@ -1192,6 +1192,16 @@ describe("ShowMore's first guess", () => {
     expect(toggle(guessed(<ShowMore lines={2} estimate={{ text: "中文".repeat(50) }}><Opaque height={10} /></ShowMore>))).not.toBeNull();
   });
 
+  it("counts each line of an estimate's text, as it shows with its line breaks", () => {
+    const host = guessed(<ShowMore maxHeight={120} estimate={{ text: "a\nb\nc\nd\ne\nf" }}><Opaque height={150} /></ShowMore>);
+    expect(toggle(host)).not.toBeNull();
+    expect(foldOf(host).hasAttribute("data-folded")).toBe(true);
+  });
+
+  it("counts an estimate's height as the lines it takes, with lines", () => {
+    expect(toggle(guessed(<ShowMore lines={4} estimate={{ text: "A caption", height: 400 }}><Opaque height={420} /></ShowMore>))).not.toBeNull();
+  });
+
   it("keeps the guess for text shown whole when its line height is not a length", async () => {
     const host = guessed(
       <div style={{ lineHeight: "normal" }}>
