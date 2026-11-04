@@ -101,6 +101,27 @@ test("lifts a finger a test left down before the next gesture starts", async () 
   expect(element.scrollLeft).toBeGreaterThan(0);
 });
 
+test("a move sent after a timed-out test's finger was lifted leaves no finger behind, so a later gesture in the tab works", async () => {
+  const element = scroller();
+  // A test that timed out: afterEach lifts its finger while the test's body runs on and moves it.
+  await commands.touchStep({ type: "touchStart", x: 260, y: 100 });
+  await commands.touchStep({ type: "touchEnd" });
+  await expect(commands.touchStep({ type: "touchMove", x: 200, y: 100 })).rejects.toThrow("Must send a TouchStart first");
+  // The next test's afterEach has nothing to lift, and its gestures start clean.
+  await commands.touchStep({ type: "touchEnd" });
+  let starts = watchStarts();
+  await commands.touchStep({ type: "touchStart", x: 260, y: 100 });
+  for (const x of [200, 140, 80]) await commands.touchStep({ type: "touchMove", x, y: 100 });
+  await commands.touchStep({ type: "touchEnd" });
+  expect(starts()).toEqual(["pointerdown", "touchstart"]);
+  expect(element.scrollLeft).toBeGreaterThan(0);
+  const before = element.scrollLeft;
+  starts = watchStarts();
+  await swipe();
+  await expect.poll(() => element.scrollLeft).toBeGreaterThan(before);
+  expect(starts()).toEqual(["pointerdown", "touchstart"]);
+});
+
 /** Records each touchmove and touchend the page handles, as its type and the finger's x. */
 function watchTouches(): string[] {
   const seen: string[] = [];
