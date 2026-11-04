@@ -2,7 +2,7 @@ import { createRef, useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
@@ -47,6 +47,8 @@ async function render(node: ReactNode) {
 
 // An inline picture: a path such as "/priya.png" would ask an app's dev server for its index page.
 const picture = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4AWP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
+// WebKit emulates forced colors' media query but doesn't force the colors.
+const chromiumOnly = it.skipIf(server.browser !== "chromium");
 const bubbleOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!;
 
 let warn: ReturnType<typeof vi.spyOn>;
@@ -361,6 +363,7 @@ describe("Message development messages", () => {
     ["author", { author: "Ana" }, "author is not a prop", '<Message role="user" name="Ana">'],
     ["content", { content: "Hi" }, "content is not a prop; the message is the children", '<Message role="user" name="Ana">Hi</Message>'],
     ["an unknown variant", { variant: "bubble" }, 'variant="bubble" is not a variant; use "default", "chat", "post" or "reply"', '<Message variant="chat" role="assistant" name="Grace">'],
+    ["an unknown bubble", { variant: "chat", bubble: "glass" }, 'bubble="glass" is not a bubble; use "filled" or "raised"', '<Message variant="chat" bubble="raised">'],
     ["own", { own: true }, 'own is not a prop; the user\'s own messages are role="user"', '<Message role="user" variant="chat">'],
     ["timestamp", { timestamp: "9:41" }, "timestamp is not a prop", '<Message time="9:41 AM" dateTime={iso}>'],
     ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message this one replies to is quote", '<Message quote={{ author: "Ana", excerpt: "Lunch?" }}>'],
@@ -561,13 +564,216 @@ describe("Message chat", () => {
     expect(message.getBoundingClientRect().width).toBeLessThanOrEqual(600);
   });
 
-  it("puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint", async () => {
+  it("fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with a smaller corner toward its sender", async () => {
     const { host } = await render(
       <>
-        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41">
+        <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM">
           Morning!
         </Message>
         <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM">
+          Hi Mara
+        </Message>
+      </>,
+    );
+    const [other, mine] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const hostBox = host.getBoundingClientRect();
+    const theirs = getComputedStyle(bubbleOf(other!));
+    expect(theirs.backgroundColor).toBe(probeColor(host, "var(--muted)"));
+    expect(theirs.color).toBe(probeColor(host, "var(--foreground)"));
+    expect(theirs.boxShadow).toBe("none");
+    expect(bubbleOf(other!).getBoundingClientRect().left).toBeLessThan(hostBox.left + 60);
+    const own = getComputedStyle(bubbleOf(mine!));
+    expect(own.backgroundColor).toBe(probeColor(host, "var(--primary)"));
+    expect(own.color).toBe(probeColor(host, "var(--primary-foreground)"));
+    expect(bubbleOf(mine!).getBoundingClientRect().right).toBeGreaterThan(hostBox.right - 2);
+    // Round, with the corner at the bottom toward the sender smaller: the end for the user's own, the start for others'.
+    const radius = (style: CSSStyleDeclaration, corner: string) => Number.parseFloat(style.getPropertyValue(`border-${corner}-radius`));
+    expect(radius(own, "top-left")).toBeGreaterThanOrEqual(16);
+    expect(radius(own, "bottom-right")).toBeLessThan(radius(own, "bottom-left"));
+    expect(radius(theirs, "bottom-left")).toBeLessThan(radius(theirs, "bottom-right"));
+  });
+
+  it("keeps the primary color readable inside the user's filled bubble: a link or mention in it takes the bubble's text color", async () => {
+    const { host } = await render(
+      <Message variant="chat" role="user" name="Priya Okafor">
+        <p>
+          See <a href="#notes" style={{ color: "var(--primary)" }}>the notes</a> with <span style={{ color: "var(--muted-foreground)" }}>Mara</span>
+        </p>
+      </Message>,
+    );
+    const link = host.querySelector("a")!;
+    const ink = probeColor(host, "var(--primary-foreground)");
+    expect(getComputedStyle(link).color).toBe(ink);
+    // Muted text in it reads in the bubble's text color too, which the theme keeps readable on the primary color.
+    expect(getComputedStyle(host.querySelector("span[style]")!).color).toBe(ink);
+    // Inside it, each color the theme lends what it holds reads as the bubble's text color or its fill.
+    const fill = probeColor(host, "var(--primary)");
+    const inside = host.querySelector("p")!;
+    const read = (token: string) => {
+      const probe = document.createElement("span");
+      probe.style.color = `var(${token})`;
+      inside.append(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    };
+    for (const token of ["--foreground", "--muted-foreground", "--card-foreground", "--ouro-action", "--ring"]) expect(read(token), token).toBe(ink);
+    // A primary button's hover and press, and a hover's highlight, are shades between the two, never the page's own.
+    for (const token of ["--ouro-action-hover", "--ouro-action-active", "--accent"]) {
+      expect(read(token), token).not.toBe(ink);
+      expect(read(token), token).not.toBe(probeColor(host, "var(--ouro-bubble)"));
+    }
+    expect(read("--ouro-action-hover")).not.toBe(read("--ouro-action-active"));
+    for (const token of ["--primary-foreground", "--muted", "--card", "--ouro-action-foreground"]) expect(read(token), token).toBe(fill);
+    // Outside the bubble the theme is untouched.
+    expect(probeColor(host, "var(--primary)")).not.toBe(ink);
+  });
+
+  it("draws a reply given a bubble as a chat's message: the user's own filled at the end, others' at the start, and a reply without one unboxed", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="reply" bubble="filled" role="assistant" name="Mara Quill" time="9:41 AM">
+          Morning!
+        </Message>
+        <Message variant="reply" bubble="filled" role="user" name="Priya Okafor" time="9:45 AM">
+          Hi Mara
+        </Message>
+        <Message variant="reply" bubble="raised" role="user" name="Priya Okafor" time="9:46 AM">
+          Raised
+        </Message>
+        <Message variant="reply" role="user" name="Priya Okafor" time="9:47 AM">
+          Unboxed
+        </Message>
+      </>,
+    );
+    const [other, mine, raised, plain] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const hostBox = host.getBoundingClientRect();
+    expect(other!.dataset.variant).toBe("reply");
+    expect(other!.dataset.bubble).toBe("filled");
+    expect(getComputedStyle(bubbleOf(other!)).backgroundColor).toBe(probeColor(host, "var(--muted)"));
+    expect(bubbleOf(other!).getBoundingClientRect().left).toBeLessThan(hostBox.left + 60);
+    expect(getComputedStyle(bubbleOf(mine!)).backgroundColor).toBe(probeColor(host, "var(--primary)"));
+    expect(bubbleOf(mine!).getBoundingClientRect().right).toBeGreaterThan(hostBox.right - 2);
+    expect(visible(mine!.querySelector("[data-ouro-message-author]")!)).toBe(false);
+    expect(raised!.dataset.bubble).toBe("raised");
+    expect(getComputedStyle(bubbleOf(raised!)).backgroundColor).not.toBe(probeColor(host, "var(--primary)"));
+    expect(bubbleOf(raised!).getBoundingClientRect().right).toBeGreaterThan(hostBox.right - 2);
+    // Without a bubble a reply stays as it was: unboxed, at the start, under the user's name.
+    expect(plain!.hasAttribute("data-bubble")).toBe(false);
+    expect(getComputedStyle(bubbleOf(plain!)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(bubbleOf(plain!).getBoundingClientRect().left).toBeLessThan(hostBox.left + 60);
+    expect(visible(plain!.querySelector("[data-ouro-message-author]")!)).toBe(true);
+  });
+
+  const bubblesWithLinks = () =>
+    render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill">
+          <a href="#theirs">Their notes</a>
+        </Message>
+        <Message variant="chat" role="user" name="Priya Okafor">
+          <a href="#mine">My notes</a>
+        </Message>
+      </>,
+    );
+  const bubblesOf = (host: HTMLElement) => [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')].map((m) => bubbleOf(m));
+  const seen = (bubble: HTMLElement) => getComputedStyle(bubble).borderTopColor !== "rgba(0, 0, 0, 0)";
+
+  it("underlines a link in the user's own filled bubble, and gives both filled bubbles a clear edge", async () => {
+    const { host } = await bubblesWithLinks();
+    const [other, mine] = bubblesOf(host);
+    // The text's own color is the link's in the user's bubble, so the underline says it is one.
+    expect(getComputedStyle(mine!.querySelector("a")!).textDecorationLine).toContain("underline");
+    const edge = (bubble: HTMLElement) => {
+      const style = getComputedStyle(bubble);
+      return ["top", "right", "bottom", "left"].every((side) => parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 && style.getPropertyValue(`border-${side}-style`) === "solid");
+    };
+    expect([other, mine].every((b) => edge(b!))).toBe(true);
+    expect([other, mine].some((b) => seen(b!))).toBe(false);
+  });
+
+  chromiumOnly("keeps both filled bubbles' edges under forced colors", async () => {
+    try {
+      const { host } = await bubblesWithLinks();
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+      // Forced colors drop the fills and draw the border in the system's text color, so each bubble keeps its edge.
+      await expect.poll(() => bubblesOf(host).every((b) => seen(b))).toBe(true);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("fills the user's own bubble as a primary button is, from --ouro-action when the theme sets it", async () => {
+    const { host } = await render(
+      <div style={{ ["--ouro-action" as string]: "rgb(10, 20, 120)", ["--ouro-action-foreground" as string]: "rgb(250, 250, 250)" }}>
+        <Message variant="chat" role="user" name="Priya Okafor">
+          Hi Mara
+        </Message>
+      </div>,
+    );
+    const bubble = getComputedStyle(bubbleOf(host.querySelector<HTMLElement>('[data-ouro="message"]')!));
+    expect(bubble.backgroundColor).toBe("rgb(10, 20, 120)");
+    expect(bubble.color).toBe("rgb(250, 250, 250)");
+  });
+
+  it("keeps a link in the primary color at 4.5:1 or more on others' muted bubble", async () => {
+    const { host } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill">
+        <a href="#notes" style={{ color: "var(--primary)" }}>
+          the notes
+        </a>
+      </Message>,
+    );
+    const canvas = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+    const rgb = (color: string) => {
+      canvas.clearRect(0, 0, 1, 1);
+      canvas.fillStyle = color;
+      canvas.fillRect(0, 0, 1, 1);
+      return [...canvas.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+    };
+    const luminance = (color: string) =>
+      rgb(color)
+        .map((v) => v / 255)
+        .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i]!, 0);
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (hi! + 0.05) / (lo! + 0.05);
+    };
+    const bubble = bubbleOf(host.querySelector<HTMLElement>('[data-ouro="message"]')!);
+    const link = getComputedStyle(host.querySelector("a")!).color;
+    expect(contrast(link, getComputedStyle(bubble).backgroundColor)).toBeGreaterThanOrEqual(4.5);
+    // Muted text in it, such as a table's header, is a shade nearer the text color too.
+    const quiet = document.createElement("span");
+    quiet.style.color = "var(--muted-foreground)";
+    bubble.append(quiet);
+    expect(contrast(getComputedStyle(quiet).color, getComputedStyle(bubble).backgroundColor)).toBeGreaterThan(contrast(probeColor(host, "var(--muted-foreground)"), getComputedStyle(bubble).backgroundColor));
+    // A shade between the two, not the text color itself.
+    expect(rgb(getComputedStyle(quiet).color)).not.toEqual(rgb(getComputedStyle(bubble).color));
+    // And a success mark, a shade of the success color nearer the text color.
+    const done = document.createElement("span");
+    done.style.color = "var(--success)";
+    bubble.append(done);
+    expect(rgb(getComputedStyle(done).color)).not.toEqual(rgb(probeColor(host, "var(--success)")));
+    expect(rgb(getComputedStyle(done).color)).not.toEqual(rgb(getComputedStyle(bubble).color));
+    // A shade of the primary color nearer the text color: neither the theme's own primary nor the text color itself.
+    expect(link).not.toBe(probeColor(host, "var(--primary)"));
+    expect(rgb(link)).not.toEqual(rgb(getComputedStyle(bubble).color));
+    const [r, g, b] = rgb(link);
+    const [pr, pg, pb] = rgb(probeColor(host, "var(--primary)"));
+    // The same hue: its channels keep the primary color's order.
+    expect(Math.sign(b! - r!)).toBe(Math.sign(pb! - pr!));
+    expect(Math.sign(b! - g!)).toBe(Math.sign(pb! - pg!));
+  });
+
+  it("puts others' messages at the start on a raised bubble under their name and time, and the user's own at the end in a tint", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" bubble="raised" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41">
+          Morning!
+        </Message>
+        <Message variant="chat" bubble="raised" role="user" name="Priya Okafor" time="9:45 AM">
           Hi Mara
         </Message>
       </>,
@@ -812,13 +1018,44 @@ describe("Message rows", () => {
     expect(Math.abs(box.left - hostBox.left - (hostBox.right - box.right))).toBeLessThan(2);
   });
 
-  it("keeps a long chat message within 85% of the list's width", async () => {
-    const { host, message } = await render(
-      <Message variant="chat" role="assistant" name="Mara Quill">
-        {"A long message that goes on and on. ".repeat(20)}
-      </Message>,
+  it("marks a chat's message with its bubble, and leaves a post and the default layout as they are when given one", async () => {
+    const { host } = await render(
+      <>
+        <Message variant="chat" role="user" name="Priya Okafor">
+          Mine
+        </Message>
+        <Message variant="post" bubble="filled" role="user" name="Priya Okafor">
+          A post with <a href="#notes" style={{ color: "var(--primary)" }}>the notes</a>
+        </Message>
+        <Message bubble="filled" role="assistant" name="Ouro">
+          Default
+        </Message>
+      </>,
     );
-    expect(bubbleOf(message).getBoundingClientRect().width).toBeLessThanOrEqual(host.getBoundingClientRect().width * 0.85 + 1);
+    const [chat, post, plain] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(chat!.dataset.bubble).toBe("filled");
+    expect(post!.hasAttribute("data-bubble")).toBe(false);
+    expect(getComputedStyle(bubbleOf(post!)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    // Nor does a post re-point the theme's colors: its link is the page's.
+    expect(getComputedStyle(post!.querySelector("a")!).color).toBe(probeColor(host, "var(--primary)"));
+    expect(plain!.hasAttribute("data-bubble")).toBe(false);
+    // A chat's message with no bubble given takes the default and says nothing about it.
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps a bubble to 85% of its row and 36rem, however wide the window", async () => {
+    for (const bubble of ["filled", "raised"] as const) {
+      const { host, message } = await render(
+        <Message variant="chat" bubble={bubble} role="assistant" name="Mara Quill">
+          {"A long message that goes on and on. ".repeat(20)}
+        </Message>,
+      );
+      expect(bubbleOf(message).getBoundingClientRect().width).toBeLessThanOrEqual(host.getBoundingClientRect().width * 0.85 + 1);
+      host.style.width = "1800px";
+      const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+      expect(bubbleOf(message).getBoundingClientRect().width).toBeLessThanOrEqual(36 * rem + 1);
+      expect(bubbleOf(message).getBoundingClientRect().width).toBeGreaterThan(30 * rem);
+    }
   });
 });
 

@@ -2,7 +2,8 @@ name: Ouro check
 description: >-
   Runs Ouro check (node lib/ouro/check/check.ts, from the ouro-check item) on a built folder or
   URLs: every page at every screen size, light and dark, for overlap, sideways scroll, clipped
-  text, long lines, blurry pictures and serious axe-core violations. Writes the report to the job's
+  text, long lines, blurry pictures and serious axe-core violations, and measures layout shift, first
+  content and each press against their budgets. Writes the report to the job's
   summary and uploads the out folder (report.json, summary.md, a contact sheet per page and a
   captioned close-up per finding) as an artifact. With shard (k/n) it checks the kth of n shares;
   a later job with merge set joins every shard's artifact into one report. Run it after your
@@ -31,10 +32,10 @@ inputs:
     description: An earlier report.json, for a captioned before and after of each finding gone since.
     default: ""
   config:
-    description: The waivers file. Empty for ouro-check.json when it exists.
+    description: The waivers and budgets file. Empty for ouro-check.json when it exists.
     default: ""
   args:
-    description: Further options for check.ts, such as --no-axe or --ready-event app:drawn.
+    description: Further options for check.ts, such as --no-axe, --no-measured or --ready-event app:drawn.
     default: ""
   script:
     description: Where check.ts is.

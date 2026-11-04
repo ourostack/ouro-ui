@@ -56,6 +56,12 @@ interface Receipt {
 interface NextStep {
   command: string;
   why: string;
+  /**
+   * The step only works in a source checkout (a repository script, say), and the tool shows it only there. Without
+   * it, a step may not ask for a developer command or a repository path (ax-dev-commands), since an agent passes it
+   * on to a person who has the installed tool.
+   */
+  sourceCheckout?: true;
 }
 
 /** Why only a person can go on, and the step that resumes once they have. */

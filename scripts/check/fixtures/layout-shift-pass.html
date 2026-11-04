@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layout shift: passes</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}</style>
+<main data-app-ready="false"><h1>Layout shift</h1><div id="slot" style="height:320px"></div><p>This paragraph stays put: the banner arrives in room kept for it.</p>
+<div data-ouro-allow="layout-shift" data-ouro-allow-why="a ticker that moves on purpose"><p id="ticker">A ticker</p></div></main>
+<script>
+setTimeout(() => {
+  document.getElementById("slot").style.background = "#e8e4dc";
+  document.getElementById("ticker").style.marginTop = "320px";
+  document.querySelector("main").setAttribute("data-app-ready", "true");
+}, 300);
+</script>
