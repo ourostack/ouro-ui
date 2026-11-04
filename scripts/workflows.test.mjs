@@ -2282,7 +2282,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", COVERAGE: "failure" }).status, 1);
 });
 
-test("Screens checks a pull request's screens only when its change can reach the site build or the check, and every other run's always", () => {
+test("Screens checks a pull request's screens only when its change can reach the site build or the check, and main's daily", () => {
   const { text } = workflows.find(({ file }) => file === "screens.yml");
   const jobs = Object.fromEntries(text.split(/^jobs:\n/m)[1].split(/\n(?= {2}[\w-]+:\n)/).map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]));
   assert.deepEqual(Object.keys(jobs), ["changes", "screens-shard", "screens"]);
@@ -2296,7 +2296,10 @@ test("Screens checks a pull request's screens only when its change can reach the
   const pr = { EVENT: "pull_request", HEAD_REF: "fix", BASE_REF: "main" };
   assert.match(runStep(decide, pr).calls, /^CALL node scripts\/ci-relevance\.mjs screens HEAD\^1 HEAD$/m);
   assert.deepEqual(runStep(decide, pr, { nodeStatus: 1 }).output, { run: "true" });
-  for (const env of [{ EVENT: "push" }, { EVENT: "workflow_dispatch" }, { ...pr, HEAD_REF: "release/v1.0.0" }]) {
+  // Main is checked daily and on demand, never on each push: a push to main is a change a pull request's run already checked.
+  assert.match(text, /^on:\n {2}pull_request:\n {2}schedule:\n {4}- cron: "[^"]+"\n {2}workflow_dispatch:\n/m);
+  assert.doesNotMatch(text.split(/^permissions:/m)[0], /^ {2}push:/m);
+  for (const env of [{ EVENT: "schedule" }, { EVENT: "workflow_dispatch" }, { ...pr, HEAD_REF: "release/v1.0.0" }]) {
     const result = runStep(decide, env);
     assert.doesNotMatch(result.calls, /ci-relevance/);
     assert.deepEqual(result.output, { run: "true" });
