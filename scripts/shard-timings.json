@@ -476,6 +476,7 @@
     "registry/ouro/e2e/ouro/item-group.spec.ts": 6254,
     "registry/ouro/e2e/ouro/item.spec.ts": 10182,
     "registry/ouro/e2e/ouro/kbd.spec.ts": 2401,
+    "registry/ouro/e2e/ouro/level-meter.spec.ts": 3000,
     "registry/ouro/e2e/ouro/lightbox.spec.ts": 21530,
     "registry/ouro/e2e/ouro/link.spec.ts": 10421,
     "registry/ouro/e2e/ouro/local-date.spec.ts": 6543,
