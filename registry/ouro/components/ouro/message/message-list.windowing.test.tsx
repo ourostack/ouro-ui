@@ -1112,6 +1112,44 @@ describe("MessageList windowing", () => {
     expect(Math.abs(box("m150").top - view().top - 8)).toBeLessThanOrEqual(ROUNDING);
   });
 
+  it("reveals a message nearly as tall as the list from its top, from below, so its start shows clear of the edge", async () => {
+    const actions = createRef<MessageListActions>();
+    const { scroller } = await render(<Chat items={conversation(400, 0, true)} actionsRef={actions} />);
+    await act(async () => void actions.current!.reveal("m300", { block: "start" }));
+    await settle(scroller);
+    // Taller than the view less its two margins, but not taller than the view.
+    const room = scroller.clientHeight;
+    const message = document.getElementById("m300")!;
+    message.style.height = `${room - 4}px`;
+    await settle(scroller);
+    // Up a screen and a bit, so it lies below the view, still drawn.
+    await scrollTo(scroller, scroller.scrollTop - room - 100);
+    expect(message.getBoundingClientRect().top).toBeGreaterThan(scroller.getBoundingClientRect().bottom);
+    await act(async () => void actions.current!.reveal("m300", { block: "nearest" }));
+    await settle(scroller);
+    expect(Math.abs(message.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 8)).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("places the band by a child that draws a box, not by one first in the list that draws nothing, in a list down the page", async () => {
+    function Nothing() {
+      return null;
+    }
+    const { scroller } = await render(
+      <div style={{ paddingTop: 300 }}>
+        <Chat items={conversation(400, 0, true)} first={<Nothing key="intro" />} />
+      </div>,
+    );
+    await scrollTo(scroller, 0);
+    const drawn = ids(scroller).filter((id) => id !== 399);
+    expect(drawn[0]).toBe(0);
+    expect(drawn).toEqual(drawn.map((_, index) => index));
+    const view = scroller.getBoundingClientRect();
+    const last = document.getElementById(`m${drawn.at(-1)}`)!.getBoundingClientRect();
+    // Within a gap of the overscan's edge: the list counts a gap before the first message, which the empty child leaves out.
+    expect(last.top).toBeLessThan(view.bottom + 800 + 16);
+    expect(last.bottom + 16).toBeGreaterThanOrEqual(view.bottom + 800 - 1);
+  });
+
   it("leaves Jump to latest hidden when jumpToNewest runs at the end", async () => {
     const actions = createRef<MessageListActions>();
     const { scroller } = await render(<Chat items={conversation(300, 0, true)} actionsRef={actions} />);

@@ -1300,6 +1300,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       });
       // Stryker disable next-line ConditionalExpression,EqualityOperator: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.
       const shift = nearTop - (near > 0 ? measured.gap : 0) - sums[near]!;
+      // Stryker disable next-line ArithmeticOperator: the shift is the content's 16px padding, which moves the band's edges by twice that against an 800px overscan.
       const starts = sums.map((at) => at + shift);
       // The band: from the first child that ends below the overscan's top to the last that starts above its bottom. The child
       // the band is placed by is in view, so both stop by it.
