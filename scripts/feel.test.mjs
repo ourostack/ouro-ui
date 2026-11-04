@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { conversation, random } from "../feel/data/seed.ts";
 import { cases } from "../feel/cases.ts";
-import { html, judge, markdown, median, unitOf } from "../feel/report.ts";
+import { html, judge, markdown, median, passLine, unitOf } from "../feel/report.ts";
 import { BRIDGE, serveWithProbe } from "../feel/service.mts";
 import { scratchDir } from "./scratch.mjs";
 
@@ -26,17 +26,25 @@ test("Ouro Feel fails a case that never came to rest, and a limit on a measure t
   assert.throws(() => judge({ ...spec, limits: { anchorJumps: 0 } }, "webkit", [run({ jumps: 0 })]), /anchorJumps, which the probe did not measure/);
 });
 
-test("Ouro Feel's report names units by suffix and shows a spread only for repeated runs", () => {
+test("Ouro Feel's report leads with a pass line, names units by suffix and shows a spread only for repeated runs", () => {
   assert.equal(unitOf("anchorMovePx"), "px");
   assert.equal(unitOf("longestFrameMs"), "ms");
   assert.equal(unitOf("blankFrames"), "count");
   assert.equal(median([3, 1, 2]), 2);
   assert.equal(median([4, 1, 2, 3]), 2.5);
-  const one = markdown([judge(spec, "webkit", [run({ jumps: 0, longestFrameMs: 10 })])]);
-  assert.match(one, /\| `longestFrameMs` \| 10 ms \| 100 \| pass \|/);
+  const one = markdown([judge(spec, "webkit", [run({ jumps: 0, longestFrameMs: 10, rowsMounted: 4 })])], { "history-prepend": "Older messages arrive." });
+  assert.match(one, /\*\*✓ Pass: history-prepend in Playwright's WebKit 1, test, 1 run\. Every judged measure is within its limit\.\*\*/);
+  assert.match(one, /\nOlder messages arrive\.\n/);
+  assert.match(one, /\| The longest frame \| `longestFrameMs` \| 10 ms \| 100 ms \| ✓ pass \|/);
+  assert.match(one, /\| Rows added to the page \| `rowsMounted` \| 4 \|/);
   const three = markdown([judge(spec, "webkit", [run({ jumps: 0, longestFrameMs: 10 }), run({ jumps: 0, longestFrameMs: 30 }), run({ jumps: 0, longestFrameMs: 20 })])]);
-  assert.match(three, /\| `longestFrameMs` \| 20 ms \[10–30\], 3 runs \| 100 \| pass \|/);
-  assert.match(html([judge(spec, "webkit", [run({ jumps: 2, longestFrameMs: 10 })])]), /<tr class="over"><td><code>jumps<\/code><\/td><td>2<\/td><td>0<\/td><td>over<\/td><\/tr>/);
+  assert.match(three, /\| `longestFrameMs` \| 20 ms \[10–30\] \| 100 ms \| ✓ pass \|/);
+  const failed = judge(spec, "wkwebview", [run({ jumps: 2, longestFrameMs: 10 }), run({ jumps: 0, longestFrameMs: 10 }), run({ jumps: 0, longestFrameMs: 10 })]);
+  assert.equal(passLine(failed), "✗ Fail: history-prepend in WKWebView 1, test, 3 runs. jumps 2 (limit 0).");
+  const page = html([failed], { "history-prepend": "Older messages arrive." });
+  assert.match(page, /<p class="verdict fail">✗ Fail: history-prepend in WKWebView 1, test, 3 runs\. jumps 2 \(limit 0\)\.<\/p>/);
+  assert.match(page, /<tr class="over"><td>Jumps: the reader's row moved 100 px or more in a frame<br><code>jumps<\/code><\/td><td>0 \[0–2\]<\/td><td>0<\/td><td>✗ over<\/td><\/tr>/);
+  assert.match(page, /<figcaption>WKWebView at the end of run 3\. Older messages arrive\.<\/figcaption>/);
 });
 
 test("Ouro Feel's data is the same for the same seed, and made up", () => {
@@ -69,7 +77,12 @@ test("Ouro Feel's probe service puts the probe first in the page's head and driv
     const page = await (await globalThis.fetch(service.url)).text();
     assert.match(page, new RegExp(`<head><script src="${BRIDGE}probe\\.js" data-ouro-feel-bridge="${BRIDGE}"></script><title>`));
     assert.equal(await (await globalThis.fetch(new globalThis.URL(`${BRIDGE}probe.js`, service.url))).text(), "window.probe = 1;");
-    assert.equal((await globalThis.fetch(new globalThis.URL("../outside.txt", service.url))).status, 404);
+    // A sibling folder whose name starts with the root's is outside the root.
+    mkdirSync(`${dir}-sibling`, { recursive: true });
+    writeFileSync(`${dir}-sibling/secret.txt`, "no");
+    const sibling = `/..${dir.slice(dir.lastIndexOf("/"))}-sibling/secret.txt`;
+    assert.equal((await globalThis.fetch(new globalThis.URL(sibling, service.url))).status, 404);
+    assert.equal((await globalThis.fetch(new globalThis.URL(`${BRIDGE}result`, service.url), { method: "POST", body: "not json" })).status, 400);
 
     // The page's side, as the probe's bridge plays it: hello, take a command, answer it.
     const hello = service.hello();

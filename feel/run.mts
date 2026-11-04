@@ -156,9 +156,10 @@ try {
   service.close();
 }
 
+const does = Object.fromEntries(cases.map((spec) => [spec.name, spec.does]));
 writeFileSync(join(out, "feel-report.json"), `${JSON.stringify(entries, null, 2)}\n`);
-writeFileSync(join(out, "feel-report.md"), markdown(entries));
-writeFileSync(join(out, "feel-report.html"), html(entries));
-if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, markdown(entries), { flag: "a" });
-console.log(markdown(entries));
+writeFileSync(join(out, "feel-report.md"), markdown(entries, does));
+writeFileSync(join(out, "feel-report.html"), html(entries, does));
+if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, markdown(entries, does), { flag: "a" });
+console.log(markdown(entries, does));
 process.exitCode = entries.every((entry) => entry.pass) ? 0 : 1;

@@ -3,7 +3,7 @@
 // bare WKWebView, or an app's own shipped web view).
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { extname, join, resolve } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import type { RunResult } from "./probe/probe.ts";
 
 /** Where the service answers the probe: `<page>/ouro-feel/`. */
@@ -27,13 +27,25 @@ export interface ProbeService {
   close(): void;
 }
 
+/** The request's JSON body, or `undefined` when it is not JSON. */
 function body(request: IncomingMessage): Promise<unknown> {
-  return new Promise((done, fail) => {
+  return new Promise((done) => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
-    request.on("end", () => done(JSON.parse(Buffer.concat(chunks).toString("utf8") || "null")));
-    request.on("error", fail);
+    request.on("end", () => {
+      try {
+        done(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+      } catch {
+        done(undefined);
+      }
+    });
+    request.on("error", () => done(undefined));
   });
+}
+
+/** Answers 400 to a body that is not the JSON object the bridge sends. */
+function bad(response: ServerResponse): void {
+  response.writeHead(400, { "content-type": "text/plain" }).end("Ouro Feel's bridge takes a JSON object.");
 }
 
 /** Serves `root` on 127.0.0.1, with the probe at `probe` injected first in every HTML page's <head>. */
@@ -63,6 +75,7 @@ export function serveWithProbe(root: string, probe: string): Promise<ProbeServic
     }
     if (path === `${BRIDGE}hello` && request.method === "POST") {
       void body(request).then((hello) => {
+        if (typeof hello !== "object" || hello === null) return bad(response);
         for (const resolveHello of hellos.splice(0)) resolveHello(hello as { userAgent: string });
         response.writeHead(204).end();
       });
@@ -83,6 +96,7 @@ export function serveWithProbe(root: string, probe: string): Promise<ProbeServic
     }
     if (path === `${BRIDGE}result` && request.method === "POST") {
       void body(request).then((reply) => {
+        if (typeof reply !== "object" || reply === null) return bad(response);
         const { id, ...rest } = reply as { id: number } & Reply;
         replies.get(id)?.(rest as Reply);
         replies.delete(id);
@@ -90,9 +104,11 @@ export function serveWithProbe(root: string, probe: string): Promise<ProbeServic
       });
       return;
     }
+    // Inside the root only: a sibling folder that starts with the root's name is outside it.
+    const inside = (candidate: string) => candidate === base || candidate.startsWith(base + sep);
     let file = join(base, path);
-    if (file.startsWith(base) && existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
-    if (!file.startsWith(base) || !existsSync(file)) {
+    if (inside(file) && existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
+    if (!inside(file) || !existsSync(file)) {
       response.writeHead(404).end();
       return;
     }
