@@ -1,0 +1,285 @@
+# Chapter III's reported controls at 4x CPU, four arms, on 10 CI runners
+#
+# Probe workflow run (branch never merged): https://github.com/ourostack/ouro-ui/actions/runs/41887210463
+# (probe/chapter-three-latency-ab). On each runner the site was built from main (43a4732) and from the
+# change, and site/e2e/chapter-three.latency.spec.ts measured encounter-code, orders, saloon-code,
+# install, components and again on each arm in turn, three rounds, the arms' order reversed each
+# round: 20 presses after two warm-ups per control, as the latency job takes them.
+#   main:    main's harness (locator.click() on the throttled CPU) on main's site.
+#   harness: the press a person makes (aimed at full speed, then the mouse button alone) on main's site.
+#   fix:     harness, on the site with the squid's arm stirring as a drawing of its own.
+#   toasts:  fix, with the toasts earlier rounds left closed before each set-up.
+# Each line: runner, CPU, control, arm, then each round's p95 and median in ms. The pooled lines put
+# together every sample of an arm; "runs" counts runs (one arm, one round, one runner) whose six
+# controls all held p95 within 100 ms.
+
+ab-1 Platinum 8370C encounter-code main: p95 104 72 88 | median 80 64 64
+ab-1 Platinum 8370C encounter-code harness: p95 72 88 88 | median 64 72 64
+ab-1 Platinum 8370C encounter-code fix: p95 64 72 72 | median 56 72 64
+ab-1 Platinum 8370C encounter-code toasts: p95 64 64 64 | median 56 56 56
+ab-1 Platinum 8370C orders main: p95 80 72 80 | median 72 64 64
+ab-1 Platinum 8370C orders harness: p95 80 96 80 | median 64 72 72
+ab-1 Platinum 8370C orders fix: p95 80 88 80 | median 64 72 72
+ab-1 Platinum 8370C orders toasts: p95 64 80 72 | median 64 72 64
+ab-1 Platinum 8370C saloon-code main: p95 72 64 72 | median 72 56 64
+ab-1 Platinum 8370C saloon-code harness: p95 64 64 64 | median 56 56 56
+ab-1 Platinum 8370C saloon-code fix: p95 64 72 64 | median 56 64 56
+ab-1 Platinum 8370C saloon-code toasts: p95 56 64 64 | median 56 56 56
+ab-1 Platinum 8370C install main: p95 32 48 40 | median 28 40 24
+ab-1 Platinum 8370C install harness: p95 32 32 48 | median 32 32 48
+ab-1 Platinum 8370C install fix: p95 32 48 40 | median 28 48 24
+ab-1 Platinum 8370C install toasts: p95 40 40 40 | median 24 24 28
+ab-1 Platinum 8370C components main: p95 48 40 56 | median 40 32 40
+ab-1 Platinum 8370C components harness: p95 32 32 40 | median 32 32 32
+ab-1 Platinum 8370C components fix: p95 32 48 56 | median 32 32 32
+ab-1 Platinum 8370C components toasts: p95 48 40 32 | median 40 32 24
+ab-1 Platinum 8370C again main: p95 88 88 88 | median 72 72 72
+ab-1 Platinum 8370C again harness: p95 72 80 72 | median 56 64 64
+ab-1 Platinum 8370C again fix: p95 72 72 64 | median 56 64 64
+ab-1 Platinum 8370C again toasts: p95 80 80 72 | median 64 64 56
+ab-2 EPYC 9V74 encounter-code main: p95 64 56 72 | median 56 56 56
+ab-2 EPYC 9V74 encounter-code harness: p95 64 64 72 | median 56 48 56
+ab-2 EPYC 9V74 encounter-code fix: p95 48 56 56 | median 48 48 48
+ab-2 EPYC 9V74 encounter-code toasts: p95 56 72 56 | median 48 56 56
+ab-2 EPYC 9V74 orders main: p95 48 64 64 | median 48 56 56
+ab-2 EPYC 9V74 orders harness: p95 72 56 72 | median 56 48 64
+ab-2 EPYC 9V74 orders fix: p95 56 64 64 | median 48 48 56
+ab-2 EPYC 9V74 orders toasts: p95 56 72 56 | median 48 64 56
+ab-2 EPYC 9V74 saloon-code main: p95 40 56 56 | median 40 48 48
+ab-2 EPYC 9V74 saloon-code harness: p95 64 56 56 | median 52 48 48
+ab-2 EPYC 9V74 saloon-code fix: p95 48 64 56 | median 40 48 56
+ab-2 EPYC 9V74 saloon-code toasts: p95 56 72 64 | median 48 56 56
+ab-2 EPYC 9V74 install main: p95 24 40 40 | median 24 40 40
+ab-2 EPYC 9V74 install harness: p95 48 48 32 | median 48 40 24
+ab-2 EPYC 9V74 install fix: p95 32 56 32 | median 28 36 24
+ab-2 EPYC 9V74 install toasts: p95 32 32 40 | median 24 24 24
+ab-2 EPYC 9V74 components main: p95 24 40 40 | median 24 40 40
+ab-2 EPYC 9V74 components harness: p95 32 32 32 | median 24 24 24
+ab-2 EPYC 9V74 components fix: p95 48 32 40 | median 36 24 24
+ab-2 EPYC 9V74 components toasts: p95 32 32 32 | median 24 24 24
+ab-2 EPYC 9V74 again main: p95 72 72 64 | median 48 56 56
+ab-2 EPYC 9V74 again harness: p95 56 48 72 | median 40 48 48
+ab-2 EPYC 9V74 again fix: p95 48 48 64 | median 40 40 56
+ab-2 EPYC 9V74 again toasts: p95 72 64 64 | median 56 48 48
+ab-3 EPYC 9V45 encounter-code main: p95 48 48 56 | median 40 40 44
+ab-3 EPYC 9V45 encounter-code harness: p95 40 40 64 | median 40 40 52
+ab-3 EPYC 9V45 encounter-code fix: p95 48 48 64 | median 40 48 56
+ab-3 EPYC 9V45 encounter-code toasts: p95 40 40 64 | median 40 40 56
+ab-3 EPYC 9V45 orders main: p95 48 56 64 | median 40 48 56
+ab-3 EPYC 9V45 orders harness: p95 48 40 64 | median 40 40 56
+ab-3 EPYC 9V45 orders fix: p95 48 48 72 | median 40 40 56
+ab-3 EPYC 9V45 orders toasts: p95 48 56 56 | median 40 40 48
+ab-3 EPYC 9V45 saloon-code main: p95 32 72 56 | median 32 56 56
+ab-3 EPYC 9V45 saloon-code harness: p95 40 40 64 | median 40 40 48
+ab-3 EPYC 9V45 saloon-code fix: p95 40 40 56 | median 32 32 52
+ab-3 EPYC 9V45 saloon-code toasts: p95 40 40 64 | median 32 32 48
+ab-3 EPYC 9V45 install main: p95 32 32 40 | median 24 24 40
+ab-3 EPYC 9V45 install harness: p95 32 32 48 | median 28 32 40
+ab-3 EPYC 9V45 install fix: p95 32 32 32 | median 32 32 24
+ab-3 EPYC 9V45 install toasts: p95 32 32 40 | median 32 32 24
+ab-3 EPYC 9V45 components main: p95 32 40 40 | median 20 24 40
+ab-3 EPYC 9V45 components harness: p95 32 24 32 | median 24 16 24
+ab-3 EPYC 9V45 components fix: p95 32 32 32 | median 28 32 24
+ab-3 EPYC 9V45 components toasts: p95 48 32 32 | median 40 28 24
+ab-3 EPYC 9V45 again main: p95 40 88 72 | median 32 56 56
+ab-3 EPYC 9V45 again harness: p95 48 40 64 | median 44 32 56
+ab-3 EPYC 9V45 again fix: p95 56 48 64 | median 48 32 48
+ab-3 EPYC 9V45 again toasts: p95 48 48 56 | median 48 48 56
+ab-4 Platinum 8370C encounter-code main: p95 88 72 72 | median 64 56 64
+ab-4 Platinum 8370C encounter-code harness: p95 72 80 72 | median 60 60 56
+ab-4 Platinum 8370C encounter-code fix: p95 64 64 64 | median 64 60 56
+ab-4 Platinum 8370C encounter-code toasts: p95 72 72 72 | median 64 60 64
+ab-4 Platinum 8370C orders main: p95 72 80 72 | median 64 64 64
+ab-4 Platinum 8370C orders harness: p95 80 80 72 | median 64 72 64
+ab-4 Platinum 8370C orders fix: p95 72 72 64 | median 64 64 64
+ab-4 Platinum 8370C orders toasts: p95 72 72 72 | median 64 64 64
+ab-4 Platinum 8370C saloon-code main: p95 56 64 64 | median 56 48 56
+ab-4 Platinum 8370C saloon-code harness: p95 56 64 72 | median 56 56 56
+ab-4 Platinum 8370C saloon-code fix: p95 64 64 56 | median 56 56 56
+ab-4 Platinum 8370C saloon-code toasts: p95 64 56 64 | median 56 56 56
+ab-4 Platinum 8370C install main: p95 40 32 32 | median 24 24 24
+ab-4 Platinum 8370C install harness: p95 32 32 40 | median 28 32 28
+ab-4 Platinum 8370C install fix: p95 40 32 48 | median 28 24 24
+ab-4 Platinum 8370C install toasts: p95 32 40 32 | median 28 24 24
+ab-4 Platinum 8370C components main: p95 48 32 32 | median 40 24 32
+ab-4 Platinum 8370C components harness: p95 40 40 32 | median 28 32 32
+ab-4 Platinum 8370C components fix: p95 56 40 40 | median 36 24 24
+ab-4 Platinum 8370C components toasts: p95 32 40 40 | median 24 24 24
+ab-4 Platinum 8370C again main: p95 88 80 56 | median 56 56 48
+ab-4 Platinum 8370C again harness: p95 72 72 56 | median 60 56 48
+ab-4 Platinum 8370C again fix: p95 72 64 80 | median 64 56 64
+ab-4 Platinum 8370C again toasts: p95 72 64 72 | median 56 56 64
+ab-5 EPYC 7763 encounter-code main: p95 64 72 64 | median 56 56 56
+ab-5 EPYC 7763 encounter-code harness: p95 64 64 56 | median 56 56 56
+ab-5 EPYC 7763 encounter-code fix: p95 64 64 64 | median 56 56 60
+ab-5 EPYC 7763 encounter-code toasts: p95 64 64 72 | median 56 56 56
+ab-5 EPYC 7763 orders main: p95 64 72 80 | median 56 60 64
+ab-5 EPYC 7763 orders harness: p95 72 72 88 | median 56 64 64
+ab-5 EPYC 7763 orders fix: p95 64 72 72 | median 56 60 64
+ab-5 EPYC 7763 orders toasts: p95 64 64 72 | median 56 56 64
+ab-5 EPYC 7763 saloon-code main: p95 48 56 72 | median 48 48 56
+ab-5 EPYC 7763 saloon-code harness: p95 56 64 64 | median 48 56 52
+ab-5 EPYC 7763 saloon-code fix: p95 56 56 64 | median 52 48 56
+ab-5 EPYC 7763 saloon-code toasts: p95 56 56 56 | median 48 48 52
+ab-5 EPYC 7763 install main: p95 40 56 40 | median 40 40 40
+ab-5 EPYC 7763 install harness: p95 48 40 32 | median 32 24 28
+ab-5 EPYC 7763 install fix: p95 32 48 40 | median 24 44 24
+ab-5 EPYC 7763 install toasts: p95 32 32 48 | median 24 24 24
+ab-5 EPYC 7763 components main: p95 40 40 32 | median 24 40 24
+ab-5 EPYC 7763 components harness: p95 32 32 32 | median 24 24 24
+ab-5 EPYC 7763 components fix: p95 32 32 32 | median 24 24 24
+ab-5 EPYC 7763 components toasts: p95 48 32 32 | median 32 24 24
+ab-5 EPYC 7763 again main: p95 64 72 64 | median 56 56 56
+ab-5 EPYC 7763 again harness: p95 72 64 72 | median 56 56 56
+ab-5 EPYC 7763 again fix: p95 64 64 64 | median 48 48 48
+ab-5 EPYC 7763 again toasts: p95 64 64 72 | median 64 64 64
+ab-6 EPYC 7763 encounter-code main: p95 64 56 48 | median 56 52 48
+ab-6 EPYC 7763 encounter-code harness: p95 56 64 56 | median 56 56 56
+ab-6 EPYC 7763 encounter-code fix: p95 64 56 56 | median 56 56 56
+ab-6 EPYC 7763 encounter-code toasts: p95 64 56 64 | median 56 56 52
+ab-6 EPYC 7763 orders main: p95 56 64 64 | median 56 56 56
+ab-6 EPYC 7763 orders harness: p95 56 64 64 | median 56 56 56
+ab-6 EPYC 7763 orders fix: p95 72 64 72 | median 56 56 64
+ab-6 EPYC 7763 orders toasts: p95 64 64 64 | median 56 56 60
+ab-6 EPYC 7763 saloon-code main: p95 64 48 64 | median 56 48 56
+ab-6 EPYC 7763 saloon-code harness: p95 56 56 56 | median 48 48 48
+ab-6 EPYC 7763 saloon-code fix: p95 56 56 56 | median 48 48 48
+ab-6 EPYC 7763 saloon-code toasts: p95 56 56 56 | median 48 48 48
+ab-6 EPYC 7763 install main: p95 40 40 40 | median 40 40 40
+ab-6 EPYC 7763 install harness: p95 48 48 48 | median 44 28 40
+ab-6 EPYC 7763 install fix: p95 48 48 32 | median 32 40 24
+ab-6 EPYC 7763 install toasts: p95 32 32 32 | median 24 24 24
+ab-6 EPYC 7763 components main: p95 32 32 24 | median 24 24 24
+ab-6 EPYC 7763 components harness: p95 32 32 32 | median 24 32 24
+ab-6 EPYC 7763 components fix: p95 32 32 32 | median 28 24 24
+ab-6 EPYC 7763 components toasts: p95 32 32 32 | median 24 28 28
+ab-6 EPYC 7763 again main: p95 64 48 64 | median 48 48 56
+ab-6 EPYC 7763 again harness: p95 64 48 48 | median 48 40 48
+ab-6 EPYC 7763 again fix: p95 64 64 64 | median 48 48 48
+ab-6 EPYC 7763 again toasts: p95 64 64 64 | median 48 48 48
+ab-7 EPYC 9V45 encounter-code main: p95 48 40 40 | median 48 32 40
+ab-7 EPYC 9V45 encounter-code harness: p95 72 40 48 | median 52 40 40
+ab-7 EPYC 9V45 encounter-code fix: p95 56 64 48 | median 48 48 40
+ab-7 EPYC 9V45 encounter-code toasts: p95 56 56 40 | median 48 52 40
+ab-7 EPYC 9V45 orders main: p95 48 40 48 | median 40 40 40
+ab-7 EPYC 9V45 orders harness: p95 64 48 40 | median 56 40 40
+ab-7 EPYC 9V45 orders fix: p95 64 64 48 | median 56 40 40
+ab-7 EPYC 9V45 orders toasts: p95 56 56 48 | median 48 48 40
+ab-7 EPYC 9V45 saloon-code main: p95 48 40 40 | median 40 32 32
+ab-7 EPYC 9V45 saloon-code harness: p95 56 40 40 | median 48 32 32
+ab-7 EPYC 9V45 saloon-code fix: p95 56 56 40 | median 48 48 40
+ab-7 EPYC 9V45 saloon-code toasts: p95 56 56 40 | median 44 48 40
+ab-7 EPYC 9V45 install main: p95 24 48 48 | median 24 48 48
+ab-7 EPYC 9V45 install harness: p95 32 48 32 | median 24 48 32
+ab-7 EPYC 9V45 install fix: p95 40 32 32 | median 24 24 32
+ab-7 EPYC 9V45 install toasts: p95 48 32 32 | median 32 24 32
+ab-7 EPYC 9V45 components main: p95 24 32 32 | median 24 24 24
+ab-7 EPYC 9V45 components harness: p95 48 32 32 | median 48 20 32
+ab-7 EPYC 9V45 components fix: p95 32 32 48 | median 24 32 44
+ab-7 EPYC 9V45 components toasts: p95 32 32 32 | median 24 24 24
+ab-7 EPYC 9V45 again main: p95 72 48 40 | median 48 32 32
+ab-7 EPYC 9V45 again harness: p95 56 40 40 | median 48 32 32
+ab-7 EPYC 9V45 again fix: p95 56 48 48 | median 48 32 48
+ab-7 EPYC 9V45 again toasts: p95 64 64 48 | median 56 56 48
+ab-8 EPYC 9V74 encounter-code main: p95 56 40 40 | median 48 40 40
+ab-8 EPYC 9V74 encounter-code harness: p95 48 48 48 | median 40 40 40
+ab-8 EPYC 9V74 encounter-code fix: p95 48 48 48 | median 48 44 48
+ab-8 EPYC 9V74 encounter-code toasts: p95 48 48 48 | median 48 48 48
+ab-8 EPYC 9V74 orders main: p95 48 48 48 | median 48 48 48
+ab-8 EPYC 9V74 orders harness: p95 48 48 48 | median 48 48 48
+ab-8 EPYC 9V74 orders fix: p95 56 56 48 | median 48 48 48
+ab-8 EPYC 9V74 orders toasts: p95 56 56 48 | median 48 48 48
+ab-8 EPYC 9V74 saloon-code main: p95 40 40 40 | median 40 40 40
+ab-8 EPYC 9V74 saloon-code harness: p95 48 48 48 | median 40 40 40
+ab-8 EPYC 9V74 saloon-code fix: p95 48 48 48 | median 40 40 40
+ab-8 EPYC 9V74 saloon-code toasts: p95 48 48 48 | median 40 40 40
+ab-8 EPYC 9V74 install main: p95 32 24 24 | median 24 24 24
+ab-8 EPYC 9V74 install harness: p95 32 32 32 | median 28 32 32
+ab-8 EPYC 9V74 install fix: p95 48 48 32 | median 48 48 32
+ab-8 EPYC 9V74 install toasts: p95 32 32 32 | median 28 28 24
+ab-8 EPYC 9V74 components main: p95 24 48 32 | median 24 40 24
+ab-8 EPYC 9V74 components harness: p95 32 32 24 | median 32 32 16
+ab-8 EPYC 9V74 components fix: p95 32 32 32 | median 32 28 32
+ab-8 EPYC 9V74 components toasts: p95 32 32 32 | median 28 24 28
+ab-8 EPYC 9V74 again main: p95 48 48 40 | median 40 40 40
+ab-8 EPYC 9V74 again harness: p95 40 48 40 | median 40 48 40
+ab-8 EPYC 9V74 again fix: p95 40 40 48 | median 32 40 48
+ab-8 EPYC 9V74 again toasts: p95 40 40 48 | median 40 36 48
+ab-9 EPYC 9V74 encounter-code main: p95 104 64 72 | median 96 56 56
+ab-9 EPYC 9V74 encounter-code harness: p95 88 64 64 | median 80 56 56
+ab-9 EPYC 9V74 encounter-code fix: p95 80 64 64 | median 72 56 56
+ab-9 EPYC 9V74 encounter-code toasts: p95 72 64 88 | median 64 64 56
+ab-9 EPYC 9V74 orders main: p95 112 64 64 | median 96 56 56
+ab-9 EPYC 9V74 orders harness: p95 112 80 64 | median 88 64 56
+ab-9 EPYC 9V74 orders fix: p95 112 72 64 | median 88 64 64
+ab-9 EPYC 9V74 orders toasts: p95 88 64 64 | median 64 56 60
+ab-9 EPYC 9V74 saloon-code main: p95 104 56 56 | median 88 56 48
+ab-9 EPYC 9V74 saloon-code harness: p95 80 56 56 | median 72 48 48
+ab-9 EPYC 9V74 saloon-code fix: p95 80 72 64 | median 72 56 52
+ab-9 EPYC 9V74 saloon-code toasts: p95 64 56 64 | median 56 56 48
+ab-9 EPYC 9V74 install main: p95 48 40 40 | median 40 40 40
+ab-9 EPYC 9V74 install harness: p95 64 40 48 | median 32 24 40
+ab-9 EPYC 9V74 install fix: p95 40 56 48 | median 24 36 28
+ab-9 EPYC 9V74 install toasts: p95 40 48 56 | median 24 24 24
+ab-9 EPYC 9V74 components main: p95 48 32 40 | median 40 24 40
+ab-9 EPYC 9V74 components harness: p95 40 40 48 | median 32 24 44
+ab-9 EPYC 9V74 components fix: p95 40 32 32 | median 32 24 24
+ab-9 EPYC 9V74 components toasts: p95 32 32 32 | median 24 24 24
+ab-9 EPYC 9V74 again main: p95 136 72 64 | median 88 56 56
+ab-9 EPYC 9V74 again harness: p95 88 72 64 | median 80 56 56
+ab-9 EPYC 9V74 again fix: p95 80 80 64 | median 64 64 56
+ab-9 EPYC 9V74 again toasts: p95 64 80 64 | median 64 64 56
+ab-10 Platinum 8370C encounter-code main: p95 88 88 64 | median 72 72 56
+ab-10 Platinum 8370C encounter-code harness: p95 72 88 72 | median 64 64 64
+ab-10 Platinum 8370C encounter-code fix: p95 64 72 72 | median 64 64 64
+ab-10 Platinum 8370C encounter-code toasts: p95 72 72 72 | median 64 64 64
+ab-10 Platinum 8370C orders main: p95 80 80 72 | median 68 72 64
+ab-10 Platinum 8370C orders harness: p95 80 96 80 | median 72 80 72
+ab-10 Platinum 8370C orders fix: p95 80 88 88 | median 64 72 72
+ab-10 Platinum 8370C orders toasts: p95 80 80 88 | median 64 72 72
+ab-10 Platinum 8370C saloon-code main: p95 64 88 72 | median 60 64 56
+ab-10 Platinum 8370C saloon-code harness: p95 64 72 64 | median 56 64 56
+ab-10 Platinum 8370C saloon-code fix: p95 64 72 72 | median 60 64 64
+ab-10 Platinum 8370C saloon-code toasts: p95 64 64 64 | median 56 64 56
+ab-10 Platinum 8370C install main: p95 32 40 48 | median 24 28 32
+ab-10 Platinum 8370C install harness: p95 48 48 40 | median 32 48 32
+ab-10 Platinum 8370C install fix: p95 40 32 40 | median 32 28 32
+ab-10 Platinum 8370C install toasts: p95 48 32 32 | median 40 28 28
+ab-10 Platinum 8370C components main: p95 40 48 40 | median 36 32 32
+ab-10 Platinum 8370C components harness: p95 40 40 40 | median 32 32 32
+ab-10 Platinum 8370C components fix: p95 40 32 32 | median 28 32 32
+ab-10 Platinum 8370C components toasts: p95 48 32 40 | median 28 24 24
+ab-10 Platinum 8370C again main: p95 72 88 80 | median 60 72 72
+ab-10 Platinum 8370C again harness: p95 72 80 80 | median 64 64 64
+ab-10 Platinum 8370C again fix: p95 72 80 80 | median 64 68 64
+ab-10 Platinum 8370C again toasts: p95 72 72 72 | median 64 64 64
+
+pooled encounter-code main: p95 88 median 56 samples 600 over 100 ms 9 runs over budget 2 of 30
+pooled encounter-code harness: p95 80 median 56 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled encounter-code fix: p95 72 median 56 samples 600 over 100 ms 1 runs over budget 0 of 30
+pooled encounter-code toasts: p95 72 median 56 samples 600 over 100 ms 1 runs over budget 0 of 30
+pooled orders main: p95 80 median 56 samples 600 over 100 ms 5 runs over budget 1 of 30
+pooled orders harness: p95 88 median 56 samples 600 over 100 ms 6 runs over budget 1 of 30
+pooled orders fix: p95 80 median 56 samples 600 over 100 ms 9 runs over budget 1 of 30
+pooled orders toasts: p95 80 median 56 samples 600 over 100 ms 1 runs over budget 0 of 30
+pooled saloon-code main: p95 72 median 56 samples 600 over 100 ms 3 runs over budget 1 of 30
+pooled saloon-code harness: p95 64 median 48 samples 600 over 100 ms 1 runs over budget 0 of 30
+pooled saloon-code fix: p95 64 median 48 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled saloon-code toasts: p95 64 median 48 samples 600 over 100 ms 2 runs over budget 0 of 30
+pooled install main: p95 48 median 32 samples 600 over 100 ms 1 runs over budget 0 of 30
+pooled install harness: p95 48 median 32 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled install fix: p95 48 median 24 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled install toasts: p95 48 median 24 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled components main: p95 40 median 32 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled components harness: p95 40 median 24 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled components fix: p95 48 median 24 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled components toasts: p95 48 median 24 samples 600 over 100 ms 0 runs over budget 0 of 30
+pooled again main: p95 88 median 56 samples 600 over 100 ms 9 runs over budget 1 of 30
+pooled again harness: p95 80 median 48 samples 600 over 100 ms 6 runs over budget 0 of 30
+pooled again fix: p95 72 median 48 samples 600 over 100 ms 2 runs over budget 0 of 30
+pooled again toasts: p95 72 median 56 samples 600 over 100 ms 0 runs over budget 0 of 30
+
+runs main: 28 of 30 with every control within 100 ms
+runs harness: 29 of 30 with every control within 100 ms
+runs fix: 29 of 30 with every control within 100 ms
+runs toasts: 30 of 30 with every control within 100 ms
