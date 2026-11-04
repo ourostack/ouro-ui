@@ -101,9 +101,14 @@ const mosaicClass =
  */
 const mosaicCellClass = "relative m-0 min-h-0 min-w-0 p-0 [&:first-child:nth-last-child(3)]:row-span-2";
 
-/** A mosaic's picture fills its cell. @internal */
+/**
+ * A mosaic's picture fills its cell from its corners. Pinned to the cell rather than sized by a percentage height, which
+ * WebKit resolves slowly inside a grid cell within nested flex columns, so a channel of pictures lays out quickly. @internal
+ *
+ * @claim "fills its cell from its corners" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > pins each picture to its cell's corners, with no percentage height to resolve, and fills it exactly)
+ */
 const mosaicThumbnailClass =
-  "group press relative box-border block size-full m-0 p-0 overflow-hidden cursor-zoom-in border-0 bg-muted " +
+  "group press absolute inset-0 box-border block size-full m-0 p-0 overflow-hidden cursor-zoom-in border-0 bg-muted " +
   "[-webkit-tap-highlight-color:transparent] motion-safe:active:scale-(--ouro-press-scale) " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
