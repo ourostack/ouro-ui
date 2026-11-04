@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { bindAx, expectAxRendered } from "@/registry/ouro/ax/component";
 import { Porthole, type PortholeFixed, type PortholeProps } from "@/registry/ouro/components/ouro/porthole/porthole";
-import { PORTHOLE_ANNOUNCE_GAP_MS, portholeAx } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
+import { PORTHOLE_ANNOUNCE_GAP_MS, PORTHOLE_HOVER_DELAY_MS, portholeAx } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
 import type { PortholeArea, PortholeItem, PortholeSnapshot, PortholeSource } from "@/registry/ouro/lib/ouro/porthole-view";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -386,7 +386,7 @@ describe("Porthole", () => {
     const content = pill.firstElementChild as HTMLElement;
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
     await expect.poll(() => pill.style.width === `${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
-    expect(getComputedStyle(pill).transitionProperty).toBe("width");
+    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color");
     await view.rerender(base(fixed([item("sync", "working", { label: "Catching up on a great many messages" })])));
     // Once the width has eased to fit, the style holds what the content and the pill's edges need.
     await expect.poll(() => pill.style.width === `${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px` && getComputedStyle(pill).width === pill.style.width).toBe(true);
@@ -401,6 +401,13 @@ describe("Porthole", () => {
       const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
       const content = pill.firstElementChild as HTMLElement;
       expect(pill.style.width).toBe(`${content.offsetWidth + pill.offsetWidth - pill.clientWidth}px`);
+      // A new line, and the lines opening, measure again at once, with no observer to report them.
+      const before = parseFloat(pill.style.width);
+      await view.rerender(base(fixed([item("sync", "working", { label: "Catching up on a great many messages" })])));
+      expect(parseFloat(pill.style.width)).toBeGreaterThan(before);
+      (view.host as HTMLElement).style.width = "200px";
+      await act(() => view.spot.click());
+      expect(view.porthole.style.getPropertyValue("--ouro-porthole-room")).toBe("200px");
     } finally {
       vi.unstubAllGlobals();
     }
@@ -457,6 +464,59 @@ describe("Porthole", () => {
     expect(await press("Escape")).toBe(false);
   });
 
+  it("watches the content, the whole line's unseen copy and the column, and measures again when one reports a new size", async () => {
+    const observed: Element[] = [];
+    let report = () => {};
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          report = callback;
+        }
+        observe(target: Element) {
+          observed.push(target);
+        }
+        disconnect() {}
+      },
+    );
+    try {
+      const view = await render(
+        <div style={{ width: 336 }}>
+          <Porthole label="Status" source={fixed()} />
+        </div>,
+      );
+      const column = view.host.firstElementChild as HTMLElement;
+      const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
+      expect(observed).toEqual([pill.firstElementChild, view.host.querySelector('[data-porthole-part="sizer"]'), column]);
+      column.style.width = "500px";
+      expect(view.porthole.style.getPropertyValue("--ouro-porthole-room")).toBe("336px");
+      report();
+      expect(view.porthole.style.getPropertyValue("--ouro-porthole-room")).toBe("500px");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("measures again as the whole line, the content or the column changes size, with no render", async () => {
+    const view = await render(
+      <div style={{ width: 336 }}>
+        <Porthole label="Status" source={fixed([item("update", "action", { label: "Version 2.4 is ready, with a calendar that loads faster" })])} />
+      </div>,
+    );
+    const column = view.host.firstElementChild as HTMLElement;
+    const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
+    await expect.poll(() => view.porthole.hasAttribute("data-porthole-truncated")).toBe(true);
+    // The whole line grows while the room stays the same: only its unseen copy changes size.
+    const before = parseFloat(pill.style.width);
+    view.porthole.style.letterSpacing = "2px";
+    await expect.poll(() => parseFloat(pill.style.width)).toBeGreaterThan(before);
+    // The column widens past the spot: only the column changes size, and the room follows it.
+    column.style.width = "2000px";
+    await expect.poll(() => view.porthole.style.getPropertyValue("--ouro-porthole-room")).toBe("2000px");
+    // Once the pill has eased to the whole line, the cut is gone: only the content changed size as it eased.
+    await expect.poll(() => view.porthole.hasAttribute("data-porthole-truncated")).toBe(false);
+  });
+
   it("in a narrow column, cuts its line short with an ellipsis, keeps its buttons whole, and leads the open lines with the whole line", async () => {
     const long = "Version 2.4 is ready, with a calendar that loads faster";
     const update = item("update", "action", { label: long, action: { id: "restart", label: "Restart to update" }, dismissable: true });
@@ -504,12 +564,15 @@ describe("Porthole", () => {
   it("keeps the open lines inside a narrow column, from the start edge in either direction", async () => {
     const lines = ["Calendar: verified 3 min ago, in trouble for 1 min, while the server took its time to answer"];
     for (const dir of ["ltr", "rtl"] as const) {
+      // The column itself sits 40px in from the page's left, so the room counts from the column's edges.
       const view = await render(
-        <div dir={dir} style={{ width: 400 }}>
-          <Porthole label="Status" style={{ marginInlineStart: 100 }} defaultOpen source={fixed([item("sync", "working", { label: "Catching up", detail: lines })])} />
+        <div style={{ paddingLeft: 40 }}>
+          <div dir={dir} style={{ width: 400 }}>
+            <Porthole label="Status" style={{ marginInlineStart: 100 }} defaultOpen source={fixed([item("sync", "working", { label: "Catching up", detail: lines })])} />
+          </div>
         </div>,
       );
-      const column = (view.host.firstElementChild as HTMLElement).getBoundingClientRect();
+      const column = (view.host.firstElementChild!.firstElementChild as HTMLElement).getBoundingClientRect();
       await expect.poll(() => view.porthole.style.getPropertyValue("--ouro-porthole-room")).toBe("300px");
       const panel = view.panel!.getBoundingClientRect();
       expect(panel.width).toBeLessThanOrEqual(300);
@@ -527,10 +590,118 @@ describe("Porthole", () => {
       </div>,
     );
     expect(over.panel!.getBoundingClientRect().bottom).toBeLessThanOrEqual(over.spot.getBoundingClientRect().top);
+    const bottom = await render(base(fixed(), { defaultOpen: true, side: "bottom" }));
+    expect(bottom.panel!.getBoundingClientRect().top).toBeGreaterThanOrEqual(bottom.spot.getBoundingClientRect().bottom);
     expect(warn).not.toHaveBeenCalled();
-    const unknown = await render(base(fixed(), { defaultOpen: true, side: "left" }));
+    const unknown = await render(base(fixed(), { defaultOpen: true, side: "left" as unknown as PortholeProps["side"] }));
     expect(unknown.panel!.getBoundingClientRect().top).toBeGreaterThanOrEqual(unknown.spot.getBoundingClientRect().bottom);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Porthole: side="left" is not an option; use "top" or "bottom". Fix: <Porthole side="top" />.');
+  });
+
+  it("never opens for a touch resting on it, nor after a press that came inside the delay, nor once it has left the page", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const view = await render(base(fixed()));
+    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "touch" })));
+    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
+    expect(view.panel).toBeNull();
+    // A mouse comes to rest, then presses twice before the delay ends: the presses decide, and it stays closed.
+    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
+    await act(() => view.spot.click());
+    await act(() => view.spot.click());
+    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
+    expect(view.panel).toBeNull();
+    // Leaving the page with the delay running clears it.
+    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse" })));
+    const idle = vi.getTimerCount();
+    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
+    expect(vi.getTimerCount()).toBe(idle + 1);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("opens for a mouse only once it rests there, lets presses through lines it opened that way, and closes as the mouse leaves", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const view = await render(base(fixed()));
+    await userEvent.hover(view.spot);
+    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS - 1));
+    expect(view.panel).toBeNull();
+    await act(() => vi.advanceTimersByTime(1));
+    expect(view.panel).not.toBeNull();
+    expect(getComputedStyle(view.panel!).pointerEvents).toBe("none");
+    // Passing over and away before the delay opens nothing.
+    await userEvent.unhover(view.spot);
+    expect(view.panel).toBeNull();
+    await userEvent.hover(view.spot);
+    await userEvent.unhover(view.spot);
+    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
+    expect(view.panel).toBeNull();
+    // Opened by a press, the lines take presses.
+    await userEvent.click(view.spot);
+    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
+    expect(view.panel).not.toBeNull();
+    expect(getComputedStyle(view.panel!).pointerEvents).toBe("auto");
+  });
+
+  it("at rest and fresh, shows the light alone and the words on hover or focus, in the same room, and keeps them with quiet={false}", async () => {
+    const quietView = await render(base(fixed()));
+    const shownView = await render(base(fixed(), { quiet: false }));
+    const words = (view: { host: HTMLElement }) => view.host.querySelector<HTMLElement>('[data-porthole-part="words"]')!;
+    const pillOf = (view: { host: HTMLElement }) => view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
+    expect(quietView.porthole.getAttribute("data-porthole-quiet")).toBe("");
+    expect(shownView.porthole.hasAttribute("data-porthole-quiet")).toBe(false);
+    await expect.poll(() => getComputedStyle(words(quietView)).opacity).toBe("0");
+    expect(getComputedStyle(pillOf(quietView)).borderColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(words(shownView)).opacity).toBe("1");
+    // The same room either way, so nothing moves when the words show.
+    const size = (view: { porthole: HTMLElement }) => {
+      const box = view.porthole.getBoundingClientRect();
+      return [box.width, box.height];
+    };
+    expect(size(quietView)).toEqual(size(shownView));
+    const before = quietView.porthole.getBoundingClientRect();
+    quietView.spot.focus();
+    await expect.poll(() => getComputedStyle(words(quietView)).opacity).toBe("1");
+    expect(getComputedStyle(pillOf(quietView)).borderColor).not.toBe("rgba(0, 0, 0, 0)");
+    const after = quietView.porthole.getBoundingClientRect();
+    expect([after.x, after.y, after.width, after.height]).toEqual([before.x, before.y, before.width, before.height]);
+    quietView.spot.blur();
+    await expect.poll(() => getComputedStyle(words(quietView)).opacity).toBe("0");
+    // The spot's name keeps the words while they are unseen.
+    expect(page.elementLocator(quietView.host).getByRole("button", { name: "Updated just now", exact: true }).element()).toBe(quietView.spot);
+    // Anything but rest and fresh always shows its words.
+    await quietView.rerender(base(fixed([item("sync", "working", { label: "Catching up" })])));
+    expect(quietView.porthole.hasAttribute("data-porthole-quiet")).toBe(false);
+    await expect.poll(() => getComputedStyle(words(quietView)).opacity).toBe("1");
+  });
+
+  it("rings the light of something to press, so it differs from rest and working by shape as well as colour", async () => {
+    const lightOf = async (source: PortholeFixed) => {
+      const view = await render(base(source));
+      return getComputedStyle(view.host.querySelector('[data-porthole-part="light"]')!);
+    };
+    const rest = await lightOf(fixed());
+    const action = await lightOf(fixed([item("current", "rest", { label: "Version 2 is installed", action: { id: "notes", label: "See what's new" } })]));
+    const update = await lightOf(fixed([item("update", "action")]));
+    expect(rest.boxShadow).toBe("none");
+    expect(action.boxShadow).not.toBe("none");
+    expect(update.boxShadow).toBe(action.boxShadow);
+    expect(action.backgroundColor).not.toBe(rest.backgroundColor);
+  });
+
+  it("edges its open lines with a hairline that reads on a light page and a dark one", async () => {
+    for (const dark of [false, true]) {
+      document.documentElement.classList.toggle("dark", dark);
+      try {
+        const view = await render(base(fixed(), { defaultOpen: true }));
+        const panel = getComputedStyle(view.panel!);
+        const page = getComputedStyle(document.body);
+        // The ring is the box shadow's last layer: drawn in the foreground's colour, faint, never the page's own.
+        expect(panel.boxShadow).toMatch(/0px 0px 0px 1px/);
+        expect(panel.boxShadow).not.toContain(page.backgroundColor);
+      } finally {
+        document.documentElement.classList.remove("dark");
+      }
+    }
   });
 
   it("passes its own attributes through, and warns about appearance classes", async () => {

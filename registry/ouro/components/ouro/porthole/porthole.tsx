@@ -19,7 +19,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { portholeView, type PortholeItem, type PortholeLabels, type PortholeSnapshot, type PortholeSource, type PortholeView } from "@/registry/ouro/lib/ouro/porthole-view";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { PORTHOLE_ANNOUNCE_GAP_MS, portholeLightClasses, portholeSides, type PortholeSide } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
+import { PORTHOLE_ANNOUNCE_GAP_MS, PORTHOLE_HOVER_DELAY_MS, portholeLightClasses, type PortholeSide } from "@/registry/ouro/components/ouro/porthole/porthole-styles";
 
 /**
  * A snapshot that does not change, with the time of its last beat: for a page rendered on the server, a story or a
@@ -57,6 +57,11 @@ export interface PortholeOwnProps {
   troubleAfterMs?: number | undefined;
   /** Starts open, showing the detail lines, as on a page about the app's status. @default false */
   defaultOpen?: boolean | undefined;
+  /**
+   * At rest and fresh, shows the light alone and the words on hover or focus, in the same room, so nothing moves.
+   * Pass `false` to keep the words showing. The spot's name holds them while they are unseen. @default true
+   */
+  quiet?: boolean | undefined;
   /** Where the detail lines open: under the spot, or over it for a spot at the foot of a column. @default "bottom" */
   side?: PortholeSide | (string & { 'Use "top" or "bottom"': never }) | undefined;
   /** Words for other languages. */
@@ -82,7 +87,7 @@ export interface PortholeOwnProps {
 export type PortholeProps = Omit<HTMLAttributes<HTMLDivElement>, keyof PortholeOwnProps> & PortholeOwnProps;
 
 // Stryker disable next-line ArrowFunction: React takes a missing unsubscribe as nothing to undo, which this is
-const quiet = () => () => {};
+const still = () => () => {};
 const onClient = () => true;
 // Stryker disable next-line ArrowFunction: undefined is as false as false to the one reader, a conditional
 const onServer = () => false;
@@ -149,6 +154,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
     labels,
     defaultOpen,
     side: sideProp,
+    quiet,
     onAction,
     onDismiss,
     className,
@@ -169,15 +175,15 @@ export function Porthole(props: PortholeProps): JSX.Element {
         /* istanbul ignore next @preserve -- production only */ "",
   );
 
-  const subscribe = useCallback((listener: () => void) => (live(source) ? source.subscribe(listener) : quiet()), [source]);
+  const subscribe = useCallback((listener: () => void) => (live(source) ? source.subscribe(listener) : still()), [source]);
   const getSnapshot = useCallback(() => (live(source) ? source.getSnapshot() : source.snapshot), [source]);
   const lastBeatAt = useCallback(() => (live(source) ? source.lastBeatAt() : source.lastBeatAt), [source]);
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const options = { freshWithinMs, heartbeatTimeoutMs, troubleAfterMs, labels };
-  const side: PortholeSide = portholeSides.includes(sideProp as PortholeSide) ? (sideProp as PortholeSide) : "bottom";
+  const top = sideProp === "top";
   // The server, and the hydration that must match it, judge as of the last beat, the one time both know; the render
   // right after hydration judges against the clock.
-  const hydrated = useSyncExternalStore(quiet, onClient, onServer);
+  const hydrated = useSyncExternalStore(still, onClient, onServer);
   const beat = lastBeatAt();
   // eslint-disable-next-line react-hooks/purity -- each render judges against the real clock; the one timeout renders again when that judgement would change
   const view = portholeView(snapshot, beat, hydrated ? Date.now() : beat, options);
@@ -189,7 +195,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
       ? () => [
           items !== undefined && ["items is not a prop; Porthole reads them from source", "<Porthole source={{ snapshot: { version: 1, items, areas }, lastBeatAt }} />"],
           status !== undefined && ["status is not a prop; Porthole decides it from source", "<Porthole source={statusSource} />"],
-          side !== sideProp && sideProp !== undefined && [`side="${String(sideProp)}" is not an option; use "top" or "bottom"`, '<Porthole side="top" />'],
+          sideProp !== undefined && sideProp !== "top" && sideProp !== "bottom" && [`side="${String(sideProp)}" is not an option; use "top" or "bottom"`, '<Porthole side="top" />'],
           view.item?.action !== undefined &&
             onAction === undefined && [`the item "${view.item.id}" offers an action, but onAction is not set, so its button is hidden`, "<Porthole onAction={(item, actionId) => service.act(item.id, actionId)} />"],
         ]
@@ -253,6 +259,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const open = pressed || hovered;
   const panelId = useId();
   const toggle = () => {
+    clearTimeout(intent.current);
     setHovered(false);
     setPressed(!pressed);
   };
@@ -263,14 +270,25 @@ export function Porthole(props: PortholeProps): JSX.Element {
     setPressed(false);
     setHovered(false);
   };
+  // A mouse that rests on the spot opens it; one passing over opens nothing.
+  const intent = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const enter = (event: PointerEvent<HTMLDivElement>) => {
     onPointerEnter?.(event);
-    if (event.pointerType === "mouse") setHovered(true);
+    if (event.pointerType !== "mouse") return;
+    // Stryker disable next-line BlockStatement,CallExpression: pointerenter does not come again before pointerleave, which clears the timer
+    clearTimeout(intent.current);
+    intent.current = setTimeout(() => setHovered(true), PORTHOLE_HOVER_DELAY_MS);
   };
   const leave = (event: PointerEvent<HTMLDivElement>) => {
     onPointerLeave?.(event);
+    clearTimeout(intent.current);
     setHovered(false);
   };
+  useEffect(
+    () => () => clearTimeout(intent.current),
+    // Stryker disable next-line ArrayDeclaration: any list that never changes clears the timer once, on leaving the page
+    [],
+  );
 
   const item = view.item;
   const action = item?.action !== undefined && onAction !== undefined ? item.action : null;
@@ -284,7 +302,8 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const content = useRef<HTMLDivElement>(null);
   const words = useRef<HTMLSpanElement>(null);
   const sizer = useRef<HTMLSpanElement>(null);
-  const fit = useCallback(() => {
+  const fit = useCallback(
+    () => {
     const box = pill.current!;
     const root = box.parentElement!;
     // The cut is how much wider the whole line (its unseen, unwrapped copy) is than the room the line has.
@@ -295,7 +314,10 @@ export function Porthole(props: PortholeProps): JSX.Element {
     const at = root.getBoundingClientRect();
     const room = getComputedStyle(root).direction === "rtl" ? at.right - host.left : host.right - at.left;
     root.style.setProperty("--ouro-porthole-room", `${room}px`);
-  }, []);
+    },
+    // Stryker disable next-line ArrayDeclaration: any list that never changes keeps the one measure
+    [],
+  );
   useLayoutEffect(fit, [fit, line.text, action?.label, dismissable, open]);
   useLayoutEffect(
     () => {
@@ -305,6 +327,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
       observer.observe(pill.current!.parentElement!.parentElement!);
       return () => observer.disconnect();
     },
+    // Stryker disable next-line ArrayDeclaration: fit never changes, so any list that never changes observes once
     [fit],
   );
   // A press anywhere else puts pinned lines away, as a popover's would.
@@ -336,6 +359,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
   });
 
   const toneClass = view.state === "error" ? "text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]" : view.state.startsWith("rest") || view.state === "unknown" ? "text-[color-mix(in_oklab,var(--muted-foreground)_88%,var(--foreground))]" : "text-foreground";
+  const hushed = quiet !== false && view.state === "rest-fresh" && !open;
   const fadeClass = "whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)";
 
   return (
@@ -344,6 +368,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
       data-ouro="porthole"
       data-porthole-state={view.state}
       data-open={open ? "" : undefined}
+      data-porthole-quiet={hushed ? "" : undefined}
       role="group"
       aria-label={label}
       onKeyDown={close}
@@ -354,7 +379,10 @@ export function Porthole(props: PortholeProps): JSX.Element {
       <div
         ref={pill}
         data-porthole-part="pill"
-        className="inline-flex h-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border border-border bg-card text-sm leading-5 text-card-foreground transition-[width] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-12"
+        className={cn(
+          "group/pill inline-flex h-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border border-border bg-card text-sm leading-5 text-card-foreground transition-[width,background-color,border-color] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-12",
+          hushed && "border-transparent bg-transparent focus-within:border-border focus-within:bg-card pointer-fine:hover:border-border pointer-fine:hover:bg-card",
+        )}
       >
         <div ref={content} className="inline-flex h-full w-max max-w-full min-w-0 items-center">
           <button
@@ -372,7 +400,14 @@ export function Porthole(props: PortholeProps): JSX.Element {
             )}
           >
             <Light view={view} />
-            <span ref={words} className="relative min-w-0 overflow-hidden">
+            <span
+              ref={words}
+              data-porthole-part="words"
+              className={cn(
+                "relative min-w-0 overflow-hidden transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)",
+                hushed && "opacity-0 group-focus-within/pill:opacity-100 pointer-fine:group-hover/pill:opacity-100",
+              )}
+            >
               <span ref={sizer} aria-hidden="true" data-porthole-part="sizer" className="invisible absolute start-0 top-0 whitespace-nowrap">
                 {line.text}
               </span>
@@ -422,8 +457,10 @@ export function Porthole(props: PortholeProps): JSX.Element {
           id={panelId}
           data-ouro-part="panel"
           className={cn(
-            "absolute start-0 z-10 w-max max-w-[min(24rem,calc(100vw-2rem),var(--ouro-porthole-room,24rem))] min-w-full rounded-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60 transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast)",
-            side === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5",
+            "absolute start-0 z-10 w-max max-w-[min(24rem,calc(100vw-2rem),var(--ouro-porthole-room,24rem))] min-w-full rounded-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-[color-mix(in_oklab,var(--foreground)_16%,transparent)] transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast)",
+            top ? "bottom-full mb-1.5" : "top-full mt-1.5",
+            // Opened by a resting mouse alone, the lines let presses through to what they cover.
+            !pressed && "pointer-events-none",
           )}
         >
           <ul className="m-0 grid list-none gap-1 p-0">

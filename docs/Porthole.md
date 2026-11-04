@@ -32,7 +32,9 @@ Type: `PortholeProps`.
 | `labels` | `PortholeWords` |  | Words for other languages. |
 | `onAction` | `((item: PortholeItem, actionId: string) => void)` |  | Called when the person presses the shown item's action, with the item and the action's id. Pass it to the service, which changes or removes the item: Porthole never changes an item itself. |
 | `onDismiss` | `((item: PortholeItem) => void)` |  | Called when the person dismisses a `dismissable` item. Pass it to the service, which removes the item. |
+| `quiet` | `boolean` | `true` | At rest and fresh, shows the light alone and the words on hover or focus, in the same room, so nothing moves. Pass `false` to keep the words showing. The spot's name holds them while they are unseen. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
+| `side` | `"top" \| "bottom"` | `"bottom"` | Where the detail lines open: under the spot, or over it for a spot at the foot of a column. |
 | `source` (required) | `PortholeSource \| PortholeFixed` |  | Where the status comes from: the app's mirror of its service (`getSnapshot`, `subscribe` and `lastBeatAt`), or a fixed `{ snapshot, lastBeatAt }`. |
 | `troubleAfterMs` | `number` | `5_000` | An area in trouble for this many ms stops counting as fresh. |
 

@@ -42,14 +42,15 @@ export const portholeLightClasses: Readonly<Record<PortholeState, string>> = {
   unknown: "bg-transparent ring-[1.5px] ring-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))] ring-inset",
   working: "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]",
   error: "bg-[color-mix(in_oklab,var(--destructive)_85%,var(--foreground))]",
-  action: "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]",
+  // A halo around the dot, so "something to press" differs from working by shape, not colour alone.
+  action: "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] ring-2 ring-[color-mix(in_oklab,var(--primary)_40%,transparent)] ring-offset-1 ring-offset-card",
 };
 
 /** Where the open lines show: under the spot, or over it. */
 export type PortholeSide = "bottom" | "top";
 
-/** The sides `side` takes, the default first. */
-export const portholeSides: readonly PortholeSide[] = ["bottom", "top"];
+/** How long a mouse rests on the spot before its lines open, in ms, so passing over it opens nothing. */
+export const PORTHOLE_HOVER_DELAY_MS = 300;
 
 /** How long after one spoken change the next may be spoken, in ms. */
 export const PORTHOLE_ANNOUNCE_GAP_MS = 10_000;

@@ -25,6 +25,7 @@ const sync: PortholeItem = { id: "sync", priority: "working", label: "Catching u
 const offline: PortholeItem = { id: "offline", priority: "error", label: "Can't reach the service", detail: ["Trying again every 30 seconds"], since: 40 * SECOND };
 const update: PortholeItem = { id: "update", priority: "action", label: "Version 2.4 is ready", action: { id: "restart", label: "Restart" }, detail: ["Restart to finish updating"], since: MINUTE };
 const upToDate: PortholeItem = { id: "update", priority: "rest", label: "Up to date", dismissable: true, detail: ["Version 2.4"], since: 3 * SECOND };
+const installed: PortholeItem = { id: "installed", priority: "rest", label: "Version 2.4 is installed", action: { id: "notes", label: "See what's new" }, since: 3 * SECOND };
 
 const column: CSSProperties = { display: "grid", gap: 16, justifyItems: "start", color: "var(--foreground)" };
 
@@ -38,8 +39,14 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** At rest, every area verified within the last minute. */
+/** At rest, every area verified within the last minute: the light alone, and the words on hover or focus. */
 export const RestFresh: Story = { render: (args) => <Porthole {...args} source={fixed([], fresh)} /> };
+
+/** At rest and fresh, with the words kept showing. */
+export const RestFreshWords: Story = { render: (args) => <Porthole {...args} quiet={false} source={fixed([], fresh)} /> };
+
+/** News that offers something to press reads as an action, with the action's ringed light. */
+export const NewsWithAction: Story = { render: (args) => <Porthole {...args} source={fixed([installed], fresh)} /> };
 
 /** At rest, with the calendar last verified four minutes ago: the real age, not "just now". */
 export const RestStale: Story = { render: (args) => <Porthole {...args} source={fixed([], { ...fresh, calendar: 4 * MINUTE + 10 * SECOND })} /> };
@@ -59,17 +66,19 @@ export const Action: Story = { render: (args) => <Porthole {...args} source={fix
 /** News that needs nothing, which the person may dismiss. */
 export const UpToDate: Story = { render: (args) => <Porthole {...args} source={fixed([upToDate], fresh)} /> };
 
-/** Every state, top to bottom: rest and fresh, rest and stale, unknown, working, error, and an action. */
+/** Every state, top to bottom: rest and fresh (quiet, then with its words), rest and stale, unknown, working, error, an action, and news with an action. */
 export const States: Story = {
   parameters: { screenshot: { name: "porthole-states" } },
   render: (args) => (
     <div style={column}>
       <Porthole {...args} label="Rest, fresh" source={fixed([], fresh)} />
+      <Porthole {...args} label="Rest, fresh, with its words" quiet={false} source={fixed([], fresh)} />
       <Porthole {...args} label="Rest, stale" source={fixed([], { ...fresh, calendar: 4 * MINUTE + 10 * SECOND })} />
       <Porthole {...args} label="Unknown" source={fixed([], fresh, 40 * SECOND)} />
       <Porthole {...args} label="Working" source={fixed([sync], fresh)} />
       <Porthole {...args} label="Error" source={fixed([offline], fresh)} />
       <Porthole {...args} label="Action" source={fixed([update], fresh)} />
+      <Porthole {...args} label="News with an action" source={fixed([installed], fresh)} />
     </div>
   ),
 };
@@ -80,6 +89,32 @@ export const Open: Story = {
   render: (args) => (
     <div style={{ minHeight: 180 }}>
       <Porthole {...args} defaultOpen source={fixed([], { ...fresh, calendar: 3 * MINUTE }, 0, { calendar: MINUTE })} />
+    </div>
+  ),
+};
+
+const longUpdate: PortholeItem = { ...update, label: "Version 2.4 is ready, with a calendar that loads faster", action: { id: "restart", label: "Restart to update" } };
+const refused: PortholeItem = {
+  id: "check",
+  priority: "error",
+  label: "The update server turned the update check away",
+  action: { id: "retry", label: "Try again" },
+  dismissable: true,
+  since: 5 * SECOND,
+};
+
+/**
+ * In a narrow column (336px): the line is cut short and its buttons stay whole, and a spot at the column's foot opens
+ * its lines over itself with `side="top"`, inside the column.
+ */
+export const Narrow: Story = {
+  parameters: { screenshot: { name: "porthole-narrow" } },
+  render: (args) => (
+    <div style={{ ...column, width: 336, gap: 24, paddingBottom: 8 }}>
+      <Porthole {...args} label="Update" source={fixed([longUpdate], fresh)} />
+      <Porthole {...args} label="Update check" source={fixed([refused], fresh)} />
+      <div style={{ height: 120 }} />
+      <Porthole {...args} label="Status" side="top" defaultOpen source={fixed([], { ...fresh, calendar: 3 * MINUTE }, 0, { calendar: MINUTE })} />
     </div>
   ),
 };
