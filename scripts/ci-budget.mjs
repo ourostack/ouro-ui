@@ -80,18 +80,20 @@ export function workSeconds(job) {
 /**
  * The critical path through `jobs` (the API's jobs of one run attempt) along the graph's `needs`:
  * its seconds and its jobs, each the slowest instance of its id. A job no API job matches (skipped,
- * or not in this run) adds nothing. This job is left out. With `work`, each job counts its work
- * time, setup left out (`workSeconds`).
+ * or not in this run) adds nothing. This job is left out, and so is fail-fast, which only watches
+ * the run: it runs from the start until every other job is done, queues included, so on congested
+ * runners its wait would be the path. With `work`, each job counts its work time, setup left out
+ * (`workSeconds`).
  */
 export function criticalPath(jobs, graph, { work = false } = {}) {
-  const nodes = graph.filter((node) => node.id !== self);
+  const nodes = graph.filter((node) => node.id !== self && node.id !== watcher);
   const slowest = new Map();
   const unmatched = [];
   for (const job of jobs) {
     // A matrix job its `if` skipped reports once, under its name with the expressions unexpanded.
     const node = nodes.find((candidate) => candidate.pattern.test(job.name) || candidate.template === job.name);
     if (!node) {
-      if (!graph.some((candidate) => candidate.id === self && candidate.pattern.test(job.name))) unmatched.push(job.name);
+      if (!graph.some((candidate) => (candidate.id === self || candidate.id === watcher) && candidate.pattern.test(job.name))) unmatched.push(job.name);
       continue;
     }
     const duration = job.conclusion === "skipped" ? 0 : work ? workSeconds(job) : seconds(job.started_at, job.completed_at);
