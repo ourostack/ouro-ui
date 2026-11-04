@@ -1213,6 +1213,66 @@ export const restoreTouch: BrowserCommand<[]> = async (ctx) => {
   await (await chromiumSession(ctx))?.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
 };
 
+/** A layer Chromium's compositor draws on its own, and the element it draws. */
+export interface CompositedLayer {
+  /** The element, as `TAG[data-ouro="…"][data-ouro-part="…"]` (with the attributes it has), or null for a layer of the page's own. */
+  element: string | null;
+  width: number;
+  height: number;
+}
+
+/**
+ * The page's composited layers now, from Chromium's compositor (CDP `LayerTree`), with the
+ * element that each draws. An element gets one while it has `will-change: transform` or a running
+ * transform animation, or when it overlaps one; compare the count at rest, during motion and once
+ * it has settled. Chromium only: it throws elsewhere.
+ *
+ * @example
+ * const before = await commands.compositedLayers();
+ * // … scroll, then wait for the motion to settle …
+ * expect(await commands.compositedLayers()).toHaveLength(before.length);
+ * @claim "with the element that each draws" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /DOM\.describeNode/)
+ * @claim "An element gets one while it has `will-change: transform`" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /compositedLayers lists a layer for an element only while it has will-change: transform/)
+ * @claim "Chromium only: it throws elsewhere" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /compositedLayers throws outside Chromium/)
+ */
+export const compositedLayers: BrowserCommand<[]> = async (ctx) => {
+  const session = await chromiumSession(ctx);
+  if (!session) throw new Error("compositedLayers: CDP is Chromium only");
+  type Layer = { backendNodeId?: number; width: number; height: number };
+  let layers: Layer[] | undefined;
+  const changed = (event: { layers?: Layer[] }) => {
+    if (event.layers) layers = event.layers;
+  };
+  session.on("LayerTree.layerTreeDidChange", changed);
+  try {
+    await session.send("LayerTree.enable");
+    // Chromium reports the whole tree with the next frame it draws; two frames ask for one.
+    // Runs in the page; written without DOM types, which an app's config for this file may lack.
+    for (let frame = 0; frame < 30 && layers === undefined; frame++) {
+      await ctx.page.evaluate(() => {
+        const page = globalThis as unknown as { requestAnimationFrame: (callback: () => void) => number };
+        return new Promise<void>((resolve) => page.requestAnimationFrame(() => page.requestAnimationFrame(resolve)));
+      });
+    }
+  } finally {
+    session.off("LayerTree.layerTreeDidChange", changed);
+    await session.send("LayerTree.disable");
+  }
+  if (layers === undefined) throw new Error("compositedLayers: Chromium sent no layer tree");
+  return Promise.all(
+    layers.map(async ({ backendNodeId, width, height }): Promise<CompositedLayer> => {
+      if (backendNodeId === undefined) return { element: null, width, height };
+      const { node } = await session.send("DOM.describeNode", { backendNodeId });
+      const attributes = node.attributes ?? [];
+      const named = ["data-ouro", "data-ouro-part"].flatMap((name) => {
+        const at = attributes.indexOf(name);
+        return at % 2 === 0 ? [`[${name}="${attributes[at + 1]}"]`] : [];
+      });
+      return { element: `${node.nodeName}${named.join("")}`, width, height };
+    }),
+  );
+};
+
 export type TouchStepOptions =
   | {
       /** `touchStart` puts the finger down and `touchMove` moves it. */
@@ -1341,7 +1401,7 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   }
 };
 
-export const commands = { emulateMedia, doubleTap, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
+export const commands = { compositedLayers, emulateMedia, doubleTap, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -1357,5 +1417,6 @@ declare module "vitest/browser" {
     resetPageZoom: () => Promise<void>;
     restoreTouch: () => Promise<void>;
     setPageZoom: (scale: number) => Promise<void>;
+    compositedLayers: () => Promise<CompositedLayer[]>;
   }
 }
