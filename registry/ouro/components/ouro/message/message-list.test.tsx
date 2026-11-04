@@ -2771,7 +2771,7 @@ describe("MessageList switching conversations", () => {
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
     await settle(list.scroller);
     expect(messagesOf(list.scroller)).toHaveLength(1000);
-    expect(list.scroller.querySelector('[data-ouro-message-list-column] > p')!.textContent).toBe("The start of your conversation");
+    expect(list.scroller.querySelector('[data-ouro-message-list-content] > p')!.textContent).toBe("The start of your conversation");
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
