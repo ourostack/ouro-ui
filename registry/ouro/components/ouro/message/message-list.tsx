@@ -1072,6 +1072,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const atOf = (node: Element) => boxOf(node).top - content.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
+      // Stryker disable next-line EqualityOperator: a message whose edge meets the view's to the pixel shows none of itself either way.
       const shown = (node: Element) => boxOf(node).bottom > view.top && boxOf(node).top < view.bottom;
       let all = [...content.querySelectorAll(items)];
       // When no message shows, what a child draws that holds none (a day's heading) holds the place: it may be all the view

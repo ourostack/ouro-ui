@@ -527,6 +527,18 @@ describe("MessageList windowing", () => {
     expect(inView(scroller, "row-900")).toBe(true);
   });
 
+  it("keeps a heading revealed far below the messages drawn in place while the messages around it are measured", async () => {
+    const actions = createRef<MessageListActions>();
+    const { scroller } = await render(
+      <Chat items={conversation(600, 0, true)} actionsRef={actions} before={(id) => (id === 400 ? <p key="day" id="day-400">Tuesday</p> : null)} />,
+    );
+    // From the top, where the messages drawn are all above where the heading goes.
+    await scrollTo(scroller, 0);
+    await act(async () => void actions.current!.reveal("day-400"));
+    await settle(scroller);
+    expect(Math.abs(offCentre(scroller, "day-400"))).toBeLessThanOrEqual(ROUNDING);
+  });
+
   it("reveals nothing, and says so, for an id no message has", async () => {
     const actions = createRef<MessageListActions>();
     const { scroller } = await render(<Chat items={conversation(200)} actionsRef={actions} />);
