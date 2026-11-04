@@ -1,0 +1,1 @@
+- Message: a bar with a menu now fetches Menu's code as it mounts, rather than on the first press of its menu button, so the menu opens without a wait; it is still not in the first paint.
