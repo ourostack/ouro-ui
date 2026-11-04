@@ -503,6 +503,17 @@ describe("layout-animation", () => {
         expect(layoutAnimationClass("transition-[grid-template-columns]")).toBe("grid-template-columns");
         expect(layoutAnimationClass("transition-shadow")).toBe(undefined);
     });
+    it("reads a shorthand of keywords only, or with a zero or missing duration, as naming no property", () => {
+        for (const value of ["unset", "initial", "inherit", "revert", "revert-layer", "none", "0s", "0ms ease", "all 0s", "height 0.0s 200ms", "height", "ease-in"]) {
+            expect(layoutTransitionProperty(value)).toBe(undefined);
+        }
+        expect(layoutTransitionProperty("opacity 0s, height 200ms")).toBe("height");
+        expect(layoutTransitionProperty("height var(--duration)")).toBe("height");
+        expect(layoutTransitionProperty("height", { list: true })).toBe("height");
+        expect(layoutAnimationClass("[transition:unset]")).toBe(undefined);
+        expect(layoutAnimationClass("[transition:0s]")).toBe(undefined);
+        expect(layout(`.reset { transition: initial; } .instant { transition: width 0s; }`, "app/app.css")).toEqual([]);
+    });
     it("never makes the component around it a hand-rolled control at its call sites", () => {
         const offenders = scanFiles({
             "app/components/panel.tsx": `export function Panel() { return <div className="transition-all" />; }`,

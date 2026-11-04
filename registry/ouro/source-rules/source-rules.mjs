@@ -382,20 +382,30 @@ export function isControlStateClass(token) {
 const LAYOUT_PROPERTY =
   /^(?:(?:min-|max-)?(?:width|height|inline-size|block-size)|top|right|bottom|left|inset(?:-[a-z-]+)?|(?:margin|padding)(?:-[a-z-]+)?|border(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?-width|(?:row-|column-)?gap|flex(?:-basis|-grow|-shrink)?|grid-template-(?:rows|columns)|font-size|line-height)$/;
 // The words of a transition shorthand that are not a property: times, easings and behaviors.
-const TRANSITION_TIMING = /^(?:-?[\d.]+m?s|ease(?:-in|-out|-in-out)?|linear(?:\(.*)?|step-start|step-end|steps\(.*|cubic-bezier\(.*|normal|allow-discrete|initial|inherit|unset|revert(?:-layer)?)$/;
+const TRANSITION_TIMING = /^(?:-?[\d.]+m?s|ease(?:-in|-out|-in-out)?|linear(?:\(.*)?|step-start|step-end|steps\(.*|cubic-bezier\(.*|normal|allow-discrete)$/;
+const TRANSITION_TIME = /^-?([\d.]+)m?s$/;
 
 /**
  * The first layout property, or `all`, that a CSS transition names: a `transition` shorthand
  * (one with no property animates `all`) or, with `{ list: true }`, a `transition-property` list.
+ * A shorthand transition whose duration is zero or left out animates nothing, so one made only of
+ * keywords (`unset`, `initial`, `inherit`, `revert`, `none`) or with `0s` names no property; a
+ * duration from a variable counts as one that runs.
  *
  * @claim "one with no property animates" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::layout-animation > reads a transition value as a shorthand or a property list)
+ * @claim "A shorthand transition whose duration" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::layout-animation > reads a shorthand of keywords only, or with a zero or missing duration, as naming no property)
  */
 export function layoutTransitionProperty(value, { list = false } = {}) {
   for (const segment of value.split(/,(?![^(]*\))/)) {
     const words = segment.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!list) {
+      // A shorthand's first time is its duration; with none, it lasts 0s unless a variable sets it.
+      const duration = words.find((word) => TRANSITION_TIME.test(word));
+      if (duration ? Number(duration.match(TRANSITION_TIME)[1]) === 0 : !words.some((word) => word.includes("var("))) continue;
+    }
     const found = words.find((word) => word === "all" || LAYOUT_PROPERTY.test(word));
     if (found) return found;
-    if (!list && words.length > 0 && words.every((word) => TRANSITION_TIMING.test(word))) return "all";
+    if (!list && words.every((word) => TRANSITION_TIMING.test(word))) return "all";
   }
   return undefined;
 }
