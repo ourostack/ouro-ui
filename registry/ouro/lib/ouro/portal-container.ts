@@ -1,6 +1,6 @@
 "use client";
 
-export { PortalScope, usePortalContainer };
+export { PortalScope, TooltipsHidden, usePortalContainer };
 export type { PortalContainerProps };
 
 import { createContext, createElement, useContext, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
@@ -15,6 +15,13 @@ import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 
 /** True inside an Ouro UI portal. */
 const InsidePortal = createContext(false);
+
+/**
+ * Internal: whether a container hides the controls inside it, as an auto-hiding `Toolbar` does
+ * once it fades. A `Tooltip` inside closes as it turns true, so it goes with the controls it
+ * names, and opens again as usual after.
+ */
+const TooltipsHidden = createContext(false);
 
 /**
  * Wraps what renders inside an Ouro UI portal, so a popup opened from it portals into it

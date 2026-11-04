@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { useCallback, useEffect, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
+import { useCallback, useContext, useEffect, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import {
   floatingAlign,
@@ -15,7 +15,7 @@ import {
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { PortalScope, TooltipsHidden, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 
 export type { FloatingAlign as TooltipAlign, FloatingSide as TooltipSide } from "@/registry/ouro/lib/ouro/floating";
 
@@ -199,9 +199,17 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     }
   }, []);
 
+  // Closed as the container it is in hides, such as a toolbar that fades out.
+  const hidden = useContext(TooltipsHidden);
+  const actions = useRef<BaseTooltip.Root.Actions>(null);
+  useEffect(() => {
+    if (hidden) actions.current!.close();
+  }, [hidden]);
+
   const portal = usePortalContainer("Tooltip");
   return (
     <BaseTooltip.Root
+      actionsRef={actions}
       onOpenChange={(next, details) => {
         // Never after a touch: a tap that focuses the trigger would otherwise show it,
         // and a phone has no way to hover it away.

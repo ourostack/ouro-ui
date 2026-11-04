@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState, type ReactNode, type SVGProps } from "react";
+import { useEffect, useState, type ReactNode, type SVGProps } from "react";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Toolbar, type ToolbarEntry } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
@@ -163,4 +163,107 @@ export const Disabled: Story = {
       <Toolbar label="Formatting" size="sm" disabled items={formatting.slice(0, 6)} />
     </Surface>
   ),
+};
+
+const MicIcon = icon(<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" />);
+const CameraIcon = icon(<path d="M3 7h12v10H3zM15 10l6-3v10l-6-3" />);
+const ShareIcon = icon(<path d="M3 5h18v12H3zM12 14V8M9 11l3-3 3 3M8 21h8" />);
+const CaptionsIcon = icon(<path d="M3 5h18v14H3zM10 10.5a2 2 0 1 0 0 3M17 10.5a2 2 0 1 0 0 3" />);
+
+/** A call's controls, as a calling app lays them out: the person's own Mic and Camera, then Share and Captions, then Leave after a divider. Each carries the id of its agent action (`axAction`). */
+const callControls: ToolbarEntry[] = [
+  { type: "toggle", label: "Mute", icon: MicIcon, hideLabel: true, shortcut: ["mod", "shift", "m"], axAction: "mute" },
+  { type: "toggle", label: "Camera off", icon: CameraIcon, hideLabel: true, shortcut: ["mod", "shift", "o"], axAction: "camera" },
+  { label: "Share", icon: ShareIcon, hideLabel: true, shortcut: ["mod", "shift", "e"], axAction: "share" },
+  { type: "toggle", label: "Captions", icon: CaptionsIcon, hideLabel: true, axAction: "captions" },
+  { type: "separator" },
+  { label: "Leave", axAction: "leave" },
+];
+
+/** A person's tile in the made-up meeting: a shape for their picture and their name on a plate. */
+function Person({ name, hue }: { name: string; hue: string }) {
+  return (
+    <div style={{ position: "relative", display: "grid", placeItems: "center", background: `color-mix(in oklab, ${hue} 35%, var(--muted))`, borderRadius: 12, overflow: "hidden" }}>
+      <div aria-hidden="true" style={{ width: "34%", aspectRatio: "1", borderRadius: "50%", background: `color-mix(in oklab, ${hue} 60%, var(--background))` }} />
+      <span style={{ position: "absolute", insetInlineStart: 8, top: 8, padding: "2px 8px", borderRadius: 6, background: "var(--background)", color: "var(--foreground)", fontSize: 12 }}>{name}</span>
+    </div>
+  );
+}
+
+/**
+ * A made-up meeting's stage, a picture-filled backdrop like a call's video, with the bar laid over
+ * the pictures at its bottom by the app's own wrapper.
+ */
+function Stage({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="group"
+      aria-label="Design review"
+      style={{
+        position: "relative",
+        width: 720,
+        maxWidth: "100%",
+        aspectRatio: "16 / 10",
+        boxSizing: "border-box",
+        padding: 12,
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 8,
+        borderRadius: "calc(var(--radius) + 4px)",
+        overflow: "hidden",
+        background: "linear-gradient(135deg, color-mix(in oklab, var(--primary) 30%, var(--muted)), var(--muted))",
+      }}
+    >
+      <Person name="Mara Lind" hue="var(--primary)" />
+      <Person name="Jonas Ek" hue="var(--chart-2, var(--secondary))" />
+      <Person name="Priya Raman" hue="var(--chart-3, var(--accent))" />
+      <Person name="Theo Okafor" hue="var(--chart-4, var(--muted-foreground))" />
+      {/* The wrapper passes presses through to the pictures beside the bar; a floating bar takes its own. */}
+      <div style={{ position: "absolute", insetInline: 0, bottom: 16, display: "flex", justifyContent: "center", paddingInline: 16, pointerEvents: "none" }}>{children}</div>
+    </div>
+  );
+}
+
+/** Floating over a video-like backdrop: `floating` draws the bar as glass over the call's pictures, solid when the system asks for less transparency or more contrast. The wrapper that places it is the app's. */
+export const Floating: Story = {
+  name: "Floating over a video-like backdrop",
+  render: () => (
+    <Stage>
+      <Toolbar label="Call controls" floating size="lg" items={callControls} />
+    </Stage>
+  ),
+  parameters: { screenshot: { name: "toolbar-floating" } },
+};
+
+/**
+ * `autoHide={3000}`: the bar fades 3 seconds after the pointer rests, and comes back on a pointer
+ * move over the stage or when focus enters it (Tab). It stays while the pointer is over it or
+ * keyboard focus is in it until the pointer moves, and a tooltip Tab showed goes with it. The app
+ * controls it with `hidden`, so its own mute shortcut, ⇧⌘M (Ctrl+Shift+M elsewhere), shows it,
+ * and no other key does. Faded, it is still in the accessibility tree.
+ */
+export const AutoHide: Story = {
+  render: function Render() {
+    const [hidden, setHidden] = useState(false);
+    const [muted, setMuted] = useState(false);
+    useEffect(() => {
+      const onKey = (event: KeyboardEvent) => {
+        if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.key.toLowerCase() !== "m") return;
+        event.preventDefault();
+        setMuted((value) => !value);
+        setHidden(false);
+      };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }, []);
+    const items = callControls.map((entry) => (entry.type === "toggle" && entry.label === "Mute" ? { ...entry, pressed: muted, onPressedChange: setMuted } : entry));
+    return (
+      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "minmax(0, 720px)" }}>
+        <Stage>
+          <Toolbar label="Call controls" floating autoHide={3000} hidden={hidden} onHiddenChange={setHidden} size="lg" items={items} />
+        </Stage>
+        <output style={{ fontSize: 13, color: "var(--muted-foreground)" }}>{hidden ? "Controls faded" : "Controls showing"}</output>
+      </div>
+    );
+  },
 };
