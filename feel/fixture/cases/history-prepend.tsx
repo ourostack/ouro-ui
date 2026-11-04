@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -17,10 +17,10 @@ interface Controls {
   setLoadingOlder: (loading: boolean) => void;
 }
 
-function Conversation({ controls }: { controls: { current?: Controls } }) {
+function Conversation({ onControls }: { onControls: (controls: Controls) => void }) {
   const [items, setItems] = useState(() => conversation(SEED, LOADED, PAGE));
   const [loadingOlder, setLoadingOlder] = useState(false);
-  controls.current = { setItems, setLoadingOlder };
+  useEffect(() => onControls({ setItems, setLoadingOlder }), [onControls]);
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", padding: 16, boxSizing: "border-box" }}>
       <MessageList label="Conversation with inbox-agent" hasOlder loadingOlder={loadingOlder} maxWidth={960} style={{ flex: 1 }}>
@@ -40,9 +40,9 @@ function Conversation({ controls }: { controls: { current?: Controls } }) {
  * promises to hold the reader's message in place in every frame.
  */
 export const historyPrepend: FeelCase = async (feel) => {
-  const controls: { current?: Controls } = {};
+  let controls: Controls | undefined;
   const host = document.getElementById("root")!;
-  flushSync(() => createRoot(host).render(<Conversation controls={controls} />));
+  flushSync(() => createRoot(host).render(<Conversation onControls={(given) => (controls = given)} />));
   await feel.rest(10);
   const scroller = host.querySelector('[data-ouro="message-list"] [data-ouro-part="scroller"]')!;
   // The reader has scrolled up near the start of what is loaded, where the next page comes in.
@@ -51,12 +51,12 @@ export const historyPrepend: FeelCase = async (feel) => {
 
   // The reader's message is the one in the middle of the view, which the probe follows frame by frame.
   feel.watch({ case: "history-prepend", scroller, rows: '[data-ouro="message"], [data-ouro-message-list-item]' });
-  controls.current!.setLoadingOlder(true);
+  controls!.setLoadingOlder(true);
   await feel.painted();
   await feel.painted();
   const older = conversation(SEED, PAGE, 0);
-  controls.current!.setItems([...older, ...conversation(SEED, LOADED, PAGE)]);
-  controls.current!.setLoadingOlder(false);
+  controls!.setItems([...older, ...conversation(SEED, LOADED, PAGE)]);
+  controls!.setLoadingOlder(false);
   const settled = await feel.rest(30);
   return feel.stop(settled);
 };

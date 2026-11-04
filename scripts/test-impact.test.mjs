@@ -107,12 +107,13 @@ test("no changed file at all runs everything", () => {
   assert.deepEqual(testImpact([], fixture()).full, true);
 });
 
-test("docs, change fragments, generated files and the site affect no component's tests", () => {
-  const impact = testImpact(["README.md", "docs/Checkbox.md", "changes/checkbox.md", "registry.json", "site/src/docs/catalog.json", "site/public/llms.txt", "UPGRADING.md"], fixture());
+test("docs, change fragments, generated files, the site and Ouro Feel affect no component's tests", () => {
+  const impact = testImpact(["README.md", "docs/Checkbox.md", "changes/checkbox.md", "registry.json", "site/src/docs/catalog.json", "site/public/llms.txt", "UPGRADING.md", "feel/probe/probe.ts"], fixture());
   assert.ok(impact.reasons.some((reason) => reason.startsWith("site/src/docs/catalog.json: the site")));
+  assert.ok(impact.reasons.includes("feel/probe/probe.ts: Ouro Feel, which its own workflow runs (feel.yml), no component's tests"));
   assert.equal(impact.full, false);
   assert.deepEqual(impact.components, []);
-  assert.equal(impact.reasons.length, 7);
+  assert.equal(impact.reasons.length, 8);
 });
 
 test("the reduced Vitest run keeps every project, measures coverage over the selected folders and the lib/ files they load, and filters the stories", () => {
