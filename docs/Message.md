@@ -31,7 +31,7 @@ The props the modes share. Type: `MessageProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. In a `MessageList` the list draws one bar for all its messages, on the message the pointer is over (or that keyboard focus is in, or was tapped), and hides it as the pointer leaves, the list scrolls under it, the window loses focus or the menu opens, so at most one bar shows and none stays behind. Escape hides it. |
+| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. Its code loads in the browser with the first message that has one; a message that mounts after that has its bar in its first render, so a conversation opened later draws each message once. In a `MessageList` the list draws one bar for all its messages, on the message the pointer is over (or that keyboard focus is in, or was tapped), and hides it as the pointer leaves, the list scrolls under it, the window loses focus or the menu opens, so at most one bar shows and none stays behind. Escape hides it. |
 | `actionsLabel` | `string` | `"Message actions"` | What screen readers hear for the action bar, for other languages. |
 | `actionsMenuLabel` | `string` | `Message actions for ${name}` | What screen readers hear for the menu a `MessageList` opens for the message. |
 | `actionsPlacement` | `"corner" \| "beside"` | `"beside"` on a `reply`, "corner" on a `chat` | Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the bubble's end, level with its top, so it covers neither the name nor the message and stays with the bubble however wide the row; where the row has no room left, it ends at the row's edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble. `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is over its top end, and the default layout's over its bubble's corner. |
@@ -418,7 +418,8 @@ interface MessageOwnProps {
    * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
    * (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over
    * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
-   * keys moving between its buttons. In a `MessageList` the list draws one bar for all its
+   * keys moving between its buttons. Its code loads in the browser with the first message that has one; a message that
+   * mounts after that has its bar in its first render, so a conversation opened later draws each message once. In a `MessageList` the list draws one bar for all its
    * messages, on the message the pointer is over (or that keyboard focus is in, or was tapped), and
    * hides it as the pointer leaves, the list scrolls under it, the window loses focus or the menu opens,
    * so at most one bar shows and none stays behind. Escape hides it.

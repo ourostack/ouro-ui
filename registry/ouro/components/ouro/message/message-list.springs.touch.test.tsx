@@ -22,6 +22,8 @@ async function render(node: ReactNode) {
   root = createRoot(host);
   await act(async () => root!.render(node));
   const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+  // Every message in: a long conversation puts its older messages in above the newest, a few a frame.
+  await expect.poll(() => scroller.querySelector("[data-ouro-message-list-drawing]")).toBeNull();
   return {
     scroller,
     messages: () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')],
