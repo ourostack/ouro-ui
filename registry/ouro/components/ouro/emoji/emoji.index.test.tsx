@@ -42,6 +42,25 @@ const ready = "the index of the same emoji was built more than 3 times within a 
 const warnings = () => warn.mock.calls.filter(([message]) => String(message).includes(ready));
 
 describe("catalogueIndex", () => {
+  it("compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures", () => {
+    const emoji = [...freshEmoji(), { ...freshEmoji(1)[0]!, skinTones: [{ id: `toned-${made}`, src: "/tone/1.png", text: "👋🏻" }] }];
+    const before = catalogueIndex(wrap([{ id: "all", label: "All", items: emoji }]));
+    // A CDN's addresses, signed afresh: new emoji objects, the same ids, text and shortcodes.
+    const moved = emoji.map((item) => ({ ...item, src: `${item.src}?signature=2` }));
+    const after = catalogueIndex(wrap([{ id: "all", label: "All", items: moved }]));
+    expect(after).not.toBe(before);
+    expect(after.pattern).toBe(before.pattern);
+    expect(after.textPattern).toBe(before.textPattern);
+    expect(after.textStarts).toBe(before.textStarts);
+    expect(after.byId.get(moved[0]!.id)).toEqual({ item: moved[0], tone: "default" });
+    expect(after.byText.get("👋🏻")).toEqual({ item: moved.at(-1), tone: "light" });
+    expect(after.byToken.get(moved[1]!.shortcodes![0]!)!.item).toBe(moved[1]);
+    // A change to what the emoji say compiles their patterns afresh.
+    const renamed = catalogueIndex(wrap([{ id: "all", label: "All", items: moved.map((item, at) => (at === 0 ? { ...item, text: "🦊" } : item)) }]));
+    expect(renamed.pattern).not.toBe(before.pattern);
+    expect(renamed.byText.get("🦊")!.item.id).toBe(moved[0]!.id);
+  });
+
   it("shares one index between fresh catalogue objects holding the same emoji", () => {
     const smileys = freshEmoji();
     const people = freshEmoji();

@@ -116,6 +116,31 @@ afterEach(async () => {
 });
 
 describe("EmojiPicker with a catalogue", () => {
+  it("reads none of its catalogue while closed, and builds what it shows once per catalogue as pickers open", async () => {
+    let reads = 0;
+    const counted: EmojiCatalogue = {
+      categories: catalogue.categories.map((category) => ({
+        ...category,
+        get items() {
+          reads++;
+          return category.items;
+        },
+      })),
+    };
+    // Each conversation's reply box: a picker of its own, closed.
+    await render(picker({ catalogue: counted }));
+    await render(picker({ catalogue: counted, quick: ["heart", "wave"] }));
+    expect(reads).toBe(0);
+    await userEvent.click(page.getByRole("button", { name: "React" }).first());
+    await expect.element(page.getByRole("dialog")).toBeVisible();
+    const built = reads;
+    expect(built).toBeGreaterThan(0);
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(page.getByRole("button", { name: "React" }).nth(1));
+    await expect.element(page.getByRole("dialog")).toBeVisible();
+    expect(reads).toBe(built);
+  });
+
   it("draws only the catalogue's images, each named by its emoji's name, with the custom category labelled by the app", async () => {
     await open({ quick: ["party"] });
     expect(headings()).toEqual(["Smileys", "Symbols", "Fernwood"]);

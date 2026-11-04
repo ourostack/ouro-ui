@@ -335,9 +335,14 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
  * screen readers, and the one in focus shows large with its name under the grid. Choosing one
  * calls `onSelect` and closes the picker; Escape closes it too.
  *
+ * A closed picker makes nothing from its emoji, so one in each conversation's reply box costs
+ * next to nothing to mount; the first to open makes what it shows from a catalogue, once for every
+ * picker given that catalogue.
+ *
  * Use `ReactionBar` instead to show a message's reactions and its few quick ones, with an
  * EmojiPicker beside it for the rest. Use `Command` instead for a searchable list of actions.
  *
+ * @claim "A closed picker makes nothing from its" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > reads none of its catalogue while closed, and builds what it shows once per catalogue as pickers open)
  * @group Chat
  * @see https://ui.ouro.bot/docs/emoji-picker
  *
@@ -465,7 +470,6 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
     onSkinToneChange?.(next);
   };
 
-  const content = usePickerContent(catalogue, categories, frequent, quick, renderEmoji, placeholder);
 
   // A presentation that is not one of Popover's is a popover there, and is no sheet here either.
   const asSheet = useSheetPresentation(presentation);
@@ -503,12 +507,8 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
         onOpenChange={setOpen}
         anchor={controlled ? anchor! : triggerRef}
       >
-        <Panel
-          categories={content.categories}
-          frequent={content.frequent}
-          quick={content.quick}
-          render={content.render}
-          toneGlyph={content.toneGlyph}
+        <PickerPanel
+          source={{ catalogue, categories, frequent, quick, renderEmoji, placeholder }}
           tone={tone}
           setTone={setTone}
           asSheet={asSheet}
@@ -565,6 +565,40 @@ function entryOf(item: EmojiItem): CatalogueEntry {
   return entry;
 }
 
+/**
+ * A catalogue's categories as the panel shows them, and the first of their emoji with tones: made once per catalogue, so a
+ * picker that mounts closed (one in each conversation's reply box, say) costs next to nothing after the first.
+ */
+function buildCatalogueContent(catalogue: EmojiCatalogue) {
+  const list = catalogue.categories.map((category) => ({ label: category.label, icon: category.icon, emoji: category.items.map(entryOf) }));
+  return { list, toned: list.flatMap((category) => category.emoji).find((entry) => entry.skinTones) };
+}
+const catalogueContents = new WeakMap<EmojiCatalogue, ReturnType<typeof buildCatalogueContent>>();
+function catalogueContent(catalogue: EmojiCatalogue) {
+  let made = catalogueContents.get(catalogue);
+  if (made === undefined) catalogueContents.set(catalogue, (made = buildCatalogueContent(catalogue)));
+  return made;
+}
+
+/** The emoji a picker offers, as its props give them, for the panel to make into what it shows. */
+interface PickerSource {
+  catalogue: EmojiCatalogue | undefined;
+  categories: readonly EmojiPickerCategory[] | undefined;
+  frequent: readonly EmojiPickerEmoji[] | readonly string[] | undefined;
+  quick: readonly EmojiPickerEmoji[] | readonly string[] | undefined;
+  renderEmoji: EmojiRender | undefined;
+  placeholder: string | ReactElement | undefined;
+}
+
+/**
+ * The panel, with what it shows made from the picker's emoji. Inside the popover, which renders it only while open, so a
+ * picker that mounts closed (one in each conversation's reply box, say) makes nothing.
+ */
+function PickerPanel({ source, ...rest }: { source: PickerSource } & Omit<Parameters<typeof Panel>[0], "categories" | "frequent" | "quick" | "render" | "toneGlyph">): JSX.Element {
+  const content = usePickerContent(source.catalogue, source.categories, source.frequent, source.quick, source.renderEmoji, source.placeholder);
+  return <Panel categories={content.categories} frequent={content.frequent} quick={content.quick} render={content.render} toneGlyph={content.toneGlyph} {...rest} />;
+}
+
 /** What the panel shows: the app's categories as they are, or a catalogue's as entries, with the frequent and quick ids found in it. */
 function usePickerContent(
   catalogue: EmojiCatalogue | undefined,
@@ -590,9 +624,9 @@ function usePickerContent(
     }
     const { byId } = catalogueIndex(catalogue);
     const byIds = (ids: string | undefined) => ids?.split("\n").flatMap((id) => (byId.has(id) ? [entryOf(byId.get(id)!.item)] : []));
-    const list = catalogue.categories.map((category) => ({ label: category.label, icon: category.icon, emoji: category.items.map(entryOf) }));
+    const { list, toned: firstToned } = catalogueContent(catalogue);
     const found = { frequent: byIds(frequentKey as string | undefined), quick: byIds(quickKey as string | undefined) };
-    const sample = [...(found.quick ?? []), ...(found.frequent ?? []), ...list.flatMap((category) => category.emoji)].find((entry) => entry.skinTones);
+    const sample = [...(found.quick ?? []), ...(found.frequent ?? [])].find((entry) => entry.skinTones) ?? firstToned;
     // Draws a catalogue's emoji: its image, in the tone, playing for its button unless told otherwise.
     const drawCatalogue: GlyphRender = (item, skinTone, play, priority) => (
       <Emoji item={(item as CatalogueEntry).image} skinTone={skinTone} play={play} placeholder={placeholder} fetchPriority={priority} />
