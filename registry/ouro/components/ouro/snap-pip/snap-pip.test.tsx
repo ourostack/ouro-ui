@@ -779,6 +779,8 @@ describe("SnapPiP", () => {
 
   it("notices a keep-out element that comes deep inside the container, with no render", async () => {
     const observe = vi.spyOn(MutationObserver.prototype, "observe");
+    const sizes = vi.spyOn(ResizeObserver.prototype, "observe");
+    const unobserve = vi.spyOn(ResizeObserver.prototype, "unobserve");
     const ref: { current: HTMLElement | null } = { current: null };
     await park();
     await render(self({ keepOut: [ref] }));
@@ -795,6 +797,15 @@ describe("SnapPiP", () => {
     await expect.poll(() => settling()).toBe(true);
     await rest();
     expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+    // It watches the element's size from then on, once, however often it renders.
+    await render(self({ keepOut: [ref] }));
+    expect(sizes.mock.calls.filter(([target]) => target === bar)).toHaveLength(1);
+    // Taken away, it stops watching it, and goes back to its corner.
+    ref.current = null;
+    bar.remove();
+    await expect.poll(() => unobserve.mock.calls.some(([target]) => target === bar)).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, BOTTOM]);
   });
 
   it("lets go of what it observes when it unmounts", async () => {
@@ -1079,8 +1090,10 @@ describe("SnapPiP", () => {
     await freeze();
     await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
     frames!.step(16);
-    // Toward the side it is on its way to: it says nothing mid-move.
+    // Toward the side it is on its way to: it says nothing mid-move, also once the announcer's 100ms delay has passed.
     await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    await wait(150);
+    expect(announced.count("Top right")).toBe(0);
     frames!.step(16);
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     rest();
@@ -1115,6 +1128,21 @@ describe("SnapPiP", () => {
     expect(element.getAttribute("data-size")).toBe("small");
     await render(self({ size: "large", onSizeChange }));
     expect(element.getBoundingClientRect().width).toBe(240);
+    // Option-Return is its key, not the page's.
+    const enter = new KeyboardEvent("keydown", { key: "Enter", altKey: true, bubbles: true, cancelable: true });
+    await act(async () => void element.dispatchEvent(enter));
+    expect(enter.defaultPrevented).toBe(true);
+    expect(onSizeChange).toHaveBeenLastCalledWith("small");
+  });
+
+  it("moves with Option and an arrow while its hint shows, and puts the hint away", async () => {
+    const onCornerChange = vi.fn();
+    await render(self({ onCornerChange }));
+    await tabTo();
+    expect(hintShown()).toBe(true);
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(onCornerChange.mock.calls).toEqual([["top-right"]]);
+    expect(hintShown()).toBe(false);
   });
 
   it("follows a controlled corner with the spring, and goes back to it when the app keeps it", async () => {
@@ -1174,6 +1202,29 @@ describe("SnapPiP", () => {
     expect(at()).toEqual([LEFT, TOP]);
     await expect.poll(() => announced.count("Top left")).toBe(1);
     expect(announced.changes.map((change) => change.text)).toEqual(["Top left"]);
+    announced.stop();
+  });
+
+  it("says nothing when the app keeps it where it was after a key, nor for the app's own move after that", async () => {
+    let setCorner: (corner: SnapPiPCorner) => void = () => {};
+    function Keeping() {
+      const [corner, set] = useState<SnapPiPCorner>("bottom-right");
+      setCorner = set;
+      return self({ corner, onCornerChange: () => {} });
+    }
+    const element = await render(<Keeping />);
+    const announced = watchAnnouncements();
+    element.focus();
+    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    expect(element.getAttribute("data-corner")).toBe("bottom-right");
+    await rest();
+    expect(at()).toEqual([RIGHT, BOTTOM]);
+    await act(async () => setCorner("top-left"));
+    await rest();
+    expect(at()).toEqual([LEFT, TOP]);
+    // Past the announcer's 100ms delay.
+    await wait(150);
+    expect(announced.changes).toEqual([]);
     announced.stop();
   });
 

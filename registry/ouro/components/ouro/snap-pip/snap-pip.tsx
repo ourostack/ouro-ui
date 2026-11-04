@@ -407,6 +407,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     const before = watched.current;
     const now = (latest.current.keepOut ?? []).flatMap((item) => ("current" in item && item.current ? [item.current] : []));
     watched.current = now;
+    // Stryker disable next-line BooleanLiteral: a reflow when nothing came or went finds the picture already at its place, and does nothing.
     let changed = false;
     for (const gone of before) {
       if (!now.includes(gone)) {
@@ -415,12 +416,15 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       }
     }
     for (const added of now) {
+      // Stryker disable next-line ConditionalExpression: observing an element again only brings a fresh size report, whose reflow finds nothing to do.
       if (!before.includes(added)) {
         watching.observe(added);
         changed = true;
       }
     }
+    // Stryker disable next-line ConditionalExpression: a reflow when nothing came or went finds the picture already at its place, and does nothing.
     if (changed) reflow(false);
+    // Stryker disable next-line ArrayDeclaration: reflow keeps its identity for the component's life, so any constant list keeps rewatch the same.
   }, [reflow]);
 
   // Measures the container, then follows it and its keep-outs as they resize, and its content as
