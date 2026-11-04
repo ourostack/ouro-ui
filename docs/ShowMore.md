@@ -168,7 +168,9 @@ What folded content holds, for ShowMore's first guess at whether it is longer th
 
 ```ts
 interface ShowMoreEstimate {
-  /** Its plain text, as a reader would read it, with its line breaks, each of which starts a line as it shows. */
+  /**
+   * Its plain text, as a reader would read it, with its line breaks, each of which starts a line as it shows.
+   */
   text?: string | undefined;
   /** The CSS pixels its pictures, cards and other blocks of known size take, besides the text. @default 0 */
   height?: number | undefined;

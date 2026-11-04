@@ -60,7 +60,10 @@ export interface ShowMoreOpenProps {
  * say: a message's own components, or pictures that size themselves.
  */
 export interface ShowMoreEstimate {
-  /** Its plain text, as a reader would read it, with its line breaks, each of which starts a line as it shows. */
+  /**
+   * Its plain text, as a reader would read it, with its line breaks, each of which starts a line as it shows.
+   * @claim "with its line breaks, each of which" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > counts each line of an estimate's text, as it shows with its line breaks)
+   */
   text?: string | undefined;
   /** The CSS pixels its pictures, cards and other blocks of known size take, besides the text. @default 0 */
   height?: number | undefined;
@@ -89,6 +92,8 @@ export type ShowMoreLinesProps = ShowMoreBaseProps & ShowMoreOpenProps & {
    * first frame, and long content starts folded. Without it, content holding a component or a picture with no height
    * starts folded, and shows whole a frame later if it fits.
    *
+   * @claim "Without it, content holding a component" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
+   * @claim "Without it, content holding a component" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > corrects a guess from the browser's layout: folded content that fits shows whole, and text that wraps more than guessed gets its button)
    * @claim "content clearly short shows whole from" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded)
    */
   estimate?: ShowMoreEstimate | undefined;
@@ -150,6 +155,8 @@ export type ShowMoreHeightProps = ShowMoreBaseProps & ShowMoreOpenProps & {
    * first frame, and long content starts folded. Without it, content holding a component or a picture with no height
    * starts folded, and shows whole a frame later if it fits.
    *
+   * @claim "Without it, content holding a component" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
+   * @claim "Without it, content holding a component" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > corrects a guess from the browser's layout: folded content that fits shows whole, and text that wraps more than guessed gets its button)
    * @claim "content clearly short shows whole from" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded)
    */
   estimate?: ShowMoreEstimate | undefined;
@@ -447,16 +454,25 @@ const clampClass = "line-clamp-(--ouro-show-more-lines)";
 const GUESS_LINE = 60;
 /** A line's height in px, roughly. */
 const GUESS_LINE_HEIGHT = 24;
-/** Wide characters (CJK, Hangul, full-width forms), which take about two of a line's characters each. */
+/**
+ * Wide characters (CJK, Hangul, full-width forms), which take about two of a line's characters each.
+ * @claim "Wide characters (CJK, Hangul, full-width forms)" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
+ * @claim "Wide characters (CJK, Hangul, full-width forms)" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded)
+ */
 const wide = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua960-\ua97f\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/g;
 /** Elements that start a block, and so a line, of their own. */
 const blocks = new Set(["p", "div", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "blockquote", "table", "tr", "figure", "hr", "br", "section", "article", "dl", "dt", "dd"]);
-/** Elements whose size only their content says: a picture with no height given. */
+/**
+ * Elements whose size only their content says: a picture with no height given.
+ * @claim "Elements whose size only their content" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
+ */
 const media = new Set(["img", "picture", "video", "canvas", "iframe", "object", "embed"]);
 
 /**
  * The text in `node`, in lines of GUESS_LINE characters and blocks, and the px its elements give themselves, and whether
  * anything in it is unseen: a component (what it renders is its own) or a picture with no height.
+ * @claim "The text in `node`, in lines" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
+ * @claim "The text in `node`, in lines" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > shows content clearly short and all seen whole from the start: %s)
  */
 function guessSize(node: ReactNode | ShowMoreEstimate): { lines: number; px: number; unseen: boolean } {
   if (isEstimate(node)) {
@@ -488,18 +504,28 @@ function guessSize(node: ReactNode | ShowMoreEstimate): { lines: number; px: num
   return { lines: Math.ceil(chars / GUESS_LINE) + blocksSeen, px, unseen };
 }
 
-/** Whether `node` is an app's estimate rather than content: a plain object, which no React node is. */
+/**
+ * Whether `node` is an app's estimate rather than content: a plain object, which no React node is.
+ * @claim "Whether `node` is an app's estimate" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded)
+ */
 const isEstimate = (node: ReactNode | ShowMoreEstimate): node is ShowMoreEstimate =>
   typeof node === "object" && node !== null && !Array.isArray(node) && !isValidElement(node) && Object.getPrototypeOf(node) === Object.prototype;
 
-/** Whether `node` is clearly shorter than `lines` lines: half of them or fewer, and all of it seen. */
+/**
+ * Whether `node` is clearly shorter than `lines` lines: half of them or fewer, and all of it seen.
+ * @claim "Whether `node` is clearly shorter than `lines`" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > gives text its button from the start unless it is clearly within half its lines)
+ */
 const clearlyFewerLines = (node: ReactNode | ShowMoreEstimate, lines: number) => {
   const size = guessSize(node);
   // A picture or card of a known height takes the lines it is as tall as.
   return !size.unseen && size.lines + Math.ceil(size.px / GUESS_LINE_HEIGHT) <= lines / 2;
 };
 
-/** Whether `node` is clearly shorter than `height` px: half of it or less, and all of it seen. */
+/**
+ * Whether `node` is clearly shorter than `height` px: half of it or less, and all of it seen.
+ * @claim "Whether `node` is clearly shorter than `height`" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > shows content clearly short and all seen whole from the start: %s)
+ * @claim "Whether `node` is clearly shorter than `height`" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
+ */
 const clearlyShorter = (node: ReactNode | ShowMoreEstimate, height: number) => {
   const size = guessSize(node);
   return !size.unseen && size.lines * GUESS_LINE_HEIGHT + size.px <= height / 2;
