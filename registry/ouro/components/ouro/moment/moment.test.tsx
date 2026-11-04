@@ -126,7 +126,7 @@ describe("Moment", () => {
       empty: "var(--muted-foreground)",
       loading: "var(--muted-foreground)",
       error: "var(--destructive)",
-      welcome: "var(--primary)",
+      "first-run": "var(--primary)",
       success: "var(--success)",
     } as const;
     for (const [kind, colour] of Object.entries(expected)) {
@@ -144,6 +144,13 @@ describe("Moment", () => {
     expect(named.host.querySelectorAll("[data-moment-art]")).toHaveLength(1);
     const bare = await render(<Moment kind="loading" title="Loading" />);
     expect(bare.host.querySelector("[data-moment-art]")).toBeNull();
+  });
+
+  it("takes welcome as first-run's older name, and says first-run", async () => {
+    const { moment, frame } = await render(<Moment kind="welcome" art={<Art />} title="Welcome in" />);
+    expect(moment!.getAttribute("data-moment")).toBe("first-run");
+    expect(getComputedStyle(frame!).color).toBe(colourOf("var(--primary)"));
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("hides the art from screen readers, or names it with artLabel", async () => {
@@ -889,13 +896,13 @@ describe("Moment dismissal", () => {
 
 describe("Moment development messages", () => {
   it.each([
-    ["kind", { title: "x", kind: "info" }, 'kind="info" is not a kind; use "empty", "loading", "error", "welcome", "success"', '<Moment kind="empty">'],
+    ["kind", { title: "x", kind: "info" }, 'kind="info" is not a kind; use "empty", "loading", "error", "first-run", "success"', '<Moment kind="empty">'],
     ["size", { title: "x", size: "small" }, 'size="small" is not a size; use "default", "hero", "inline"', "<Moment quiet>"],
     ["headingLevel", { title: "x", headingLevel: 1 }, "headingLevel must be 2, 3, 4, 5 or 6, got 1", "<Moment headingLevel={2}>"],
     ["cap per", { title: "x", id: "a", cap: { times: 1, per: "hour" } }, 'cap per "hour" is not a period; use "day", "week", "month", "ever"', '<Moment cap={{ times: 1, per: "day" }}>'],
     ["cap times", { title: "x", id: "a", cap: { times: 1.5, per: "day" } }, "cap times must be a whole number, 0 or more, got 1.5", '<Moment cap={{ times: 1, per: "day" }}>'],
     ["cap key", { title: "x", cap: { times: 1, per: "day" } }, "cap counts showings under dismissKey or id, and this moment has neither", '<Moment dismissKey="caught-up" cap={{ times: 1, per: "day" }}>'],
-    ["announce", { title: "x", kind: "welcome", announce: true }, 'announce speaks only success and error moments, not kind="welcome"', '<Moment kind="success" announce>'],
+    ["announce", { title: "x", kind: "welcome", announce: true }, 'announce speaks only success and error moments, not kind="first-run"', '<Moment kind="success" announce>'],
     ["icon", { title: "x", icon: "i" }, "icon is not a prop", "<Moment art={<Illustration />}>"],
     ["illustration", { title: "x", illustration: "i" }, "illustration is not a prop", "<Moment art={<Illustration />}>"],
     ["heading", { title: "x", heading: "No messages" }, "heading is not a prop", '<Moment title="No messages">'],
