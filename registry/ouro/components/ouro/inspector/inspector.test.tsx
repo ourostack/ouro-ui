@@ -639,6 +639,45 @@ describe("Inspector", () => {
     await drawn(3);
   });
 
+  it("measures once more the frame after motion ends, as WebKit can read the old style in the frame a transition ends, then rests", async () => {
+    const { host } = await render(
+      <Page>
+        <style>{".reveal [data-ouro] { opacity: 0 } .reveal:focus-within [data-ouro] { opacity: 1 }"}</style>
+        <div className="reveal">
+          <Button>Reply</Button>
+        </div>
+      </Page>,
+    );
+    const reply = host.querySelector<HTMLElement>(".reveal [data-ouro]")!;
+    await drawn(3);
+    await act(() => reply.focus());
+    await drawn(4);
+    await settled();
+    // The frame a transition ends, read as WebKit read it on a CI runner: the button still shows, though nothing runs.
+    const check = Element.prototype.checkVisibility;
+    let ran = false;
+    let stale = 0;
+    vi.spyOn(Element.prototype, "checkVisibility").mockImplementation(function (this: Element, options?: CheckVisibilityOptions) {
+      if (this !== reply) return check.call(this, options);
+      const running = reply.getAnimations().some((animation) => animation.playState === "running");
+      const old = ran && !running && stale === 0;
+      ran = running;
+      if (old) stale++;
+      return old || check.call(this, options);
+    });
+    await act(() => reply.blur());
+    await drawn(3);
+    expect(stale).toBe(1);
+    // Once nothing moves, X-ray measures nothing more until the page changes.
+    const reads = vi.spyOn(document, "getAnimations");
+    await settled();
+    await frame();
+    await frame();
+    reads.mockClear();
+    for (let index = 0; index < 5; index++) await frame();
+    expect(reads).not.toHaveBeenCalled();
+  });
+
   it("follows its components as the page scrolls and resizes", async () => {
     const { host } = await render(<Page />);
     const components = pageRoots(host);
