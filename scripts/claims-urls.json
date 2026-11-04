@@ -335,6 +335,10 @@
     "status": 200,
     "checked": "2026-10-30"
   },
+  "https://www.w3.org/TR/event-timing/": {
+    "status": 200,
+    "checked": "2026-11-03"
+  },
   "https://www.w3.org/TR/html-aria/#el-input-password": {
     "status": 200,
     "checked": "2026-10-30"

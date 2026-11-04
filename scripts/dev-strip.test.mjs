@@ -86,6 +86,8 @@ const APP_DEV_STRINGS = [
   "onConfirm rejected",
   "setError(error.message)",
   "<ConfirmDialog tone=",
+  "ran outside an event handler",
+  "measureInteraction(\"",
 ];
 
 test("a Vite development bundle of the components keeps their dev messages (control)", async () => {
