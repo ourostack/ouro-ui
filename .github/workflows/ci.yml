@@ -507,14 +507,50 @@ jobs:
           path: coverage/coverage-final.json
           if-no-files-found: error
           retention-days: 7
+  attribution:
+    # No AI attribution reaches main (AGENTS.md): every commit a pull request adds, and every squash
+    # commit the merge queue builds from them (the commits it puts on main, whose messages carry a
+    # Co-authored-by for each commit author other than the pull request's), is the maintainer's,
+    # release.yml's or GitHub's, and credits no AI tool (scripts/attribution.mjs). It installs
+    # nothing, and fails when it cannot read the range. Part of the ci check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Every commit of every branch, without their trees and files, so any range reads.
+          fetch-depth: 0
+          filter: tree:0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: No AI attribution
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+          QUEUE_HEAD: ${{ github.event.merge_group.head_sha }}
+        run: |
+          case "$EVENT" in
+            # The pull request's own commits: what its head adds to the base branch as it stands now.
+            pull_request) node scripts/attribution.mjs "origin/$BASE_REF" "$PR_HEAD" ;;
+            # The squash commits the queue will put on main.
+            merge_group) node scripts/attribution.mjs "$QUEUE_BASE" "$QUEUE_HEAD" ;;
+            # A push to main and a dispatched run add no commit the queue did not check.
+            *) echo "::notice::No commits to check on $EVENT: the pull request and the merge queue checked them." ;;
+          esac
   ci:
-    # Passes when every part of it passed (checks, every browser shard, the coverage job and every
-    # script test job) and the browser shards' merged coverage reached 100%; or, on a reduced pull
-    # request whose merged coverage fell short, when every browser-fallback shard passed too and their
-    # merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs); or, when the plan
-    # skipped the browser shards because nothing they read changed, without them. Its outputs tell
-    # motion-coverage which shards' motion evidence to read, if any.
-    needs: [plan, checks, browser, scripts, scripts-browser, coverage, browser-fallback]
+    # Passes when every part of it passed (checks, attribution, every browser shard, the coverage
+    # job and every script test job) and the browser shards' merged coverage reached 100%; or, on a
+    # reduced pull request whose merged coverage fell short, when every browser-fallback shard passed
+    # too and their merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs); or,
+    # when the plan skipped the browser shards because nothing they read changed, without them. Its
+    # outputs tell motion-coverage which shards' motion evidence to read, if any.
+    needs: [plan, checks, attribution, browser, scripts, scripts-browser, coverage, browser-fallback]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -531,6 +567,7 @@ jobs:
       - name: Every part passed
         env:
           CHECKS: ${{ needs.checks.result }}
+          ATTRIBUTION: ${{ needs.attribution.result }}
           BROWSER: ${{ needs.browser.result }}
           SCRIPTS: ${{ needs.scripts.result }}
           SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
@@ -540,7 +577,7 @@ jobs:
           failed=0
           # Skipped by the plan, the browser shards count as passed; skipped for any other reason, they do not.
           if [ "$BROWSER_RUN" = false ] && [ "$BROWSER" = skipped ]; then BROWSER=success; fi
-          for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE"; do
+          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
               failed=1
