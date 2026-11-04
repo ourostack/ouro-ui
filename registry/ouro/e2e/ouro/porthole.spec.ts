@@ -21,7 +21,8 @@ test("porthole says Status unknown within six seconds of the heartbeat stopping,
   await page.clock.resume();
   await page.getByRole("switch", { name: "Heartbeat" }).click();
   await holdClock(page);
-  await page.clock.runFor(1_000);
+  // It looks for the beat once a heartbeat timeout, with no tick, so it sees the beat within that time.
+  await page.clock.runFor(HEARTBEAT_TIMEOUT_MS);
   await expect(spot).toHaveAttribute("data-porthole-state", "rest-fresh");
 });
 

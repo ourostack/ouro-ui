@@ -637,6 +637,48 @@ describe("Porthole", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("calls off a resting mouse's pending open on Escape, and leaves Escape to the page", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const view = await render(base(fixed()));
+    await act(() => view.porthole.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" })));
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(() => view.spot.dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(false);
+    await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
+    expect(view.panel).toBeNull();
+  });
+
+  it("stays in sight under forced colours: its light in the system's text colour, unknown an outlined circle, an action outlined in the highlight, and its open lines edged", async () => {
+    const probe = document.createElement("span");
+    document.body.append(probe);
+    mounted.push(probe);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const system = (colour: string) => {
+        probe.style.color = colour;
+        return getComputedStyle(probe).color;
+      };
+      const lightOf = async (source: PortholeFixed, props: Partial<PortholeProps> = {}) => {
+        const view = await render(base(source, props));
+        return { view, light: getComputedStyle(view.host.querySelector('[data-porthole-part="light"]')!) };
+      };
+      const rest = await lightOf(fixed());
+      expect(rest.view.porthole.hasAttribute("data-porthole-quiet")).toBe(true);
+      expect(rest.light.backgroundColor).toBe(system("CanvasText"));
+      expect(rest.light.backgroundColor).not.toBe(system("Canvas"));
+      const unknown = await lightOf(fixed([], undefined, Date.now() - MINUTE));
+      expect(unknown.light.backgroundColor).toBe(system("Canvas"));
+      expect([unknown.light.outlineStyle, unknown.light.outlineColor]).toEqual(["solid", system("CanvasText")]);
+      const action = await lightOf(fixed([item("update", "action")]));
+      expect(action.light.backgroundColor).toBe(system("Highlight"));
+      expect([action.light.outlineStyle, action.light.outlineColor]).toEqual(["solid", system("Highlight")]);
+      const open = await lightOf(fixed(), { defaultOpen: true });
+      expect([getComputedStyle(open.view.panel!).borderTopStyle, getComputedStyle(open.view.panel!).borderTopWidth]).toEqual(["solid", "1px"]);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("opens for a mouse only once it rests there, lets presses through lines it opened that way, and closes as the mouse leaves", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const view = await render(base(fixed()));
@@ -815,11 +857,14 @@ describe("Porthole timing", () => {
     await run(1);
     expect(commits).toBe(1);
     expect(view.state).toBe("unknown");
-    // While it waits for a beat it looks each second, and renders nothing until one comes.
+    // While it waits for a beat it looks once a heartbeat timeout, with no tick, and renders nothing until one comes.
     await run(10 * SECOND);
     expect(commits).toBe(1);
+    expect(vi.getTimerCount()).toBe(1);
     live.beat();
-    await run(SECOND);
+    await run(5 * SECOND - 1);
+    expect(commits).toBe(1);
+    await run(1);
     expect(commits).toBe(2);
     expect(view.state).toBe("rest-fresh");
   });
@@ -916,7 +961,7 @@ describe("Porthole timing", () => {
     expect(view.state).toBe("rest-stale");
   });
 
-  it("looks no more once nothing it shows can change with time, but looks each second for a live service's first beat", async () => {
+  it("looks no more for a snapshot it cannot read, waiting on the service's next one, and looks for a stopped beat once a heartbeat timeout", async () => {
     const unreadable = { snapshot: { ...snapshot(), version: 2 }, lastBeatAt: Number.NaN } as unknown as PortholeFixed;
     const view = await render(base(unreadable));
     expect(view.state).toBe("unknown");
@@ -928,14 +973,37 @@ describe("Porthole timing", () => {
     await run(5 * SECOND);
     expect(vi.getTimerCount()).toBe(1);
     expect(commits).toBe(0);
-    // A live service still looks each second, even for a snapshot it cannot read, for the beat and snapshot to come.
+    // A live service with a snapshot it cannot read sets no timer: its next snapshot comes through subscribe.
     const live = service({ ...snapshot([], { chats: area(null) }), version: 2 } as unknown as PortholeSnapshot);
-    live.source.lastBeatAt = () => Number.NaN;
     await view.rerender(base(live.source));
-    expect(vi.getTimerCount()).toBe(1);
-    await run(SECOND);
-    expect(vi.getTimerCount()).toBe(1);
-    expect(commits).toBe(1);
+    expect(vi.getTimerCount()).toBe(0);
+    await run(MINUTE);
+    expect(view.state).toBe("unknown");
+    live.beat();
+    await live.send(snapshot());
+    expect(view.state).toBe("rest-fresh");
+  });
+
+  it("judges with the app's latest times when its timeout comes", async () => {
+    const live = service(snapshot([], { chats: area(START) }));
+    const view = await render(base(live.source, { freshWithinMs: 10 * MINUTE }));
+    await view.rerender(base(live.source, { freshWithinMs: 10 * SECOND }));
+    for (let beat = 0; beat < 10; beat += 1) {
+      await run(SECOND);
+      live.beat();
+    }
+    expect(view.state).toBe("rest-fresh");
+    await run(1);
+    expect(view.state).toBe("rest-stale");
+  });
+
+  it("keeps its one timeout when the app passes new words objects of the same words on each render", async () => {
+    const live = service();
+    const view = await render(base(live.source, { labels: { fresh: "Fresh" } }));
+    const timeouts = vi.spyOn(globalThis, "setTimeout");
+    for (let turn = 0; turn < 5; turn += 1) await view.rerender(base(live.source, { labels: { fresh: "Fresh" } }));
+    expect(timeouts).not.toHaveBeenCalled();
+    expect(view.line).toBe("Fresh");
   });
 
   it("waits while the page is hidden, and looks again as it shows", async () => {
@@ -953,9 +1021,9 @@ describe("Porthole timing", () => {
     await act(() => document.dispatchEvent(new Event("visibilitychange")));
     expect(commits).toBe(1);
     expect(view.state).toBe("unknown");
-    // Shown and current again, a timer waits for the next moment.
+    // Shown again, it looks for the beat a heartbeat timeout on, and a timer waits for the next moment.
     live.beat();
-    await run(SECOND);
+    await run(5 * SECOND);
     expect(view.state).toBe("rest-fresh");
     expect(vi.getTimerCount()).toBe(1);
   });

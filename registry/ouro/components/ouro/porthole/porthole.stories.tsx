@@ -68,7 +68,7 @@ export const UpToDate: Story = { render: (args) => <Porthole {...args} source={f
 
 /** Every state, top to bottom: rest and fresh (quiet, then with its words), rest and stale, unknown, working, error, an action, and news with an action. */
 export const States: Story = {
-  parameters: { screenshot: { name: "porthole-states" } },
+  parameters: { screenshot: { name: "porthole-states", forcedColors: true } },
   render: (args) => (
     // Clear of the page's top corner, where a test's mouse may rest and hover the first spot open.
     <div style={{ ...column, paddingTop: 48 }}>
@@ -86,7 +86,7 @@ export const States: Story = {
 
 /** Open: the facts behind the line, with the calendar's read in trouble for a minute. */
 export const Open: Story = {
-  parameters: { screenshot: { name: "porthole-open" } },
+  parameters: { screenshot: { name: "porthole-open", forcedColors: true } },
   render: (args) => (
     <div style={{ minHeight: 180 }}>
       <Porthole {...args} defaultOpen source={fixed([], { ...fresh, calendar: 3 * MINUTE }, 0, { calendar: MINUTE })} />

@@ -35,15 +35,21 @@ export const portholeAx = defineComponentAx({
   ],
 });
 
-/** The colour of the spot's light, by state. */
+/**
+ * The colour of the spot's light, by state. Forced colours drop fills and box shadows, so the light is drawn in
+ * CanvasText there (the base class in porthole.tsx), unknown as an empty outlined circle, and an action in Highlight
+ * with an outlined halo.
+ */
 export const portholeLightClasses: Readonly<Record<PortholeState, string>> = {
   "rest-fresh": "bg-[color-mix(in_oklab,var(--success)_85%,var(--foreground))]",
   "rest-stale": "bg-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))]",
-  unknown: "bg-transparent ring-[1.5px] ring-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))] ring-inset",
+  unknown:
+    "bg-transparent ring-[1.5px] ring-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))] ring-inset forced-colors:bg-[Canvas] forced-colors:outline-[1.5px] forced-colors:-outline-offset-[1.5px] forced-colors:outline-solid forced-colors:outline-[CanvasText]",
   working: "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]",
   error: "bg-[color-mix(in_oklab,var(--destructive)_85%,var(--foreground))]",
   // A halo around the dot, so "something to press" differs from working by shape, not colour alone.
-  action: "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] ring-2 ring-[color-mix(in_oklab,var(--primary)_40%,transparent)] ring-offset-1 ring-offset-card",
+  action:
+    "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] ring-2 ring-[color-mix(in_oklab,var(--primary)_40%,transparent)] ring-offset-1 ring-offset-card forced-colors:bg-[Highlight] forced-colors:outline-2 forced-colors:outline-offset-1 forced-colors:outline-solid forced-colors:outline-[Highlight]",
 };
 
 /** Where the open lines show: under the spot, or over it. */

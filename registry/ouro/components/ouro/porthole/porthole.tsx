@@ -94,8 +94,6 @@ const onServer = () => false;
 const live = (source: PortholeSource | PortholeFixed): source is PortholeSource => typeof (source as PortholeSource).subscribe === "function";
 // What the person sees: a deadline renders only when this changes.
 const seen = (view: PortholeView) => JSON.stringify([view.state, view.text, view.detail]);
-// When to look again: the view's next change, or a second on while a live service's heartbeat is stopped, for the beat that ends it.
-const due = (view: PortholeView, polls: boolean) => (view.alive || !polls ? view.nextChangeAt : Math.min(view.nextChangeAt ?? Infinity, view.asOf + 1_000));
 
 function Light({ view }: { view: PortholeView }): JSX.Element {
   if (view.state === "working") {
@@ -115,7 +113,7 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
       </svg>
     );
   }
-  return <span aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full", portholeLightClasses[view.state])} />;
+  return <span aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full forced-colors:bg-[CanvasText]", portholeLightClasses[view.state])} />;
 }
 
 /**
@@ -205,8 +203,13 @@ export function Porthole(props: PortholeProps): JSX.Element {
   // One timeout, for the one moment the view could change. When it comes, the view is judged again with the latest
   // beat: the same view only moves the timeout; a new one renders. A hidden page waits until it shows again.
   const [, look] = useState(0);
-  const polls = live(source);
-  const nextLook = due(view, polls);
+  const nextLook = view.nextChangeAt;
+  // The latest options, so a new labels object from each render of the app does not reset the timeout: a change that
+  // matters changes the view, and so what is shown or when it next changes.
+  const judging = useRef(options);
+  useLayoutEffect(() => {
+    judging.current = options;
+  });
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const wait = (at: number | null) => {
@@ -214,10 +217,10 @@ export function Porthole(props: PortholeProps): JSX.Element {
       timer = at === null || document.hidden ? undefined : setTimeout(check, at - Date.now());
     };
     const check = () => {
-      const next = portholeView(getSnapshot(), lastBeatAt(), Date.now(), { freshWithinMs, heartbeatTimeoutMs, troubleAfterMs, labels });
+      const next = portholeView(getSnapshot(), lastBeatAt(), Date.now(), judging.current);
       // Stryker disable next-line ArrowFunction,ArithmeticOperator: any state but the last renders, and React renders the component even for the last one here, judging the view again
       if (seen(next) !== shown) look((n) => n + 1);
-      else wait(due(next, polls));
+      else wait(next.nextChangeAt);
     };
     const visibility = () => (document.hidden ? wait(null) : check());
     wait(nextLook);
@@ -226,7 +229,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", visibility);
     };
-  }, [shown, nextLook, polls, getSnapshot, lastBeatAt, freshWithinMs, heartbeatTimeoutMs, troubleAfterMs, labels]);
+  }, [shown, nextLook, getSnapshot, lastBeatAt]);
 
   // The line fades from the old words to the new; the old stay only to fade out.
   const [line, setLine] = useState({ text: view.text, previous: null as string | null, turn: 0 });
@@ -265,7 +268,10 @@ export function Porthole(props: PortholeProps): JSX.Element {
   };
   const close = (event: KeyboardEvent<HTMLDivElement>) => {
     onKeyDown?.(event);
-    if (event.key !== "Escape" || !open || event.defaultPrevented) return;
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+    // Escape also calls off a mouse's pending open.
+    clearTimeout(intent.current);
+    if (!open) return;
     event.preventDefault();
     setPressed(false);
     setHovered(false);
@@ -459,7 +465,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
           id={panelId}
           data-ouro-part="panel"
           className={cn(
-            "absolute start-0 z-10 w-max max-w-[min(24rem,calc(100vw-2rem),var(--ouro-porthole-room,24rem))] min-w-full rounded-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-[color-mix(in_oklab,var(--foreground)_16%,transparent)] transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast)",
+            "absolute start-0 z-10 w-max max-w-[min(24rem,calc(100vw-2rem),var(--ouro-porthole-room,24rem))] min-w-full rounded-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-[color-mix(in_oklab,var(--foreground)_16%,transparent)] transition-opacity forced-colors:border forced-colors:border-solid duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast)",
             top ? "bottom-full mb-1.5" : "top-full mt-1.5",
             // Opened by a resting mouse alone, the lines let presses through to what they cover.
             !pressed && "pointer-events-none",
