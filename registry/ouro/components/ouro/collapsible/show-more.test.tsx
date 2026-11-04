@@ -1156,6 +1156,7 @@ describe("ShowMore's first guess", () => {
     ["a picture with no height", <img alt="" />],
     ["a component, whatever it renders", <Opaque height={10} />],
     ["sized blocks", <div style={{ height: 70 }} />],
+    ["numbers that add up to more than a line", Array.from({ length: 100 }, (_, i) => 1000 + i)],
     ["headings, quotes and code", [<h2 key="h">Title</h2>, <blockquote key="q">Quote</blockquote>, <pre key="p">code</pre>]],
   ])("starts folded, with its button, when the content is not clearly short: %s", (_, content) => {
     const host = guessed(<ShowMore maxHeight={120}>{content}</ShowMore>);
@@ -1166,6 +1167,7 @@ describe("ShowMore's first guess", () => {
   it.each([
     ["a short line", "Hi"],
     ["a number", 42],
+    ["a few numbers", [1, 2, 3]],
     ["a line beside nothing", <>{null}{false}Hi</>],
     ["a short paragraph with an icon", <p><svg aria-hidden="true" /> Line breaks{"\n"}stay one line</p>],
   ])("shows content clearly short and all seen whole from the start: %s", (_, content) => {
@@ -1217,6 +1219,25 @@ describe("ShowMore's first guess", () => {
     expect(foldOf(long).hasAttribute("data-folded")).toBe(true);
     expect(toggle(guessed(<ShowMore lines={4} estimate={{ text: "Hi" }}><Opaque height={10} /></ShowMore>))).toBeNull();
     expect(toggle(guessed(<ShowMore lines={2} estimate={{ text: "中文".repeat(50) }}><Opaque height={10} /></ShowMore>))).not.toBeNull();
+  });
+
+  it("reads as an estimate only a plain object, and everything else as the content it is", () => {
+    const long = "word ".repeat(20);
+    expect(toggle(guessed(<ShowMore lines={2}>{long}</ShowMore>))).not.toBeNull();
+    expect(toggle(guessed(<ShowMore lines={2}>{[long]}</ShowMore>))).not.toBeNull();
+    expect(toggle(guessed(<ShowMore lines={2}><p>{long}</p></ShowMore>))).not.toBeNull();
+    expect(toggle(guessed(<ShowMore lines={2}>{null}</ShowMore>))).toBeNull();
+    expect(toggle(guessed(<ShowMore lines={2}>{undefined}</ShowMore>))).toBeNull();
+    class Tall {
+      height = 400;
+    }
+    expect(toggle(guessed(<ShowMore maxHeight={120} estimate={new Tall()}>Hi</ShowMore>))).toBeNull();
+  });
+
+  it("counts the text and the height of an estimate as lines, and a half of the room is still clearly short", () => {
+    const half = (px: number) => guessed(<ShowMore maxHeight={120} estimate={{ text: "Hi", height: px }}><Opaque /></ShowMore>);
+    expect(toggle(half(36))).toBeNull();
+    expect(toggle(half(37))).not.toBeNull();
   });
 
   it("counts each line of an estimate's text, as it shows with its line breaks", () => {

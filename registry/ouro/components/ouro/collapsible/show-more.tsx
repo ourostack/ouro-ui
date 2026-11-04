@@ -477,6 +477,7 @@ const media = new Set(["img", "picture", "video", "canvas", "iframe", "object", 
 function guessSize(node: ReactNode | ShowMoreEstimate): { lines: number; px: number; unseen: boolean } {
   if (isEstimate(node)) {
     // An app's own text renders with its line breaks (a message's paragraphs), so each line counts on its own.
+    // Stryker disable next-line StringLiteral: an empty text and any text under one line both count as one line, so the fallback is not observable.
     const lines = (node.text ?? "").split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil((line.length + (line.match(wide)?.length ?? 0)) / GUESS_LINE)), 0);
     return { lines, px: node.height ?? 0, unseen: false };
   }
