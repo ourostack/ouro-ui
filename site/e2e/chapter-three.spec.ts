@@ -336,6 +336,28 @@ test("without reduced motion, the squid sinks back into the deep behind its ink 
   await expect(scene(page).locator(".ph-squid")).toHaveCSS("animation-name", "sq-sway");
 });
 
+test("the arm on the glass stirs as a drawing of its own, about its own point, and nothing inside a drawing moves", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const layer = scene(page).locator(".ph-glass-arm");
+  await expect(layer).toHaveCSS("animation-name", "sq-stir");
+  const stir = await layer.evaluate((svg) => {
+    const arm = (svg as SVGSVGElement).querySelector<SVGGraphicsElement>(".sq-glass-arm")!.getBBox();
+    const style = getComputedStyle(svg);
+    const [x, y] = style.transformOrigin.split(" ").map(Number.parseFloat);
+    const scale = Number.parseFloat(style.width) / 400;
+    return {
+      // Turning a group inside a drawing repaints the drawing each frame on the main thread; turning a drawing is the compositor's.
+      inDrawing: document.querySelector(".site-porthole")!.getAnimations({ subtree: true }).filter((animation) => (animation.effect as KeyframeEffect).target instanceof SVGElement && ((animation.effect as KeyframeEffect).target as SVGElement).ownerSVGElement).length,
+      // The arm turns about the point 90% across and 10% down its own box, as it did as a group.
+      off: Math.hypot(x! - (arm.x + 0.9 * arm.width) * scale, y! - (arm.y + 0.1 * arm.height) * scale),
+    };
+  });
+  expect(stir.inDrawing).toBe(0);
+  expect(stir.off).toBeLessThan(0.5);
+});
+
 test("an order paints its control first, and the porthole only in a later frame", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });

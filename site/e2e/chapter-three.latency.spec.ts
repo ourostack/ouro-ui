@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CHAPTER_THREE_CONTROLS, ENCOUNTER, ORDERS, SALOON } from "../src/voyage/chapters/chapter-three-copy";
 import { CHAPTER_ONE } from "../src/voyage/chapters/copy";
 import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } from "./latency";
@@ -41,28 +41,30 @@ async function finish(page: Page): Promise<void> {
 const holdLinks = (page: Page) => page.evaluate(() => document.addEventListener("click", (event) => (event.target as Element).closest("a") && event.preventDefault(), { capture: true }));
 
 type Step = (page: Page, index: number) => Promise<unknown>;
+/** A press: the control to click, which latency.ts presses as a person does, or a press made another way. */
+type Press = (page: Page, index: number) => Locator | Promise<unknown>;
 
-const steps: Record<(typeof CHAPTER_THREE_CONTROLS)[number], { press: Step; before?: Step; after?: Step }> = {
-  "encounter-code": { press: (page) => encounter(page).getByRole("button", { name: CHAPTER_ONE.code }).click(), after: (page) => page.keyboard.press("Escape") },
-  alarm: { press: (page) => alarm(page).click(), after: (page) => page.keyboard.press("Escape") },
-  orders: { press: (page) => encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click(), after: (page) => page.keyboard.press("Escape") },
-  palette: { press: (page) => encounter(page).getByRole("button", { name: ENCOUNTER.palette }).click(), after: (page) => page.keyboard.press("Escape") },
+const steps: Record<(typeof CHAPTER_THREE_CONTROLS)[number], { press: Press; before?: Step; after?: Step }> = {
+  "encounter-code": { press: (page) => encounter(page).getByRole("button", { name: CHAPTER_ONE.code }), after: (page) => page.keyboard.press("Escape") },
+  alarm: { press: (page) => alarm(page), after: (page) => page.keyboard.press("Escape") },
+  orders: { press: (page) => encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }), after: (page) => page.keyboard.press("Escape") },
+  palette: { press: (page) => encounter(page).getByRole("button", { name: ENCOUNTER.palette }), after: (page) => page.keyboard.press("Escape") },
   // The choices in the dialog: it opens unthrottled, then the choice closes it and gives the order.
-  feathers: { before: (page) => alarm(page).click(), press: (page) => page.getByRole("dialog").getByRole("button", { name: ORDERS.feathers }).click() },
-  surface: { before: (page) => alarm(page).click(), press: (page) => page.getByRole("dialog").getByRole("button", { name: ENCOUNTER.hope }).click() },
-  "saloon-code": { press: (page) => saloon(page).getByRole("button", { name: CHAPTER_ONE.code }).click(), after: (page) => page.keyboard.press("Escape") },
+  feathers: { before: (page) => alarm(page).click(), press: (page) => page.getByRole("dialog").getByRole("button", { name: ORDERS.feathers }) },
+  surface: { before: (page) => alarm(page).click(), press: (page) => page.getByRole("dialog").getByRole("button", { name: ENCOUNTER.hope }) },
+  "saloon-code": { press: (page) => saloon(page).getByRole("button", { name: CHAPTER_ONE.code }), after: (page) => page.keyboard.press("Escape") },
   // The fight is won unthrottled, the organ played, then Sail again (unthrottled) readies the next.
   organ: {
     before: async (page) => {
       await giveOrder(page, ORDERS.surface);
       await giveOrder(page, ORDERS.feathers);
     },
-    press: (page) => saloon(page).getByRole("button", { name: SALOON.play }).click(),
+    press: (page) => saloon(page).getByRole("button", { name: SALOON.play }),
     after: (page) => saloon(page).getByRole("button", { name: SALOON.again }).click(),
   },
-  install: { before: async (page) => (await finish(page), holdLinks(page)), press: (page) => saloon(page).getByRole("link", { name: SALOON.install }).click() },
-  components: { before: async (page) => (await finish(page), holdLinks(page)), press: (page) => saloon(page).getByRole("link", { name: SALOON.components }).click() },
-  again: { before: finish, press: (page) => saloon(page).getByRole("button", { name: SALOON.again }).click() },
+  install: { before: async (page) => (await finish(page), holdLinks(page)), press: (page) => saloon(page).getByRole("link", { name: SALOON.install }) },
+  components: { before: async (page) => (await finish(page), holdLinks(page)), press: (page) => saloon(page).getByRole("link", { name: SALOON.components }) },
+  again: { before: finish, press: (page) => saloon(page).getByRole("button", { name: SALOON.again }) },
 };
 
 /**
@@ -101,7 +103,7 @@ function presses(page: Page, id: (typeof CHAPTER_THREE_CONTROLS)[number]): Press
  */
 const ORDER_PRESSES = {
   "orders, an item": {
-    press: (page: Page) => page.getByRole("menuitemcheckbox", { name: ORDERS.lights }).click(),
+    press: (page: Page) => page.getByRole("menuitemcheckbox", { name: ORDERS.lights }),
     before: (page: Page) => encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click(),
     after: (page: Page) => page.keyboard.press("Escape"),
   },
@@ -112,7 +114,7 @@ const ORDER_PRESSES = {
       await page.keyboard.type("flood");
     },
   },
-} satisfies Record<string, { press: Step; before?: Step; after?: Step }>;
+} satisfies Record<string, { press: Press; before?: Step; after?: Step }>;
 
 const ORDER_BASELINE: Record<keyof typeof ORDER_PRESSES, number> = {
   "orders, an item": 56,
@@ -130,7 +132,7 @@ test.describe("Chapter III interaction latency", () => {
     });
   }
 
-  for (const [id, step] of Object.entries(ORDER_PRESSES) as [keyof typeof ORDER_PRESSES, { press: Step; before?: Step; after?: Step }][]) {
+  for (const [id, step] of Object.entries(ORDER_PRESSES) as [keyof typeof ORDER_PRESSES, { press: Press; before?: Step; after?: Step }][]) {
     test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(ORDER_BASELINE[id])} ms) on a ${LATENCY.throttle}× slower CPU, the porthole redrawn after`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await open(page);

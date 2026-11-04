@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, PARTS } from "../src/voyage/chapters/copy";
 import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } from "./latency";
 
@@ -29,37 +29,39 @@ async function fillArticles(page: Page): Promise<void> {
 }
 
 type Step = (page: Page, index: number) => Promise<unknown>;
+/** A press: the control to click, which latency.ts presses as a person does, or a press made another way. */
+type Press = (page: Page, index: number) => Locator | Promise<unknown>;
 
 /** Each control's press, what readies it (unthrottled) before each press, and what tidies after it. Indexes are latency.ts's, from 0. */
-const steps: Record<(typeof CHAPTER_ONE_CONTROLS)[number], { press: Step; before?: Step; after?: Step }> = {
-  "shipyard-code": { press: (page) => shipyard(page).getByRole("button", { name: CHAPTER_ONE.code }).click(), after: (page) => page.keyboard.press("Escape") },
+const steps: Record<(typeof CHAPTER_ONE_CONTROLS)[number], { press: Press; before?: Step; after?: Step }> = {
+  "shipyard-code": { press: (page) => shipyard(page).getByRole("button", { name: CHAPTER_ONE.code }), after: (page) => page.keyboard.press("Escape") },
   // The reorder itself: the handle's menu opens unthrottled, then "Move to top" and "Move to bottom" take turns.
   order: {
     before: (page) => page.getByRole("button", { name: /^Reorder Double hull/ }).click(),
-    press: (page, index) => page.getByRole("menuitem", { name: index % 2 ? "Move to bottom" : "Move to top" }).click(),
+    press: (page, index) => page.getByRole("menuitem", { name: index % 2 ? "Move to bottom" : "Move to top" }),
   },
-  jobs: { press: (page) => page.getByRole("checkbox", { name: PARTS[0].job }).click() },
+  jobs: { press: (page) => page.getByRole("checkbox", { name: PARTS[0].job }) },
   launch: {
     before: async (page, index) => {
       if (index % 2 === 0) for (const part of PARTS) await page.getByRole("checkbox", { name: part.job }).click();
     },
-    press: (page) => launchButton(page).click(),
+    press: (page) => launchButton(page),
   },
-  "articles-code": { press: (page) => articles(page).getByRole("button", { name: CHAPTER_ONE.code }).click(), after: (page) => page.keyboard.press("Escape") },
+  "articles-code": { press: (page) => articles(page).getByRole("button", { name: CHAPTER_ONE.code }), after: (page) => page.keyboard.press("Escape") },
   name: {
     before: (page) => page.getByRole("textbox", { name: ARTICLES.name }).focus(),
     press: (page, index) => page.keyboard.press(index % 2 ? "Backspace" : "a"),
   },
-  trade: { press: (page) => page.getByRole("combobox", { name: ARTICLES.trade }).click(), after: (page) => page.keyboard.press("Escape") },
-  oath: { press: (page) => page.getByRole("checkbox", { name: ARTICLES.oath }).click() },
-  sign: { before: fillArticles, press: (page) => page.getByRole("button", { name: ARTICLES.sign }).click() },
+  trade: { press: (page) => page.getByRole("combobox", { name: ARTICLES.trade }), after: (page) => page.keyboard.press("Escape") },
+  oath: { press: (page) => page.getByRole("checkbox", { name: ARTICLES.oath }) },
+  sign: { before: fillArticles, press: (page) => page.getByRole("button", { name: ARTICLES.sign }) },
   leave: {
     before: async (page) => {
       await fillArticles(page);
       await page.getByRole("button", { name: ARTICLES.sign }).click();
       await articles(page).getByRole("button", { name: ARTICLES.leave }).waitFor();
     },
-    press: (page) => articles(page).getByRole("button", { name: ARTICLES.leave }).click(),
+    press: (page) => articles(page).getByRole("button", { name: ARTICLES.leave }),
   },
 };
 
@@ -75,7 +77,11 @@ const BASELINE_MEDIAN: Record<(typeof CHAPTER_ONE_CONTROLS)[number], number> = {
   launch: 80,
   "articles-code": 72,
   name: 24,
-  trade: 28,
+  // Re-measured once the press became a person's (latency.ts): pressing the Select trigger now
+  // includes the mount of its popup that focusing it starts, which Playwright's click had sent past
+  // the press. Its median reached 64 ms in 30 CI runs (latency-evidence/2026-11-04-latency-suite-ab.txt),
+  // the ceiling of a 32 ms line.
+  trade: 32,
   oath: 40,
   sign: 72,
   leave: 64,
