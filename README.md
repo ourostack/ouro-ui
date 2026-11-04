@@ -378,6 +378,7 @@ Guardrails, optional: `ouro-census`, which holds the pages and states your journ
 Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):
 `lib-announce`,
 `lib-appearance-hints`,
+`lib-celebration-cap`,
 `lib-claims`,
 `lib-class-name-check`,
 `lib-cn`,

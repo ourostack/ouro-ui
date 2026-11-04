@@ -2,7 +2,7 @@
 
 # Celebrate
 
-A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. The message waits about 1.5 s to leave time for the triggering control's announcement; this does not detect when a screen reader finishes speaking. With reduced motion nothing flies: the badge only fades in. Put it where the eye already is, such as at the end of the list that was just cleared.
+A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. The confetti stays inside Celebrate's own box and never flies over what is around it: give it room with layout classes (`h-24 w-full`) for a wider burst. The message waits about 1.5 s to leave time for the triggering control's announcement; this does not detect when a screen reader finishes speaking. With reduced motion nothing flies: the badge only fades in. Put it where the eye already is, such as at the end of the list that was just cleared.
 
 ```tsx
 import { Celebrate } from "@/registry/ouro/components/ouro/celebrate/celebrate";
@@ -28,6 +28,8 @@ Type: `CelebrateProps`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
+| `cap` | `CelebrateCap \| readonly CelebrateCap[]` | How often the confetti may burst: at most `times` times `per` day, week, 30-day month or ever, counted in `localStorage` under `capKey` (or the cap's own `key`). Pass several to hold to all of them, such as once per conversation and three times a day across the app: `cap={[{ times: 1, per: "ever", key: `cleared:${id}` }, { times: 3, per: "day", key: "celebrations" }]}`. Past a cap the message still shows and is heard, with no confetti. `Moment` counts under the same keys, so the two can share a cap. |
+| `capKey` | `string` | The key a cap without its own `key` counts under, such as "list-cleared". Falls back to `id`. |
 | `className` | `string` | Layout only: placement (`mx-auto`, `mt-4`). Appearance classes warn in development. |
 | `hideMessage` | `boolean` | Speaks the message without showing the badge, for a screen that already says it. The confetti still bursts. |
 | `message` (required) | `string` | What was achieved, in a few words: "List cleared", "Steps done". Shown in a badge and spoken. |
@@ -53,5 +55,19 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `CelebrateCap`
+
+One limit on how often `Celebrate` bursts: `times` per period, under `key` or the component's `capKey`.
+
+```ts
+interface CelebrateCap {
+  times: number;
+  per: CelebrationPeriod | (string & { 'Use "day", "week", "month" or "ever"': never });
+  key?: string | undefined;
+}
+```
 
 [^layout-classes]: test:registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > forwards a ref, passes attributes through, and lets layout classes win verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > forwards a ref, passes attributes through, and lets layout classes win)

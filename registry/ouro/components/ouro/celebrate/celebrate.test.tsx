@@ -1,10 +1,11 @@
-import { type ReactNode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands } from "vitest/browser";
 import { Celebrate } from "@/registry/ouro/components/ouro/celebrate/celebrate";
+import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
@@ -90,29 +91,37 @@ describe("Celebrate", () => {
       if (reduced) expect(getComputedStyle(piece.parentElement!).display).toBe("none");
       else {
         expect(getComputedStyle(piece).opacity).toBe("0");
-        expect(getComputedStyle(piece).transform).not.toBe("none");
+        // The layer ends at full size, so the piece has come out of the middle.
+        const dot = piece.firstElementChild!.getBoundingClientRect();
+        const box = host.querySelector('[data-ouro="celebrate"]')!.getBoundingClientRect();
+        expect(Math.abs(dot.left + dot.width / 2 - (box.left + box.width / 2))).toBeGreaterThan(4);
       }
       await act(async () => root.render(<Celebrate show={false} message="All done" />));
     }
   });
 
-  it("throws twelve pieces in every direction, in the theme's tones, hidden from screen readers", async () => {
-    const { root, host } = await render(<Celebrate show={false} message="Done" />);
-    await act(async () => root.render(<Celebrate show message="Done" />));
+  it("throws twelve pieces in every direction, at two distances, in the theme's tones, inside its own box and hidden from screen readers", async () => {
+    const { root, host } = await render(<Celebrate show={false} message="Done" className="h-24 w-64" />);
+    await act(async () => root.render(<Celebrate show message="Done" className="h-24 w-64" />));
     const pieces = [...host.querySelectorAll<HTMLElement>('[data-ouro-part="piece"]')];
     expect(pieces).toHaveLength(12);
     expect(pieces[0]!.parentElement!.getAttribute("aria-hidden")).toBe("true");
     await expect.poll(() => pieces.every((piece) => piece.getAnimations().length === 0)).toBe(true);
-    const centre = host.querySelector('[data-ouro-part="message"]')!.getBoundingClientRect();
-    const [cx, cy] = [centre.left + centre.width / 2, centre.top + centre.height / 2];
-    const quadrants = new Set(
-      pieces.map((piece) => {
-        const rect = piece.getBoundingClientRect();
-        return `${rect.left + rect.width / 2 > cx ? "e" : "w"}${rect.top + rect.height / 2 > cy ? "s" : "n"}`;
-      }),
-    );
+    const box = host.querySelector('[data-ouro="celebrate"]')!.getBoundingClientRect();
+    const [cx, cy] = [box.left + box.width / 2, box.top + box.height / 2];
+    const dots = pieces.map((piece) => piece.firstElementChild!.getBoundingClientRect());
+    const quadrants = new Set(dots.map((rect) => `${rect.left + rect.width / 2 > cx ? "e" : "w"}${rect.top + rect.height / 2 > cy ? "s" : "n"}`));
     expect(quadrants).toEqual(new Set(["en", "es", "wn", "ws"]));
-    const colours = new Set(pieces.map((piece) => getComputedStyle(piece).backgroundColor));
+    for (const rect of dots) {
+      expect(rect.left).toBeGreaterThanOrEqual(box.left - 0.5);
+      expect(rect.right).toBeLessThanOrEqual(box.right + 0.5);
+      expect(rect.top).toBeGreaterThanOrEqual(box.top - 0.5);
+      expect(rect.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
+    }
+    // Every other piece lands nearer the middle: as a share of the box's width and height, 0.44 out and 0.3 out.
+    const reach = dots.map((rect) => Math.hypot((rect.left + rect.width / 2 - cx) / box.width, (rect.top + rect.height / 2 - cy) / box.height));
+    reach.forEach((share, index) => expect(Math.abs(share - (index % 2 ? 0.3 : 0.44))).toBeLessThan(0.02));
+    const colours = new Set(pieces.map((piece) => getComputedStyle(piece.firstElementChild!).backgroundColor));
     expect(colours.size).toBe(4);
   });
 
@@ -163,6 +172,99 @@ describe("Celebrate", () => {
     expect(element).toBe(celebrate);
     expect(celebrate.id).toBe("party");
     expect(getComputedStyle(celebrate).marginInlineStart).toBe("16px");
+  });
+});
+
+describe("Celebrate cap", () => {
+  const frames = () => act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const clear = () => Object.keys(localStorage).filter((key) => key.startsWith("ouro-moment:")).forEach((key) => localStorage.removeItem(key));
+  beforeEach(clear);
+  afterEach(clear);
+
+  /** Shows a Celebrate that was hidden, and says whether its confetti burst. */
+  async function bursts(props: Partial<Parameters<typeof Celebrate>[0]>) {
+    const { root, host } = await render(<Celebrate show={false} message="Inbox cleared" {...props} />);
+    await act(async () => root.render(<Celebrate show message="Inbox cleared" {...props} />));
+    await frames();
+    const result = host.querySelectorAll('[data-ouro-part="piece"]').length === 12;
+    expect(host.querySelector('[data-ouro-part="message"]')!.textContent).toBe("Inbox cleared");
+    return { result, root, host };
+  }
+
+  it("bursts at most times per period under its key, then shows and speaks the message alone", async () => {
+    let now = Date.UTC(2026, 10, 1, 12);
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const announced = watchAnnouncements();
+    const node = (show: boolean) => <Celebrate show={show} message="Inbox cleared" cap={{ times: 1, per: "day" }} capKey="cleared" />;
+    const pieces = (host: Element) => host.querySelectorAll('[data-ouro-part="piece"]').length;
+    try {
+      const { root, host, result } = await bursts({ cap: { times: 1, per: "day" }, capKey: "cleared" });
+      expect(result).toBe(true);
+      await expect.poll(() => announced.count("Inbox cleared"), { timeout: 5000 }).toBe(1);
+      await act(async () => root.render(node(false)));
+      await frames();
+      // Shown again within the day: no confetti, not even for a frame, and the message is heard.
+      flushSync(() => root.render(node(true)));
+      expect(pieces(host)).toBe(0);
+      await frames();
+      expect(pieces(host)).toBe(0);
+      expect(host.querySelector('[data-ouro-part="message"]')!.textContent).toBe("Inbox cleared");
+      await expect.poll(() => announced.count("Inbox cleared"), { timeout: 5000 }).toBe(2);
+      await act(async () => root.render(node(false)));
+      await frames();
+      now += 24 * 60 * 60 * 1000;
+      await act(async () => root.render(node(true)));
+      await frames();
+      expect(pieces(host)).toBe(12);
+      expect(JSON.parse(localStorage.getItem("ouro-moment:shown:cleared")!)).toEqual([now]);
+      expect((await bursts({ cap: { times: 1, per: "day" }, id: "cleared" })).result).toBe(false);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it("decides once as a showing starts, even when the page opens with it shown, and never bursts for a frame it may not", async () => {
+    const twice = { cap: { times: 2, per: "day" }, capKey: "opened" } as const;
+    const { host } = await render(
+      <StrictMode>
+        <Celebrate show message="Inbox cleared" {...twice} />
+      </StrictMode>,
+    );
+    await frames();
+    expect(host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(12);
+    expect(JSON.parse(localStorage.getItem("ouro-moment:shown:opened")!)).toHaveLength(1);
+    localStorage.setItem("ouro-moment:shown:spent", JSON.stringify([Date.now()]));
+    const later = await render(null);
+    flushSync(() => later.root.render(<Celebrate show message="Inbox cleared" cap={{ times: 1, per: "day" }} capKey="spent" />));
+    expect(later.host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(0);
+    await frames();
+    expect(later.host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(0);
+  });
+
+  it("holds to every cap it is given, and counts a burst against each", async () => {
+    const shared = { times: 2, per: "week", key: "celebrations" } as const;
+    expect((await bursts({ cap: [{ times: 1, per: "ever", key: "a" }, shared] })).result).toBe(true);
+    expect((await bursts({ cap: [{ times: 1, per: "ever", key: "a" }, shared] })).result).toBe(false);
+    expect((await bursts({ cap: [{ times: 1, per: "month", key: "b" }, shared] })).result).toBe(true);
+    expect((await bursts({ cap: [{ times: 1, per: "ever", key: "c" }, shared] })).result).toBe(false);
+    expect(localStorage.getItem("ouro-moment:shown:c")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("ouro-moment:shown:celebrations")!)).toHaveLength(2);
+  });
+
+  it("shares a key with Moment's cap", async () => {
+    const { host } = await render(<Moment kind="success" art={<svg viewBox="0 0 10 10" />} title="All caught up" dismissKey="caught-up" cap={{ times: 1, per: "day" }} />);
+    await expect.poll(() => host.querySelector("[data-celebrate]")).not.toBeNull();
+    expect((await bursts({ cap: { times: 1, per: "day" }, capKey: "caught-up" })).result).toBe(false);
+  });
+
+  it("bursts without a key to count under, or with an unknown period counted as a day, and says so", async () => {
+    expect((await bursts({ cap: { times: 0, per: "day" } })).result).toBe(true);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Celebrate: a cap counts bursts under its key, capKey or id, and this one has none. Fix: <Celebrate cap={{ times: 3, per: "day" }} capKey="cleared">.');
+    const hourly = { cap: { times: 1, per: "hour" as "day" }, capKey: "hourly" };
+    expect((await bursts(hourly)).result).toBe(true);
+    expect((await bursts(hourly)).result).toBe(false);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Celebrate: cap per "hour" is not a period; use "day", "week", "month", "ever". Fix: <Celebrate cap={{ times: 3, per: "day" }} capKey="cleared">.');
   });
 });
 
