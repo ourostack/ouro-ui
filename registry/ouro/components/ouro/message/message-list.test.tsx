@@ -40,6 +40,8 @@ interface Item {
   role: "user" | "assistant";
   text: string;
   streaming?: boolean;
+  /** Hidden by the app with `display: none`, so it has no box. */
+  hidden?: boolean;
 }
 
 const history = (count: number, from = 0): Item[] =>
@@ -73,7 +75,7 @@ function Chat({
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
       {items.map((item) => (
-        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"} streaming={item.streaming}>
+        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"} streaming={item.streaming} style={item.hidden ? { display: "none" } : undefined}>
           {item.text}
         </Message>
       ))}
@@ -2528,6 +2530,57 @@ describe("MessageList through a long conversation", () => {
       await act(async () => roots.pop()!.unmount());
     }
     expect(reads[1]! - reads[0]!).toBeLessThanOrEqual(120);
+  });
+
+  // A hidden message (display: none) has an all-zero box, wherever it sits: the halving must not take its top of 0 for its place.
+  const hiding = (items: Item[], hidden: number[]) => items.map((item, at) => (hidden.includes(at) ? { ...item, hidden: true } : item));
+  /** The first message with a box whose top is in the list's view, and where that top is. */
+  const firstShown = (scroller: HTMLElement) => {
+    const view = scroller.getBoundingClientRect();
+    const message = [...scroller.querySelectorAll('[data-ouro="message"]')].find((node) => node.getClientRects().length > 0 && node.getBoundingClientRect().top >= view.top)!;
+    return { message, top: message.getBoundingClientRect().top };
+  };
+
+  it("keeps the reader's place as they scroll and older history loads, under a header, with a hidden message in view and one below it", async () => {
+    // 200 messages: the first halving step lands on the 101st, hidden below the view, and the 63rd, in view, is hidden too.
+    const items = hiding(history(200, 1000), [62, 100]);
+    const { scroller, rerender } = await render(
+      <div style={{ paddingTop: 120 }}>
+        <Chat items={items} />
+      </div>,
+    );
+    const messages = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    scroller.scrollTop += messages[60]!.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    scroller.scrollTop -= 20;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const before = firstShown(scroller);
+    await rerender(
+      <div style={{ paddingTop: 120 }}>
+        <Chat items={[...history(50, 950), ...items]} />
+      </div>,
+    );
+    await settle(scroller);
+    expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("never puts the Tab stop on a hidden message, the newest or one in view, as the view shows the messages around it", async () => {
+    const items = hiding(history(60), [30, 59]);
+    const { scroller } = await render(
+      <div style={{ paddingTop: 120 }}>
+        <Chat items={items} />
+      </div>,
+    );
+    const messages = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const lastWhole = () => messages.findLast((message) => message.getClientRects().length > 0 && inView(scroller, message));
+    // At the newest, the newest is hidden: the Tab stop is the last message the view shows whole.
+    expect(scroller.querySelector('[data-ouro="message"][tabindex="0"]')).toBe(lastWhole());
+    // Up to where the hidden 31st would sit in the view.
+    scroller.scrollTop += messages[29]!.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    scroller.dispatchEvent(new Event("scroll"));
+    expect(scroller.querySelector('[data-ouro="message"][tabindex="0"]')).toBe(lastWhole());
   });
 
   it("holds a message that fills the view by it and the few after it, not by every message to the newest", async () => {
