@@ -43,7 +43,9 @@ export interface MessageListOwnProps {
    * so key messages by their own ids. Without it, the list takes messages that share no `key` with the ones it held for
    * another conversation, so it misses a switch between conversations whose messages share keys, and takes a short
    * conversation whose every message gets a new key at once for another one.
-   * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does)
+   * @claim "While it stays the same, nothing the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
+ * @claim "While it stays the same, nothing the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes removing the newest five, as a regenerated turn does, for the same conversation)
+ * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does)
    * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
    * @claim "The first one named for messages the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > adopts a conversation first named for the messages it holds, leaving a scrolled-up reader where they are)
    * @claim "Messages that come before their conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > adopts a name that comes after its messages, so switching back in one commit opens the last conversation at its newest)
@@ -202,14 +204,22 @@ const olderClass =
 
 /** How many older messages go into the list in a frame when a page of them comes at once, to keep the frame short. */
 const CHUNK = 20;
-/** How many of the newest children's keys, with the first child's, say the list's messages changed enough to look again for a switch. */
+/**
+ * How many of the newest children's keys, with the first child's, say the list's messages changed enough to look again for a switch.
+ * @claim "How many of the newest children's keys" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches a list %s to another conversation of a thousand at its newest, in its first frame, from anywhere in the one before)
+ */
 const RECENT = 3;
-/** How many of the newest messages a conversation opens with, more than a tall list shows at once; the rest go in above them, CHUNK a frame. */
+/**
+ * How many of the newest messages a conversation opens with, more than a tall list shows at once; the rest go in above them, CHUNK a frame.
+ * @claim "How many of the newest messages a conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens a thousand messages at the newest in its first frame, drawing only the newest, then the rest above without moving the view)
+ */
 const FIRST = 40;
 
 /**
  * The key of the first child a conversation opens drawing: the newest FIRST, or from CHUNK above the message `anchor`
  * names. Every child when no child has that `id`, since the message may be one of an app's own that sets its `id` itself.
+ * @claim "The key of the first child a" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens at initialAnchor far back in a thousand messages, drawing from it, and holds it still as the rest go in above)
+ * @claim "Every child when no child has that" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the newest message when initialAnchor names no message in the list, or the newest itself)
  */
 function openingKey(all: ReturnType<typeof Children.toArray>, anchor: string | undefined): Key | null {
   let from = all.length - FIRST;
