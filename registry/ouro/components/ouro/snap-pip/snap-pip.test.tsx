@@ -825,8 +825,8 @@ describe("SnapPiP", () => {
 
   it("measures keep-out elements inside the container's border, rendered by the app or not", async () => {
     stage = document.createElement("div");
-    // 380 by 480 inside a 4px border.
-    Object.assign(stage.style, { position: "relative", boxSizing: "content-box", width: "380px", height: "480px", border: "4px solid" });
+    // 380 by 480 inside a 4px border, away from the page's top-left corner.
+    Object.assign(stage.style, { position: "relative", boxSizing: "content-box", width: "380px", height: "480px", border: "4px solid", margin: "24px 0 0 40px" });
     document.body.append(stage);
     nodes.push(stage);
     root = createRoot(stage);
@@ -1140,7 +1140,9 @@ describe("SnapPiP", () => {
     await render(self({ onCornerChange }));
     await tabTo();
     expect(hintShown()).toBe(true);
-    await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
+    // One keydown, Option held, so no press of Option alone comes first and puts the hint away.
+    const up = new KeyboardEvent("keydown", { key: "ArrowUp", altKey: true, bubbles: true, cancelable: true });
+    await act(async () => void pip().dispatchEvent(up));
     expect(onCornerChange.mock.calls).toEqual([["top-right"]]);
     expect(hintShown()).toBe(false);
   });
