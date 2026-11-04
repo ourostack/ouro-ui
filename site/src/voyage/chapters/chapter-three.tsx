@@ -24,12 +24,32 @@ import chapterStyles from "./chapter-three.css?inline";
 // drawings' own markup, so the server HTML has them without a rule in the first load's CSS.
 const organ = hide(parseArt(organSource), "or-note");
 const squid = hide(parseArt(squidSource), "sq-ink");
+const [squidBody, glassArm] = takeGroup(squid, "sq-glass-arm");
 const arm = parseArt(tentacleSource);
 const tentacle: Art = { ...arm, inner: arm.inner.replaceAll('class="tn-core"', 'class="tn-core" style="stroke:var(--background)"') };
 
 /** A drawing whose parts of a class start hidden (`opacity="0"`); island CSS shows them. */
 function hide(art: Art, name: string): Art {
   return { ...art, inner: art.inner.replaceAll(`class="${name}"`, `class="${name}" opacity="0"`) };
+}
+
+/** A drawing without its group of a class, and that group alone, in the same box. */
+function takeGroup(art: Art, name: string): [rest: Art, group: Art] {
+  const start = art.inner.indexOf(`<g class="${name}"`);
+  const tags = /<(\/?)g\b[^>]*?(\/?)>/g;
+  tags.lastIndex = start;
+  let depth = 0;
+  for (let tag = start < 0 ? null : tags.exec(art.inner); tag; tag = tags.exec(art.inner)) {
+    if (tag[2]) continue;
+    depth += tag[1] ? -1 : 1;
+    if (depth > 0) continue;
+    const end = tag.index + tag[0].length;
+    return [
+      { ...art, inner: art.inner.slice(0, start) + art.inner.slice(end) },
+      { ...art, inner: art.inner.slice(start, end) },
+    ];
+  }
+  throw new Error(`The drawing is missing its ${name}`);
 }
 
 /** How the fight stands: the encounter writes it, the saloon and the rail read it. */
@@ -248,8 +268,11 @@ const SEA = "color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250))";
  * The porthole: the sea, the squid at the glass (or swimming off), the floodlights, and the surface.
  * Three drawings stacked: the sea behind, the squid, the glass and its brass ring in front. The squid
  * is a drawing of its own on a layer of its own (`will-change-transform`), clipped to the glass, so
- * it sinks without repainting the sea or the menu that gave the order. The sea, the ring and its
- * bolts carry their colours in the server HTML; the rest comes with the island (chapter-three.css).
+ * it sinks without repainting the sea or the menu that gave the order. The arm it lays on the glass
+ * is a drawing of its own inside that layer, so its stir turns a whole drawing, which the compositor
+ * does, and repaints nothing: turning a group inside a drawing repaints the drawing every frame, on
+ * the main thread, under the presses made while it stirs. The sea, the ring and its bolts carry
+ * their colours in the server HTML; the rest comes with the island (chapter-three.css).
  */
 function Porthole(): JSX.Element {
   const fight = useFight();
@@ -286,16 +309,21 @@ function Porthole(): JSX.Element {
         </g>
       </svg>
       <div className="absolute inset-0" style={{ clipPath: "circle(44%)" }}>
-        <svg
-          viewBox="0 0 400 400"
-          aria-hidden="true"
-          className="ph-squid absolute inset-0 size-full will-change-transform"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          dangerouslySetInnerHTML={{ __html: squid.inner }}
-        />
+        <div className="ph-squid absolute inset-0 will-change-transform">
+          {[squidBody, glassArm].map((part) => (
+            <svg
+              key={part === glassArm ? "arm" : "body"}
+              viewBox="0 0 400 400"
+              aria-hidden="true"
+              className={part === glassArm ? "ph-glass-arm absolute inset-0 size-full" : "absolute inset-0 size-full"}
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              dangerouslySetInnerHTML={{ __html: part.inner }}
+            />
+          ))}
+        </div>
       </div>
       <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
         <g className="ph-bubbles" fill="white" fillOpacity={0.45}>
