@@ -598,6 +598,39 @@ describe("SnapPiP", () => {
     expect(at()).toEqual([LEFT, TOP]);
   });
 
+  it("stays under a pointer that holds it while a keep-out changes, and takes the new place on release", async () => {
+    const bar = document.createElement("div");
+    Object.assign(bar.style, { position: "absolute", left: "0", right: "0", bottom: "0", height: "80px" });
+    await render(self({ keepOut: [{ current: bar }] }));
+    stage.append(bar);
+    await render(self({ keepOut: [{ current: bar }] }));
+    await expect.poll(() => at()).toEqual([RIGHT, 400 - 16 - 100]);
+    await rest();
+    // Pressed and held: the band grows under it, and it stays put.
+    const [x, y] = middle(pip());
+    await fire("pointerdown", x, y);
+    bar.style.height = "120px";
+    await wait(100);
+    expect(settling()).toBe(false);
+    expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+    // Let go: it takes the new place.
+    await fire("pointerup", x, y);
+    await rest();
+    expect(at()).toEqual([RIGHT, 360 - 16 - 100]);
+    // Let go after a press, it follows the band again.
+    bar.style.height = "100px";
+    await expect.poll(() => settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, 380 - 16 - 100]);
+    // Thrown and let go, too.
+    await throwBy(0, -1, { steps: 2, ms: 200 });
+    await rest();
+    bar.style.height = "80px";
+    await expect.poll(() => settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+  });
+
   it("catches it in flight and drops it somewhere else", async () => {
     const onCornerChange = vi.fn();
     await render(self({ onCornerChange }));

@@ -152,6 +152,8 @@ const arrows: readonly string[] = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowD
  * the throw would coast to (`project`, at scrolling's deceleration of 0.998), picks the corner
  * whose place, clear of the keep-outs, is nearest that point, and springs there from the release speed (response 0.3s; damping 0.8 after
  * a flick, so it overshoots a little, and 1 after a slow drop). Pressing it in flight catches it.
+ * While a pointer holds it, a keep-out or the container changing waits for the release, so it
+ * never slides out from under the finger.
  * Dragged past the container's edge, it resists more and more (`rubberband`).
  *
  * The corners sit `inset` in from the edges and keep clear of `keepOut`. It keeps its corner, not
@@ -181,6 +183,7 @@ const arrows: readonly string[] = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowD
  * @claim "On release it works out where" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > goes to the corner a flick points at, across the stage, with a little overshoot)
  * @claim "On release it works out where" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > goes to the nearest corner after a slow drop, with no overshoot)
  * @claim "Pressing it in flight catches it." registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > catches it in flight, holds it under the pointer, and lets it go on when only pressed)
+ * @claim "While a pointer holds it, a keep-out" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > stays under a pointer that holds it while a keep-out changes, and takes the new place on release)
  * @claim "Dragged past the container's edge, it" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > resists past the container's edges, more the further it goes)
  * @claim "The corners sit `inset` in from" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > keeps its corners clear of keep-outs, rectangles or elements, and follows them with the spring when they change)
  * @claim "while the container resizes it stays" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > stays in its corner without a spring while the container resizes, in the same frame)
@@ -288,6 +291,8 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   const moved = useRef(false);
   // A drag under way: where it was when the pointer took it.
   const drag = useRef<{ x: number; y: number } | undefined>(undefined);
+  // Whether a pointer holds it, dragged or not: a change around it waits for the release.
+  const pressed = useRef(false);
   const stageRef = useRef(stage);
   // The latest props and measurements, for the callbacks that outlive a render.
   // Stryker disable next-line ObjectLiteral: the layout effect below fills it before anything reads it.
@@ -378,7 +383,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
   /** Puts it back in its corner's place after a change around it: with the spring, or at once (`jump`). */
   const reflow = useCallback(
     (jump: boolean) => {
-      if (!stageRef.current || drag.current) return;
+      if (!stageRef.current || pressed.current) return;
       const { x, y } = anchor(target.current);
       // Already there, or on its way there.
       const goal = springs.current ? springs.current.to : at.current;
@@ -472,11 +477,13 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     threshold: 1,
     onPress: () => {
       // Caught in flight, it holds still under the pointer.
+      pressed.current = true;
       halt();
       dismissHint();
     },
     onPressEnd: () => {
-      // Only pressed: it goes on to its corner, if a press caught it on its way.
+      // Only pressed: it goes on to its corner's place now, if a press caught it on its way or that place moved.
+      pressed.current = false;
       go(target.current);
     },
     onStart: () => {
@@ -497,6 +504,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       place(follow(drag.current!.x + delta, width - pip.offsetWidth, pip.offsetWidth), follow(drag.current!.y + crossDelta, height - pip.offsetHeight, pip.offsetHeight));
     },
     onEnd: ({ velocity, crossVelocity, cancelled }) => {
+      pressed.current = false;
       drag.current = undefined;
       element.current!.removeAttribute("data-dragging");
       if (cancelled) return go(target.current);

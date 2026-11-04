@@ -21,7 +21,7 @@ import { SnapPiP } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
 
 ## Usage
 
-It follows the pointer from the first pixel and lifts while dragged. On release it works out where the throw would coast to (`project`, at scrolling's deceleration of 0.998), picks the corner whose place, clear of the keep-outs, is nearest that point, and springs there from the release speed (response 0.3s; damping 0.8 after a flick, so it overshoots a little, and 1 after a slow drop). Pressing it in flight catches it. Dragged past the container's edge, it resists more and more (`rubberband`).
+It follows the pointer from the first pixel and lifts while dragged. On release it works out where the throw would coast to (`project`, at scrolling's deceleration of 0.998), picks the corner whose place, clear of the keep-outs, is nearest that point, and springs there from the release speed (response 0.3s; damping 0.8 after a flick, so it overshoots a little, and 1 after a slow drop). Pressing it in flight catches it. While a pointer holds it, a keep-out or the container changing waits for the release, so it never slides out from under the finger. Dragged past the container's edge, it resists more and more (`rubberband`).
 
 The corners sit `inset` in from the edges and keep clear of `keepOut`. It keeps its corner, not its position: when the keep-outs change it follows its corner with the spring, and while the container resizes it stays in its corner without one, placed in the same frame as the resize. While it springs it carries `data-ouro-settling`.
 
