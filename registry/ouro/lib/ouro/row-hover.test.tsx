@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -298,6 +298,44 @@ describe("useRowHover", () => {
     expect(layerIn("r0")).not.toBeNull();
     await act(async () => probe.hover.hide());
     expect(layers()).toHaveLength(0);
+  });
+
+  it("arrives in the same update as a new ref to its list's element, and works", async () => {
+    const layer = createRowLayer<string>();
+    function Hooked({ container }: { container: RefObject<HTMLElement | null> }) {
+      const hover = useRowHover(container, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      return null;
+    }
+    // Its ref is a new function in the update the layer arrives in: React detaches the old one, mounts the layer, and
+    // only then attaches the new one.
+    function Host({ on }: { on: boolean }) {
+      const ref = useRef<HTMLElement | null>(null);
+      const attach = useCallback(
+        (element: HTMLDivElement | null) => {
+          ref.current = element;
+          return () => void (ref.current = null);
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- a new ref function when the layer arrives, on purpose
+        [on],
+      );
+      const rowRef = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => layer.set(rowRef.current!, "r0"), []);
+      return (
+        <div ref={attach}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            Row
+          </div>
+          {on ? <Hooked container={ref} /> : null}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Host on={false} />);
+    await rerender(<Host on />);
+    pointer(row("r0"), "pointerover");
+    await expect.poll(() => probe.hover.row).toBe(row("r0"));
   });
 
   it("shows on a row focused from the keyboard, or the pointer rests on, before the layer arrived", async () => {

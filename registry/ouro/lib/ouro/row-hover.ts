@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { createContext, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 
@@ -128,7 +128,16 @@ export function useRowHover<T>(
     menuRef.current = menu;
   });
   const api = useRef<Pick<RowHover, "hide" | "hold">>(null);
+  // Off as the list goes, before React takes its elements out of the page (which can move focus and fire events):
+  // the listeners below go only after that.
+  const live = useRef(true);
   useLayoutEffect(() => {
+    live.current = true;
+    return () => void (live.current = false);
+  }, []);
+  // After every ref of the update is in place: a list whose element's ref is replaced in the same update the layer
+  // arrives in has it only once the layout effects are done.
+  useEffect(() => {
     const root = container.current!;
     const doc = root.ownerDocument;
     const win = doc.defaultView!;
@@ -144,7 +153,7 @@ export function useRowHover<T>(
     };
     const show = (next: HTMLElement | null, how: RowHoverVia | null, sync = true, refocus = true) => {
       const to = next === null ? null : how;
-      if (next === row && to === via) return;
+      if (!live.current || (next === row && to === via)) return;
       // Focus in the layer goes back to its row before the layer goes, so it never drops to the page; not when a menu
       // opens from it, which takes focus and gives it back to the row as it closes.
       const active = doc.activeElement;
