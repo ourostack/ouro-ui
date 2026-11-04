@@ -1173,17 +1173,35 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // After React's commit, so it reads no layout unless the Tab stop went: reading where messages
     // are here would lay the page out before the browser does, at every new message.
-    const sync = (changed: boolean) => {
+    // The message now in the place of `gone`, which the changes in `records` took out: the first that follows the node that was
+    // before it, else the last before the node that was after it. Not the one at its index: messages put in above, as older ones
+    // load, would make that one further up, and scroll the reader there.
+    const placeOf = (gone: Element, records: readonly MutationRecord[], left: HTMLElement[]) => {
+      const record = records.find((each) => [...each.removedNodes].some((node) => node.contains(gone)));
+      const before = record?.previousSibling;
+      const after = record?.nextSibling;
+      if (before?.isConnected) {
+        const next = left.find((item) => (before.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 && !before.contains(item));
+        if (next) return next;
+      }
+      if (after?.isConnected) return left.findLast((item) => (after.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_PRECEDING) !== 0 && !item.contains(after));
+      return undefined;
+    };
+    const sync = (changed: boolean, records: readonly MutationRecord[] = []) => {
       // Out of the Tab order, for the list's Tab and the browser's alike (`guards`).
       // Stryker disable next-line StringLiteral: an empty or any other negative tabindex takes a span out of the Tab order too.
       for (const guard of content.querySelectorAll(guards)) guard.setAttribute("tabindex", "-1");
       // In another conversation, focus goes to its Tab stop, below, without scrolling: no message is in the old one's place.
       const refocus = focused?.isConnected === false && doc.activeElement === doc.body && switched.current;
       if (focused?.isConnected === false && doc.activeElement === doc.body && !refocus) {
-        focused = null;
         const left = topItems(content);
-        const at = Math.min(lastIndex, left.length - 1);
-        left.slice(at, at + 1).forEach(move);
+        const place = placeOf(focused, records, left) ?? left[Math.min(lastIndex, left.length - 1)];
+        focused = null;
+        if (place) {
+          // A message that just came takes focus before the list has marked it below.
+          mark(place, "tabindex", "-1");
+          move(place);
+        }
       }
       if (refocus) focused = null;
       switched.current = false;
@@ -1334,7 +1352,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const scrolled = () => place(tops);
 
     sync(true);
-    const observer = new MutationObserver((records) => sync(records.some(touchesItems)));
+    const observer = new MutationObserver((records) => sync(records.some(touchesItems), records));
     observer.observe(content, { childList: true, subtree: true });
     scroller.addEventListener("focusin", focusIn);
     scroller.addEventListener("focusout", focusOut);

@@ -2445,6 +2445,22 @@ describe("MessageList keyboard", () => {
     await rerender(notes(true));
     expect(document.activeElement).toBe(button("After"));
   });
+
+  it("moves focus from a focused message replaced under a new key to its replacement, not to its old index, as older messages go in above", async () => {
+    const recent = history(15, 100);
+    const { scroller, rerender } = await render(<Chat items={recent} />);
+    await settle(scroller);
+    const newest = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    newest.focus();
+    await settle(scroller);
+    // In one commit: older messages in above, and the newest swapped for the server's copy, a new key with the same text.
+    await rerender(<Chat items={[...history(10, 0), ...recent.slice(0, -1), { ...recent.at(-1)!, id: "sent" }]} />);
+    await settle(scroller);
+    const replacement = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
+    expect(replacement).not.toBe(newest);
+    expect(document.activeElement).toBe(replacement);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(2);
+  });
 });
 
 describe("MessageList development messages", () => {
