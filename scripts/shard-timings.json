@@ -425,6 +425,7 @@
   },
   "e2e": {
     "registry/ouro/e2e/ouro/accordion.spec.ts": 6321,
+    "registry/ouro/e2e/ouro/agent-presence.spec.ts": 8000,
     "registry/ouro/e2e/ouro/alert.spec.ts": 6268,
     "registry/ouro/e2e/ouro/aspect-ratio.spec.ts": 2510,
     "registry/ouro/e2e/ouro/attachment.spec.ts": 6942,

@@ -12,9 +12,10 @@ import type { Effect } from "./effects.ts";
  * the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go
  * into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component
  * whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports
- * one only when it has agent reads or actions of its own. A component imports the kit as
- * `import { defineComponentAx } from "@/registry/ouro/ax/component";`, which the shadcn CLI rewrites to the app's lib
- * alias (`@/lib/ouro/ax/component`), and its item brings `ax-component` with it.
+ * one only when it has agent reads or actions of its own. A component imports `defineComponentAx` from the kit's
+ * `ouro/ax/component` under the registry alias, which the shadcn CLI rewrites to the app's lib alias
+ * (`@/lib/ouro/ax/component`), and its item brings `ax-component` with it. The path is not spelled out here, since an
+ * installed file may not name the registry.
  *
  * @claim "which the shadcn CLI rewrites to the app's lib alias" scripts/install-check.test.mjs verify:testExists(scripts/install-check.test.mjs::an installed file must equal its source once import paths are mapped to the app's aliases)
  * @claim "its item brings `ax-component` with it" scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::a component that imports the ax kit lists the ax item in its registryDependencies)

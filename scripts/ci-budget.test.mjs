@@ -1,8 +1,13 @@
 import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
-import { baseline, budget, criticalPath, earlierWork, freshAttempt, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, wallTime, workSeconds } from "./ci-budget.mjs";
+import { baseline, budget, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const workflow = `name: CI
 jobs:
@@ -83,6 +88,20 @@ test("the critical path follows needs through the slowest job of each matrix, an
   assert.deepEqual(path.unmatched, []);
   // The wall time counts the queue: 12:00 to 12:10, the budget job left out.
   assert.equal(wallTime(jobs, jobGraph(workflow)), 10 * 60);
+});
+
+test("the critical path leaves out fail-fast, which waits for the whole run, queues included, and is no unmatched job", () => {
+  const graph = jobGraph(`${workflow}  fail-fast:
+    runs-on: ubuntu-latest
+`);
+  // The browser shards queued for 40 minutes; fail-fast ran for all of it.
+  const jobs = [job("plan", 0, 0, 1), job("fail-fast", 0, 0, 50), job("browser (1/2)", 1, 41, 48), job("browser (2/2)", 1, 40, 46), job("ci", 48, 48, 49), job("lint", 0, 0, 6)];
+  for (const work of [false, true]) {
+    const path = criticalPath(jobs, graph, { work });
+    assert.deepEqual(path.jobs.map((entry) => entry.name), ["plan", "browser (1/2)", "ci"]);
+    assert.equal(path.seconds, 9 * 60);
+    assert.deepEqual(path.unmatched, []);
+  }
 });
 
 test("a skipped job adds nothing, and a job no name matches is reported", () => {
@@ -200,6 +219,20 @@ test("a job's work time leaves out its setup steps: the runner, checkout, pnpm a
   const path = criticalPath([job("plan", 0, 0, 1), browser, job("ci", 0, 0, 1)], graph, { work: true });
   assert.equal(path.seconds, (1 + 6.5 + 1) * 60);
   assert.equal(criticalPath([job("plan", 0, 0, 1), browser, job("ci", 0, 0, 1)], graph).seconds, (1 + 10.5 + 1) * 60);
+});
+
+test("the plan's yield to the merge queue is a wait for runners: the critical path and the work time leave it out, the runner time keeps it", () => {
+  const plan = stepped("plan", [["Set up job", 0.5], ["Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", 0.5], ["Yield to the merge queue", 12], ["Run pnpm i --frozen-lockfile", 0.5], ["Plan the tests", 0.5]]);
+  assert.deepEqual(waitSteps, [/^Yield to the merge queue$/]);
+  assert.equal(heldSeconds(plan), 2 * 60);
+  assert.equal(workSeconds(plan), 0.5 * 60);
+  const graph = jobGraph(workflow);
+  const jobs = [plan, job("browser (1/2)", 14, 14, 20), job("ci", 20, 20, 21)];
+  assert.equal(criticalPath(jobs, graph).seconds, (2 + 6 + 1) * 60);
+  assert.equal(criticalPath(jobs, graph, { work: true }).seconds, (0.5 + 6 + 1) * 60);
+  assert.equal(runnerTime(jobs, graph), (14 + 6 + 1) * 60);
+  // ci.yml names the step as waitSteps reads it.
+  assert.match(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"), /^ {6}- name: Yield to the merge queue$/m);
 });
 
 test("main's baseline carries the median work time of the same runs, once all of them recorded one, and the previous full run is the newest full, non-fallback record of the pull request's earlier runs", () => {

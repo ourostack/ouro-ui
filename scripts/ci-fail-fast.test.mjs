@@ -7,7 +7,7 @@ import { cancelNote, DEADLINE_MS, decide, FAILED, LAST, POLL_MS, rateLimited, re
 
 // Fail fast for a pull request's CI (scripts/ci-fail-fast.mjs): when it cancels the run, that it
 // waits for the failed job to finish, that it never fails the run itself, and that ci.yml runs it
-// beside every job on pull requests only, with no job waiting on it.
+// beside every job after the plan, on pull requests only, with no job waiting on it.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const yml = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
@@ -164,10 +164,12 @@ test("it gives up before its job's time limit, so a long run never turns the wat
   assert.equal(3_600_000 / POLL_MS, 60, "60 reads an hour per run, of the 1,000 a repository's GITHUB_TOKEN gets on the Team plan");
 });
 
-test("ci.yml runs fail-fast beside every job, on pull requests only, with the least it needs, and nothing else cancels or writes to Actions", () => {
+test("ci.yml runs fail-fast beside every job after the plan, on pull requests only, with the least it needs, and nothing else cancels or writes to Actions", () => {
   const block = jobs[SELF];
-  assert.match(block, /^ {4}if: github\.event_name == 'pull_request'$/m, "never in the merge queue, on main or in a dispatched run");
-  assert.doesNotMatch(block, /^ {4}(?:needs|name|strategy):/m, "it starts with the run, and its API name is its key");
+  assert.match(block, /^ {4}if: \$\{\{ !cancelled\(\) && github\.event_name == 'pull_request' \}\}$/m, "never in the merge queue, on main or in a dispatched run");
+  // It holds no runner while the plan yields to the merge queue, and every other job waits on the plan too.
+  assert.deepEqual(needsOf(SELF), ["plan"]);
+  assert.doesNotMatch(block, /^ {4}(?:name|strategy):/m, "its API name is its key");
   assert.match(block, /^ {4}continue-on-error: true$/m, "the watcher cannot fail the run");
   assert.match(block, /\n {4}permissions:\n {6}actions: write\n {6}contents: read\n {4}steps:/, "actions: write to read the jobs and cancel; nothing more");
   assert.match(block, /- run: node scripts\/ci-fail-fast\.mjs\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}$/m);

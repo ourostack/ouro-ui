@@ -1,0 +1,11 @@
+{
+  "order": 2650,
+  "components": ["agent-presence"],
+  "controls": {
+    "agent-presence": [
+      {"part": "trigger", "role": "button", "portal": false},
+      {"part": "stop", "role": "button", "portal": true},
+      {"part": "stop-all", "role": "button", "portal": true}
+    ]
+  }
+}
