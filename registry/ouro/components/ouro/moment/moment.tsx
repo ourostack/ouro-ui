@@ -27,6 +27,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 
@@ -53,7 +54,7 @@ export interface MomentOwnProps {
   description?: ReactNode;
   /**
    * The picture: any node, usually an inline SVG, which fills the art's height (160px, 96px
-   * when the moment is narrower than 24rem, 40px when quiet, 24px inline). It is decorative
+   * when the moment is narrower than 24rem, 24px inline; none when quiet). It is decorative
    * and hidden from screen readers unless you pass `artLabel`. Draw it with `currentColor`
    * and the theme's variables so it follows the kind, the theme and dark mode. With reduced
    * motion, its CSS animations stop and its SVG animations pause. Its motion has a budget too:
@@ -62,7 +63,7 @@ export interface MomentOwnProps {
    * views or filters arrives still.
    * @claim "Its motion has a budget too:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > settles the art's loops at the end of their turn within 5 s, SVG animations too, and leaves other motion alone)
    * @claim "Its motion has a budget too:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > plays the art's entrance once a session for a moment with a key, and every time without one)
-   * @claim "which fills the art's height (160px," registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
+   * @claim "which fills the art's height (160px," registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, and 24px inline)
    * @claim "It is decorative and hidden from" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > hides the art from screen readers, or names it with artLabel)
    * @claim "With reduced motion, its CSS animations" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion > stops the art's CSS animations and pauses its SVG animations with reduced motion, and lets them run again after)
    */
@@ -97,15 +98,17 @@ export interface MomentOwnProps {
    * "working" row in a list or toolbar.
    * @default "default"
    * @claim "`hero` does too, with art up" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives hero art 220px, and 96px in a pane narrower than 24rem)
-   * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
+   * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, and 24px inline)
    * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > is one row inline, with a plain-text title unless given a heading level)
    */
   size?: "default" | "hero" | "inline" | (string & { 'Use "default", "hero" or "inline"; for a compact moment use quiet': never }) | undefined;
   /**
-   * A compact row: 40px art, the title and one line, no celebration. For dense panes, and for
-   * people who want less: set it for the whole app with `MomentProvider`.
-   * @default the nearest `MomentProvider`'s `quiet`, or `false`
-   * @claim "A compact row: 40px art, the" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > renders a compact row from the prop or from MomentProvider, and the prop wins)
+   * Words only, in a compact row: the title and one line, with no art and no celebration (a
+   * loading moment keeps its small spinner). For dense panes, and for people who want less:
+   * `OuroProvider`'s `quiet` sets it for the whole app, and `MomentProvider` for a part of it.
+   * @default the nearest `MomentProvider`'s `quiet`, else `OuroProvider`'s, else `false`
+   * @claim "Words only, in a compact row:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > keeps its words and drops its art and celebration under OuroProvider's quiet, unless MomentProvider or the prop says otherwise)
+   * @claim "Words only, in a compact row:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > renders a compact row from the prop or from MomentProvider, and the prop wins)
    */
   quiet?: boolean | undefined;
   /**
@@ -178,7 +181,7 @@ export type MomentProps = Omit<HTMLAttributes<HTMLDivElement>, keyof MomentOwnPr
 export interface MomentProviderProps {
   /**
    * Renders every `Moment` inside quiet, unless the moment sets `quiet` itself.
-   * @default false
+   * @default `OuroProvider`'s `quiet`
    * @claim "Renders every `Moment` inside quiet, unless" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > renders a compact row from the prop or from MomentProvider, and the prop wins)
    */
   quiet?: boolean | undefined;
@@ -186,7 +189,7 @@ export interface MomentProviderProps {
   children: ReactNode;
 }
 
-const MomentContext = createContext(false);
+const MomentContext = createContext<boolean | undefined>(undefined);
 
 /**
  * Sets `quiet` for every `Moment` inside it, so an app can make its moments compact
@@ -205,7 +208,7 @@ const MomentContext = createContext(false);
  *   <App />
  * </MomentProvider>
  */
-export function MomentProvider({ quiet = false, children }: MomentProviderProps): JSX.Element {
+export function MomentProvider({ quiet, children }: MomentProviderProps): JSX.Element {
   return <MomentContext value={quiet}>{children}</MomentContext>;
 }
 
@@ -295,7 +298,8 @@ export function Moment(props: MomentProps): JSX.Element | null {
   const named = kindProp === "welcome" ? "first-run" : kindProp;
   const kind: MomentKind = Object.hasOwn(kindToneClass, named) ? (named as MomentKind) : "empty";
   const provided = useContext(MomentContext);
-  const quiet = quietProp ?? provided;
+  const ouro = useOuro();
+  const quiet = quietProp ?? provided ?? ouro.quiet === true;
   const layout = sizeProp === "inline" ? "inline" : quiet ? "quiet" : "default";
   const level = headingLevel === undefined ? (layout === "inline" ? undefined : 3) : (levels as readonly unknown[]).includes(headingLevel) ? (headingLevel as (typeof levels)[number]) : 3;
   const per: MomentPeriod = cap !== undefined && Object.hasOwn(periods, cap.per) ? (cap.per as MomentPeriod) : "day";
@@ -413,7 +417,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
     if (dismissKey !== undefined) keepDismissed(dismissKey);
     onDismiss?.();
   };
-  const hasArt = present(art);
+  const hasArt = present(art) && !quiet;
   const spinner = !hasArt && kind === "loading";
 
   const titleNode =
@@ -453,7 +457,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
         </span>
       )}
       {hasArt && (
-        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout === "default" && sizeProp === "hero" ? "hero" : layout], kindToneClass[kind])}>
+        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout === "inline" ? "inline" : sizeProp === "hero" ? "hero" : "default"], kindToneClass[kind])}>
           {flourish && <span aria-hidden="true" data-ouro-part="halo" className={haloClass} />}
           {flourish &&
             sparkClasses.map((spark) => (

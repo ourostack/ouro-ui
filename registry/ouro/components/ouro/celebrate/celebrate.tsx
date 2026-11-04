@@ -6,6 +6,7 @@ import { canCelebrate, celebrationPeriods, recordCelebration, type CelebrationPe
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 
 /** The props Celebrate adds to the `<span>` attributes it passes through. */
 export interface CelebrateOwnProps {
@@ -80,6 +81,9 @@ const pieces = Array.from({ length: PIECES }, (_, index) => {
 /**
  * A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. The confetti stays inside Celebrate's own box and never flies over what is around it: give it room with layout classes (`h-24 w-full`) for a wider burst. The message waits about 1.5 s to leave time for the triggering control's announcement; this does not detect when a screen reader finishes speaking. With reduced motion nothing flies: the badge only fades in. Put it where the eye already is, such as at the end of the list that was just cleared.
  *
+ * Under `OuroProvider`'s `quiet`, for people who want less, only the message shows and is
+ * heard: no confetti.
+ *
  * Use `toast()` instead to confirm an everyday action (saved, sent), and `Alert` for a
  * message that should stay.
  *
@@ -87,6 +91,7 @@ const pieces = Array.from({ length: PIECES }, (_, index) => {
  *
  * @claim "While the moment lasts, the root" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > carries data-celebrate while the moment lasts, and not before or after)
  * @claim "The confetti stays inside Celebrate's own" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > throws twelve pieces in every direction, at two distances, in the theme's tones, inside its own box and hidden from screen readers)
+ * @claim "Under `OuroProvider`'s `quiet`, for people" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > shows and speaks only the message under OuroProvider's quiet, with no confetti)
  * @claim "The message waits about 1.5 s" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > says the message once after a delay when the moment starts, and again for the next one)
  * @group Feedback
  * @see https://ui.ouro.bot/docs/celebrate
@@ -130,6 +135,7 @@ export function Celebrate(props: CelebrateProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  const quiet = useOuro().quiet === true;
   // Spoken when the moment starts, not when a page renders with it already shown.
   const shown = useRef(show);
   useEffect(() => {
@@ -167,11 +173,12 @@ export function Celebrate(props: CelebrateProps): JSX.Element {
       data-ouro="celebrate"
       data-open={show ? "" : undefined}
       data-celebrate={show ? "" : undefined}
+      data-quiet={quiet ? "" : undefined}
       className={cn("relative inline-flex min-h-7 items-center justify-center", className)}
     >
       {show ? (
         <>
-          {burst && (
+          {burst && !quiet && (
             <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-clip motion-reduce:hidden">
               {pieces.map((piece, index) => (
                 <span

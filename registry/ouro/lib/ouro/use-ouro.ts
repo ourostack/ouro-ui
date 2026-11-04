@@ -23,6 +23,8 @@ export interface OuroContextValue {
   portalContainer?: HTMLElement | RefObject<HTMLElement | null> | undefined;
   /** How much Ouro UI moves. Unset, it follows the device: `system`. */
   motion?: OuroMotion | undefined;
+  /** Whether the person asked for less: words without art or celebrations. */
+  quiet?: boolean | undefined;
 }
 
 /**

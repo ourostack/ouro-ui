@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip } from "@base-ui/react/tooltip";
-import { useMemo, type JSX, type ReactNode, type RefObject } from "react";
+import { useEffect, useMemo, type JSX, type ReactNode, type RefObject } from "react";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { DefaultLink, OuroContext, useOuro, type OuroContextValue, type OuroLinkComponent, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 
@@ -61,6 +61,18 @@ export interface OuroProviderProps {
    * @default "system"
    */
   motion?: OuroMotion | (string & { 'Use "system", "reduced" or "full"': never }) | undefined;
+  /**
+   * For people who want less: `Moment` shows its words without art or a celebration, and
+   * `Celebrate` its message without confetti. While it is on, `<html>` carries
+   * `data-ouro-quiet`, so an app hides its own decoration with one rule:
+   * `[data-ouro-quiet] [data-ouro-quiet-hide] { display: none; }`. A provider inside another
+   * keeps the outer one's setting when it sets none. Store the person's choice as you store
+   * their other settings, and pass it here.
+   * @default false
+   * @claim "For people who want less: `Moment`" registry/ouro/lib/ouro/ouro-provider.test.tsx verify:testExists(registry/ouro/lib/ouro/ouro-provider.test.tsx::OuroProvider quiet > tells components the person asked for less, and marks the page while it is on)
+   * @claim "A provider inside another keeps the" registry/ouro/lib/ouro/ouro-provider.test.tsx verify:testExists(registry/ouro/lib/ouro/ouro-provider.test.tsx::OuroProvider quiet > keeps an outer provider's quiet inside one that sets none, and lets an inner one turn it off)
+   */
+  quiet?: boolean | undefined;
 }
 
 const motions = ["system", "reduced", "full"] as const;
@@ -70,6 +82,9 @@ const motions = ["system", "reduced", "full"] as const;
 const stillCss =
   '*:not([data-motion="full"], [data-motion="full"] *), *:not([data-motion="full"] *)::before, *:not([data-motion="full"] *)::after ' +
   "{ animation-duration: 0s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; transition-delay: 0s !important; scroll-behavior: auto !important; }";
+
+// How many quiet providers are mounted, so the page stays marked until the last one goes.
+let quietProviders = 0;
 
 /**
  * Optional app-level provider that routes internal `href`s through your
@@ -161,12 +176,13 @@ const stillCss =
  * @claim "Ouro UI components work without it" scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests)
  * @claim "It installs with every component that" scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses)
  */
-export function OuroProvider({ children, linkComponent, portalContainer, motion: motionProp }: OuroProviderProps): JSX.Element {
+export function OuroProvider({ children, linkComponent, portalContainer, motion: motionProp, quiet: quietProp }: OuroProviderProps): JSX.Element {
   const outer = useOuro();
   const container = portalContainer === undefined ? outer.portalContainer : (portalContainer ?? undefined);
   // A setting that is not one (a type error) warns and follows the device.
   const own = motionProp === undefined ? undefined : (motions as readonly string[]).includes(motionProp) ? (motionProp as OuroMotion) : "system";
   const motion = own ?? outer.motion;
+  const quiet = quietProp ?? outer.quiet === true;
   useDevWarnings(
     "OuroProvider",
     process.env.NODE_ENV !== "production"
@@ -174,9 +190,18 @@ export function OuroProvider({ children, linkComponent, portalContainer, motion:
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const value = useMemo<OuroContextValue>(
-    () => ({ linkComponent: linkComponent ?? DefaultLink, ...(container ? { portalContainer: container } : {}), ...(motion ? { motion } : {}) }),
-    [linkComponent, container, motion],
+    () => ({ linkComponent: linkComponent ?? DefaultLink, ...(container ? { portalContainer: container } : {}), ...(motion ? { motion } : {}), quiet }),
+    [linkComponent, container, motion, quiet],
   );
+  useEffect(() => {
+    if (!quiet) return;
+    quietProviders += 1;
+    document.documentElement.setAttribute("data-ouro-quiet", "");
+    return () => {
+      quietProviders -= 1;
+      if (quietProviders === 0) document.documentElement.removeAttribute("data-ouro-quiet");
+    };
+  }, [quiet]);
   const content = <Tooltip.Provider>{children}</Tooltip.Provider>;
   return (
     <OuroContext.Provider value={value}>
