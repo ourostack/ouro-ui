@@ -78,6 +78,15 @@ export interface RowHover {
 
 // What a tap lands on that is the control's rather than the row's.
 const controls = "a, button, input, textarea, select, [tabindex]";
+// Where a mouse or pen last was in the page, for a layer that arrives under one resting still: the page's hover state
+// can lag a list that was just drawn, and a pointer that stays still sends nothing more.
+let pointerAt: { x: number; y: number } | null = null;
+// Stryker disable next-line ConditionalExpression: on a server there is no page to listen to.
+if (typeof document !== "undefined") {
+  // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: a finger leaves nothing resting; no browser test can move a touch pointer without lifting it.
+  document.addEventListener("pointermove", (event) => (pointerAt = event.pointerType === "touch" ? null : { x: event.clientX, y: event.clientY }), { capture: true, passive: true });
+}
+
 // Where a right-click stays the browser's: a field's own menu (spelling, paste).
 const editable = 'input, textarea, [contenteditable]:not([contenteditable="false"])';
 // A link's, a picture's or a video's own menu (copy its address, save it) stays the browser's too.
@@ -241,8 +250,7 @@ export function useRowHover<T>(
     // Focus already in a row, from the keyboard, as the layer arrives; else the pointer already resting on one (the
     // layer's code came after the pointer did, and a pointer that stays still sends nothing more).
     const focused = rowOf(doc.activeElement);
-    // Stryker disable next-line MethodExpression,UnaryOperator: the deepest hovered element and its outermost one inside the list are in the same row.
-    const under = rowOf([...root.querySelectorAll(":hover")].at(-1) ?? null);
+    const under = pointerAt === null ? null : rowOf(doc.elementFromPoint(pointerAt.x, pointerAt.y));
     if (focused !== null && lastInput() === "keyboard") show(focused, "focus", false);
     // Stryker disable next-line ConditionalExpression,StringLiteral,LogicalOperator: a touch's lingering hover is the tap handler's to decide; no browser test can make one before the layer arrives.
     else if (under !== null && lastInput() !== "touch") show(under, "pointer", false);
