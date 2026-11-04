@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { defineComponentAx } from "@/registry/ouro/ax/component";
 
 /** A corner a `SnapPiP` rests in: the screen's corners, the same in either reading direction. */
 export type SnapPiPCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
@@ -156,8 +157,8 @@ export const pipClass = [
 export const frameClass = "block size-full overflow-hidden rounded-[inherit]";
 
 /**
- * The hint's place beside the picture: above it in a bottom corner and below it in a top one, so
- * it never covers the picture. Its padding bridges the gap, so the pointer can move onto it
+ * The hint's place beside the picture: above it in a bottom corner and below it in a top one,
+ * clear of the picture. Its padding bridges the gap, so the pointer can move onto it
  * without it closing. The component lines it up with the picture's outer edge.
  */
 export const hintClass = [
@@ -175,16 +176,15 @@ export const hintTextClass =
 export const HINT_DELAY = 600;
 
 /**
- * SnapPiP's agent side, for Ouro AX's kit. It declares no reads, and one action, `move`, which only
- * the person takes: where their own picture sits is theirs. The picture carries
- * `data-ax-action="move"`.
+ * SnapPiP's agent side, declared with Ouro AX's `defineComponentAx`. It declares no reads, and one
+ * action, `move`, which only the person takes: where their own picture sits is theirs. The picture
+ * carries `data-ax-action="move"`.
  *
  * @example
  * snapPipAx.actions[0].id; // "move"
  * @claim "It declares no reads, and one" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > declares no agent reads and one move only the person makes, on the picture)
  */
-// TODO(ourostack/ouro-ui ax/component): wrap with defineComponentAx once it lands
-export const snapPipAx = {
+export const snapPipAx = defineComponentAx({
   component: "SnapPiP",
   reads: [],
   actions: [
@@ -195,4 +195,4 @@ export const snapPipAx = {
       personOnly: "You can't move the person's own picture; only they can.",
     },
   ],
-} as const;
+});
