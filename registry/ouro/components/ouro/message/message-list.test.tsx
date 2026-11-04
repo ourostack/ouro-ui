@@ -2599,3 +2599,115 @@ describe("MessageList through a long conversation", () => {
     expect(Math.abs(long.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
 });
+
+describe("MessageList when no message starts in view", () => {
+  const long = (id: number | string): Item => ({ id, role: "assistant", text: "A long reply that runs on. ".repeat(80) });
+  const grow = (items: Item[], id: number | string) => items.map((item) => (item.id === id ? { ...item, text: `${item.text} ${"more ".repeat(80)}` } : item));
+  /**
+   * Scrolls into `node` until its bottom is 150px below the view's: it fills the view, and the next message starts
+   * within a view's height below, so the list holds it too.
+   */
+  const into = async (scroller: HTMLElement, node: Element) => {
+    const box = node.getBoundingClientRect();
+    scroller.scrollTop += box.bottom - scroller.getBoundingClientRect().bottom - 150;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+  };
+
+  it("keeps the reader's place in the first message as it grows, when it fills the view", async () => {
+    const items = [long("first"), ...history(5)];
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    const first = scroller.querySelector('[data-ouro="message"]')!;
+    await into(scroller, first);
+    const top = first.getBoundingClientRect().top;
+    await rerender(<Chat items={grow(items, "first")} />);
+    await settle(scroller);
+    expect(Math.abs(first.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place in a message that fills the view as it grows, under a header, with a hidden message after it", async () => {
+    const items = [...history(5), long("long"), { ...history(1, 5)[0]!, hidden: true }, ...history(5, 6)];
+    const list = (shown: Item[]) => (
+      <div style={{ paddingTop: 120 }}>
+        <Chat items={shown} />
+      </div>
+    );
+    const { scroller, rerender } = await render(list(items));
+    const filler = [...scroller.querySelectorAll('[data-ouro="message"]')][5]!;
+    await into(scroller, filler);
+    const top = filler.getBoundingClientRect().top;
+    await rerender(list(grow(items, "long")));
+    await settle(scroller);
+    expect(Math.abs(filler.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps what the reader sees in something of the app's own between messages, when a message above it grows", async () => {
+    const list = (more: string) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        <Message role="user" name="Ana">
+          {`Above the timeline.${more}`}
+        </Message>
+        <div data-timeline="" style={{ height: 1500 }} />
+        <Message role="assistant" name="Ouro">
+          Below the timeline.
+        </Message>
+        <Message role="assistant" name="Ouro">
+          The newest.
+        </Message>
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(""));
+    const timeline = scroller.querySelector("[data-timeline]")!;
+    await into(scroller, timeline);
+    const top = timeline.getBoundingClientRect().top;
+    await rerender(list(` ${"more ".repeat(80)}`));
+    await settle(scroller);
+    expect(Math.abs(timeline.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place in a post that fills the view as it grows, past a reply inside it above the view", async () => {
+    const list = (more: string) => (
+      <MessageList label="Channel" style={{ height: 300 }}>
+        <Message role="user" name="Ana">
+          Morning.
+        </Message>
+        <article data-ouro-message-list-item="" data-role="user" data-post="">
+          <p data-ouro-message-content="" style={{ margin: 0 }}>
+            {"A post that runs on. ".repeat(20)}
+          </p>
+          <article data-ouro-message-list-item="" data-role="assistant">
+            <span data-ouro-message-content="">A reply, near the top of the post.</span>
+          </article>
+          <p style={{ margin: 0 }}>{`${"The post runs on below its reply. ".repeat(80)}${more}`}</p>
+        </article>
+        <Message role="assistant" name="Ouro">
+          Under the post.
+        </Message>
+        <Message role="assistant" name="Ouro">
+          The newest.
+        </Message>
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(""));
+    const post = scroller.querySelector("[data-post]")!;
+    const reply = post.querySelector("[data-ouro-message-list-item]")!;
+    await into(scroller, post);
+    expect(reply.getBoundingClientRect().bottom).toBeLessThan(scroller.getBoundingClientRect().top);
+    const top = post.getBoundingClientRect().top;
+    await rerender(list(` ${"more ".repeat(80)}`));
+    await settle(scroller);
+    expect(Math.abs(post.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the next message where it was when the message that fills the view goes", async () => {
+    const items = [...history(30), long("long"), ...history(20, 30)];
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    const messages = [...scroller.querySelectorAll('[data-ouro="message"]')];
+    await into(scroller, messages[30]!);
+    const next = messages[31]!;
+    const top = next.getBoundingClientRect().top;
+    await rerender(<Chat items={items.filter((item) => item.id !== "long")} />);
+    await settle(scroller);
+    expect(Math.abs(next.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+});
