@@ -856,11 +856,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // the list is held here first, and the resize observer then finds it held. At the end, the list follows wherever its end
     // went: something put in a message that reaches past the end (a reply's action bar, which loads after the message,
     // beside its last line) moves the end without resizing anything, so the resize observer would not see it.
-    const moves = new MutationObserver((records) => {
+    const moves = new MutationObserver(() => {
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
+      // Scrolled up, every change is held here, at once, not only one that adds or removes a message: a picture's placeholder
+      // giving way to the picture, or a row above the messages changing, would otherwise wait for the resize observer, which
+      // runs after the frame's animation callbacks, so they read the reader's place moved for that frame.
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
-      if (pinned.current ? farthest() !== end : records.some(touchesItems)) hold();
+      if (!pinned.current || farthest() !== end) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
