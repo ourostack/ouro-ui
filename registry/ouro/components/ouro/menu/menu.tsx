@@ -443,6 +443,11 @@ function MenuSurface({
           collisionPadding={8}
           // Stryker disable next-line ConditionalExpression: Base UI reads an anchor of undefined as none, as it reads no anchor.
           {...(anchor !== undefined ? { anchor } : {})}
+          // An anchored menu mounts open, and its first placement can come before the layer it renders in is laid out
+          // (WebKit): placed absolutely, it was drawn offset by as far as that layer is down the page, then jumped back a
+          // frame later. Placed fixed, as Base UI places a context menu, it is right from its first frame.
+          // Stryker disable next-line ConditionalExpression: a dropdown placed fixed is placed again as its page scrolls, where one placed absolutely moves with it, so no test can tell them apart.
+          {...(anchor !== undefined ? { positionMethod: "fixed" as const } : {})}
           {...(side ? { side } : {})}
           {...(align ? { align } : {})}
         >

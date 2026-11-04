@@ -1010,13 +1010,28 @@ describe("Menu anchor", () => {
 
   it("opens at a point the app gives, named by its aria-label, and puts focus back where the app says when it closes", async () => {
     await render(<Shared at={(target) => ({ x: target.getBoundingClientRect().left + 40, y: target.getBoundingClientRect().top + 20 })} />);
+    // Where the menu is in each frame it is drawn: at the point from its first, never somewhere else first.
+    const drawn: { left: number; top: number }[] = [];
+    let watching = true;
+    const watch = () => {
+      const shown = menu()?.getBoundingClientRect();
+      if (shown) drawn.push({ left: shown.left, top: shown.top });
+      if (watching) requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
     await userEvent.click(page.getByRole("button", { name: "Open" }));
     const element = await settled();
     await expect.element(page.getByRole("menu", { name: "Actions for the row" })).toBeVisible();
     expect(element.getAttribute("data-ouro-presentation")).toBe("menu");
-    const box = element.getBoundingClientRect();
-    expect(Math.abs(box.left - (row().getBoundingClientRect().left + 40))).toBeLessThanOrEqual(2);
-    expect(Math.abs(box.top - (row().getBoundingClientRect().top + 20))).toBeLessThanOrEqual(2);
+    // Focus moves into the menu on the frame after it opens (Base UI's), so Escape comes once it is there.
+    await expect.poll(() => element.contains(document.activeElement)).toBe(true);
+    watching = false;
+    const at = { left: row().getBoundingClientRect().left + 40, top: row().getBoundingClientRect().top + 20 };
+    expect(drawn.length).toBeGreaterThan(0);
+    for (const box of drawn) {
+      expect(Math.abs(box.left - at.left)).toBeLessThanOrEqual(2);
+      expect(Math.abs(box.top - at.top)).toBeLessThanOrEqual(2);
+    }
     await userEvent.keyboard("{Escape}");
     await expect.poll(menu).toBeNull();
     expect(document.activeElement).toBe(row());
