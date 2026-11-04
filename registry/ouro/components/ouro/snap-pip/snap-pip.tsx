@@ -302,11 +302,14 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     latest.current = { inset, keepOut, reduced, cornerLabels };
   });
 
-  const place = useCallback((x: number, y: number) => {
-    at.current = { x, y };
-    element.current!.style.translate = `${x}px ${y}px`;
+  const place = useCallback(
+    (x: number, y: number) => {
+      at.current = { x, y };
+      element.current!.style.translate = `${x}px ${y}px`;
+    },
     // Stryker disable next-line ArrayDeclaration: place reads only refs, so any constant list keeps it as this one does.
-  }, []);
+    [],
+  );
 
   /** The keep-outs as rectangles in the container, elements measured now. */
   const keepRects = useCallback((): SnapPiPRect[] => {
@@ -315,11 +318,14 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     return (latest.current.keepOut ?? []).flatMap((item): SnapPiPRect[] => {
       if (!("current" in item)) return [item];
       const target = item.current;
+      // Stryker disable next-line ArrayDeclaration: anything else in the list has no x or y, so every comparison with it is false and no place counts it.
       if (!target) return [];
       const rect = target.getBoundingClientRect();
       return [{ x: rect.left - box.left - container.clientLeft, y: rect.top - box.top - container.clientTop, width: rect.width, height: rect.height }];
     });
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: keepRects reads only refs, so any constant list keeps it as this one does.
+  []);
 
   const anchor = useCallback(
     (to: SnapPiPCorner) => {
@@ -336,8 +342,9 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     springs.current = undefined;
     element.current!.removeAttribute("data-ouro-settling");
     return { x: running.x.stop().velocity, y: running.y.stop().velocity };
-    // Stryker disable next-line ArrayDeclaration: halt reads only refs, so any constant list keeps it as this one does.
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: halt reads only refs, so any constant list keeps it as this one does.
+  []);
 
   const rested = useCallback(() => {
     const now = target.current;
@@ -424,8 +431,9 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
     }
     // Stryker disable next-line ConditionalExpression: a reflow when nothing came or went finds the picture already at its place, and does nothing.
     if (changed) reflow(false);
-    // Stryker disable next-line ArrayDeclaration: reflow keeps its identity for the component's life, so any constant list keeps rewatch the same.
-  }, [reflow]);
+  },
+  // Stryker disable next-line ArrayDeclaration: reflow keeps its identity for the component's life, so any constant list keeps rewatch the same.
+  [reflow]);
 
   // Measures the container, then follows it and its keep-outs as they resize, and its content as
   // it changes, for a keep-out element another part of the app shows or takes away. A container
