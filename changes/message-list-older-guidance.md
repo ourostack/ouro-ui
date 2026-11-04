@@ -1,0 +1,1 @@
+- MessageList: the docs for `loadingOlder` and older history now say to fetch older pages ahead of the reader, newer before older, rather than when they reach the top, so "Loading older messages" shows only when they get there first.
