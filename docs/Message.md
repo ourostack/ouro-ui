@@ -133,6 +133,8 @@ interface MenuCheckboxEntry {
   onCheckedChange?: ((checked: boolean) => void) | undefined;
   shortcut?: MenuShortcut | undefined;
   disabled?: boolean | undefined;
+  /** The id of the agent action it performs, set as `data-ax-action` on it, as on an item. */
+  axAction?: string | undefined;
 }
 ```
 
@@ -186,6 +188,11 @@ interface MenuItemEntry {
   tone?: "destructive" | undefined;
   /** Shown, but cannot be chosen. */
   disabled?: boolean | undefined;
+  /**
+   * The id of the agent action this item performs, set as `data-ax-action` on it, so the component
+   * that declares the action finds its control: `axAction: "mute"`.
+   */
+  axAction?: string | undefined;
 }
 ```
 

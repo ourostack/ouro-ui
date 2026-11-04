@@ -239,6 +239,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 
 Components:
 `accordion`,
+`agent-presence`,
 `alert`,
 `aspect-ratio`,
 `attachment`,
@@ -289,6 +290,7 @@ Components:
 `item`,
 `item-group`,
 `kbd`,
+`level-meter`,
 `lightbox`,
 `link`,
 `local-date`,
@@ -526,12 +528,14 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Feedback
 
+- **AgentPresence** — The person's always-visible sign of which of their agents are listening to something on their behalf, such as a meeting, with Stop one click away. [Docs](docs/AgentPresence.md)
 - **buzz** — Vibrates the device in a short alert pattern, where it can (most Android phones; not iOS or desktops). [Docs](docs/buzz.md)
 - **Celebrate** — A small moment of celebration for something the person finished: confetti bursts from a badge with the message ("List cleared") and screen readers hear the message once. [Docs](docs/Celebrate.md)
 - **chime** — Plays a short alert, three soft tones, for something that just finished: a timer at zero. [Docs](docs/chime.md)
 - **createChimeContext** — Makes an audio context for `chime`, or returns `null` where the browser has no Web Audio. [Docs](docs/createChimeContext.md)
 - **formatDuration** — Seconds as a clock reads them: `9:05`, or `1:02:03` from an hour up. [Docs](docs/formatDuration.md)
 - **InstallPrompt** — A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. [Docs](docs/InstallPrompt.md)
+- **LevelMeter** — A small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a "test your microphone" row). [Docs](docs/LevelMeter.md)
 - **Moment** — A moment in an app's life, shown in the space it is given: nothing here yet, on its way, something failed, a first run, or something finished. [Docs](docs/Moment.md)
 - **MomentProvider** — Sets `quiet` for every `Moment` inside it, so an app can make its moments compact everywhere, for a dense layout or for people who asked for less. [Docs](docs/MomentProvider.md)
 - **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)

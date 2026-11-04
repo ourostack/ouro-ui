@@ -45,7 +45,10 @@ interface PeopleCacheOptions<T> {
   /**
    * Reads a batch of people from the service: a result for each id it has an answer for, or a
    * rejection when the service failed. An id the result leaves out is `"missing"`. A rejection's
-   * `retryAfterMs`, if it has one, lengthens the pause.
+   * `retryAfterMs`, the service's Retry-After in ms, is honoured as given when it is longer than the
+   * pause, even past `longestPause`; one that is not a finite length, such as `Infinity` or `NaN`,
+   * is ignored.
+   * @claim "the service's Retry-After in" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > honours a failure's retryAfterMs as given when it is longer than the step, even past longestPause, and ignores one that is no length: %s gives %i ms)
    * @claim "Reads a batch of people" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > keeps a person the service had nothing for, or left out of its answer, as missing until missingFor runs out)
    */
   read: (ids: string[]) => Promise<Record<string, PersonRead<T>>>;
@@ -57,8 +60,24 @@ interface PeopleCacheOptions<T> {
   foundFor?: number | undefined;
   /** How long a person the service had nothing for stays fresh, in ms, before they are asked about again. @default 86_400_000 */
   missingFor?: number | undefined;
-  /** How long reads wait after the service fails, in ms. @default 60_000 */
+  /**
+   * How long reads wait after the service fails, in ms. The pause doubles with each round of reads
+   * that fails, up to `longestPause`, and a read that succeeds, even one that finds nothing, starts
+   * it from `pauseFor` again.
+   * @default 15_000
+   * @claim "The pause doubles with" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > doubles the pause with each round of reads that fails, up to longestPause)
+   * @claim "a read that succeeds, even" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > starts the pause from pauseFor again after a read that succeeds, even one that finds nothing)
+   */
   pauseFor?: number | undefined;
+  /**
+   * The longest the pause grows to by doubling after the service fails, in ms, the first pause
+   * included when `pauseFor` is longer. A service's `retryAfterMs` is honoured as given, even when
+   * it is longer than this.
+   * @default 600_000
+   * @claim "The longest the pause grows" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > caps each step of the pause at longestPause, the first step too)
+   * @claim "A service's `retryAfterMs` is" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > honours a failure's retryAfterMs as given when it is longer than the step, even past longestPause, and ignores one that is no length: %s gives %i ms)
+   */
+  longestPause?: number | undefined;
 }
 
 /** A cache of people's names, photos or profiles, from {@link createPeopleCache}. */
@@ -86,9 +105,11 @@ const LONGEST_WAIT = 2_147_483_647;
  * A cache of people's names, photos or profiles for an app's avatars and message names, read from
  * your service in batches. A person asked for again while their read is queued or under way joins
  * that read. A person the service has nothing for is kept as `missing` until `missingFor` runs out,
- * so they are not asked about on every load. When the service fails, every read waits `pauseFor`
- * and the people in that read are asked again after it; a person refused alone is `missing` and
- * makes no one wait. With `storage`, what was read survives a reload; an entry whose time has run
+ * so they are not asked about on every load. When the service fails, every read pauses, and the
+ * people in that read are asked again after it; the pause starts at `pauseFor` and doubles with each
+ * round that fails, up to `longestPause`, however many reads fail in a round. A service's
+ * Retry-After is honoured as given when it is longer. A person refused alone
+ * is `missing` and makes no one wait. With `storage`, what was read survives a reload; an entry whose time has run
  * out is read again when next asked for, or at once while it is watched.
  *
  * Use one cache per kind of thing (names, photos), made once outside your components, and read it
@@ -98,7 +119,9 @@ const LONGEST_WAIT = 2_147_483_647;
  * @claim "read from your service in" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > reads the people asked for in the same moment in batches of batchSize, and answers each)
  * @claim "A person the service has" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > keeps a person the service had nothing for, or left out of its answer, as missing until missingFor runs out)
  * @claim "When the service fails, every" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > pauses every read for pauseFor when the service fails, and reads the people in that read again after it)
- * @claim "When the service fails, every" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > makes no one wait when the service refuses one person, and pauses for a person the service failed on)
+ * @claim "the pause starts at" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > doubles the pause with each round of reads that fails, up to longestPause)
+ * @claim "the pause starts at" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > steps the pause once for reads that fail in the same round)
+ * @claim "A person refused alone" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > makes no one wait when the service refuses one person, and pauses for a person the service failed on)
  * @claim "With `storage`, what was read" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > keeps what it read in storage, and starts from it after a reload, reading only who ran out)
  * @claim "an entry whose time has run" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > reads a person found again once foundFor runs out, keeping their value while it reads)
  * @claim "an entry whose time has run" registry/ouro/lib/ouro/people-cache.test.ts verify:testExists(registry/ouro/lib/ouro/people-cache.test.ts::createPeopleCache > reads a watched person now and again whenever their entry runs out, calling onChange on each change)
@@ -119,12 +142,14 @@ const LONGEST_WAIT = 2_147_483_647;
  * });
  */
 function createPeopleCache<T>(options: PeopleCacheOptions<T>): PeopleCache<T> {
-  const { read, storage, batchSize = 50, foundFor = 604_800_000, missingFor = 86_400_000, pauseFor = 60_000 } = options;
+  const { read, storage, batchSize = 50, foundFor = 604_800_000, missingFor = 86_400_000, pauseFor = 15_000, longestPause = 600_000 } = options;
   const entries = new Map<string, PersonEntry<T>>();
   const watchers = new Map<string, Set<() => void>>();
   const waiters = new Map<string, ((entry: PersonEntry<T>) => void)[]>();
   const queue = new Set<string>();
   let pausedUntil = 0;
+  // The last pause's length, or 0 once a read succeeds.
+  let pause = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const get = (id: string): PersonEntry<T> => entries.get(id) ?? unknownPerson;
@@ -201,7 +226,9 @@ function createPeopleCache<T>(options: PeopleCacheOptions<T>): PeopleCache<T> {
     try {
       results = await read(ids);
     } catch (error) {
-      retryAfter = Number((error as { retryAfterMs?: unknown } | null)?.retryAfterMs) || 0;
+      const ms = Number((error as { retryAfterMs?: unknown } | null)?.retryAfterMs);
+      // No length (Infinity, NaN) falls back to the step; a negative one ends before the step does.
+      retryAfter = Number.isFinite(ms) ? ms : 0;
     }
     const at = Date.now();
     const changes: Record<string, StoredPerson<T>> = {};
@@ -211,7 +238,15 @@ function createPeopleCache<T>(options: PeopleCacheOptions<T>): PeopleCache<T> {
       if (result === "failed") failed.push(id);
       else changes[id] = result === "missing" ? { missing: true, at } : { value: result.value, at };
     }
-    if (failed.length > 0) pausedUntil = at + Math.max(pauseFor, retryAfter);
+    if (failed.length === 0) pause = 0;
+    else {
+      // One step per round: a read that fails while a pause is in force started before it, in the round that set it.
+      if (at >= pausedUntil) {
+        pause = Math.min(longestPause, pause === 0 ? pauseFor : pause * 2);
+        pausedUntil = at + pause;
+      }
+      pausedUntil = Math.max(pausedUntil, at + retryAfter);
+    }
     for (const id of ids) {
       if (Object.hasOwn(changes, id)) settle(id, changes[id]!);
       else update(id, { ...get(id), status: "waiting", retryAt: pausedUntil });
