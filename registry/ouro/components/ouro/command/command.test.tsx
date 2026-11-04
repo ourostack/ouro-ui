@@ -646,6 +646,34 @@ describe("Command and focus after a choice", () => {
     await expect.poll(popup).toBeNull();
     await expect.poll(() => document.activeElement).toBe(trigger());
   });
+
+  it("leaves focus where a command that navigates put it, unless it says restoreFocus", async () => {
+    const target = document.createElement("button");
+    target.textContent = "Conversation";
+    document.body.append(target);
+    mounted.push(target);
+    await render(
+      <Command
+        title="Go to"
+        trigger={<Button>Go to</Button>}
+        items={[
+          { label: "Open the conversation", navigates: true, onSelect: () => target.focus() },
+          { label: "Preview the conversation", navigates: true, restoreFocus: true, onSelect: () => target.focus() },
+        ]}
+      />,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(popup).toBeNull();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(document.activeElement).toBe(target);
+    await userEvent.click(trigger());
+    await settled();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    await expect.poll(popup).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(trigger());
+  });
 });
 
 describe("controlled Command", () => {

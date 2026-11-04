@@ -70,10 +70,19 @@ export interface CommandItem {
   /**
    * Whether closing the palette after this command runs puts focus back where it was (the
    * trigger). `false` leaves focus where `onSelect` puts it, as a command that opens a
-   * conversation and focuses its messages does. @default true
+   * conversation and focuses its messages does. @default true, or false for a command that `navigates`
    * @claim "Whether closing the palette after this" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command and focus after a choice > returns focus to its trigger after a choice, and leaves it where the choice put it with restoreFocus false)
    */
   restoreFocus?: boolean | undefined;
+  /**
+   * This command takes the person somewhere: it opens a conversation, a page or a record. Closing the
+   * palette then leaves focus where the destination put it, never back on the trigger, which may be
+   * gone or covered by then (`restoreFocus` defaults to false). Give `restoreFocus` to say otherwise.
+   * @default false
+   * @claim "This command takes the person somewhere" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command and focus after a choice > leaves focus where a command that navigates put it, unless it says restoreFocus)
+   * @claim "Closing the palette then leaves focus where the destination put it" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command and focus after a choice > leaves focus where a command that navigates put it, unless it says restoreFocus)
+   */
+  navigates?: boolean | undefined;
   /**
    * A second line under the label, such as a snippet of a message, which the search matches too.
    * @claim "A second line under the label" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command match highlighting > marks nothing without highlightMatches, and searches a command's description)
@@ -534,7 +543,7 @@ export function Command(props: CommandProps): JSX.Element {
       "aria-expanded": isOpenNow,
     });
   // Focus returns to the trigger on close; Safari does not focus a button on click.
-  // A command with restoreFocus: false leaves focus where its onSelect put it.
+  // A command with restoreFocus: false, or one that navigates and says nothing else, leaves focus where its onSelect put it.
   const keepFocus = useRef(false);
   const finalFocus = {
     finalFocus: () => {
@@ -605,7 +614,7 @@ export function Command(props: CommandProps): JSX.Element {
     );
 
   const run = (item: CommandItem) => {
-    keepFocus.current = item.restoreFocus === false;
+    keepFocus.current = item.restoreFocus === false || (item.navigates === true && item.restoreFocus !== true);
     setOpen(false);
     item.onSelect();
   };
