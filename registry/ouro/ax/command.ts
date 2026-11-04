@@ -1,5 +1,5 @@
-export { argUsage, BUILTIN_FLAGS, checkInput, defineCli, defineCommand, exampleArgv, findCommand, flagsOf, flagUsage, inputSchema, parse, toArgv, usageOf };
-export type { ArgSpec, Cli, CliDef, CommandDef, FlagSpec, FlagType, HelpAsked, Input, InputValue, JsonSchema, Meaning, Parsed, PersonOnly, RunContext };
+export { AGENT_FLAG, argUsage, BUILTIN_FLAGS, checkInput, checkOwner, defineCli, defineCommand, exampleArgv, findCommand, flagsOf, flagUsage, inputSchema, parse, toArgv, usageOf };
+export type { ArgSpec, Cli, CliDef, CommandDef, FlagSpec, FlagType, HelpAsked, Input, InputValue, JsonSchema, Meaning, Parsed, PersonOnly, RunContext, SelfScope };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
@@ -100,6 +100,30 @@ interface RunContext {
   json: boolean;
 }
 
+/**
+ * A command an agent may run only on its own item, such as its own row in the person's list of listening agents (the
+ * twin of a component action declared `scope: "self"`). The command takes `--agent <you>`, and the kit asks `owner`
+ * whose item the call names, before plan() or run(): when it is not the calling agent's, the call is refused
+ * (`not-yours`) and nothing runs. `help --json` marks the command `scope: "self"`.
+ *
+ * @claim "the kit asks `owner` whose item the call names, before plan() or run()" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a self-scoped command runs on the calling agent's own item and refuses another agent's before plan() or run(), naming both)
+ */
+interface SelfScope<C extends RunContext = RunContext> {
+  /**
+   * The agent that owns the item this call names, or null for an item no agent owns, which is refused too. It may throw,
+   * as for an item that does not exist.
+   *
+   * @claim "or null for an item no agent owns, which is refused too" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a self-scoped command runs on the calling agent's own item and refuses another agent's before plan() or run(), naming both)
+   */
+  owner(input: Input, ctx: C): string | null | Promise<string | null>;
+  /**
+   * The command for the caller's own item instead, the refusal's fix, without the tool's name: `<name>` takes the
+   * call's input of that name, so `<agent>` is the calling agent (`"unfollow <meeting> <agent> --agent <agent>"`).
+   * Without it, the refusal says to ask the person.
+   */
+  instead?: string;
+}
+
 /** A command's definition. `C` is the context run() and plan() get: RunContext, or an adopter's own that extends it. */
 interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   /** One or more words: "today", "draft set". */
@@ -122,6 +146,8 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   summarizes?: boolean;
   /** Flags and extra words pass through unchecked: a command adopted before its flags were declared. */
   loose?: boolean;
+  /** Only on the calling agent's own item: the command takes `--agent <you>`, and the kit refuses another's item. */
+  self?: SelfScope<C>;
   run?(input: Input, ctx: C): R | Promise<R>;
   /**
    * The preview `--dry-run` runs instead of run(): what it would do and who would see it, as a `planned` outcome. ax-lint
@@ -185,6 +211,12 @@ const BUILTIN_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
   help: { type: "boolean", description: "This command's help." },
 });
 
+/**
+ * The flag a self-scoped command takes: who is calling. The kit compares it with the item's owner, so an agent acts on
+ * its own item only.
+ */
+const AGENT_FLAG: FlagSpec = Object.freeze({ type: "string", required: true, placeholder: "<you>", description: "Who you are, the agent calling, by the name the person knows you by; the call is refused on an item that is not yours." });
+
 /** The flag a tool with a voice takes to print the facts alone. */
 const QUIET_FLAG: FlagSpec = Object.freeze({ type: "boolean", description: "The facts only: no voice lines on a terminal." });
 
@@ -195,13 +227,17 @@ function defineCommand<R, C extends RunContext = RunContext>(def: CommandDef<R, 
 const wordsOf = (name: string) => name.split(" ");
 const unlessOf = (spec: { unless?: string | readonly string[] }): readonly string[] => (spec.unless === undefined ? [] : typeof spec.unless === "string" ? [spec.unless] : spec.unless);
 
-/** The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own; a command's own flag replaces a generated one of the same name. */
+/**
+ * The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then
+ * its own; a command's own flag replaces a generated one of the same name, except a self-scoped command's `--agent`,
+ * which the owner check needs.
+ */
 function flagsOf(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): Record<string, FlagSpec> {
   const why = cmd.why ?? (cmd.effect === "others" ? "required" : "none");
   const whyFlag: Record<string, FlagSpec> =
     why === "none" ? {} : { [WHY_FLAG]: { type: "string", required: why === "required", placeholder: `"${WHY_PLACEHOLDER}"`, description: 'Who asked you, and what they said, like "Riley asked me to post the banner"; it is logged with the action.' } };
   const dryRun: Record<string, FlagSpec> = cmd.effect === "others" ? { [DRY_RUN_FLAG]: { type: "boolean", description: "Show what it would do and who would see it, and do nothing." } } : {};
-  return { ...BUILTIN_FLAGS, ...cli.globalFlags, ...whyFlag, ...dryRun, ...cmd.flags };
+  return { ...BUILTIN_FLAGS, ...cli.globalFlags, ...whyFlag, ...dryRun, ...cmd.flags, ...(cmd.self ? { agent: AGENT_FLAG } : {}) };
 }
 
 /** Builds the tool and checks its definitions: unique names, a valid exit table, examples that parse. */
@@ -230,6 +266,8 @@ function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
     }
     const args = cmd.args ?? [];
     const flags = flagsOf(cli, cmd);
+    if (cmd.self && typeof cmd.self.owner !== "function") throw new Error(`${def.name} ${cmd.name}: self needs owner, which says whose item a call names. Fix: self: { owner: (input) => <the agent that owns the item> }.`);
+    if (cmd.self?.instead !== undefined && (typeof cmd.self.instead !== "string" || !cmd.self.instead.trim() || /[\r\n]/.test(cmd.self.instead))) throw new Error(`${def.name} ${cmd.name}: self.instead needs one line. Fix: instead: "${cmd.name} <agent> --agent <agent>", or leave it out.`);
     args.forEach((a, i) => {
       if (a.rest && i !== args.length - 1) throw new Error(`${def.name} ${cmd.name}: <${a.name}> takes the rest of the words, so it must be the last argument. Fix: move it last.`);
       if (Object.hasOwn(flags, a.name)) throw new Error(`${def.name} ${cmd.name}: <${a.name}> and --${a.name} share one input key. Fix: rename one.`);
@@ -527,6 +565,32 @@ const ambiguousWord = (cli: Cli, leading: readonly string[]) => longestKey(cli.a
 function personOnlyError(cli: Cli, word: string): AxError {
   const p = cli.personOnly[word]!;
   return new AxError({ code: "person-only", exit: usage(cli), thing: word, problem: `${p.reason.trim().replace(/[.\s]+$/, "")}. Ask the person, who does it ${p.how.trim().replace(/[.\s]+$/, "")}`, fix: null });
+}
+
+/**
+ * Refuses a self-scoped call on an item that is not the calling agent's (`not-yours`, the usage exit): it names whose
+ * item it is and who called, and gives the command for the caller's own item (`self.instead`) or says to ask the
+ * person. It passes a command without `self`, and the owner's own call. runCli, dispatch and the MCP server call it
+ * before plan() or run(); a tool that runs commands its own way calls it too.
+ *
+ * @claim "Refuses a self-scoped call on an item that is not the calling agent's" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a self-scoped command runs on the calling agent's own item and refuses another agent's before plan() or run(), naming both)
+ * @claim "runCli, dispatch and the MCP server call it" registry/ouro/ax/mcp.test.mts verify:testExists(registry/ouro/ax/mcp.test.mts::a self-scoped tool refuses another agent's item as a tool error, before run())
+ */
+async function checkOwner<C extends RunContext>(cli: Cli<C>, cmd: CommandDef<unknown, C>, input: Input, ctx: C): Promise<void> {
+  if (!cmd.self) return;
+  const agent = String(input["agent"] ?? "").trim();
+  if (!agent) throw new AxError({ code: "needs-agent", exit: usage(cli), thing: `${cmd.name} --agent`, problem: "it is empty, so the call does not say who you are", fix: `${cli.name} ${usageOf(cli, cmd)}` });
+  const owner = await cmd.self.owner(input, ctx);
+  if (owner === agent) return;
+  const whose = owner === null ? "that one is no agent's" : `that one is ${owner}'s`;
+  // A `<name>` the input has a text or number for takes it; any other word stays as written.
+  const fill = (word: string) => {
+    const value = input[/^<([^<>\s]+)>$/.exec(word)?.[1] ?? ""];
+    return typeof value === "string" || typeof value === "number" ? shellWord(String(value)) : word;
+  };
+  const instead = cmd.self.instead === undefined ? null : `${cli.name} ${cmd.self.instead.trim().split(/\s+/).map(fill).join(" ")}`;
+  const only = owner === null ? "only the person may do it" : `only ${owner} or the person may do it`;
+  throw new AxError({ code: "not-yours", exit: usage(cli), thing: cmd.name, problem: `${whose}, and you are ${agent}; ${only}. ${instead ? "Do it on your own instead" : "Ask the person if it should be done"}`, fix: instead });
 }
 
 /** The flags given after an ambiguous word, by name, with their values; and the words that are not flags or values. */
