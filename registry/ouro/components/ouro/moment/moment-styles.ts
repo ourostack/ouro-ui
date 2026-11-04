@@ -1,6 +1,7 @@
 export {
   artFrameClass,
   dismissedKey,
+  dismissPeriods,
   haloClass,
   isDismissed,
   kindToneClass,
@@ -25,7 +26,7 @@ import { celebrationPeriods, takeCelebration, type CelebrationPeriod } from "@/r
 // app's Tailwind finds them when it compiles.
 
 /** What a moment is about. @internal */
-type MomentKind = "empty" | "loading" | "error" | "first-run" | "success";
+type MomentKind = "empty" | "loading" | "error" | "first-run" | "success" | "ask";
 
 /** How long a celebration cap counts showings for, shared with Celebrate. @internal */
 type MomentPeriod = CelebrationPeriod;
@@ -115,10 +116,21 @@ function seenThisSession(key: string): boolean {
   }
 }
 
-/** Whether the moment with this key was dismissed. @internal */
-function isDismissed(key: string): boolean {
-  return read(dismissedKey(key)) !== null;
+/**
+ * Whether the moment with this key was dismissed: for good, or, with `forMs`, less than that
+ * long ago. A dismissal kept for good stays so.
+ *
+ * @internal
+ */
+function isDismissed(key: string, forMs: number | undefined, now: number): boolean {
+  const value = read(dismissedKey(key));
+  if (value === null) return false;
+  const at = Number(value);
+  return forMs === undefined || value === "1" || now - at < forMs;
 }
+
+/** How long a dismissal with `dismissFor` lasts, in milliseconds. @internal */
+const dismissPeriods = { hour: 60 * 60 * 1000, day: 24 * 60 * 60 * 1000, week: 7 * 24 * 60 * 60 * 1000, month: 30 * 24 * 60 * 60 * 1000 } as const;
 
 /**
  * Remembers that the moment with this key was dismissed, and tells every moment on the page.
@@ -126,8 +138,8 @@ function isDismissed(key: string): boolean {
  * @internal
  * @claim "Remembers that the moment with this" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment dismissal > closes every copy of a moment on the page at once)
  */
-function keepDismissed(key: string): void {
-  write(dismissedKey(key), "1");
+function keepDismissed(key: string, at: number | undefined): void {
+  write(dismissedKey(key), at === undefined ? "1" : String(at));
   for (const listener of [...listeners]) listener();
 }
 
@@ -151,13 +163,14 @@ const kindToneClass: Record<MomentKind, string> = {
   error: "text-destructive",
   "first-run": "text-primary",
   success: "text-success",
+  ask: "text-primary",
 };
 
 /** The root, by layout. @internal */
 const rootClass = {
   default: "@container/moment relative box-border flex w-full min-w-0 flex-col items-center gap-4 px-6 py-8 text-center text-balance",
   quiet: "relative box-border flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-start",
-  inline: "relative box-border flex min-w-0 items-center gap-2 text-start",
+  inline: "relative box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-start",
 } as const;
 
 /**

@@ -208,3 +208,46 @@ export const Hero: Story = {
     </Page>
   ),
 };
+
+/** A small round head: the placeholder for whoever asks. */
+function AskerArt() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.18" />
+      <circle cx="12" cy="10" r="4" fill="currentColor" />
+      <path d="M5.5 19a7 7 0 0 1 13 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** An ask, docked in the conversation's header strip: one row in its own slot, never over the messages. Not now keeps it away for an hour. */
+export const Ask: Story = {
+  parameters: { screenshot: { name: "moment-ask" } },
+  render: function Render() {
+    const [shown, setShown] = useState(true);
+    return (
+      <Page width={640}>
+        <Panel>
+          <div style={{ display: "grid", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
+            <strong>Launch planning</strong>
+            {shown && (
+              <Moment
+                kind="ask"
+                size="inline"
+                art={<AskerArt />}
+                title="Planner wants to show you the launch plan"
+                action={<Button size="sm" onClick={() => setShown(false)}>Show me</Button>}
+                onDismiss={() => setShown(false)}
+                dismissLabel="Not now"
+              />
+            )}
+          </div>
+          <div style={{ padding: 16, color: "var(--muted-foreground)" }}>The conversation's messages stay where they are.</div>
+        </Panel>
+        <Button variant="outline" onClick={() => setShown(true)}>
+          Ask again
+        </Button>
+      </Page>
+    );
+  },
+};

@@ -128,6 +128,7 @@ describe("Moment", () => {
       error: "var(--destructive)",
       "first-run": "var(--primary)",
       success: "var(--success)",
+      ask: "var(--primary)",
     } as const;
     for (const [kind, colour] of Object.entries(expected)) {
       const { moment, frame } = await render(<Moment kind={kind as keyof typeof expected} art={<Art />} title={kind} celebrate={false} />);
@@ -662,6 +663,85 @@ describe("Moment motion budget", () => {
   });
 });
 
+describe("Moment ask", () => {
+  it("docks in the slot it is given as one row, is heard when asked, and comes back after dismissFor", async () => {
+    let now = Date.UTC(2026, 10, 1, 12);
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const announced = watchAnnouncements();
+    const ask = (
+      <header style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span>Launch planning</span>
+        <Moment
+          kind="ask"
+          size="inline"
+          announce
+          art={<Art />}
+          title="Planner wants to show you the launch plan"
+          action={<Button size="sm">Show me</Button>}
+          dismissKey="planner-launch"
+          dismissFor="hour"
+          dismissLabel="Not now"
+        />
+      </header>
+    );
+    try {
+      const { host } = await render(ask);
+      const moment = host.querySelector<HTMLElement>('[data-ouro="moment"]')!;
+      expect(moment.getAttribute("data-moment")).toBe("ask");
+      expect(["static", "relative"]).toContain(getComputedStyle(moment).position);
+      expect(getComputedStyle(moment).flexDirection).toBe("row");
+      expect(moment.getBoundingClientRect().height).toBeLessThan(48);
+      expect(getComputedStyle(host.querySelector("[data-ouro-moment-frame]")!).color).toBe(colourOf("var(--primary)"));
+      await expect.poll(() => announced.count("Planner wants to show you the launch plan")).toBe(1);
+      await userEvent.click(page.getByRole("button", { name: "Not now" }));
+      expect(host.querySelector('[data-ouro="moment"]')).toBeNull();
+      expect(localStorage.getItem("ouro-moment:dismissed:planner-launch")).toBe(String(now));
+      now += 60 * 60 * 1000 - 1;
+      expect((await render(ask)).host.querySelector('[data-ouro="moment"]')).toBeNull();
+      now += 1;
+      expect((await render(ask)).host.querySelector('[data-ouro="moment"]')).not.toBeNull();
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it("moves its actions under its words in a slot too narrow for both, so the words keep their room", async () => {
+    const node = (
+      <Moment kind="ask" size="inline" art={<Art />} title="Planner wants to show you the launch plan" action={<Button size="sm">Show me</Button>} onDismiss={() => {}} />
+    );
+    const wide = await render(node, 640);
+    const narrow = await render(node, 300);
+    const row = (host: Element) => {
+      const title = host.querySelector("[data-ouro-moment-actions]")!.previousElementSibling!.getBoundingClientRect();
+      const actions = host.querySelector("[data-ouro-moment-actions]")!.getBoundingClientRect();
+      return { title, actions };
+    };
+    expect(row(wide.host).actions.top).toBeLessThan(row(wide.host).title.bottom);
+    expect(row(narrow.host).actions.top).toBeGreaterThanOrEqual(row(narrow.host).title.bottom);
+    expect(row(narrow.host).title.width).toBeGreaterThan(200);
+  });
+
+  it("keeps a dismissal for good without dismissFor, and one made for good stays so with it", async () => {
+    let now = Date.UTC(2026, 10, 1, 12);
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    localStorage.setItem("ouro-moment:dismissed:for-good", "1");
+    now += 365 * 24 * 60 * 60 * 1000;
+    expect((await render(<Moment kind="ask" title="Look" dismissKey="for-good" dismissFor="week" />)).moment).toBeNull();
+    for (const [dismissFor, ms] of [
+      ["day", 24 * 60 * 60 * 1000],
+      ["week", 7 * 24 * 60 * 60 * 1000],
+      ["month", 30 * 24 * 60 * 60 * 1000],
+      ["year", 24 * 60 * 60 * 1000],
+    ] as const) {
+      localStorage.setItem(`ouro-moment:dismissed:${dismissFor}`, String(now - ms + 1));
+      const node = <Moment kind="ask" title="Look" dismissKey={dismissFor} {...({ dismissFor } as object)} />;
+      expect((await render(node)).moment).toBeNull();
+      localStorage.setItem(`ouro-moment:dismissed:${dismissFor}`, String(now - ms));
+      expect((await render(node)).moment).not.toBeNull();
+    }
+  });
+});
+
 describe("Moment cap", () => {
   const day = 24 * 60 * 60 * 1000;
 
@@ -925,13 +1005,15 @@ describe("Moment dismissal", () => {
 
 describe("Moment development messages", () => {
   it.each([
-    ["kind", { title: "x", kind: "info" }, 'kind="info" is not a kind; use "empty", "loading", "error", "first-run", "success"', '<Moment kind="empty">'],
+    ["kind", { title: "x", kind: "info" }, 'kind="info" is not a kind; use "empty", "loading", "error", "first-run", "success", "ask"', '<Moment kind="empty">'],
     ["size", { title: "x", size: "small" }, 'size="small" is not a size; use "default", "hero", "inline"', "<Moment quiet>"],
     ["headingLevel", { title: "x", headingLevel: 1 }, "headingLevel must be 2, 3, 4, 5 or 6, got 1", "<Moment headingLevel={2}>"],
     ["cap per", { title: "x", id: "a", cap: { times: 1, per: "hour" } }, 'cap per "hour" is not a period; use "day", "week", "month", "ever"', '<Moment cap={{ times: 1, per: "day" }}>'],
     ["cap times", { title: "x", id: "a", cap: { times: 1.5, per: "day" } }, "cap times must be a whole number, 0 or more, got 1.5", '<Moment cap={{ times: 1, per: "day" }}>'],
     ["cap key", { title: "x", cap: { times: 1, per: "day" } }, "cap counts showings under dismissKey or id, and this moment has neither", '<Moment dismissKey="caught-up" cap={{ times: 1, per: "day" }}>'],
-    ["announce", { title: "x", kind: "welcome", announce: true }, 'announce speaks only success and error moments, not kind="first-run"', '<Moment kind="success" announce>'],
+    ["announce", { title: "x", kind: "welcome", announce: true }, 'announce speaks only success, error and ask moments, not kind="first-run"', '<Moment kind="success" announce>'],
+    ["dismissFor", { title: "x", dismissKey: "a", dismissFor: "year" }, 'dismissFor="year" is not a period; use "hour", "day", "week", "month"', '<Moment dismissKey="ask" dismissFor="day">'],
+    ["dismissFor without a key", { title: "x", dismissFor: "day" }, "dismissFor keeps a dismissal through dismissKey, and this moment has none", '<Moment dismissKey="ask" dismissFor="day">'],
     ["icon", { title: "x", icon: "i" }, "icon is not a prop", "<Moment art={<Illustration />}>"],
     ["illustration", { title: "x", illustration: "i" }, "illustration is not a prop", "<Moment art={<Illustration />}>"],
     ["heading", { title: "x", heading: "No messages" }, "heading is not a prop", '<Moment title="No messages">'],
