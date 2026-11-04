@@ -141,6 +141,22 @@ function inView(scroller: HTMLElement, id: string) {
   return box.top >= view.top - 0.5 && box.bottom <= view.bottom + 0.5;
 }
 
+/**
+ * Checks that the messages drawn, besides those kept, are exactly the band: one run, from the first that ends below 800px
+ * above the view to the last that starts above 800px below it.
+ */
+function expectBand(scroller: HTMLElement, kept: readonly number[]) {
+  const drawn = ids(scroller).filter((id) => !kept.includes(id));
+  expect(drawn).toEqual(drawn.map((_, index) => drawn[0]! + index));
+  const view = scroller.getBoundingClientRect();
+  const first = document.getElementById(`m${drawn[0]}`)!.getBoundingClientRect();
+  const last = document.getElementById(`m${drawn.at(-1)}`)!.getBoundingClientRect();
+  expect(first.bottom).toBeGreaterThan(view.top - 800);
+  expect(first.top - 16).toBeLessThanOrEqual(view.top - 800 + 1);
+  expect(last.top).toBeLessThan(view.bottom + 800);
+  expect(last.bottom + 16).toBeGreaterThanOrEqual(view.bottom + 800 - 1);
+}
+
 /** Each text the live region gained, in order. */
 function recordAnnouncements(live: HTMLElement): string[] {
   const spoken: string[] = [];
@@ -267,6 +283,12 @@ describe("MessageList windowing", () => {
             {message}
           </Fragment>
         );
+      if (item.id === 120)
+        return (
+          <Fragment key={item.id}>
+            <Typing />
+          </Fragment>
+        );
       if (item.id % 11 === 0)
         return (
           <article key={item.id} id={`m${item.id}`} data-ouro-message-list-item="" data-role="assistant" style={{ marginBottom: 10 }}>
@@ -342,7 +364,11 @@ describe("MessageList windowing", () => {
   });
 
   it("draws the messages a scroll reaches, in order, and drops the ones it leaves", async () => {
-    const { scroller } = await render(<Chat items={conversation(1000, 0, true)} />);
+    // With a child that draws nothing among them, as a typing indicator does while no one types.
+    function Typing() {
+      return null;
+    }
+    const { scroller } = await render(<Chat items={conversation(1000, 0, true)} before={(id) => (id === 500 ? <Typing key="typing" /> : null)} />);
     await scrollTo(scroller, scroller.scrollHeight / 2);
     const drawn = ids(scroller).filter((id) => id !== 999);
     expect(drawn).toEqual(drawn.map((_, index) => drawn[0]! + index));
@@ -709,6 +735,9 @@ describe("MessageList windowing", () => {
     expect(document.activeElement).toBe(document.getElementById("m999"));
     expect(inView(scroller, "m999")).toBe(true);
     expect(document.getElementById("m999")!.getAttribute("aria-posinset")).toBe("1000");
+    // Past the newest, a page down goes nowhere.
+    await userEvent.keyboard("{PageDown}");
+    expect(document.activeElement).toBe(document.getElementById("m999"));
     // Known now to hold no message, what starts the conversation is passed over at once.
     await userEvent.keyboard("{Home}");
     await settle(scroller);
@@ -954,6 +983,12 @@ describe("MessageList windowing", () => {
     items = items.filter((item) => item.id !== 994);
     await rerender(<Chat items={items} />);
     expect(document.activeElement?.id).toBe("m995");
+    // And again, focus where the list put it.
+    items = items.filter((item) => item.id !== 995);
+    await rerender(<Chat items={items} />);
+    await expect.poll(() => document.activeElement?.id).toBe("m996");
+    items = [...items.slice(0, -4), { id: 995, text: "Message 995" }, ...items.slice(-4)];
+    await rerender(<Chat items={items} />);
     // Scrolled far from it, the message in its place is drawn first.
     await act(async () => void document.getElementById("m995")!.focus());
     await scrollTo(scroller, 0);
@@ -1033,6 +1068,155 @@ describe("MessageList windowing", () => {
     const view = scroller.getBoundingClientRect();
     const drawn = messages(scroller).filter((message) => message.id !== "m999");
     expect(drawn.at(-1)!.getBoundingClientRect().bottom).toBeGreaterThan(view.bottom + 800 - 16 - 1);
+  });
+
+  it("draws exactly the band, though the messages far from the end are much longer than the first guess", async () => {
+    // Long messages early in the conversation, short ones late: the first guess, from the end, is far too short for the start.
+    const items = conversation(1000).map((item) => (item.id < 700 ? { ...item, text: `Message ${item.id}${" a long early message".repeat(20)}` } : item));
+    const { scroller } = await render(<Chat items={items} />);
+    for (const top of [scroller.scrollHeight / 3, scroller.scrollHeight / 2]) {
+      await scrollTo(scroller, top);
+      expectBand(scroller, [999]);
+    }
+  });
+
+  it("scrolls only as far as it takes for a message revealed nearest, at either edge, and to the top of a tall one, in a list down the page", async () => {
+    const actions = createRef<MessageListActions>();
+    const items = conversation(400, 0, true).map((item) => (item.id === 150 ? { ...item, text: "A long reply. ".repeat(400) } : item));
+    const { scroller } = await render(
+      <div style={{ paddingTop: 37 }}>
+        <Chat items={items} actionsRef={actions} />
+      </div>,
+    );
+    const view = () => scroller.getBoundingClientRect();
+    const box = (id: string) => document.getElementById(id)!.getBoundingClientRect();
+    const reveal = async (id: string, block: "start" | "nearest") => {
+      await act(async () => void actions.current!.reveal(id, { block }));
+      await settle(scroller);
+    };
+    // At its top, clear of the edge; then nudged up past it, back to it.
+    await reveal("m300", "start");
+    expect(Math.abs(box("m300").top - view().top - 8)).toBeLessThanOrEqual(ROUNDING);
+    await scrollTo(scroller, scroller.scrollTop + 4);
+    await reveal("m300", "nearest");
+    expect(Math.abs(box("m300").top - view().top - 8)).toBeLessThanOrEqual(ROUNDING);
+    // From above, to its bottom, clear of the edge; then nudged down past it, back to it.
+    await reveal("m306", "nearest");
+    expect(Math.abs(box("m306").bottom - view().bottom + 8)).toBeLessThanOrEqual(ROUNDING);
+    await scrollTo(scroller, scroller.scrollTop - 4);
+    await reveal("m306", "nearest");
+    expect(Math.abs(box("m306").bottom - view().bottom + 8)).toBeLessThanOrEqual(ROUNDING);
+    // Taller than the list: its top, from below as from above.
+    await reveal("m120", "start");
+    await reveal("m150", "nearest");
+    expect(Math.abs(box("m150").top - view().top - 8)).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("leaves Jump to latest hidden when jumpToNewest runs at the end", async () => {
+    const actions = createRef<MessageListActions>();
+    const { scroller } = await render(<Chat items={conversation(300, 0, true)} actionsRef={actions} />);
+    await act(async () => actions.current!.jumpToNewest());
+    await settle(scroller);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
+
+  it("draws the newest 20 of many messages that arrive at once far up, so those are heard", async () => {
+    let items = conversation(300, 0, true);
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    await scrollTo(scroller, 0);
+    // Which messages go into the page as they arrive: they stay until they are heard.
+    const added = new Set<string>();
+    const watch = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element) for (const message of node.querySelectorAll('[data-ouro="message"]')) added.add(message.id);
+    });
+    watch.observe(scroller, { childList: true, subtree: true });
+    items = [...items, ...Array.from({ length: 30 }, (_, offset) => ({ id: 301 + 2 * offset, text: `Arrived ${offset}.` }))];
+    await rerender(<Chat items={items} />);
+    watch.disconnect();
+    expect(added.has("m319")).toBe(false);
+    expect(added.has("m321")).toBe(true);
+    expect(added.has("m359")).toBe(true);
+  });
+
+  it("reveals a message in a list that does not spring", async () => {
+    const actions = createRef<MessageListActions>();
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }} actionsRef={actions} springy={false}>
+        {conversation(300, 0, true).map((item) => (
+          <Message key={item.id} id={`m${item.id}`} role="assistant" name="Ouro">
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>,
+    );
+    let found = Promise.resolve(false);
+    await act(async () => void (found = actions.current!.reveal("m40")));
+    expect(await found).toBe(true);
+    await settle(scroller);
+    expect(Math.abs(offCentre(scroller, "m40"))).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("hands focus on to the next message past a day's heading, or to the first of a child with two, when the focused one is deleted", async () => {
+    function Day({ messages }: { messages: Item[] }) {
+      return (
+        <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+          {messages.flatMap((item) => [
+            item.id === 193 ? <p key="day">Wednesday</p> : null,
+            item.id === 195 ? (
+              <div key="pair" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <Message id="m195" role="assistant" name="Ouro">
+                  {item.text}
+                </Message>
+                <Message id="m195b" role="assistant" name="Ouro">
+                  And another thing.
+                </Message>
+              </div>
+            ) : (
+              <Message key={item.id} id={`m${item.id}`} role="assistant" name="Ouro">
+                {item.text}
+              </Message>
+            ),
+          ])}
+        </MessageList>
+      );
+    }
+    let items = conversation(200);
+    const { rerender } = await render(<Day messages={items} />);
+    await act(async () => document.getElementById("m192")!.focus());
+    items = items.filter((item) => item.id !== 192);
+    await rerender(<Day messages={items} />);
+    await expect.poll(() => document.activeElement?.id).toBe("m193");
+    await act(async () => document.getElementById("m194")!.focus());
+    items = items.filter((item) => item.id !== 194);
+    await rerender(<Day messages={items} />);
+    await expect.poll(() => document.activeElement?.id).toBe("m195");
+  });
+
+  it("hands focus on when the focused message is deleted, after focus left the list and came straight back", async () => {
+    let items = conversation(30);
+    const { rerender, host } = await render(
+      <>
+        <button type="button">Outside</button>
+        <Chat items={items} />
+      </>,
+    );
+    const outside = host.querySelector("button")!;
+    // Out to a control of the app's and back at once, as a menu that closes hands focus back.
+    await act(async () => {
+      document.getElementById("m28")!.focus();
+      outside.focus();
+      document.getElementById("m27")!.focus();
+    });
+    // The list's own timer for focus leaving it, queued first, runs before this one.
+    await new Promise((resolve) => setTimeout(resolve));
+    items = items.filter((item) => item.id !== 27);
+    await rerender(
+      <>
+        <button type="button">Outside</button>
+        <Chat items={items} />
+      </>,
+    );
+    await expect.poll(() => document.activeElement?.id).toBe("m28");
   });
 
   it("draws the newest screenful in server HTML and hydrates it without a warning", async () => {

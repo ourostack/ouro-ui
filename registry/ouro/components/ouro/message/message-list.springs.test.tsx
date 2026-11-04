@@ -377,6 +377,25 @@ describe("MessageList springs", () => {
     }
   });
 
+  it("springs the messages as the arrow keys scroll the list to the next one", async () => {
+    const { scroller, messages } = await render(<Chat count={30} />);
+    (document.querySelector("button") as HTMLElement).focus();
+    await pressTab();
+    const frames = holdFrames();
+    // Up, message by message, until a key scrolls the list.
+    let top = scroller.scrollTop;
+    for (let step = 0; step < 12 && scroller.scrollTop === top; step++) {
+      top = scroller.scrollTop;
+      await userEvent.keyboard("{ArrowUp}");
+    }
+    expect(scroller.scrollTop).toBeLessThan(top);
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    expect(messages().some((message) => message !== document.activeElement && message.style.transform !== "")).toBe(true);
+    frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    frames.release();
+  });
+
   it("follows the keys, with the focused message where the scroll starts, and its focus ring moves with it", async () => {
     const { scroller, messages } = await render(<Chat count={30} />);
     (document.querySelector("button") as HTMLElement).focus();
