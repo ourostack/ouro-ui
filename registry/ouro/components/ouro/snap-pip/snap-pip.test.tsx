@@ -666,6 +666,22 @@ describe("SnapPiP", () => {
     expect(at()).toEqual([RIGHT, 360 - 16 - 100]);
   });
 
+  it("notices a keep-out element that comes deep inside the container, with no render", async () => {
+    const ref: { current: HTMLElement | null } = { current: null };
+    await render(self({ keepOut: [ref] }));
+    const wrapper = document.createElement("div");
+    stage.append(wrapper);
+    await rest();
+    expect(at()).toEqual([RIGHT, BOTTOM]);
+    const bar = document.createElement("div");
+    Object.assign(bar.style, { position: "absolute", left: "0", right: "0", bottom: "0", height: "80px" });
+    ref.current = bar;
+    wrapper.append(bar);
+    await expect.poll(() => settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+  });
+
   it("lets go of what it observes when it unmounts", async () => {
     const mutations = vi.spyOn(MutationObserver.prototype, "disconnect");
     const resizes = vi.spyOn(ResizeObserver.prototype, "disconnect");
