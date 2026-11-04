@@ -345,9 +345,14 @@ describe("SnapPiP", () => {
     expect(element.getBoundingClientRect().width).toBe(160);
     expect(element.getBoundingClientRect().height).toBe(100);
     expect(element.getBoundingClientRect().right).toBe(stage.getBoundingClientRect().right - 16);
+    // A new ref takes the element, and the old one lets it go.
+    const next = { current: null as HTMLDivElement | null };
+    await render(self({ ref: next }));
+    expect(next.current).toBe(element);
+    expect(ref.current).toBeNull();
     await act(async () => root!.unmount());
     root = undefined;
-    expect(ref.current).toBeNull();
+    expect(next.current).toBeNull();
     await render(self({ defaultCorner: "top-left", inset: 24 }));
     expect(at()).toEqual([24, 24]);
   });
@@ -795,13 +800,16 @@ describe("SnapPiP", () => {
   it("lets go of what it observes when it unmounts", async () => {
     const mutations = vi.spyOn(MutationObserver.prototype, "disconnect");
     const resizes = vi.spyOn(ResizeObserver.prototype, "disconnect");
-    await render(self());
+    const element = await render(self());
+    const removed = vi.spyOn(element, "removeEventListener");
     mutations.mockClear();
     resizes.mockClear();
     await act(async () => root!.unmount());
     root = undefined;
     expect(mutations).toHaveBeenCalled();
     expect(resizes).toHaveBeenCalled();
+    // The drag's touch listener goes too.
+    expect(removed.mock.calls.map(([type]) => type)).toContain("touchmove");
   });
 
   it("measures keep-out elements inside the container's border, rendered by the app or not", async () => {

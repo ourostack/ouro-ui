@@ -215,6 +215,7 @@ export function useDrag(options: DragOptions): DragProps {
       // without turning them into additional drag callbacks.
       samples = [
         ...samples,
+        // Stryker disable next-line ArrayDeclaration: anything in place of the empty list has no timeStamp, so the window filter below drops it.
         ...(moved.getCoalescedEvents?.() ?? []).map((sample) => ({ position: along(sample), cross: across(sample), time: sample.timeStamp })),
         { position: along(moved), cross: across(moved), time: moved.timeStamp },
       ].filter((sample) => moved.timeStamp - sample.time <= VELOCITY_WINDOW);

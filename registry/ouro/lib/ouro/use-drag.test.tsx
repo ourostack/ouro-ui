@@ -112,6 +112,11 @@ describe("useDrag", () => {
     await fire(pad, "pointerdown", 100, 50);
     await fire(pad, "pointermove", 112, 62);
     await fire(pad, "pointerup", 112, 62);
+    expect(calls.start).toEqual([]);    // So does the other axis reaching exactly 10px first: a later sideways move starts nothing.
+    await fire(pad, "pointerdown", 100, 50);
+    await fire(pad, "pointermove", 104, 60);
+    await fire(pad, "pointermove", 140, 60);
+    await fire(pad, "pointerup", 140, 60);
     expect(calls.start).toEqual([]);
   });
 
@@ -217,6 +222,12 @@ describe("useDrag", () => {
     // 3px in the 60ms from the oldest move of the last 100ms to the lift.
     expect(calls.end[3]!.velocity).toBeCloseTo(0.05, 9);
     expect(calls.end[3]!.flick).toBe(false);
+    // Exactly FLICK_VELOCITY is a flick: 11px in 100ms.
+    await fire(pad, "pointerdown", 100, 50, 1000);
+    await fire(pad, "pointermove", 111, 50, 100);
+    expect(calls.move.at(-1)).toMatchObject({ velocity: FLICK_VELOCITY, flick: true });
+    await fire(pad, "pointerup", 111, 50, 0);
+    expect(calls.end[4]).toMatchObject({ velocity: FLICK_VELOCITY, flick: true });
     // Two events in the same instant give no velocity, not a division by zero.
     await fire(pad, "pointerdown", 100, 50, 1000);
     await fire(pad, "pointermove", 130, 50, 0);
