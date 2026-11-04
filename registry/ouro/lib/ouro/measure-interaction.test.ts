@@ -218,8 +218,111 @@ describe("measureInteraction", () => {
     expect(reports).toHaveLength(1);
   });
 
-  it("outside an event handler times from the call and says so in development, once per name", async () => {
+  it("reports a press the fallback reported once, leaving out its earlier event that was waiting", async () => {
+    const { emit } = fakeEventTiming();
+    const reports = listen();
+    const { button, timeStamp } = dispatch("click", () => measureInteraction("save", () => undefined));
+    const other = document.createElement("button");
+    emit({ name: "pointerdown", startTime: timeStamp - 30, duration: 40, interactionId: 5, target: button });
+    await expect.poll(() => reports.map((report) => report.name)).toEqual(["save"]);
+    emit({ name: "pointerdown", startTime: timeStamp + 1500, duration: 40, interactionId: 6, target: other });
+    emit({ name: "keydown", startTime: timeStamp + 2000, duration: 24, interactionId: 7 }, { name: "keyup", startTime: timeStamp + 2050, duration: 16, interactionId: 7 });
+    expect(reports.map((report) => report.name)).toEqual(["save", "pointerdown", "keydown"]);
+    expect(reports[1]!.target).toBe(other);
+  });
+
+  it("leaves out the rest of a press's interaction once the fallback took its earlier event", async () => {
+    const { emit } = fakeEventTiming();
+    const reports = listen();
+    const { button, timeStamp } = dispatch("click", () => measureInteraction("save", () => undefined));
+    emit({ name: "pointerdown", startTime: timeStamp - 30, duration: 40, interactionId: 5, target: button });
+    await expect.poll(() => reports.map((report) => report.name)).toEqual(["save"]);
+    emit({ name: "click", startTime: timeStamp + 5, duration: 30, interactionId: 5, target: button });
+    expect(reports.map((report) => report.name)).toEqual(["save"]);
+  });
+
+  it("keeps waiting on another press's event when the fallback reports a label", async () => {
+    const { emit } = fakeEventTiming();
+    const reports = listen();
+    dispatch("click", () => measureInteraction("save", () => undefined));
+    const other = document.createElement("button");
+    emit({ name: "pointerdown", startTime: 5, duration: 40, interactionId: 5, target: other });
+    await expect.poll(() => reports.map((report) => report.name)).toEqual(["save"]);
+    emit({ name: "keydown", startTime: 9000, duration: 24, interactionId: 7 });
+    expect(reports.map((report) => report.name)).toEqual(["save", "pointerdown"]);
+  });
+
+  it("leaves out a later event of a press the fallback reported, but not another press, an event with no target or one long after", async () => {
+    const { emit } = fakeEventTiming();
+    const reports = listen();
+    const { button, timeStamp } = dispatch("keydown", () => measureInteraction("next row", () => undefined));
+    await expect.poll(() => reports.length).toBe(1);
+    emit({ name: "keyup", startTime: timeStamp + 50, duration: 24, interactionId: 8, target: button });
+    expect(reports).toHaveLength(1);
+    emit({ name: "keydown", startTime: timeStamp + 100, duration: 20, interactionId: 9, target: button }, { name: "keyup", startTime: timeStamp + 150, duration: 16, interactionId: 9, target: button });
+    emit({ name: "click", startTime: timeStamp + 200, duration: 28, interactionId: 10 });
+    emit({ name: "click", startTime: timeStamp + 5000, duration: 32, interactionId: 11, target: button });
+    expect(reports.map((report) => [report.name, report.durationMs])).toEqual([
+      ["next row", reports[0]!.durationMs],
+      ["keydown", 20],
+      ["click", 28],
+      ["click", 32],
+    ]);
+  });
+
+  it("takes another event for the reported press within a second of the label, on its target", async () => {
+    const { emit } = fakeEventTiming();
+    const reports = listen();
+    const labelled = [0, 1, 2, 3].map((index) => dispatch("keydown", () => measureInteraction(`row ${index}`, () => undefined)));
+    await expect.poll(() => reports.length).toBe(4);
+    const [first, second, third, fourth] = labelled as [ReturnType<typeof dispatch>, ReturnType<typeof dispatch>, ReturnType<typeof dispatch>, ReturnType<typeof dispatch>];
+    emit({ name: "keyup", startTime: first.timeStamp - 1000, duration: 20, interactionId: 20, target: first.button });
+    emit({ name: "keyup", startTime: second.timeStamp + 1000, duration: 20, interactionId: 21, target: second.button });
+    emit({ name: "keyup", startTime: third.timeStamp - 1001, duration: 20, interactionId: 22, target: third.button });
+    emit({ name: "keyup", startTime: fourth.timeStamp + 1001, duration: 20, interactionId: 23, target: fourth.button });
+    expect(reports.slice(4).map((report) => report.target)).toEqual([third.button, fourth.button]);
+  });
+
+  it("takes a press's event that comes after one it could not place, and leaves out the rest of its interaction", async () => {
+    const { emit } = fakeEventTiming();
+    const reports = listen();
+    const { button, timeStamp } = dispatch("click", () => measureInteraction("save", () => undefined));
+    emit({ name: "pointerdown", startTime: timeStamp - 30, duration: 40, interactionId: 5 });
+    await expect.poll(() => reports.map((report) => report.name)).toEqual(["save"]);
+    emit({ name: "pointerup", startTime: timeStamp - 10, duration: 32, interactionId: 5, target: button });
+    emit({ name: "click", startTime: timeStamp + 5, duration: 30, interactionId: 5, target: button });
+    emit({ name: "keydown", startTime: timeStamp + 3000, duration: 24, interactionId: 7 }, { name: "keyup", startTime: timeStamp + 3050, duration: 16, interactionId: 7 });
+    expect(reports.map((report) => report.name)).toEqual(["save", "keydown"]);
+  });
+
+  it("drops a fallback when the page was or became hidden before the second frame, and stops listening", async () => {
     fakeEventTiming();
+    const reports = listen();
+    const removed = vi.spyOn(document, "removeEventListener");
+    const hide = () => Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    const show = () => Reflect.deleteProperty(document, "visibilityState");
+    try {
+      dispatch("click", () => measureInteraction("stays visible", () => undefined));
+      document.dispatchEvent(new Event("visibilitychange"));
+      await frames();
+      hide();
+      dispatch("click", () => measureInteraction("hidden first", () => undefined));
+      show();
+      await frames();
+      dispatch("click", () => measureInteraction("hides", () => undefined));
+      hide();
+      document.dispatchEvent(new Event("visibilitychange"));
+      show();
+      await frames();
+      expect(reports.map((report) => report.name)).toEqual(["stays visible"]);
+      expect(removed.mock.calls.filter(([type]) => type === "visibilitychange")).toHaveLength(3);
+    } finally {
+      show();
+    }
+  });
+
+  it("outside an event handler times from the call and says so in development, once per name", async () => {
+    const { emit } = fakeEventTiming();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const reports = listen();
     const before = performance.now();
@@ -233,6 +336,8 @@ describe("measureInteraction", () => {
       expect(report.target).toBeNull();
       expect(report.durationMs).toBeLessThanOrEqual(performance.now() - before);
     }
+    emit({ name: "click", startTime: performance.now(), duration: 24, interactionId: 30, target: document.body });
+    expect(reports.map((report) => report.name)).toEqual(["sync now", "sync now", "click"]);
   });
 
   it("reports nothing once every sink has stopped, even for an interaction already labelled", async () => {

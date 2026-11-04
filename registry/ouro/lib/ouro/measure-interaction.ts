@@ -7,8 +7,14 @@ export type { InteractionReport, InteractionSink };
  * One interaction, measured from the input to the next paint.
  *
  * - `name`: the label `measureInteraction` gave it, or else the event's type (`click`, `keydown`).
- * - `durationMs`: from the input to the paint after its handlers ran, in milliseconds.
+ * - `durationMs`: from the input to the paint after its handlers ran, in milliseconds. Event Timing
+ *   rounds it to 8 ms; the fallback `measureInteraction` uses where no entry arrives measures to the
+ *   start of the second frame instead, which can be up to a frame later than the paint, so compare
+ *   reports from the two only loosely.
  * - `target`: the element the input went to, or `null` when the page has removed it.
+ *
+ * @claim "Event Timing rounds it to" https://www.w3.org/TR/event-timing/ verify:urlOk(https://www.w3.org/TR/event-timing/)
+ * @claim "Event Timing rounds it to" registry/ouro/lib/ouro/measure-interaction.test.ts verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports from the event to the second animation frame when no entry arrives first, and ignores a later entry)
  */
 interface InteractionReport {
   name: string;
@@ -35,6 +41,7 @@ interface Label {
   timeStamp: number;
   target: Element | null;
   reported: boolean;
+  interactionId: number | undefined;
 }
 
 // Event Timing reports an event only when it took this long or longer; 16 ms is its floor.
@@ -43,6 +50,8 @@ const DURATION_THRESHOLD = 16;
 const LAST_EVENTS = new Set(["click", "keyup"]);
 // How many labels and reported interactions to remember, so a page that runs for days stays small.
 const REMEMBERED = 64;
+// How far from a labelled event another event of the same press may be: a long press's pointerdown.
+const PRESS_MS = 1000;
 
 const sinks = new Set<InteractionSink>();
 // Stryker disable next-line ArrayDeclaration: a stray first element matches no entry, and the cap shifts it out with no other change
@@ -80,11 +89,26 @@ function flush(id: number) {
   report(longest.name, longest.duration, elementOf(longest.target));
 }
 
+// Whether an entry is another event of the press a label already reported, before the label knows
+// its interaction: on the label's target, within PRESS_MS of it. Once the label has its interaction,
+// that id is among those reported, so its later events are left out there.
+function sameInput(label: Label, entry: EventEntry) {
+  return (
+    label.reported &&
+    label.interactionId === undefined &&
+    entry.startTime >= label.timeStamp - PRESS_MS &&
+    entry.startTime <= label.timeStamp + PRESS_MS &&
+    !!entry.target &&
+    !!label.target?.contains(entry.target)
+  );
+}
+
 function read(entries: EventEntry[]) {
   for (const entry of entries) {
     const id = entry.interactionId ?? 0;
     const label = labels.find((candidate) => candidate.type === entry.name && candidate.timeStamp === entry.startTime);
     if (label) {
+      label.interactionId = id;
       remember(reported, id);
       const earlier = pending.get(id);
       pending.delete(id);
@@ -95,6 +119,13 @@ function read(entries: EventEntry[]) {
       continue;
     }
     if (id === 0 || reported.includes(id)) continue;
+    const claimed = labels.find((candidate) => sameInput(candidate, entry));
+    if (claimed) {
+      claimed.interactionId = id;
+      remember(reported, id);
+      pending.delete(id);
+      continue;
+    }
     // Interaction ids only grow, so a new one means every interaction before it has ended.
     for (const older of [...pending.keys()]) if (older < id) flush(older);
     const longest = pending.get(id);
@@ -154,11 +185,18 @@ function onInteraction(sink: InteractionSink): () => void {
  * `onInteraction` sends carry `name`. The report measures from the input to the next paint: the
  * Event Timing entry for this event, or, where none has arrived by the second animation frame
  * after it (in a browser without Event Timing, or for an event quicker than 16 ms), the time from
- * the event to that frame. Each labelled interaction is reported once. Returns what `fn` returns. Call it inside the handler: outside one,
+ * the event to that frame. Each labelled interaction is reported once, its other events included.
+ * Event Timing rounds a duration to 8 ms, and the fallback runs to the start of that frame, which
+ * can be up to a frame after the paint, so the two are not directly comparable. A fallback is
+ * dropped when the page was or became hidden before it ran, since a hidden page draws no frames. Returns what `fn` returns. Call it inside the handler: outside one,
  * it times from the call, and says so in development. With no sink it only runs `fn`.
  *
  * Use `onInteraction` instead to measure every interaction without naming it.
  *
+ * @claim "Each labelled interaction is reported" registry/ouro/lib/ouro/measure-interaction.test.ts verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports a press the fallback reported once, leaving out its earlier event that was waiting)
+ * @claim "Each labelled interaction is reported" registry/ouro/lib/ouro/measure-interaction.test.ts verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > leaves out a later event of a press the fallback reported, but not another press, an event with no target or one long after)
+ * @claim "Event Timing rounds a duration" https://www.w3.org/TR/event-timing/ verify:urlOk(https://www.w3.org/TR/event-timing/)
+ * @claim "A fallback is dropped when" registry/ouro/lib/ouro/measure-interaction.test.ts verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > drops a fallback when the page was or became hidden before the second frame, and stops listening)
  * @claim "Each labelled interaction is reported" registry/ouro/lib/ouro/measure-interaction.test.ts verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports a labelled click once, by its label, from the press to the paint)
  * @claim "where none has arrived by" registry/ouro/lib/ouro/measure-interaction.test.ts verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::without Event Timing > reports only labelled interactions, timed to the second animation frame (%s))
  * @claim "it times from the call" registry/ouro/lib/ouro/measure-interaction.test.ts verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > outside an event handler times from the call and says so in development, once per name)
@@ -184,13 +222,27 @@ function measureInteraction<T>(name: string, fn: () => T): T {
     timeStamp: event?.timeStamp ?? performance.now(),
     target: elementOf(event?.target),
     reported: false,
+    interactionId: undefined,
   };
   remember(labels, label);
+  let hidden = document.visibilityState === "hidden";
+  const onVisibility = () => {
+    if (document.visibilityState === "hidden") hidden = true;
+  };
+  document.addEventListener("visibilitychange", onVisibility);
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
-      if (label.reported || !sinks.size) return;
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (hidden || label.reported || !sinks.size) return;
       label.reported = true;
       report(label.name, performance.now() - label.timeStamp, label.target);
+      // An earlier event of this press, still waiting for its interaction to end, is this report.
+      for (const [id, entry] of [...pending]) {
+        if (!sameInput(label, entry)) continue;
+        label.interactionId = id;
+        pending.delete(id);
+        remember(reported, id);
+      }
     }),
   );
   return fn();
