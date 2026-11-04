@@ -47,6 +47,13 @@ const scrollPane = (pane: HTMLElement, top: number) =>
     pane.dispatchEvent(new Event("scroll"));
   });
 
+/**
+ * Waits for the browser's next rendering update. WebKit scrolls to an element that takes focus there, not when
+ * focus() returns as Chromium does, so a test reads the scroll a focus brings once this has resolved. A frame
+ * callback runs before that update's scroll, so it waits for the frame after it.
+ */
+const rendered = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
 /** Whether an element shows whole inside the pane. */
 const inView = (element: Element, pane: HTMLElement) => {
   const box = element.getBoundingClientRect();
@@ -204,15 +211,18 @@ describe("ConversationList windowing", () => {
     const { pane, rows } = await render(<ConversationList label="Conversations" items={many(12)} onSelect={() => {}} />, 120);
     await act(async () => rows()[0]!.focus());
     await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+    await rendered();
     const before = pane.scrollTop;
     await userEvent.keyboard("{ArrowDown}");
     expect(titleOf(document.activeElement)).toBe("c4");
+    await rendered();
     const after = pane.scrollTop;
     expect(after).toBeGreaterThan(before);
     // The same move made by the browser alone: focus from the row before, with the pane where it was.
     await act(async () => rows()[3]!.focus({ preventScroll: true }));
     await scrollPane(pane, before);
     await act(async () => rows()[4]!.focus());
+    await rendered();
     expect(pane.scrollTop).toBe(after);
   });
 
