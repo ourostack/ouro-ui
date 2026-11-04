@@ -1703,6 +1703,24 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   }
 });
 
+test("a browser shard runs two test files at a time in each Vitest project, and every other run keeps Vitest's default", () => {
+  // vitest.config.ts reads the shard from its process's arguments and the suite from the environment, so each case loads it afresh.
+  const configUrl = new URL("../vitest.config.ts", import.meta.url).href;
+  const maxWorkers = (args, env = {}) => {
+    const probe = `const config = (await import(${JSON.stringify(configUrl)})).default; console.log(JSON.stringify(config.test.maxWorkers ?? null));`;
+    const clean = { ...process.env, OURO_THEMES: "", OURO_CONFORMANCE: "", OURO_MUTATION: "", CI_VISUAL: "" };
+    const run = spawnSync(process.execPath, ["--input-type=module", "-e", probe, "--", ...args], { cwd: root, env: { ...clean, ...env }, encoding: "utf8" });
+    assert.equal(run.status, 0, run.stderr);
+    return JSON.parse(run.stdout.trim().split("\n").at(-1));
+  };
+  assert.equal(maxWorkers(["--shard=3/6"]), 2);
+  assert.equal(maxWorkers(["--shard", "7/16"]), 2);
+  assert.equal(maxWorkers([]), null);
+  assert.equal(maxWorkers(["--shard=1/3"], { OURO_THEMES: "1" }), null);
+  assert.equal(maxWorkers(["--shard=1/3"], { OURO_CONFORMANCE: "1" }), null);
+  assert.equal(maxWorkers(["--shard=1/3"], { OURO_MUTATION: "1" }), null);
+});
+
 test("the budget job waits on every other job, reads the run's jobs and nothing else, and its name patterns match every check", async () => {
   const jobs = ciJobs();
   const block = jobs["ci-budget"];
