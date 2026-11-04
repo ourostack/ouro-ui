@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useRef, useState, type JSX, type KeyboardEvent, type PointerEvent } from "react";
+import { useCallback, useId, useMemo, useRef, useState, type JSX, type KeyboardEvent, type PointerEvent } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -151,7 +151,8 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const word = { ...words, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, value]) => value !== undefined)) };
+  // Merged once per labels object, so an app that keeps its labels in a constant merges them once.
+  const word = useMemo(() => ({ ...words, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, value]) => value !== undefined)) }), [labels]);
   const frame: Size = { width: FRAME_WIDTH, height: Math.round(FRAME_WIDTH / aspect) };
 
   const [natural, setNatural] = useState<Size | null>(null);

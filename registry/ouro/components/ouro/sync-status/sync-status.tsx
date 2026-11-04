@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, type HTMLAttributes, type JSX, type Ref } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type HTMLAttributes, type JSX, type Ref } from "react";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -168,7 +168,8 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
     ...rest
   } = props;
   const status: SyncState = (states as readonly string[]).includes(statusProp) ? (statusProp as SyncState) : "saved";
-  const word = { ...words, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, value]) => value !== undefined)) } as Record<keyof SyncStatusLabels, string>;
+  // Merged once per labels object, so an app that keeps its labels in a constant merges them once.
+  const word = useMemo(() => ({ ...words, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, value]) => value !== undefined)) }) as Record<keyof SyncStatusLabels, string>, [labels]);
   useAppearanceClassNameCheck(
     "SyncStatus",
     className,

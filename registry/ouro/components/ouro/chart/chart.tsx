@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, cloneElement, createContext, isValidElement, useContext, useId, useRef } from "react";
+import { Children, cloneElement, createContext, isValidElement, useContext, useId, useMemo, useRef } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, ReactElement, ReactNode, Ref } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -280,8 +280,9 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   const summaryId = `${id}-summary`;
   const tableRef = useRef<HTMLDivElement>(null);
   useScrollFade(tableRef);
-  const state: ChartState = { byKey: new Map(series.map((item) => [item.key, item])), formatValue };
-  const colors = Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties;
+  // Indexed once per series and formatter, not on every render (a tooltip's move renders the chart).
+  const state = useMemo<ChartState>(() => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue }), [series, formatValue]);
+  const colors = useMemo(() => Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties, [series]);
   // Recharts makes the plot a tab stop (role "application"), so it carries the control marker.
   const plotProps = { "aria-label": title, "aria-describedby": summaryId, "data-ouro-control": "chart", "data-ouro-part": "plot" };
   const child = Children.toArray(children).find(isValidElement) as ReactElement<{ data?: unknown }> | undefined;

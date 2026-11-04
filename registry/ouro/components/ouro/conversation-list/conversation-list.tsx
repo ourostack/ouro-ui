@@ -3,6 +3,7 @@
 import {
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type HTMLAttributes,
@@ -234,6 +235,11 @@ function place(keys: readonly string[], heights: ReadonlyMap<string, number>, es
   return { offsets, total };
 }
 
+// Whether a section shows its rows: as the app says, else as the person left it, else as it starts.
+function openOf(section: ConversationListSection, opened: Readonly<Record<string, boolean>>): boolean {
+  return section.open ?? opened[section.id] ?? section.defaultOpen ?? true;
+}
+
 // Scrolls a control into view: as little as it takes, or to the middle of the view.
 function reveal(controls: ReadonlyMap<string, HTMLElement>, key: string, block: "nearest" | "center") {
   // Stryker disable next-line OptionalChaining: the rows revealed are kept rendered (the open row, the row with focus, the row the keyboard reached); this only guards a crash.
@@ -348,7 +354,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const focusNext = useRef<string | null>(null);
   // The row to keep in view while the heights around it settle, and where in the view.
   const keepInView = useRef<{ key: string; block: "nearest" | "center" } | null>(null);
-  const known = new Set<string | undefined>(sections.map((section) => section.id));
+  const known = useMemo(() => new Set<string | undefined>(sections.map((section) => section.id)), [sections]);
   const stray = items.find((item) => item.section !== undefined && !known.has(item.section));
   useAppearanceClassNameCheck(
     "ConversationList",
@@ -378,31 +384,35 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  const isOpen = (section: ConversationListSection) => section.open ?? opened[section.id] ?? section.defaultOpen ?? true;
+  const isOpen = (section: ConversationListSection) => openOf(section, opened);
   const toggle = (section: ConversationListSection, next: boolean) => {
     setOpened({ ...opened, [section.id]: next });
     onSectionOpenChange?.(section.id, next);
   };
 
-  // The rows in the order they show: those with no section first, then each section's under its header.
-  const loose = items.filter((item) => !known.has(item.section));
-  const groupsShown = sections.map((section) => ({ section, rows: items.filter((item) => item.section === section.id) })).filter((group) => group.rows.length > 0);
-  const keys = [
-    ...loose.map((item) => `row:${item.id}`),
-    ...groupsShown.flatMap(({ section, rows }) => [`section:${section.id}`, ...(isOpen(section) ? rows : []).map((item) => `row:${item.id}`)]),
-  ];
+  // The rows in the order they show: those with no section first, then each section's under its header. Worked out
+  // once per change to the rows, the sections or what is open, not on every scroll's render of a long list.
+  const { loose, groupsShown, keys } = useMemo(() => {
+    const loose = items.filter((item) => !known.has(item.section));
+    const groupsShown = sections.map((section) => ({ section, rows: items.filter((item) => item.section === section.id) })).filter((group) => group.rows.length > 0);
+    const keys = [
+      ...loose.map((item) => `row:${item.id}`),
+      ...groupsShown.flatMap(({ section, rows }) => [`section:${section.id}`, ...(openOf(section, opened) ? rows : []).map((item) => `row:${item.id}`)]),
+    ];
+    return { loose, groupsShown, keys };
+  }, [items, sections, known, opened]);
   const current = `row:${String(selectedId)}`;
   const tabStop = keys.includes(active) ? active : keys.includes(current) ? current : keys[0];
 
   const heights = measured?.density === density ? measured.heights : noHeights;
-  const { offsets, total } = place(keys, heights, estimates[density]);
+  const { offsets, total } = useMemo(() => place(keys, heights, estimates[density]), [keys, heights, density]);
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
   const [start, end] = range ?? [0, offsets.filter((offset) => offset < firstView).length];
-  const indexes = new Map(keys.map((key, index) => [key, index]));
-  const kept = new Set([tabStop, current, reach]);
+  const indexes = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
+  const kept = [tabStop, current, reach];
   const rendered = (key: string) => {
     const index = indexes.get(key)!;
-    return !windowed || (index >= start && index < end) || kept.has(key);
+    return !windowed || (index >= start && index < end) || kept.includes(key);
   };
   // In a windowed list a control's slot is placed where it would be, with the gap before it as padding, and says
   // where it is in its list, since screen readers cannot count the rows that are not there.
