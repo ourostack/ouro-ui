@@ -2473,3 +2473,76 @@ describe("MessageList development messages", () => {
     expect(warn).toHaveBeenCalledWith('[ouro-ui] MessageList: "bg-muted" sets appearance, and className is for layout only. Fix: <div className="bg-muted"><MessageList /></div>.');
   });
 });
+
+describe("MessageList through a long conversation", () => {
+  /** The boxes read for one scroll event, on average over `steps` scrolls up of `by` px, each reported as the browser would. */
+  function readsPerScroll(scroller: HTMLElement, steps = 10, by = 40): number {
+    const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    for (let step = 0; step < steps; step++) {
+      scroller.scrollTop -= by;
+      scroller.dispatchEvent(new Event("scroll"));
+    }
+    const reads = measured.mock.calls.length / steps;
+    measured.mockRestore();
+    return reads;
+  }
+  /** Into the middle of the conversation, away from the newest, as a reader scrolling up through it. */
+  async function scrolledUp(scroller: HTMLElement) {
+    scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+  }
+  const inView = (scroller: HTMLElement, element: Element) => {
+    const box = element.getBoundingClientRect();
+    const view = scroller.getBoundingClientRect();
+    return box.top >= view.top && box.bottom <= view.bottom;
+  };
+
+  it("reads as few boxes on a scroll through a thousand messages as through fifty, and keeps the Tab stop on a message in view", async () => {
+    const reads: number[] = [];
+    for (const count of [50, 1000]) {
+      const { scroller } = await render(<Chat items={history(count)} />);
+      await scrolledUp(scroller);
+      reads.push(readsPerScroll(scroller));
+      // The Tab stop follows the scroll: the last message the view shows whole.
+      const messages = [...scroller.querySelectorAll('[data-ouro="message"]')];
+      expect(scroller.querySelector('[data-ouro="message"][tabindex="0"]')).toBe(messages.findLast((message) => inView(scroller, message)));
+      await act(async () => roots.pop()!.unmount());
+    }
+    // Halving finds the messages in view: twenty times the messages takes a handful more reads, not twenty times as many.
+    expect(reads[1]! - reads[0]!).toBeLessThanOrEqual(12);
+  });
+
+  it("keeps the reader's place as older history loads above, reading as few boxes in a thousand messages as in fifty", async () => {
+    const reads: number[] = [];
+    for (const count of [50, 1000]) {
+      const { scroller, rerender } = await render(<Chat items={history(count, 1000)} />);
+      await scrolledUp(scroller);
+      const before = firstVisible(scroller);
+      const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
+      await rerender(<Chat items={[...history(50, 950), ...history(count, 1000)]} />);
+      await settle(scroller);
+      reads.push(measured.mock.calls.length);
+      measured.mockRestore();
+      expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+      await act(async () => roots.pop()!.unmount());
+    }
+    expect(reads[1]! - reads[0]!).toBeLessThanOrEqual(120);
+  });
+
+  it("holds a message that fills the view by it and the few after it, not by every message to the newest", async () => {
+    const items: Item[] = [...history(500), { id: "long", role: "assistant", text: "A long reply that runs on. ".repeat(200) }, ...history(500, 500)];
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    const long = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')][500]!;
+    // Into the middle of the long reply, whose top is above the view and bottom below it.
+    scroller.scrollTop += long.getBoundingClientRect().top - scroller.getBoundingClientRect().top + 300;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    expect(readsPerScroll(scroller, 5, 10)).toBeLessThanOrEqual(40);
+    // A message above it grows, and the reader's place in the long reply stays.
+    const top = long.getBoundingClientRect().top;
+    await rerender(<Chat items={items.map((item, at) => (at === 499 ? { ...item, text: `${item.text} ${"more ".repeat(60)}` } : item))} />);
+    await settle(scroller);
+    expect(Math.abs(long.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+});
