@@ -210,6 +210,41 @@ describe("MessageList actions", () => {
     expect(onAction).toHaveBeenCalledWith("m1", "menu-heart");
   });
 
+  it("goes on from its bar as from the message's own controls: Tab leaves the list, never into the next message", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <MessageList label="Launch channel" style={{ height: 360 }}>
+          {[0, 1].map((index) => (
+            <Message key={index} id={`k${index}`} variant="chat" role="assistant" name="Ana Lind" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+              {`Message ${index} `}
+              <a href={`#link-${index}`}>Link {index}</a>
+            </Message>
+          ))}
+        </MessageList>
+        <button type="button">After</button>
+      </>,
+    );
+    await ready("k1");
+    await userEvent.unhover(document.body);
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(message("k0"));
+    await expect.poll(() => barIn("k0")).not.toBeNull();
+    // Through the first message's link and its bar, then out of the list: the next message's link is never a stop.
+    const stops: string[] = [];
+    for (let press = 0; press < 4 && document.activeElement !== page.getByRole("button", { name: "After" }).element(); press++) {
+      await pressTab();
+      const at = document.activeElement!;
+      stops.push(at.closest("[role=toolbar]") ? "bar" : (at.textContent ?? ""));
+    }
+    expect(stops).toContain("bar");
+    expect(stops).toContain("Link 0");
+    expect(stops).not.toContain("Link 1");
+    expect(stops.at(-1)).toBe("After");
+  });
+
   it("opens the menu from the keyboard on the focused message, and Escape puts focus back on it", async () => {
     await render(<Channel count={3} before={<button type="button">Before</button>} />);
     await ready("m2");
