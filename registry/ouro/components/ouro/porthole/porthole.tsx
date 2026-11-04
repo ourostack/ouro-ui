@@ -398,7 +398,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
         <div
           id={panelId}
           data-ouro-part="panel"
-          className="absolute start-0 top-full z-10 mt-1.5 w-max max-w-[min(24rem,calc(100vw-2rem))] min-w-full rounded-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60 transition-[opacity,translate] duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-safe:starting:-translate-y-1 motion-reduce:duration-(--ouro-duration-fast)"
+          className="absolute start-0 top-full z-10 mt-1.5 w-max max-w-[min(24rem,calc(100vw-2rem))] min-w-full rounded-2xl bg-popover p-3 text-sm leading-5 text-popover-foreground shadow-(--shadow-lg) ring-1 ring-border/60 transition-[opacity,translate] duration-(--ouro-duration-base) ease-(--ouro-ease-out) translate-y-0 starting:opacity-0 motion-safe:starting:-translate-y-1 motion-reduce:duration-(--ouro-duration-fast)"
         >
           <ul className="m-0 grid list-none gap-1 p-0">
             {view.detail.map((text, index) => (
