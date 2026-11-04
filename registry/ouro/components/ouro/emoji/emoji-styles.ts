@@ -105,6 +105,12 @@ interface CatalogueIndex {
    * @claim "nothing when it lists none" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text into its runs and emoji with no empty runs between or around them)
    */
   textPattern: RegExp;
+  /**
+   * The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji.
+   *
+   * @claim "The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji." registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > passes text with no colon and no emoji text's first character straight through, and still finds a plain-text emoji)
+   */
+  textStarts: ReadonlySet<string>;
 }
 
 const indexes = new WeakMap<EmojiCatalogue, CatalogueIndex>();
@@ -234,7 +240,8 @@ function buildCatalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
   const pattern = new RegExp([":[^\\s:]+(?=:)", ...texts].join("|"), "gu");
   // (?!) matches nothing, for a catalogue that lists no text.
   const textPattern = new RegExp(["(?!)", ...texts].join("|"), "gu");
-  return { items, byId, byToken, byText, pattern, textPattern };
+  const textStarts = new Set([...byText.keys()].map((text) => Array.from(text)[0]!));
+  return { items, byId, byToken, byText, pattern, textPattern, textStarts };
 }
 
 /** A run of text, or an emoji found in it with the text it was found as. */
@@ -250,7 +257,10 @@ type EmojiTextPart = string | (FoundEmoji & { source: string });
  * @claim "A token the catalogue does not know stays text" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::EmojiText > draws shortcode, id and tone id tokens as their images, and leaves unknown ones as text)
  */
 function splitEmojiText(text: string, catalogue: EmojiCatalogue, tokens = true): EmojiTextPart[] {
-  const { byToken, byText, pattern, textPattern } = catalogueIndex(catalogue);
+  const { byToken, byText, pattern, textPattern, textStarts } = catalogueIndex(catalogue);
+  // Most text holds no emoji: one pass over its characters says so without running the patterns, which list every
+  // emoji text the catalogue knows (thousands of alternatives).
+  if (!Array.from(text).some((char) => (tokens && char === ":") || textStarts.has(char))) return text ? [text] : [];
   const parts: EmojiTextPart[] = [];
   let plainFrom = 0;
   for (const match of text.matchAll(tokens ? pattern : textPattern)) {
