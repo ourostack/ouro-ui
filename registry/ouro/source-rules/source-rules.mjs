@@ -1089,7 +1089,8 @@ function findGatedLoads({ file, sourceFile, declarations }) {
     if (ts.isJsxAttribute(node) && ts.isJsxOpeningLikeElement(node.parent.parent)) {
       const name = nameText(node.name);
       const tag = node.parent.parent.tagName.getText();
-      if (name === "loading" && literalValue(node.initializer) === "lazy") record(node, "loading=lazy", tag);
+      // Any branch that can be "lazy": `loading="lazy"`, or `loading={eager ? "eager" : "lazy"}`.
+      if (name === "loading" && node.initializer && collectStrings(node.initializer).includes("lazy")) record(node, "loading=lazy", tag);
       const address = name !== undefined && ASSET_ATTRIBUTES.has(name) && node.initializer ? gateRead(node.initializer) : undefined;
       if (address) record(node, address, `${tag}.${name}`);
     }

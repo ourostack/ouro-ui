@@ -9,7 +9,7 @@ import postcss from "postcss";
 import { findOffendersInSource } from "../registry/ouro/source-rules/source-rules.mjs";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, realClockEscapeKeys, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, gatedLoadAllowed, hasClientDirective, leadingComment, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, realClockEscapeKeys, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -593,6 +593,25 @@ test("no component places, pads, borders or rounds a part by a physical side unl
     for (const [token, reason] of Object.entries(allowed)) {
       assert.ok(reason.length > 0, `${path}: ${token} needs a reason`);
       assert.ok(physicalUtilities(path, read(path).text, {}).some((found) => found.endsWith(`: ${token}`)), `${path} no longer uses ${token}: remove it from physicalAllowed`);
+    }
+  }
+});
+
+test("no component lets a load wait for the screen, focus or idle time unless gatedLoadAllowed says why, and every allowance is still used", () => {
+  const shipped = tracked("registry/**/*.ts", "registry/**/*.tsx").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\//.test(path),
+  );
+  const found = shipped.map(read).flatMap(({ path, text }) =>
+    findOffendersInSource(path, text)
+      .filter((offender) => offender.category === "gated-load")
+      .map((offender) => ({ path, tag: offender.fingerprint.split("::")[3] })),
+  );
+  const offenders = found.filter(({ path, tag }) => !gatedLoadAllowed[path]?.[tag]).map(({ path, tag }) => `${path}: ${tag}`);
+  assert.deepEqual(offenders, [], "Load it eagerly (docs/guides/guardrails.md#load-eagerly). A load that must wait, such as one the person asked to defer, goes in gatedLoadAllowed (scripts/gated-load-allowed.json) with its reason.");
+  for (const [path, allowed] of Object.entries(gatedLoadAllowed)) {
+    for (const [tag, reason] of Object.entries(allowed)) {
+      assert.ok(reason.length > 0, `${path}: ${tag} needs a reason`);
+      assert.ok(found.some((entry) => entry.path === path && entry.tag === tag), `${path} no longer lets ${tag} wait: remove it from gatedLoadAllowed`);
     }
   }
 });

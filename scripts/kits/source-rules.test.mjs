@@ -560,7 +560,7 @@ describe("gated-load", () => {
         expect(gated(`export function A() { return <><InView onChange={(seen) => seen && load()} as="div" /><Row onEnterViewport={loadRow} /><Waypoint onEnter={() => {}} /></>; }`)).toEqual(["A::gated-load::InView>load", "A::gated-load::onEnterViewport>loadRow"]);
     });
     it("finds an element that fetches only as it nears the screen, and an address that waits on a gate", () => {
-        expect(gated(`export function Card({ photo }) { return <><img src={photo} loading="lazy" alt="" /><iframe loading="lazy" src="/map" /><Image loading="eager" src={photo} /><img loading={mode} /></>; }`)).toEqual(["Card::gated-load::loading=lazy>img", "Card::gated-load::loading=lazy>iframe"]);
+        expect(gated(`export function Card({ photo }) { return <><img src={photo} loading="lazy" alt="" /><iframe loading="lazy" src="/map" /><Image loading="eager" src={photo} /><img loading={mode} /><img loading /><video loading={saving ? "lazy" : undefined} /></>; }`)).toEqual(["Card::gated-load::loading=lazy>img", "Card::gated-load::loading=lazy>iframe", "Card::gated-load::loading=lazy>video"]);
         expect(gated(`export function Card({ photo }) { const { ref, inView } = useInView(); return <><img ref={ref} src={inView ? photo : undefined} alt="" /><video poster={inView && photo} /><img src={photo} srcSet={undefined} title={inView ? "a" : "b"} /><img src /></>; }`)).toEqual(["Card::gated-load::useInView>img.src", "Card::gated-load::useInView>video.poster"]);
     });
     it("follows state that a gate's callback sets, and a same-file function that loads", () => {

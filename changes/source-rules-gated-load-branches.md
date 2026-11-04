@@ -1,0 +1,1 @@
+- `ouro-source-rules`: [`gated-load` counts `loading` whenever any branch of it can be `"lazy"` (`loading={eager ? "eager" : "lazy"}`), not only the literal](https://github.com/ourostack/ouro-ui/blob/main/scripts/kits/source-rules.test.mjs "verify:fileLine(scripts/kits/source-rules.test.mjs, /loading=\{saving \? \"lazy\" : undefined\}/)").

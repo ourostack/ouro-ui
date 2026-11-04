@@ -28,6 +28,9 @@
 // - layoutAnimationAllowed: the layout-property animations (ouro-source-rules' `layout-animation`)
 //   that Ouro's own components keep, each with its reason; scripts/source-rules.test.mjs fails on
 //   any other, and on an allowance no longer used.
+// - gatedLoadAllowed: the loads (ouro-source-rules' `gated-load`) that Ouro's own components let
+//   wait for the screen, focus or idle time, each with its reason; scripts/source-rules.test.mjs
+//   fails on any other, and on an allowance no longer used.
 // - timerBoundReads: a test or spec that waits for a state that lasts a set time on the real
 //   clock: a confirmation label (Copied, Link copied), a toast with a countdown, a story's save in
 //   progress. A loaded runner can take longer than that time between two steps, and the state is
@@ -299,6 +302,13 @@ export const physicalAllowed = JSON.parse(readFileSync(new URL("./physical-allow
  * `layout-animation` rule finds every other one.
  */
 export const layoutAnimationAllowed = JSON.parse(readFileSync(new URL("./layout-animation-allowed.json", import.meta.url), "utf8"));
+
+/**
+ * The loads Ouro's own components let wait, by file and by what waits for what (the kit's
+ * `gated-load` tag, `loading=lazy>Emoji`), each with why: scripts/gated-load-allowed.json. The
+ * kit's `gated-load` rule finds every other one.
+ */
+export const gatedLoadAllowed = JSON.parse(readFileSync(new URL("./gated-load-allowed.json", import.meta.url), "utf8"));
 
 /**
  * The physical-side class tokens in a file's string literals and template text, as "line: token",

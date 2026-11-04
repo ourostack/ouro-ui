@@ -1,0 +1,8 @@
+{
+  "registry/ouro/components/ouro/emoji-picker/emoji-picker.tsx": {
+    "loading=lazy>Emoji": "a person who asked the browser to save data (Save-Data) gets the grid past its first eight rows only as it nears the screen; without Save-Data every cell is fetched as the picker opens"
+  },
+  "registry/ouro/components/ouro/lightbox/lightbox.tsx": {
+    "loading=lazy>img": "the thumbnails stay lazy until https://github.com/ourostack/ouro-ui/pull/568 lands, which fetches them as they are drawn and removes this entry"
+  }
+}
