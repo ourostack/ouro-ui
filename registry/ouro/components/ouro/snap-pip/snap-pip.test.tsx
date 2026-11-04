@@ -29,7 +29,27 @@ beforeEach(() => {
   error = vi.spyOn(console, "error");
 });
 let frames: HeldFrames | undefined;
-const freeze = () => (frames ??= holdFrames());
+/**
+ * Holds frames only after the stage's first ResizeObserver report has reached the picture, which
+ * reflows it to its corner. Held sooner, that report lands at the browser's next rendering step,
+ * which can be mid-gesture, such as during a press that catches a throw. An observer made after
+ * the picture's hears the same step after it, so this waits for that report, not a guessed time.
+ */
+async function freeze() {
+  if (!frames) {
+    await act(
+      () =>
+        new Promise<void>((done) => {
+          const observer = new ResizeObserver(() => {
+            observer.disconnect();
+            done();
+          });
+          observer.observe(stage);
+        }),
+    );
+  }
+  return (frames ??= holdFrames());
+}
 afterEach(async () => {
   frames?.release();
   frames = undefined;
@@ -258,7 +278,7 @@ describe("SnapPiP", () => {
   it("moves to a corner a key asks for with no overshoot", async () => {
     const element = await render(self());
     element.focus();
-    freeze();
+    await freeze();
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     const seen = path();
     expect(Math.min(...seen.map(([left]) => left))).toBeGreaterThanOrEqual(LEFT);
@@ -391,7 +411,7 @@ describe("SnapPiP", () => {
     const onCornerChange = vi.fn();
     await render(self({ keepOut: [panel], onCornerChange }));
     expect(at()).toEqual([84, BOTTOM]);
-    freeze();
+    await freeze();
     // Set down slowly at x 54: nearer the right-hand place than the left corner.
     await throwBy(-30, 0, { steps: 3, ms: 40, release: 120 });
     expect(onCornerChange).not.toHaveBeenCalled();
@@ -434,7 +454,7 @@ describe("SnapPiP", () => {
     const onCornerChange = vi.fn();
     const element = await render(self({ onCornerChange }));
     const announced = watchAnnouncements();
-    freeze();
+    await freeze();
     // Up and to the left at 1.5 and 1 px/ms: it lands nowhere near the top-left corner, but coasts there.
     await throwBy(-60, -40);
     expect(at()).toEqual([RIGHT - 60, BOTTOM - 40]);
@@ -458,7 +478,7 @@ describe("SnapPiP", () => {
 
   it("keeps a flick going when the stage resizes mid-flight without moving its corner's place", async () => {
     await render(self());
-    freeze();
+    await freeze();
     await throwBy(-60, -40);
     frames!.step(16);
     expect(settling()).toBe(true);
@@ -486,7 +506,7 @@ describe("SnapPiP", () => {
   it("calls a release at exactly the flick speed a flick, and overshoots", async () => {
     const onCornerChange = vi.fn();
     await render(self({ onCornerChange }));
-    freeze();
+    await freeze();
     const [x, y] = middle(pip());
     await fire("pointerdown", x, y);
     await fire("pointermove", x - 73, y, 300);
@@ -500,7 +520,7 @@ describe("SnapPiP", () => {
   it("goes to the nearest corner after a slow drop, with no overshoot", async () => {
     const onCornerChange = vi.fn();
     await render(self({ onCornerChange }));
-    freeze();
+    await freeze();
     // Left past the middle and a little up, then held still before the release: no throw at all.
     await throwBy(-140, -60, { steps: 6, ms: 40, release: 120 });
     expect(onCornerChange.mock.calls).toEqual([["bottom-left"]]);
@@ -535,7 +555,7 @@ describe("SnapPiP", () => {
 
   it("springs on from its corner when it reaches it still moving", async () => {
     await render(self());
-    freeze();
+    await freeze();
     for (const [dx, dy] of [
       [-30, 0],
       [0, -30],
@@ -573,7 +593,7 @@ describe("SnapPiP", () => {
 
   it("catches it in flight, holds it under the pointer, and lets it go on when only pressed", async () => {
     const element = await render(self());
-    freeze();
+    await freeze();
     await throwBy(-60, -40);
     frames!.step(16);
     frames!.step(16);
@@ -634,7 +654,7 @@ describe("SnapPiP", () => {
   it("catches it in flight and drops it somewhere else", async () => {
     const onCornerChange = vi.fn();
     await render(self({ onCornerChange }));
-    freeze();
+    await freeze();
     await throwBy(-60, -40);
     frames!.step(16);
     const [x, y] = middle(pip());
@@ -859,7 +879,7 @@ describe("SnapPiP", () => {
     const onCornerChange = vi.fn();
     const element = await render(self({ onCornerChange }));
     element.focus();
-    freeze();
+    await freeze();
     const [x, y] = middle(element);
     await fire("pointerdown", x, y);
     // Pressed, not yet dragged: the key sets it off for the top.
@@ -884,7 +904,7 @@ describe("SnapPiP", () => {
   it("follows a keep-out that changes in flight from where it is, and one that changes mid-drag on release", async () => {
     const band = { x: 0, y: 400, width: 380, height: 80 };
     await render(self({ keepOut: [band] }));
-    freeze();
+    await freeze();
     await throwBy(-60, -40);
     frames!.step(16);
     frames!.step(16);
@@ -999,7 +1019,7 @@ describe("SnapPiP", () => {
     const announced = watchAnnouncements();
     element.focus();
     // Held frames, so a slow runner can't finish a move before the test sees it start.
-    freeze();
+    await freeze();
     await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
     expect(onCornerChange.mock.calls).toEqual([["top-right"]]);
     expect(element.getAttribute("data-corner")).toBe("top-right");
@@ -1047,7 +1067,7 @@ describe("SnapPiP", () => {
     const element = await render(self());
     const announced = watchAnnouncements();
     element.focus();
-    freeze();
+    await freeze();
     await userEvent.keyboard("{Alt>}{ArrowUp}{/Alt}");
     frames!.step(16);
     // Toward the side it is on its way to: it says nothing mid-move.
@@ -1118,7 +1138,7 @@ describe("SnapPiP", () => {
     await rest();
     expect(at()).toEqual([RIGHT, TOP]);
     // A thrown picture the app keeps where it was goes back too.
-    freeze();
+    await freeze();
     await throwBy(-200, 300);
     expect(onCornerChange).toHaveBeenLastCalledWith("bottom-left");
     rest();
@@ -1178,7 +1198,7 @@ describe("SnapPiP", () => {
   it("stops moving when it is unmounted mid-flight", async () => {
     const element = await render(self());
     element.focus();
-    freeze();
+    await freeze();
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     frames!.step(16);
     expect(settling(element)).toBe(true);
