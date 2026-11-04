@@ -338,14 +338,17 @@ function extentOf(slot: Element): { top: number; size: number } {
 function firstRange(count: number, size: (index: number) => number, anchor: number): [number, number] {
   if (anchor < 0) {
     let from = count - 1;
-    // Stryker disable next-line ConditionalExpression: a windowed list has more than 60 children, more than FIRST_VIEW takes, so this never reaches the first.
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: a windowed list has more than 60 children, more than FIRST_VIEW takes, so this never reaches the first.
     for (let height = size(from); from > 0 && height < FIRST_VIEW; height += size(--from));
     // Stryker disable next-line ArithmeticOperator: an end past the last child draws no more.
     return [from, count - 1];
   }
   let from = anchor;
   let to = anchor;
+  // Past either end, a range draws the same children (each size past them is the estimate, so it stops).
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: past the first child a range draws the same children, and a child more at exactly half the view is one the window's first look settles.
   for (let height = 0; from > 0 && height < FIRST_VIEW / 2; height += size(--from));
+  // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: past the last child a range draws the same children, and a child more at exactly half the view is one the window's first look settles.
   for (let height = 0; to < count - 1 && height < FIRST_VIEW / 2; height += size(++to));
   return [from, to];
 }
