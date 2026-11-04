@@ -1332,8 +1332,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     resized.observe(content);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
     return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll));
-    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
+  []);
 
   useImperativeHandle(
     actionsRef,
