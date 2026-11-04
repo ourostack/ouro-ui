@@ -30,24 +30,28 @@ beforeEach(() => {
 });
 let frames: HeldFrames | undefined;
 /**
- * Holds frames only after the stage's first ResizeObserver report has reached the picture, which
- * reflows it to its corner. Held sooner, that report lands at the browser's next rendering step,
- * which can be mid-gesture, such as during a press that catches a throw. An observer made after
- * the picture's hears the same step after it, so this waits for that report, not a guessed time.
+ * Waits for the stage's first ResizeObserver report to reach the picture, which reflows it to its
+ * corner. An observer made after the picture's hears the same step after it, so this waits for
+ * that report, not a guessed time.
+ */
+const reported = () =>
+  act(
+    () =>
+      new Promise<void>((done) => {
+        const observer = new ResizeObserver(() => {
+          observer.disconnect();
+          done();
+        });
+        observer.observe(stage);
+      }),
+  );
+/**
+ * Holds frames only after the stage's first ResizeObserver report has reached the picture. Held
+ * sooner, that report lands at the browser's next rendering step, which can be mid-gesture, such
+ * as during a press that catches a throw.
  */
 async function freeze() {
-  if (!frames) {
-    await act(
-      () =>
-        new Promise<void>((done) => {
-          const observer = new ResizeObserver(() => {
-            observer.disconnect();
-            done();
-          });
-          observer.observe(stage);
-        }),
-    );
-  }
+  if (!frames) await reported();
   return (frames ??= holdFrames());
 }
 afterEach(async () => {
@@ -806,6 +810,29 @@ describe("SnapPiP", () => {
     await expect.poll(() => unobserve.mock.calls.some(([target]) => target === bar)).toBe(true);
     await rest();
     expect(at()).toEqual([RIGHT, BOTTOM]);
+  });
+
+  it("starts clear of a keep-out element that comes behind a ref with no render at once, and watches its size from then on", async () => {
+    const ref: { current: HTMLElement | null } = { current: null };
+    await park();
+    await render(self({ keepOut: [ref] }));
+    // Past the stage's first size report, which reflows too, only the element's coming moves the picture.
+    await reported();
+    expect(at()).toEqual([RIGHT, BOTTOM]);
+    const bar = document.createElement("div");
+    Object.assign(bar.style, { position: "absolute", left: "0", right: "0", bottom: "0", height: "80px" });
+    ref.current = bar;
+    stage.append(bar);
+    // On its way as the element comes, in the content observer's microtask, not a rendering step later with the element's first size report.
+    await Promise.resolve();
+    expect(settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, 400 - 16 - 100]);
+    // It grows, with nothing rendered, added or taken away: only its own size report moves the picture.
+    bar.style.height = "120px";
+    await expect.poll(() => settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, 360 - 16 - 100]);
   });
 
   it("lets go of what it observes when it unmounts", async () => {
