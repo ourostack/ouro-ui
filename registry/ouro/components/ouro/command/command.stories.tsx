@@ -83,12 +83,17 @@ export const Empty: Story = {
 };
 
 const recipes = ["Shakshuka", "Pasta al limone", "Paella", "Pad thai", "Lentil soup", "Banana bread", "Baklava", "Saag paneer"];
+/** Found only by a search, and longer than the palette opened for. */
+const searched = ["Slow-roasted tomato and white bean stew with garlic toast, basil oil and a crisp green salad"];
 
 /** A stand-in for a server: answers after a delay, slower for shorter queries, and fails on "fail". */
 function searchRecipes(query: string, signal: AbortSignal): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
-      () => (query === "fail" ? reject(new Error("offline")) : resolve(recipes.filter((name) => name.toLowerCase().includes(query.toLowerCase())))),
+      () =>
+        query === "fail"
+          ? reject(new Error("offline"))
+          : resolve((query ? [...recipes, ...searched] : recipes).filter((name) => name.toLowerCase().includes(query.toLowerCase()))),
       900 - Math.min(query.length, 6) * 120,
     );
     signal.addEventListener("abort", () => clearTimeout(timer));
@@ -203,5 +208,20 @@ export const EmojiInLabels: Story = {
     trigger: <Button variant="outline" tone="secondary">Go to…</Button>,
     items: [chat("Launch team 🚀", "team-0201"), chat("Friday wins 🎉", "team-0202"), chat("Kai Sample", "person-0203")],
     placeholder: "Search chats…",
+  },
+};
+
+/** `highlightMatches` marks the words of the search in each label and its `description`, here a snippet of a message. Type "launch" or "notes". */
+export const SearchMatches: Story = {
+  args: {
+    title: "Search messages",
+    trigger: <Button variant="outline" tone="secondary">Search messages…</Button>,
+    placeholder: "Search messages…",
+    highlightMatches: true,
+    items: [
+      { label: "Launch planning", description: "Mara: the launch notes are in the shared folder", onSelect: () => {} },
+      { label: "Design reviews", description: "Theo: notes from Tuesday's review, with the new launch dates", onSelect: () => {} },
+      { label: "Weekly sync", description: "Priya: moving the sync to Thursday this week", onSelect: () => {} },
+    ],
   },
 };

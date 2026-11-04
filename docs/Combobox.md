@@ -27,6 +27,7 @@ The props the modes share. Type: `ComboboxProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `autoHighlight` | `boolean` |  | The first item that matches is highlighted as people type, so Enter picks it. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `clearLabel` | `string` | `"Clear"` | The name of the button that clears the field, as visually hidden text and not an `aria-label`, so a test's label lookup for the field finds the field alone. It shows while there is something to clear. Translate it with your app. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
@@ -41,7 +42,9 @@ The props the modes share. Type: `ComboboxProps`.
 | `loadingLabel` | `string` | `"Loading…"` | The text the list shows while `loading`. Translate it with your app. |
 | `name` | `string` |  | The form field name the picked value submits under; `multiple` submits one entry per pick. |
 | `onInputChange` | `((text: string) => void)` |  | Called with the text as people type. Pass it to search on your server: Combobox then shows `items` as you give them, without filtering, and you set `loading` while a search runs. Keep the picked items in `items`, so their labels stay known. |
+| `onInputKeyDown` | `((event: KeyboardEvent<HTMLInputElement>) => void)` |  | Called on each key pressed in the input, before Combobox acts on it. Call `event.preventDefault()` to stop Combobox's own handling of that key (Enter picking, Tab, the arrows), such as to move on from an empty input on Enter. |
 | `placeholder` | `string` |  | An example shown while the input is empty: `"Search herbs"`. It is not a label; pass `label`. |
+| `readOnly` | `boolean` |  | People can see the field and what is picked but not change it: the input takes no text, nothing in the list can be picked, and the clear and remove buttons go. The list still opens, to browse. |
 | `ref` | `Ref<HTMLInputElement>` |  | The input element. On a phone, it is the search input in the sheet, while the sheet is open. |
 | `required` | `boolean` |  | Something must be picked: the input gets `aria-required`, and the label a marker. |
 
@@ -64,6 +67,7 @@ A Combobox that accepts any text, suggesting matching items as people type.
 
 Not in this mode (typed `never`):
 
+- `inputValue`: Not with `allowCustomValue`: the text is the value, which `value` controls.
 - `removeLabel`: Only with `multiple`.
 
 ### Multiple: `ComboboxMultipleProps`
@@ -74,6 +78,7 @@ A Combobox that picks several items, shown as chips in the input.
 | --- | --- | --- | --- |
 | `allowCustomValue` | `false` |  | Not with `multiple`: `allowCustomValue` keeps one typed value. |
 | `defaultValue` | `string[]` |  | The items picked at first, when the field keeps its own. |
+| `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
 | `multiple` (required) | `true` |  | Pick several items, shown as chips; the value is an array. |
 | `onValueChange` | `((value: string[]) => void)` |  | Called with the picked items' values. |
 | `removeLabel` | `((label: string) => string)` | (label) => `Remove ${label}` | The name of a chip's remove button, from the item's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
@@ -91,6 +96,7 @@ A Combobox that picks one item: its value, or `null` when nothing is picked.
 | --- | --- | --- |
 | `allowCustomValue` | `false` | Accept any text, not only an item. |
 | `defaultValue` | `string \| null` | The item picked at first, when the field keeps its own. |
+| `inputValue` | `string` | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
 | `multiple` | `false` | Pick several items, shown as chips. |
 | `onValueChange` | `((value: string \| null) => void)` | Called with the picked item's value, or `null` when cleared. |
 | `value` | `string \| null` | The picked item's value, when you control it; `null` is nothing picked. |
@@ -133,10 +139,37 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ### `ComboboxItem`
 
-An item to pick: a string, which is both what shows and what submits, or an object with the `value` that submits and the `label` that shows. `disabled` items show but can't be picked.
+An item to pick: a string, which is both what shows and what submits, or an object with the `value` that submits and the `label` that shows. `disabled` items show but can't be picked. An object can also show a picture, a second line and a mark, as a people picker does: `media` (an `Avatar`), `description` and `meta` (a `Badge`).
 
 ```ts
-type ComboboxItem = string | { value: string; label: string; disabled?: boolean | undefined };
+type ComboboxItem = string | ComboboxItemObject;
+```
+
+### `ComboboxItemObject`
+
+An item as an object: what it submits, what it shows, and what shows around it.
+
+```ts
+interface ComboboxItemObject {
+  /** What the item submits, and what `value` and `onValueChange` hold. */
+  value: string;
+  /** What the item shows, on its row and on its chip with `multiple`; screen readers hear it first. */
+  label: string;
+  /** The item shows but can't be picked. */
+  disabled?: boolean | undefined;
+  /**
+   * A second, muted line under the label, such as a person's job title or email. It stays on
+   * one line, cut with an ellipsis, and shows whole on hover (its `title`).
+   */
+  description?: string | undefined;
+  /**
+   * A picture before the label, on the row and, with `multiple`, on the chip: an `Avatar` with
+   * `alt=""` (the label already names it) and `size="xs"`, which fits a chip.
+   */
+  media?: ReactNode;
+  /** A small mark at the row's end, such as a `<Badge>` that says "1:1". */
+  meta?: ReactNode;
+}
 ```
 
 ### `ErrorMessage`

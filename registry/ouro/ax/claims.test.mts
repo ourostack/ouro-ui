@@ -33,7 +33,7 @@ test("checkClaimSet names each problem with its fix", () => {
   assert.deepEqual(problems, [
     "claim 0: is not an object. Fix: { id, surface, tier, applies, rule, why, evidence, check, fix }.",
     "cli.help-parses: rule is empty. Fix: say it in one sentence.",
-    'a: surface is "web". Fix: "cli", "http" or "mcp".',
+    'a: surface is "web". Fix: "cli", "http", "mcp" or "ui".',
     'a: tier is "may". Fix: "must" or "should".',
     `a: applies is "page". Fix: one of ${CLAIM_SCOPES.join(", ")}.`,
     "a: the id is used twice. Fix: give each claim its own id.",

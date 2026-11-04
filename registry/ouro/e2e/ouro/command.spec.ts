@@ -37,6 +37,36 @@ test.describe("on a desktop", () => {
     await expect(trigger).toBeFocused();
   });
 
+  test("keeps the palette and its rows still while a server's longer results arrive", async ({ page }) => {
+    // As narrow as a window gets with the dialog, where a longer answer once widened the palette and moved every row.
+    await page.setViewportSize({ width: 720, height: 900 });
+    await openStory(page, "menus-command--server-search");
+    await page.getByRole("button", { name: "Search recipes…" }).click();
+    const dialog = page.getByRole("dialog", { name: "Command palette" });
+    await expect(dialog.getByRole("option")).toHaveCount(8);
+    const before = await settledBox(dialog);
+    const measured = await page.evaluate(() => {
+      const supported = PerformanceObserver.supportedEntryTypes.includes("layout-shift");
+      const shifts: number[] = [];
+      (window as unknown as { __commandShifts: number[] }).__commandShifts = shifts;
+      if (supported) new PerformanceObserver((list) => list.getEntries().forEach((entry) => shifts.push((entry as unknown as { value: number }).value))).observe({ type: "layout-shift" });
+      return supported;
+    });
+    await dialog.getByRole("combobox", { name: "Search commands" }).fill("stew");
+    const found = dialog.getByRole("option", { name: /^Slow-roasted tomato/ });
+    await expect(dialog.getByRole("option")).toHaveCount(1);
+    await expect(found).toBeVisible();
+    const after = await settledBox(dialog);
+    expect({ x: after.x, y: after.y, width: after.width }).toEqual({ x: before.x, y: before.y, width: before.width });
+    expect(await found.locator("[data-ouro-command-label]").evaluate((label) => label.scrollWidth > label.clientWidth)).toBe(true);
+    // Every shift counts here, those right after a key press too: nothing in the palette may move.
+    const shifted = await page.evaluate(async () => {
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+      return (window as unknown as { __commandShifts: number[] }).__commandShifts.reduce((sum, value) => sum + value, 0);
+    });
+    if (measured) expect(shifted).toBeLessThan(0.001);
+  });
+
   test("shows the empty state when nothing matches", async ({ page }) => {
     await openStory(page, "menus-command--playground");
     await page.getByRole("button", { name: "Search…" }).click();

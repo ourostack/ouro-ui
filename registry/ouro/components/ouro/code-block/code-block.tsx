@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, type HTMLAttributes, type JSX, type ReactNode, type Ref, type RefCallback } from "react";
+import { useCallback, useRef, type HTMLAttributes, type JSX, type ReactNode, type Ref, type RefCallback } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { scrollFadeClass, useScrollFade } from "@/registry/ouro/lib/ouro/scroll-fade";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { CopyButton } from "@/registry/ouro/components/ouro/copy-button/copy-button";
 import { Emoji, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
@@ -121,8 +123,9 @@ function CodeWithEmoji({ code, catalogue }: { code: string; catalogue: EmojiCata
 /**
  * Code or a command on a muted surface in the theme's monospace font, with a caption
  * and a button that copies it. The code shows exactly as given and scrolls sideways
- * rather than wrapping (unless `wrap`), and the block becomes a tab stop while it
- * overflows, so a keyboard can scroll it. Copying says "Copied" to screen readers.
+ * rather than wrapping (unless `wrap`), fading out at the side where a long line goes on, and
+ * the block becomes a tab stop while it overflows, so a keyboard can scroll it. Copying says
+ * "Copied" to screen readers.
  *
  * It does not color the code; to highlight it, set colors on the `data-language` block
  * from a highlighter of your own, or pass highlighted code to your own `<pre>`. With
@@ -134,6 +137,7 @@ function CodeWithEmoji({ code, catalogue }: { code: string; catalogue: EmojiCata
  * @group Display
  * @see https://ui.ouro.bot/docs/code-block
  *
+ * @claim "fading out at the side where a long line goes on" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > fades out at the side where a long line goes on, with its focus ring over the fade)
  * @example
  * <CodeBlock language="bash" code="npx shadcn@latest add button" />
  * <CodeBlock title="vite.config.ts" code={config} className="max-h-80" />
@@ -174,7 +178,9 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const scrollable = useScrollableCode();
+  const fadeRef = useRef<HTMLPreElement>(null);
+  useScrollFade(fadeRef);
+  const scrollable = useMergedRef(useScrollableCode(), fadeRef);
   const caption = title ?? language;
   const bar = caption != null || copy;
   // The caption and the copy button share the bar above the code as siblings in the grid: a
@@ -186,7 +192,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
       data-ouro="code-block"
       data-language={language}
       className={cn(
-        "[@layer_ouro-reset]:m-0 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-lg border border-solid border-border bg-muted text-foreground",
+        "group/code-block [@layer_ouro-reset]:m-0 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-lg border border-solid border-border bg-muted text-foreground",
         bar ? "grid-rows-[minmax(calc(var(--spacing)*11),auto)_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]",
         className,
       )}
@@ -211,13 +217,25 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
           className="col-start-2 row-start-1 self-center me-1.5"
         />
       ) : null}
+      {/* The code's focus ring, over it in the same cell, so the code's edge fade never hides it. It comes before the
+          code, so a selection that runs to the code's end in WebKit gains no line break from a block after it. */}
+      <span
+        aria-hidden
+        data-slot="focus-ring"
+        className={cn(
+          "pointer-events-none relative z-1 col-span-2 col-start-1 outline-ring -outline-offset-2",
+          "group-has-[>[data-ouro-part=code]:focus-visible]/code-block:outline-2 group-has-[>[data-ouro-part=code]:focus-visible]/code-block:outline-solid",
+          bar ? "row-start-2" : "row-start-1",
+        )}
+      />
       <pre
         ref={scrollable}
         data-ouro-control="code-block"
         data-ouro-part="code"
         className={cn(
-          "col-span-2 m-0 min-h-0 overflow-auto p-4 font-mono text-sm leading-6 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
-          bar && "row-start-2 border-0 border-t border-solid border-border",
+          "col-span-2 col-start-1 m-0 min-h-0 overflow-auto p-4 font-mono text-sm leading-6 outline-none",
+          scrollFadeClass,
+          bar ? "row-start-2 border-0 border-t border-solid border-border" : "row-start-1",
           wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre",
         )}
       >

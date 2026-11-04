@@ -4,12 +4,14 @@ export type { CliIo, RunOptions };
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
+import { checksText, isChecksReport } from "./checks.ts";
 import { flagsOf, findCommand, parse, type ArgSpec, type Cli, type CommandDef, type Input, type InputValue, type Parsed, type RunContext } from "./command.ts";
 import { DRY_RUN_FLAG } from "./effects.ts";
-import { AxError, errorJson, errorLine, isAxError, type AxErrorShape } from "./problem.ts";
+import { AxError, errorJson, errorLine, errorMessage, isAxError, type AxErrorShape } from "./problem.ts";
 import { commandManifest, helpJson, renderCommand, renderOverview, type OverviewOptions } from "./help.ts";
-import { isOutcome, outcomeExit, outcomeText, type Outcome } from "./outcome.ts";
+import { isOutcome, outcome, outcomeExit, outcomeText, type Outcome } from "./outcome.ts";
 import { render } from "./output.ts";
+import { terminalStyle } from "./terminal.ts";
 import { isWait, waitExit, waitText } from "./wait.ts";
 import { createVoice, type Voice, type VoiceMemory, type VoiceSlot } from "./voice.ts";
 
@@ -79,13 +81,26 @@ function isEmptyResult(result: unknown): boolean {
 
 /**
  * Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in
- * text is the one error line on stderr), a wait by its state, anything else as its text or `--json`. Given the
+ * text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text
+ * styled for stdout and every check under `--verbose`, anything else as its text or `--json`. A report whose checks
+ * all ran and passed may get the voice's `healthy` line. Given the
  * process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an
  * empty list, or the summary command.
  *
  * @claim "never before it" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most)
+ * @claim "may get the voice's `healthy` line" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a command that returns a checks report prints its verdict first, styled for stdout, and exits with its code)
+ * @claim "a checks report (ax-checks) by its verdict" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a command that returns a checks report prints its verdict first, styled for stdout, and exits with its code)
  */
-function printResult(cli: Cli, cmd: CommandDef, input: Input, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice): number {
+function printResult(
+  cli: Cli,
+  cmd: CommandDef,
+  input: Input,
+  result: unknown,
+  json: boolean,
+  io: Pick<CliIo, "stdout" | "stderr">,
+  voice?: Voice,
+  env: Readonly<Record<string, string | undefined>> = processEnv(),
+): number {
   const say = (slot: VoiceSlot, outcome?: Outcome) => {
     const line = json || !voice ? null : voice.line(slot, outcome);
     if (line !== null) io.stdout.write(`${line}\n`);
@@ -98,6 +113,14 @@ function printResult(cli: Cli, cmd: CommandDef, input: Input, result: unknown, j
       if (result.state === "done" || result.state === "queued") say("done", result);
     }
     return exit;
+  }
+  if (isChecksReport(result)) {
+    const style = terminalStyle(io.stdout, env);
+    // The --verbose hint is offered only by a command that takes the flag.
+    const command = "verbose" in flagsOf(cli, cmd) ? { command: `${cli.name} ${cmd.name}` } : {};
+    io.stdout.write(render(result, { json, text: (r) => checksText(r, style, { ...command, verbose: input["verbose"] === true }) }));
+    if (result.verdict === "passed" && result.counts.passed && !result.counts.skipped) say("healthy");
+    return result.exitCode;
   }
   const own = cmd.text;
   const text = own ? (r: unknown) => own.call(cmd, r, input) : isWait(result) ? () => waitText(result) : undefined;
@@ -140,6 +163,11 @@ async function runCli(cli: Cli, argv: readonly string[], io: CliIo, options: Run
         io.stdout.write(parsed.json ? `${JSON.stringify(commandManifest(cli, found.command), null, 2)}\n` : renderCommand(cli, found.command));
         return 0;
       }
+      if (Object.hasOwn(cli.personOnly, topic)) {
+        const p = cli.personOnly[topic]!;
+        io.stdout.write(parsed.json ? `${JSON.stringify({ name: topic, reason: p.reason, how: p.how }, null, 2)}\n` : `${cli.name} ${topic}: only the person does this, never you.\n  Why: ${p.reason}\n  How the person does it: ${p.how}\n`);
+        return 0;
+      }
       const text = options.topics && Object.hasOwn(options.topics, topic) ? options.topics[topic] : undefined;
       if (text !== undefined) {
         io.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
@@ -156,11 +184,12 @@ async function runCli(cli: Cli, argv: readonly string[], io: CliIo, options: Run
     };
     const input = await withStdin(cli, cmd, parsed.input, stdin);
     const result = await dispatch(cli, { ...parsed, input }, { stdin, json });
-    return printResult(cli, cmd, input, result, json, io, voice);
+    return printResult(cli, cmd, input, result, json, io, voice, options.env ?? processEnv());
   } catch (e) {
     const shape: AxErrorShape = isAxError(e) ? e.shape : { code: "error", exit: cli.exits.code("error"), thing: cli.name, problem: e instanceof Error ? e.message : String(e), fix: null };
     io.stderr.write(`${errorLine(cli.name, shape)}\n`);
-    if (json) io.stdout.write(`${JSON.stringify(errorJson(shape), null, 2)}\n`);
+    // A person-only word is a refusal of an action, so --json answers with its outcome, which carries the same error.
+    if (json) io.stdout.write(`${JSON.stringify(shape.code === "person-only" ? outcome({ action: shape.thing, state: "refused", summary: errorMessage(shape), error: shape }) : errorJson(shape), null, 2)}\n`);
     return shape.exit;
   }
 }

@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CLAIM_SET } from "./claims.ts";
+import { ui as callUi } from "./fixtures/call-components.mts";
 import {
   audienceWho,
   checkSafety,
@@ -203,7 +204,7 @@ test("a CLI that breaks the claims fails them, each with what it saw", async () 
   const calls = join(scratch, "bad-calls.jsonl");
   const state = join(scratch, "bad-state.txt");
   const report = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad", env: { FIXTURE_CALLS: calls, FIXTURE_STATE: state, TARGET: "http://127.0.0.1:9" }, state: ["count"] }));
-  for (const id of ["cli.exit-codes", "cli.read-json", "cli.unknown-command", "cli.unknown-flag", "cli.flag-suggest", "cli.ambiguous-verbs", "cli.others-need-why", "cli.wrong-ref-first", "cli.others-preview", "cli.one-line-error", "cli.error-teaches", "cli.no-stack-trace", "cli.help-width", "cli.reads-stay-reads"]) {
+  for (const id of ["cli.plain-pipe", "cli.check-verdict", "cli.exit-codes", "cli.read-json", "cli.unknown-command", "cli.unknown-flag", "cli.flag-suggest", "cli.ambiguous-verbs", "cli.others-need-why", "cli.wrong-ref-first", "cli.others-preview", "cli.one-line-error", "cli.error-teaches", "cli.no-stack-trace", "cli.help-width", "cli.reads-stay-reads"]) {
     assert.equal(holds(report, id), false, id);
   }
   assert.ok(report.results.find((r) => r.claim === "cli.unknown-flag")!.note.includes("ignored"));
@@ -216,6 +217,30 @@ test("a CLI that breaks the claims fails them, each with what it saw", async () 
   const md = renderMarkdown(report);
   assert.match(md, /## What fails, and the fix/);
   assert.match(md, /Does not conform yet: \d+ must claims not holding; no inventory given/);
+});
+
+test("a doctor built with ax-checks: its verdict leads its text and matches its --json, and its piped output is plain", async () => {
+  for (const env of [{}, { DOCTOR_BROKEN: "1" }]) {
+    const report = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env }));
+    for (const id of ["cli.check-verdict", "cli.plain-pipe", "cli.exit-codes", "cli.read-json"]) assert.equal(holds(report, id), true, `${id} ${JSON.stringify(env)}`);
+    assert.match(report.results.find((r) => r.claim === "cli.check-verdict")!.note, env.DOCTOR_BROKEN ? /^first line: FAIL 1 of 3 checks failed/ : /^first line: ok 2 of 3 checks passed/);
+  }
+  const broken = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env: { DOCTOR_BROKEN: "1" } }));
+  assert.match(broken.results.find((r) => r.claim === "cli.read-json")!.note, /exit 3 \(findings\)$/, "a doctor's findings exit with the declared code and still conform");
+  const crashed = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env: { DOCTOR_CRASH: "1" } }));
+  assert.equal(holds(crashed, "cli.read-json"), false, "a check that couldn't run exits 1, which a read may not");
+  const split = await xray(base({ cli: fixture("doctor-cli.mts"), name: "kit", env: { DOCTOR_TEXT_EXIT: "1" } }));
+  assert.match(split.results.find((r) => r.claim === "cli.check-verdict")!.note, /^exit 1 as text, 0 with --json, 0 in the report$/);
+  const bad = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad" }));
+  assert.match(bad.results.find((r) => r.claim === "cli.check-verdict")!.note, /starts "DOCTOR", not the verdict/);
+  assert.ok(bad.results.some((r) => r.claim === "cli.plain-pipe" && r.note.startsWith("escape codes in piped output")));
+  assert.ok(bad.results.some((r) => r.claim === "cli.plain-pipe" && r.note === "a carriage return redraws piped output"));
+  assert.ok(
+    bad.results.some((r) => r.claim === "cli.plain-pipe" && r.surface === "NO_COLOR=1 FORCE_COLOR=1 bad --help" && r.verdict === "fail"),
+    "colour forced over NO_COLOR fails, though plain --help passes",
+  );
+  const notes = await xray(base({ cli: fixture("notes.mts"), name: "notes" }));
+  assert.deepEqual(verdicts(notes, "cli.check-verdict"), ["skip"]);
 });
 
 test("an HTTP API: JSON, one error shape, an index, errors that teach, refusals that change nothing, its inventory", async () => {
@@ -473,4 +498,135 @@ test("a voice in a pipe or --json, text without its refs, an unlisted command, l
   const traced = report.results.find((r) => r.claim === "cli.no-stack-trace" && r.verdict === "fail");
   assert.equal(traced?.surface, "loud --help | head -0");
   assert.match(traced!.note, /EPIPE|Unhandled 'error' event/);
+});
+
+const callCommands = ["meetings", "participants", "captions", "events", "follow", "pin", "mute", "leave", "raise-hand", "lower-hand"];
+const callInventory = (name: string, ui: unknown[] = callUi, cli: string[] = callCommands) => {
+  const path = join(scratch, `${name}.json`);
+  writeFileSync(path, JSON.stringify({ cli, ui }));
+  return path;
+};
+const call = (name: string, faults: string, over: Partial<XrayOptions> = {}) =>
+  xray(base({ cli: fixture("call.mts"), name: "call", env: { CALL_STATE: join(scratch, `${name}-state.json`), CALL_FAULTS: faults }, state: ["state"], inventory: over.inventory ?? callInventory(name), ...over }));
+const failingNotes = (report: Report, claim: string) => report.results.filter((r) => r.claim === claim && r.verdict === "fail").map((r) => `${r.surface}: ${r.note}`);
+
+test("the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow", async () => {
+  const report = await call("call-good", "", { conformance: true });
+  const failing = report.claims.filter((c) => c.fail).map((c) => `${c.id}: ${c.failing.map((f) => f.note).join("; ")}`);
+  assert.deepEqual(failing, []);
+  assert.equal(report.conformant, true);
+  assert.deepEqual(report.inventory.surfaces, ["cli", "ui"]);
+  for (const id of ["ui.twin-exists", "ui.twin-effect-matches", "ui.person-only-refuses", "ui.listening-needs-yes", "ui.read-fields", "cli.listening-push-filtered", "cli.listening-cursor"]) assert.equal(holds(report, id), true, id);
+  assert.deepEqual(verdicts(report, "ui.listening-needs-yes"), ["pass", "pass"]);
+  assert.deepEqual(report.effects.map((e) => e.note), ["the person's yes, on the mock: followed, to read what people say"]);
+  assert.deepEqual(JSON.parse(readFileSync(join(scratch, "call-good-state.json"), "utf8")).follows, ["m1"]);
+  // Without a ui inventory, no ui surface is checked, and the CLI still conforms.
+  const cliOnly = await call("call-cli-only", "", { conformance: true, inventory: callInventory("call-cli-only", []) });
+  assert.equal(cliOnly.conformant, true);
+  const none = join(scratch, "inventory-without-ui.json");
+  writeFileSync(none, JSON.stringify({ cli: callCommands }));
+  const noUi = await call("call-no-ui", "", { inventory: none });
+  assert.equal(noUi.conformant, true);
+  assert.deepEqual(noUi.inventory.surfaces, ["cli"]);
+  assert.equal(noUi.results.some((r) => r.claim.startsWith("ui.")), false);
+});
+
+test("a call tool that breaks the component claims fails each, with what it saw", async () => {
+  const ui = [
+    ...callUi,
+    { component: "MediaTile", kind: "action", id: "kick", effect: "others", twin: "call kick <participant>" },
+    { component: "CallControls", kind: "action" },
+    { component: "CallControls", kind: "action", id: "hover", effect: "private", personOnly: "You can't point for the person; only they can.", refuseAs: "call hover" },
+    { component: "RingCard", kind: "action", id: "answer", effect: "others", twin: "call leave <meeting>" },
+    { component: "Presenter", kind: "action", id: "shareScreen", effect: "others", twin: "call leave <meeting>" },
+    { component: "Presenter", kind: "action", id: "stop-share", effect: "others", twin: "call leave <meeting>" },
+    { component: "Lobby", kind: "action", id: "let-in", effect: "others", personOnly: "You can't admit anyone from the lobby for the person; only they can.", twin: "call leave <meeting>", refuseAs: "call let-in" },
+    { component: "Lobby", kind: "action", id: "admit", effect: "others", personOnly: "You can't admit anyone from the lobby for the person; only they can." },
+    { component: "MediaTile", kind: "read", id: "elsewhere", twin: "participants m9", consent: "none", fields: ["name"] },
+    { component: "MediaTile", kind: "read", id: "bare", twin: "participants m1", consent: "none" },
+    { component: "MediaTile", kind: "read", id: "pinned", twin: "call pin p1", consent: "none", fields: ["name"] },
+  ];
+  const report = await call("call-bad", "effect,unmute,listen,push,fields", { inventory: callInventory("call-bad", ui, [...callCommands, "unmute"]) });
+  assert.deepEqual(failingNotes(report, "ui.twin-exists"), ["MediaTile action kick: `call kick <participant>` names no command in help --json"]);
+  assert.deepEqual(verdicts(report, "ui.twin-effect-matches").filter((v) => v !== "pass"), ["fail", "skip", "fail"]);
+  assert.deepEqual(failingNotes(report, "ui.twin-effect-matches"), ["CallControls action mute: the action is others; `call mute` is private", "MediaTile read pinned: the read wants a private read; `call pin` is private, not a read"]);
+  assert.equal(failingNotes(report, "ui.person-only-refuses")[0], 'CallControls action unmute: `call unmute` → exit 0; stdout: "Unmuted.": it did not refuse; `call unmute --json` → exit 0; stdout: "Unmuted.": no refused outcome or error; help --json lists no personOnly "unmute"; the state changed: 2 added, 0 removed; first: {"verb":"unmute"}');
+  assert.equal(failingNotes(report, "ui.listening-needs-yes").length, 2);
+  assert.match(failingNotes(report, "ui.listening-needs-yes")[0]!, /not an outcome, so it may be what people say$/);
+  assert.match(failingNotes(report, "cli.listening-push-filtered")[0]!, /; it delivered text, at; no refused outcome or error; it names no --on$/);
+  assert.equal(failingNotes(report, "ui.person-only-refuses")[1], 'CallControls action hover: help --json lists no personOnly "hover"');
+  assert.ok(failingNotes(report, "ui.person-only-refuses").includes("Lobby action admit: it has no refuseAs words, so nothing shows that the words an agent might try refuse"));
+  assert.deepEqual(failingNotes(report, "ui.reserved-person-only"), ['RingCard action answer: "answer" is the person\'s own, and this entry is not person-only', 'Presenter action shareScreen: "shareScreen" is the person\'s own, and this entry is not person-only']);
+  assert.deepEqual(verdicts(report, "ui.reserved-person-only"), ["pass", "pass", "pass", "fail", "fail", "pass", "pass"]);
+  assert.ok(failingNotes(report, "ui.person-only-refuses").includes("Lobby action let-in: it is person-only but has a twin, `call leave <meeting>`, so an agent could do it"));
+  assert.deepEqual(failingNotes(report, "ui.read-fields").map((n) => n.replace(/;.*/, "")), ["MediaTile read participant: `call participants m1 --json` has no connection", "MediaTile read elsewhere: `call participants m9 --json` → exit 1", "MediaTile read pinned: `call pin p1 --json` has no name"]);
+  assert.equal(verdictOf(report, "ui.read-fields", "MediaTile read bare"), "pass");
+  assert.deepEqual(verdicts(report, "cli.listening-cursor"), ["skip"]);
+  assert.equal(report.conformant, false);
+});
+
+test("a listening read's follow, fields and cursor: ignored, missing, no lines, a follow that fails, no sample, no mock, no help", async () => {
+  const cursor = await call("call-cursor", "cursor");
+  assert.match(failingNotes(cursor, "cli.listening-cursor")[0]!, /^LiveCaptions read captions: `call captions m1 --cursor 2 --json` repeats a line it already gave: \{"at":"1"/);
+  const nocursor = await call("call-nocursor", "nocursor,fields");
+  assert.deepEqual(failingNotes(nocursor, "cli.listening-cursor"), ["LiveCaptions read captions: `call captions m1 --json` gives no cursor"]);
+  assert.deepEqual(failingNotes(nocursor, "ui.read-fields")[1], "LiveCaptions read captions: `call captions m1 --json` has no speaker");
+  const nolines = await call("call-nolines", "nolines");
+  assert.match(nolines.results.find((r) => r.claim === "cli.listening-cursor")!.note, /answered no lines to read past$/);
+  const follow = await call("call-follow", "follow");
+  assert.match(follow.results.find((r) => r.claim === "cli.listening-cursor")!.note, /^the follow failed: `call follow m1 --why/);
+  const odd = [
+    ...callUi,
+    { component: "Captions", kind: "read", id: "questions", twin: "call events <meeting> --stream live-transcript --on question", consent: "listening", fields: ["text"] },
+    ...["launch", "people", "next"].map((t) => ({ component: "Captions", kind: "read", id: t, twin: `call events <meeting> --stream live-transcript --on topic:${t}`, consent: "listening", fields: ["text"] })),
+  ];
+  const strange = await call("call-strange", "state,extra,unlisted,hidden,pushextra,reason", { inventory: callInventory("call-strange", odd) });
+  assert.deepEqual(failingNotes(strange, "ui.listening-needs-yes").map((n) => n.replace(/^.*?\): /, "")), [
+    "outcome in state done, not needs-human",
+    "the outcome also carries lines",
+    'needs-human without a resume command help lists (call sit-in m1 --why "<who asked you, and what they said>")',
+    "the outcome also carries human.lines",
+    "the outcome also carries target.name",
+    "the outcome also carries next[].at, next[].speaker, next[].text, next[]",
+  ]);
+  assert.match(failingNotes(strange, "cli.listening-push-filtered")[0]!, /: the refusal also carries target, next$/);
+  assert.ok(failingNotes(strange, "ui.person-only-refuses").every((n) => n.endsWith(`the refusal does not name the reason help gives ("You can't turn on the person's microphone, camera or screen; only they can")`)));
+  const resume = await call("call-resume-room", "resume");
+  assert.equal(resume.results.find((r) => r.claim === "cli.listening-cursor")!.note, "no sample for <room> in the follow command");
+  const risky = [
+    ...callUi,
+    { component: "MediaTile", kind: "read", id: "pinned", twin: "call pin p1", consent: "none", fields: ["name"] },
+    { component: "Captions", kind: "read", id: "pinning", twin: "call pin p1", consent: "listening", fields: ["text"] },
+    { component: "Captions", kind: "read", id: "muting", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call mute <meeting>", trigger: "--on mention" },
+  ];
+  const unsafe = await call("call-unsafe", "", { mock: undefined, inventory: callInventory("call-unsafe", risky) });
+  assert.deepEqual(unsafe.results.filter((r) => r.note.includes("is no private read")).map((r) => `${r.claim} ${r.surface}: ${r.note}`), [
+    "ui.read-fields MediaTile read pinned: not run: `call pin p1` is no private read in help --json, and the target is not proven a mock",
+    "ui.listening-needs-yes Captions read pinning: not run: `call pin p1` is no private read in help --json, and the target is not proven a mock",
+    "cli.listening-push-filtered Captions read pinning: not run: `call pin p1` is no private read in help --json, and the target is not proven a mock",
+    "cli.listening-push-filtered Captions read muting: not run: `call mute <meeting>` is no private read in help --json, and the target is not proven a mock",
+  ]);
+  assert.equal(JSON.parse(readFileSync(join(scratch, "call-unsafe-state.json"), "utf8")).pinned.length, 0);
+  for (const id of ["ui.person-only-refuses", "ui.read-fields", "cli.listening-cursor"]) assert.ok(unsafe.results.filter((r) => r.claim === id).some((r) => r.verdict === "skip" && r.note.startsWith("not run: the target is not proven a mock")), id);
+  const sampleless = [
+    ...callUi,
+    { component: "Captions", kind: "read", id: "pushless", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call events <meeting>" },
+    { component: "Tile", kind: "read", id: "who", twin: "call participants <room>", consent: "none", fields: ["name"] },
+    { component: "Captions", kind: "read", id: "said", twin: "call captions <room>", consent: "listening", fields: ["text"], push: "call events <room> --stream live-transcript", trigger: "--on mention" },
+    { component: "Captions", kind: "read", id: "heard", twin: "call captions <meeting>", consent: "listening", fields: ["text"], push: "call events <room> --stream live-transcript", trigger: "--on mention" },
+  ];
+  const missing = await call("call-missing", "", { inventory: callInventory("call-missing", sampleless), state: [] });
+  assert.equal(holds(missing, "ui.person-only-refuses"), true);
+  assert.deepEqual(missing.results.filter((r) => r.verdict === "skip" && r.note.startsWith("no sample")).map((r) => `${r.claim} ${r.surface}`), [
+    "ui.read-fields Tile read who",
+    "ui.listening-needs-yes Captions read said",
+    "ui.listening-needs-yes Captions read heard",
+    "cli.listening-push-filtered Captions read heard",
+  ]);
+  assert.match(missing.results.find((r) => r.claim === "cli.listening-cursor" && r.surface === "Captions read said")!.note, /gave no follow command/);
+  const resumeless = [{ component: "Captions", kind: "read", id: "said", twin: "captions <meeting>", consent: "listening" }];
+  const plainer = await call("call-resume", "", { inventory: callInventory("call-resume", resumeless) });
+  assert.equal(holds(plainer, "cli.listening-cursor"), true);
+  const plain = await xray(base({ cli: fixture("plain-cli.mjs"), inventory: callInventory("plain-ui") }));
+  assert.ok(failingNotes(plain, "ui.twin-exists").every((n) => n.endsWith("no help JSON to find the twin in")));
 });

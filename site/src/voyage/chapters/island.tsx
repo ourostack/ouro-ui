@@ -26,6 +26,18 @@ export function nearScreen(id: string): Promise<void> {
   });
 }
 
+/** The ids of the islands on the page whose content has not yet committed, neither loaded nor failed. */
+const waiting = new Set<string>();
+
+/**
+ * The ids of the islands on the page still waiting for their chunk: mounted, with neither their
+ * content nor their fallback in the page yet. A test waits for none before it reads the page whole,
+ * because an island that commits later adds its section between others and moves every heading after it.
+ */
+export function waitingIslands(): string[] {
+  return [...waiting];
+}
+
 /** Calls `onHydrated` once the island's content has committed, which in the browser is once React has hydrated it. */
 function Hydrated({ onHydrated }: { onHydrated: () => void }): null {
   useEffect(onHydrated, [onHydrated]);
@@ -56,11 +68,20 @@ export function IslandFallback({ id }: { id: string }): JSX.Element {
 export class IslandBoundary extends Component<{ id: string; children: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
 
+  override componentDidMount(): void {
+    if (!this.state.failed) waiting.add(this.props.id);
+  }
+
+  override componentWillUnmount(): void {
+    waiting.delete(this.props.id);
+  }
+
   static getDerivedStateFromError(): { failed: boolean } {
     return { failed: true };
   }
 
   override componentDidCatch(error: unknown, info: ErrorInfo): void {
+    waiting.delete(this.props.id);
     console.error(`[ouro-site] The ${this.props.id} island did not load.`, error, info.componentStack);
   }
 
@@ -111,6 +132,7 @@ export function island(id: string, load: () => Promise<{ default: ComponentType 
     }, []);
     const onHydrated = useCallback(() => {
       hydrated.current = true;
+      waiting.delete(id);
       if (!held.current) return;
       // A task later, so the press meets state React brought up to date after hydrating, such as the
       // reader's stored theme. It stays held until then, so a press or key in between still drops it.

@@ -58,7 +58,7 @@ it("sets a system note in smaller text than a message on a touch screen", async 
           Hi
         </Message>
         <Message role="system" name="Ouro">
-          Ada joined
+          Ana joined
         </Message>
       </>,
     ),
