@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Message } from "@/registry/ouro/components/ouro/message/message";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
+import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
+import { Message, type MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { ReactionBar, type Reaction } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
 
 /** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
 async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
@@ -281,4 +284,110 @@ export const LoadingOlder: Story = {
     canvasElement.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollTop = 0;
     await frameUntil(() => canvasElement.querySelector("[data-ouro-message-list-jump]"));
   },
+};
+
+/** A small picture, drawn inline so the story needs no network: a sky over a hill, in the given hue. */
+const picture = (hue: number) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect width="120" height="80" fill="hsl(${hue} 60% 75%)"/><circle cx="92" cy="22" r="10" fill="hsl(${(hue + 40) % 360} 90% 85%)"/><path d="M0 80 50 36l70 44Z" fill="hsl(${(hue + 160) % 360} 35% 40%)"/></svg>`)}`;
+
+const chatPeople = [
+  { id: "mara", name: "Mara Quill", hue: 200 },
+  { id: "theo", name: "Theo Brandt", hue: 20 },
+];
+
+interface ChatItem {
+  id: string;
+  mine: boolean;
+  text: string;
+  picture?: number;
+  file?: boolean;
+  reactions?: Reaction[];
+}
+
+/** One long conversation with someone: text, with a picture every 7th message, a file every 11th and reactions every 4th. */
+function chatWith(person: (typeof chatPeople)[number], count: number): ChatItem[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `${person.id}-${index}`,
+    mine: index % 3 === 1,
+    text: index % 3 === 1 ? questions[index % questions.length]! : answers[index % answers.length]!,
+    ...(index % 7 === 3 && { picture: person.hue + index }),
+    ...(index % 11 === 5 && { file: true }),
+    ...(index % 4 === 2 && { reactions: [{ key: "like", label: "Like", emoji: "👍", count: 1 + (index % 3), mine: index % 8 === 2 }] }),
+  }));
+}
+
+const switchActions: readonly MessageAction[] = [{ key: "like", label: "Like", icon: "👍", onClick: () => {} }];
+
+/** How many messages each conversation holds: 8, or the number in the frame's `?messages=`, for a long one (`?messages=1200`). */
+function messagesPerChat(): number {
+  return (typeof window === "undefined" ? 0 : Number(new URLSearchParams(window.location.search).get("messages"))) || 8;
+}
+
+function SwitchingChats() {
+  const [count] = useState(messagesPerChat);
+  const chats = useMemo(() => Object.fromEntries(chatPeople.map((person) => [person.id, chatWith(person, count)])), [count]);
+  const [open, setOpen] = useState(chatPeople[0]!.id);
+  const person = chatPeople.find((each) => each.id === open)!;
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: 12, maxWidth: 760 }}>
+      <div style={{ display: "grid", alignContent: "start", gap: 8 }}>
+        {chatPeople.map((each) => (
+          <button
+            key={each.id}
+            type="button"
+            data-test-harness=""
+            aria-pressed={each.id === open}
+            onClick={() => setOpen(each.id)}
+            style={{
+              font: "inherit",
+              padding: "8px 14px",
+              textAlign: "start",
+              borderRadius: "var(--radius)",
+              border: "1px solid var(--border)",
+              background: each.id === open ? "var(--accent)" : "var(--background)",
+              color: each.id === open ? "var(--accent-foreground)" : "var(--foreground)",
+              cursor: "pointer",
+            }}
+          >
+            {each.name}
+          </button>
+        ))}
+      </div>
+      <Surface>
+        <MessageList key={open} label={`Chat with ${person.name}`} style={{ height: 460 }}>
+          {chats[open]!.map((item) => (
+            <Message
+              key={item.id}
+              id={item.id}
+              variant="chat"
+              role={item.mine ? "user" : "assistant"}
+              name={item.mine ? "Priya Okafor" : person.name}
+              actions={switchActions}
+              attachments={
+                item.picture !== undefined ? (
+                  <Lightbox label={`Photo from ${person.name}`} layout="mosaic" images={[{ src: picture(item.picture), alt: "A hill under the sky", width: 1200, height: 800 }]} />
+                ) : item.file ? (
+                  <Attachment name="seating-plan.pdf" size={48_200} contentType="application/pdf" href={`#${item.id}`} />
+                ) : undefined
+              }
+              footer={item.reactions && <ReactionBar reactions={item.reactions} onReact={() => {}} />}
+            >
+              {item.text}
+            </Message>
+          ))}
+        </MessageList>
+      </Surface>
+    </div>
+  );
+}
+
+/**
+ * Two conversations to switch between, with pictures, files, reactions and an action bar on each
+ * message. Each opens at its newest message in its first frame, drawing the newest first and the
+ * rest above them, a few a frame. Add `&messages=1200` to the frame's address for long ones.
+ */
+export const Switching: Story = {
+  args: { label: "Chat", children: null },
+  render: () => <SwitchingChats />,
 };

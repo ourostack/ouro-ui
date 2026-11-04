@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1025,5 +1026,26 @@ describe("ShowMore development messages", () => {
     expect(html).toContain('data-ouro="show-more"');
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("ShowMore in its first frame", () => {
+  it.each([
+    ["lines", <ShowMore lines={2}>{longText}</ShowMore>],
+    [
+      "maxHeight",
+      <ShowMore maxHeight={120}>
+        <div style={{ height: 400 }} />
+      </ShowMore>,
+    ],
+  ])("with %s, has its button as React commits it, so nothing below it moves a frame later", (_, node) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // The commit alone, before the browser draws a frame: in a list, a button that came later would push what is below it.
+    flushSync(() => root.render(node));
+    expect(host.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
   });
 });

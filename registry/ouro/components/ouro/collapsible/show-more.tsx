@@ -1,6 +1,6 @@
 "use client";
 
-import { isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -304,6 +304,8 @@ const DEFAULT_HEIGHT = 240;
  * the first newly shown item, so keyboard and screen reader users land on what they asked
  * for. A list that loads more also says how many items now show. The button names what it
  * folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`).
+ * Folded text and content have their button in the first frame the browser draws, so nothing
+ * below them moves a frame later, as in a conversation opening at its newest message.
  * The visible items are in the server HTML. ShowMore draws the list itself: put a border
  * around the list on a wrapping element, and borders between rows on each item.
  *
@@ -322,6 +324,7 @@ const DEFAULT_HEIGHT = 240;
  * @claim "The button names what it folds" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore toggle semantics > names the list, the text or the fold it opens and says whether it is open, in every mode that folds)
  * @claim "The button names what it folds" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore toggle semantics > names the list a load adds to, and claims no open state, since loading more never folds)
  * @claim "folds content of any kind" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > folds long content to maxHeight under a fade, with Show more)
+ * @claim "Folded text and content have their" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in its first frame > with %s, has its button as React commits it, so nothing below it moves a frame later)
  * @claim "ShowMore draws the list itself: put" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys)
  */
 export function ShowMore(props: ShowMoreProps): JSX.Element {
@@ -409,11 +412,12 @@ function ShowMoreText({
   rootRef: Ref<HTMLDivElement> | undefined;
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
-  // Measured after mount, so server HTML has no button and hydration matches.
+  // Measured after mount, so server HTML has no button and hydration matches, and before the first paint, so the
+  // button is there in the first frame rather than moving what is below it a frame later.
   const [overflowing, setOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
-  useEffect(() => {
+  useLayoutEffect(() => {
     const text = textRef.current!;
     // Measured clamped, so text the app shows whole from the start still gets "Show less". The
     // clamp goes back off before anything paints.
@@ -478,15 +482,18 @@ function ShowMoreHeight({
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
   // Unknown until measured after mount, so server HTML is folded with no button and hydration
-  // matches; content that turns out to fit then shows whole.
+  // matches; content that turns out to fit then shows whole. Measured before the first paint, so
+  // the button is there in the first frame rather than moving what is below it a frame later.
   const [fits, setFits] = useState<boolean | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const foldId = useId();
-  useEffect(() => {
+  useLayoutEffect(() => {
     const content = contentRef.current!;
-    // The observer measures once as it starts, and again on every change of size.
-    const observer = new ResizeObserver(() => setFits(content.scrollHeight <= maxHeight * 1.2));
+    const measure = () => setFits(content.scrollHeight <= maxHeight * 1.2);
+    measure();
+    // And again on every change of size.
+    const observer = new ResizeObserver(measure);
     observer.observe(content);
     return () => observer.disconnect();
   }, [maxHeight]);
