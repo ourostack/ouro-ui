@@ -68,10 +68,10 @@ describe("ThreadSummary", () => {
     const names = [{ name: "Mara Quill" }, { name: "Theo Brandt" }, { name: "Priya Okafor" }, { name: "Jonah Vale" }];
     const { summary } = await render(<ThreadSummary count={9} repliers={names} onOpen={() => {}} />);
     const faces = [...summary.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
-    expect(faces.map((face) => face.textContent)).toEqual(["M", "T", "P"]);
+    expect(faces.map((face) => face.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials"))).toEqual(["M", "T", "P"]);
     expect(summary.querySelector('[role="group"]')!.textContent).not.toMatch(/\+/);
     await render(<ThreadSummary count={1} repliers={[{ name: "  ébène Rowe" }]} onOpen={() => {}} />);
-    expect(mounted.at(-1)!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("é");
+    expect(mounted.at(-1)!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("é");
   });
 
   it("says one reply in the singular, and leaves out what it was not given", async () => {

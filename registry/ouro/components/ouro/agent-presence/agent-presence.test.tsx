@@ -144,9 +144,11 @@ describe("AgentPresence", () => {
     await expect.element(page.getByRole("dialog", { name: "Agents listening" })).toBeVisible();
     const rows = [...popup()!.querySelectorAll("li")];
     expect(rows.map((row) => row.innerText.replace(/\s+/g, " ").trim())).toEqual([
-      "IA inbox agent listening for your name, and anything about the empty state Stop",
-      "NA notes agent Stop",
+      "inbox agent listening for your name, and anything about the empty state Stop",
+      "notes agent Stop",
     ]);
+    // The initials are drawn from an attribute, not written, so they are no text in the row.
+    expect(rows.map((row) => row.querySelector("[data-ouro-avatar-initials]")?.getAttribute("data-ouro-avatar-initials"))).toEqual(["IA", "NA"]);
     // Each agent wears the agent hexagon, read once: its name is written beside it.
     const avatar = rows[0]!.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
     expect(avatar.getAttribute("data-shape")).toBe("hexagon");

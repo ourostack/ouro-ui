@@ -53,8 +53,8 @@ describe("ConversationList", () => {
     const { rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />);
     await expect.element(page.getByRole("list", { name: "Conversations" })).toBeVisible();
     expect(rows.map((row) => row.textContent)).toEqual([
-      "TCTrail crew9:41Weekend hikesMeet at the north gate at eight.Unread",
-      "ALAna LindTueThe engine notes are attached.",
+      "Trail crew9:41Weekend hikesMeet at the north gate at eight.Unread",
+      "Ana LindTueThe engine notes are attached.",
       "Garden clubMonSeed swap moved to Sunday.",
     ]);
     expect(rows.every((row) => row.type === "button")).toBe(true);
@@ -178,12 +178,12 @@ describe("ConversationList", () => {
     const title = launch!.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;
     expect(title.querySelector('[aria-hidden="true"] [data-testid="rocket"]')).not.toBeNull();
     expect(title.querySelector(".sr-only")!.textContent).toBe("Launch team");
-    expect(launch!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("LT");
+    expect(launch!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("LT");
     expect(launch!.querySelector("[data-ouro-conversation-where] b")!.textContent).toBe("HQ");
     await expect.element(page.getByRole("button", { name: /^\W*(LT )?Launch team\W+Fernwood HQ 9:41$/ })).toBeVisible();
     // A text title with a name: the name is what screen readers hear and what the initials come from.
     expect(ana!.querySelector("[data-ouro-conversation-title] .sr-only")!.textContent).toBe("Ana L.");
-    expect(ana!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("AL");
+    expect(ana!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("AL");
   });
 
   it("shows a context line between the title and the preview, which the mark ends when there is no preview", async () => {
@@ -261,7 +261,7 @@ describe("ConversationList", () => {
       />,
     );
     expect(rows[0]!.querySelector('[data-ouro="avatar"]')).not.toBeNull();
-    expect(rows[1]!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("AL");
+    expect(rows[1]!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("AL");
     expect(rows[1]!.querySelector('[data-ouro="avatar"]')!.getAttribute("aria-hidden")).toBe("true");
     expect(rows[2]!.querySelector('[data-ouro="avatar"]')).toBeNull();
   });
@@ -330,7 +330,7 @@ describe("ConversationList", () => {
     const { rows } = await render(
       <ConversationList label="Conversations" items={[{ id: "new", title: "New topic", time: null, preview: null, badges: <Badge>Muted</Badge> }]} onSelect={() => {}} />,
     );
-    expect(rows[0]!.textContent).toBe("NTNew topicMuted");
+    expect(rows[0]!.textContent).toBe("New topicMuted");
     expect(rows[0]!.querySelector("[data-ouro-conversation-time]")).toBeNull();
     expect(rows[0]!.querySelector("[data-ouro-conversation-preview]")).toBeNull();
     const title = rows[0]!.querySelector("[data-ouro-conversation-title]")!;

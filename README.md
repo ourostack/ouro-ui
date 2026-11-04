@@ -142,6 +142,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.2.14:** Avatar's initials take a hue from the name, from the tokens `--avatar-1` to `--avatar-8`, which only a fresh `ouro-base` adds (step 1 adds it again); without them the initials show with no tint.[^upgrade-avatar-colors] Pass `color="neutral"` to keep the plain grey. Avatar's presence dot sits over its edge, so the picture now rounds its own corners instead of the avatar clipping it.[^upgrade-avatar-dot]
 
+- **After v1.3.3:** Avatar's initials and AvatarGroup's "+N" count are drawn with CSS from a data attribute and are no longer text in the page, so a link or button that wraps an avatar and names itself passes WCAG 2.5.3, Label in Name.[^upgrade-avatar-drawn] A test that found an avatar by its letters, `getByText("AL")`, or expected them in a row's text, now finds it by role and name, `getByRole("img", { name: "Ana Lind" })`, or reads `data-ouro-avatar-initials`.[^upgrade-avatar-drawn]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -229,6 +231,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-audit-leaves]: registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails, naming what changed, when its Tab walk closes a popup that focus leaving closes, which it cannot open again)
 [^upgrade-avatar-colors]: registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--avatar-8:/) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
 [^upgrade-avatar-dot]: registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar shapes and icons > clips a square's picture to its corners)
+[^upgrade-avatar-drawn]: registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar inside a link or button that has its own name > the same link around initials written as text fails the rule, so the check can fail) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > shows initials from the name, and the name to screen readers)
 [^upgrade-toast-reachable]: registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed)
 <!-- upgrade:end -->
 

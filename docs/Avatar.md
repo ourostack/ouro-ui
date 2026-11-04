@@ -18,6 +18,10 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 <span className="flex items-center gap-2"><Avatar name={user.name} alt="" size="sm" />{user.name}</span>
 ```
 
+## Usage
+
+The initials are drawn, not written: CSS generated content from a data attribute, which paints exactly as text did but is no text in the page. So a link or button that wraps the avatar and names itself (`<a aria-label="Ana Lind's profile">`) shows no visible text its name must hold, and passes axe's `label-content-name-mismatch` (WCAG 2.5.3, Label in Name); without a name of its own, it takes the avatar's: the person's name, never the letters. In a test, find an avatar by its role and name (`getByRole("img", { name: "Ana Lind" })`), not by its letters.
+
 ## Use instead when
 
 - Use `AvatarGroup` instead to stack several, and `Badge` for a status label that isn't a person.
@@ -33,7 +37,7 @@ The props the modes share. Type: `AvatarProps`.
 | `color` | `"colorful" \| "brand" \| "neutral"` | `"colorful"` | How the initials are colored. `"colorful"` picks one of eight hues from `idForColor` (else `name`), so the same person always gets the same one, and the initials keep at least 4.5:1 against it in light and dark. `"brand"` tints with the theme's primary; `"neutral"` is the plain secondary surface. The hues are the theme tokens `--avatar-1` to `--avatar-8` (`ouro-base`). |
 | `icon` | `ReactNode` |  | An icon to show in place of the initials, such as a calendar for a meeting or a note for notes to self. It is decorative: the avatar's label stays `name`. |
 | `idForColor` | `string` |  | What `color="colorful"` picks the hue from, when it should not be `name`: a stable id, so people who share a name can differ and a rename keeps the color. |
-| `initials` | `string` |  | The letters to show instead of the ones taken from `name`, such as "AnL". |
+| `initials` | `string` |  | The letters to show instead of the ones taken from `name`, such as "AnL". Like the initials taken from `name`, they are drawn (CSS generated content), not written as text. |
 | `name` (required) | `string \| null` |  | The person's or thing's name. Screen readers hear it, and the initials come from it (the first letters of the first and last words) until the image loads, or when it fails. Required, so no avatar is silent. Pass `null` while the name is still loading: the avatar keeps its size and shape and shimmers as a Skeleton, and screen readers hear `nameLoadingLabel`. |
 | `nameLoadingLabel` | `string` | `"Name loading"` | What screen readers hear while `name` is `null`, for other languages. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
