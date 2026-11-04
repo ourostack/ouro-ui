@@ -7,6 +7,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type HTMLAttributes,
@@ -209,6 +210,8 @@ export type MenuDropdownProps = MenuBaseProps &
     contextTrigger?: never;
     /** Not with `trigger`. `label` is for a Menu inside `MenuBar`. */
     label?: never;
+    /** Not with `trigger`. Use one way to open a menu. */
+    anchor?: never;
   };
 
 /** A context menu: right-click or long-press on `contextTrigger` opens it at the pointer. */
@@ -230,6 +233,8 @@ export type MenuContextProps = MenuBaseProps & {
   align?: never;
   /** Not with `contextTrigger`: a context menu holds the page while it is open. */
   modal?: never;
+  /** Not with `contextTrigger`. Use one way to open a menu. */
+  anchor?: never;
 };
 
 /** A menu in a `MenuBar`: `label` is its button's text. */
@@ -243,10 +248,53 @@ export type MenuBarMenuProps = MenuBaseProps &
     contextTrigger?: never;
     /** Not with `label`: the `MenuBar` decides how its menus hold the page. */
     modal?: never;
+    /** Not with `label`. A menu in a `MenuBar` gets its button from `label`. */
+    anchor?: never;
   };
 
-/** Props for {@link Menu}: `trigger` (a dropdown), `contextTrigger` (a context menu) or `label` (in a `MenuBar`). */
-export type MenuProps = MenuDropdownProps | MenuContextProps | MenuBarMenuProps;
+/**
+ * A menu the app opens itself, at an element or a point: one menu that many rows share, opened from
+ * each row's own button, right-click or keys. Beside an element it is a bottom sheet below 640px, as a
+ * dropdown is; at a point it is a menu at every width, as a context menu is.
+ *
+ * @claim "A menu the app opens itself" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu anchor > opens at a point the app gives, named by its aria-label, and puts focus back where the app says when it closes)
+ * @claim "Beside an element it is a" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu anchor > opens beside an element, as a bottom sheet below 640px, and at a point as a menu)
+ */
+export type MenuAnchorProps = MenuBaseProps &
+  MenuPlacementProps & {
+    /**
+     * Where the menu opens: beside an element (`side` and `align` place it), beside a box measured
+     * once (`{ getBoundingClientRect: () => box }`, for an element that goes as the menu opens), or at
+     * a point in the window, `{ x, y }`, as a right-click's `clientX` and `clientY`.
+     */
+    anchor: MenuAnchor;
+    /** Whether the menu is open: the app opens it. */
+    open: boolean;
+    /** Called when the menu opens or closes: an item chosen, Escape, a press outside. */
+    onOpenChange: (open: boolean) => void;
+    /** What screen readers hear for the menu, in place of a button's name: "Actions for Ana's message". */
+    "aria-label": string;
+    /**
+     * Where focus goes when the menu closes (Escape, an item chosen), such as the row it opened for.
+     * An item that moved focus itself, as one opening a dialog does, keeps it there.
+     * @claim "An item that moved focus itself" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu anchor > leaves focus where a chosen item moved it)
+     */
+    returnFocus?: HTMLElement | null | undefined;
+    /** Not with `anchor`. Use one way to open a menu. */
+    trigger?: never;
+    /** Not with `anchor`. Use one way to open a menu. */
+    contextTrigger?: never;
+    /** Not with `anchor`. `label` is for a Menu inside `MenuBar`; name this one with `aria-label`. */
+    label?: never;
+    /** Not with `anchor`: it leaves the page live, so it opens and closes without a layout of the whole page. */
+    modal?: never;
+  };
+
+/** Where an anchored Menu opens: an element, a box (`{ getBoundingClientRect }`) or a point in the window (`{ x, y }`). */
+export type MenuAnchor = Element | { getBoundingClientRect: () => DOMRect } | { x: number; y: number };
+
+/** Props for {@link Menu}: `trigger` (a dropdown), `contextTrigger` (a context menu), `label` (in a `MenuBar`) or `anchor` (opened by the app). */
+export type MenuProps = MenuDropdownProps | MenuContextProps | MenuBarMenuProps | MenuAnchorProps;
 
 /** What items read from the menu around them: that there is one, and whether it is a phone sheet. */
 const MenuContext = createContext<{ sheet: boolean } | null>(null);
@@ -256,7 +304,7 @@ const MenuBarContext = createContext(false);
 const RadioGroupContext = createContext(false);
 
 const openFix =
-  "Pass trigger={<Button>…</Button>} for a dropdown, contextTrigger={<div>…</div>} for a right-click or long-press area, or label inside <MenuBar>";
+  "Pass trigger={<Button>…</Button>} for a dropdown, contextTrigger={<div>…</div>} for a right-click or long-press area, label inside <MenuBar>, or anchor={element} with open for a menu the app opens";
 const controlFix = "<Menu open={open} onOpenChange={setOpen} trigger={…}>";
 const itemsFix = '<Menu trigger={…} items={[{ label: "Edit", onClick: edit }]} />';
 
@@ -275,8 +323,12 @@ function useMenuPart(part: string, inner: string): { sheet: boolean } {
   return context;
 }
 
-/** The items for `items`. */
-function renderEntries(entries: readonly MenuEntry[]): ReactNode {
+/**
+ * The items for `items`, as `MenuItem`s and the rest, for a menu that puts more before them.
+ *
+ * @internal
+ */
+export function renderEntries(entries: readonly MenuEntry[]): ReactNode {
   return entries.map((entry, index) => {
     switch (entry.type) {
       case "separator":
@@ -360,6 +412,10 @@ function MenuSurface({
   className,
   children,
   closeLabel,
+  anchor,
+  point,
+  label,
+  finalFocus,
 }: {
   sheet: boolean;
   context: boolean;
@@ -369,6 +425,14 @@ function MenuSurface({
   children: ReactNode;
   /** Set for a top-level menu: its phone sheet ends with a Close item. */
   closeLabel?: string | undefined;
+  /** An anchored menu's place: an element or a box. */
+  anchor?: Element | { getBoundingClientRect: () => DOMRect } | undefined;
+  /** At a point: the menu opens right at it, as a context menu opens at the pointer. */
+  point?: boolean | undefined;
+  /** An anchored menu's name. */
+  label?: string | undefined;
+  /** An anchored menu's focus on closing. */
+  finalFocus?: (() => HTMLElement | boolean) | undefined;
 }): JSX.Element {
   const Positioner = context ? ContextMenu.Positioner : BaseMenu.Positioner;
   const portal = usePortalContainer("Menu", true);
@@ -379,14 +443,17 @@ function MenuSurface({
         <Positioner
           data-ouro="menu-positioner"
           className={sheet ? menuSheetPositionerClass : menuPositionerClass}
-          sideOffset={context ? 0 : 4}
+          sideOffset={context || point ? 0 : 4}
           collisionPadding={8}
+          {...(anchor !== undefined ? { anchor } : {})}
           {...(side ? { side } : {})}
           {...(align ? { align } : {})}
         >
           <BaseMenu.Popup
             data-ouro="menu"
             data-ouro-presentation={sheet ? "sheet" : "menu"}
+            aria-label={label}
+            {...(finalFocus !== undefined ? { finalFocus } : {})}
             className={cn(sheet ? menuSheetPopupClass : menuPopupClass, sheet ? undefined : className)}
           >
             <MenuContext.Provider value={{ sheet }}>{children}</MenuContext.Provider>
@@ -412,8 +479,9 @@ function MenuSurface({
  * groups, submenus and separators. Below 640px a dropdown is a bottom sheet; a context menu
  * opens at the pointer at every width.
  *
- * Pass `trigger` for a dropdown, `contextTrigger` for a context menu, or `label` for a menu
- * in a `MenuBar`. Give the entries as children or as `items` data. To give the trigger a
+ * Pass `trigger` for a dropdown, `contextTrigger` for a context menu, `label` for a menu
+ * in a `MenuBar`, or `anchor` with `open` for a menu the app opens itself, at an element or a
+ * point, such as one menu shared by every row of a list. Give the entries as children or as `items` data. To give the trigger a
  * tooltip too, put the Tooltip inside `trigger`:
  * `trigger={<Tooltip content="More actions"><Button aria-label="More">…</Button></Tooltip>}`.
  *
@@ -437,6 +505,7 @@ function MenuSurface({
  *   <MenuItem tone="destructive" onClick={remove}>Delete</MenuItem>
  * </Menu>
  * <Menu contextTrigger={<RecipeCard recipe={recipe} />} items={[{ label: "Copy link", onClick: copy }]} />
+ * <Menu anchor={{ x: event.clientX, y: event.clientY }} open={open} onOpenChange={setOpen} aria-label="Actions for Ana's message" returnFocus={row} items={entries} />
  * @claim "Below 640px a dropdown is a" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu presentation > is a bottom sheet below 640px, with a backdrop, and its submenu is a sheet with a Back item)
  * @claim "a context menu opens at the pointer at every width" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu context trigger > stays a menu at the pointer on a phone, not a sheet)
  * @claim "A dropdown closes when focus moves" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu focus > closes when focus moves outside it, so a forward Tab from before its trigger goes on to the trigger)
@@ -451,6 +520,9 @@ export function Menu(props: MenuProps): JSX.Element {
     trigger,
     contextTrigger,
     label,
+    anchor,
+    "aria-label": ariaLabel,
+    returnFocus,
     items,
     children,
     side: sideProp,
@@ -467,13 +539,23 @@ export function Menu(props: MenuProps): JSX.Element {
     asChild,
     options,
   } = props as MenuBaseProps &
-    MenuPlacementProps & { trigger?: ReactElement; contextTrigger?: ReactElement; label?: string; modal?: boolean | undefined };
+    MenuPlacementProps & {
+      trigger?: ReactElement;
+      contextTrigger?: ReactElement;
+      label?: string;
+      modal?: boolean | undefined;
+      anchor?: MenuAnchor;
+      "aria-label"?: string;
+      returnFocus?: HTMLElement | null | undefined;
+    };
   const inBar = useContext(MenuBarContext);
   const fix = (code: string) => (process.env.NODE_ENV !== "production" ? code : /* istanbul ignore next @preserve -- production only */ "");
 
-  const modes = [trigger, contextTrigger, label].filter((mode) => mode !== undefined).length;
-  if (modes === 0) devThrow("Menu", "needs trigger, contextTrigger or label", fix(openFix));
-  if (modes > 1) devThrow("Menu", "takes one of trigger, contextTrigger and label", fix(openFix));
+  const modes = [trigger, contextTrigger, label, anchor].filter((mode) => mode !== undefined).length;
+  if (modes === 0) devThrow("Menu", "needs trigger, contextTrigger, label or anchor", fix(openFix));
+  if (modes > 1) devThrow("Menu", "takes one of trigger, contextTrigger, label and anchor", fix(openFix));
+  if (anchor !== undefined && open === undefined) devThrow("Menu", "anchor needs open: the app opens a menu it anchors", fix('<Menu anchor={row} open={open} onOpenChange={setOpen} aria-label="Actions for Ana\'s message">'));
+  if (anchor !== undefined && !ariaLabel) devThrow("Menu", "anchor needs aria-label: no button names the menu", fix('<Menu anchor={row} open={open} onOpenChange={setOpen} aria-label="Actions for Ana\'s message">'));
   if (inBar && label === undefined) {
     devThrow("Menu", "a Menu inside <MenuBar> takes label, not trigger or contextTrigger", fix('<MenuBar><Menu label="File">…</Menu></MenuBar>'));
   }
@@ -491,6 +573,8 @@ export function Menu(props: MenuProps): JSX.Element {
   if (open !== undefined && typeof onOpenChange !== "function") devThrow("Menu", "open needs onOpenChange", fix(controlFix));
 
   const context = contextTrigger !== undefined;
+  // At a point, a menu at every width, as a context menu is; beside an element, a sheet on a phone, as a dropdown is.
+  const point = anchor !== undefined && !("getBoundingClientRect" in anchor) ? anchor : undefined;
   // A side or alignment that is not one of Ouro UI's (a type error) warns and renders the default.
   const side = floatingSide(sideProp, "bottom");
   const align = floatingAligns.includes(alignProp as FloatingAlign) ? (alignProp as FloatingAlign) : "start";
@@ -522,7 +606,7 @@ export function Menu(props: MenuProps): JSX.Element {
 
   // A dropdown (and a menubar's menu) is a bottom sheet on a phone; a context menu opens at
   // the pointer, where the finger is, at every width.
-  const sheet = useSheetPresentation(context ? "menu" : "auto");
+  const sheet = useSheetPresentation(context || point !== undefined ? "menu" : "auto");
   const body = items !== undefined ? renderEntries(items) : children;
   // Focus that moves anywhere else closes a dropdown (a menubar's menus are the bar's). Left open, Base UI keeps its
   // focus guards beside the trigger, and the one before it, met by a forward Tab, sends focus back to what Tab was
@@ -531,26 +615,66 @@ export function Menu(props: MenuProps): JSX.Element {
   const [shown, setShown] = useState(false);
   const isShown = open ?? shown;
   const actions = useRef<BaseMenu.Root.Actions | null>(null);
+  // Where focus went outside the open menu, as a chosen item moving it does; Base UI then focuses the item again.
+  const movedTo = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
-    const doc = triggerRef.current?.ownerDocument;
+    // An anchored menu has no trigger: its page is the one it runs in.
+    const doc = anchor !== undefined ? document : triggerRef.current?.ownerDocument;
     // Stryker disable next-line ConditionalExpression,LogicalOperator: a closed menu's close() does nothing; this only spares a listener.
     if (!isShown || doc === undefined) return;
+    movedTo.current = null;
     const away = (event: FocusEvent) => {
       const target = event.target as Element;
-      if (triggerRef.current!.contains(target) || target.closest('[data-ouro="menu-positioner"], [data-base-ui-focus-guard]')) return;
+      if (triggerRef.current?.contains(target) || target.closest('[data-ouro="menu-positioner"], [data-base-ui-focus-guard]')) return;
+      movedTo.current = target as HTMLElement;
       actions.current!.close();
     };
     doc.addEventListener("focusin", away);
     // Stryker disable next-line ArrowFunction: a listener left on a closed menu's page only calls close(), which does nothing.
     return () => doc.removeEventListener("focusin", away);
-  }, [isShown]);
+  }, [isShown, anchor]);
+  const returnTo = useRef(returnFocus);
+  useLayoutEffect(() => {
+    returnTo.current = returnFocus;
+  });
   const changed = (next: boolean) => {
     setShown(next);
     onOpenChange?.(next);
+    // An anchored menu puts focus back on returnFocus, unless the chosen item (or the press that closed it) put it somewhere else.
+    if (anchor === undefined || next) return;
+    setTimeout(() => {
+      const active = document.activeElement;
+      if (active !== null && active !== document.body && active.closest('[data-ouro="menu-positioner"]') === null) return;
+      (movedTo.current?.isConnected ? movedTo.current : returnTo.current)?.focus({ preventScroll: true });
+    });
   };
   // Stryker disable next-line ConditionalExpression: Base UI reads an `open` of undefined as uncontrolled, as it reads none.
   const control = open !== undefined ? { open, onOpenChange: changed } : { onOpenChange: changed };
+
+  if (anchor !== undefined) {
+    const place = point === undefined ? (anchor as Exclude<MenuAnchor, { x: number }>) : { getBoundingClientRect: () => new DOMRect(point.x, point.y, 0, 0) };
+    // Focus goes back in `changed`, once the closing event is over and any chosen item has run.
+    const finalFocus = () => false;
+    return (
+      <BaseMenu.Root {...control} actionsRef={actions} modal={sheet}>
+        <MenuSurface
+          sheet={sheet}
+          context={false}
+          side={side}
+          align={point === undefined ? align : "start"}
+          className={className}
+          closeLabel={closeLabel}
+          anchor={place}
+          point={point !== undefined}
+          label={ariaLabel}
+          finalFocus={finalFocus}
+        >
+          {body}
+        </MenuSurface>
+      </BaseMenu.Root>
+    );
+  }
 
   if (context) {
     return (
