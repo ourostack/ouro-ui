@@ -7,7 +7,7 @@ on:
   # release.yml runs CI on its release branch this way: pushes made with GITHUB_TOKEN
   # trigger no workflows.
   workflow_dispatch:
-  # Every night, the full suite on main, reusing nothing (the nightly job reports a failure).
+  # Every night, the full suite on main (the nightly job reports a failure).
   schedule:
     - cron: "47 3 * * *"
 permissions:
@@ -1236,7 +1236,7 @@ jobs:
             preset: vega
     name: install (${{ matrix.variant }}, ${{ matrix.preset }})
     steps:
-      - if: needs.plan.outputs.installs != 'queue' && (needs.plan.outputs.suite == 'full' || format('{0}-{1}', matrix.variant, matrix.preset) == 'shadcn-nova')
+      - if: needs.plan.outputs.installs != 'queue' && (!(github.event_name == 'pull_request' && github.base_ref == 'main' && !startsWith(github.head_ref, 'release/')) || format('{0}-{1}', matrix.variant, matrix.preset) == 'shadcn-nova')
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-*
@@ -1248,13 +1248,15 @@ jobs:
           PRESET: ${{ matrix.preset }}
           SHARDS: ${{ needs.install-shard.result }}
           INSTALLS: ${{ needs.plan.outputs.installs }}
-          SUITE: ${{ needs.plan.outputs.suite }}
+          # A fast pull request, by the gate's own rule (scripts/ci-gate.mjs isFast): the event, not
+          # the plan, so a merge-queue run always needs every app.
+          FAST: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && !startsWith(github.head_ref, 'release/') }}
         run: |
           if [ "$INSTALLS" = queue ]; then
             echo "::notice::The install test runs in the merge queue, not on this pull request (the plan's installs=queue)."
             exit 0
           fi
-          if [ "$SUITE" = fast ] && [ "$VARIANT-$PRESET" != shadcn-nova ]; then
+          if [ "$FAST" = true ] && [ "$VARIANT-$PRESET" != shadcn-nova ]; then
             echo "::notice::A pull request runs one install app, (shadcn, nova); the merge queue runs ($VARIANT, $PRESET)."
             exit 0
           fi

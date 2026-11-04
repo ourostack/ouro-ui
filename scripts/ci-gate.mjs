@@ -30,17 +30,19 @@ export const policy = {
   checks: () => "required",
   scripts: () => "required",
   "scripts-browser": () => "required",
-  // The ci job holds the browser shards, coverage and the fallback shards to account (a reduced or
-  // skipped browser run passes there only with its coverage decided), so the gate reads ci for them.
-  browser: () => "optional",
-  coverage: () => "optional",
+  // On a pull request the ci job holds the browser shards and coverage to account (a reduced or
+  // skipped browser run passes there only with its coverage decided). The full suite runs them,
+  // so there the gate holds them itself too. The fallback runs only when coverage asks for it.
+  browser: ({ fast }) => (fast ? "optional" : "required"),
+  coverage: ({ fast }) => (fast ? "optional" : "required"),
   "browser-fallback": () => "optional",
   ci: () => "required",
   "motion-coverage": () => "required",
   themes: () => "required",
   "conformance-shard": () => "required",
   conformance: () => "required",
-  // Mutation testing mutates a pull request's changed lines; any other run has none.
+  // Mutation testing mutates a pull request's changed lines; any other run has none, so a skip is
+  // allowed there (a run of it, or of ci-budget, that fails still fails the gate).
   "mutation-plan": ({ event }) => (event === "pull_request" ? "required" : "optional"),
   "mutation-shard": ({ event }) => (event === "pull_request" ? "required" : "optional"),
   mutation: ({ event }) => (event === "pull_request" ? "required" : "optional"),
@@ -93,8 +95,13 @@ export function judge(needs, run) {
     if (!ok) pass = false;
     lines.push(`${ok ? "ok" : "FAILED"} ${job}: ${result}${rule ? `, ${need}` : ", required (a job the gate's policy does not know)"}`);
   }
+  // toJSON(needs) lists every job the gate needs, so a job of the policy missing from it is a gate
+  // that lost a need.
   for (const job of Object.keys(policy)) {
-    if (!(job in needs)) lines.push(`note ${job}: in the gate's policy but not among its needs`);
+    if (!(job in needs)) {
+      pass = false;
+      lines.push(`FAILED ${job}: in the gate's policy but not among its needs`);
+    }
   }
   return { pass, lines };
 }

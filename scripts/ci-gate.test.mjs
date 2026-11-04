@@ -29,7 +29,7 @@ test("the merge queue passes only when every job of the full suite passed", () =
   const passed = needs("success", Object.fromEntries(neverInQueue.map((job) => [job, "skipped"])));
   assert.equal(judge(passed, queue).pass, true);
   // Each job the full suite runs, skipped, fails the queue entry: a skipped check is no pass there.
-  for (const job of Object.keys(policy).filter((id) => !neverInQueue.includes(id) && !["browser", "coverage"].includes(id))) {
+  for (const job of Object.keys(policy).filter((id) => !neverInQueue.includes(id))) {
     const { pass, lines } = judge({ ...passed, [job]: { result: "skipped", outputs: {} } }, queue);
     assert.equal(pass, false, job);
     assert.ok(lines.includes(`FAILED ${job}: skipped, required`), job);
@@ -62,7 +62,7 @@ test("a fast pull request may leave out the full suite's own jobs, and must pass
 test("a failed or cancelled job fails the gate whatever the suite, and so does a skipped job the policy does not know", () => {
   for (const result of ["failure", "cancelled"]) {
     for (const run of [pull, queue]) {
-      assert.equal(judge(needs("success", { latency: result }), pull).pass, false, `${run.event} ${result}`);
+      assert.equal(judge(needs("success", { latency: result }), run).pass, false, `${run.event} ${result}`);
       assert.equal(judge(needs("success", { browser: result }), run).pass, false, `${run.event} ${result}`);
     }
   }
@@ -76,6 +76,33 @@ test("a failed or cancelled job fails the gate whatever the suite, and so does a
   assert.ok(plan);
   assert.equal(judge(noPlan, pull).pass, false);
   assert.equal(judge(needs("success", { plan: "failure" }), pull).pass, false);
+  // A job of the policy missing from needs: the gate lost a need.
+  const { latency, ...lost } = needs("success");
+  assert.ok(latency);
+  const missing = judge(lost, pull);
+  assert.equal(missing.pass, false);
+  assert.ok(missing.lines.includes("FAILED latency: in the gate's policy but not among its needs"));
+});
+
+test("main, dispatched, scheduled and release-branch runs need the full suite, and a release branch its install-latest", () => {
+  const full = needs("success", Object.fromEntries(neverInQueue.map((job) => [job, "skipped"])));
+  const push = { event: "push", baseRef: "", headRef: "", ref: "refs/heads/main" };
+  const schedule = { event: "schedule", baseRef: "", headRef: "", ref: "refs/heads/main" };
+  const release = { event: "workflow_dispatch", baseRef: "", headRef: "", ref: "refs/heads/release/v1.2.3" };
+  const fromRelease = { ...pull, headRef: "release/v1.2.3" };
+  const otherBase = { ...pull, baseRef: "next" };
+  for (const run of [push, schedule, release, fromRelease, otherBase]) {
+    assert.equal(isFast(run), false, run.event);
+    assert.equal(judge({ ...full, "theme-install": { result: "skipped", outputs: {} } }, run).pass, false, `${run.event} ${run.ref}`);
+  }
+  // A push to main the queue did not test runs everything, install-github included.
+  assert.equal(judge({ ...full, "install-github": { result: "success", outputs: {} } }, push).pass, true);
+  assert.equal(judge(full, push).pass, false);
+  assert.equal(judge(full, schedule).pass, true);
+  assert.equal(judge(full, release).pass, false, "install-latest skipped on a release branch");
+  assert.equal(judge({ ...full, "install-latest": { result: "success", outputs: {} } }, release).pass, true);
+  // A pull request outside the fast suite still needs mutation testing.
+  for (const run of [fromRelease, otherBase]) assert.equal(judge(full, run).pass, false, `${run.headRef} into ${run.baseRef}`);
 });
 
 test("a push to main the merge queue already tested passes on install-github alone", () => {

@@ -1116,11 +1116,13 @@ test("a pull request into main leaves the install test to the merge queue, unles
   assert.match(deferred.stdout, /^::notice::The install test runs in the merge queue/m);
   assert.equal(runStep(gate, { INSTALLS: "", SHARDS: "skipped", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") }).status, 1, "with the install test due here, a skipped shard fails the check");
   // A fast pull request whose install test runs here installs one app, (shadcn, nova); the other apps' checks pass with a notice.
-  const otherApp = runStep(gate, { INSTALLS: "here", SUITE: "fast", SHARDS: "success", VARIANT: "ouro", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") });
+  const otherApp = runStep(gate, { INSTALLS: "here", FAST: "true", SHARDS: "success", VARIANT: "ouro", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") });
   assert.equal(otherApp.status, 0);
   assert.match(otherApp.stdout, /^::notice::A pull request runs one install app, \(shadcn, nova\); the merge queue runs \(ouro, nova\)\.$/m);
-  assert.equal(runStep(gate, { INSTALLS: "here", SUITE: "fast", SHARDS: "success", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp", "no-markers") }).status, 1, "its one app must pass every shard");
-  assert.equal(runStep(gate, { INSTALLS: "", SUITE: "full", SHARDS: "success", VARIANT: "ouro", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp", "no-markers") }).status, 1, "the full suite needs every app");
+  assert.equal(runStep(gate, { INSTALLS: "here", FAST: "true", SHARDS: "success", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp", "no-markers") }).status, 1, "its one app must pass every shard");
+  assert.equal(runStep(gate, { INSTALLS: "", FAST: "false", SHARDS: "success", VARIANT: "ouro", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp", "no-markers") }).status, 1, "the full suite needs every app");
+  assert.match(jobs["install-gate"], /^ {10}FAST: \$\{\{ github\.event_name == 'pull_request' && github\.base_ref == 'main' && !startsWith\(github\.head_ref, 'release\/'\) \}\}$/m);
+  assert.doesNotMatch(jobs["install-gate"], /outputs\.suite/);
   assert.match(jobs["install-shard"], /^ {8}variant: \$\{\{ fromJSON\(needs\.plan\.outputs\.install-variants\) \}\}\n {8}preset: \$\{\{ fromJSON\(needs\.plan\.outputs\.install-presets\) \}\}\n/m);
   // The full suite's own install apps skip a fast pull request whole, and run every step in the full suite.
   for (const id of ["install", "install-upgrade"]) {
