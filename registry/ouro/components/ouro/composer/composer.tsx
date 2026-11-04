@@ -1,16 +1,19 @@
 "use client";
 
-import { Children, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { ClipboardEvent, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { composerShortcuts, formatEdit, isApple, markFormats, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
+import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { TextArea, type TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { insertText } from "@/registry/ouro/lib/ouro/insert-text";
+import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -52,6 +55,21 @@ export interface ComposerQuote {
   label?: string | undefined;
   /** The remove button's name, which its tooltip shows too. @default `Remove quote from ${author}` */
   removeLabel?: string | undefined;
+}
+
+/**
+ * A format Composer applies to the selected text, as light Markdown: `bold` (`**`), `italic`
+ * (`_`), `underline` (`++`), `strike` (`~~`) and `code` (a backtick) wrap it in marks, `bullets`,
+ * `numbers` and `quote` mark its lines, and `codeBlock` fences them.
+ */
+export type ComposerFormat = "bold" | "italic" | "underline" | "strike" | "code" | "bullets" | "numbers" | "quote" | "codeBlock";
+
+/** What an app's formatting bar, emoji button or link dialog changes the text with: `editorRef`. */
+export interface ComposerEditor {
+  /** Applies a format to the selection, or takes it away when the selection has it already. */
+  format: (format: ComposerFormat) => void;
+  /** Puts text in place of the selection, or at the caret: an emoji, a link. */
+  insert: (text: string) => void;
 }
 
 /** The props Composer adds to the `<textarea>` attributes it passes through. */
@@ -154,12 +172,14 @@ export interface ComposerOwnProps {
    * The bigger box for a long message, as a chat app's format button opens: taller (`expandedRows`,
    * growing to `expandedMaxRows`), with the `toolbar`, and Enter starts a new line while Ctrl+Enter
    * (Command+Enter on a Mac) or the send button sends, whatever `sendOn` says. It is the same text
-   * either way, and the caret stays where it was. Escape collapses it, and that Escape goes no
-   * further. The box grows and shrinks in height over a moment, and at once with reduced motion.
+   * either way, and the caret stays where it was. ⌘⇧X (Ctrl+Shift+X off Apple platforms) expands and
+   * collapses it, as in Teams, and the expand button's tooltip shows the key. Escape collapses it,
+   * and that Escape goes no further. The box grows and shrinks in height over a moment, and at once with reduced motion.
    * Controlled; pair it with `onExpandedChange`, or use `defaultExpanded`.
    *
    * @claim "Enter starts a new line while" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > starts a new line on Enter and sends on Ctrl+Enter or Command+Enter, whatever sendOn says)
    * @claim "It is the same text either" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > keeps the text, focus and the caret when it expands and collapses)
+   * @claim "expands and collapses it, as in Teams" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer formatting > expands and collapses on Command+Shift+X, and shows the key in the expand button's tooltip)
    * @claim "Escape collapses it, and that Escape" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > collapses on Escape, and that Escape goes no further)
    * @claim "The box grows and shrinks in" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > grows and shrinks in height over a moment, and at once with reduced motion)
    */
@@ -188,6 +208,30 @@ export interface ComposerOwnProps {
   className?: string | undefined;
   /** The `<textarea>`. */
   ref?: Ref<HTMLTextAreaElement> | undefined;
+  /**
+   * Teams' formatting keys in the box: ⌘B bold, ⌘I italic, ⌘U underline, ⌘⌥X strikethrough and
+   * ⌘⇧C code (Ctrl for ⌘, Alt for ⌥, off Apple platforms), each as a `ComposerFormat`.
+   * `composerShortcuts` (from `composer-styles`) has the keys, for your toolbar's tooltips.
+   *
+   * @claim "Teams' formatting keys in the box" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer formatting > applies Teams' formatting keys, and takes each back with Undo and gives it again with Redo)
+   */
+  formatting?: boolean | undefined;
+  /**
+   * A handle that formats the text and inserts into it, for a formatting bar, an emoji button or
+   * a link dialog. Every change it makes, a key's format and a `pasteText` paste go through the
+   * browser's own editing, as typing does, so Undo (⌘Z) and Redo (⌘⇧Z) step through them. WebKit
+   * (Safari) can join changes made in a row into one step, as it joins typing.
+   *
+   * @claim "so Undo (⌘Z) and Redo" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer formatting > formats and inserts from editorRef, each a step that Undo takes back)
+   * @claim "can join changes made in a row" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer formatting > applies Teams' formatting keys, and takes each back with Undo and gives it again with Redo)
+   * @claim "so Undo (⌘Z) and Redo" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer formatting > puts a paste through pasteText, as one step that Undo takes back)
+   */
+  editorRef?: Ref<ComposerEditor> | undefined;
+  /**
+   * Turns a paste into the box's text, such as formatted text into Markdown: return the text, or
+   * `undefined` for the browser's own paste.
+   */
+  pasteText?: ((data: DataTransfer) => string | undefined) | undefined;
 
   /** Not a prop. Sending calls `onSend`: `<Composer onSend={(text) => send(text)}>`. */
   onSubmit?: { 'Use <Composer onSend={(text) => send(text)}>': never };
@@ -395,6 +439,9 @@ export function Composer(props: ComposerProps): JSX.Element {
     name,
     className,
     ref,
+    formatting = false,
+    editorRef,
+    pasteText,
     onKeyDown,
     onPaste,
     "aria-describedby": describedByProp,
@@ -509,10 +556,35 @@ export function Composer(props: ComposerProps): JSX.Element {
       row.style.height = "";
     });
   });
+  // Changes the text as the browser's own editing does, so Undo and Redo step through them; never in a read-only box.
+  const edit = (change: (textarea: HTMLTextAreaElement) => void) => {
+    const textarea = textareaRef.current!;
+    if (!textarea.readOnly) change(textarea);
+  };
+  const format = (kind: ComposerFormat) =>
+    edit((textarea) => {
+      const change = formatEdit(textarea.value, textarea.selectionStart, textarea.selectionEnd, kind);
+      insertText(textarea, change.from, change.to, change.text);
+      textarea.setSelectionRange(change.start, change.end);
+    });
+  const insert = (text: string) => edit((textarea) => insertText(textarea, textarea.selectionStart, textarea.selectionEnd, text));
+  useImperativeHandle(editorRef, () => ({ format, insert }));
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     onKeyDown?.(event);
     // A word an input method is still composing ends with Enter, and Escape cancels it; those keys are the input method's.
     if (event.defaultPrevented || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    const apple = isApple();
+    if (canExpand && pressed(event, composerShortcuts.expand, apple)) {
+      event.preventDefault();
+      setExpanded(!expanded);
+      return;
+    }
+    const key = formatting ? markFormats.find((kind) => pressed(event, composerShortcuts[kind], apple)) : undefined;
+    if (key) {
+      event.preventDefault();
+      format(key);
+      return;
+    }
     if (event.key === "Escape" && quote && text === "") {
       // This Escape is the quote's: a dialog around the composer stays open.
       event.preventDefault();
@@ -549,7 +621,15 @@ export function Composer(props: ComposerProps): JSX.Element {
   }, [catalogue]);
   const paste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     onPaste?.(event);
-    if (catalogue && !event.defaultPrevented) insertTokens(event.currentTarget, event, event.clipboardData.getData("text/plain"), catalogue);
+    if (event.defaultPrevented) return;
+    // An app's pasteText turns the paste into the box's text; with a catalogue, its emoji go in as tokens either way.
+    const custom = pasteText?.(event.clipboardData);
+    if (custom === undefined) {
+      if (catalogue) insertTokens(event.currentTarget, event, event.clipboardData.getData("text/plain"), catalogue);
+      return;
+    }
+    event.preventDefault();
+    insert(catalogue ? emojiTextToTokens(custom, catalogue) : custom);
   };
 
   const notes = [sendDisabledReason !== undefined && !disabled ? `${id}-reason` : undefined, description ? `${id}-description` : undefined];
@@ -612,7 +692,14 @@ export function Composer(props: ComposerProps): JSX.Element {
           />
           <div className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
             {canExpand && (
-              <Tooltip content={expandLabel}>
+              <Tooltip
+                content={
+                  <span className="inline-flex items-center gap-2">
+                    {expandLabel}
+                    <Kbd keys={composerShortcuts.expand} />
+                  </span>
+                }
+              >
                 <Button
                   data-ouro-control="composer"
                   data-ouro-part="expand"
@@ -620,6 +707,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                   tone={expanded ? "primary" : "secondary"}
                   aria-label={expandLabel}
                   aria-pressed={expanded}
+                  aria-keyshortcuts={ariaKeyShortcuts(composerShortcuts.expand)}
                   disabled={disabled}
                   // A press keeps focus, and the caret, in the text.
                   onMouseDown={(event) => event.preventDefault()}

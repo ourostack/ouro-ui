@@ -33,6 +33,9 @@ expectTypeOf<{
   expandLabel: "Long message";
   expandedRows: 8;
   expandedMaxRows: 24;
+  formatting: true;
+  editorRef: { current: null };
+  pasteText: (data: DataTransfer) => string | undefined;
   name: "message";
   maxLength: 500;
   onPaste: () => void;

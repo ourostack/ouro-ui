@@ -3,16 +3,18 @@ export { insertText };
 /**
  * Replaces the text from `start` to `end` with `text` and puts the caret after it, as typing
  * would: through the browser's insertText command, which keeps undo, or, where that is not
- * available, with `setRangeText` and an `input` event, so React's change handlers run.
- * Autocomplete inserts a pick with it, and Composer an emoji's token.
+ * available, with `setRangeText` and an `input` event, so React's change handlers run. It focuses
+ * the field without scrolling any box around it. Autocomplete inserts a pick with it, and Composer
+ * an emoji's token, a format's marks and a paste.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  *
  * @claim "which keeps undo" registry/ouro/lib/ouro/insert-text.test.ts verify:testExists(registry/ouro/lib/ouro/insert-text.test.ts::replaces the range and puts the caret after it, in one step undo takes out)
+ * @claim "It focuses the field without scrolling" registry/ouro/lib/ouro/insert-text.test.ts verify:testExists(registry/ouro/lib/ouro/insert-text.test.ts::focuses the field without scrolling a box that clips it)
  * @claim "where that is not available" registry/ouro/lib/ouro/insert-text.test.ts verify:testExists(registry/ouro/lib/ouro/insert-text.test.ts::inserts with setRangeText and an input event where insertText is not available)
  */
 function insertText(control: HTMLTextAreaElement | HTMLInputElement, start: number, end: number, text: string): void {
-  control.focus();
+  control.focus({ preventScroll: true });
   control.setSelectionRange(start, end);
   // `execCommand` is deprecated but is still the only edit that joins the undo stack.
   // Stryker disable next-line BooleanLiteral: browsers ignore execCommand's showUI argument.
