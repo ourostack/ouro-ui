@@ -20,14 +20,18 @@ const doingClass = "text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%
 
 /**
  * AgentPresence's agent side, declared with Ouro AX's `defineComponentAx`. Agents may read which
- * of the person's agents are listening and what each listens for, and may stop one, or all, since
- * stopping only reduces what is heard. Nothing here starts listening: that stays the person's,
- * from the app.
+ * of the person's agents are listening and what each listens for. An agent may stop only its own
+ * listening, its own row: Ouro AX has no owner scope, so the app's `stop` twin names the row
+ * (such as `call unfollow --agent <me>`) and refuses any row that isn't the calling agent's.
+ * Another agent's Stop and Stop all are the person's, since the person asked those agents to
+ * listen. Nothing here starts listening: that stays the person's, from the app.
  *
  * @example
  * agentPresenceAx.actions.map((action) => action.id); // ["stop", "stop-all"]
- * @claim "Agents may read which of the" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening)
- * @claim "Nothing here starts listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening)
+ * @claim "Agents may read which of the" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
+ * @claim "An agent may stop only its own" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > binds stop to a twin that names the calling agent's row, and Stop all to words that refuse)
+ * @claim "Another agent's Stop and Stop all are the person's" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
+ * @claim "Nothing here starts listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
  */
 const agentPresenceAx = defineComponentAx({
   component: "AgentPresence",
@@ -40,7 +44,7 @@ const agentPresenceAx = defineComponentAx({
     },
   ],
   actions: [
-    { id: "stop", summary: "Stop an agent listening for the person.", effect: "private", agent: true },
-    { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", agent: true },
+    { id: "stop", summary: "Stop your own listening for the person: your row only, never another agent's.", effect: "private", agent: true },
+    { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only they can. Stop your own listening with stop." },
   ],
 });
