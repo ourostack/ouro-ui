@@ -707,8 +707,8 @@ describe("ShowMore with maxHeight", () => {
 
   it("folds once the content grows past maxHeight", async () => {
     const r = await render(<ShowMore maxHeight={120}><Tall height={20} /></ShowMore>);
-    await act(async () => {});
-    expect(r.button).toBeNull();
+    // A component the guess cannot see starts folded, and shows whole once the browser has laid it out.
+    await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
     await r.rerender(<ShowMore maxHeight={120}><Tall height={400} /></ShowMore>);
     await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
   });
@@ -1075,8 +1075,11 @@ describe("ShowMore in a long list", () => {
       [Element.prototype, "clientHeight"],
       [Element.prototype, "scrollWidth"],
       [Element.prototype, "clientWidth"],
+      [Element.prototype, "scrollTop"],
       [HTMLElement.prototype, "offsetHeight"],
       [HTMLElement.prototype, "offsetWidth"],
+      [HTMLElement.prototype, "offsetTop"],
+      [HTMLElement.prototype, "offsetLeft"],
     ];
     const restore = counted.map(([prototype, name]) => {
       const own = Object.getOwnPropertyDescriptor(prototype, name)!;
@@ -1090,28 +1093,22 @@ describe("ShowMore in a long list", () => {
       return () => Object.defineProperty(prototype, name, own);
     });
     const rect = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    const rects = vi.spyOn(Element.prototype, "getClientRects");
+    const style = vi.spyOn(window, "getComputedStyle");
     try {
       flushSync(() => root.render(<div>{Array.from({ length: 50 }, (_, index) => <div key={index}>{folded(index)}</div>)}</div>));
     } finally {
       restore.forEach((undo) => undo());
     }
-    expect(reads.count + rect.mock.calls.length).toBe(0);
+    expect(reads.count + rect.mock.calls.length + rects.mock.calls.length + style.mock.calls.length).toBe(0);
     expect(host.querySelectorAll("[data-ouro-show-more-toggle]")).toHaveLength(50);
   });
 });
 
 describe("ShowMore's first guess", () => {
-  /** A component whose content the guess cannot see: it renders a 400px block. */
-  function Opaque() {
-    return <div style={{ height: 400 }} />;
-  }
-  /** A component given its text, as a post is given its body. */
-  function Post({ body }: { body: string; className?: string }) {
-    return <p>{body}</p>;
-  }
-  /** A component given pictures. */
-  function Pictures({ images }: { images: { src: string }[] }) {
-    return <div>{images.length} pictures</div>;
+  /** A component whose content the guess cannot see: it renders a block of `height` px. */
+  function Opaque({ height = 400 }: { height?: number }) {
+    return <div style={{ height }} />;
   }
   const guessed = (node: ReactElement) => {
     const host = document.createElement("div");
@@ -1123,44 +1120,51 @@ describe("ShowMore's first guess", () => {
     return host;
   };
   const toggle = (host: Element) => host.querySelector("[data-ouro-show-more-toggle]");
+  const foldOf = (host: Element) => host.querySelector<HTMLElement>("[data-ouro-show-more-fold]")!;
 
   it.each([
     ["text in a paragraph", <p>{longText}</p>],
-    ["a picture", <img alt="" />],
-    ["pictures a component is given", <Pictures images={[{ src: "a.png" }]} />],
-    ["a component's text", <Post body={`${longText} ${longText}`} className="ignored" />],
-    ["many lines", "line\n".repeat(10)],
-  ])("folds content guessed taller than maxHeight from %s, before anything is laid out", (_, content) => {
-    expect(toggle(guessed(<ShowMore maxHeight={120}>{content}</ShowMore>))).not.toBeNull();
+    ["a 700-character paragraph", <p>{"word ".repeat(140)}</p>],
+    ["wide characters, which count about two each", "中文".repeat(50)],
+    ["a picture with no height", <img alt="" />],
+    ["a component, whatever it renders", <Opaque height={10} />],
+    ["sized blocks", <div style={{ height: 70 }} />],
+    ["headings, quotes and code", [<h2 key="h">Title</h2>, <blockquote key="q">Quote</blockquote>, <pre key="p">code</pre>]],
+  ])("starts folded, with its button, when the content is not clearly short: %s", (_, content) => {
+    const host = guessed(<ShowMore maxHeight={120}>{content}</ShowMore>);
+    expect(toggle(host)).not.toBeNull();
+    expect(foldOf(host).hasAttribute("data-folded")).toBe(true);
   });
 
   it.each([
     ["a short line", "Hi"],
     ["a number", 42],
-    [
-      "a line beside nothing",
-      <>
-        {null}
-        {false}
-        Hi
-      </>,
-    ],
-    ["a short component text", <Post body="Hi" />],
-  ])("shows content guessed to fit, %s, whole", (_, content) => {
-    expect(toggle(guessed(<ShowMore maxHeight={120}>{content}</ShowMore>))).toBeNull();
+    ["a line beside nothing", <>{null}{false}Hi</>],
+    ["a short paragraph with an icon", <p><svg aria-hidden="true" /> Line breaks{"\n"}stay one line</p>],
+  ])("shows content clearly short and all seen whole from the start: %s", (_, content) => {
+    const host = guessed(<ShowMore maxHeight={120}>{content}</ShowMore>);
+    expect(toggle(host)).toBeNull();
+    expect(foldOf(host).hasAttribute("data-folded")).toBe(false);
+    expect(foldOf(host).className).not.toContain("max-h-");
   });
 
-  it("counts the lines text breaks into against lines", () => {
-    expect(toggle(guessed(<ShowMore lines={2}>{"a\nb\nc"}</ShowMore>))).not.toBeNull();
+  it("gives text its button from the start unless it is clearly within half its lines", () => {
+    expect(toggle(guessed(<ShowMore lines={4}>{"word ".repeat(20)}</ShowMore>))).toBeNull();
+    expect(toggle(guessed(<ShowMore lines={2}>{"word ".repeat(20)}</ShowMore>))).not.toBeNull();
+    expect(toggle(guessed(<ShowMore lines={4}><Opaque height={10} /></ShowMore>))).not.toBeNull();
   });
 
-  it("corrects a guess from the browser's layout: content that turns out taller folds, and text that wraps more than guessed gets its button", async () => {
+  it("corrects a guess from the browser's layout: folded content that fits shows whole, and text that wraps more than guessed gets its button", async () => {
+    const short = guessed(<ShowMore maxHeight={120}><Opaque height={20} /></ShowMore>);
+    expect(toggle(short)).not.toBeNull();
+    await expect.poll(() => toggle(short)).toBeNull();
+    expect(foldOf(short).hasAttribute("data-folded")).toBe(false);
     const tall = guessed(<ShowMore maxHeight={120}><Opaque /></ShowMore>);
-    expect(toggle(tall)).toBeNull();
-    await expect.poll(() => toggle(tall)).not.toBeNull();
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(toggle(tall)).not.toBeNull();
     const narrow = guessed(
       <div style={{ width: 80 }}>
-        <ShowMore lines={2}>{"word ".repeat(20)}</ShowMore>
+        <ShowMore lines={4}>{"word ".repeat(20)}</ShowMore>
       </div>,
     );
     expect(toggle(narrow)).toBeNull();

@@ -1,6 +1,6 @@
 "use client";
 
-import { isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { Fragment, isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -307,7 +307,10 @@ const DEFAULT_HEIGHT = 240;
  * Folded text and content have their button in the first frame and in server HTML: ShowMore
  * guesses whether they are longer than the fold from their text and the sizes their elements
  * give, reading no layout, and corrects a wrong guess from the browser's own layout a frame later,
- * so a long list of folded messages lays the page out no more often than one without them.
+ * so a long list of folded messages lays the page out no more often than one without them. The
+ * guess leans folded: content shows whole from the start only when it is clearly short and the
+ * guess saw all of it (no component and no picture without a height), so a wrong guess costs a
+ * button that goes a frame later, never a box that shrinks.
  * The visible items are in the server HTML. ShowMore draws the list itself: put a border
  * around the list on a wrapping element, and borders between rows on each item.
  *
@@ -328,7 +331,9 @@ const DEFAULT_HEIGHT = 240;
  * @claim "folds content of any kind" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > folds long content to maxHeight under a fade, with Show more)
  * @claim "Folded text and content have their" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in its first frame > with %s, has its button as React commits it, so nothing below it moves a frame later)
  * @claim "guesses whether they are longer than" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in a long list > with %s, mounts 50 folded with their buttons and reads no layout as it commits, so it never lays the page out once per instance)
- * @claim "corrects a wrong guess from the browser's" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > corrects a guess from the browser's layout: content that turns out taller folds, and text that wraps more than guessed gets its button)
+ * @claim "The guess leans folded: content shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
+ * @claim "The guess leans folded: content shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > shows content clearly short and all seen whole from the start: %s)
+ * @claim "corrects a wrong guess from the browser's" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > corrects a guess from the browser's layout: folded content that fits shows whole, and text that wraps more than guessed gets its button)
  * @claim "ShowMore draws the list itself: put" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys)
  */
 export function ShowMore(props: ShowMoreProps): JSX.Element {
@@ -399,58 +404,60 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
 const clampClass = "line-clamp-(--ouro-show-more-lines)";
 
 // A first guess at whether content is longer than its fold, made from what the app passes, before anything is laid out: so
-// the fold and its button are in the first commit, and the same on the server, with no layout read per instance. A
-// ResizeObserver then corrects a wrong guess from the browser's own layout.
+// the fold and its button are in the first commit, and the same on the server, with no layout read per instance. It leans
+// folded: content shows whole at first only when it is clearly short and the guess saw all of it, so a wrong guess costs a
+// button that goes a frame later, inside a box already folded, never a box that shrinks. A ResizeObserver then corrects it
+// from the browser's own layout.
 /** Characters a line holds, roughly: a message bubble's width of text. */
 const GUESS_LINE = 60;
 /** A line's height in px, roughly. */
 const GUESS_LINE_HEIGHT = 24;
-/** A picture's height in px, roughly, when the app gives none. */
-const GUESS_PICTURE = 240;
-/** Props that hold no text a reader sees. */
-const notText = /^(className|class|style|id|href|src|srcSet|alt|title|role|type|name|key|ref|tone|variant|size|lang|dir|aria-.*|data-.*|on[A-Z].*)$/;
-/** Elements that are a picture. */
-const pictures = new Set(["img", "picture", "video", "svg", "canvas", "iframe"]);
+/** Wide characters (CJK, Hangul, full-width forms), which take about two of a line's characters each. */
+const wide = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua960-\ua97f\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/g;
+/** Elements that start a block, and so a line, of their own. */
+const blocks = new Set(["p", "div", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "blockquote", "table", "tr", "figure", "hr", "br", "section", "article", "dl", "dt", "dd"]);
+/** Elements whose size only their content says: a picture with no height given. */
+const media = new Set(["img", "picture", "video", "canvas", "iframe", "object", "embed"]);
 
-/** The text in `node` and the px its pictures and sized elements take, as far as its elements say. */
-function guessSize(node: ReactNode): { chars: number; lines: number; px: number } {
-  const size = { chars: 0, lines: 0, px: 0 };
+/**
+ * The text in `node`, in lines of GUESS_LINE characters and blocks, and the px its elements give themselves, and whether
+ * anything in it is unseen: a component (what it renders is its own) or a picture with no height.
+ */
+function guessSize(node: ReactNode): { lines: number; px: number; unseen: boolean } {
+  let chars = 0;
+  let blocksSeen = 0;
+  let px = 0;
+  let unseen = false;
   const visit = (each: ReactNode): void => {
     if (typeof each === "string" || typeof each === "number") {
       const text = String(each);
-      size.chars += text.length;
-      size.lines += text.split("\n").length - 1;
+      chars += text.length + (text.match(wide)?.length ?? 0);
     } else if (Array.isArray(each)) each.forEach(visit);
-    else if (isValidElement<Record<string, unknown>>(each)) {
-      const props = each.props;
-      const style = props["style"] as CSSProperties | undefined;
-      const height = typeof props["height"] === "number" ? props["height"] : typeof style?.height === "number" ? style.height : undefined;
-      if (height !== undefined) size.px += height;
-      else if (typeof each.type === "string" && pictures.has(each.type)) size.px += GUESS_PICTURE;
-      if (Array.isArray(props["images"])) size.px += GUESS_PICTURE;
-      // A block of its own starts a line.
-      if (each.type === "p" || each.type === "br" || each.type === "li" || each.type === "div") size.lines++;
-      for (const [key, value] of Object.entries(props)) {
-        if (key === "children") visit(value as ReactNode);
-        // A component's own text, such as a post's body: it renders it somewhere inside.
-        else if (typeof each.type !== "string" && typeof value === "string" && !notText.test(key)) visit(value);
-      }
+    else if (isValidElement<{ children?: ReactNode; height?: unknown; style?: CSSProperties }>(each)) {
+      const { type, props } = each;
+      // A fragment only groups; any other component renders what it likes.
+      if (type !== Fragment && typeof type !== "string") unseen = true;
+      const height = typeof props.height === "number" ? props.height : props.style?.height;
+      if (typeof height === "number") px += height;
+      else if (typeof type === "string" && media.has(type)) unseen = true;
+      if (typeof type === "string" && blocks.has(type)) blocksSeen++;
+      visit(props.children);
     }
   };
   visit(node);
-  return size;
+  return { lines: Math.ceil(chars / GUESS_LINE) + blocksSeen, px, unseen };
 }
 
-/** The guess at how many lines the text in `node` takes. */
-const guessLines = (node: ReactNode) => {
-  const { chars, lines } = guessSize(node);
-  return Math.ceil(chars / GUESS_LINE) + lines;
+/** Whether `node` is clearly shorter than `lines` lines: half of them or fewer, and all of it seen. */
+const clearlyFewerLines = (node: ReactNode, lines: number) => {
+  const size = guessSize(node);
+  return !size.unseen && size.lines <= lines / 2;
 };
 
-/** The guess at how tall `node` is, in px. */
-const guessHeight = (node: ReactNode) => {
-  const { chars, lines, px } = guessSize(node);
-  return (Math.ceil(chars / GUESS_LINE) + lines) * GUESS_LINE_HEIGHT + px;
+/** Whether `node` is clearly shorter than `height` px: half of it or less, and all of it seen. */
+const clearlyShorter = (node: ReactNode, height: number) => {
+  const size = guessSize(node);
+  return !size.unseen && size.lines * GUESS_LINE_HEIGHT + size.px <= height / 2;
 };
 
 function ShowMoreText({
@@ -474,7 +481,7 @@ function ShowMoreText({
   // Guessed from the text, so the button is in the first commit and in server HTML, then corrected from the browser's own
   // layout: a ResizeObserver reads after the browser lays the text out, and writes nothing, so no instance makes it lay
   // the page out again.
-  const [overflowing, setOverflowing] = useState(() => guessLines(children) > lines);
+  const [overflowing, setOverflowing] = useState(() => !clearlyFewerLines(children, lines));
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
   useEffect(() => {
@@ -541,7 +548,7 @@ function ShowMoreHeight({
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
   // Guessed from the content, so the fold and its button are in the first commit and in server HTML, then corrected from
   // the browser's own layout: the ResizeObserver reads after the browser lays the content out, and writes nothing.
-  const [fits, setFits] = useState(() => guessHeight(children) <= maxHeight * 1.2);
+  const [fits, setFits] = useState(() => clearlyShorter(children, maxHeight));
   const contentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const foldId = useId();
