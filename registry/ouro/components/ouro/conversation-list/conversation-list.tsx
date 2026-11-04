@@ -344,6 +344,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const scroller = useRef<Element | null>(null);
   // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
   const sync = useRef<(() => void) | null>(null);
+  const rowResizes = useRef<ResizeObserver | null>(null);
   const revealed = useRef<string | null>(null);
   const focusNext = useRef<string | null>(null);
   // The row to keep in view while the heights around it settle, and where in the view.
@@ -489,12 +490,20 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     addEventListener("resize", onResize);
     const resizes = new ResizeObserver(onResize);
     for (const clip of found) resizes.observe(clip);
+    // A rendered row whose words change its height (a longer preview, a draft) is measured by this observer, whose
+    // callback runs after layout, where reading the rows is free; rows are added to it as they render.
+    rowResizes.current = resizes;
     return () => {
       document.removeEventListener("scroll", onScroll, { capture: true });
       removeEventListener("resize", onResize);
       resizes.disconnect();
+      rowResizes.current = null;
     };
   }, [windowed]);
+  // What the rows' places depend on: every row's key, the slots in and near view, the rows kept rendered, the open
+  // row, the density and the heights measured. A render that changes none of these (a new preview, an unread dot, a
+  // parent's render) measures nothing: inside a commit, a measure lays out the whole page.
+  const laidOut = JSON.stringify([keys, start, end, tabStop, current, reach, density, windowed]);
   useLayoutEffect(() => {
     latest.current = { keys, offsets, total, range: [start, end], heights };
     // The open row is tracked in a short list too, so a list that grows long, or long again, sees no row newly opened.
@@ -527,7 +536,11 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       update();
     };
     sync.current();
-  });
+    // Stryker disable next-line OptionalChaining: the observer is set whenever the list is windowed, which the return above leaves.
+    for (const control of controls.current.values()) rowResizes.current?.observe(control.parentElement!);
+    // The sync reads the render that laid the rows out.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [laidOut, heights]);
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
     const to = moves[event.key];
