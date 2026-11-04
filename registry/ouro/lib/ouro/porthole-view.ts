@@ -17,7 +17,7 @@ export type {
 
 /**
  * How urgent an item is, most urgent first: `action` (it waits for the person), `error`, `working` and `rest` (news
- * that needs nothing, such as "Up to date"). The most urgent item is the one shown; on a tie, the newest `since` wins.
+ * that needs nothing, such as "Version 2.1 is installed"). The most urgent item is the one shown; on a tie, the newest `since` wins.
  *
  * @claim "How urgent an item is" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > shows an action over an error, an error over working and working over rest)
  * @claim "The most urgent item is" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > shows an action over an error, an error over working and working over rest)
@@ -52,7 +52,7 @@ interface PortholeItemAction {
  * - `detail`: the lines shown when the spot is open.
  * - `progress`: 0 to 1, for a `working` item.
  * - `since`: when the item began, in ms since the epoch; on a tie in priority the newest is shown.
- * - `dismissable`: the person may dismiss it, as with "Up to date". The window passes the dismissal to the service,
+ * - `dismissable`: the person may dismiss it, as with "Version 2.1 is installed". The window passes the dismissal to the service,
  *   which removes the item.
  *
  * @claim "0 to 1, for a" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeStatus > reads the rest state with no item, and an item's progress between 0 and 1)
@@ -122,7 +122,7 @@ interface PortholeSource {
  * @claim "Each is optional and falls" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > takes words in another language for every line it writes)
  */
 interface PortholeLabels {
-  /** At rest and fresh. @default "Updated just now" */
+  /** At rest and fresh. @default "Up to date" */
   fresh?: string | undefined;
   /** At rest with an area past fresh, given the oldest area's age (`"4 min"`). @default (age) => `Updated ${age} ago` */
   stale?: ((age: string) => string) | undefined;
@@ -158,7 +158,7 @@ interface PortholeLabels {
 /** Options for {@link portholeView}. */
 interface PortholeViewOptions {
   /**
-   * "Updated just now" only while every area was verified within this many ms, or within its own `freshWithinMs`.
+   * "Up to date" only while every area was verified within this many ms, or within its own `freshWithinMs`.
    * @default 60_000
    *
   * @claim "only while every area was" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > takes its times from the options)
@@ -367,9 +367,9 @@ function compare(a: PortholeItem, b: PortholeItem): number {
  * so a window, a CLI and a test reach the same answer.
  *
  * One item at a time: the most urgent (`action`, then `error`, `working`, `rest`); on a tie, the newest `since`. At
- * rest it says "Updated just now" only while every area was verified within `freshWithinMs` (the area's own, for one
+ * rest it says "Up to date" only while every area was verified within `freshWithinMs` (the area's own, for one
  * the service reads on an interval) and none has been in trouble for `troubleAfterMs`; otherwise the real age of the area verified longest ago ("Updated 4 min ago"). A `rest`
- * item, such as "Up to date", shows over "Updated just now" only: past fresh, or unknown, the age line or "Status
+ * item, such as "Version 2.1 is installed", shows over "Up to date" only: past fresh, or unknown, the age line or "Status
  * unknown" wins and the item waits in the open spot's lines. It says "Status unknown" when an area has never been
  * verified, when the snapshot has no areas or another version, or when the heartbeat is older than
  * `heartbeatTimeoutMs` or too far ahead of this clock to check. A stopped heartbeat outranks every item, an `action`
@@ -381,11 +381,11 @@ function compare(a: PortholeItem, b: PortholeItem): number {
  * @group Feedback
  * @example
  * const view = portholeView(source.getSnapshot(), source.lastBeatAt(), Date.now());
- * view.text; // "Updated just now"
+ * view.text; // "Up to date"
  * @claim "One item at a time: the" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > shows an action over an error, an error over working and working over rest)
  * @claim "otherwise the real age of" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > at rest, says the real age of the area verified longest ago once any area is past fresh)
  * @claim "when an area has never been" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > says Status unknown at rest while any area has never been verified)
- * @claim "A `rest` item, such as" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a rest item shows over Updated just now only, and waits in the open lines while an area is past fresh or the status is unknown)
+ * @claim "A `rest` item, such as" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a rest item shows over Up to date only, and waits in the open lines while an area is past fresh or the status is unknown)
  * @claim "A stopped heartbeat outranks every" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a stopped heartbeat outranks every item, an action too, which waits in the open lines)
  * @claim "the area's own, for one" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > an area's own freshWithinMs > replaces the view's for that area alone, up to and including the window itself)
  */
@@ -397,7 +397,7 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
   const labels = options.labels ?? {};
   const age = labels.age ?? formatPortholeAge;
   const words = {
-    fresh: labels.fresh ?? "Updated just now",
+    fresh: labels.fresh ?? "Up to date",
     stale: labels.stale ?? ((a: string) => `Updated ${a} ago`),
     unknown: labels.unknown ?? "Status unknown",
     area:

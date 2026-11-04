@@ -75,12 +75,12 @@ describe("portholeView", () => {
     expect(view(snap(), NOW + 101, options).state).toBe("unknown");
   });
 
-  it("says Updated just now while every area was verified within freshWithinMs", () => {
+  it("says Up to date while every area was verified within freshWithinMs", () => {
     const result = view(snap([], { chats: area(NOW - 30 * SECOND), calendar: area(NOW - 59 * SECOND) }));
     expect(result).toMatchObject({
       state: "rest-fresh",
       status: "rest",
-      text: "Updated just now",
+      text: "Up to date",
       item: null,
       alive: true,
       heartbeatAt: NOW,
@@ -319,15 +319,15 @@ describe("portholeView", () => {
     expect(view({ version: 1, items: "none", areas: { chats: area(NOW) } } as unknown as PortholeSnapshot)).toMatchObject({ state: "rest-fresh", item: null });
   });
 
-  it("a rest item shows over Updated just now only, and waits in the open lines while an area is past fresh or the status is unknown", () => {
-    const current = item("current", "rest", NOW, { label: "Up to date", detail: ["Version 2.1"], dismissable: true });
+  it("a rest item shows over Up to date only, and waits in the open lines while an area is past fresh or the status is unknown", () => {
+    const current = item("current", "rest", NOW, { label: "Version 2.1 is installed", detail: ["See what's new in settings"], dismissable: true });
     expect(view(snap([current]))).toMatchObject({
       state: "rest-fresh",
       status: "rest",
-      text: "Up to date",
+      text: "Version 2.1 is installed",
       item: current,
       waiting: null,
-      detail: ["Version 2.1", "chats: verified just now"],
+      detail: ["See what's new in settings", "chats: verified just now"],
       priority: { shown: "current", why: '"current" is news that needs nothing, and nothing else is under way; every area was verified within 60 s' },
     });
     expect(view(snap([current, item("older", "rest", NOW - MINUTE)])).priority.why).toBe(
@@ -338,7 +338,7 @@ describe("portholeView", () => {
       text: "Updated 2 min ago",
       item: null,
       waiting: current,
-      detail: ["Up to date", "Version 2.1", "chats: verified 2 min ago"],
+      detail: ["Version 2.1 is installed", "See what's new in settings", "chats: verified 2 min ago"],
       priority: { shown: "rest", why: 'The age line outranks "current" while not every area is fresh: "chats" was verified longest ago, past 60 s' },
     });
     expect(view(snap([current], { chats: area(NOW, NOW - 6 * SECOND) }))).toMatchObject({ state: "rest-stale", text: "Updated less than a minute ago", item: null, waiting: current });
@@ -392,7 +392,7 @@ describe("portholeView", () => {
     expect(kalender(NOW - 3 * MINUTE)).toEqual(["kalender: vor 3 Min. (alle 5 Min.)"]);
     expect(kalender(NOW - 30 * SECOND)).toEqual(["kalender: gerade (alle 5 Min.)"]);
     expect(kalender(NOW - 6 * MINUTE, NOW - 2 * MINUTE)).toEqual(["kalender: 6 Min. / 2 Min. (alle 5 Min.)"]);
-    expect(view(snap(), NOW, { labels: {} }).text).toBe("Updated just now");
+    expect(view(snap(), NOW, { labels: {} }).text).toBe("Up to date");
   });
 
   describe("an area's own freshWithinMs", () => {
@@ -410,14 +410,14 @@ describe("portholeView", () => {
         expect(view(snap([], unset))).toEqual(view(snap([], areas)));
         for (const a of view(snap([], areas)).areas) expect([a.freshWithinMs, a.note]).toEqual([MINUTE, null]);
       }
-      expect(view(snap([], { chats: area(NOW - MINUTE) }))).toMatchObject({ text: "Updated just now", detail: ["chats: verified just now"], nextChangeAt: NOW + 1 });
+      expect(view(snap([], { chats: area(NOW - MINUTE) }))).toMatchObject({ text: "Up to date", detail: ["chats: verified just now"], nextChangeAt: NOW + 1 });
       expect(view(snap([], { chats: area(NOW - 10 * SECOND) }), NOW, { freshWithinMs: 10 * SECOND, heartbeatTimeoutMs: HOUR }).areas[0]!.freshWithinMs).toBe(10 * SECOND);      // A view-wide window over a minute gives a fresh line's age too, never "just now" of a read minutes old.
       expect(view(snap([], { chats: area(NOW - 3 * MINUTE) }), NOW, { freshWithinMs: 5 * MINUTE }).detail).toEqual(["chats: verified 3 min ago"]);
     });
 
     it("replaces the view's for that area alone, up to and including the window itself", () => {
       const at = (calendarAge: number, chatsAge = SECOND) => view(snap([], { chats: area(NOW - chatsAge), calendar: polled(NOW - calendarAge) }));
-      expect(at(5 * MINUTE + 30 * SECOND)).toMatchObject({ state: "rest-fresh", text: "Updated just now", fresh: true });
+      expect(at(5 * MINUTE + 30 * SECOND)).toMatchObject({ state: "rest-fresh", text: "Up to date", fresh: true });
       expect(at(5 * MINUTE + 30 * SECOND).areas.map((a) => [a.id, a.fresh, a.freshWithinMs])).toEqual([
         ["chats", true, MINUTE],
         ["calendar", true, 5 * MINUTE + 30 * SECOND],
@@ -583,7 +583,7 @@ describe("portholeStatus", () => {
     const read = portholeStatus(
       view(snap([], { chats: { ...area(NOW - SECOND), note: "live" }, calendar: { ...area(NOW - 3 * MINUTE), freshWithinMs: 5 * MINUTE + 30 * SECOND, note: "every 5 min" } })),
     );
-    expect(read).toMatchObject({ state: "rest", headline: "Updated just now", fresh: true });
+    expect(read).toMatchObject({ state: "rest", headline: "Up to date", fresh: true });
     expect(read.areas.map(({ id, freshWithinMs, note, age }) => ({ id, freshWithinMs, note, age }))).toEqual([
       { id: "chats", freshWithinMs: MINUTE, note: "live", age: "less than a minute" },
       { id: "calendar", freshWithinMs: 5 * MINUTE + 30 * SECOND, note: "every 5 min", age: "3 min" },
@@ -592,7 +592,7 @@ describe("portholeStatus", () => {
   });
 
   it("reads the rest state with no item, and an item's progress between 0 and 1", () => {
-    expect(portholeStatus(view(snap()))).toMatchObject({ state: "rest", headline: "Updated just now", shown: null, priority: { shown: "rest" } });
+    expect(portholeStatus(view(snap()))).toMatchObject({ state: "rest", headline: "Up to date", shown: null, priority: { shown: "rest" } });
     expect(portholeStatus(view(snap([], { chats: area(NOW - 2 * MINUTE) })))).toMatchObject({ state: "rest", headline: "Updated 2 min ago" });
     expect(portholeStatus(view(snap(), NOW - MINUTE))).toMatchObject({ state: "unknown", shown: null });
     const progress = (value: unknown) => portholeStatus(view(snap([item("sync", "working", NOW, { progress: value as number })]))).shown?.progress;
