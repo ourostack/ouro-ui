@@ -31,9 +31,10 @@ const mutationCommands = { ouroMutant: () => (globalThis as { __ouroMutant?: str
 // (scripts/coverage-merge.mjs), and the sliced suites read the shard (test/slice.ts).
 const shard = shardArgument(process.argv);
 // Vitest gives each browser project its own pool of tabs, as many as the CPUs less one, and runs
-// the four projects side by side: on CI's four-CPU runner, twelve test files start at once. Their
-// first tests wait on this one process to transform and instrument the registry for coverage, and
-// clicks in them ran past the 15s test timeout (issue #545). Two tabs a project start eight.
+// the four projects side by side: on CI's four-CPU runner, twelve test files at once, while this
+// one process spends its first 40 or so seconds transforming and instrumenting the registry. Two
+// tabs a project gave the heaviest tests a quarter more headroom under the 15s timeout in the same
+// wall clock (issue #545); one tab a project made the shards two minutes slower.
 const browserShard = shard !== null && !themes && !conformance && !mutation;
 
 // The repository as its own app: app.css compiles the registry source with Tailwind,
