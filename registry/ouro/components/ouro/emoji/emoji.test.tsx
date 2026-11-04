@@ -795,6 +795,19 @@ describe("Emoji helpers", () => {
     expect(splitEmojiText("ok (y)", { categories: [{ id: "plain", label: "Plain", items: [yes] }] })).toEqual(["ok ", { item: yes, tone: "default", source: "(y)" }]);
   });
 
+  it("runs its patterns only on text that could hold an emoji", () => {
+    const matchAll = vi.spyOn(String.prototype, "matchAll");
+    onTestFinished(() => matchAll.mockRestore());
+    splitEmojiText("just words", catalogue);
+    splitEmojiText("see :party:", catalogue, false);
+    expect(matchAll).not.toHaveBeenCalled();
+    splitEmojiText("see :party:", catalogue);
+    expect(matchAll).toHaveBeenCalledTimes(1);
+    const yes: EmojiItem = { id: "yes", name: "Yes", text: "(y)", src: image("yes") };
+    splitEmojiText("ok (y)", { categories: [{ id: "plain", label: "Plain", items: [yes] }] }, false);
+    expect(matchAll).toHaveBeenCalledTimes(2);
+  });
+
   it("finds emoji text with characters a pattern would read as its own", () => {
     expect(splitEmojiText("press *️⃣ or *", withKeycap)).toEqual(["press ", { item: keycap, tone: "default", source: "*️⃣" }, " or *"]);
   });
