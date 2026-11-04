@@ -18,6 +18,7 @@ import {
   zonedClock,
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 // Runs in Chromium and WebKit. The grid's clock reads New York, where March 12, 2026 is a
 // Thursday in daylight saving time (UTC-4), and the clock is held at 10:41 that morning.
@@ -1505,12 +1506,27 @@ describe("TimeGrid background events", () => {
       heads.map((head) => [Math.round(head.getBoundingClientRect().left), true]),
     );
     const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
+    expect(getComputedStyle(grid).getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
     const tall = head.offsetHeight;
     await rerender({ view: "work-week", events: [forum] });
     expect(grid.querySelector("[data-ouro-time-grid-summary]")).toBeNull();
     expect(tall - head.offsetHeight).toBeGreaterThanOrEqual(40);
     expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.25rem");
+  });
+
+  it("lays nothing out when it renders again with summaries that keep the header's height, and follows one that grows", async () => {
+    const summary = (tall: number) => (day: string) => <span style={{ display: "block", height: day === "2026-03-12" ? tall : 16 }}>{day === "2026-03-12" ? "3 meetings" : "Free"}</span>;
+    const { grid, rerender } = await render({ view: "work-week", events: [forum], renderDaySummary: summary(40) });
+    const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    // The resize observer reports the header a frame later, and measures then, where layout is free.
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    const reads = watchLayoutReads();
+    await rerender({ view: "work-week", events: [forum], renderDaySummary: summary(40) });
+    reads.stop();
+    expect(reads.names()).toEqual([]);
+    await rerender({ view: "work-week", events: [forum], renderDaySummary: summary(90) });
+    await expect.poll(() => getComputedStyle(grid).getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
+    expect(head.offsetHeight).toBeGreaterThan(100);
   });
 });
 

@@ -631,21 +631,20 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollKey, noneToday]);
 
-  // The app's day summaries make the header as tall as they are, which only a measure knows;
-  // events scrolled into view stop below it.
-  useLayoutEffect(() => {
-    if (!renderDaySummary) return;
-    const head = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    rootRef.current!.style.setProperty("--ouro-time-grid-head", `${head.offsetHeight}px`);
-  });
-
   // In a grid taller than a day, the hours grow to share the room under the header, so the day
   // ends at the grid's foot rather than above it. Neither height depends on the hours'.
   useLayoutEffect(() => {
     const root = rootRef.current!;
     const viewport = root.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const head = root.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    const fill = () => root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - head.offsetHeight) / 24}px`);
+    // The header's height too: the app's day summaries make it as tall as they are, which only a measure knows, and
+    // events scrolled into view stop below it (--ouro-time-grid-head reads it while there are summaries). The
+    // observer's callback runs after layout and before paint, so a render that leaves the header as it was measures nothing.
+    const fill = () => {
+      const height = head.offsetHeight;
+      root.style.setProperty("--ouro-time-grid-head-measured", `${height}px`);
+      root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - height) / 24}px`);
+    };
     // Stryker disable next-line CallExpression: the observer measures as it starts observing, before the first paint; this only measures sooner.
     fill();
     const observer = new ResizeObserver(fill);
@@ -900,7 +899,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       )}
       style={
         {
-          ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${3.75 + lanes * 1.5}rem` }),
+          "--ouro-time-grid-head": renderDaySummary ? "var(--ouro-time-grid-head-measured)" : `${3.75 + lanes * 1.5}rem`,
           "--ouro-time-grid-lane": labelBackground ? "clamp(7rem, 40%, 32rem)" : "0.75rem",
           ...style,
         } as CSSProperties
