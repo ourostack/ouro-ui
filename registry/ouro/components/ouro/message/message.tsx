@@ -445,8 +445,10 @@ const postHairline =
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:absolute " +
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:inset-x-0 " +
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:-top-3 " +
+  // Stryker disable next-line StringLiteral: the tests' page loads Tailwind's base styles, which give ::before a solid border of no width; an app without them needs this.
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-0 " +
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-t " +
+  // Stryker disable next-line StringLiteral: the tests' page loads Tailwind's base styles, which give ::before a solid border of no width; an app without them needs this.
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-solid " +
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-border " +
   // Stryker disable next-line StringLiteral: Tailwind gives every before: utility content: var(--tw-content), so the line draws without this class too.

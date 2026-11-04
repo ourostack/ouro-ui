@@ -218,6 +218,18 @@ describe("MessageList windowing", () => {
       expect(line(`m${count - 1}`).content).not.toBe("none");
       expect(line(`m${count - 1}`).borderTopStyle).toBe("solid");
       expect(line(`m${count - 2}`).borderTopWidth).toBe("1px");
+      // Across the text, from its start to the end, midway between the posts, in the theme's border colour, and only on top.
+      const hairline = line(`m${count - 1}`);
+      const body = document.getElementById(`m${count - 1}`)!.querySelector("[data-ouro-message-body]")!.getBoundingClientRect();
+      expect(hairline.position).toBe("absolute");
+      expect(parseFloat(hairline.width)).toBeCloseTo(body.width, 0);
+      expect(hairline.top).toBe("-12px");
+      expect(hairline.borderLeftWidth).toBe("0px");
+      const probe = document.createElement("span");
+      probe.style.color = "var(--border)";
+      scroller.append(probe);
+      expect(hairline.borderTopColor).toBe(getComputedStyle(probe).color);
+      probe.remove();
       // The first post drawn after space kept for others has none until the one before it draws.
       const first = messages(scroller)[0]!;
       if (count === 3) expect(line(first.id).content).toBe("none");
@@ -522,17 +534,26 @@ describe("MessageList windowing", () => {
     expect(await actions.current!.reveal("nowhere")).toBe(false);
     await settle(scroller);
     expect(scroller.scrollTop).toBe(top);
+    // Nor does it take the place of a reveal on its way.
+    let pending = Promise.resolve(false);
+    await act(async () => {
+      pending = actions.current!.reveal("m50");
+      void actions.current!.reveal("nowhere");
+    });
+    expect(await pending).toBe(true);
   });
 
   it("reveals a message once it goes in, and gives up on one deleted before it shows", async () => {
     const actions = createRef<MessageListActions>();
     let items = conversation(40, 100);
     const { scroller } = await render(<Chat items={items} actionsRef={actions} windowing={false} />);
-    // Deleted in the same render it was asked for: the list stays at its end, following, and nothing is left waiting.
+    // Deleted in the same render it was asked for: the list stays at its end, following, and the reveal says it found nothing.
+    let gone = Promise.resolve(true);
     await act(async () => {
-      actions.current!.reveal("m110");
+      gone = actions.current!.reveal("m110");
       roots.at(-1)!.render(<Chat items={items.filter((item) => item.id !== 110)} actionsRef={actions} windowing={false} />);
     });
+    expect(await gone).toBe(false);
     await settle(scroller);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     // A page of older messages goes into a whole list a few at a time: the oldest shows once it is in.
@@ -636,9 +657,13 @@ describe("MessageList windowing", () => {
     roots.push(root);
     // What the first draw shows: the anchor, in the list's view, before the browser paints.
     let first = Number.NaN;
+    let around = false;
     const observer = new MutationObserver(() => {
       const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]");
-      if (scroller && Number.isNaN(first) && document.getElementById("m200")) first = Math.abs(offCentre(scroller, "m200"));
+      if (!scroller || !Number.isNaN(first) || !document.getElementById("m200")) return;
+      first = Math.abs(offCentre(scroller, "m200"));
+      // The messages either side are drawn with it, filling the view.
+      around = document.getElementById("m196") !== null && document.getElementById("m204") !== null;
     });
     observer.observe(host, { childList: true, subtree: true });
     await act(async () => root.render(<Chat items={conversation(2000, 0, true)} initialAnchor="m200" />));
@@ -646,8 +671,15 @@ describe("MessageList windowing", () => {
     const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
     await settle(scroller);
     expect(first).toBeLessThanOrEqual(ROUNDING);
+    expect(around).toBe(true);
     expect(Math.abs(offCentre(scroller, "m200"))).toBeLessThanOrEqual(ROUNDING);
     expect(distanceFromBottom(scroller)).toBeGreaterThan(10_000);
+  });
+
+  it("opens at its first message when initialAnchor names it", async () => {
+    const { scroller } = await render(<Chat items={conversation(2000, 0, true)} initialAnchor="m0" />);
+    expect(inView(scroller, "m0")).toBe(true);
+    expect(scroller.scrollTop).toBeLessThanOrEqual(ROUNDING);
   });
 
   it("moves focus to the first message with Home and back to the newest with End, drawing the message it reaches", async () => {
@@ -758,8 +790,9 @@ describe("MessageList windowing", () => {
 
   it("counts each message of a child that holds two, and moves between them", async () => {
     const items = conversation(200);
+    const actions = createRef<MessageListActions>();
     const { scroller } = await render(
-      <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }} actionsRef={actions}>
         {items.map((item) =>
           item.id === 198 ? (
             <div key="pair" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -789,6 +822,11 @@ describe("MessageList windowing", () => {
     await userEvent.keyboard("{ArrowDown}");
     expect(document.activeElement?.id).toBe("m198b");
     await settle(scroller);
+    // Revealed by the second's id, that one; by the child's key, its first.
+    await act(async () => void actions.current!.reveal("m198b", { focus: true }));
+    await expect.poll(() => document.activeElement?.id).toBe("m198b");
+    await act(async () => void actions.current!.reveal("pair", { focus: true }));
+    await expect.poll(() => document.activeElement?.id).toBe("m198");
   });
 
   it("keeps drawing what is near the view when the messages it drew are deleted", async () => {
@@ -938,11 +976,65 @@ describe("MessageList windowing", () => {
     expect(inView(scroller, "m500")).toBe(true);
   });
 
+  it("announces a reply far up the conversation that streams again, once it finishes", async () => {
+    let items = conversation(300, 0, true);
+    const { scroller, rerender, live } = await render(<Chat items={items} />);
+    const spoken = recordAnnouncements(live);
+    await scrollTo(scroller, 0);
+    expect(document.getElementById("m151")).toBeNull();
+    // Regenerated where the reader is not: it streams, then finishes.
+    items = items.map((item) => (item.id === 151 ? { id: 151, text: "Thinking", streaming: true } : item));
+    await rerender(<Chat items={items} />);
+    items = items.map((item) => (item.id === 151 ? { id: 151, text: "A better answer." } : item));
+    await rerender(<Chat items={items} />);
+    expect(spoken).toEqual(["Ouro: A better answer."]);
+  });
+
+  it("announces both of two replies that finish streaming out of view", async () => {
+    let items = [...conversation(300, 0, true), { id: 301, text: "One", streaming: true }, { id: 303, text: "Two", streaming: true }];
+    const { scroller, rerender, live } = await render(<Chat items={items} />);
+    const spoken = recordAnnouncements(live);
+    items = [...items, { id: 304, text: "Never mind." }];
+    await rerender(<Chat items={items} />);
+    await scrollTo(scroller, 0);
+    items = items.map((item) => (item.id === 301 || item.id === 303 ? { id: item.id, text: `Done ${item.id}.` } : item));
+    await rerender(<Chat items={items} />);
+    expect(spoken).toEqual(["Ouro: Done 301.", "Ouro: Done 303."]);
+  });
+
+  it("hears both of two messages that are the first to arrive, far up the conversation", async () => {
+    // Opened far up, at a message found by search: nothing has come or gone since it opened.
+    let items = conversation(300, 0, true);
+    const { rerender, live } = await render(<Chat items={items} initialAnchor="m40" />);
+    const spoken = recordAnnouncements(live);
+    items = [...items, { id: 301, text: "Then the tray." }, { id: 303, text: "Then the timer." }];
+    await rerender(<Chat items={items} initialAnchor="m40" />);
+    expect(spoken).toEqual(["Ouro: Then the tray.", "Ouro: Then the timer."]);
+  });
+
+  it("draws what a taller view reaches as the list grows taller, scrolled up", async () => {
+    const { scroller, host } = await render(<Chat items={conversation(1000, 0, true)} />);
+    await scrollTo(scroller, scroller.scrollHeight / 2);
+    const list = host.querySelector<HTMLElement>('[data-ouro="message-list"]')!;
+    await act(async () => void (list.style.height = "2400px"));
+    await settle(scroller);
+    const view = scroller.getBoundingClientRect();
+    const drawn = messages(scroller).filter((message) => message.id !== "m999");
+    expect(drawn.at(-1)!.getBoundingClientRect().bottom).toBeGreaterThan(view.bottom + 800 - 16 - 1);
+  });
+
   it("draws the newest screenful in server HTML and hydrates it without a warning", async () => {
     const items = conversation(2000);
     const html = renderToString(<Chat items={items} />);
     const drawn = html.match(/data-ouro="message"/g)!.length;
     expect(drawn).toBeGreaterThan(5);
+    // From the end, 1600px of the first guess at a message's height, 96px: the newest 17.
+    expect(drawn).toBe(17);
+    // Opened at a message far up: it and 800px of messages either side, and the newest.
+    const anchored = renderToString(<Chat items={items} initialAnchor="m200" />);
+    expect(anchored.match(/data-ouro="message"/g)!.length).toBe(20);
+    expect(anchored).toContain('id="m191"');
+    expect(anchored).toContain('id="m209"');
     expect(drawn).toBeLessThan(40);
     expect(html).toContain('id="m1999"');
     expect(html).not.toContain('id="m0"');

@@ -237,15 +237,6 @@ function slotKeyOf(item: Element): string {
   return item.closest(`[${SLOT}]`)!.getAttribute(SLOT)!;
 }
 
-/**
- * From `index`, stepping by `step`, the first child not known to hold no message; out of range when there is none.
- * @claim "From `index`, stepping by `step`" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves focus to the first message with Home and back to the newest with End, drawing the message it reaches)
- */
-function holding(keys: readonly string[], counts: ReadonlyMap<string, number>, index: number, step: number): number {
-  while (index >= 0 && index < keys.length && counts.get(keys[index]!) === 0) index += step;
-  return index;
-}
-
 /** The messages in `content`, leaving out any message inside another one. */
 function topItems(content: Element): HTMLElement[] {
   return [...content.querySelectorAll<HTMLElement>(items)].filter((item) => !content.contains(item.parentElement!.closest(items)));
@@ -307,12 +298,6 @@ interface Measured {
   gap: number;
   estimate: number;
 }
-/** The children drawn around the view: the first and last, by key, and where they were when found. */
-interface Band {
-  from: string;
-  to: string;
-  at: readonly [number, number];
-}
 /** A message to draw and bring into view: by key, the element with `id` in it or its first or last message, and whether to focus it. */
 interface Reach {
   key: string;
@@ -353,7 +338,9 @@ function extentOf(slot: Element): { top: number; size: number } {
 function firstRange(count: number, size: (index: number) => number, anchor: number): [number, number] {
   if (anchor < 0) {
     let from = count - 1;
+    // Stryker disable next-line ConditionalExpression: a windowed list has more than 60 children, more than FIRST_VIEW takes, so this never reaches the first.
     for (let height = size(from); from > 0 && height < FIRST_VIEW; height += size(--from));
+    // Stryker disable next-line ArithmeticOperator: an end past the last child draws no more.
     return [from, count - 1];
   }
   let from = anchor;
@@ -895,7 +882,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
   // no box, so the list's spacing and the continued messages' margins work as without one.
   const [measured, setMeasured] = useState<Measured>({ heights: new Map(), gap: 16, estimate: ESTIMATE });
-  const [band, setBand] = useState<Band | null>(null);
+  // The children drawn around the view: the first and last, by key, as `<first>\0<last>`, so setting the same band again changes nothing.
+  const [band, setBand] = useState<string | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
   // What a `reveal` waits on: told whether its message came into view, once it has or another took its place.
   const revealed = useRef<((found: boolean) => void) | null>(null);
@@ -914,6 +902,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The newest child's key the announcements last heard of, so the children after it, which just arrived, draw until they are heard.
   const [heard, setHeard] = useState<string | null>(null);
   // The keys of the messages the announcements wait on, kept drawn until a reply that streamed is heard.
+  // Stryker disable next-line StringLiteral: no child's key is any text before the announcements publish theirs; each begins with a dot.
   const [waitingKeys, setWaitingKeys] = useState("");
   // The key of the child focus was last in, kept drawn so focus stays as the reader scrolls away.
   const [focusKey, setFocusKey] = useState<string | null>(null);
@@ -923,21 +912,22 @@ export function MessageList(props: MessageListProps): JSX.Element {
   if (windowed) {
     const indexes = new Map(keys.map((key, index) => [key, index]));
     const last = keys.length - 1;
-    const clamp = (index: number) => Math.min(Math.max(index, 0), last);
     let range: readonly [number, number];
     if (band !== null) {
-      const from = indexes.get(band.from) ?? clamp(band.at[0]);
-      const to = indexes.get(band.to) ?? clamp(band.at[1]);
-      range = [Math.min(from, to), Math.max(from, to)];
+      // A band whose edge was deleted draws none of it: the window finds itself again, from what is drawn, before the browser
+      // draws, and the space kept for what went keeps the rest where it was.
+      const [from, to] = band.split("\0");
+      // Stryker disable next-line LogicalOperator: whatever range a band with a deleted edge draws, the window finds itself again before the browser draws.
+      range = [indexes.get(from!) ?? last, indexes.get(to!) ?? -1];
     } else if (showJump && indexes.has(String(edge.drawn))) {
       // A list the reader scrolled up in that grows long (older history loading above) draws what it drew whole once more,
       // and finds its window from where those messages are, so the view stays where it is. One at its end opens at its end.
       range = [indexes.get(String(edge.drawn))!, last];
     } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
-    const kept = new Set<number | undefined>([last, indexes.get(focusKey!), indexes.get(reach?.key ?? "")]);
-    // What just arrived after the newest, so it is heard, and what still streams, so its end is.
-    const since = indexes.get(heard!);
-    if (since !== undefined) for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.add(index);
+    const kept = new Set<number | undefined>([last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)]);
+    // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
+    const since = indexes.get(heard!) ?? last;
+    for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.add(index);
     for (const key of waitingKeys.split("\n")) kept.add(indexes.get(key));
     all.forEach((child, index) => {
       if (!isValidElement(child)) return;
@@ -1082,15 +1072,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const atOf = (node: Element) => boxOf(node).top - content.getBoundingClientRect().top;
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
-      // In a windowed list, no message past the space kept below the view for those not drawn: that space changes as
-      // they are measured, so a message past it (the newest, kept drawn far away) moves without the reader's.
-      const space = [...content.querySelectorAll(":scope > [data-ouro-message-list-space]")].find((node) => node.getBoundingClientRect().top >= view.top);
-      const before = (node: Element) => space === undefined || boxOf(node).top < space.getBoundingClientRect().top;
       const shown = (node: Element) => boxOf(node).bottom > view.top && boxOf(node).top < view.bottom;
-      let all = [...content.querySelectorAll(items)].filter(before);
-      // There, when no message shows, what a child draws that holds none (a day's heading) holds the place: it may be all
-      // the view shows, as when it is revealed.
-      if (viewRef.current.windowed && !all.some(shown)) all = [...content.querySelectorAll(`${items}, [${SLOT}] > :not(${items}):not(:has(${items}))`)].filter(before);
+      let all = [...content.querySelectorAll(items)];
+      // When no message shows, what a child draws that holds none (a day's heading) holds the place: it may be all the view
+      // shows, as when it is revealed in a windowed list, with the messages around it not drawn yet.
+      if (!all.some(shown)) all = [...content.querySelectorAll(`${items}, [${SLOT}] > :not(${items}):not(:has(${items}))`)];
       // The messages whose top is in view, so not one partly above the view, whose growth the reader is not reading.
       // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
       const below = all.filter((message) => boxOf(message).top >= view.top && boxOf(message).top < view.bottom);
@@ -1137,12 +1123,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // After messages come, go, move or change size: follow the end while pinned, else hold the anchor in place.
     const hold = () => {
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
-      // A list at the old bottom follows. In a windowed list, one the bottom came up to does not start following: there the
-      // browser may pull the scroll down to a bottom that came up as heights replaced estimates above the view, which
-      // holding the place below undoes. The reader's own scroll at the bottom does. One that was following keeps on when its
-      // end came up, though something grew below in the same frame: the browser pulled it down, the reader did not scroll.
+      // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
+      // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
+      // not following starts only when the browser reports that scroll: in a windowed list the bottom may come up as heights
+      // replace estimates above the view, which holding the place below undoes first.
       // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
-      pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || ((pinned.current || !viewRef.current.windowed) && farthest() - scroller.scrollTop <= AT_BOTTOM) || (pinned.current && farthest() < end - AT_BOTTOM);
+      pinned.current = Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || (pinned.current && farthest() < end - AT_BOTTOM);
       // A scroll of the list's height or more since the anchors were taken (to the top, to a message far off) set its own place: the held message has left the view.
       // Stryker disable next-line EqualityOperator: a scroll of exactly the list's height leaves the held message at the view's edge either way.
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
@@ -1206,7 +1192,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // How many messages each child drawn holds: a child that starts the conversation holds none.
   const counts = useRef(new Map<string, number>());
   // What the window last read, so a render that changed none of it (the app drawing again as someone types) reads no layout.
-  const synced = useRef<{ keys: readonly string[]; band: Band | null; measured: Measured; reach: Reach | null; windowed: boolean } | null>(null);
+  const synced = useRef<{ keys: readonly string[]; band: string | null; measured: Measured; reach: Reach | null; windowed: boolean } | null>(null);
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
@@ -1217,26 +1203,27 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const top = scroller.getBoundingClientRect().top;
       const room = scroller.clientHeight;
       const before = scroller.scrollTop;
-      if (block === "center") scroller.scrollTop += box.top - top - Math.max(0, (room - box.height) / 2);
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
-      else if (block === "start" || box.top < top + EDGE || box.height > room - 2 * EDGE) scroller.scrollTop += box.top - top - EDGE;
+      const above = box.top < top + EDGE || box.height > room - 2 * EDGE;
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
-      else if (box.bottom > top + room - EDGE) scroller.scrollTop += box.bottom - top - room + EDGE;
+      const below = box.bottom > top + room - EDGE;
+      const centred = box.top - top - Math.max(0, (room - box.height) / 2);
+      scroller.scrollTop += block === "center" ? centred : block === "start" || above ? box.top - top - EDGE : below ? box.bottom - top - room + EDGE : 0;
       springsRef.current?.moved(scroller.scrollTop - before);
     };
     windowSync.current = (scrolled) => {
-      const { windowed, keys, measured, band, reach, sizeOf } = viewRef.current;
+      const { windowed, keys, measured, reach, sizeOf } = viewRef.current;
       // A list inside a hidden panel draws nothing to measure or place; it does once it shows, and resizes.
       if (windowed && content.getClientRects().length === 0) return;
       if (windowed && !scrolled) {
         const contentTop = content.getBoundingClientRect().top;
         let heights: Map<string, number> | undefined;
         const found = new Map<string, { top: number; size: number }>();
-        for (const slot of content.children) {
-          const key = slot.getAttribute(SLOT);
-          if (key === null) continue;
+        for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) {
+          const key = slot.getAttribute(SLOT)!;
           const { top, size } = extentOf(slot);
-          found.set(key, { top: top - contentTop, size });
+          // Only a child that draws a box has a place to find the others by.
+          if (size > 0) found.set(key, { top: top - contentTop, size });
           counts.current.set(key, topItems(slot).length);
           if (measured.heights.get(key) !== size) (heights ??= new Map(measured.heights)).set(key, size);
         }
@@ -1261,16 +1248,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
         } else {
           const found = topItems(slot);
           // By id: the message it is in, else what the child draws around it (what starts the conversation).
-          const named = reach.id === null ? undefined : [...slot.querySelectorAll<HTMLElement>("[id]")].find((node) => node.id === reach.id);
+          const named = [...slot.querySelectorAll<HTMLElement>("[id]")].find((node) => node.id === reach.id);
           const target =
             reach.id === null
               ? ((reach.forward ? found[0] : found.at(-1)) ?? (reach.child ? (slot.firstElementChild as HTMLElement) : undefined))
               : named && named.closest<HTMLElement>(`${items}, [${SLOT}] > *`)!;
           if (target === undefined) {
-            // A child with no message in it (a day's heading), or none with the id: by key, the next child that may hold one, that way.
-            const step = reach.forward ? 1 : -1;
-            const index = holding(keys, counts.current, keys.indexOf(reach.key) + step, step);
-            if (reach.id === null && index >= 0 && index < keys.length) setReach({ ...reach, key: keys[index]! });
+            // A child with no message in it (a day's heading): by key, the next child, that way, past the ends to none, which
+            // settles. None with the id: settles.
+            // Stryker disable next-line ConditionalExpression: an id no element in its child has is had by none in the children after, so stepping on settles too, a render each later.
+            if (reach.id === null) setReach({ ...reach, key: keys[keys.indexOf(reach.key) + (reach.forward ? 1 : -1)]! });
             else settleRef.current(false);
           } else {
             bring(target, reach.block);
@@ -1295,17 +1282,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const indexes = new Map(keys.map((key, index) => [key, index]));
       let near: number | undefined;
       let nearTop = 0;
-      for (const [key, { top, size }] of tops.current) {
-        const index = indexes.get(key);
+      for (const [key, { top }] of tops.current) {
         // Stryker disable next-line EqualityOperator: of two slots exactly as near, either places the others as well.
-        if (size === 0 || index === undefined || (near !== undefined && Math.abs(top - viewTop) >= Math.abs(nearTop - viewTop))) continue;
-        near = index;
+        if (near !== undefined && Math.abs(top - viewTop) >= Math.abs(nearTop - viewTop)) continue;
+        near = indexes.get(key)!;
         nearTop = top;
       }
       // Every child drawn draws nothing (the app hid them all): nothing to place by, until one draws.
       /* istanbul ignore if @preserve -- the newest message always draws; this only keeps a list whose messages are all hidden from drawing every child */
+      // Stryker disable next-line ConditionalExpression: the newest message always draws, so there is always a slot to place by.
       if (near === undefined) return;
       const sizeAt = (index: number) => tops.current.get(keys[index]!)?.size ?? sizeOf(index);
+      // Stryker disable next-line ConditionalExpression: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.
       const extent = (index: number) => sizeAt(index) + (index > 0 && sizeAt(index) > 0 ? measured.gap : 0);
       let sum = 0;
       const sums = keys.map((_, index) => {
@@ -1315,32 +1303,27 @@ export function MessageList(props: MessageListProps): JSX.Element {
       });
       const shift = nearTop - (near > 0 ? measured.gap : 0) - sums[near]!;
       const starts = sums.map((at) => at + shift);
+      // The band: from the first child that ends below the overscan's top to the last that starts above its bottom. The child
+      // the band is placed by is in view, so both stop by it.
       let from = 0;
       // Stryker disable next-line EqualityOperator: a child that ends exactly at the overscan's edge draws or not, and the next scroll corrects it.
-      while (from < keys.length - 1 && starts[from]! + extent(from) <= viewTop - over) from++;
+      while (starts[from]! + extent(from) <= viewTop - over) from++;
       let to = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
-      while (to > from && starts[to]! >= viewBottom + over) to--;
-      if (band === null || band.from !== keys[from] || band.to !== keys[to]) setBand({ from: keys[from]!, to: keys[to]!, at: [from, to] });
+      while (starts[to]! >= viewBottom + over) to--;
+      setBand(`${keys[from]}\0${keys[to]}`);
     };
     const now = viewRef.current;
     const last = synced.current;
-    synced.current = { keys: now.keys, band: now.band, measured: now.measured, reach: now.reach, windowed: now.windowed };
-    if (
-      last !== null &&
-      last.windowed === now.windowed &&
-      last.band === now.band &&
-      last.measured === now.measured &&
-      last.reach === now.reach &&
-      last.keys.length === now.keys.length &&
-      last.keys.every((key, index) => key === now.keys[index])
-    )
-      return;
+    synced.current = now;
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,MethodExpression,OptionalChaining: this only spares reading the layout on a render that changed nothing the window reads, as the app draws again while someone types.
+    if (last?.windowed === now.windowed && last.band === now.band && last.measured === now.measured && last.reach === now.reach && last.keys.length === now.keys.length && last.keys.every((key, index) => key === now.keys[index])) return;
     windowSync.current(false);
   });
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
+    // Stryker disable next-line BooleanLiteral: a scroll moves nothing the window measures, so measuring again on it only costs the time.
     const onScroll = () => windowSync.current!(true);
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
     scroller.addEventListener("scroll", onScroll, { passive: true });
@@ -1349,6 +1332,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     resized.observe(content);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
     return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll));
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   }, []);
 
   useImperativeHandle(
@@ -1401,6 +1385,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The children's keys when last checked: in a windowed list, a message drawn again as the reader scrolls is one of
     // them, not a new one. The newest of them is the last heard, and what comes after it is drawn until it is.
     let keysHeard = new Set(viewRef.current.keys);
+    // Stryker disable next-line LogicalOperator: the check the list's first drawing runs, before any message arrives, sets the same.
     setHeard(viewRef.current.keys.at(-1) ?? null);
     // A reply that streams out of view stays drawn until it is heard, though it stops streaming.
     const publish = () => setWaitingKeys([...waiting].map(slotKeyOf).join("\n"));
@@ -1435,7 +1420,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       setHeard(viewRef.current.keys.at(-1) ?? null);
       if (content.closest("[hidden]")) {
         waiting = new Set(now.filter(busy));
-        publish();
         return;
       }
       const fresh: string[] = [];
@@ -1482,13 +1466,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let current: HTMLElement | null = null;
     // The message focus was last in, and its place among the messages.
     let last: HTMLElement | null = null;
-    let lastIndex = 0;
-    // And, for a windowed list, its child's key and the children's keys then: children not drawn may come and go
-    // without a message coming or going in the page.
-    let lastKey = "";
-    let lastKeys: readonly string[] = [];
+    // And its child's key, with the children's keys then: when it goes, focus goes to the child now in its place.
+    let lastKey: string | undefined;
+    let lastKeys: readonly string[] | undefined;
     const remember = (item: HTMLElement) => {
-      lastIndex = topItems(content).indexOf(item);
       lastKey = slotKeyOf(item);
       lastKeys = viewRef.current.keys;
     };
@@ -1553,22 +1534,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
       for (const guard of content.querySelectorAll(guards)) guard.setAttribute("tabindex", "-1");
       if (focused?.isConnected === false && doc.activeElement === doc.body) {
         focused = null;
-        const { windowed, keys } = viewRef.current;
-        // In a windowed list, the child now in its place among them all (the first after it still there, else the newest),
-        // which may not be drawn: drawn, then focused.
+        // The child now in its place (the first after it still there, else the newest), which may not be drawn: drawn, then
+        // focused. Children that come and go elsewhere, drawn or not, move none of it.
+        const { keys } = viewRef.current;
         const present = new Set(keys);
-        const key = lastKeys.slice(lastKeys.indexOf(lastKey) + 1).find((later) => present.has(later)) ?? keys.at(-1);
-        const slot = [...content.children].find((node) => node.getAttribute(SLOT) === key);
-        const found = slot === undefined ? [] : topItems(slot);
-        if (windowed && found.length === 0 && key !== undefined) requestRef.current({ key, id: null, child: false, forward: true, focus: true, block: "nearest" });
-        const left = windowed ? found : topItems(content);
-        const at = windowed ? 0 : Math.min(lastIndex, left.length - 1);
-        left.slice(at, at + 1).forEach(move);
+        const key = lastKeys!.slice(lastKeys!.indexOf(lastKey!) + 1).find((later) => present.has(later)) ?? keys.at(-1);
+        // Stryker disable next-line StringLiteral: any block but "center" or "start" scrolls only as far as it needs.
+        requestRef.current({ key: key!, id: null, child: false, forward: true, focus: true, block: "nearest" });
       }
       if (!changed) return;
       const list = topItems(content);
-      // Where the message focus is in sits, as messages come and go around it.
-      if (focused?.isConnected) remember(focused);
       // In a windowed list a message's place counts the children not drawn: one message each, until one is drawn and
       // found to hold none (what starts the conversation) or more.
       const { windowed, keys } = viewRef.current;
@@ -1675,31 +1650,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // ⌘↑, ⌘↓, ⌥↑ and ⌥↓ on a Mac are its Home, End, Page Up and Page Down.
       const key = navigationKey(event);
       if (event.defaultPrevented) return;
-      // In a windowed list, Home, End and the arrow keys find the message among the children, which may not be drawn:
+      // In a windowed list, Home, End and the arrow keys find the message among all the children, which may not be drawn:
       // drawn first, it then takes focus.
       const { windowed, keys } = viewRef.current;
-      // A message taller than the list scrolls through first, as below, before an arrow moves on.
-      const edgeBox = boxOf(item);
-      const edgeView = scroller.getBoundingClientRect();
-      const ahead = key === "ArrowDown" ? edgeBox.bottom - edgeView.bottom + EDGE : key === "ArrowUp" ? edgeView.top + EDGE - edgeBox.top : 0;
-      // Stryker disable next-line EqualityOperator: a pixel past the edge is a rounding, not more message.
-      if (windowed && (key === "Home" || key === "End" || ((key === "ArrowUp" || key === "ArrowDown") && ahead <= 1))) {
-        const slot = item.closest(`[${SLOT}]`)!;
-        const own = topItems(slot);
-        const forward = key === "Home" || key === "ArrowDown";
-        let target: HTMLElement | undefined = key === "ArrowUp" ? own[own.indexOf(item) - 1] : key === "ArrowDown" ? own[own.indexOf(item) + 1] : undefined;
+      const slot = item.closest(`[${SLOT}]`)!;
+      const reachFor = (index: number, forward: boolean) => {
         event.preventDefault();
-        if (target === undefined) {
-          const step = forward ? 1 : -1;
-          const index = holding(keys, counts.current, key === "Home" ? 0 : key === "End" ? keys.length - 1 : keys.indexOf(slot.getAttribute(SLOT)!) + step, step);
-          if (index < 0 || index >= keys.length) return;
-          const drawn = [...content.children].find((node) => node.getAttribute(SLOT) === keys[index]);
-          const inside = drawn === undefined ? [] : topItems(drawn);
-          target = forward ? inside[0] : inside.at(-1);
-          if (target === undefined) return requestRef.current({ key: keys[index]!, id: null, child: false, forward, focus: true, block: "nearest" });
-        }
-        return move(target);
-      }
+        // Stryker disable next-line StringLiteral: any block but "center" or "start" scrolls only as far as it needs.
+        requestRef.current({ key: keys[index]!, id: null, child: false, forward, focus: true, block: "nearest" });
+      };
       const list = topItems(content);
       const at = list.indexOf(item);
       const box = boxOf(item);
@@ -1716,9 +1675,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
           return;
         }
         case "Home":
+          if (windowed) return reachFor(0, true);
           goal = list[0];
           break;
         case "End":
+          if (windowed) return reachFor(keys.length - 1, false);
           goal = list.at(-1);
           break;
         case "ArrowDown":
@@ -1737,8 +1698,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
             scroller.scrollTop += (forward ? 1 : -1) * Math.min(beyond, paging ? view.height - LINE : LINE);
             return;
           }
-          // A page away: the farthest message that starts within a list's height of this one, else the next.
           const step = forward ? 1 : -1;
+          // In a windowed list, the next message in the same child, else in the next child, which may not be drawn.
+          if (windowed && !paging) {
+            const own = topItems(slot);
+            goal = own[own.indexOf(item) + step];
+            if (goal === undefined) return reachFor(keys.indexOf(slot.getAttribute(SLOT)!) + step, forward);
+            break;
+          }
+          // A page away: the farthest message that starts within a list's height of this one, else the next.
           const near = list.filter(
             // Stryker disable next-line EqualityOperator: a message that starts exactly a list's height away counts either way.
             (other, index) => (forward ? index > at : index < at) && Math.abs(boxOf(other).top - box.top) <= view.height,
