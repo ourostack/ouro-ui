@@ -7,6 +7,7 @@ import { AX_ACTION_ATTRIBUTE } from "@/registry/ouro/ax/component";
 import { LiveCaptions, type LiveCaptionLine, type LiveCaptionsProps } from "@/registry/ouro/components/ouro/live-captions/live-captions";
 import { liveCaptionsAx } from "@/registry/ouro/components/ouro/live-captions/live-captions-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
@@ -165,6 +166,24 @@ describe("LiveCaptions", () => {
     expect(getComputedStyle(words()).color).toBe("rgb(255, 255, 255)");
     expect(words().getBoundingClientRect().toJSON()).toEqual(where);
     expect(before.getBoundingClientRect().toJSON()).toEqual(rowAt);
+  });
+
+  it("lays nothing out when it renders again with the same lines, or a line turning final", async () => {
+    const { line: row, rerender } = await render(<LiveCaptions label="Captions" lines={[mara("1", "Shall we start"), mara("2", "the review", false)]} />);
+    // The resize observer reports the track a frame later, and places the lines then, where layout is free.
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    for (const final of [false, true]) {
+      const reads = watchLayoutReads();
+      await rerender(<LiveCaptions label="Captions" lines={[mara("1", "Shall we start"), mara("2", "the review", final)]} />);
+      reads.stop();
+      expect(reads.names()).toEqual([]);
+    }
+    expect(row("2").getAttribute("data-final")).toBe("");
+    // New words move the lines, so they are placed again.
+    const reads = watchLayoutReads();
+    await rerender(<LiveCaptions label="Captions" lines={[mara("1", "Shall we start"), mara("2", "the review"), mara("3", "Yes, please")]} />);
+    reads.stop();
+    expect(reads.names()).toContain("offsetTop");
   });
 
   it("is exactly maxLines lines tall, empty, full and overflowing, so nothing around it moves", async () => {

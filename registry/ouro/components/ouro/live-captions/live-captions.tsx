@@ -240,6 +240,10 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
   const tops = useRef(new Map<string, number>());
   // Stryker disable next-line ArrayDeclaration: the first layout effect has no line from before, so nothing slides whatever shape it starts from.
   const shape = useRef([size, maxLines]);
+  // Where the lines stand changes only with the lines shown, their words, the size and the height: a render that
+  // changes none of them (a line turning final, a parent's render) reads no layout, which inside a commit lays the
+  // whole page out. A resize that rewraps them is the observer's, below.
+  const placed = JSON.stringify([shown.map((line) => [line.id, line.speaker, line.text]), size, maxLines]);
   useLayoutEffect(() => {
     const track = trackRef.current!;
     const now = place(track);
@@ -259,7 +263,9 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
     void getComputedStyle(track).translate;
     track.style.transition = "";
     track.style.translate = "";
-  });
+    // Reads the reduced-motion setting of the render whose lines moved.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placed]);
 
   // Announcing: the ids that were final last time, the lines waiting to be read, and the gap timer.
   const heard = useRef<Set<string> | null>(null);
