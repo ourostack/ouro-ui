@@ -2632,6 +2632,7 @@ describe("MessageList switching conversations", () => {
     items = conversation(open, count),
     welcome = false,
     named = false,
+    called,
     byIndex = false,
     children,
   }: {
@@ -2644,6 +2645,8 @@ describe("MessageList switching conversations", () => {
     welcome?: boolean;
     /** Tell the list which conversation it shows, with `conversation`. */
     named?: boolean;
+    /** The `conversation` to name, when it is not the one whose messages show (an app between fetches). */
+    called?: string;
     /** Key the messages by their place, as conversations that share keys do. */
     byIndex?: boolean;
     /** What follows the list, such as a composer. */
@@ -2651,7 +2654,7 @@ describe("MessageList switching conversations", () => {
   }) {
     return (
       <>
-      <MessageList key={keyed ? open : undefined} label={`Chat with ${open}`} style={{ height: 300 }} initialAnchor={initialAnchor} conversation={named ? open : undefined}>
+      <MessageList key={keyed ? open : undefined} label={`Chat with ${open}`} style={{ height: 300 }} initialAnchor={initialAnchor} conversation={called ?? (named ? open : undefined)}>
         {welcome && <p key="welcome">The start of your conversation</p>}
         {items.map((item, at) => (
           <Message key={byIndex ? at : item.id} id={String(item.id)} role={item.role} name={item.role === "user" ? "Ana" : open}>
@@ -2893,19 +2896,105 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="mara" keyed={false} named byIndex />);
     await settle(list.scroller);
     await upBy(list.scroller, 1200);
-    // Keyed 0 to 999 in both: only conversation says it is another one.
-    await list.commit(<Switcher open="theo" keyed={false} named byIndex />);
+    // Keyed by place in both, 0 to 999 and 0 to 899: no key is new, so only conversation says it is another one.
+    await list.commit(<Switcher open="theo" keyed={false} named byIndex count={900} />);
     expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
     await settle(list.scroller);
     await upBy(list.scroller, 1200);
     const reading = firstVisible(list.scroller);
     // Every message of the same conversation re-keyed at once: no switch.
-    await list.commit(<Switcher open="theo" keyed={false} named />);
+    await list.commit(<Switcher open="theo" keyed={false} named count={900} />);
     await settle(list.scroller);
-    expect(messagesOf(list.scroller)).toHaveLength(1000);
+    expect(messagesOf(list.scroller)).toHaveLength(900);
     expect(Math.abs(firstVisible(list.scroller).top - reading.top)).toBeLessThanOrEqual(1);
     expect(firstVisible(list.scroller).message.id).toBe(reading.message.id);
+  });
+
+  it("switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    const reading = firstVisible(list.scroller);
+    (reading.message as HTMLElement).focus({ preventScroll: true });
+    // Named first, with the last conversation's messages still showing: nothing moves yet.
+    await list.commit(<Switcher open="mara" keyed={false} called="theo" />);
+    await settle(list.scroller);
+    expect(messagesOf(list.scroller)).toHaveLength(1000);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    expect(document.activeElement).toBe(reading.message);
+    // Its messages come: it opens at their newest, drawing only the newest, with focus on the newest in view.
+    await list.commit(<Switcher open="theo" keyed={false} named />);
+    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+    expect(document.activeElement!.id).toBe("theo-999");
+    await settle(list.scroller);
+    expect(messagesOf(list.scroller)).toHaveLength(1000);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
+  it("takes messages that come before their conversation is named for the last one's, and opens nothing when it is named after them", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    // The other conversation's messages, still under the last one's name: the same conversation, as far as the list can tell.
+    await list.commit(<Switcher open="theo" keyed={false} called="mara" />);
+    await settle(list.scroller);
+    expect(messagesOf(list.scroller)).toHaveLength(1000);
+    const top = list.scroller.scrollTop;
+    // Named a commit later: it names the messages the list holds, so nothing moves, now or as the next message comes.
+    await list.commit(<Switcher open="theo" keyed={false} named />);
+    await settle(list.scroller);
+    expect(list.scroller.scrollTop).toBe(top);
+    expect(messagesOf(list.scroller)).toHaveLength(1000);
+    await list.commit(<Switcher open="theo" keyed={false} named items={[...conversation("theo", 1000), { id: "theo-new", role: "assistant", text: "A reply." }]} />);
+    await settle(list.scroller);
+    expect(list.scroller.scrollTop).toBe(top);
+    expect(messagesOf(list.scroller)).toHaveLength(1001);
+  });
+
+  it("adopts a conversation first named for the messages it holds, leaving a scrolled-up reader where they are", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} count={200} />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    const reading = firstVisible(list.scroller);
+    // A new chat gets its id from the server.
+    await list.commit(<Switcher open="mara" keyed={false} count={200} named />);
+    await settle(list.scroller);
+    expect(messagesOf(list.scroller)).toHaveLength(200);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    expect(list.host.querySelector("[data-ouro-message-list-jump]")).not.toBeNull();
+    // Named back and forth before another's messages come: nothing waits, and nothing moves.
+    await list.commit(<Switcher open="mara" keyed={false} count={200} called="theo" />);
+    await list.commit(<Switcher open="mara" keyed={false} count={200} named />);
+    await list.commit(<Switcher open="mara" keyed={false} items={[...conversation("mara", 200), { id: "mara-new", role: "assistant", text: "A reply." }]} named />);
+    await settle(list.scroller);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("opens a conversation named while the list holds no messages at its newest as they come", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    await list.commit(<Switcher open="mara" keyed={false} named count={0} />);
+    await list.commit(<Switcher open="mara" keyed={false} called="theo" count={0} />);
+    await list.commit(<Switcher open="theo" keyed={false} named />);
+    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
+  it("opens the messages that come with a conversation first named, when they share no key with those it held", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} count={200} />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    await list.commit(<Switcher open="theo" keyed={false} named />);
+    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
   it("lets go of a message that went once focus lands elsewhere, so a message that comes later never takes focus", async () => {
