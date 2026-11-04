@@ -732,6 +732,35 @@ describe("EmojiText", () => {
     expect(widths()).toEqual([20]);
   });
 
+  it("keeps every line and every emoji where a loaded picture would, when its picture fails to load", async () => {
+    // The same text twice, one with every picture there and one with every picture missing: the browser draws a
+    // missing one's name in its place, which must not move the line it sits on, or the lines after it.
+    const missing: EmojiCatalogue = {
+      categories: [{ id: "symbols", label: "Symbols", items: [party, heart, fern].map((item, index) => ({ ...item, src: `/__ouro-missing-emoji-${index}.png`, srcSet: undefined })) }],
+    };
+    const text = "Shipped :party: the notes, :heart: thanks all :fern: see you";
+    const paragraph = (set: EmojiCatalogue) => (
+      <p style={{ width: 160, margin: 0, fontSize: 16, lineHeight: 1.5 }}>
+        <EmojiText text={text} catalogue={set} />
+      </p>
+    );
+    const { host } = await render(
+      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+        {paragraph(catalogue)}
+        {paragraph(missing)}
+      </div>,
+    );
+    const [loaded, failed] = [...host.querySelectorAll("p")];
+    await expect.poll(() => images(host).every((img) => img.complete)).toBe(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(images(failed!).map((img) => img.naturalWidth)).toEqual([0, 0, 0]);
+    const layout = (p: Element) => {
+      const top = p.getBoundingClientRect().top;
+      return { height: p.getBoundingClientRect().height, emoji: images(p).map((img) => Math.round(img.getBoundingClientRect().top - top)) };
+    };
+    expect(layout(failed!)).toEqual(layout(loaded!));
+  });
+
   it("counts an emoji in two categories once, and keeps the span's attributes and layout classes", async () => {
     const { host } = await render(<EmojiText text="plain" catalogue={catalogue} id="body" className="mt-1" />);
     const root = host.querySelector<HTMLElement>('[data-ouro="emoji-text"]')!;
