@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { Activity, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -646,6 +646,36 @@ describe("SnapPiP", () => {
     });
     expect(watch.count()).toBe(0);
     watch.stop();
+  });
+
+  it("keeps following its keep-out elements after a hidden Activity shows it again", async () => {
+    const bar = document.createElement("div");
+    Object.assign(bar.style, { position: "absolute", left: "0", right: "0", bottom: "0", height: "80px" });
+    const shown = (mode: "visible" | "hidden") => <Activity mode={mode}>{self({ keepOut: [{ current: bar }] })}</Activity>;
+    await render(shown("visible"));
+    stage.append(bar);
+    await render(shown("visible"));
+    await expect.poll(() => at()).toEqual([RIGHT, 400 - 16 - 100]);
+    await render(shown("hidden"));
+    await render(shown("visible"));
+    await rest();
+    // The element resizes: the picture follows it, as it did before it was hidden.
+    bar.style.height = "120px";
+    await expect.poll(() => settling()).toBe(true);
+    await rest();
+    expect(at()).toEqual([RIGHT, 360 - 16 - 100]);
+  });
+
+  it("lets go of what it observes when it unmounts", async () => {
+    const mutations = vi.spyOn(MutationObserver.prototype, "disconnect");
+    const resizes = vi.spyOn(ResizeObserver.prototype, "disconnect");
+    await render(self());
+    mutations.mockClear();
+    resizes.mockClear();
+    await act(async () => root!.unmount());
+    root = undefined;
+    expect(mutations).toHaveBeenCalled();
+    expect(resizes).toHaveBeenCalled();
   });
 
   it("measures keep-out elements inside the container's border, rendered by the app or not", async () => {
