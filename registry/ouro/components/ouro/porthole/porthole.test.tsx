@@ -244,6 +244,8 @@ describe("Porthole", () => {
     const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      // A loaded WebKit can take the setting a moment after the command returns; open only once the page has it.
+      await expect.poll(() => matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(reduced);
       expect(view.porthole.hasAttribute("data-open")).toBe(false);
       await act(() => view.spot.click());
       const opacity = token(reduced ? "--ouro-duration-fast" : "--ouro-duration-base");
