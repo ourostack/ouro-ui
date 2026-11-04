@@ -393,6 +393,25 @@ describe("Emoji's animation", () => {
     await expect.poll(ahead).toContain(tones[2]!.animatedSrc);
   });
 
+  it("is fetched at low priority, and not for a still fetched at low priority or while the browser asks to save data", async () => {
+    await motion();
+    const priorities: string[] = [];
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set").mockImplementation(function (this: HTMLImageElement, src: string) {
+      if (src === party.animatedSrc) priorities.push(this.fetchPriority);
+      this.setAttribute("src", src);
+    });
+    await render(<Emoji item={party} fetchPriority="high" />);
+    await expect.poll(() => priorities).toEqual(["low"]);
+    const low = await render(<Emoji item={wave} fetchPriority="low" />);
+    await act(() => emoji(low.host).decode());
+    Object.defineProperty(navigator, "connection", { configurable: true, value: { saveData: true } });
+    onTestFinished(() => void Reflect.deleteProperty(navigator, "connection"));
+    const saving = await render(<Emoji item={blink} />);
+    await act(() => emoji(saving.host).decode());
+    expect(fetched(sources)).not.toContain(wave.animatedSrc);
+    expect(fetched(sources)).not.toContain(blink.filmstrip!.src);
+  });
+
   it("is not fetched under reduced motion, which plays nothing, or for a still that fails to load", async () => {
     const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
     const { host, rerender } = await render(<Emoji item={party} />);

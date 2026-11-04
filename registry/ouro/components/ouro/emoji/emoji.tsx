@@ -269,16 +269,20 @@ function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiF
 }
 
 /**
- * Fetches the animation (`src`) once the still image has loaded, so the first play starts at once
- * rather than waiting for it. Undefined when nothing can play, as under reduced motion.
+ * Fetches the animation (`src`) once the still image has loaded, at low priority, so the first play
+ * starts at once rather than waiting for it. Undefined when nothing can play, as under reduced
+ * motion, or when the still itself is fetched at low priority (EmojiPicker's emoji further down its
+ * grid). Nothing is fetched ahead while the browser asks to save data.
  */
 function useWarmAnimation(image: { current: HTMLImageElement | null }, src: string | undefined): void {
   useEffect(() => {
-    if (src === undefined) return;
+    if (src === undefined || (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
     // A still that fails to load leaves the animation unfetched; it would most likely fail too.
     image.current!.decode().then(
       () => {
-        new Image().src = src;
+        const ahead = new Image();
+        ahead.fetchPriority = "low";
+        ahead.src = src;
       },
       () => {},
     );
@@ -320,8 +324,9 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named
  * by its `alt` (the emoji's name). An animated emoji shows its still image until it plays:
  * while the mouse is on it or on the button around it, or that button has focus, or while
- * `play` says so. Its animation is fetched once the still image has loaded, so the first play
- * starts at once. With reduced motion it always shows the still image, and the animation is not fetched. `skinTone` draws an
+ * `play` says so. Its animation is fetched once the still image has loaded, at low priority, so the
+ * first play starts at once; not for a still given `fetchPriority="low"`, nor while the browser asks
+ * to save data. With reduced motion it always shows the still image, and the animation is not fetched. `skinTone` draws an
  * emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
  *
  * Use `EmojiText` instead to draw the emoji in a message's text, and an emoji character for an
@@ -336,6 +341,7 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * <Button variant="plain" aria-label="Party popper"><Emoji item={party} alt="" /></Button>
  * @claim "named by its `alt` (the emoji's name)" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > draws the still image named by the emoji's name, the size of the text, in the tone asked for)
  * @claim "Its animation is fetched once the still" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji's animation > is fetched once the still image has loaded, so the first play starts at once, the still showing until then)
+ * @claim "at low priority, so the first play" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji's animation > is fetched at low priority, and not for a still fetched at low priority or while the browser asks to save data)
  * @claim "and the animation is not fetched" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji's animation > is not fetched under reduced motion, which plays nothing, or for a still that fails to load)
  * @claim "With reduced motion it always shows the" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > shows the still image with reduced motion, whatever play says or the pointer does)
  * @claim "while the mouse is on it or on" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > plays while the mouse is on its button or the button has focus, and stops after)
@@ -388,7 +394,7 @@ export function Emoji(props: EmojiProps): JSX.Element {
   // An animated image wins over a filmstrip.
   const strip = playing && !form.animatedSrc ? form.filmstrip : undefined;
   useFilmstrip(own, strip);
-  useWarmAnimation(own, animated ? (form.animatedSrc ?? form.filmstrip!.src) : undefined);
+  useWarmAnimation(own, animated && rest.fetchPriority !== "low" ? (form.animatedSrc ?? form.filmstrip!.src) : undefined);
   const shown = strip ? strip.src : playing ? form.animatedSrc : form.src;
   const waits = placeholder !== undefined;
   const box = useRef<HTMLSpanElement>(null);
