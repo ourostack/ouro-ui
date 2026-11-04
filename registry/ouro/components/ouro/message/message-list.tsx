@@ -934,6 +934,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const records = all.filter((record) => !barOnly(record));
       if (records.length === 0) return;
       const touched = records.some(touchesItems);
+      // Stryker disable next-line ConditionalExpression: finding the messages again when none came or went finds the same ones.
       if (touched) list = [...content.querySelectorAll(items)];
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
