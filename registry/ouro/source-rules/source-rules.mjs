@@ -70,7 +70,9 @@ import ts from "typescript";
 //   document (or its `on…` handler), under a `document.hidden`, `visibilityState` or `hasFocus()`
 //   condition, in a requestIdleCallback, an IntersectionObserver or an in-view or idle hook's
 //   callback, or waiting on what such a hook returns (`enabled: inView`) or on state such a
-//   callback sets from what the gate says (`setShown(entry.isIntersecting)`, not `setOpen(false)`).
+//   callback sets from what the gate says (`setShown(entry.isIntersecting)`, not `setOpen(false)`);
+//   and an element's `loading="lazy"`, or an address (`src`, `srcSet`, `poster`) that waits on a
+//   gate (`src={inView ? url : undefined}`).
 //   Rendering-only gates pass, since they load nothing: pausing an animation or a caret, windowing
 //   what is drawn while the data stays loaded, a media stream; so does saving on hide (a fetch with
 //   keepalive or another method). It counts where the load is written and never makes the
@@ -171,7 +173,7 @@ export const LAYOUT_ANIMATION_FIX =
 
 /** What the gated-load rule tells an app to do, and what it lets through. */
 export const GATED_LOAD_FIX =
-  "Load it eagerly: start the fetch when the data is known to be needed (on mount, or as soon as the page before it lands), not when the page becomes visible, the window gets focus, the browser is idle or an element scrolls into view, " +
+  "Load it eagerly: start the fetch when the data is known to be needed (on mount, or as soon as the page before it lands), not when the page becomes visible, the window gets focus, the browser is idle or an element scrolls into view (loading=\"lazy\" included), " +
   "so nobody waits for what could already be there. Spend the work on what the person is likely to look at next, newest first, within the performance budgets. " +
   "Rendering-only gates pass: pausing an animation or a caret, windowing what is drawn while the data stays loaded, a media stream, and saving on hide (sendBeacon, or fetch with keepalive or a method other than GET).";
 
@@ -877,6 +879,8 @@ const LOAD_VERB = /^(?:fetch|refetch|prefetch|preload|preinit|load|reload|refres
 const DATA_HOOK = /^use(?:SWR|SWRInfinite|SWRImmutable|Query|Queries|InfiniteQuery|SuspenseQuery|SuspenseInfiniteQuery|LazyQuery)$/;
 const LOAD_CONSTRUCTORS = new Set(["Image", "XMLHttpRequest", "EventSource", "WebSocket", "FontFace"]);
 const ENABLE_OPTIONS = new Set(["enabled", "skip", "pause", "paused"]);
+// The attributes through which an element fetches what it shows.
+const ASSET_ATTRIBUTES = new Set(["src", "srcSet", "srcset", "poster", "data"]);
 const EXITS = new Set([ts.SyntaxKind.ReturnStatement, ts.SyntaxKind.ThrowStatement, ts.SyntaxKind.ContinueStatement, ts.SyntaxKind.BreakStatement]);
 const calleeName = (callee) => (ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : undefined);
 const exits = (statement) => EXITS.has((ts.isBlock(statement) ? statement.statements.at(-1) : statement)?.kind);
@@ -1079,6 +1083,15 @@ function findGatedLoads({ file, sourceFile, declarations }) {
     if (ts.isBinaryExpression(node) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(node.operatorToken.kind)) {
       const gate = gateRead(node.left);
       if (gate) scanScope(node.right, gate);
+    }
+    // An element that fetches its asset only as it nears the screen (`loading="lazy"`), and one
+    // whose address waits on a gate (`src={inView ? url : undefined}`).
+    if (ts.isJsxAttribute(node) && ts.isJsxOpeningLikeElement(node.parent.parent)) {
+      const name = nameText(node.name);
+      const tag = node.parent.parent.tagName.getText();
+      if (name === "loading" && literalValue(node.initializer) === "lazy") record(node, "loading=lazy", tag);
+      const address = name !== undefined && ASSET_ATTRIBUTES.has(name) && node.initializer ? gateRead(node.initializer) : undefined;
+      if (address) record(node, address, `${tag}.${name}`);
     }
     // A data hook or load whose arguments read a gate (`useSWR(inView ? key : null)`), and an
     // `enabled: inView` option.

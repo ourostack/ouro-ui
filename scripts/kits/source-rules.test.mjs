@@ -559,6 +559,10 @@ describe("gated-load", () => {
         expect(gated(`export function Q() { useIdleTimer({ onIdle: () => {}, onActive: () => refetch(), timeout: 1000 }); useIntersectionObserver(ref, () => new Image()); return null; }`)).toEqual(["Q::gated-load::useIdleTimer>refetch", "Q::gated-load::useIntersectionObserver>new Image"]);
         expect(gated(`export function A() { return <><InView onChange={(seen) => seen && load()} as="div" /><Row onEnterViewport={loadRow} /><Waypoint onEnter={() => {}} /></>; }`)).toEqual(["A::gated-load::InView>load", "A::gated-load::onEnterViewport>loadRow"]);
     });
+    it("finds an element that fetches only as it nears the screen, and an address that waits on a gate", () => {
+        expect(gated(`export function Card({ photo }) { return <><img src={photo} loading="lazy" alt="" /><iframe loading="lazy" src="/map" /><Image loading="eager" src={photo} /><img loading={mode} /></>; }`)).toEqual(["Card::gated-load::loading=lazy>img", "Card::gated-load::loading=lazy>iframe"]);
+        expect(gated(`export function Card({ photo }) { const { ref, inView } = useInView(); return <><img ref={ref} src={inView ? photo : undefined} alt="" /><video poster={inView && photo} /><img src={photo} srcSet={undefined} title={inView ? "a" : "b"} /><img src /></>; }`)).toEqual(["Card::gated-load::useInView>img.src", "Card::gated-load::useInView>video.poster"]);
+    });
     it("follows state that a gate's callback sets, and a same-file function that loads", () => {
         expect(gated(`export function Q() { const [shown, setShown] = useState(false); useEffect(() => { new IntersectionObserver(([e]) => setShown(e.isIntersecting)); }, []); useEffect(() => { shown && load(); }, [shown]); return null; }`)).toEqual(["Q::gated-load::IntersectionObserver>load"]);
         expect(gated(`function sync() { again(); } function again() { sync(); fetch("/api"); } export function A() { requestIdleCallback(() => sync()); }`)).toEqual(["A::gated-load::requestIdleCallback>sync"]);
@@ -603,6 +607,7 @@ describe("gated-load", () => {
         const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::A::gated-load::focus>fetch::", file: "app/x.tsx", line: 4 }], {});
         expect(formatComparison(comparison)).toEqual([`New load that waits for focus, visibility, idle or scrolling: app/x.tsx::A::gated-load::focus>fetch:: (+1) at app/x.tsx:4. ${GATED_LOAD_FIX}`]);
         expect(GATED_LOAD_FIX).toContain("Load it eagerly");
+        expect(GATED_LOAD_FIX).toContain('(loading="lazy" included)');
         expect(GATED_LOAD_FIX).toContain("newest first, within the performance budgets");
         expect(GATED_LOAD_FIX).toContain("Rendering-only gates pass");
     });
