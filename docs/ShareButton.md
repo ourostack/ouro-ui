@@ -26,7 +26,7 @@ Type: `ShareButtonProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-auto`). Appearance classes warn in development. |
 | `copiedLabel` | `string` | `"Link copied"` | What it says, and screen readers hear, when there was no share sheet and the link was copied instead. |
-| `failedLabel` | `string` | `"Couldn't share"` | What it says, and screen readers hear, when neither sharing nor copying worked. |
+| `failedLabel` | `string` | `"The browser blocked sharing and copying. Copy the link by hand."` | What it says, and screen readers hear, when neither sharing nor copying worked. |
 | `hideLabel` | `boolean` |  | Shows only the icon; the label stays the button's name for screen readers. |
 | `label` | `string` | `"Share"` | The button's label, and its name for screen readers with `hideLabel`. |
 | `onShare` | `((result: ShareResult) => void)` |  | Called with how the share ended: `shared`, `copied`, `cancelled` or `failed`. |

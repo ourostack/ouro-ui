@@ -48,7 +48,10 @@ export interface EditSheetBaseProps {
   cancelLabel?: string | undefined;
   /** The label of the close button in the corner. Translate it with your app. @default "Close" */
   closeLabel?: string | undefined;
-  /** What the sheet shows, at the top of the form, when `onSubmit` rejects or throws. Translate it with your app. @default "Couldn't save. Try again." */
+  /**
+   * What the sheet shows, at the top of the form, when `onSubmit` rejects or throws. Translate it with your app.
+   * @default "Your changes were not saved: <the error's message>. Press Save to try again.", or, for an error without a message, "Your changes were not saved. The save stopped without saying why. Press Save to try again."
+   */
   failureMessage?: string | undefined;
   /**
    * The question the sheet asks, in place of its buttons, when the user dismisses it (Escape,
@@ -124,6 +127,12 @@ const serialize = (form: HTMLFormElement) =>
  */
 const discardClass = "flex w-full flex-wrap items-center justify-end gap-2";
 
+/** What a rejected save says by default: the error's own message where it has one, and the way on. */
+const failureText = (error: unknown): string => {
+  const reason = (error instanceof Error ? error.message : typeof error === "string" ? error : "").trim().replace(/\.$/, "");
+  return reason ? `Your changes were not saved: ${reason}. Press Save to try again.` : "Your changes were not saved. The save stopped without saying why. Press Save to try again.";
+};
+
 /** Whether `onSubmit` returned errors to show, rather than nothing or an empty object. */
 const hasErrors = (result: EditSheetResult): result is ReadonlyFormErrors => Boolean(result) && Object.keys(result!).length > 0;
 
@@ -164,7 +173,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
     submitLabel = "Save",
     cancelLabel = "Cancel",
     closeLabel = "Close",
-    failureMessage = "Couldn't save. Try again.",
+    failureMessage,
     discardMessage = "Discard your changes?",
     discardLabel = "Discard",
     keepEditingLabel = "Keep editing",
@@ -314,7 +323,7 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
         const stale = attempt.current !== current;
         if (!stale) {
           setPending(false);
-          refuse({ form: failureMessage });
+          refuse({ form: failureMessage ?? failureText(error) });
         }
         /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
         if (process.env.NODE_ENV !== "production") {

@@ -24,7 +24,7 @@ export interface ShareButtonOwnProps {
    * @claim "What it says, and screen readers" registry/ouro/components/ouro/share-button/share-button.test.tsx verify:testExists(registry/ouro/components/ouro/share-button/share-button.test.tsx::ShareButton > copies the link where there is no share sheet, says Link copied once, and reads Share again after two seconds)
    */
   copiedLabel?: string | undefined;
-  /** What it says, and screen readers hear, when neither sharing nor copying worked. @default "Couldn't share" */
+  /** What it says, and screen readers hear, when neither sharing nor copying worked. @default "The browser blocked sharing and copying. Copy the link by hand." */
   failedLabel?: string | undefined;
   /** Shows only the icon; the label stays the button's name for screen readers. */
   hideLabel?: boolean | undefined;
@@ -85,7 +85,7 @@ function CheckIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
  * @example
  * <ShareButton url={`https://example.com/notes/${note.id}`} title={note.title} />
  * @claim "A button that shares a link" registry/ouro/components/ouro/share-button/share-button.test.tsx verify:testExists(registry/ouro/components/ouro/share-button/share-button.test.tsx::ShareButton > copies the link where there is no share sheet, says Link copied once, and reads Share again after two seconds)
- * @claim "A button that shares a link" registry/ouro/components/ouro/share-button/share-button.test.tsx verify:testExists(registry/ouro/components/ouro/share-button/share-button.test.tsx::ShareButton > says Couldn't share, once, when neither sharing nor copying works)
+ * @claim "A button that shares a link" registry/ouro/components/ouro/share-button/share-button.test.tsx verify:testExists(registry/ouro/components/ouro/share-button/share-button.test.tsx::ShareButton > says that the browser blocked sharing and copying, once, when neither works)
  */
 export function ShareButton(props: ShareButtonProps): JSX.Element {
   const {
@@ -94,7 +94,7 @@ export function ShareButton(props: ShareButtonProps): JSX.Element {
     text,
     label = "Share",
     copiedLabel = "Link copied",
-    failedLabel = "Couldn't share",
+    failedLabel = "The browser blocked sharing and copying. Copy the link by hand.",
     hideLabel,
     variant: variantProp = "outline",
     size: sizeProp = "md",

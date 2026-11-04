@@ -175,7 +175,7 @@ describe("ShareButton", () => {
     }
   });
 
-  it("says Couldn't share, once, when neither sharing nor copying works", async () => {
+  it("says that the browser blocked sharing and copying, once, when neither works", async () => {
     stubClipboard("absent");
     vi.spyOn(document, "execCommand").mockReturnValue(false);
     const announced = watchAnnouncements();
@@ -189,6 +189,14 @@ describe("ShareButton", () => {
     } finally {
       announced.stop();
     }
+  });
+
+  it("by default says that the browser blocked sharing and copying, and to copy the link by hand", async () => {
+    stubClipboard("absent");
+    vi.spyOn(document, "execCommand").mockReturnValue(false);
+    const { button } = await render(<ShareButton url="https://example.com" />);
+    await userEvent.click(button);
+    await until(() => button.textContent, "The browser blocked sharing and copying. Copy the link by hand.");
   });
 
   it("shows only the icon with hideLabel, its label still the button's name, and squares the button", async () => {

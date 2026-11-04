@@ -468,12 +468,12 @@ describe("EditSheet failures outside a field (review fix round 1, finding 3)", (
     });
     await open({ onSubmit });
     await userEvent.click(dialogButton("Save"));
-    await expect.poll(() => alert()?.textContent).toBe("Couldn't save. Try again.");
+    await expect.poll(() => alert()?.textContent).toBe("Your changes were not saved: offline. Press Save to try again.");
     const first = alert();
     await userEvent.click(dialogButton("Save"));
     expect(onSubmit).toHaveBeenCalledTimes(2);
     await expect.poll(alert).not.toBe(first);
-    expect(alert().textContent).toBe("Couldn't save. Try again.");
+    expect(alert().textContent).toBe("Your changes were not saved: offline. Press Save to try again.");
     expect(document.activeElement).toBe(alert());
   });
 
@@ -483,7 +483,7 @@ describe("EditSheet failures outside a field (review fix round 1, finding 3)", (
     await open({ onSubmit: vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise) });
     await userEvent.click(dialogButton("Save"));
     await act(async () => first.reject(new Error("offline")));
-    await expect.poll(() => alert()?.textContent).toBe("Couldn't save. Try again.");
+    await expect.poll(() => alert()?.textContent).toBe("Your changes were not saved: offline. Press Save to try again.");
     const oldAlert = alert();
     const focus = vi.spyOn(oldAlert, "focus");
     await userEvent.click(dialogButton("Save"));
@@ -498,20 +498,30 @@ describe("EditSheet failures outside a field (review fix round 1, finding 3)", (
   it("shows the failure message in an alert and focuses it when onSubmit rejects", async () => {
     await open({ onSubmit: () => Promise.reject(new Error("Network down")) });
     await userEvent.click(dialogButton("Save"));
-    await expect.poll(() => alert().textContent).toBe("Couldn't save. Try again.");
+    await expect.poll(() => alert().textContent).toBe("Your changes were not saved: Network down. Press Save to try again.");
     expect(document.activeElement).toBe(alert());
     expect(popup()!.hasAttribute("data-open")).toBe(true);
   });
 
+  it.each([
+    ["a string, trimmed and without its full stop", " The server is read-only. ", "Your changes were not saved: The server is read-only. Press Save to try again."],
+    ["an error with no message", new Error(""), "Your changes were not saved. The save stopped without saying why. Press Save to try again."],
+    ["something that is no error", { status: 500 }, "Your changes were not saved. The save stopped without saying why. Press Save to try again."],
+  ])("by default says why the save was refused when onSubmit rejects with %s", async (_what, reason, said) => {
+    await open({ onSubmit: () => Promise.reject(reason) });
+    await userEvent.click(dialogButton("Save"));
+    await expect.poll(() => alert().textContent).toBe(said);
+  });
+
   it("takes the failure message as a prop, and shows it when onSubmit throws", async () => {
     await open({
-      failureMessage: "Speichern fehlgeschlagen.",
+      failureMessage: "Nicht gespeichert: der Server ist offline.",
       onSubmit: () => {
         throw new Error("offline");
       },
     });
     await userEvent.click(dialogButton("Save"));
-    await expect.poll(() => alert().textContent).toBe("Speichern fehlgeschlagen.");
+    await expect.poll(() => alert().textContent).toBe("Nicht gespeichert: der Server ist offline.");
   });
 
   it("shows a returned error that matches no field in the alert, and warns", async () => {
@@ -696,7 +706,7 @@ describe("EditSheet's discard guard keeps the opening's values (review fix round
     await settled();
     await userEvent.fill(nameBox(), "Stew");
     await userEvent.click(dialogButton("Save"));
-    await expect.poll(() => popup()!.textContent).toContain("Couldn't save");
+    await expect.poll(() => popup()!.textContent).toContain("Your changes were not saved: down.");
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(confirmRow).not.toBeNull();
   });

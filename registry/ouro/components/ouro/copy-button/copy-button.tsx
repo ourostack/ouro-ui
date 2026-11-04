@@ -15,7 +15,7 @@ export interface CopyButtonOwnProps {
   label?: string | undefined;
   /** What the button says, and screen readers hear, once the text is on the clipboard. @default "Copied" */
   copiedLabel?: string | undefined;
-  /** What the button says, and screen readers hear, when the browser refused to copy. @default "Couldn't copy" */
+  /** What the button says, and screen readers hear, when the browser refused to copy. @default "The browser blocked copying. Select the text and copy it by hand." */
   failedLabel?: string | undefined;
   /** Shows only the icon; the label stays the button's name for screen readers. For a corner of a code block or a field. */
   hideLabel?: boolean | undefined;
@@ -115,7 +115,7 @@ async function writeClipboard(text: string): Promise<boolean> {
 /**
  * A button that puts a piece of text on the clipboard: an API key, a link, a command. On a
  * click it copies `value`, then for two seconds shows a check and says "Copied" (or a cross
- * and "Couldn't copy" when the browser refuses), and screen readers hear the same, politely,
+ * and "The browser blocked copying. Select the text and copy it by hand." when the browser refuses), and screen readers hear the same, politely,
  * once. It uses the Clipboard API, and a text selection where that is not available.
  *
  * Use `CodeBlock` instead for code or a command shown with its own copy button.
@@ -127,14 +127,14 @@ async function writeClipboard(text: string): Promise<boolean> {
  * <CopyButton value={apiKey} label="Copy key" />
  * <CopyButton value={url} label="Copy link" hideLabel variant="plain" />
  * @claim "On a click it copies `value`" registry/ouro/components/ouro/copy-button/copy-button.test.tsx verify:testExists(registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds)
- * @claim "On a click it copies `value`" registry/ouro/components/ouro/copy-button/copy-button.test.tsx verify:fileLine(registry/ouro/components/ouro/copy-button/copy-button.test.tsx, /says\sCouldn't\scopy,\sonce,\swhen\sthe\sbrowser\srefuses/)
+ * @claim "On a click it copies `value`" registry/ouro/components/ouro/copy-button/copy-button.test.tsx verify:fileLine(registry/ouro/components/ouro/copy-button/copy-button.test.tsx, /says\sthat\sthe\sbrowser\sblocked\scopying,\sonce,\swhen\sthe\sbrowser\srefuses/)
  */
 export function CopyButton(props: CopyButtonProps): JSX.Element {
   const {
     value,
     label = "Copy",
     copiedLabel = "Copied",
-    failedLabel = "Couldn't copy",
+    failedLabel = "The browser blocked copying. Select the text and copy it by hand.",
     hideLabel,
     variant: variantProp = "outline",
     size: sizeProp = "sm",
