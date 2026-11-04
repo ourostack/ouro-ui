@@ -197,6 +197,7 @@ describe("SnapPiP", () => {
     await tabTo();
     expect(hintShown()).toBe(true);
     expect(hint().getAttribute("data-side")).toBe("bottom");
+    expect(hint().style.left).toBe("0px");
     expect(hint().getBoundingClientRect().top).toBe(top.getBoundingClientRect().bottom);
     expect(hint().getBoundingClientRect().left).toBe(top.getBoundingClientRect().left);
     await act(async () => top.blur());
