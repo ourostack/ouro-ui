@@ -223,6 +223,9 @@ describe("MessageList actions", () => {
         <Message id="empty" variant="chat" role="assistant" name="Mara Quill" quickReactions={[{ key: "like", label: "Like", icon: "👍", onClick: chose }]} menu={[]}>
           Reactions and an empty menu
         </Message>
+        <Message id="nameless" variant="chat" role="user" name="" menu={[{ label: "Copy link", onClick: chose }]}>
+          Nobody named
+        </Message>
       </MessageList>,
     );
     const open = async (id: string, name: string) => {
@@ -241,6 +244,41 @@ describe("MessageList actions", () => {
     expect(await open("entries", "Message actions for Grace Hopper")).toEqual({ items: ["Reply", "Copy link"], groups: 0, lines: 0 });
     expect(await open("reactions", "Message actions for Ana Lind")).toEqual({ items: ["👍Like", "+More reactions"], groups: 1, lines: 0 });
     expect(await open("empty", "Message actions for Mara Quill")).toEqual({ items: ["👍Like"], groups: 1, lines: 0 });
+    // A message with an empty name gives its menu the plain name.
+    expect(await open("nameless", "Message actions")).toEqual({ items: ["Copy link"], groups: 0, lines: 0 });
+  });
+
+  it("starts the bar on each message at its first button, whatever had focus in it on the message before", async () => {
+    await render(<Channel count={3} />);
+    const buttons = (id: string) => [...barIn(id)!.querySelectorAll<HTMLElement>("button")];
+    // From the keyboard: onto the newest message, into its bar and along it, then back out and up to the one before.
+    await act(async () => message("m2").focus());
+    await userEvent.keyboard("{Shift>}{Shift}{/Shift}");
+    await expect.poll(() => barIn("m2")).not.toBeNull();
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(document.activeElement).toBe(buttons("m2")[1]);
+    expect(buttons("m2").map((button) => button.tabIndex)).toEqual([-1, 0, -1]);
+    await act(async () => message("m2").focus());
+    await userEvent.keyboard("{ArrowUp}");
+    await expect.poll(() => barIn("m1")).not.toBeNull();
+    expect(buttons("m1").map((button) => button.tabIndex)).toEqual([0, -1, -1]);
+  });
+
+  it("sits a post's bar on its name line, as a post's own bar does", async () => {
+    await render(
+      <MessageList label="Launch channel" style={{ height: 360 }}>
+        <Message id="post" variant="post" role="assistant" name="Grace Hopper" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+          A post
+        </Message>
+        <Message id="chat" variant="chat" role="assistant" name="Ana Lind" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+          A chat message
+        </Message>
+      </MessageList>,
+    );
+    await ready("post");
+    const post = getComputedStyle(barIn("post")!).top;
+    await ready("chat");
+    expect([post, getComputedStyle(barIn("chat")!).top]).toEqual(["-20px", "-32px"]);
   });
 
   it("goes on from its bar as from the message's own controls: Tab leaves the list, never into the next message", async () => {
