@@ -99,7 +99,14 @@ export const InCall: Story = {
 
 /** The large size, after a double-click or Option-Return: it grows from its corner and still clears the band. */
 export const Large: Story = {
+  parameters: { screenshot: { name: "snap-pip-large" } },
   render: () => <InACall size="large" />,
+};
+
+/** With keyboard focus: the hint shows beside the picture, toward the middle of the stage, never over it. Escape puts it away. */
+export const KeyboardHint: Story = {
+  parameters: { screenshot: { name: "snap-pip-hint", focus: true } },
+  render: () => <InACall />,
 };
 
 function Remembered() {
