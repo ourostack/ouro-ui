@@ -322,8 +322,9 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * while the mouse is on it or on the button around it, or that button has focus, or while
  * `play` says so. With reduced motion it always shows the still image. `skinTone` draws an
  * emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
- * Its picture is fetched as soon as it is drawn, not when it nears the screen, so an emoji in an
- * older message is there when the reader scrolls back to it.
+ * Its picture is fetched as soon as it is drawn, not when it nears the screen, so an emoji drawn
+ * below the fold is there when the reader scrolls to it. (A list that draws only what is near its
+ * view, such as a long MessageList, draws an emoji, and so fetches it, as it comes near.)
  *
  * Use `EmojiText` instead to draw the emoji in a message's text, and an emoji character for an
  * app that uses the platform's emoji font.

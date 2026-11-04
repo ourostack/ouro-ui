@@ -520,10 +520,6 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority
 }
 
 /**
- * The viewer's contents. It mounts when the viewer opens, so it starts on the image chosen; an
- * index the app changes while it is open starts the carousel again on that image.
- */
-/**
  * How soon the viewer fetches an image: the one shown first, then the ones a step either side
  * (around the ends with `loop`), at the browser's own priority, then the rest.
  */
@@ -538,6 +534,13 @@ function warm(src: string): void {
   new Image().src = src;
 }
 
+/** How far a finger may move between press and release and still be a tap, not a scroll, in CSS pixels. */
+const TAP_SLOP = 10;
+
+/**
+ * The viewer's contents. It mounts when the viewer opens, so it starts on the image chosen; an
+ * index the app changes while it is open starts the carousel again on that image.
+ */
 function LightboxViewer({
   label,
   images,
@@ -703,8 +706,9 @@ function LightboxViewer({
  * the position nor Previous and Next. Escape, Close or a press outside closes it, and focus goes
  * to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and
  * slides between images; with reduced motion it fades and jumps instead. Pressing a thumbnail
- * starts fetching its full image before the viewer opens, and the viewer fetches the image shown
- * first, then the ones a step either side, then the rest.
+ * starts fetching its full image before the viewer opens (a finger's or pen's tap, as it lifts
+ * without having moved, so a scroll that starts on a thumbnail fetches nothing), and the viewer
+ * fetches the image shown first, then the ones a step either side, then the rest.
  * On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that
  * size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe
  * moves around the image rather than to the next one.
@@ -742,6 +746,7 @@ function LightboxViewer({
  *   onOpenChange={setOpen}
  *   onIndexChange={setIndex}
  * />
+ * @claim "so a scroll that starts on a" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox fetching > waits for a finger or pen to lift without moving, so a scroll that starts on a thumbnail fetches nothing)
  * @claim "Pressing a thumbnail starts fetching its" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox fetching > starts fetching the full image as its thumbnail is pressed, before the viewer opens)
  * @claim "the viewer fetches the image shown first" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox fetching > fetches the image shown first, then the ones a step either side, then the rest)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > steps with the arrow keys from anywhere in the viewer, in reading order)
@@ -868,6 +873,8 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   const nameId = useId();
   // Stryker disable next-line ArrayDeclaration: each thumbnail's ref writes its own place before the viewer can read it.
   const thumbnails = useRef<(HTMLButtonElement | null)[]>([]);
+  // Where a finger or pen came down on a thumbnail, until it lifts or a scroll takes it.
+  const tapFrom = useRef<{ x: number; y: number } | null>(null);
   const popup = useRef<HTMLDivElement | null>(null);
   const shown = useRef(0);
   // The open viewer's way to show a position the keys chose (LightboxViewer sets it).
@@ -933,9 +940,20 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       data-ouro-part="thumbnail"
       {...holdPageAtPress.dialog}
       onPointerDown={(event) => {
-        // The press starts the image's fetch; the click that opens the viewer comes after the release.
-        warm(image.src);
+        // A mouse's press starts the image's fetch, ahead of the click that opens the viewer. A
+        // finger or a pen may be starting a scroll, so it waits for a release that has not moved.
+        if (event.pointerType === "touch" || event.pointerType === "pen") tapFrom.current = { x: event.clientX, y: event.clientY };
+        else warm(image.src);
         holdPageAtPress.dialog.onPointerDown(event);
+      }}
+      onPointerUp={(event) => {
+        const from = tapFrom.current;
+        tapFrom.current = null;
+        if (from && Math.hypot(event.clientX - from.x, event.clientY - from.y) <= TAP_SLOP) warm(image.src);
+      }}
+      onPointerCancel={() => {
+        // A scroll took the finger.
+        tapFrom.current = null;
       }}
       className={mosaic ? mosaicThumbnailClass : thumbnailClass}
       onClick={() => {

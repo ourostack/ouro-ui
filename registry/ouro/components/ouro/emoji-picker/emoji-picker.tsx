@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type JSX,
   type KeyboardEvent,
   type MouseEvent,
@@ -35,6 +36,7 @@ import {
   cellClass,
   COLUMNS,
   emojiSkinTones,
+  FIRST_CELLS,
   fillCount,
   gridClass,
   headingClass,
@@ -326,7 +328,8 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
  * standard set and an organization's custom emoji), drawn only as the catalogue's images, an
  * animated one playing while it is in focus or under the mouse, and gives `onSelect` the
  * emoji's id and the `:shortcode:` token to put into text. A catalogue's images are all fetched
- * as the picker opens, the quick row and the first two sections of the grid first.
+ * as the picker opens, the quick row and the grid's first eight rows first; while the browser asks
+ * to save data, the rest of the grid's wait until they near the screen.
  *
  * The search matches the start of any word in an emoji's name, keywords or shortcodes, ignoring
  * case and accents, and announces how many it found. The grid is one Tab stop: the arrow keys move
@@ -361,7 +364,8 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
  *   placeholder="/emoji/waiting.svg"
  *   onSelect={(selection) => react(message.id, selection.id)}
  * />
- * @claim "A catalogue's images are all fetched" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > fetches every image as it opens, the quick row and the first two sections of the grid first, then the rest in order)
+ * @claim "while the browser asks to save data, the rest" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > fetches the grid past its first eight rows only as it nears the screen while the browser asks to save data)
+ * @claim "A catalogue's images are all fetched" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > fetches every image as it opens, the quick row and the grid's first eight rows first, then the rest in order)
  * @claim "drawn only as the catalogue's images" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > draws only the catalogue's images, each named by its emoji's name, with the custom category labelled by the app)
  * @claim "an animated one playing while it is in focus" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > plays an animated emoji while it is in focus or under the mouse, and the preview with it)
  * @claim "Every emoji is named for" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > shows the quick row, the frequently used emoji and every category, each emoji named for screen readers)
@@ -532,8 +536,19 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
 }
 
 /** Draws an emoji in a skin tone, and plays it (`true`), keeps it still (`false`) or lets it play for its button (`undefined`). */
-/** How soon an emoji's image is fetched: `high` for what shows as the picker opens, `low` for the rest, in order. */
-type GlyphPriority = "high" | "low";
+/**
+ * How soon an emoji's image is fetched: `high` for what shows as the picker opens, `low` for the
+ * rest, in order, and `saved` for the rest while the browser asks to save data, fetched only as it
+ * nears the screen.
+ */
+type GlyphPriority = "high" | "low" | "saved";
+
+const noSubscription = () => () => {};
+const savingData = () => Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+/** Whether the browser asks to save data (Save-Data), read after hydration, so the server's HTML and the first render agree. */
+function useSaveData(): boolean {
+  return useSyncExternalStore(noSubscription, savingData, () => false);
+}
 type GlyphRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone, play?: boolean, priority?: GlyphPriority) => ReactNode;
 
 /** A catalogue's emoji as the panel holds it: its id as `emoji`, its tones' ids as its toned forms, and the item to draw. */
@@ -595,7 +610,15 @@ function usePickerContent(
     const sample = [...(found.quick ?? []), ...(found.frequent ?? []), ...list.flatMap((category) => category.emoji)].find((entry) => entry.skinTones);
     // Draws a catalogue's emoji: its image, in the tone, playing for its button unless told otherwise.
     const drawCatalogue: GlyphRender = (item, skinTone, play, priority) => (
-      <Emoji item={(item as CatalogueEntry).image} skinTone={skinTone} play={play} placeholder={placeholder} fetchPriority={priority} />
+      <Emoji
+        item={(item as CatalogueEntry).image}
+        skinTone={skinTone}
+        play={play}
+        placeholder={placeholder}
+        fetchPriority={priority === "saved" ? "low" : priority}
+        // The one place Ouro waits for an image to near the screen: the person asked to save data.
+        loading={priority === "saved" ? "lazy" : undefined}
+      />
     );
     return {
       categories: list,
@@ -843,12 +866,14 @@ function ToneChoice({ tone, setTone, label, names, glyph, onDone }: { tone: Emoj
 
 /**
  * The categories' or results' grids, each labelled by its heading, which stays at the top as its emoji scroll.
- * Every image is fetched as the picker opens: the first two sections' (what shows first) at high priority, the rest at low, in order.
+ * Every image is fetched as the picker opens: the first eight rows' (about what shows first) at high priority, the rest at low, in order.
+ * While the browser asks to save data, the rest wait until they near the screen.
  *
- * @claim "Every image is fetched as the picker" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > fetches every image as it opens, the quick row and the first two sections of the grid first, then the rest in order)
+ * @claim "While the browser asks to save data" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > fetches the grid past its first eight rows only as it nears the screen while the browser asks to save data)
+ * @claim "Every image is fetched as the picker" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > fetches every image as it opens, the quick row and the grid's first eight rows first, then the rest in order)
  * @claim "each labelled by its heading" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > shows the quick row, the frequently used emoji and every category, each emoji named for screen readers)
  */
-function Grids({ id, sections, rows, tone, render, active, sectionRefs }: { id: string; sections: readonly Section[]; rows: readonly Row[]; tone: EmojiSkinTone; render: GlyphRender | undefined; active: number; sectionRefs: RefObject<(HTMLElement | null)[]> }) {
+function Grids({ id, sections, rows, tone, render, active, sectionRefs, saving }: { id: string; sections: readonly Section[]; rows: readonly Row[]; tone: EmojiSkinTone; render: GlyphRender | undefined; active: number; sectionRefs: RefObject<(HTMLElement | null)[]>; saving: boolean }) {
   return sections.map((section, index) => (
     <div
       key={index}
@@ -866,7 +891,7 @@ function Grids({ id, sections, rows, tone, render, active, sectionRefs }: { id: 
             <div role="row" key={row.start} className={gridClass}>
               {section.items.slice(row.start - section.start, row.start - section.start + row.length).map((item, offset) => (
                 <div role="gridcell" key={offset} className="flex justify-center">
-                  <Cell item={item} tone={tone} render={render} index={row.start + offset} active={row.start + offset === active} quick={false} priority={index < 2 ? "high" : "low"} />
+                  <Cell item={item} tone={tone} render={render} index={row.start + offset} active={row.start + offset === active} quick={false} priority={row.start + offset < FIRST_CELLS ? "high" : saving ? "saved" : "low"} />
                 </div>
               ))}
             </div>
@@ -1041,6 +1066,7 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
 
   const { searching, sections, rows, total } = useSections(categories, frequent, query, labels, render);
+  const saving = useSaveData();
   // The app can take emoji away while the picker is open; the Tab stop stays on the last one.
   const active = Math.min(activeCell, total - 1);
   const itemAt = (index: number) => {
@@ -1126,7 +1152,7 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
         {total === 0 ? (
           <p className="m-0 px-1 py-6 text-sm leading-5 text-muted-foreground">{searching ? labels.noResultsLabel : null}</p>
         ) : (
-          <Grids id={id} sections={sections} rows={rows} tone={tone} render={render} active={active} sectionRefs={sectionRefs} />
+          <Grids id={id} sections={sections} rows={rows} tone={tone} render={render} active={active} sectionRefs={sectionRefs} saving={saving} />
         )}
       </div>
       <Preview item={preview} tone={tone} render={render} play={hovered !== undefined || gridFocus} />
