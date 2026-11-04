@@ -85,11 +85,25 @@ const BASELINE_MEDIAN: Record<(typeof CHAPTER_THREE_CONTROLS)[number], number> =
   again: 56,
 };
 
+/** PROBE: closes every toast earlier rounds left, and waits until none is left. */
+async function clearToasts(page: Page): Promise<void> {
+  for (let round = 0; round < 50; round++) {
+    const left = await page.evaluate(() => {
+      const closes = [...document.querySelectorAll<HTMLElement>('[data-ouro-control="toaster"][data-ouro-part="close"]')];
+      for (const close of closes) close.click();
+      return document.querySelectorAll('[data-ouro="toaster"] [data-ouro-part="toast"], [data-ouro="toaster"] [data-ouro-part="alert"]').length;
+    });
+    if (left === 0) return;
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+  }
+}
+
 function presses(page: Page, id: (typeof CHAPTER_THREE_CONTROLS)[number]): Presses {
   const { press, before, after } = steps[id];
   return {
     press: (index) => press(page, index),
     setUp: async (index) => {
+      if (process.env["PROBE_TOASTS"]) await clearToasts(page);
       if (after && index > 0) await after(page, index - 1);
       if (before) await before(page, index);
     },
