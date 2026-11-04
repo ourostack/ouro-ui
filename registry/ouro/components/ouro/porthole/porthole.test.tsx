@@ -663,20 +663,136 @@ describe("Porthole", () => {
         return { view, light: getComputedStyle(view.host.querySelector('[data-porthole-part="light"]')!) };
       };
       const rest = await lightOf(fixed());
-      expect(rest.view.porthole.hasAttribute("data-porthole-quiet")).toBe(true);
       expect(rest.light.backgroundColor).toBe(system("CanvasText"));
-      // Quiet still shows its words here, inside the frame forced colours draw.
-      expect(getComputedStyle(rest.view.host.querySelector('[data-porthole-part="words"]')!).opacity).toBe("1");
       expect(rest.light.backgroundColor).not.toBe(system("Canvas"));
       const unknown = await lightOf(fixed([], undefined, Date.now() - MINUTE));
-      expect(unknown.light.backgroundColor).toBe(system("Canvas"));
-      expect([unknown.light.outlineStyle, unknown.light.outlineColor]).toEqual(["solid", system("CanvasText")]);
+      expect([unknown.light.borderTopStyle, unknown.light.borderTopColor]).toEqual(["solid", system("CanvasText")]);
       const action = await lightOf(fixed([item("update", "action", { action: { id: "restart", label: "Restart" }, dismissable: true })]), { onAction: () => {}, onDismiss: () => {} });
-      expect(action.light.backgroundColor).toBe(system("Highlight"));
+      expect([action.light.borderTopStyle, action.light.borderTopColor]).toEqual(["solid", system("Highlight")]);
       for (const button of [action.view.act!, action.view.dismiss!]) expect([getComputedStyle(button).borderTopStyle, getComputedStyle(button).borderTopWidth]).toEqual(["solid", "1px"]);
       expect([action.light.outlineStyle, action.light.outlineColor]).toEqual(["solid", system("Highlight")]);
       const open = await lightOf(fixed(), { defaultOpen: true });
       expect([getComputedStyle(open.view.panel!).borderTopStyle, getComputedStyle(open.view.panel!).borderTopWidth]).toEqual(["solid", "1px"]);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("under forced colours, fills the light only while fresh, and draws every other state as a hollow ring the same size", async () => {
+    const probe = document.createElement("span");
+    document.body.append(probe);
+    mounted.push(probe);
+    const sizeOf = async (source: PortholeFixed) => {
+      const view = await render(base(source));
+      const box = view.host.querySelector('[data-porthole-part="light"]')!.getBoundingClientRect();
+      return [box.width, box.height];
+    };
+    const old = Date.now() - 2 * MINUTE;
+    const sources: Record<string, PortholeFixed> = {
+      "rest-fresh": fixed(),
+      "rest-stale": fixed([], { chats: area(old) }),
+      unknown: fixed([], undefined, old),
+      error: fixed([item("offline", "error")]),
+      action: fixed([item("update", "action")]),
+    };
+    const sizes: Record<string, number[]> = {};
+    for (const [state, source] of Object.entries(sources)) sizes[state] = await sizeOf(source);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const system = (colour: string) => {
+        probe.style.color = colour;
+        return getComputedStyle(probe).color;
+      };
+      for (const [state, source] of Object.entries(sources)) {
+        const view = await render(base(source));
+        expect(view.state).toBe(state);
+        const node = view.host.querySelector('[data-porthole-part="light"]')!;
+        const light = getComputedStyle(node);
+        const box = node.getBoundingClientRect();
+        // The same size in forced colours as out of them, filled or not.
+        expect([box.width, box.height]).toEqual(sizes[state]);
+        if (state === "rest-fresh") {
+          expect([light.backgroundColor, light.borderTopWidth]).toEqual([system("CanvasText"), "0px"]);
+        } else {
+          // A transparent fill, whatever colour the browser keeps behind its zero alpha; WebKit draws the ring 1px wide.
+          expect(light.backgroundColor).toMatch(/^rgba\(\d+, \d+, \d+, 0\)$/);
+          expect(light.borderTopStyle).toBe("solid");
+          expect(Number.parseFloat(light.borderTopWidth)).toBeGreaterThanOrEqual(1);
+          expect(light.borderTopColor).toBe(system(state === "action" ? "Highlight" : "CanvasText"));
+        }
+      }
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("under forced colours, keeps rest and fresh a lone light, hushing its edge in Canvas until focus or a mouse shows the words in the same room, while trouble and an error stay a framed line", async () => {
+    const probe = document.createElement("span");
+    document.body.append(probe);
+    mounted.push(probe);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const system = (colour: string) => {
+        probe.style.color = colour;
+        return getComputedStyle(probe).color;
+      };
+      const words = (view: { host: HTMLElement }) => getComputedStyle(view.host.querySelector('[data-porthole-part="words"]')!);
+      const pill = (view: { host: HTMLElement }) => getComputedStyle(view.host.querySelector('[data-porthole-part="pill"]')!);
+      const fresh = await render(base(fixed()));
+      expect(fresh.porthole.hasAttribute("data-porthole-quiet")).toBe(true);
+      expect(words(fresh).opacity).toBe("0");
+      expect([pill(fresh).borderTopStyle, pill(fresh).borderTopWidth, pill(fresh).borderTopColor]).toEqual(["solid", "1px", system("Canvas")]);
+      // Unseen, the words still name the spot.
+      expect(page.elementLocator(fresh.host).getByRole("button", { name: "Updated just now", exact: true }).element()).toBe(fresh.spot);
+      const before = fresh.porthole.getBoundingClientRect();
+      fresh.spot.focus();
+      await expect.poll(() => words(fresh).opacity).toBe("1");
+      await expect.poll(() => pill(fresh).borderTopColor).toBe(system("CanvasText"));
+      const after = fresh.porthole.getBoundingClientRect();
+      expect([after.x, after.y, after.width, after.height]).toEqual([before.x, before.y, before.width, before.height]);
+      fresh.spot.blur();
+      await expect.poll(() => words(fresh).opacity).toBe("0");
+      await expect.poll(() => pill(fresh).borderTopColor).toBe(system("Canvas"));
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      await userEvent.hover(fresh.spot);
+      await expect.poll(() => words(fresh).opacity).toBe("1");
+      await expect.poll(() => pill(fresh).borderTopColor).toBe(system("CanvasText"));
+      vi.useRealTimers();
+      const old = Date.now() - 2 * MINUTE;
+      for (const source of [fixed([], { chats: area(old) }), fixed([item("offline", "error")])]) {
+        const trouble = await render(base(source));
+        expect(trouble.porthole.hasAttribute("data-porthole-quiet")).toBe(false);
+        expect(words(trouble).opacity).toBe("1");
+        expect([pill(trouble).borderTopStyle, pill(trouble).borderTopWidth]).toEqual(["solid", "1px"]);
+        expect(pill(trouble).borderTopColor).not.toBe(system("Canvas"));
+        expect(pill(trouble).borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
+        expect(trouble.porthole.getBoundingClientRect().height).toBe(before.height);
+      }
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("under forced colours, draws working's spinner and progress ring in the system's text colour, and its action as the system's highlighted button", async () => {
+    const probe = document.createElement("span");
+    document.body.append(probe);
+    mounted.push(probe);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const system = (colour: string) => {
+        probe.style.color = colour;
+        return getComputedStyle(probe).color;
+      };
+      for (const extra of [{}, { progress: 0.4 }]) {
+        const view = await render(base(fixed([item("sync", "working", extra)])));
+        expect(getComputedStyle(view.host.querySelector('[data-porthole-part="progress"]')!).color).toBe(system("CanvasText"));
+      }
+      const view = await render(base(fixed([item("update", "action", { action: { id: "restart", label: "Restart to update" } })]), { onAction: () => {} }));
+      const act = getComputedStyle(view.act!);
+      expect([act.backgroundColor, act.color, act.borderTopColor]).toEqual([system("Highlight"), system("HighlightText"), system("Highlight")]);
+      // Out of forcing, so no backplate hides its HighlightText label, with its focus ring still a system colour.
+      // WebKit has no forced-color-adjust, and paints no backplate.
+      expect([act.getPropertyValue("forced-color-adjust"), act.outlineColor]).toEqual([CSS.supports("forced-color-adjust", "none") ? "none" : "", system("CanvasText")]);
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }

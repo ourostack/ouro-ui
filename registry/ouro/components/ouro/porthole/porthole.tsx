@@ -101,19 +101,19 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
     if (Number.isFinite(progress)) {
       const filled = Math.min(1, Math.max(0, progress!));
       return (
-        <svg aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 -rotate-90 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]">
+        <svg aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 -rotate-90 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] forced-colors:text-[CanvasText]">
           <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
           <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" pathLength="100" strokeDasharray={`${filled * 100} 100`} />
         </svg>
       );
     }
     return (
-      <svg aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] motion-safe:animate-[ouro-spin_1s_linear_infinite]">
+      <svg aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] motion-safe:animate-[ouro-spin_1s_linear_infinite] forced-colors:text-[CanvasText]">
         <path d="M14 8a6 6 0 1 1-4.15-5.7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     );
   }
-  return <span aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full forced-colors:bg-[CanvasText]", portholeLightClasses[view.state])} />;
+  return <span aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full", portholeLightClasses[view.state])} />;
 }
 
 /**
@@ -389,7 +389,9 @@ export function Porthole(props: PortholeProps): JSX.Element {
         data-porthole-part="pill"
         className={cn(
           "group/pill inline-flex h-8 max-w-full min-w-0 items-center overflow-hidden rounded-full border border-border bg-card text-sm leading-5 text-card-foreground transition-[width,background-color,border-color] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none pointer-coarse:h-12",
-          hushed && "border-transparent bg-transparent focus-within:border-border focus-within:bg-card pointer-fine:hover:border-border pointer-fine:hover:bg-card",
+          // Forced colours would paint the transparent edge, so quiet hushes it in Canvas there and draws it as the words show.
+          hushed &&
+            "border-transparent bg-transparent focus-within:border-border focus-within:bg-card pointer-fine:hover:border-border pointer-fine:hover:bg-card forced-colors:border-[Canvas] forced-colors:focus-within:border-[CanvasText] forced-colors:pointer-fine:hover:border-[CanvasText]",
         )}
       >
         <div ref={content} className="inline-flex h-full w-max max-w-full min-w-0 items-center">
@@ -413,8 +415,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
               data-porthole-part="words"
               className={cn(
                 "relative min-w-0 overflow-hidden transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast)",
-                // Forced colours paint the pill's edge, so its words show there too rather than leave an empty frame.
-                hushed && "opacity-0 group-focus-within/pill:opacity-100 pointer-fine:group-hover/pill:opacity-100 forced-colors:opacity-100",
+                hushed && "opacity-0 group-focus-within/pill:opacity-100 pointer-fine:group-hover/pill:opacity-100",
               )}
             >
               <span ref={sizer} aria-hidden="true" data-porthole-part="sizer" className="invisible absolute start-0 top-0 whitespace-nowrap">
@@ -431,6 +432,8 @@ export function Porthole(props: PortholeProps): JSX.Element {
             </span>
           </button>
           {action === null ? null : (
+            // Under forced colours the action keeps its weight in the system highlight. It opts out of forcing, or the
+            // label's backplate would hide HighlightText; its focus ring stays a system colour.
             <button
               ref={leaving}
               type="button"
@@ -438,7 +441,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
               data-ouro-part="act"
               data-ax-action={action.id}
               onClick={() => onAction!(item!, action.id)}
-              className="press me-1 inline-flex h-6 shrink-0 cursor-pointer items-center rounded-full border-0 bg-primary px-2.5 font-[inherit] text-xs font-medium text-primary-foreground outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid motion-safe:active:scale-(--ouro-press-scale) pointer-coarse:h-11 pointer-coarse:min-w-11 forced-colors:border forced-colors:border-solid"
+              className="press me-1 inline-flex h-6 shrink-0 cursor-pointer items-center rounded-full border-0 bg-primary px-2.5 font-[inherit] text-xs font-medium text-primary-foreground outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid motion-safe:active:scale-(--ouro-press-scale) pointer-coarse:h-11 pointer-coarse:min-w-11 forced-colors:border forced-colors:border-solid forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:outline-[CanvasText] forced-colors:forced-color-adjust-none"
             >
               {action.label}
             </button>

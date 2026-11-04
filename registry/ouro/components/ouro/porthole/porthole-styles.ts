@@ -36,20 +36,26 @@ export const portholeAx = defineComponentAx({
 });
 
 /**
- * The colour of the spot's light, by state. Forced colours drop fills and box shadows, so the light is drawn in
- * CanvasText there (the base class in porthole.tsx), unknown as an empty outlined circle, and an action in Highlight
- * with an outlined halo.
+ * The colour of the spot's light, by state. Forced colours drop fills and box shadows, so there the light is a filled
+ * CanvasText dot only while the data is fresh, and a hollow ring for every other state: a CanvasText border round a
+ * transparent fill, or for an action a Highlight border with an outlined Highlight halo. Fresh and stale then differ
+ * by shape, not by their words alone.
+ *
+ * @claim "a filled CanvasText dot only" registry/ouro/components/ouro/porthole/porthole.test.tsx verify:testExists(registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > under forced colours, fills the light only while fresh, and draws every other state as a hollow ring the same size)
  */
 export const portholeLightClasses: Readonly<Record<PortholeState, string>> = {
-  "rest-fresh": "bg-[color-mix(in_oklab,var(--success)_85%,var(--foreground))]",
-  "rest-stale": "bg-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))]",
+  "rest-fresh": "bg-[color-mix(in_oklab,var(--success)_85%,var(--foreground))] forced-colors:bg-[CanvasText]",
+  "rest-stale":
+    "bg-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))] forced-colors:box-border forced-colors:border-[1.5px] forced-colors:border-solid forced-colors:border-[CanvasText] forced-colors:bg-transparent",
   unknown:
-    "bg-transparent ring-[1.5px] ring-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))] ring-inset forced-colors:bg-[Canvas] forced-colors:outline-[1.5px] forced-colors:-outline-offset-[1.5px] forced-colors:outline-solid forced-colors:outline-[CanvasText]",
-  working: "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))]",
-  error: "bg-[color-mix(in_oklab,var(--destructive)_85%,var(--foreground))]",
+    "bg-transparent ring-[1.5px] ring-[color-mix(in_oklab,var(--muted-foreground)_85%,var(--foreground))] ring-inset forced-colors:box-border forced-colors:border-[1.5px] forced-colors:border-solid forced-colors:border-[CanvasText]",
+  working:
+    "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] forced-colors:box-border forced-colors:border-[1.5px] forced-colors:border-solid forced-colors:border-[CanvasText] forced-colors:bg-transparent",
+  error:
+    "bg-[color-mix(in_oklab,var(--destructive)_85%,var(--foreground))] forced-colors:box-border forced-colors:border-[1.5px] forced-colors:border-solid forced-colors:border-[CanvasText] forced-colors:bg-transparent",
   // A halo around the dot, so "something to press" differs from working by shape, not colour alone.
   action:
-    "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] ring-2 ring-[color-mix(in_oklab,var(--primary)_40%,transparent)] ring-offset-1 ring-offset-card forced-colors:bg-[Highlight] forced-colors:outline-2 forced-colors:outline-offset-1 forced-colors:outline-solid forced-colors:outline-[Highlight]",
+    "bg-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] ring-2 ring-[color-mix(in_oklab,var(--primary)_40%,transparent)] ring-offset-1 ring-offset-card forced-colors:box-border forced-colors:border-[1.5px] forced-colors:border-solid forced-colors:border-[Highlight] forced-colors:bg-transparent forced-colors:outline-2 forced-colors:outline-offset-1 forced-colors:outline-solid forced-colors:outline-[Highlight]",
 };
 
 /** Where the open lines show: under the spot, or over it. */
