@@ -322,15 +322,15 @@ function ActionsChannel() {
               time={`9:${String(10 + (index % 50)).padStart(2, "0")} AM`}
               footer={reactions[id] ? <span aria-label={`You reacted ${reactions[id]}`}>{reactions[id]}</span> : undefined}
               actions={[
-                { key: "like", label: "Like", icon: "👍", onClick: react(id, "👍") },
+                { key: "like", label: "Like", icon: "👍", onClick: react(id, "👍"), shortcut: ["1"] },
                 { key: "react", label: "More reactions", icon: <ReactIcon />, onClick: () => setSaid(`Pick a reaction for post ${index + 1}`) },
                 { key: "reply", label: "Reply", icon: <ReplyIcon />, onClick: () => setSaid(`Replying to ${post.author}`) },
               ]}
               quickReactions={[
-                { key: "like", label: "Like", icon: "👍", onClick: react(id, "👍") },
-                { key: "heart", label: "Heart", icon: "❤️", onClick: react(id, "❤️") },
-                { key: "laugh", label: "Laugh", icon: "😄", onClick: react(id, "😄") },
-                { key: "party", label: "Party", icon: "🎉", onClick: react(id, "🎉") },
+                { key: "like", label: "Like", icon: "👍", onClick: react(id, "👍"), shortcut: ["1"] },
+                { key: "heart", label: "Heart", icon: "❤️", onClick: react(id, "❤️"), shortcut: ["2"] },
+                { key: "laugh", label: "Laugh", icon: "😄", onClick: react(id, "😄"), shortcut: ["3"] },
+                { key: "party", label: "Party", icon: "🎉", onClick: react(id, "🎉"), shortcut: ["4"] },
                 { key: "more", label: "More reactions", icon: <ReactIcon />, onClick: () => setSaid(`Pick a reaction for post ${index + 1}`) },
               ]}
               menu={[
@@ -366,7 +366,7 @@ async function hoverNewest(canvasElement: HTMLElement) {
  * Every post has actions, and the list draws one bar for all of them: on the post the pointer is
  * over, or the one keyboard focus is in. It goes as the pointer leaves, so none stays behind.
  * Right-click a post, press its "…" button, or Shift+F10 on a focused post: one menu, with quick
- * reactions on top and each action's keys at its end.
+ * reactions on top, each with its key under it, and each action's keys at its end.
  */
 export const Actions: Story = {
   args: { label: "Launch channel", children: null },

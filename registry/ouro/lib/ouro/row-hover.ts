@@ -93,7 +93,7 @@ const editable = 'input, textarea, [contenteditable]:not([contenteditable="false
  * losing focus and the row going all hide it, so it never stays on a row the pointer has left.
  * `menu` opens the app's menu for a row: right-click (except on a field or over selected text,
  * whose menus stay the browser's), Shift+F10 or the context-menu key on a focused row. It returns
- * whether it opened one, and a row it has none for keeps the browser's menu. The layer is hidden
+ * whether it opened one; when it returns false, the right-click goes to the browser's menu. The layer is hidden
  * while that menu is open (`hold`). The rows are the elements whose data the layer
  * holds (`RowLayer`).
  *
@@ -108,6 +108,7 @@ const editable = 'input, textarea, [contenteditable]:not([contenteditable="false
  * @claim "Keyboard focus arriving in a row shows it too" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on keyboard focus, not on a click's, and Escape hides it with focus back on the row)
  * @claim "A tap on a row shows it until" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on a tap until a press lands elsewhere, and a tap on a control is the control's)
  * @claim "Scrolling under the pointer, the window" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > hides on a scroll until the pointer moves again, on the window's blur and when the row goes)
+ * @claim "when it returns false, the right-click goes" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields and selected text to the browser)
  * @claim "`menu` opens the app's menu for a row" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields and selected text to the browser)
  */
 export function useRowHover<T>(
