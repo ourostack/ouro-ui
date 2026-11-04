@@ -31,6 +31,7 @@ import {
   mosaicCellClass,
   mosaicClass,
   mosaicFrameClass,
+  mosaicImageClass,
   mosaicLayout,
   mosaicMoreClass,
   mosaicThumbnailClass,
@@ -946,7 +947,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       {/* With reduced motion an animated image's thumbnail shows its still frame: chosen by the browser under the device's setting, always under OuroProvider's motion="reduced", never under "full". */}
       <picture className="contents">
         {image.still !== undefined && motion !== "full" && <source media={motion === "reduced" ? "all" : "(prefers-reduced-motion: reduce)"} srcSet={image.still} />}
-        <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={thumbnailImageClass} />
+        <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={mosaic ? mosaicImageClass : thumbnailImageClass} />
       </picture>
       {more > 0 && (
         <>
