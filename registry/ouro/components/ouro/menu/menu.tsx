@@ -441,6 +441,7 @@ function MenuSurface({
           className={sheet ? menuSheetPositionerClass : menuPositionerClass}
           sideOffset={context || point ? 0 : 4}
           collisionPadding={8}
+          // Stryker disable next-line ConditionalExpression: Base UI reads an anchor of undefined as none, as it reads no anchor.
           {...(anchor !== undefined ? { anchor } : {})}
           {...(side ? { side } : {})}
           {...(align ? { align } : {})}
@@ -449,6 +450,7 @@ function MenuSurface({
             data-ouro="menu"
             data-ouro-presentation={sheet ? "sheet" : "menu"}
             aria-label={label}
+            // Stryker disable next-line ConditionalExpression: Base UI reads a finalFocus of undefined as none, as it reads no finalFocus.
             {...(finalFocus !== undefined ? { finalFocus } : {})}
             className={cn(sheet ? menuSheetPopupClass : menuPopupClass, sheet ? undefined : className)}
           >
@@ -602,7 +604,12 @@ export function Menu(props: MenuProps): JSX.Element {
 
   // A dropdown (and a menubar's menu) is a bottom sheet on a phone; a context menu opens at
   // the pointer, where the finger is, at every width.
-  const sheet = useSheetPresentation(context || point !== undefined ? "menu" : "auto");
+  const sheet = useSheetPresentation(
+    context || point !== undefined
+      ? // Stryker disable next-line StringLiteral: useSheetPresentation is a sheet for "sheet" or "auto" alone, so any other word here is the same popup.
+        "menu"
+      : "auto",
+  );
   const body = items !== undefined ? renderEntries(items) : children;
   // Focus that moves anywhere else closes a dropdown (a menubar's menus are the bar's). Left open, Base UI keeps its
   // focus guards beside the trigger, and the one before it, met by a forward Tab, sends focus back to what Tab was
@@ -638,10 +645,11 @@ export function Menu(props: MenuProps): JSX.Element {
     setShown(next);
     onOpenChange?.(next);
     // An anchored menu puts focus back on returnFocus, unless the chosen item (or the press that closed it) put it somewhere else.
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: Base UI opens through here only at a trigger, which an anchored menu has none of, and a dropdown has no returnFocus, so past this line either finds nothing of theirs to focus.
     if (anchor === undefined || next) return;
     setTimeout(() => {
-      const active = document.activeElement;
-      if (active !== null && active !== document.body && active.closest('[data-ouro="menu-positioner"]') === null) return;
+      const active = document.activeElement ?? document.body;
+      if (active !== document.body && active.closest('[data-ouro="menu-positioner"]') === null) return;
       (movedTo.current?.isConnected ? movedTo.current : returnTo.current)?.focus({ preventScroll: true });
     });
   };
@@ -651,6 +659,7 @@ export function Menu(props: MenuProps): JSX.Element {
   if (anchor !== undefined) {
     const place = point === undefined ? (anchor as Exclude<MenuAnchor, { x: number }>) : { getBoundingClientRect: () => new DOMRect(point.x, point.y, 0, 0) };
     // Focus goes back in `changed`, once the closing event is over and any chosen item has run.
+    // Stryker disable next-line ArrowFunction: with no trigger, Base UI has no focus of its own to give back, so a finalFocus that says nothing does as false does.
     const finalFocus = () => false;
     return (
       <BaseMenu.Root {...control} actionsRef={actions} modal={sheet}>
