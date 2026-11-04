@@ -328,6 +328,7 @@ Components:
 `skeleton`,
 `skip-link`,
 `slider`,
+`snap-pip`,
 `spinner`,
 `stack`,
 `stacked-layout`,
@@ -589,6 +590,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ResizablePanelGroup** — A group of panels with handles you place yourself, shadcn's shape: `ResizablePanel` and `ResizableHandle` elements as direct children. [Docs](docs/ResizablePanelGroup.md)
 - **Row** — Lays its children out side by side with an even gap, centered up and down. [Docs](docs/Row.md)
 - **ScrollArea** — A scrolling region with a slim scrollbar that matches the theme, inside a height you set. [Docs](docs/ScrollArea.md)
+- **SnapPiP** — A floating picture inside a container, such as the person's own camera in a call, that they drag and throw into a corner, where it comes to rest, as a phone's picture in picture does. [Docs](docs/SnapPiP.md)
 - **Stack** — Lays its children out top to bottom with an even gap. [Docs](docs/Stack.md)
 
 ### Navigation
