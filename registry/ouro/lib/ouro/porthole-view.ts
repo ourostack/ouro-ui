@@ -73,7 +73,7 @@ interface PortholeItem {
  * What the service has verified about one area of data (chats, activity, calendar): when its data was last verified
  * current (`lastVerifiedAt`, null until it has been once), and when its current read began to hang or fail
  * (`troubleSince`, null otherwise). Only verified facts belong here: an error not seen is not a
- * verification.
+ * verification. A time this view cannot read, in either, leaves the area unknown.
  */
 interface PortholeArea {
   lastVerifiedAt: number | null;
@@ -116,7 +116,13 @@ interface PortholeLabels {
   stale?: ((age: string) => string) | undefined;
   /** When the spot cannot vouch for anything. @default "Status unknown" */
   unknown?: string | undefined;
-  /** An age in ms as words (`"less than a minute"`, `"4 min"`, `"3 hr"`, `"2 days"`). @default formatPortholeAge */
+  /**
+   * An age in ms as words (`"less than a minute"`, `"4 min"`, `"3 hr"`, `"2 days"`). The view looks again when
+   * `formatPortholeAge`'s words would change, on the minute under an hour, the hour under a day and the day after, so
+   * words that step differently refresh on those moments. @default formatPortholeAge
+   *
+   * @claim "The view looks again when" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > nextChangeAt > past fresh, is the moment the oldest age shown reaches its next minute, hour or day)
+   */
   age?: ((ms: number) => string) | undefined;
   /**
    * A line in the open spot for an area past fresh, given its label, its age (null until verified, or when not
@@ -165,7 +171,7 @@ interface PortholeAreaView {
   /** `ageMs` as words, or null. */
   age: string | null;
   troubleSince: number | null;
-  /** Ms its trouble has lasted, null without trouble. */
+  /** Ms its trouble has lasted, null without trouble or when it began at a time too far ahead of this clock to time. */
   troubleMs: number | null;
   fresh: boolean;
   /** The area's line in the open spot. */
@@ -211,10 +217,12 @@ interface PortholeView {
   /**
    * The earliest time, in ms since the epoch on this clock, at which this view could change with no new snapshot and no
    * new beat: an area's fresh time running out, an age shown reaching its next minute, hour or day, the heartbeat
-   * timing out, or an area's trouble reaching `troubleAfterMs`. Null when nothing shown changes with time alone.
-   * Schedule one timeout for it, and again whenever the snapshot changes.
+   * timing out, an area's trouble reaching `troubleAfterMs`, or, while the heartbeat is stopped, a look for its return
+   * `heartbeatTimeoutMs` on, since beats do not notify the view. Null when nothing shown changes with time alone, as
+   * for a snapshot of another version. Schedule one timeout for it, and again whenever the snapshot changes.
    *
   * @claim "at which this view could" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > nextChangeAt > at rest and fresh, is the first of the heartbeat timing out and an area's fresh time running out)
+   * @claim "a look for its return" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > nextChangeAt > with the heartbeat stopped, looks for its return a heartbeat timeout on, and sees it come back from a stale, a missing or a NaN beat)
    */
   nextChangeAt: number | null;
 }
@@ -331,9 +339,9 @@ function compare(a: PortholeItem, b: PortholeItem): number {
  * item, such as "Up to date", shows over "Updated just now" only: past fresh, or unknown, the age line or "Status
  * unknown" wins and the item waits in the open spot's lines. It says "Status unknown" when an area has never been
  * verified, when the snapshot has no areas or another version, or when the heartbeat is older than
- * `heartbeatTimeoutMs` or too far ahead of this clock to check. A stopped heartbeat outranks every item but an
- * `action`, since nothing the service said can be trusted as live, but the person's decision still waits for them.
- * `nextChangeAt` is the one moment to look again.
+ * `heartbeatTimeoutMs` or too far ahead of this clock to check. A stopped heartbeat outranks every item, an `action`
+ * too: nothing the service said can be trusted as live, and the action's button would reach a service that cannot
+ * answer, so the item waits in the open spot's lines. `nextChangeAt` is the one moment to look again.
  *
  * Use `portholeStatus` instead for the JSON an agent or a CLI reads, and the `Porthole` component to show it.
  *
@@ -345,7 +353,7 @@ function compare(a: PortholeItem, b: PortholeItem): number {
  * @claim "otherwise the real age of" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > at rest, says the real age of the area verified longest ago once any area is past fresh)
  * @claim "when an area has never been" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > says Status unknown at rest while any area has never been verified)
  * @claim "A `rest` item, such as" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a rest item shows over Updated just now only, and waits in the open lines while an area is past fresh or the status is unknown)
- * @claim "A stopped heartbeat outranks every" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a stopped heartbeat outranks error, working and rest items, but not an action)
+ * @claim "A stopped heartbeat outranks every" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a stopped heartbeat outranks every item, an action too, which waits in the open lines)
  */
 function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: number, options: PortholeViewOptions = {}): PortholeView {
   const freshWithinMs = options.freshWithinMs ?? PORTHOLE_DEFAULTS.freshWithinMs;
@@ -371,13 +379,21 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
 
   const readable = snapshot?.version === PORTHOLE_SNAPSHOT_VERSION;
   const rawAreas = readable && typeof snapshot.areas === "object" && snapshot.areas !== null ? Object.entries(snapshot.areas) : [];
+  // Areas whose trouble this view cannot read (an ISO string, say), which leaves them unknown as an unreadable
+  // lastVerifiedAt does, and areas whose trouble is stamped too far ahead of this clock to time.
+  const unreadableTrouble = new Set<string>();
+  const troubleAhead = new Set<string>();
   const areas: PortholeAreaView[] = rawAreas.map(([id, area]) => {
     const lastVerifiedAt = finite(area?.lastVerifiedAt) ? area.lastVerifiedAt : null;
     const troubleSince = finite(area?.troubleSince) ? area.troubleSince : null;
+    if (troubleSince === null && area?.troubleSince !== null && area?.troubleSince !== undefined) unreadableTrouble.add(id);
     const ageMs = since(lastVerifiedAt);
-    // Trouble stamped ahead of this clock counts from now: known trouble is never waved away by skew.
-    const troubleMs = troubleSince === null ? null : (since(troubleSince) ?? 0) + (troubleSince - now > skew ? troubleAfterMs : 0);
-    const fresh = ageMs !== null && ageMs <= freshWithinMs && (troubleMs === null || troubleMs < troubleAfterMs);
+    // Trouble stamped too far ahead is trouble all the same, never waved away by skew, but no one measured how long
+    // it has lasted, so its length is null.
+    const troubleMs = since(troubleSince);
+    if (troubleSince !== null && troubleMs === null) troubleAhead.add(id);
+    const fresh =
+      ageMs !== null && ageMs <= freshWithinMs && !unreadableTrouble.has(id) && !troubleAhead.has(id) && (troubleMs === null || troubleMs < troubleAfterMs);
     const label = typeof area?.label === "string" && area.label !== "" ? area.label : id;
     const ageText = ageMs === null ? null : age(ageMs);
     return {
@@ -400,7 +416,7 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
   const top = items[0] ?? null;
   const ties = (priority: PortholePriority) => items.filter((item) => item.priority === priority).length;
 
-  const undated = areas.find((area) => area.ageMs === null);
+  const undated = areas.find((area) => area.ageMs === null || unreadableTrouble.has(area.id));
   const oldest = undated || areas.length === 0 ? null : areas.reduce((a, b) => (b.ageMs! > a.ageMs! ? b : a));
   const oldestAgeMs = oldest === null ? null : oldest.ageMs;
 
@@ -417,7 +433,7 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
     state = "unknown";
     text = words.unknown;
     why = `The snapshot is not version ${PORTHOLE_SNAPSHOT_VERSION}, so this view cannot read it`;
-  } else if (top !== null && (top.priority === "action" || (alive && top.priority !== "rest"))) {
+  } else if (top !== null && alive && top.priority !== "rest") {
     state = top.priority as PortholeState;
     item = top;
     text = top.label;
@@ -433,18 +449,19 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
   } else if (undated) {
     state = "unknown";
     text = words.unknown;
-    why =
-      undated.lastVerifiedAt === null
+    why = unreadableTrouble.has(undated.id)
+      ? `"${undated.id}" reports trouble at a time this view cannot read`
+      : undated.lastVerifiedAt === null
         ? `"${undated.id}" has never been verified`
         : `"${undated.id}" was verified at a time too far ahead of this clock to check`;
   } else {
     const allFresh = areas.every((area) => area.fresh);
     state = allFresh ? "rest-fresh" : "rest-stale";
-    const troubled = areas.find((area) => area.troubleMs !== null && area.troubleMs >= troubleAfterMs);
+    const troubled = areas.find((area) => troubleAhead.has(area.id) || (area.troubleMs !== null && area.troubleMs >= troubleAfterMs));
     const restWhy = allFresh
       ? `every area was verified within ${freshWithinMs / 1000} s`
       : troubled
-        ? `"${troubled.id}" has been in trouble for ${age(troubled.troubleMs!)}, and "${oldest!.id}" was verified longest ago`
+        ? `"${troubled.id}" ${troubled.troubleMs === null ? "is in trouble since a time too far ahead of this clock to time" : `has been in trouble for ${age(troubled.troubleMs)}`}, and "${oldest!.id}" was verified longest ago`
         : `"${oldest!.id}" was verified longest ago, past ${freshWithinMs / 1000} s`;
     if (top !== null && allFresh) {
       item = top;
@@ -460,7 +477,7 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
   const detail = [...(item?.detail ?? []), ...(waiting === null ? [] : [waiting.label, ...(waiting.detail ?? [])]), ...areas.map((area) => area.line), ...(readable && !alive ? [words.silent(heartbeatAgeMs === null ? null : age(heartbeatAgeMs))] : [])];
 
   // Each moment something shown could turn: a time becoming checkable, fresh or trouble running out, the heartbeat timing
-  // out, or an age shown in words reaching its next minute, hour or day.
+  // out or coming back, or an age shown in words reaching its next minute, hour or day.
   const moments: number[] = [];
   const checkable = (at: unknown) => {
     if (finite(at) && at - now > skew) moments.push(at - skew);
@@ -469,7 +486,11 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
   if (readable) {
     checkable(heartbeatAt);
     if (alive) moments.push(heartbeatAt + heartbeatTimeoutMs + 1);
-    else if (heartbeatAgeMs !== null) aged(heartbeatAt);
+    else {
+      if (heartbeatAgeMs !== null) aged(heartbeatAt);
+      // Beats do not notify the view, so while the heartbeat is stopped it looks for one each heartbeatTimeoutMs.
+      moments.push(now + heartbeatTimeoutMs);
+    }
     for (const area of areas) {
       checkable(area.lastVerifiedAt);
       checkable(area.troubleSince);
