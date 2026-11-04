@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -646,7 +647,8 @@ describe("ShowMore with lines", () => {
   it("keeps the full text for screen readers and in server HTML", () => {
     const html = renderToString(<ShowMore lines={2}>{longText}</ShowMore>);
     expect(html).toContain("gremolata");
-    expect(html).not.toContain("data-ouro-show-more-toggle");
+    // Guessed long from its text, so the button is there before anything is laid out.
+    expect(html).toContain("data-ouro-show-more-toggle");
   });
 });
 
@@ -730,15 +732,15 @@ describe("ShowMore with maxHeight", () => {
     expect(root.querySelector("[data-ouro-show-more-toggle]")!.textContent).toBe("Voir moins");
   });
 
-  it("is folded in server HTML with all of its content and no button, and hydrates without a mismatch", async () => {
+  it("is folded in server HTML with all of its content, its fade and its button, as guessed from the content, and hydrates without a mismatch", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const node = <ShowMore maxHeight={120}><Tall height={400} /></ShowMore>;
     const html = renderToString(node);
     expect(html).toContain("Top link");
     expect(html).toContain("max-h-(--ouro-show-more-height)");
-    // Not measured yet: no fade, and no button.
-    expect(html).not.toMatch(/\sdata-folded=/);
-    expect(html).not.toContain("data-ouro-show-more-toggle");
+    // Guessed taller than its fold from the content's own height, before anything is laid out.
+    expect(html).toMatch(/\sdata-folded=/);
+    expect(html).toContain("data-ouro-show-more-toggle");
     const host = document.createElement("div");
     host.innerHTML = html;
     document.body.append(host);
@@ -1025,5 +1027,155 @@ describe("ShowMore development messages", () => {
     expect(html).toContain('data-ouro="show-more"');
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("ShowMore in its first frame", () => {
+  it.each([
+    ["lines", <ShowMore lines={2}>{longText}</ShowMore>],
+    [
+      "maxHeight",
+      <ShowMore maxHeight={120}>
+        <div style={{ height: 400 }} />
+      </ShowMore>,
+    ],
+  ])("with %s, has its button as React commits it, so nothing below it moves a frame later", (_, node) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // The commit alone, before the browser draws a frame: in a list, a button that came later would push what is below it.
+    flushSync(() => root.render(node));
+    expect(host.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+  });
+});
+
+describe("ShowMore in a long list", () => {
+  it.each([
+    ["lines", (index: number) => <ShowMore lines={2}>{`${index}: ${longText}`}</ShowMore>],
+    [
+      "maxHeight",
+      (index: number) => (
+        <ShowMore maxHeight={120}>
+          <p>{`${index}: ${longText}`}</p>
+          <div style={{ height: 300 }} />
+        </ShowMore>
+      ),
+    ],
+  ])("with %s, mounts 50 folded with their buttons and reads no layout as it commits, so it never lays the page out once per instance", (_, folded) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const reads = { count: 0 };
+    const counted: [object, string][] = [
+      [Element.prototype, "scrollHeight"],
+      [Element.prototype, "clientHeight"],
+      [Element.prototype, "scrollWidth"],
+      [Element.prototype, "clientWidth"],
+      [HTMLElement.prototype, "offsetHeight"],
+      [HTMLElement.prototype, "offsetWidth"],
+    ];
+    const restore = counted.map(([prototype, name]) => {
+      const own = Object.getOwnPropertyDescriptor(prototype, name)!;
+      Object.defineProperty(prototype, name, {
+        configurable: true,
+        get(this: Element) {
+          reads.count++;
+          return own.get!.call(this);
+        },
+      });
+      return () => Object.defineProperty(prototype, name, own);
+    });
+    const rect = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    try {
+      flushSync(() => root.render(<div>{Array.from({ length: 50 }, (_, index) => <div key={index}>{folded(index)}</div>)}</div>));
+    } finally {
+      restore.forEach((undo) => undo());
+    }
+    expect(reads.count + rect.mock.calls.length).toBe(0);
+    expect(host.querySelectorAll("[data-ouro-show-more-toggle]")).toHaveLength(50);
+  });
+});
+
+describe("ShowMore's first guess", () => {
+  /** A component whose content the guess cannot see: it renders a 400px block. */
+  function Opaque() {
+    return <div style={{ height: 400 }} />;
+  }
+  /** A component given its text, as a post is given its body. */
+  function Post({ body }: { body: string; className?: string }) {
+    return <p>{body}</p>;
+  }
+  /** A component given pictures. */
+  function Pictures({ images }: { images: { src: string }[] }) {
+    return <div>{images.length} pictures</div>;
+  }
+  const guessed = (node: ReactElement) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    flushSync(() => root.render(node));
+    return host;
+  };
+  const toggle = (host: Element) => host.querySelector("[data-ouro-show-more-toggle]");
+
+  it.each([
+    ["text in a paragraph", <p>{longText}</p>],
+    ["a picture", <img alt="" />],
+    ["pictures a component is given", <Pictures images={[{ src: "a.png" }]} />],
+    ["a component's text", <Post body={`${longText} ${longText}`} className="ignored" />],
+    ["many lines", "line\n".repeat(10)],
+  ])("folds content guessed taller than maxHeight from %s, before anything is laid out", (_, content) => {
+    expect(toggle(guessed(<ShowMore maxHeight={120}>{content}</ShowMore>))).not.toBeNull();
+  });
+
+  it.each([
+    ["a short line", "Hi"],
+    ["a number", 42],
+    [
+      "a line beside nothing",
+      <>
+        {null}
+        {false}
+        Hi
+      </>,
+    ],
+    ["a short component text", <Post body="Hi" />],
+  ])("shows content guessed to fit, %s, whole", (_, content) => {
+    expect(toggle(guessed(<ShowMore maxHeight={120}>{content}</ShowMore>))).toBeNull();
+  });
+
+  it("counts the lines text breaks into against lines", () => {
+    expect(toggle(guessed(<ShowMore lines={2}>{"a\nb\nc"}</ShowMore>))).not.toBeNull();
+  });
+
+  it("corrects a guess from the browser's layout: content that turns out taller folds, and text that wraps more than guessed gets its button", async () => {
+    const tall = guessed(<ShowMore maxHeight={120}><Opaque /></ShowMore>);
+    expect(toggle(tall)).toBeNull();
+    await expect.poll(() => toggle(tall)).not.toBeNull();
+    const narrow = guessed(
+      <div style={{ width: 80 }}>
+        <ShowMore lines={2}>{"word ".repeat(20)}</ShowMore>
+      </div>,
+    );
+    expect(toggle(narrow)).toBeNull();
+    await expect.poll(() => toggle(narrow)).not.toBeNull();
+  });
+
+  it("keeps the guess for text shown whole when its line height is not a length", async () => {
+    const host = guessed(
+      <div style={{ lineHeight: "normal" }}>
+        <ShowMore lines={2} open>
+          {longText}
+        </ShowMore>
+      </div>,
+    );
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(toggle(host)!.textContent).toBe("Show less");
   });
 });
