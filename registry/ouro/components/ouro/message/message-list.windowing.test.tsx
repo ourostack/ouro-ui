@@ -1,4 +1,4 @@
-import { createRef, type ReactNode, type Ref } from "react";
+import { Fragment, createRef, type ReactNode, type Ref } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -187,6 +187,8 @@ describe("MessageList windowing", () => {
         </MessageList>,
       );
       const content = scroller.querySelector("[data-ouro-message-list-content]")!;
+      // Elements only: no stray text among them.
+      expect([...content.childNodes].every((node) => node.nodeType === Node.ELEMENT_NODE)).toBe(true);
       const slots = [...content.querySelectorAll(":scope > [data-ouro-message-list-slot]")];
       expect(slots.length).toBe(messages(scroller).length);
       for (const slot of slots) {
@@ -213,6 +215,7 @@ describe("MessageList windowing", () => {
         </MessageList>,
       );
       const line = (id: string) => getComputedStyle(document.getElementById(id)!.querySelector("[data-ouro-message-body]")!, "::before");
+      expect(line(`m${count - 1}`).content).not.toBe("none");
       expect(line(`m${count - 1}`).borderTopStyle).toBe("solid");
       expect(line(`m${count - 2}`).borderTopWidth).toBe("1px");
       // The first post drawn after space kept for others has none until the one before it draws.
@@ -220,6 +223,80 @@ describe("MessageList windowing", () => {
       if (count === 3) expect(line(first.id).content).toBe("none");
       await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     }
+  });
+
+  it("keeps the reader's place when a short conversation that took a long one's place grows long", async () => {
+    const { scroller, rerender } = await render(<Chat items={conversation(500, 0, true)} />);
+    // Another conversation, short, in the same list; the reader scrolls up in it, and older history loads above.
+    await rerender(<Chat items={conversation(40, 2000, true)} />);
+    await scrollTo(scroller, 400);
+    const reading = firstVisible(scroller);
+    await rerender(<Chat items={conversation(140, 1900, true)} />);
+    expect(reading.message.isConnected).toBe(true);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("measures each child by what it draws, its margins too, so once scrolled through it is exactly as tall as the whole list", async () => {
+    // Messages that follow on (a negative margin), an app's own items with a margin below, children with a hidden part,
+    // and, last, a child that draws nothing.
+    function Typing() {
+      return null;
+    }
+    const children = conversation(240, 0, true).map((item) => {
+      const message = (
+        <Message id={`m${item.id}`} role="assistant" name="Ouro" continued={item.id % 3 !== 0}>
+          {item.text}
+        </Message>
+      );
+      if (item.id % 7 === 0)
+        return (
+          <Fragment key={item.id}>
+            <span hidden />
+            {message}
+          </Fragment>
+        );
+      if (item.id % 11 === 0)
+        return (
+          <article key={item.id} id={`m${item.id}`} data-ouro-message-list-item="" data-role="assistant" style={{ marginBottom: 10 }}>
+            <span data-ouro-message-author="">Ouro</span>
+            <p data-ouro-message-content="">{item.text}</p>
+          </article>
+        );
+      return <Fragment key={item.id}>{message}</Fragment>;
+    });
+    const list = (windowing: boolean) => (
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }} windowing={windowing}>
+        {[...children, <Typing key="typing" />]}
+      </MessageList>
+    );
+    const whole = await render(list(false));
+    const { scroller } = await render(list(true));
+    expect(messages(scroller).length).toBeLessThan(60);
+    for (let top = 0; top < scroller.scrollHeight; top += 900) await scrollTo(scroller, top);
+    await scrollTo(scroller, scroller.scrollHeight);
+    expect(Math.abs(scroller.scrollHeight - whole.scroller.scrollHeight)).toBeLessThanOrEqual(1);
+    expect(messages(scroller).length).toBeLessThan(60);
+  });
+
+  it("springs no message as it reveals one, though the reader's wheel just turned", async () => {
+    const actions = createRef<MessageListActions>();
+    const { scroller } = await render(<Chat items={conversation(300, 0, true)} actionsRef={actions} />);
+    // Near the top, measured, a little way down.
+    await scrollTo(scroller, 0);
+    await scrollTo(scroller, 100);
+    expect(scroller.scrollTop).toBe(100);
+    const below = messages(scroller).find((message) => message.getBoundingClientRect().top > scroller.getBoundingClientRect().bottom)!;
+    let sprung = false;
+    const watch = new MutationObserver(() => (sprung ||= scroller.querySelector("[data-ouro-settling]") !== null));
+    watch.observe(scroller, { attributes: true, subtree: true, attributeFilter: ["data-ouro-settling"] });
+    await act(async () => {
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 0, clientY: scroller.getBoundingClientRect().top + 10 }));
+      void actions.current!.reveal(below.id);
+    });
+    await settle(scroller);
+    watch.disconnect();
+    expect(scroller.scrollTop).toBeGreaterThan(100);
+    expect(sprung).toBe(false);
   });
 
   it("keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is", async () => {
@@ -264,6 +341,11 @@ describe("MessageList windowing", () => {
     const last = document.getElementById(`m${drawn.at(-1)}`)!.getBoundingClientRect();
     expect(first.top).toBeLessThan(view.top - 400);
     expect(last.bottom).toBeGreaterThan(view.bottom + 400);
+    // Exactly the band: the first drawn ends past 800px above the view, the next one down would start 800px or more below it
+    // (each message 16px after the last), and the messages either side of the run lie outside those edges.
+    expect(first.bottom).toBeGreaterThan(view.top - 800);
+    expect(last.bottom + 16).toBeGreaterThanOrEqual(view.bottom + 800 - 1);
+    expect(last.top).toBeLessThan(view.bottom + 800);
     // The newest stays drawn, for what arrives next.
     expect(document.getElementById("m999")).not.toBeNull();
     // Far up, the first messages draw, and those the scroll left go.
@@ -344,6 +426,17 @@ describe("MessageList windowing", () => {
     items = [...items, { id: 1000, text: "Message 1000" }];
     await rerender(<Chat items={items} actionsRef={actions} />);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    // From far up again, with a message arriving before the browser reports the jump's scroll: followed too.
+    await scrollTo(scroller, 0);
+    items = [...items, { id: 1001, text: "Message 1001" }];
+    await act(async () => {
+      actions.current!.jumpToNewest();
+      roots.at(-1)!.render(<Chat items={items} actionsRef={actions} />);
+    });
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    items = items.slice(0, -1);
+    await rerender(<Chat items={items} actionsRef={actions} />);
     // The button does the same, and gives the newest message focus.
     await scrollTo(scroller, 0);
     await userEvent.click(page.getByRole("button", { name: "Jump to latest" }));

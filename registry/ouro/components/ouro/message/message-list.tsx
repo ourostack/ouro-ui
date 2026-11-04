@@ -954,6 +954,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let height = 0;
     for (let index = run!; index < end; index++) height += sizeOf(index) + (index > 0 && sizeOf(index) > 0 ? measured.gap : 0);
     // Children that draw nothing take no space, and no gap either.
+    // Stryker disable next-line ConditionalExpression: a run of only such children lies between two kept children far from the view, which the window then draws together.
     if (height > 0) slots.push(<div key={`space:${keys[run!]}`} aria-hidden="true" data-ouro-message-list-space="" className="shrink-0" style={{ height: Math.max(0, height - (run! > 0 ? measured.gap : 0)) }} />);
     run = null;
   };
@@ -1046,6 +1047,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
     springsRef.current?.moved(scroller.scrollTop - before);
   }, []);
 
+  // Goes to the end and follows it again: a message that arrives before the browser reports the scroll is followed too.
+  const toNewest = () => {
+    // Stryker disable next-line BooleanLiteral: hold, below, finds the list at the end it last measured and follows; this covers an end that moved since.
+    pinned.current = true;
+    toBottom();
+    holdRef.current!();
+    setShowJump(false);
+  };
+
   // Open at the newest message (or at `initialAnchor`), then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
   // observer callbacks run before paint, so the view never flashes off the bottom.
@@ -1103,8 +1113,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       opened = true;
       const id = anchorFor.current;
       // By id, else the first message of the child with that key.
-      const keyed = [...content.children].find((node) => keyIs(node.getAttribute(SLOT) ?? "", id ?? ""));
-      const target = id ? (topItems(content).find((item) => item.id === id) ?? (keyed && topItems(keyed)[0])) : undefined;
+      const keyed = (name: string) => {
+        const slot = [...content.querySelectorAll(`:scope > [${SLOT}]`)].find((node) => keyIs(node.getAttribute(SLOT)!, name));
+        return slot && topItems(slot)[0];
+      };
+      const target = id ? (topItems(content).find((item) => item.id === id) ?? keyed(id)) : undefined;
       // None: the list stays at the end, as it opened, and follows the messages there.
       if (!target) return;
       const view = scroller.getBoundingClientRect();
@@ -1231,6 +1244,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (heights !== undefined) {
           // The heights of children gone are forgotten.
           const present = new Set(keys);
+          // Stryker disable next-line ConditionalExpression: keeping a gone child's height only holds memory: a key that comes back is measured again as it draws.
           for (const key of heights.keys()) if (!present.has(key)) heights.delete(key);
           // A render follows at once, which comes back here with the space kept at its new size. The gap is 1rem, so it
           // changes only with the font size, which changes the heights too.
@@ -1261,8 +1275,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
           } else {
             bring(target, reach.block);
             if (reach.focus) {
-              // A message drawn in this frame is not focusable from code yet: the keyboard effect marks it after.
-              if (!target.hasAttribute("tabindex")) target.tabIndex = -1;
+              // A message drawn in this frame is not focusable from code yet (the keyboard effect marks it after): setting the
+              // tab index it reports makes an element focusable from code, and leaves one that already is as it is.
+              target.setAttribute("tabindex", String(target.tabIndex));
               target.focus({ preventScroll: true });
             }
             settleRef.current(true);
@@ -1292,10 +1307,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (near === undefined) return;
       const sizeAt = (index: number) => tops.current.get(keys[index]!)?.size ?? sizeOf(index);
       const extent = (index: number) => sizeAt(index) + (index > 0 && sizeAt(index) > 0 ? measured.gap : 0);
-      const starts: number[] = [];
-      starts[near] = nearTop - (near > 0 ? measured.gap : 0);
-      for (let index = near + 1; index < keys.length; index++) starts[index] = starts[index - 1]! + extent(index - 1);
-      for (let index = near - 1; index >= 0; index--) starts[index] = starts[index + 1]! - extent(index);
+      let sum = 0;
+      const sums = keys.map((_, index) => {
+        const at = sum;
+        sum += extent(index);
+        return at;
+      });
+      const shift = nearTop - (near > 0 ? measured.gap : 0) - sums[near]!;
+      const starts = sums.map((at) => at + shift);
       let from = 0;
       // Stryker disable next-line EqualityOperator: a child that ends exactly at the overscan's edge draws or not, and the next scroll corrects it.
       while (from < keys.length - 1 && starts[from]! + extent(from) <= viewTop - over) from++;
@@ -1349,13 +1368,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           revealed.current = resolve;
         });
       },
-      jumpToNewest() {
-        pinned.current = true;
-        toBottom();
-        setShowJump(false);
-      },
+      jumpToNewest: toNewest,
     }),
-    [toBottom],
   );
 
   // Announce each message from someone else once: when it is appended after the last
@@ -1769,9 +1783,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   }, [hasItems]);
 
   const jump = () => {
-    pinned.current = true;
-    toBottom();
-    setShowJump(false);
+    toNewest();
     // The button goes, so focus goes to the newest message (or to the list, without messages), not to <body>.
     const newest = topItems(contentRef.current!).at(-1);
     if (newest) return moveTo.current!(newest);

@@ -449,6 +449,7 @@ const postHairline =
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-t " +
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-solid " +
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-border " +
+  // Stryker disable next-line StringLiteral: Tailwind gives every before: utility content: var(--tw-content), so the line draws without this class too.
   "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:content-['']";
 
 // The action bar's code, loaded once, the first time a message with actions or a menu mounts: a
