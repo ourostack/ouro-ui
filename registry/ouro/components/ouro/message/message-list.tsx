@@ -35,6 +35,17 @@ export interface MessageListOwnProps {
    */
   initialAnchor?: string | undefined;
   /**
+   * Which conversation the messages are, such as its id. When it changes, the list opens the new one at its newest message,
+   * as on any switch, whatever keys its messages have; while it stays the same, nothing the messages do counts as a switch:
+   * keys swapped for the server's, the newest ones regenerated or removed. Give it whenever one list shows one
+   * conversation after another. Without it, the list takes messages that share no `key` with the ones it held for another
+   * conversation, so it misses a switch between conversations whose messages share keys (`0`, `1`, … by index), and takes
+   * a short conversation whose every message gets a new key at once for another one.
+   * @claim "When it changes, the list opens the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
+   * @claim "Without it, the list takes messages that" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > keeps the reader's place, the messages and focus when the newest three get new keys in place, while scrolled up)
+   */
+  conversation?: Key | undefined;
+  /**
    * Whether older messages are loading above: a small "Loading older messages" shows over the
    * top of the list, and screen readers hear it once. It sits over the messages, not among them,
    * so starting and ending it moves no message. At the very top it covers the first message
@@ -191,7 +202,7 @@ const olderClass =
 
 /** How many older messages go into the list in a frame when a page of them comes at once, to keep the frame short. */
 const CHUNK = 20;
-/** How many of the newest children's keys tell one conversation from another: messages that hold none of them are another's. */
+/** How many of the newest children's keys, with the first child's, say the list's messages changed enough to look again for a switch. */
 const RECENT = 3;
 /** How many of the newest messages a conversation opens with, more than a tall list shows at once; the rest go in above them, CHUNK a frame. */
 const FIRST = 40;
@@ -551,8 +562,8 @@ interface Spoken {
  * `scrollIntoView` and the browser's find in page reach them once it goes, so open at a message
  * with `initialAnchor`, and a test that reads the oldest messages waits for it to go.
  * Switching to another conversation is opening one: key the list by the conversation, or give it
- * the other conversation's messages, which hold none of the newest three `key`s it held (what starts
- * each conversation may keep its key), even after it held none for a while. Either way it
+ * the other conversation's messages with its `conversation` (or, without one, messages that share no
+ * `key` with those it held), even after it held none for a while. Either way it
  * opens at the other's newest message, wherever the reader was, with nothing announced; focus that
  * was on a message moves to the newest one in view. A scroll up from the end stops the list following
  * new messages at once, before the browser reports it. The list follows by how far it is from the
@@ -681,6 +692,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     children,
     jumpLabel = "Jump to latest",
     initialAnchor,
+    conversation,
     loadingOlder = false,
     hasOlder = false,
     loadingOlderLabel = "Loading older messages",
@@ -757,16 +769,27 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // the list opens on, or switches to: the newest messages first, then the rest above them.
   const all = Children.toArray(children);
   const top = keyOf(all[0]);
-  // The keys of the newest few children: messages that hold none of them are another conversation's, or the first ones, even
-  // when what starts every conversation keeps its key.
+  // The keys of the newest few children: when they or the first child's change, the list looks again for a switch.
   const recent = all.slice(-RECENT).map(keyOf);
   const latest = useRef(all);
-  // The keys of the first child and of the first one drawn: a page of older ones above the first drawn waits. Whether the list
-  // has held messages, and how many times it has switched to another conversation since.
-  const [edge, setEdge] = useState(() => ({ first: top, drawn: openingKey(all, initialAnchor), recent, held: all.length > 0, switches: 0 }));
-  if (top !== edge.first || recent.length !== edge.recent.length || recent.some((key, at) => key !== edge.recent[at])) {
-    const keys = new Set(all.map(keyOf));
-    const fresh = all.length > 0 && !edge.recent.some((key) => key !== null && keys.has(key));
+  // The keys of the first child and of the first one drawn: a page of older ones above the first drawn waits. Every key the
+  // list held when its first or newest ones last changed, and the conversation they were: another conversation is a new
+  // `conversation`, or without one, messages that share no key with those. Whether the list has held messages, and how
+  // many times it has switched to another conversation since.
+  const [edge, setEdge] = useState(() => ({
+    first: top,
+    drawn: openingKey(all, initialAnchor),
+    recent,
+    keys: new Set(all.map(keyOf)),
+    conversation,
+    held: all.length > 0,
+    switches: 0,
+  }));
+  const named = conversation !== undefined && all.length > 0 && conversation !== edge.conversation;
+  if (named || top !== edge.first || recent.length !== edge.recent.length || recent.some((key, at) => key !== edge.recent[at])) {
+    const fresh =
+      all.length > 0 &&
+      (conversation === undefined ? !all.some((child) => keyOf(child) !== null && edge.keys.has(keyOf(child))) : !edge.held || conversation !== edge.conversation);
     setEdge({
       first: top,
       drawn: fresh
@@ -775,6 +798,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
           ? edge.drawn
           : top,
       recent,
+      keys: new Set(all.map(keyOf)),
+      // The conversation whose messages the list holds: one named while it holds none waits for its messages.
+      conversation: all.length > 0 ? conversation : edge.conversation,
       held: edge.held || all.length > 0,
       switches: edge.switches + (fresh && edge.held ? 1 : 0),
     });
@@ -1147,8 +1173,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The message focus was last in, and its place among the messages.
     let last: HTMLElement | null = null;
     let lastIndex = 0;
-    // The message focus is in, until focus leaves it.
+    // The message focus is in, until focus leaves it, and whether it went with nothing in its place, waiting for the next messages.
     let focused: HTMLElement | null = null;
+    let waiting = false;
     // A Tab press in progress anywhere in the page (true for Shift+Tab), and where the list was
     // scrolled to before it: the browser scrolls to what it focuses before the list sends focus on.
     let tabbing: boolean | null = null;
@@ -1242,12 +1269,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Out of the Tab order, for the list's Tab and the browser's alike (`guards`).
       // Stryker disable next-line StringLiteral: an empty or any other negative tabindex takes a span out of the Tab order too.
       for (const guard of content.querySelectorAll(guards)) mark(guard, "tabindex", "-1");
+      // A message removed with nothing in its place waited for the next messages, another conversation's: other messages
+      // coming instead let it go, so they never take focus from wherever the reader went since.
+      if (waiting && changed && !switched.current) [focused, waiting] = [null, false];
       // In another conversation, focus goes to its Tab stop, below, without scrolling: no message is in the old one's place.
       const refocus = focused?.isConnected === false && doc.activeElement === doc.body && switched.current;
       if (focused?.isConnected === false && doc.activeElement === doc.body && !refocus) {
         const left = topItems(content);
         const place = placeOf(focused, records, left) ?? left[Math.min(lastIndex, left.length - 1)];
         // With no message left, the focus waits for the next ones: another conversation's, say, after the list emptied.
+        waiting = place === undefined;
         if (place) {
           focused = null;
           // A message that just came takes focus before the list has marked it below.
@@ -1255,7 +1286,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           move(place);
         }
       }
-      if (refocus) focused = null;
+      if (refocus) [focused, waiting] = [null, false];
       switched.current = false;
       if (!changed) return;
       const list = (tops = topItems(content));
@@ -1302,6 +1333,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       setCurrent(item);
       last = item;
       lastIndex = topItems(content).indexOf(item);
+    };
+    // Focus that lands anywhere outside the list lets go of a message that went: the reader has moved on.
+    const elsewhere = (event: FocusEvent) => {
+      if (!scroller.contains(event.target as Node)) [focused, waiting] = [null, false];
     };
     const focusOut = (event: FocusEvent) => {
       if (scroller.contains(event.relatedTarget as Node | null)) return;
@@ -1420,8 +1455,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
     scroller.addEventListener("scroll", scrolled, { passive: true });
     doc.addEventListener("keydown", tabKey, true);
+    doc.addEventListener("focusin", elsewhere);
     // Stryker disable next-line all: once the list is gone, nothing reads what these listeners would change; removing them frees memory only.
-    return () => (observer.disconnect(), scroller.removeEventListener("focusin", focusIn), scroller.removeEventListener("focusout", focusOut), scroller.removeEventListener("scroll", scrolled), doc.removeEventListener("keydown", tabKey, true));
+    return () => (observer.disconnect(), scroller.removeEventListener("focusin", focusIn), scroller.removeEventListener("focusout", focusOut), scroller.removeEventListener("scroll", scrolled), doc.removeEventListener("keydown", tabKey, true), doc.removeEventListener("focusin", elsewhere));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);
