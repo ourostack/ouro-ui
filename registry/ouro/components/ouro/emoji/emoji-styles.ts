@@ -105,7 +105,11 @@ interface CatalogueIndex {
    * @claim "nothing when it lists none" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text into its runs and emoji with no empty runs between or around them)
    */
   textPattern: RegExp;
-  /** The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji. */
+  /**
+   * The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji.
+   *
+   * @claim "The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji." registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > passes text with no colon and no emoji text's first character straight through, and still finds a plain-text emoji)
+   */
   textStarts: ReadonlySet<string>;
 }
 
