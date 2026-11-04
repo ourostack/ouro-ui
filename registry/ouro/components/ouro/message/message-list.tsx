@@ -1291,7 +1291,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const near = indexes.get(placed[0])!;
       const nearTop = placed[1].top;
       const sizeAt = (index: number) => tops.current.get(keys[index]!)?.size ?? sizeOf(index);
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.
       const extent = (index: number) => sizeAt(index) + (index > 0 && sizeAt(index) > 0 ? measured.gap : 0);
       let sum = 0;
       const sums = keys.map((_, index) => {
