@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -28,6 +28,7 @@ describe("findOffendersInSource: each category", () => {
             "third-party-control",
             "content-spinner",
             "render-index",
+            "vague-failure-copy",
             "uses-hand-rolled-control",
         ]);
     });
@@ -526,6 +527,189 @@ describe("layout-animation", () => {
         expect(formatComparison(comparison)).toEqual([`New animation of a layout property: app/x.tsx::Menu::layout-animation::transition-all:: (+1) at app/x.tsx:4. ${LAYOUT_ANIMATION_FIX}`]);
         expect(LAYOUT_ANIMATION_FIX).toContain("Animate transform and opacity instead, which the compositor runs without layout");
         expect(LAYOUT_ANIMATION_FIX).toContain("rather than transition-all");
+    });
+});
+describe("vague-failure-copy", () => {
+    const vague = (source, options) => findOffendersInSource("app/routes/fixture.tsx", source, options)
+        .filter((offender) => offender.category === "vague-failure-copy")
+        .map((offender) => offender.fingerprint.split("::").slice(3).join("::"));
+    it("keeps the detector Ouro AX shares: six phrases and the bare failure pattern", () => {
+        expect(VAGUE_FAILURE_PHRASES.map(([name]) => name)).toEqual(["couldn't", "could not", "something went wrong", "unable to", "failed to load", "an error occurred"]);
+        const samples = {
+            "Couldn’t show this picture": "couldn't",
+            "Couldnt save": "couldn't",
+            "We COULD NOT reach the server": "could not",
+            "Something went wrong.": "something went wrong",
+            "Unable to sync": "unable to",
+            "Photos failed to load": "failed to load",
+            "An error occurred": "an error occurred",
+            "An unexpected error has occurred.": "an error occurred",
+            "A error occurred": "an error occurred",
+            "Sorry, an unknown error": "an error occurred",
+            "Error": "bare error",
+            "Errors": "bare error",
+            "  Error!  ": "bare error",
+            "Error:": "bare error",
+            "Upload failed": "bare failed",
+            "Payment failure": "bare failed",
+            "Terror failed": "bare failed",
+            "Couldn't send.": "couldn't",
+            "Couldn't send:": "couldn't",
+            "Error: something went wrong": "something went wrong",
+            "Sync errors": "bare error",
+            // A cause in the same sentence, of two words or a substitution, that is not a next step or a vague word.
+            "Couldn't send: try again.": "couldn't",
+            "Something went wrong: please try again later.": "something went wrong",
+            "Something went wrong. Error code: E42": "something went wrong",
+            "Unable to save - try again": "unable to",
+            "Couldn't send: error": "couldn't",
+            "Couldn't sync since yesterday": "couldn't",
+            "Couldn't send: you're offline. Could not retry.": "could not",
+            "Error: error": "bare error",
+            "Error: please try again": "bare error",
+            "Upload failed: try again": "bare failed",
+        };
+        for (const [text, phrase] of Object.entries(samples))
+            expect([text, vagueFailurePhrase(text)]).toEqual([text, phrase]);
+        for (const text of ["3 failed", "Sync failed again", "The upload to the photo service failed", "Could nothing be simpler", "unable tomorrow", "Error: the photo service says this picture was deleted", "Couldn't send: you're offline. Try again when you're back online.", "Could not save because the server refused it", "Upload failed - the server answered 413", "Something went wrong — the server answered 500", "Couldn't send: ${…}", "No errors", "Nothing failed", "Zero errors", "None failed", "Show errors", "Hide errors", "Retry failed", "Clear errors"])
+            expect([text, vagueFailurePhrase(text)]).toEqual([text, undefined]);
+        expect(vagueFailurePhrase("Failed", { whole: false })).toBe(undefined);
+        expect(vagueFailurePhrase("Could not save", { whole: false })).toBe("could not");
+        expect(BARE_FAILURE.flags).toBe("iu");
+    });
+    it("reads JSX text with the children after it, so a cause in an expression counts as in its template twin", () => {
+        expect(vague(`export function A({ why }) { return <>
+          <p>Couldn't send: {why}</p>
+          <p>Couldn't send: <b>{why}</b></p>
+          <p>Couldn't send:{/* the reason */} {why}</p>
+          <p>Couldn't send {why}</p>
+          <p>Error: {why}</p>
+          <p>Error: try again {why}</p>
+        </>; }`)).toEqual(["couldn't::Couldn't send ${…}"]);
+    });
+    it("finds a vague phrase in a string, a template literal's static parts and JSX text, counted where it is written", () => {
+        expect(scan(`export function Photo() {\n  return <p>Couldn't show this picture</p>;\n}`)).toEqual([
+            { category: "vague-failure-copy", fingerprint: "app/routes/fixture.tsx::Photo::vague-failure-copy::couldn't::Couldn't show this picture", file: "app/routes/fixture.tsx", line: 2 },
+        ]);
+        expect(vague(`
+      export const message = "Something went wrong";
+      export function Upload({ name, toast }) {
+        toast(\`Could not upload \${name}. Try again later\`);
+        throw new Error(\`Unable to read the file\`);
+        return <Alert title="Photos failed to load" description={'An error occurred'}>
+          We   could not
+          reach the server.
+        </Alert>;
+      }`)).toEqual([
+            "something went wrong::Something went wrong",
+            "could not::Could not upload ${…}. Try again later",
+            "unable to::Unable to read the file",
+            "failed to load::Photos failed to load",
+            "an error occurred::An error occurred",
+            "could not::We could not reach the server.",
+        ]);
+    });
+    it("counts a bare failure only as a whole text: not a count, a template with a substitution or JSX text beside other children", () => {
+        expect(vague(`export function Status({ n, ok }) { return <>
+          <Badge>Error</Badge>
+          <Badge>{ok ? "Done" : "Upload failed"}</Badge>
+          <Badge label="Error:" />
+          <Badge>
+            {/* the state */}
+            Failed
+          </Badge>
+          <Badge>Error <b>{n}</b> again</Badge>
+          <Badge>{n} failed</Badge>
+          <Badge>{\`\${n} failed\`}</Badge>
+          <Badge>Error <b>{n}</b></Badge>
+          <Badge>{"3 failed"}</Badge>
+        </>; }`)).toEqual(["bare error::Error", "bare failed::Upload failed", "bare error::Error:", "bare failed::Failed"]);
+    });
+    it("reads apostrophe entities and curly apostrophes as an apostrophe", () => {
+        expect(vague(`export function A() { return <>
+          <p>Couldn&apos;t sync</p>
+          <p title="Couldn&#39;t sync">Couldn&rsquo;t sync</p>
+          <p>{"Couldn’t sync"}</p>
+        </>; }`)).toEqual(["couldn't::Couldn't sync", "couldn't::Couldn't sync", "couldn't::Couldn't sync", "couldn't::Couldn’t sync"]);
+    });
+    it("skips strings that are not copy: specifiers, types, keys, tagged templates, compared values, non-copy attributes and properties, and one lowercase token", () => {
+        expect(vague(`
+      import "./could not.css";
+      import messages from "./unable to";
+      export { failed } from "./failed to load";
+      import fs = require("could not");
+      type Failure = "Something went wrong" | import("unable to").T;
+      declare module "could not" {}
+      const lazy = () => import("./couldn't");
+      const config = require("./could not");
+      const keys = { "Could not": 1, ["Unable to"]: 2, className: "Error", id: "Upload failed", type: "Failed to load" };
+      enum Status { "Error" = 1 }
+      interface Strings { "Something went wrong": string }
+      export function A({ status, styles, m }) {
+        if (status === "Error" || status !== "Failed") return m["Could not"];
+        switch (status) { case "Something went wrong": break; }
+        const sheet = css\`could not\`;
+        setStatus("error");
+        setStatus("load-failed");
+        return <div className={status ? "Error" : "x"} itemClassName="Failed" data-state="Upload failed" id="Error" key="Failed" type="Error"
+          href="/could not" src="unable to" to="Error" name="Error" role="Error" htmlFor="Error" as="Error" />;
+      }`)).toEqual([]);
+    });
+    it("counts copy in a handler, under an element, at the top level and in a computed property's value", () => {
+        expect(vague(`
+      const title = { [key]: "Could not save" };
+      export function A({ toast }) {
+        return <div className={() => "Unable to save"}><Button onPress={() => toast("Couldn't save")}>{"Error"}</Button></div>;
+      }`)).toEqual(["could not::Could not save", "unable to::Unable to save", "couldn't::Couldn't save", "bare error::Error"]);
+    });
+    it("never makes the component around failure copy a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/oops.tsx": `export function Oops() { return <p>Something went wrong</p>; }`,
+            "app/routes/home.tsx": `import { Oops } from "~/components/oops"; export function Home() { return <Oops />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["vague-failure-copy"]);
+    });
+    it("lets a text through that holds a failureCopyAllow match, case-sensitive", () => {
+        const source = `export function A() { return <>
+          <p>The card service says your card could not be charged. Use another card.</p>
+          <p>The Card Service says your card could not be charged.</p>
+          <p>Could not save</p>
+        </>; }`;
+        const failureCopyAllow = [{ match: "card service says your card could not be charged", reason: "names the service and its answer" }];
+        expect(vague(source, { failureCopyAllow })).toEqual(["could not::The Card Service says your card could not be charged.", "could not::Could not save"]);
+        expect(vague(source)).toHaveLength(3);
+        const files = { "app/a.tsx": source };
+        const found = findOffenders(["app/a.tsx"], { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: {}, failureCopyAllow });
+        expect(found).toHaveLength(2);
+    });
+    it("names the phrase and what to say instead in its message", () => {
+        const fingerprint = "app/x.tsx::Photo::vague-failure-copy::couldn't::Couldn't show this picture";
+        const comparison = compareWithBaseline([{ fingerprint, file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([
+            `New vague failure copy ("couldn't"): ${fingerprint} (+1) at app/x.tsx:4. "couldn't" doesn't say what failed or why. ${VAGUE_FAILURE_COPY_FIX}`,
+        ]);
+        expect(VAGUE_FAILURE_COPY_FIX).toContain('"The photo service says this picture was deleted by its owner."');
+        expect(VAGUE_FAILURE_COPY_FIX).toContain("who or what caused it");
+        expect(VAGUE_FAILURE_COPY_FIX).toContain("the next step as a working action or command");
+        expect(VAGUE_FAILURE_COPY_FIX).toContain("failureCopyAllow in ouro-source-rules.json with a reason");
+    });
+    it("stops on a failureCopyAllow that is not a list, or an entry with an empty match or no reason, naming the entry and the fix", () => {
+        const load = (failureCopyAllow) => loadConfig("/repo", { readFile: () => JSON.stringify({ failureCopyAllow }), readdir: () => [] });
+        const entry = { match: "could not be charged", reason: "names the service and its answer" };
+        expect(load([entry]).failureCopyAllow).toEqual([entry]);
+        expect(loadConfig("/repo", { readFile: () => "{}", readdir: () => [] }).failureCopyAllow).toEqual([]);
+        expect(() => load({ match: "x" })).toThrow(`${CONFIG_PATH}: failureCopyAllow must be a list. Fix: "failureCopyAllow": [{ "match": "<part of the text>", "reason": "<why this wording is precise>" }].`);
+        expect(() => load([entry, { match: "could not" }])).toThrow(`${CONFIG_PATH}: failureCopyAllow[1] {"match":"could not"} needs a non-empty "match" (part of the text) and a "reason" (why this wording is precise). Fix: { "match": "<part of the text>", "reason": "<why this wording is precise>" }.`);
+        for (const bad of [{ match: "could not", reason: " " }, { match: "", reason: "precise" }, { reason: "precise" }, "could not", null])
+            expect(() => load([bad])).toThrow(`${CONFIG_PATH}: failureCopyAllow[0] ${JSON.stringify(bad)} needs a non-empty "match"`);
+    });
+    it("counts a new failureCopyAllow match as a narrowing, once, unless a match at the base is part of it", () => {
+        const config = (...matches) => ({ src: "app", ouroDirs: [], exclude: [], hookPrefix: "", baseline: BASELINE_PATH, failureCopyAllow: matches.map((match) => ({ match, reason: "precise" })) });
+        expect(narrowedSettings(config(), config("could not be charged", "could not be charged"))).toEqual([
+            { fingerprint: `${CONFIG_PATH}::failureCopyAllow::could not be charged`, change: 'lets failure copy holding "could not be charged" through (failureCopyAllow)' },
+        ]);
+        expect(narrowedSettings(config("could not"), config("card could not be charged"))).toEqual([]);
+        expect(narrowedSettings(config("could not be charged"), config())).toEqual([]);
     });
 });
 describe("third-party-control", () => {
@@ -1740,6 +1924,15 @@ describe("main", () => {
             expect(line).not.toContain("Use an Ouro component instead");
             expect(exit).toHaveBeenCalledWith(1);
         });
+        it("gives failure copy's rise what to say instead, naming the phrase", () => {
+            const V = "app/routes/v.tsx::V::vague-failure-copy::something went wrong::Something went wrong";
+            const copy = { "/repo/app/routes/v.tsx": `export function V() {\n  return <p>Something went wrong</p>;\n}` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [V]: 1 }), copy);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            expect(io.error).toHaveBeenCalledWith(`Regression against abc123: ${V} (+1) at app/routes/v.tsx:2. "something went wrong" doesn't say what failed or why. ${VAGUE_FAILURE_COPY_FIX.replace(/\.$/, ";")} or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"`);
+            expect(exit).toHaveBeenCalledWith(1);
+        });
         it("passes a rise the new baseline allows with a reason and count, and not an empty reason or a smaller count", () => {
             const allowed = setup(baselineOf({ [A]: 1, [B]: 1 }, [{ fingerprint: B, count: 1, reason: "measured" }]), extra);
             allowed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
@@ -1876,6 +2069,25 @@ describe("main", () => {
             main(["--base", "abc123"], spent.deps);
             expect(spent.io.error).toHaveBeenCalledWith(change("stops reading app/generated/ (exclude)"));
             expect(spent.exit).toHaveBeenCalledWith(1);
+        });
+        it("fails a new failureCopyAllow match like a new exclude, unless a match at the base is part of it, and records it with a reason", () => {
+            const copy = { "/repo/app/routes/v.tsx": `export const V = () => <p>The card service says your card could not be charged.</p>;` };
+            const allow = (...matches) => ({ failureCopyAllow: matches.map((match) => ({ match, reason: "names the service and its answer" })) });
+            const fingerprint = `${CONFIG_PATH}::failureCopyAllow::could not be charged`;
+            const narrowed = setup(matching, { ...copy, ...settings(allow("could not be charged")) });
+            narrowed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], narrowed.deps);
+            expect(narrowed.io.error).toHaveBeenCalledWith(change('lets failure copy holding "could not be charged" through (failureCopyAllow)'));
+            expect(narrowed.exit).toHaveBeenCalledWith(1);
+            const written = setup(matching, { ...copy, ...settings(allow("could not be charged")) });
+            written.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--write-baseline", "--base", "abc123", "--allow-regression", "the card service's own answer"], written.deps);
+            expect(written.writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ [A]: 1 }, [{ fingerprint, count: 1, reason: "the card service's own answer" }]));
+            const covered = setup(matching, { ...copy, ...settings(allow("could not be charged")) });
+            covered.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching, [CONFIG_PATH]: JSON.stringify(allow("could not")) }));
+            main(["--base", "abc123"], covered.deps);
+            expect(covered.io.error).not.toHaveBeenCalled();
+            expect(covered.exit).not.toHaveBeenCalled();
         });
         it("does not let a deleted and moved baseline start over", () => {
             const moved = settings({ baseline: "test/rules.json" });

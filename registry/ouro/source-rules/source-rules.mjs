@@ -64,6 +64,23 @@ import ts from "typescript";
 //   instead, which the compositor runs without layout. Tailwind's plain `transition`,
 //   `transition-colors`, `transition-opacity` and `transition-transform` pass. Like a spinner, it
 //   counts where it is written and never makes the component around it a hand-rolled control.
+// - vague-failure-copy: a string literal, a template literal (its static parts, joined) or JSX text
+//   with a vague failure phrase (VAGUE_FAILURE_PHRASES: "couldn't", "could not", "something went
+//   wrong", "unable to", "failed to load", "an error occurred"), or whose whole text is a bare
+//   failure (BARE_FAILURE: "Error", "Upload failed", "Error:"; not after a NOT_BARE_LEADS word:
+//   "No errors", "Retry failed"). A phrase with its cause after it in the same sentence (statesCause:
+//   "Couldn't send: you're offline", "… because …"; not "Couldn't send: try again") is precise, and
+//   "Error: …" is held to the same test. JSX text is read with the children after it, as ${…}. A failure states what happened and
+//   why (the system and its answer: "The photo service says this picture was deleted"), who or what
+//   caused it where known, and the next step as a working action; when the cause is unknown, what
+//   was tried and what came back. Not copy, so never read: import, export, require() and import()
+//   specifiers, type positions, object and member keys, tagged templates (css``, gql``), operands
+//   of ==, !=, === and !== and `case` labels, the value of an attribute or object property named
+//   in NOT_COPY_ATTRIBUTE (className and the like, data-*, id, key, type, href, src, to, name, role,
+//   htmlFor, as), and a string that is one lowercase token ("error", "load-failed": a status, not
+//   copy). A template with a substitution, or JSX text beside other children (`{count} failed`), is
+//   never bare. `failureCopyAllow` lets a precise text through, each entry with its reason. It
+//   counts where the text is written and never makes the component around it a hand-rolled control.
 // - uses-hand-rolled-control: a JSX use of an imported app component that is offending, counted at
 //   the call site. A component is offending when an offender sits inside it, or it renders an
 //   offending component (same file or imported), to a fixed point across modules: a wrapper
@@ -91,17 +108,24 @@ import ts from "typescript";
 //
 // Against `--base` the base's own ouro-source-rules.json names its baseline, and the pull request's
 // settings may only widen the scan: moving the baseline, another `src`, an `ouroDirs` or `exclude`
-// entry the base did not already skip, or a set or changed `hookPrefix` fails like a rise, and
-// needs `--allow-regression <reason>`, recorded the same way (`ouro-source-rules.json::<setting>::
-// <value>`). A missing baseline is the first one, recorded without a reason, only when the base has
+// entry the base did not already skip, a `failureCopyAllow` match no match at the base already
+// covered (an allow entry hides offenders as an exclude does), or a set or changed `hookPrefix`
+// fails like a rise, and needs `--allow-regression <reason>`, recorded the same way
+// (`ouro-source-rules.json::<setting>::<value>`). A missing baseline is the first one, recorded without a reason, only when the base has
 // neither the settings file nor a baseline.
 //
 // Settings, all optional, come from ouro-source-rules.json at the root:
-// `{ "src": "app", "ouroDirs": ["app/components/ouro/", "app/lib/ouro/"], "exclude": ["app/lib/generated/"], "hookPrefix": "app", "baseline": "test/ouro-source-rules.baseline.json" }`.
+// `{ "src": "app", "ouroDirs": ["app/components/ouro/", "app/lib/ouro/"], "exclude": ["app/lib/generated/"], "hookPrefix": "app", "baseline": "test/ouro-source-rules.baseline.json",
+//    "failureCopyAllow": [{ "match": "The card service says your card could not be charged", "reason": "names the service and its answer" }] }`.
+// A text that holds an entry's `match` (case-sensitive) passes; an entry with an empty `match` or
+// no `reason` stops the rule with the fix.
 //
 // Known gaps: members of an imported app component (`<Menu.Item>` from an app module) are not
 // counted at call sites, and Motion through a namespace import of motion/react
-// (`<Motion.motion.div>`) is not treated as the element it renders.
+// (`<Motion.motion.div>`) is not treated as the element it renders. Failure copy is read where it
+// is written: text an app builds by concatenation ("Could " + "not") or loads from a file other
+// than .ts and .tsx (a JSON message catalog) is not read, and lowercase one-word copy in a string
+// ("error") passes as a token while the same word as JSX text counts.
 
 export const CATEGORIES = [
   "raw-button",
@@ -120,6 +144,7 @@ export const CATEGORIES = [
   "third-party-control",
   "content-spinner",
   "render-index",
+  "vague-failure-copy",
   "uses-hand-rolled-control",
 ];
 
@@ -147,6 +172,81 @@ export const CONTENT_SPINNER_FIX =
   "so the content takes its place and nothing moves when it arrives. " +
   "Inline progress for an action is allowed: a spinner inside a button (<Button loading>), in a prop such as a field's endAdornment or an icon, or beside the words that say what is under way.";
 
+// The vague-failure-copy detector. Ouro AX keeps the identical list; change both together.
+// Each phrase: its canonical name and the pattern (case-insensitive).
+export const VAGUE_FAILURE_PHRASES = [
+  ["couldn't", /\bcouldn[’']?t\b/i],
+  ["could not", /\bcould not\b/i],
+  ["something went wrong", /\bsomething went wrong\b/i],
+  ["unable to", /\bunable to\b/i],
+  ["failed to load", /\bfailed to load\b/i],
+  ["an error occurred", /\ban? (?:unknown |unexpected )?error (?:has )?occurred\b|\ban (?:unknown|unexpected) error\b/i],
+];
+// A bare failure: the whole text is "error" or "failed" (or "failure"), at most two words of letters before it,
+// or "Error:" with nothing after. "3 failed" is a count, not copy, so the words before must start with a letter.
+export const BARE_FAILURE = /^[^\p{L}\p{N}]*(?:(?:\p{L}[\p{L}'’-]*\s+){0,2}(?:error|errors|failed|failure)|error\s*:)[^\p{L}\p{N}]*$/iu;
+
+// A failure is precise when its cause follows the phrase in the same sentence, after a colon, a
+// dash or "because" (CAUSE_MARKER): "Couldn't send: you're offline", "… because the server refused
+// it". The cause is a substitution (`Couldn't send: ${why}`) or at least two words, the first not a
+// next step or a vague word (NOT_A_CAUSE): "Couldn't send: try again" and "Couldn't send: error"
+// state no cause. "Error: …" and "Upload failed: …" (LEAD_FAILURE) are held to the same test.
+export const CAUSE_MARKER = /:|\s[—–-]\s|\bbecause\b/iu;
+export const NOT_A_CAUSE = ["try", "please", "retry", "contact", "see", "error", "errors", "unknown", "failed", "failure"];
+export const LEAD_FAILURE = /^[^\p{L}\p{N}]*(?:\p{L}[\p{L}'’-]*\s+){0,2}(?:error|errors|failed|failure)\s*(:|\s[—–-]\s)/iu;
+// Words before "error" or "failed" that make the text other than a failure: a negation ("No errors",
+// "Nothing failed") or an action ("Show errors", "Retry failed").
+export const NOT_BARE_LEADS = ["no", "nothing", "zero", "none", "show", "hide", "retry", "clear"];
+const SENTENCE_END = /[.!?](?=\s|$)/u;
+const WORD = /\p{L}[\p{L}\p{N}'’-]*/gu;
+
+/**
+ * Whether `rest`, the text after a failure phrase, states the cause in the same sentence.
+ * @param {string} rest
+ */
+export function statesCause(rest) {
+  const sentence = rest.split(SENTENCE_END)[0];
+  const marker = CAUSE_MARKER.exec(sentence);
+  if (!marker) return false;
+  const cause = sentence.slice(marker.index + marker[0].length);
+  if (cause.includes("${…}")) return true;
+  const words = cause.match(WORD) ?? [];
+  return words.length >= 2 && !NOT_A_CAUSE.includes(words[0].toLowerCase()) && !VAGUE_FAILURE_PHRASES.some(([, pattern]) => pattern.test(cause));
+}
+
+const leadWords = (text) => [...text.toLowerCase().matchAll(WORD)].map((match) => match[0]);
+
+/**
+ * The vague failure phrase in `text`, by its canonical name, or undefined. Every occurrence of a
+ * phrase must state its cause (statesCause), and so must a failure that leads the text ("Error: …",
+ * LEAD_FAILURE). A `whole` text (the entire string or element text, not one part of it) that is a
+ * bare failure is "bare error" or "bare failed", by its word, unless a word before it is in
+ * NOT_BARE_LEADS.
+ * @claim "Every occurrence of a phrase must state its cause" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::vague-failure-copy > keeps the detector Ouro AX shares: six phrases and the bare failure pattern)
+ * @param {string} text
+ * @param {{ whole?: boolean }} [options]
+ */
+export function vagueFailurePhrase(text, { whole = true } = {}) {
+  const found = VAGUE_FAILURE_PHRASES.find(([, pattern]) =>
+    [...text.matchAll(new RegExp(pattern.source, `${pattern.flags}g`))].some((match) => !statesCause(text.slice(match.index + match[0].length))),
+  );
+  if (found) return found[0];
+  const trimmed = text.trim();
+  const word = (failure) => (/\berrors?\b/i.test(failure) ? "bare error" : "bare failed");
+  const lead = LEAD_FAILURE.exec(trimmed);
+  if (lead && !leadWords(lead[0]).some((w) => NOT_BARE_LEADS.includes(w))) return statesCause(trimmed.slice(lead[0].length - lead[1].length)) ? undefined : word(lead[0]);
+  if (!whole || !BARE_FAILURE.test(trimmed)) return undefined;
+  if (leadWords(trimmed).slice(0, -1).some((w) => NOT_BARE_LEADS.includes(w))) return undefined;
+  return word(trimmed);
+}
+
+/** What the vague-failure-copy rule tells an app to write instead, and how to keep a precise text. */
+export const VAGUE_FAILURE_COPY_FIX =
+  'Say what happened and precisely why, naming the system and its answer ("The photo service says this picture was deleted by its owner."), ' +
+  "who or what caused it where you know, and the next step as a working action or command (\"Ask them to share it again.\"); " +
+  "when the cause is unknown, say what was tried and what came back. " +
+  "When the wording is already precise, add it to failureCopyAllow in ouro-source-rules.json with a reason.";
+
 /** What the render-index rule tells an app to do. */
 export const RENDER_INDEX_FIX =
   "Build the index where its data changes, once per change: in the store or loader that holds the data, " +
@@ -162,7 +262,19 @@ const CATEGORY_MESSAGES = {
   "content-spinner": { headline: "New spinner standing in for content", fix: CONTENT_SPINNER_FIX },
   "render-index": { headline: "New index built in render", fix: RENDER_INDEX_FIX },
   "layout-animation": { headline: "New animation of a layout property", fix: LAYOUT_ANIMATION_FIX },
+  // Names the phrase it found, the fingerprint's tag.
+  "vague-failure-copy": (phrase) => ({
+    headline: `New vague failure copy ("${phrase}")`,
+    fix: `"${phrase}" doesn't say what failed or why. ${VAGUE_FAILURE_COPY_FIX}`,
+  }),
 };
+
+// A category's message for an offender's fingerprint, or undefined when the fix is an Ouro component.
+function messageFor(fingerprint) {
+  const [, , category, tag] = fingerprint.split("::");
+  const message = CATEGORY_MESSAGES[category];
+  return typeof message === "function" ? message(tag) : message;
+}
 
 export const BASELINE_PATH = "ouro-source-rules.baseline.json";
 export const CONFIG_PATH = "ouro-source-rules.json";
@@ -240,7 +352,7 @@ const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  * when the app has one, else app/.
  * @param {string} root
  * @param {{ readFile?: (file: string) => string, readdir?: (directory: string) => unknown[] }} [deps]
- * @returns {{ src: string, ouroDirs: string[], exclude: string[], hookPrefix: string, hook: RegExp, baseline: string }}
+ * @returns {{ src: string, ouroDirs: string[], exclude: string[], hookPrefix: string, hook: RegExp, baseline: string, failureCopyAllow: { match: string, reason: string }[] }}
  */
 export function loadConfig(root, { readFile = defaultDeps.readFile, readdir = defaultDeps.readdir } = {}) {
   let settings = {};
@@ -259,6 +371,18 @@ export function loadConfig(root, { readFile = defaultDeps.readFile, readdir = de
   };
   const src = (settings.src ?? (hasDirectory("src") ? "src" : "app")).replace(/\/+$/, "");
   const folder = (directory) => (directory.endsWith("/") ? directory : `${directory}/`);
+  const failureCopyAllow = settings.failureCopyAllow ?? [];
+  if (!Array.isArray(failureCopyAllow)) {
+    throw new Error(`${CONFIG_PATH}: failureCopyAllow must be a list. Fix: "failureCopyAllow": [{ "match": "<part of the text>", "reason": "<why this wording is precise>" }].`);
+  }
+  failureCopyAllow.forEach((entry, index) => {
+    const valid = typeof entry?.match === "string" && entry.match !== "" && hasReason(entry.reason);
+    if (!valid) {
+      throw new Error(
+        `${CONFIG_PATH}: failureCopyAllow[${index}] ${JSON.stringify(entry)} needs a non-empty "match" (part of the text) and a "reason" (why this wording is precise). Fix: { "match": "<part of the text>", "reason": "<why this wording is precise>" }.`,
+      );
+    }
+  });
   return {
     src,
     ouroDirs: (settings.ouroDirs ?? [`${src}/components/ouro/`, `${src}/lib/ouro/`]).map(folder),
@@ -266,6 +390,7 @@ export function loadConfig(root, { readFile = defaultDeps.readFile, readdir = de
     hookPrefix: settings.hookPrefix || "",
     hook: settings.hookPrefix ? new RegExp(`\\.${escapeRegExp(settings.hookPrefix)}-|\\[data-${escapeRegExp(settings.hookPrefix)}-`) : ANY_HOOK,
     baseline: settings.baseline ?? BASELINE_PATH,
+    failureCopyAllow,
   };
 }
 
@@ -297,11 +422,13 @@ export function loadConfigAt(root, ref, gitShow) {
 
 /**
  * How `head`'s settings narrow the scan, or move the baseline, against `base`'s (both loadConfig):
- * another `src`, an `ouroDirs` or `exclude` entry no prefix at the base already skipped, or a
- * hookPrefix set or changed. Each change carries a fingerprint, so a reason can be recorded for it
- * the way it is for a rise. Widening (fewer skips, no hookPrefix) is not a change.
+ * another `src`, an `ouroDirs` or `exclude` entry no prefix at the base already skipped, a
+ * `failureCopyAllow` match that holds no match at the base, or a hookPrefix set or changed. Each
+ * change carries a fingerprint, so a reason can be recorded for it the way it is for a rise.
+ * Widening (fewer skips, no hookPrefix) is not a change.
  * @returns {{ fingerprint: string, change: string }[]}
  * @claim "settings narrow the scan" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::main > --base: the settings at the base ref > fails each setting that narrows the scan: src, an added exclude or ouroDirs entry, a set or changed hookPrefix)
+ * @claim "a `failureCopyAllow` match that holds no match at the base" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::main > --base: the settings at the base ref > fails a new failureCopyAllow match like a new exclude, unless a match at the base is part of it, and records it with a reason)
  * @claim "Each change carries a fingerprint" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::main > --base: the settings at the base ref > records a narrowing with a reason for this pull request, and never honours one already on the base)
  * @claim "Widening (fewer skips, no hookPrefix) is not a change" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::main > --base: the settings at the base ref > passes settings that widen the scan or keep it)
  */
@@ -320,6 +447,12 @@ export function narrowedSettings(base, head) {
   if (head.hookPrefix !== "" && head.hookPrefix !== base.hookPrefix) {
     const prefix = head.hookPrefix;
     add("hookPrefix", prefix, `sets hookPrefix to "${prefix}", so stylesheets count control state only on .${prefix}- and [data-${prefix}- hooks`);
+  }
+  // An allow entry hides the copy that holds its match, so a new match is a narrowing unless a
+  // match at the base is part of it (the base already let all of that copy through).
+  const allowed = base.failureCopyAllow.map((entry) => entry.match);
+  for (const match of new Set(head.failureCopyAllow.map((entry) => entry.match))) {
+    if (!allowed.some((known) => match.includes(known))) add("failureCopyAllow", match, `lets failure copy holding "${match}" through (failureCopyAllow)`);
   }
   return changes;
 }
@@ -779,6 +912,74 @@ const SPINNER_MODULE = /(?:^|\/)spinner\/spinner(?:\.[cm]?[jt]sx?)?$/;
 const SPIN_CLASS = /^!?animate-(?:spin|\[(?:ouro-)?spin(?:_|\]))/;
 const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
 
+// Failure copy: the attributes and object properties whose values are not copy, a string that is
+// one lowercase token (a status such as "error", a key such as "errors.load-failed"), and the
+// apostrophe entities JSX may spell ("Couldn&apos;t").
+const NOT_COPY_ATTRIBUTE = /^(?:class|className|\w+ClassName|data-[\w-]*|id|key|type|href|src|to|name|role|htmlFor|as)$/;
+const TOKEN = /^[a-z][a-z0-9]*(?:[-_.:/][a-z0-9]+)*$/;
+const APOSTROPHE_ENTITY = /&(?:apos|rsquo|#0*39|#0*8217|#x0*27|#x0*2019);/gi;
+const EQUALITY = new Set([
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+]);
+const copySpace = (text) => text.replace(APOSTROPHE_ENTITY, "'").replace(/\s+/g, " ").trim();
+
+// Whether a string or template stands where copy would: not a module specifier, a type, a key, a
+// tagged template, a compared value, or the value of an attribute or property in NOT_COPY_ATTRIBUTE.
+function isCopyPosition(node) {
+  const { parent } = node;
+  if (
+    ts.isImportDeclaration(parent) ||
+    ts.isExportDeclaration(parent) ||
+    ts.isExternalModuleReference(parent) ||
+    ts.isLiteralTypeNode(parent) ||
+    ts.isComputedPropertyName(parent) ||
+    ts.isTaggedTemplateExpression(parent) ||
+    ts.isCaseClause(parent) ||
+    parent.name === node ||
+    (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) ||
+    (ts.isCallExpression(parent) && (parent.expression.kind === ts.SyntaxKind.ImportKeyword || parent.expression.getText() === "require")) ||
+    (ts.isBinaryExpression(parent) && EQUALITY.has(parent.operatorToken.kind))
+  ) {
+    return false;
+  }
+  for (let current = node; !ts.isSourceFile(current); current = current.parent) {
+    const owner = current.parent;
+    if (ts.isJsxAttribute(owner)) return !NOT_COPY_ATTRIBUTE.test(owner.name.getText());
+    if (ts.isPropertyAssignment(owner) && (ts.isIdentifier(owner.name) || ts.isStringLiteral(owner.name))) {
+      if (NOT_COPY_ATTRIBUTE.test(owner.name.text)) return false;
+    }
+    if (ts.isJsxElement(owner) || ts.isJsxSelfClosingElement(owner) || ts.isJsxFragment(owner) || isFunctionLike(owner)) return true;
+  }
+  return true;
+}
+
+// The copy a node holds, and whether it is the whole text (a template with a substitution, or JSX
+// text beside other children, is only part of one), or undefined when the node is not copy.
+function copyOf(node) {
+  if (ts.isStringLiteralLike(node)) {
+    return isCopyPosition(node) && !TOKEN.test(node.text) ? { text: copySpace(node.text), whole: true } : undefined;
+  }
+  if (ts.isTemplateExpression(node)) {
+    const text = node.head.text + node.templateSpans.map((span) => `\${…}${span.literal.text}`).join("");
+    return isCopyPosition(node) ? { text: copySpace(text), whole: false } : undefined;
+  }
+  if (ts.isJsxText(node) && !node.containsOnlyTriviaWhiteSpaces) {
+    const alone = node.parent.children.every(
+      (other) => other === node || (ts.isJsxText(other) ? other.containsOnlyTriviaWhiteSpaces : ts.isJsxExpression(other) && !other.expression),
+    );
+    // Read with the children after it, an expression or element as ${…}, so `Couldn't send: {why}` reads as its template twin.
+    const after = node.parent.children
+      .slice(node.parent.children.indexOf(node) + 1)
+      .map((other) => (ts.isJsxText(other) ? other.text : ts.isJsxExpression(other) && !other.expression ? "" : "${…}"))
+      .join("");
+    return { text: copySpace(node.text + after), whole: alone };
+  }
+  return undefined;
+}
+
 // An index a render builds: `new Map(rows…)`, `Object.fromEntries(…)`, with at least one argument.
 const INDEX_CONSTRUCTORS = new Set(["Map", "Set", "RegExp"]);
 const INDEX_BUILDERS = new Set(["Object.fromEntries", "Object.groupBy", "Map.groupBy"]);
@@ -844,7 +1045,7 @@ function assignedName(node) {
   return ts.isVariableDeclaration(current) && ts.isIdentifier(current.name) ? current.name.text : "";
 }
 
-function scanScript(module, resolver) {
+function scanScript(module, resolver, failureCopyAllow) {
   const { file, sourceFile, imports, declarations, bindingDefaults } = module;
   const offenders = [];
   const ownerHits = new Set();
@@ -858,6 +1059,14 @@ function scanScript(module, resolver) {
   // Counted where it is written; a spinner is not a control, so the component around it stays clean.
   const addSpinner = (node, tag, props) => {
     offenders.push({ category: "content-spinner", fingerprint: [file, componentName(node), "content-spinner", tag, props].join("::"), file, line: lineOf(node) });
+  };
+  // Failure copy counts where it is written too: the phrase is its tag and the text its props.
+  const checkCopy = (node) => {
+    const copy = copyOf(node);
+    const phrase = copy && vagueFailurePhrase(copy.text, { whole: copy.whole });
+    if (!phrase || failureCopyAllow.some((entry) => copy.text.includes(entry.match))) return;
+    const category = "vague-failure-copy";
+    offenders.push({ category, fingerprint: [file, componentName(node), category, phrase, copy.text].join("::"), file, line: lineOf(node) });
   };
   const ouroExport = (control, name, pattern) => {
     if (!control.ref) return false;
@@ -1011,6 +1220,7 @@ function scanScript(module, resolver) {
   };
 
   const visit = (node) => {
+    checkCopy(node);
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const attributes = new Map();
       for (const attribute of node.attributes.properties) {
@@ -1079,10 +1289,10 @@ function scanScript(module, resolver) {
 
 // Pass two: which components contain an offender (directly or through a same-file component they
 // render), then every imported use of one, and of a re-exported third-party control, at its call site.
-function analyzeScripts(entries, paths) {
+function analyzeScripts(entries, paths, failureCopyAllow) {
   const modules = new Map(entries.map(({ file, source }) => [file, indexScript(file, source)]));
   const resolver = createResolver(modules, paths);
-  const scans = [...modules.values()].map((module) => scanScript(module, resolver));
+  const scans = [...modules.values()].map((module) => scanScript(module, resolver, failureCopyAllow));
   for (const scan of scans) scan.module.offending = new Set(scan.ownerHits);
   const calls = scans.flatMap(({ module, uses }) =>
     uses.map((use) => ({ module, use, resolved: resolver.resolveImport(module.file, use.head, use.members) })),
@@ -1202,21 +1412,21 @@ export function loadPaths(root, readFile = defaultDeps.readFile) {
  * The offenders in one file's source, in source order. `file` is relative to the repository. Its
  * imports are not resolved to other files, so call sites into other modules are not counted.
  */
-export function findOffendersInSource(file, source, { paths = {}, hook = ANY_HOOK } = {}) {
-  return file.endsWith(".css") ? scanStylesheet(file, source, hook) : analyzeScripts([{ file, source }], paths);
+export function findOffendersInSource(file, source, { paths = {}, hook = ANY_HOOK, failureCopyAllow = [] } = {}) {
+  return file.endsWith(".css") ? scanStylesheet(file, source, hook) : analyzeScripts([{ file, source }], paths, failureCopyAllow);
 }
 
 /** The offenders in these files (relative to `root`, or absolute), sorted by file, line and fingerprint. */
 export function findOffenders(
   files,
-  { root = process.cwd(), readFile = defaultDeps.readFile, paths = loadPaths(root, readFile), hook = ANY_HOOK } = {},
+  { root = process.cwd(), readFile = defaultDeps.readFile, paths = loadPaths(root, readFile), hook = ANY_HOOK, failureCopyAllow = [] } = {},
 ) {
   const entries = files
     .map((file) => (path.isAbsolute(file) ? path.relative(root, file) : file).split(path.sep).join("/"))
     .map((file) => ({ file, source: readFile(path.join(root, file)) }));
   return [
     ...entries.filter(({ file }) => file.endsWith(".css")).flatMap(({ file, source }) => scanStylesheet(file, source, hook)),
-    ...analyzeScripts(entries.filter(({ file }) => !file.endsWith(".css")), paths),
+    ...analyzeScripts(entries.filter(({ file }) => !file.endsWith(".css")), paths, failureCopyAllow),
   ].sort(
     (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.fingerprint.localeCompare(b.fingerprint),
   );
@@ -1322,7 +1532,7 @@ export function findRegressions(offenders, baseline) {
 export function formatComparison({ added, removed }) {
   return [
     ...added.map(({ fingerprint, count, at }) => {
-      const message = CATEGORY_MESSAGES[fingerprint.split("::")[2]];
+      const message = messageFor(fingerprint);
       return message
         ? `${message.headline}: ${fingerprint} (+${count}) at ${at.join(", ")}. ${message.fix}`
         : `New hand-rolled control: ${fingerprint} (+${count}) at ${at.join(", ")}. Use an Ouro component instead (add the missing one to Ouro UI first).`;
@@ -1409,7 +1619,7 @@ export function main(argv, deps) {
 
   const config = loadConfig(root, { readFile, readdir });
   const files = listSourceFiles(root, config, readdir);
-  const offenders = findOffenders(files, { root, readFile, hook: config.hook });
+  const offenders = findOffenders(files, { root, readFile, hook: config.hook, failureCopyAllow: config.failureCopyAllow });
   const baselineFile = path.join(root, config.baseline);
   const committed = readBaseline(baselineFile, readFile);
   // The base's own settings name its baseline, so moving the baseline in a pull request cannot hide
@@ -1511,7 +1721,7 @@ export function main(argv, deps) {
       }
       const permits = entry ? `, but its allowed regression permits ${entry.count ?? 0}` : "";
       lines.push(
-        `Regression against ${options.base}: ${fingerprint} (+${count}) at ${at.join(", ")}${permits}. ${CATEGORY_MESSAGES[fingerprint.split("::")[2]]?.fix.replace(/\.$/, ";") ?? "Use an Ouro component instead,"} or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
+        `Regression against ${options.base}: ${fingerprint} (+${count}) at ${at.join(", ")}${permits}. ${messageFor(fingerprint)?.fix.replace(/\.$/, ";") ?? "Use an Ouro component instead,"} or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
       );
     }
     notes.push(`ouro-source-rules: ratchet against ${options.base}: ${allowedCount} allowed regression(s), ${moves.length} move(s).`);
