@@ -209,6 +209,60 @@ describe("Lightbox mosaic", () => {
   });
 });
 
+describe("Lightbox in a chat message", () => {
+  // A chat bubble's column, in its message's row as Message lays it out: as wide as what is in it, at most 85% of
+  // the conversation's 400px.
+  const bubble = (node: ReactNode) => (
+    <div style={{ display: "flex", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, maxWidth: "85%" }}>
+        <p style={{ margin: 0 }}>Hi</p>
+        {node}
+      </div>
+    </div>
+  );
+  const box = (host: Element) => {
+    const rect = host.querySelector('[data-ouro="lightbox"]')!.getBoundingClientRect();
+    return [Math.round(rect.width), Math.round(rect.height)];
+  };
+  /** Waits until every picture has loaded or failed, and two frames have drawn it. */
+  const drawn = async (host: Element) => {
+    const images = [...host.querySelectorAll("img")];
+    await expect.poll(() => images.every((image) => image.complete)).toBe(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  };
+  const missing = (images: readonly LightboxImage[]) => images.map((image, index) => ({ ...image, src: `/__ouro-missing-picture-${index}.png` }));
+  const cases: [string, (images: readonly LightboxImage[]) => ReactNode, readonly LightboxImage[], number[]][] = [
+    // One picture at its own shape, as wide as the column lets it be: 340 by 340 / 1.5.
+    ["a mosaic of one", (images) => mosaic(images), offsite.slice(0, 1), [340, 227]],
+    // One whose size the app does not know, at 4:3.
+    ["a mosaic of one of unknown size", (images) => mosaic(images), offsite.slice(1, 2), [340, 255]],
+    ["a mosaic of four", (images) => mosaic(images), offsite.slice(0, 4), [340, 255]],
+    // The gallery asks for 25rem, a line of three, and the column holds it to 340: two 4:3 thumbnails a row, in two rows.
+    ["a gallery", (images) => <Lightbox label="Offsite photos" images={images} />, offsite.slice(0, 4), [340, 258]],
+  ];
+
+  it.each(cases)("holds %s at its final box from the first frame, before its pictures load and when they fail", async (_, draw, images, final) => {
+    const loading = await render(bubble(draw(images)));
+    expect(box(loading.host)).toEqual(final);
+    await drawn(loading.host);
+    expect(box(loading.host)).toEqual(final);
+    const failing = await render(bubble(draw(missing(images))));
+    expect(box(failing.host)).toEqual(final);
+    await drawn(failing.host);
+    expect(box(failing.host)).toEqual(final);
+  });
+
+  it("lets a picture's own size, once it loads, size neither its thumbnail nor the column", async () => {
+    const { host } = await render(bubble(mosaic([{ src: picture(4000, 100, "#68a"), alt: "A panorama", width: 4000, height: 100 }])));
+    await drawn(host);
+    const column = host.firstElementChild!.firstElementChild!.getBoundingClientRect();
+    // At the mosaic's widest shape, 3:1: no wider than the column, the picture cropped to it.
+    expect(box(host)).toEqual([340, 113]);
+    expect(Math.round(column.width)).toBe(340);
+    expect(thumbnails(host)[0]!.querySelector("img")!.getBoundingClientRect().width).toBeCloseTo(thumbnails(host)[0]!.getBoundingClientRect().width, 0);
+  });
+});
+
 describe("Lightbox still frames", () => {
   const gif: LightboxImage = { src: picture(300, 200, "#a3c"), alt: "Shipped! A rocket in confetti", still: picture(300, 200, "#333") };
 

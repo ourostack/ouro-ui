@@ -83,7 +83,7 @@ A Lightbox that draws its own thumbnails, which open the viewer.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
-| `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a picture never crowds the words around it; `className` gives it another width (`max-w-none`). |
+| `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a picture never crowds the words around it; `className` gives it another width (`max-w-none`). Either layout has its final size from the first frame, before its pictures load and when they fail, also in a column as wide as what is in it, such as a chat bubble's, so the conversation never moves as they arrive. |
 
 Not in this mode (typed `never`):
 

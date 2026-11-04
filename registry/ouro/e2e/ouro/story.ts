@@ -77,3 +77,102 @@ export async function pressTab(page: Page, { shift = false }: { shift?: boolean 
   const webkitOnMac = process.platform === "darwin" && page.context().browser()?.browserType().name() === "webkit";
   await page.keyboard.press(`${shift ? "Shift+" : ""}${webkitOnMac ? "Alt+" : ""}Tab`);
 }
+
+/**
+ * Holds back every picture the page draws for `ms`, as a slow network does, so a spec sees the page
+ * before its pictures arrive and as they come. Pictures drawn as `data:` URLs, as stories draw them,
+ * are fetched from the page's own address instead, so they wait too. With `fail`, each picture fails
+ * to load once its wait is over. Call it before `openStory`.
+ */
+export async function slowPictures(page: Page, ms: number, { fail = false }: { fail?: boolean } = {}): Promise<void> {
+  await page.addInitScript(() => {
+    const slow = (value: unknown) => (typeof value === "string" && value.startsWith("data:image/") ? `${location.origin}/__ouro-slow-picture?${encodeURIComponent(value)}` : value);
+    const src = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src")!;
+    Object.defineProperty(HTMLImageElement.prototype, "src", {
+      ...src,
+      set(value: string) {
+        src.set!.call(this, slow(value));
+      },
+    });
+    const setAttribute = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (name: string, value: string) {
+      setAttribute.call(this, name, this instanceof HTMLImageElement && name.toLowerCase() === "src" ? (slow(value) as string) : value);
+    };
+  });
+  await page.route("**/*", async (route) => {
+    const request = route.request();
+    if (request.resourceType() !== "image") return route.fallback();
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    if (fail) return route.fulfill({ status: 404 });
+    const url = new URL(request.url());
+    if (url.pathname !== "/__ouro-slow-picture") return route.fallback();
+    const data = decodeURIComponent(url.search.slice(1));
+    const comma = data.indexOf(",");
+    const head = data.slice("data:".length, comma);
+    const body = head.endsWith(";base64") ? Buffer.from(data.slice(comma + 1), "base64") : Buffer.from(decodeURIComponent(data.slice(comma + 1)));
+    await route.fulfill({ status: 200, contentType: head.split(";")[0]!, body });
+  });
+}
+
+/**
+ * Slows the page's CPU by `rate` (4: four times slower), as a mid-range phone runs, in Chromium,
+ * the one browser that can. Elsewhere it does nothing.
+ */
+export async function slowCpu(page: Page, rate: number): Promise<void> {
+  if (page.context().browser()?.browserType().name() !== "chromium") return;
+  const session = await page.context().newCDPSession(page);
+  await session.send("Emulation.setCPUThrottlingRate", { rate });
+}
+
+/** What moved under the reader: the layout shift score, and each element that moved, with how. */
+export interface LayoutShifts {
+  /** The page's layout shift score from the browser, the sum of every shift no input caused; `null` where the browser does not report shifts (WebKit). */
+  score: number | null;
+  /** Each move of an Ouro UI component (`[data-ouro]`) or a picture in one between two frames, in every browser: where it was and where it went, on the page (a scroll of the page itself moves nothing). */
+  moved: string[];
+}
+
+/**
+ * Starts watching for layout shift from the page's first frame: the browser's own layout shift
+ * entries where it has them, and in every browser the box of each Ouro UI component and each
+ * picture in one, read once a frame, so a spec sees a component move in WebKit too. Call it before
+ * `openStory`, then `layoutShifts` once the page has settled.
+ */
+export async function watchLayoutShift(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const watch = { score: 0, supported: false, moved: [] as string[] };
+    (window as unknown as { __ouroLayoutShift: typeof watch }).__ouroLayoutShift = watch;
+    if (PerformanceObserver.supportedEntryTypes.includes("layout-shift")) {
+      watch.supported = true;
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) if (!entry.hadRecentInput) watch.score += entry.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    }
+    const boxes = new Map<Element, string>();
+    const name = (element: Element) => {
+      const root = element.closest("[data-ouro]");
+      const words = (element.getAttribute("alt") ?? element.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
+      return `${element.tagName.toLowerCase()} in ${root?.getAttribute("data-ouro") ?? "the page"} "${words}"`;
+    };
+    const frame = () => {
+      for (const element of document.querySelectorAll("[data-ouro], [data-ouro] img")) {
+        const r = element.getBoundingClientRect();
+        const box = `${Math.round(r.x + scrollX)},${Math.round(r.y + scrollY)} ${Math.round(r.width)}x${Math.round(r.height)}`;
+        const was = boxes.get(element);
+        if (was !== undefined && was !== box) watch.moved.push(`${name(element)}: ${was} to ${box}`);
+        boxes.set(element, box);
+      }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
+}
+
+/** What moved since `watchLayoutShift` started watching, read two frames after the call. */
+export async function layoutShifts(page: Page): Promise<LayoutShifts> {
+  return page.evaluate(async () => {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const watch = (window as unknown as { __ouroLayoutShift: { score: number; supported: boolean; moved: string[] } }).__ouroLayoutShift;
+    return { score: watch.supported ? watch.score : null, moved: [...watch.moved] };
+  });
+}

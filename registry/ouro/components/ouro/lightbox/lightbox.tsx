@@ -24,6 +24,7 @@ import {
   captionClass,
   counterClass,
   figureClass,
+  galleryFrameClass,
   gridClass,
   headerClass,
   imageClass,
@@ -144,8 +145,12 @@ export type LightboxWithThumbnailsProps = LightboxBaseProps & {
    * with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat
    * shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a
    * picture never crowds the words around it; `className` gives it another width
-   * (`max-w-none`). @default "grid"
+   * (`max-w-none`). Either layout has its final size from the first frame, before its pictures
+   * load and when they fail, also in a column as wide as what is in it, such as a chat bubble's, so
+   * the conversation never moves as they arrive. @default "grid"
    *
+   * @claim "Either layout has its final size" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox in a chat message > holds %s at its final box from the first frame, before its pictures load and when they fail)
+   * @claim "the conversation never moves as they arrive" registry/ouro/e2e/ouro/lightbox.spec.ts verify:fileLine(registry/ouro/e2e/ouro/lightbox.spec.ts, /keeps every mosaic and gallery in chat messages still while their pictures/)
    * @claim "at most 25rem wide and 17.5rem" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
    * @claim "as many 4:3 thumbnails in a row" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox thumbnails > lays the thumbnails out in as many columns of at least 8rem as fit)
    * @claim "as a chat shows the pictures in" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > draws one picture at its own shape, between 3:4 and 3:1, and 4:3 when its size is unknown)
@@ -977,7 +982,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   }
 
   return (
-    <div data-ouro="lightbox" className={cn("min-w-0", className)}>
+    <div data-ouro="lightbox" className={cn(galleryFrameClass, className)}>
       <ul role="list" aria-label={label} className={gridClass}>
         {images.map((image, position) => (
           <li key={position} className="m-0 p-0">

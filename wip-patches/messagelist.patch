@@ -1,0 +1,177 @@
+diff --git a/registry/ouro/components/ouro/message/message-list.stories.tsx b/registry/ouro/components/ouro/message/message-list.stories.tsx
+index bd6c408..9127f1f 100644
+--- a/registry/ouro/components/ouro/message/message-list.stories.tsx
++++ b/registry/ouro/components/ouro/message/message-list.stories.tsx
+@@ -1,5 +1,8 @@
+ import type { Meta, StoryObj } from "@storybook/react-vite";
+ import { useEffect, useRef, useState, type ReactNode } from "react";
++import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
++import { Lightbox, type LightboxImage } from "@/registry/ouro/components/ouro/lightbox/lightbox";
++import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
+ import { Message } from "@/registry/ouro/components/ouro/message/message";
+ import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+ 
+@@ -282,3 +285,98 @@ export const LoadingOlder: Story = {
+     await frameUntil(() => canvasElement.querySelector("[data-ouro-message-list-jump]"));
+   },
+ };
++
++// Made-up pictures, drawn here so the stories need no network: portraits, photos and image emoji.
++const picture = (width: number, height: number, body: string) =>
++  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${body}</svg>`)}`;
++const portrait = (background: string, skin: string) =>
++  picture(64, 64, `<rect width="64" height="64" fill="${background}"/><circle cx="32" cy="26" r="12" fill="${skin}"/><path d="M10 64c2-14 11-21 22-21s20 7 22 21z" fill="${skin}"/>`);
++const photo = (width: number, height: number, sky: string, land: string) =>
++  picture(width, height, `<rect width="${width}" height="${height}" fill="${sky}"/><circle cx="${width * 0.7}" cy="${height * 0.3}" r="${Math.min(width, height) * 0.1}" fill="#fde3c0"/><rect y="${height * 0.62}" width="${width}" height="${height * 0.38}" fill="${land}"/>`);
++const faces = { ana: portrait("#c7d2fe", "#8d5524"), mara: portrait("#bbf7d0", "#f1c27d"), theo: portrait("#fde68a", "#e0ac69") };
++const loaves: LightboxImage[] = [
++  { src: photo(1200, 800, "#f6c89f", "#7a4a2a"), alt: "A loaf cooling on a rack", width: 1200, height: 800 },
++  { src: photo(800, 1000, "#e8d5b5", "#5a3a22"), alt: "The crumb, cut open", width: 800, height: 1000 },
++  { src: photo(1000, 1000, "#d9c2a0", "#3d2a1a"), alt: "The scored top before baking", width: 1000, height: 1000 },
++  { src: photo(1600, 900, "#c9b08a", "#2a1d12"), alt: "Two loaves on the counter", width: 1600, height: 900 },
++  { src: photo(900, 1200, "#efe1c6", "#6b4f3a"), alt: "The dough after its first rise", width: 900, height: 1200 },
++];
++const chatEmoji: EmojiCatalogue = {
++  id: "message-list-pictures",
++  categories: [
++    {
++      id: "food",
++      label: "Food",
++      items: [{ id: "bread", name: "Bread", text: "🍞", src: picture(32, 32, '<path d="M4 14a12 8 0 0 1 24 0v12H4z" fill="#d08a3c"/><path d="M9 14v10m7-10v10m7-10v10" stroke="#a5652a" stroke-width="2"/>') }],
++    },
++  ],
++};
++
++/** One page of a conversation about bread: pictures in every form a message draws them. */
++function picturePage(page: number) {
++  const key = (n: number) => `page-${page}-${n}`;
++  return [
++    <Message key={key(0)} id={key(0)} role="user" name="Ana Lind" avatar={faces.ana}>
++      My first loaf! <EmojiText text="🍞" catalogue={chatEmoji} />
++    </Message>,
++    <Message key={key(1)} id={key(1)} role="user" name="Ana Lind" avatar={faces.ana} continued attachments={<Lightbox label="Photo from Ana Lind" layout="mosaic" images={loaves.slice(0, 1)} />} />,
++    <Message key={key(2)} id={key(2)} role="assistant" name="Mara Quill" avatar={faces.mara} attachments={<Lightbox label="Photos from Mara Quill" layout="mosaic" images={loaves.slice(1, 3)} />}>
++      Nice crumb.
++    </Message>,
++    <Message key={key(3)} id={key(3)} role="assistant" name="Theo Brandt" avatar={faces.theo} attachments={<Lightbox label="Photos from Theo Brandt" layout="mosaic" images={loaves} />}>
++      Mine, from the weekend.
++    </Message>,
++    <Message
++      key={key(4)}
++      id={key(4)}
++      role="assistant"
++      name="Mara Quill"
++      avatar={faces.mara}
++      attachments={
++        <>
++          <Lightbox label="Photo from Mara Quill" layout="mosaic" images={[{ src: loaves[3]!.src, alt: "The oven, with a tray of water for steam" }]} />
++          <Attachment name="sourdough.pdf" size={248_000} contentType="application/pdf" href="#sourdough" />
++        </>
++      }
++    />,
++  ];
++}
++
++/** A conversation of pictures that loads older pages as the reader scrolls back to its start. */
++function PictureChat() {
++  const [pages, setPages] = useState(1);
++  const [loading, setLoading] = useState(false);
++  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
++  useEffect(() => () => clearTimeout(timer.current), []);
++  const hasOlder = pages < 3;
++  return (
++    <Surface>
++      <MessageList
++        label="Bread club"
++        style={{ height: 520 }}
++        hasOlder={hasOlder}
++        loadingOlder={loading}
++        onScrollCapture={(event) => {
++          if (!hasOlder || loading || (event.target as HTMLElement).scrollTop > 160) return;
++          setLoading(true);
++          timer.current = setTimeout(() => {
++            setPages((count) => count + 1);
++            setLoading(false);
++          }, 400);
++        }}
++      >
++        {Array.from({ length: pages }, (_, index) => picturePage(pages - index)).flat()}
++      </MessageList>
++    </Surface>
++  );
++}
++
++/**
++ * Pictures in a conversation: avatars, photos alone and in mosaics, a photo whose size the app
++ * does not know, a file and an image emoji. Each holds its box from the first frame, so nothing
++ * moves as the pictures arrive, at the newest message or while older pages load above.
++ */
++export const Pictures: Story = {
++  args: { label: "Bread club", children: null },
++  render: () => <PictureChat />,
++};
+diff --git a/registry/ouro/components/ouro/message/message-list.tsx b/registry/ouro/components/ouro/message/message-list.tsx
+index bb9e2dc..8a66637 100644
+--- a/registry/ouro/components/ouro/message/message-list.tsx
++++ b/registry/ouro/components/ouro/message/message-list.tsx
+@@ -154,6 +154,14 @@ function touchesItems(record: MutationRecord): boolean {
+   return [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches(items) || node.querySelector(items) !== null));
+ }
+ 
++/**
++ * Whether a change put in or took out a message, or the room kept above the first one: either moves the messages
++ * after it. Read as the change happens, so the reader's place is held before the browser draws it.
++ */
++function movesItems(record: MutationRecord): boolean {
++  return touchesItems(record) || [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && node.hasAttribute("data-ouro-message-list-older-room"));
++}
++
+ /** Sets an attribute only when its value differs, so marking the messages again changes nothing in the page. */
+ function mark(element: Element, name: string, value: string): void {
+   // Stryker disable next-line ConditionalExpression: setting the value an attribute already has changes nothing in the page.
+@@ -860,7 +868,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
+       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
+       if (!opened) return open();
+       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
+-      if (pinned.current ? farthest() !== end : records.some(touchesItems)) hold();
++      if (pinned.current ? farthest() !== end : records.some(movesItems)) hold();
+     });
+     moves.observe(content, { childList: true, subtree: true });
+     const onScroll = () => {
+diff --git a/registry/ouro/e2e/ouro/message-list.spec.ts b/registry/ouro/e2e/ouro/message-list.spec.ts
+index e62b478..d03220f 100644
+--- a/registry/ouro/e2e/ouro/message-list.spec.ts
++++ b/registry/ouro/e2e/ouro/message-list.spec.ts
+@@ -1,6 +1,6 @@
+ import type { Locator, Page } from "@playwright/test";
+ import { expect, test } from "../ouro-fixtures";
+-import { openStory } from "./story";
++import { layoutShifts, openStory, slowCpu, slowPictures, watchLayoutShift } from "./story";
+ 
+ const distanceFromBottom = (scroller: Locator) => scroller.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight);
+ const scrollTop = (scroller: Locator) => scroller.evaluate((el) => el.scrollTop);
+@@ -125,3 +125,24 @@ test("with reduced motion, the wheel scrolls the messages and moves none of them
+   expect(await scroller.evaluate((el) => (el as HTMLElement & { sprang?: boolean }).sprang === true)).toBe(false);
+   expect(await distanceFromBottom(scroller)).toBeGreaterThan(100);
+ });
++
++for (const fail of [false, true]) {
++  test(`holds a conversation of pictures still at its newest message while they ${fail ? "fail" : "arrive"}, on a slow phone`, async ({ page }) => {
++    await page.setViewportSize({ width: 390, height: 844 });
++    await page.emulateMedia({ reducedMotion: "reduce" });
++    await slowCpu(page, 4);
++    await slowPictures(page, 1500, { fail });
++    await watchLayoutShift(page);
++    await openStory(page, "chat-messagelist--pictures");
++    const scroller = page.getByRole("region", { name: "Bread club" });
++    const pictures = page.locator('[data-ouro="message-list"] img');
++    await expect(pictures.first()).toBeAttached();
++    // Every picture has arrived, or failed, and been drawn.
++    await expect.poll(() => pictures.evaluateAll((images) => images.length > 0 && images.every((image) => (image as HTMLImageElement).complete)), { timeout: 15_000 }).toBe(true);
++    const shifts = await layoutShifts(page);
++    expect(shifts.moved).toEqual([]);
++    if (shifts.score !== null) expect(shifts.score).toBe(0);
++    // Still at the newest message.
++    expect(await distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
++  });
++}

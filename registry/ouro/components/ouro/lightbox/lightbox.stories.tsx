@@ -204,3 +204,42 @@ export const MosaicOfOne: Story = {
   args: { layout: "mosaic", images: [{ ...coast[2]!, width: 1800, height: 800 }] },
   render: chatColumn,
 };
+
+/** A chat bubble's column, in its message's row: as wide as what is in it, at most 85% of the conversation's width. */
+function Bubble({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, minWidth: 0, maxWidth: "85%" }}>
+        <p style={{ margin: 0, fontSize: 14 }}>{label}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Pictures in chat messages, whose column takes its width from what is in it: each mosaic and
+ * gallery holds the box it ends with from the first frame, before its pictures arrive and if they
+ * fail, so the conversation never moves as they load. One photo whose size the app does not know
+ * shows at 4:3.
+ */
+export const InMessages: Story = {
+  render: () => (
+    <Surface>
+      <div style={{ display: "grid", gap: 16, maxWidth: 400 }}>
+        <Bubble label="Sunrise">
+          <Lightbox label="Photo from Ana" layout="mosaic" images={[{ ...coast[0]!, width: 1600, height: 1000 }]} />
+        </Bubble>
+        <Bubble label="No size given">
+          <Lightbox label="Photo from Theo" layout="mosaic" images={[coast[3]!]} />
+        </Bubble>
+        <Bubble label="Three">
+          <Lightbox label="Photos from Mara" layout="mosaic" images={coast.slice(0, 3)} />
+        </Bubble>
+        <Bubble label="All">
+          <Lightbox label="Photos from Priya" images={coast} />
+        </Bubble>
+      </div>
+    </Surface>
+  ),
+};

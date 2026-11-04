@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory } from "./story";
+import { layoutShifts, openStory, slowCpu, slowPictures, watchLayoutShift } from "./story";
 
 test("opens on the photo pressed, steps with the arrow keys and gives focus back on Escape", async ({ page }) => {
   await openStory(page, "display-lightbox--photos");
@@ -65,3 +65,22 @@ test("draws a wide photo across a phone's width, and zooms it with a double-clic
   await zoomed.dblclick();
   await expect(zoomed).toBeHidden();
 });
+
+for (const fail of [false, true]) {
+  test(`keeps every mosaic and gallery in chat messages still while their pictures ${fail ? "fail" : "arrive"}, on a slow phone`, async ({ page }) => {
+    // A phone's width, tall enough that every picture is in view, so none waits to be scrolled to.
+    await page.setViewportSize({ width: 390, height: 1400 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await slowCpu(page, 4);
+    await slowPictures(page, 1500, { fail });
+    await watchLayoutShift(page);
+    await openStory(page, "display-lightbox--in-messages");
+    const pictures = page.locator('[data-ouro="lightbox"] img');
+    await expect(pictures).toHaveCount(9);
+    // Every picture has arrived, or failed, and been drawn.
+    await expect.poll(() => pictures.evaluateAll((images) => images.every((image) => (image as HTMLImageElement).complete)), { timeout: 15_000 }).toBe(true);
+    const shifts = await layoutShifts(page);
+    expect(shifts.moved).toEqual([]);
+    if (shifts.score !== null) expect(shifts.score).toBe(0);
+  });
+}

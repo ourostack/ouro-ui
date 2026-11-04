@@ -1,5 +1,6 @@
 export {
   fullScreenClass,
+  galleryFrameClass,
   mosaicCellClass,
   mosaicClass,
   mosaicFrameClass,
@@ -44,9 +45,14 @@ const thumbnailClass =
   "motion-safe:active:scale-(--ouro-press-scale) " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
-/** @internal */
+/**
+ * A thumbnail's picture covers its button, laid over it, so its own size, known only once it loads,
+ * never sizes the thumbnail. @internal
+ *
+ * @claim "so its own size, known only once it loads, never sizes the thumbnail" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox in a chat message > lets a picture's own size, once it loads, size neither its thumbnail nor the column)
+ */
 const thumbnailImageClass =
-  "block size-full object-cover " +
+  "absolute inset-0 block size-full object-cover " +
   "motion-safe:transition-transform motion-safe:duration-(--ouro-duration-slow) motion-safe:ease-(--ouro-ease-out) " +
   "motion-safe:pointer-fine:group-hover:scale-[1.04]";
 
@@ -82,12 +88,29 @@ const fullScreenClass =
   "bg-(--ouro-backdrop-color) text-foreground forced-colors:bg-[Canvas]";
 
 /**
- * Around a mosaic: as wide as its column, at most 25rem, and no wider than keeps it 17.5rem tall at
- * its shape (`--ouro-lightbox-ratio`, width over height), as big as a chat shows pictures. @internal
+ * Around the thumbnails: as wide as its column (`w-full`). Where the column takes its width from what is in it,
+ * as a chat bubble's does, it asks for 25rem, a line of three thumbnails, before any picture has
+ * loaded, so the gallery's box is final from the first frame: an empty strut (`::before`) asks for it,
+ * and never makes it wider than its column. @internal
  *
+ * @claim "it asks for 25rem, a line of three thumbnails" registry/ouro/components/ouro/lightbox/lightbox-styles.ts verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox-styles.ts, /before:w-\[25rem\] before:max-w-full/)
+ * @claim "so the gallery's box is final from the first frame" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox in a chat message > holds %s at its final box from the first frame, before its pictures load and when they fail)
+ * @claim "never makes it wider than its column" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox in a chat message > holds %s at its final box from the first frame, before its pictures load and when they fail)
+ */
+const galleryFrameClass = "w-full min-w-0 before:block before:h-0 before:w-[25rem] before:max-w-full before:content-['']";
+
+/**
+ * Around a mosaic: as wide as its column, at most 25rem, and no wider than keeps it 17.5rem tall at
+ * its shape (`--ouro-lightbox-ratio`, width over height), as big as a chat shows pictures. Where the
+ * column takes its width from what is in it, as a chat bubble's does, it asks for that size before any
+ * picture has loaded, so its box is final from the first frame, the same strut as the gallery's. @internal
+ *
+ * @claim "so its box is final from the first frame" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox in a chat message > holds %s at its final box from the first frame, before its pictures load and when they fail)
  * @claim "as big as a chat shows pictures" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
  */
-const mosaicFrameClass = "w-full min-w-0 max-w-[min(100%,25rem,calc(17.5rem*var(--ouro-lightbox-ratio)))]";
+const mosaicFrameClass =
+  "w-full min-w-0 max-w-[min(100%,25rem,calc(17.5rem*var(--ouro-lightbox-ratio)))] " +
+  "before:block before:h-0 before:w-[min(25rem,calc(17.5rem*var(--ouro-lightbox-ratio)))] before:max-w-full before:content-['']";
 
 /** The mosaic's frame: rounded corners and a hairline, with the card colour in the gaps between its pictures. @internal */
 const mosaicClass =
