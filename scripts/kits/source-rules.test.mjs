@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, listSourceFiles, loadPaths, main, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -26,6 +26,7 @@ describe("findOffendersInSource: each category", () => {
             "control-state-style",
             "third-party-control",
             "content-spinner",
+            "render-index",
             "uses-hand-rolled-control",
         ]);
     });
@@ -289,6 +290,118 @@ describe("content-spinner", () => {
         expect(formatComparison(comparison)).toEqual([`New spinner standing in for content: app/x.tsx::A::content-spinner::span:: (+1) at app/x.tsx:4. ${CONTENT_SPINNER_FIX}`]);
         expect(CONTENT_SPINNER_FIX).toContain('<Skeleton shape="row" count={6}>');
         expect(CONTENT_SPINNER_FIX).toContain("Inline progress for an action is allowed: a spinner inside a button (<Button loading>)");
+    });
+});
+describe("render-index", () => {
+    it("finds an index built at the top of a component's render, with the variable it is assigned to", () => {
+        expect(scan(`export function Rows({ rows }) {\n  const byId = new Map(rows.map((row) => [row.id, row]));\n  return <ul>{rows.length}</ul>;\n}`)).toEqual([
+            { category: "render-index", fingerprint: "app/routes/fixture.tsx::Rows::render-index::Map::byId", file: "app/routes/fixture.tsx", line: 2 },
+        ]);
+    });
+    it("finds each builder: Map, Set, RegExp, Object.fromEntries, Object.groupBy and Map.groupBy", () => {
+        const source = `export function Search({ rows, query, tags }) {
+          const a = new Set(tags);
+          const b = new RegExp(query, "i");
+          const c = Object.fromEntries(rows);
+          const d = Object.groupBy(rows, (row) => row.kind);
+          const e = Map.groupBy(rows, (row) => row.kind);
+          return null;
+        }`;
+        expect(fingerprints(source)).toEqual([
+            "app/routes/fixture.tsx::Search::render-index::Set::a",
+            "app/routes/fixture.tsx::Search::render-index::RegExp::b",
+            "app/routes/fixture.tsx::Search::render-index::Object.fromEntries::c",
+            "app/routes/fixture.tsx::Search::render-index::Object.groupBy::d",
+            "app/routes/fixture.tsx::Search::render-index::Map.groupBy::e",
+        ]);
+    });
+    it("finds one in JSX, a hook's argument, a custom hook, an arrow component, memo, forwardRef and a class's render", () => {
+        const source = `
+          import { memo, forwardRef, useState } from "react";
+          import * as React from "react";
+          export const List = ({ ids }) => <Rows selected={new Set(ids)} />;
+          export function Picker({ ids }) { const [chosen] = useState(new Set(ids)); return chosen.size; }
+          export function useIndex(rows) { return new Map(rows); }
+          export const Row = memo(({ tags }) => { const set = new Set(tags); return set.size; });
+          export const Field = React.forwardRef(function (props, ref) { const pattern = (new RegExp(props.pattern)); return pattern.source; });
+          export class Table extends React.Component { render() { const index = new Map(this.props.rows); return index.size; } }`;
+        expect(fingerprints(source)).toEqual([
+            "app/routes/fixture.tsx::List::render-index::Set::",
+            "app/routes/fixture.tsx::Picker::render-index::Set::",
+            "app/routes/fixture.tsx::useIndex::render-index::Map::",
+            "app/routes/fixture.tsx::Row::render-index::Set::set",
+            "app/routes/fixture.tsx::Field::render-index::RegExp::pattern",
+            "app/routes/fixture.tsx::Table::render-index::Map::index",
+        ]);
+    });
+    it("passes an index built in useMemo, a lazy initializer, an effect, an event handler or at module scope", () => {
+        const source = `
+          import { useEffect, useMemo, useState } from "react";
+          const KINDS = new Set(["a", "b"]);
+          const byKind = Object.fromEntries([["a", 1]]);
+          export function Rows({ rows, query }) {
+            const byId = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
+            const [seen] = useState(() => new Set(rows));
+            useEffect(() => { const index = new Map(rows); index.clear(); }, [rows]);
+            const onSearch = () => new RegExp(query);
+            function onPick(event) { return Object.fromEntries(new FormData(event.target)); }
+            return <input onChange={(event) => new Set(event.target.value)} />;
+          }`;
+        expect(scan(source).filter((offender) => offender.category === "render-index")).toEqual([]);
+    });
+    it("passes an empty Map or Set, another constructor, and a function that is no component, hook or render", () => {
+        const source = `
+          export function Rows() { const seen = new Set(); const cache = new Map(); const when = new Date(0); return null; }
+          export function indexRows(rows) { return new Map(rows); }
+          export const toIndex = (rows) => new Set(rows);
+          export const Lookup = { build: (rows) => new Map(rows) };
+          export class Store { constructor(rows) { this.index = new Map(rows); } get Index() { return new Map(this.rows); } render() { return new Set(this.rows); } }
+          export const helper = { render() { return new Set([1]); } };`;
+        expect(scan(source)).toEqual([]);
+    });
+    it("skips a route handler, an all-capitals function and a capitalised function in a .ts file, and still finds a hook there", () => {
+        const route = `
+          export async function GET(request) { const ids = new Set(request.ids); return Response.json([...ids]); }
+          export const POST = async (request) => Object.fromEntries(await request.formData());
+          export function Format(rows) { return new Map(rows); }
+          export function useIndex(rows) { return new Map(rows); }`;
+        expect(fingerprints(route, "app/routes/api.ts")).toEqual(["app/routes/api.ts::useIndex::render-index::Map::"]);
+        expect(scan(`export function GET(request) { const ids = new Set(request.ids); return null; }`, "app/routes/api.tsx")).toEqual([]);
+        expect(fingerprints(`export function C({ rows }) { const byId = new Map(rows); return byId.size; }`)).toEqual(["app/routes/fixture.tsx::C::render-index::Map::byId"]);
+    });
+    it("leaves a callback that runs during render uncounted, a known gap", () => {
+        expect(scan(`export function Rows({ rows }) { return rows.map((row) => new Set(row.tags).size); }`)).toEqual([]);
+    });
+    it("reads through as and satisfies, an anonymous class component, and skips a static block, a nameless default export and an empty builder", () => {
+        const source = `
+          import { memo, Component } from "react";
+          export const Rows = memo((({ rows }) => { const byId = new Map(rows) as Map<string, unknown>; const kinds = new Set(rows) satisfies Set<unknown>; return byId.size + kinds.size; }) as any) satisfies object;
+          export const Table = class extends Component { render() { return new Set(this.props.rows).size; } };
+          export function Empty() { const seen = new Map; const none = Object.fromEntries(); return seen.size; }
+          export default function (rows) { return new Set(rows); }
+          export class Cache { static { const warm = new Map([[1, 2]]); } }`;
+        expect(fingerprints(source)).toEqual([
+            "app/routes/fixture.tsx::Rows::render-index::Map::byId",
+            "app/routes/fixture.tsx::Rows::render-index::Set::kinds",
+            "app/routes/fixture.tsx::Table::render-index::Set::",
+        ]);
+        expect(fingerprints(`export default class extends Component { render() { return new Set(this.props.rows).size; } }`)).toEqual([
+            "app/routes/fixture.tsx::render::render-index::Set::",
+        ]);
+    });
+    it("never makes the component around it a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/rows.tsx": `export function Rows({ rows }) { const byId = new Map(rows); return byId.size; }`,
+            "app/routes/home.tsx": `import { Rows } from "~/components/rows"; export function Home() { return <Rows rows={[]} />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["render-index"]);
+    });
+    it("names the store, useMemo and module-scope fix in its message", () => {
+        const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::Rows::render-index::Map::byId", file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([`New index built in render: app/x.tsx::Rows::render-index::Map::byId (+1) at app/x.tsx:4. ${RENDER_INDEX_FIX}`]);
+        expect(RENDER_INDEX_FIX).toContain("in the store or loader that holds the data");
+        expect(RENDER_INDEX_FIX).toContain("useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])");
+        expect(RENDER_INDEX_FIX).toContain("module scope");
     });
 });
 describe("third-party-control", () => {
@@ -1476,6 +1589,18 @@ describe("main", () => {
             main(["--base", "abc123"], deps);
             const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + S));
             expect(line).toContain("Show a Skeleton shaped like the content instead");
+            expect(line).not.toContain("Use an Ouro component instead");
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("gives an index's rise the useMemo advice, not \"use an Ouro component\"", () => {
+            const R = "app/routes/r.tsx::R::render-index::Map::byId";
+            const rows = { "/repo/app/routes/r.tsx": `export function R({ rows }) {\n  const byId = new Map(rows);\n  return byId.size;\n}` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [R]: 1 }), rows);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + R));
+            expect(line).toContain("or in useMemo on its inputs");
+            expect(line).toContain("on every render, a keystroke or a hover included; or record why:");
             expect(line).not.toContain("Use an Ouro component instead");
             expect(exit).toHaveBeenCalledWith(1);
         });
