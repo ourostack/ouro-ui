@@ -159,6 +159,11 @@ describe("Lightbox mosaic", () => {
         const cell = thumbnail.parentElement!.getBoundingClientRect();
         const box = thumbnail.getBoundingClientRect();
         expect([box.top, box.left, box.width, box.height].map((n) => Math.round(n))).toEqual([cell.top, cell.left, cell.width, cell.height].map((n) => Math.round(n)));
+        // The picture covers its button, stretched over the button's one grid cell rather than sized by a percentage.
+        const picture = thumbnail.querySelector("img")!;
+        const drawn = picture.getBoundingClientRect();
+        expect([drawn.top, drawn.left, drawn.width, drawn.height].map((n) => Math.round(n))).toEqual([box.top, box.left, box.width, box.height].map((n) => Math.round(n)));
+        expect(`${thumbnail.className} ${picture.className}`).not.toMatch(/(^|\s)(size|h|w)-full(\s|$)/);
       }
     }
   });
@@ -219,6 +224,120 @@ describe("Lightbox mosaic", () => {
     expect(html).toContain('data-layout="mosaic"');
     expect(html).toContain("aspect-ratio:1.3333333333333333");
     expect(html).toContain(">+2<");
+  });
+});
+
+describe("Lightbox mosaic in a chat message", () => {
+  /** A chat message as Message lays one out: an avatar's column, then the bubble's column, as wide as what is in it, at most 85%. */
+  const message = (node: ReactNode, words = "Hi") => (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+      <span style={{ width: 32, flexShrink: 0 }} />
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, minWidth: 0, maxWidth: "min(85%, 36rem)" }}>
+        <p style={{ margin: 0 }}>{words}</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, width: "100%", maxWidth: "100%", minWidth: 0 }}>{node}</div>
+      </div>
+    </div>
+  );
+  const box = (host: Element) => {
+    const rect = host.querySelector('[data-ouro="lightbox"]')!.getBoundingClientRect();
+    return [Math.round(rect.width), Math.round(rect.height)];
+  };
+  /** Waits until every picture has loaded or failed, and two frames have drawn it. */
+  const drawn = async (host: Element) => {
+    const images = [...host.querySelectorAll("img")];
+    await expect.poll(() => images.every((image) => image.complete)).toBe(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  };
+  const shot = (width: number, height: number) => ({ src: picture(width, height, "#68a"), alt: "A photo", width, height });
+
+  /** A conversation of `count` messages, each in nested flex columns as a message list's are, each holding `draw(index)`. */
+  const conversation = (count: number, draw: (index: number) => ReactNode) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {Array.from({ length: count }, (_, index) => (
+        <div key={index} style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>{message(draw(index))}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+  /** The time, in ms, of a layout of `host` forced after its width changes. */
+  const layoutTime = (host: HTMLElement, run: number) => {
+    host.style.width = `${400 - (run % 2) * 20}px`;
+    const start = performance.now();
+    void host.offsetHeight;
+    return performance.now() - start;
+  };
+  const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+  const median = (times: number[]) => [...times].sort((a, b) => a - b)[Math.floor(times.length / 2)]!;
+
+  // Each mosaic's size once its pictures had loaded, before they were pinned to their cells: in a 400px conversation the
+  // bubble's column holds it to 340px, and in an 800px one it is as big as a chat shows pictures.
+  const before: [number, string, readonly LightboxImage[], number[]][] = [
+    [400, "one wide", [shot(1600, 1000)], [340, 213]],
+    [400, "one tall", [shot(600, 800)], [210, 280]],
+    [400, "two", offsite.slice(0, 2), [340, 170]],
+    [400, "three", offsite.slice(0, 3), [340, 227]],
+    [400, "four", offsite.slice(0, 4), [340, 255]],
+    [800, "one wide", [shot(1600, 1000)], [400, 250]],
+    [800, "one tall", [shot(600, 800)], [210, 280]],
+    [800, "two", offsite.slice(0, 2), [400, 200]],
+    [800, "three", offsite.slice(0, 3), [400, 267]],
+    [800, "four", offsite.slice(0, 4), [373, 280]],
+  ];
+
+  it.each(before)("is as big as before its pictures were pinned, in a column as wide as what is in it (%ipx, %s)", async (width, _, images, size) => {
+    const { host } = await render(message(mosaic(images)), width);
+    await drawn(host);
+    expect(box(host)).toEqual(size);
+  });
+
+  it.each(before.filter(([width]) => width === 400).map(([, name, images, size]) => [name, images, size] as const))(
+    "holds %s at its final box from the first frame, before its pictures load and when they fail",
+    async (_, images, size) => {
+      const loading = await render(message(mosaic(images)));
+      expect(box(loading.host)).toEqual(size);
+      await drawn(loading.host);
+      expect(box(loading.host)).toEqual(size);
+      const failing = await render(message(mosaic(images.map((image, index) => ({ ...image, src: `/__ouro-missing-picture-${index}.png` })))));
+      expect(box(failing.host)).toEqual(size);
+      await drawn(failing.host);
+      expect(box(failing.host)).toEqual(size);
+    },
+  );
+
+  // WebKit resolves a percentage height inside a grid cell slowly when the grid sits in nested flex columns; Chromium does not.
+  it.skipIf(server.browser !== "webkit")("lays out a conversation of many mosaics quickly in WebKit", async ({ annotate }) => {
+    // The same conversation with a plain grid of the mosaic's shape in each message, which resolves no percentage: what
+    // the layout costs on this machine without the mosaics.
+    const plain = await render(
+      conversation(60, () => (
+        <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gridTemplateRows: "1fr 1fr", aspectRatio: 1.5, width: 340, maxWidth: "100%" }}>
+          <span style={{ gridRow: "span 2" }} />
+          <span />
+          <span />
+        </div>
+      )),
+      400,
+    );
+    const mosaics = await render(conversation(60, (index) => mosaic(offsite.slice(index % 3, (index % 3) + 3).map((image) => ({ ...image, alt: `${image.alt} ${index}` })))), 400);
+    // Turn about, each alone in the page, so a busy machine slows both alike.
+    const control: number[] = [];
+    const pictures: number[] = [];
+    for (let run = 0; run < 9; run++) {
+      for (const [host, times] of [[plain.host, control], [mosaics.host, pictures]] as const) {
+        host.style.display = "";
+        await frame();
+        times.push(layoutTime(host, run));
+        host.style.display = "none";
+      }
+      await frame();
+    }
+    const [mosaicMs, plainMs] = [median(pictures), median(control)];
+    await annotate(`a layout of 60 mosaics took ${mosaicMs.toFixed(1)} ms; of 60 plain grids, ${plainMs.toFixed(1)} ms (medians of 9)`);
+    // With each picture sized by a percentage height it took ten times the plain grids' (44 ms against 4 ms); pinned, under two.
+    expect(mosaicMs, `mosaics ${pictures.map((ms) => ms.toFixed(0)).join(" ")} ms; plain grids ${control.map((ms) => ms.toFixed(0)).join(" ")} ms`).toBeLessThanOrEqual(3 * plainMs + 4);
   });
 });
 
