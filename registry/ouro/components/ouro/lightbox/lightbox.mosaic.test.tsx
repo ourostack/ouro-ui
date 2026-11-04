@@ -150,6 +150,19 @@ describe("Lightbox mosaic", () => {
     expect(topStart!.height).toBeCloseTo(bottomStart!.height, 0);
   });
 
+  it("pins each picture to its cell's corners, with no percentage height to resolve, and fills it exactly", async () => {
+    for (const count of [1, 2, 3, 4]) {
+      const shown = await render(mosaic(offsite.slice(0, count)));
+      for (const thumbnail of thumbnails(shown.host)) {
+        const style = getComputedStyle(thumbnail);
+        expect([style.position, style.top, style.left, style.right, style.bottom]).toEqual(["absolute", "0px", "0px", "0px", "0px"]);
+        const cell = thumbnail.parentElement!.getBoundingClientRect();
+        const box = thumbnail.getBoundingClientRect();
+        expect([box.top, box.left, box.width, box.height].map((n) => Math.round(n))).toEqual([cell.top, cell.left, cell.width, cell.height].map((n) => Math.round(n)));
+      }
+    }
+  });
+
   it("shows four of more pictures, the last saying how many more follow, to sight and to screen readers", async () => {
     const { host } = await render(mosaic(offsite));
     const buttons = thumbnails(host);
