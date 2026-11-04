@@ -193,7 +193,7 @@ export function useDrag(options: DragOptions): DragProps {
       // From the oldest move of the last 100ms up to this event itself: time the finger
       // spent still before lifting counts, so a pause slows the release.
       const first = samples.find((sample) => at.timeStamp - sample.time <= VELOCITY_WINDOW);
-      const span = first && at.timeStamp > first.time ? at.timeStamp - first.time : 0;
+      const span = first ? at.timeStamp - first.time : 0;
       const velocity = span ? (along(at) - first!.position) / span : 0;
       const crossVelocity = span ? (across(at) - first!.cross) / span : 0;
       return { delta: along(at) - origin, velocity, flick: Math.abs(velocity) >= FLICK_VELOCITY, crossDelta: across(at) - crossOrigin, crossVelocity, event: at };
