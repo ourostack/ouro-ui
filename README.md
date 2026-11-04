@@ -397,6 +397,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-keep-clear`,
 `lib-key-shortcuts`,
 `lib-last-input`,
+`lib-measure-interaction`,
 `lib-navigation-key`,
 `lib-open-mode`,
 `lib-ouro-provider`,
@@ -637,6 +638,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **ColorSchemeProvider** — Keeps the page's color scheme: it applies the person's choice (`light`, `dark` or `system`) as the `.dark` class on `<html>`, which is how shadcn themes switch, keeps it in `localStorage`, and follows the system's setting live while the choice is `system`. [Docs](docs/ColorSchemeProvider.md)
 - **Inspector** — X-ray for a page built with Ouro HX: outlines every Ouro component on the page with its name, linked to its docs, and lists them all for keyboard and screen reader users. [Docs](docs/Inspector.md)
+- **measureInteraction** — Runs `fn` in an event handler and names the interaction it belongs to, so the reports `onInteraction` sends carry `name`. [Docs](docs/measureInteraction.md)
+- **onInteraction** — Sends the page's interactions to `sink`, measured from the input to the next paint, so an app can hold them to a budget. [Docs](docs/onInteraction.md)
 - **OuroProvider** — Optional app-level provider that routes internal `href`s through your router's link and groups tooltips: once one `Tooltip` shows, its neighbours open instantly instead of each waiting its own delay. [Docs](docs/OuroProvider.md)
 
 ### Parts
