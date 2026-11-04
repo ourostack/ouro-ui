@@ -48,8 +48,10 @@ export interface MessageListOwnProps {
    * conversation. While it is true the list keeps room above the first message, where "Loading
    * older messages" shows, so at the top it covers no message or focus ring, and nothing moves as
    * loading starts. Set it to `false` once there is nothing older: the room stays until it has left
-   * the view, or the list is at its end, and then goes without moving a message.
+   * the view, or the list is at its end, and then goes without moving a message, not even for
+   * the one frame the browser draws as it goes.
    * @default false
+   * @claim "not even for the one frame the browser draws as it goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > holds the reader's message still in every frame as the last older page comes and the room above it goes)
    * @claim "so at the top it covers" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
    * @claim "the room stays until it has" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view)
    * @claim "the room stays until it has" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > drops the room at once when hasOlder ends at the list's end or with the room out of view, and adds it without moving a message)
@@ -711,6 +713,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [room, setRoom] = useState(hasOlder);
   if (hasOlder && !room) setRoom(true);
   const roomRef = useRef<HTMLDivElement | null>(null);
+  // Holds the reader's place after the messages move: set by the effect that follows the end or holds the anchor.
+  const holdRef = useRef<(() => void) | null>(null);
   useLayoutEffect(() => {
     if (hasOlder || !room) return;
     const scroller = scrollerRef.current!;
@@ -848,6 +852,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       }
       keepAnchor();
     };
+    holdRef.current = hold;
     const follow = new ResizeObserver(hold);
     follow.observe(content);
     follow.observe(scroller);
@@ -874,6 +879,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
     return () => (follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll));
   }, [toBottom]);
+  // The room above the first message comes and goes in a React update, which moves every message after it: hold the
+  // reader's place as it commits, before the browser draws, rather than a frame later, when the resize observer sees it.
+  useLayoutEffect(() => holdRef.current!(), [room]);
 
   // Announce each message from someone else once: when it is appended after the last
   // message already seen, when it replaces one with different text (a regenerated reply), or,
