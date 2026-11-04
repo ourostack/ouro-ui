@@ -33,7 +33,7 @@ jobs:
         run: |
           mkdir -p probe-out
           for round in 1 2 3; do
-            pnpm exec vitest run --project ouro-webkit --reporter=verbose registry/ouro/components/ouro/inspector/zz-repro.test.tsx registry/ouro/components/ouro/sheet registry/ouro/components/ouro/dialog registry/ouro/components/ouro/toast registry/ouro/components/ouro/command registry/ouro/components/ouro/select > "probe-out/round-$round.log" 2>&1
+            pnpm exec vitest run --project ouro-webkit --reporter=verbose test/zz-inspector-repro.test.tsx registry/ouro/components/ouro/sheet registry/ouro/components/ouro/dialog registry/ouro/components/ouro/toast registry/ouro/components/ouro/command registry/ouro/components/ouro/select > "probe-out/round-$round.log" 2>&1
             echo "round $round exit $?"
             sed 's/\x1b\[[0-9;]*m//g' "probe-out/round-$round.log" | grep -E "zzcopy|FRAMES|STUCK|ODD|Tests " | grep -E "×|FRAMES|STUCK|ODD|Tests " | cut -c1-3000
           done
