@@ -325,7 +325,8 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
  * frequently used ones. With `catalogue` it offers an image catalogue's emoji instead (a
  * standard set and an organization's custom emoji), drawn only as the catalogue's images, an
  * animated one playing while it is in focus or under the mouse, and gives `onSelect` the
- * emoji's id and the `:shortcode:` token to put into text.
+ * emoji's id and the `:shortcode:` token to put into text. A catalogue's images are all fetched
+ * as the picker opens, the quick row and the first two sections of the grid first.
  *
  * The search matches the start of any word in an emoji's name, keywords or shortcodes, ignoring
  * case and accents, and announces how many it found. The grid is one Tab stop: the arrow keys move
@@ -360,6 +361,7 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
  *   placeholder="/emoji/waiting.svg"
  *   onSelect={(selection) => react(message.id, selection.id)}
  * />
+ * @claim "A catalogue's images are all fetched" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > fetches every image as it opens, the quick row and the first two sections of the grid first, then the rest in order)
  * @claim "drawn only as the catalogue's images" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > draws only the catalogue's images, each named by its emoji's name, with the custom category labelled by the app)
  * @claim "an animated one playing while it is in focus" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > plays an animated emoji while it is in focus or under the mouse, and the preview with it)
  * @claim "Every emoji is named for" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > shows the quick row, the frequently used emoji and every category, each emoji named for screen readers)
@@ -530,7 +532,9 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
 }
 
 /** Draws an emoji in a skin tone, and plays it (`true`), keeps it still (`false`) or lets it play for its button (`undefined`). */
-type GlyphRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone, play?: boolean) => ReactNode;
+/** How soon an emoji's image is fetched: `high` for what shows as the picker opens, `low` for the rest, in order. */
+type GlyphPriority = "high" | "low";
+type GlyphRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone, play?: boolean, priority?: GlyphPriority) => ReactNode;
 
 /** A catalogue's emoji as the panel holds it: its id as `emoji`, its tones' ids as its toned forms, and the item to draw. */
 interface CatalogueEntry extends EmojiPickerEmoji {
@@ -590,7 +594,9 @@ function usePickerContent(
     const found = { frequent: byIds(frequentKey as string | undefined), quick: byIds(quickKey as string | undefined) };
     const sample = [...(found.quick ?? []), ...(found.frequent ?? []), ...list.flatMap((category) => category.emoji)].find((entry) => entry.skinTones);
     // Draws a catalogue's emoji: its image, in the tone, playing for its button unless told otherwise.
-    const drawCatalogue: GlyphRender = (item, skinTone, play) => <Emoji item={(item as CatalogueEntry).image} skinTone={skinTone} play={play} placeholder={placeholder} />;
+    const drawCatalogue: GlyphRender = (item, skinTone, play, priority) => (
+      <Emoji item={(item as CatalogueEntry).image} skinTone={skinTone} play={play} placeholder={placeholder} fetchPriority={priority} />
+    );
     return {
       categories: list,
       ...found,
@@ -666,10 +672,11 @@ function SearchIcon(): JSX.Element {
 }
 
 /** An emoji as the app or the catalogue draws it, else its platform glyph in the tone. */
-const glyphOf = (item: EmojiPickerEmoji, tone: EmojiSkinTone, render: GlyphRender | undefined, play?: boolean) => (render ? render(item, tone, play) : toned(item, tone));
+const glyphOf = (item: EmojiPickerEmoji, tone: EmojiSkinTone, render: GlyphRender | undefined, play?: boolean, priority?: GlyphPriority) =>
+  render ? render(item, tone, play, priority) : toned(item, tone);
 
 /** One emoji button. Memoized, so moving focus re-renders only the cells it leaves and reaches. */
-const Cell = memo(function Cell({ item, tone, render, index, active, quick }: { item: EmojiPickerEmoji; tone: EmojiSkinTone; render: GlyphRender | undefined; index: number; active: boolean; quick: boolean }) {
+const Cell = memo(function Cell({ item, tone, render, index, active, quick, priority }: { item: EmojiPickerEmoji; tone: EmojiSkinTone; render: GlyphRender | undefined; index: number; active: boolean; quick: boolean; priority: GlyphPriority }) {
   return (
     <button
       type="button"
@@ -680,7 +687,7 @@ const Cell = memo(function Cell({ item, tone, render, index, active, quick }: { 
       data-ouro-part={quick ? "quick" : "emoji"}
       className={cellClass}
     >
-      <span aria-hidden="true">{glyphOf(item, tone, render)}</span>
+      <span aria-hidden="true">{glyphOf(item, tone, render, undefined, priority)}</span>
     </button>
   );
 });
@@ -836,7 +843,9 @@ function ToneChoice({ tone, setTone, label, names, glyph, onDone }: { tone: Emoj
 
 /**
  * The categories' or results' grids, each labelled by its heading, which stays at the top as its emoji scroll.
+ * Every image is fetched as the picker opens: the first two sections' (what shows first) at high priority, the rest at low, in order.
  *
+ * @claim "Every image is fetched as the picker" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > fetches every image as it opens, the quick row and the first two sections of the grid first, then the rest in order)
  * @claim "each labelled by its heading" registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.test.tsx::EmojiPicker content > shows the quick row, the frequently used emoji and every category, each emoji named for screen readers)
  */
 function Grids({ id, sections, rows, tone, render, active, sectionRefs }: { id: string; sections: readonly Section[]; rows: readonly Row[]; tone: EmojiSkinTone; render: GlyphRender | undefined; active: number; sectionRefs: RefObject<(HTMLElement | null)[]> }) {
@@ -857,7 +866,7 @@ function Grids({ id, sections, rows, tone, render, active, sectionRefs }: { id: 
             <div role="row" key={row.start} className={gridClass}>
               {section.items.slice(row.start - section.start, row.start - section.start + row.length).map((item, offset) => (
                 <div role="gridcell" key={offset} className="flex justify-center">
-                  <Cell item={item} tone={tone} render={render} index={row.start + offset} active={row.start + offset === active} quick={false} />
+                  <Cell item={item} tone={tone} render={render} index={row.start + offset} active={row.start + offset === active} quick={false} priority={index < 2 ? "high" : "low"} />
                 </div>
               ))}
             </div>
@@ -972,7 +981,7 @@ function QuickRow({ quick, tone, render, label, onChoose }: { quick: readonly Em
       }}
     >
       {quick.map((item, index) => (
-        <Cell key={index} item={item} tone={tone} render={render} index={index} active={index === quickActive} quick />
+        <Cell key={index} item={item} tone={tone} render={render} index={index} active={index === quickActive} quick priority="high" />
       ))}
     </div>
   );
