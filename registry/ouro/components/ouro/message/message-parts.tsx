@@ -96,7 +96,7 @@ function MessageMenuItems({ M, reactions, entries, label }: { M: MenuModule; rea
         </div>
       )}
       {shown.length > 0 && entries !== undefined && entries.length > 0 && <M.MenuSeparator />}
-      {M.renderEntries(entries ?? [])}
+      <M.MenuEntries entries={entries ?? []} />
     </>
   );
 }
