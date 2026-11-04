@@ -1264,8 +1264,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{shown}</RowLayerContext.Provider>
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
+        {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
+            in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
+        {Layer && <Layer scroller={scrollerRef} layer={layer} />}
       </div>
-      {Layer && <Layer scroller={scrollerRef} layer={layer} />}
       {/* Read politely, outside the scrolling content, so new messages are heard once. */}
       <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">
         {spoken.map((item) => (

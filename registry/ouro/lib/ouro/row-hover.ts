@@ -80,6 +80,8 @@ export interface RowHover {
 const controls = "a, button, input, textarea, select, [tabindex]";
 // Where a right-click stays the browser's: a field's own menu (spelling, paste).
 const editable = 'input, textarea, [contenteditable]:not([contenteditable="false"])';
+// A link's, a picture's or a video's own menu (copy its address, save it) stays the browser's too.
+const ownMenu = `${editable}, a[href], img, video`;
 
 /**
  * One layer for a whole list, such as the action bar over the message the pointer is on: the list
@@ -93,8 +95,8 @@ const editable = 'input, textarea, [contenteditable]:not([contenteditable="false
  * field in the row is the field's.
  * A tap on a row shows it until a press lands elsewhere. Scrolling under the pointer, the window
  * losing focus and the row going all hide it, so it never stays on a row the pointer has left.
- * `menu` opens the app's menu for a row: right-click (except on a field or over selected text,
- * whose menus stay the browser's), Shift+F10 or the context-menu key on a focused row. It returns
+ * `menu` opens the app's menu for a row: right-click (except on a field, a link, a picture, a video or over
+ * selected text, whose menus stay the browser's), Shift+F10 or the context-menu key on a focused row. It returns
  * whether it opened one; when it returns false, the right-click goes to the browser's menu. The layer is hidden
  * while that menu is open (`hold`). The rows are the elements whose data the layer
  * holds (`RowLayer`).
@@ -112,8 +114,8 @@ const editable = 'input, textarea, [contenteditable]:not([contenteditable="false
  * @claim "Keyboard focus arriving in a row shows it too" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on keyboard focus, not on a click's, and Escape hides it with focus back on the row)
  * @claim "A tap on a row shows it until" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on a tap until a press lands elsewhere, and a tap on a control is the control's)
  * @claim "Scrolling under the pointer, the window" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > hides on a scroll until the pointer moves again, on the window's blur and when the row goes)
- * @claim "when it returns false, the right-click goes" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields and selected text to the browser)
- * @claim "`menu` opens the app's menu for a row" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields and selected text to the browser)
+ * @claim "when it returns false, the right-click goes" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields, links and selected text to the browser)
+ * @claim "`menu` opens the app's menu for a row" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields, links and selected text to the browser)
  */
 export function useRowHover<T>(
   container: RefObject<HTMLElement | null>,
@@ -208,7 +210,7 @@ export function useRowHover<T>(
     };
     const contextMenu = (event: MouseEvent) => {
       const clicked = rowOf(event.target);
-      if (clicked === null || menuRef.current === undefined || (event.target as Element).closest(editable) !== null) return;
+      if (clicked === null || menuRef.current === undefined || (event.target as Element).closest(ownMenu) !== null) return;
       const selection = doc.getSelection();
       if (selection !== null && !selection.isCollapsed && selection.rangeCount > 0 && clicked.contains(selection.getRangeAt(0).commonAncestorContainer)) return;
       // The context-menu key, where the browser sends this event for it, opens it at the row, as Shift+F10 does.

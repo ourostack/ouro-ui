@@ -36,7 +36,7 @@ function Row({ id, layer, field = true }: { id: string; layer: RowLayer<string>;
   }, [id, layer]);
   return (
     <div ref={ref} id={id} tabIndex={-1} style={{ height: 40 }}>
-      <span data-text="">{id}</span> <button type="button">Inside {id}</button> {field && <input aria-label={`Field ${id}`} />}
+      <span data-text="">{id}</span> <button type="button">Inside {id}</button> <a href={`#${id}`}>Link {id}</a> {field && <input aria-label={`Field ${id}`} />}
     </div>
   );
 }
@@ -245,7 +245,7 @@ describe("useRowHover", () => {
     expect(probe.hover.row).toBeNull();
   });
 
-  it("opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields and selected text to the browser", async () => {
+  it("opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields, links and selected text to the browser", async () => {
     const menu = vi.fn((target: HTMLElement) => target.id !== "r2");
     await render(<List count={3} menu={menu} />);
     const text = row("r0").querySelector("[data-text]")!;
@@ -263,6 +263,7 @@ describe("useRowHover", () => {
     expect(right(row("r2"))).toBe(false);
     menu.mockClear();
     expect(right(row("r0").querySelector("input")!)).toBe(false);
+    expect(right(row("r0").querySelector("a")!)).toBe(false);
     expect(right(page.getByText("Not a row").element())).toBe(false);
     getSelection()!.selectAllChildren(text);
     expect(right(text)).toBe(false);

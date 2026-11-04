@@ -260,8 +260,8 @@ export interface MessageOwnProps {
    * entries as Menu's `items`, each with an optional `icon` before its label and its `shortcut` at its end. The bar stays while the menu is open. The bar renders in the
    * browser once its code loads, so server HTML has the message without it; Menu's code loads the
    * first time someone opens a message's menu. In a `MessageList`, the list has one menu for all its
-   * messages: the bar's menu button, a right-click on the message (except on a field or selected
-   * text) and Shift+F10 or the context-menu key on it all open it, named by `actionsMenuLabel`, and
+   * messages: the bar's menu button, a right-click on the message (except on a field, a link, a picture or
+   * selected text, which keep the browser's menu) and Shift+F10 or the context-menu key on it all open it, named by `actionsMenuLabel`, and
    * closing it puts focus back on the message.
    *
    * @claim "In a `MessageList`, the list has one menu" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > opens one menu from the bar's button and a right-click, with the reactions on top, and the same menu again for another message)
