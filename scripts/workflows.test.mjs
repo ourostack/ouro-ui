@@ -1159,12 +1159,12 @@ test("a push to main whose commit the merge queue already tested runs only insta
   assert.equal(check([]), "");
   // When the API cannot answer, everything runs.
   assert.equal(check([run("merge_group", "gh-readonly-queue/main/pr-9-abc")], 1), "");
-  // Every job but the plan, the GitHub install, the release-only install and fail-fast (pull
-  // requests only) skips on it, gates included; motion-coverage waits on ci and browser-fallback on
+  // Every job but the plan, the GitHub install, the release-only install and the fail-fast
+  // notifiers (a failed job's, on pull requests only) skips on it, gates included; motion-coverage waits on ci and browser-fallback on
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback"].includes(id) && !id.startsWith("fail-fast-")).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1237,7 +1237,8 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : untested), `${id} has if: ${condition}`);
+    // A notifier (scripts/ci-fail-fast.mjs) is no required check: it runs only when its job failed on a pull request.
+    else if (!["install-github", "install-latest", "plan", "browser-fallback"].includes(id) && !id.startsWith("fail-fast-")) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : untested), `${id} has if: ${condition}`);
   }
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
@@ -1782,10 +1783,11 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   assert.match(block, /^ {10}HEAD_REF: \$\{\{ github\.head_ref \}\}$/m);
   assert.match(block, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
-  // Every job no other job needs: the ends of the run's chains, but fail-fast, which watches this
-  // job too and stops once it has finished (scripts/ci-fail-fast.mjs).
-  const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
-  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && !needed.has(id));
+  // Every job no other job needs: the ends of the run's chains, but the fail-fast notifiers, which
+  // run only in a run they cancel, where this job does not run (scripts/ci-fail-fast.mjs).
+  const notifier = (id) => id.startsWith("fail-fast-");
+  const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget" && !notifier(id)).flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
+  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && !notifier(id) && !needed.has(id));
   assert.deepEqual([...needs].sort(), [...ends, "plan", "ci"].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));

@@ -1554,33 +1554,385 @@ jobs:
           path: ${{ runner.temp }}/ci-timings.json
           if-no-files-found: ignore
           retention-days: 90
-  fail-fast:
-    # Fail fast on a pull request (scripts/ci-fail-fast.mjs): beside every job after the plan, it reads this
-    # run attempt's jobs and, once one has failed and finished, cancels the run, so a red job frees
-    # the runners the run still holds rather than when its slowest job ends. The failed job keeps
-    # its failure conclusion, log and artifacts; the jobs the run had not finished report cancelled,
-    # and ci-budget does not run, so the pull request stays blocked. No job needs it, so where it is
-    # skipped (a merge-queue entry, a push to main, a dispatched run) every job runs as before. Its
-    # own failure never fails the run (continue-on-error), and it is the only job that may write to
-    # Actions. It starts once the plan has finished, so while the plan yields to the merge queue it
-    # holds no runner.
-    needs: [plan]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+  # Fail fast on a pull request (scripts/ci-fail-fast.mjs): each job that does the run's work has a
+  # notifier below that needs it and, only when it failed on a pull request, cancels the rest of the
+  # run, so its runners are freed. A green run skips every notifier, so none holds a runner; a
+  # notifier runs no repository code and installs nothing, and it alone may write to Actions.
+  fail-fast-checks:
+    needs: [checks]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.checks.result == 'failure' || needs.checks.result == 'cancelled') }}
+    name: fail fast (checks)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    continue-on-error: true
+    timeout-minutes: 10
     permissions:
       actions: write
-      contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          sparse-checkout: scripts/ci-fail-fast.mjs
-          sparse-checkout-cone-mode: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-      - run: node scripts/ci-fail-fast.mjs
+      - name: Cancel the rest of the run
         env:
           GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::checks failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::checks failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-attribution:
+    needs: [attribution]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.attribution.result == 'failure' || needs.attribution.result == 'cancelled') }}
+    name: fail fast (attribution)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::attribution failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::attribution failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-browser:
+    needs: [browser]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.browser.result == 'failure' || needs.browser.result == 'cancelled') }}
+    name: fail fast (browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::browser failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::browser failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-scripts:
+    needs: [scripts]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.scripts.result == 'failure' || needs.scripts.result == 'cancelled') }}
+    name: fail fast (scripts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::scripts failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::scripts failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-scripts-browser:
+    needs: [scripts-browser]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.scripts-browser.result == 'failure' || needs.scripts-browser.result == 'cancelled') }}
+    name: fail fast (scripts-browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::scripts-browser failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::scripts-browser failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-coverage:
+    needs: [coverage]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.coverage.result == 'failure' || needs.coverage.result == 'cancelled') }}
+    name: fail fast (coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::coverage failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::coverage failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-browser-fallback:
+    needs: [browser-fallback]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.browser-fallback.result == 'failure' || needs.browser-fallback.result == 'cancelled') }}
+    name: fail fast (browser-fallback)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::browser-fallback failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::browser-fallback failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-ci:
+    needs: [ci]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.ci.result == 'failure' || needs.ci.result == 'cancelled') }}
+    name: fail fast (ci)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::ci failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::ci failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-motion-coverage:
+    needs: [motion-coverage]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.motion-coverage.result == 'failure' || needs.motion-coverage.result == 'cancelled') }}
+    name: fail fast (motion-coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::motion-coverage failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::motion-coverage failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-themes:
+    needs: [themes]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.themes.result == 'failure' || needs.themes.result == 'cancelled') }}
+    name: fail fast (themes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::themes failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::themes failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-conformance-shard:
+    needs: [conformance-shard]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.conformance-shard.result == 'failure' || needs.conformance-shard.result == 'cancelled') }}
+    name: fail fast (conformance-shard)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::conformance-shard failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::conformance-shard failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-mutation-plan:
+    needs: [mutation-plan]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.mutation-plan.result == 'failure' || needs.mutation-plan.result == 'cancelled') }}
+    name: fail fast (mutation-plan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::mutation-plan failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::mutation-plan failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-mutation-shard:
+    needs: [mutation-shard]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.mutation-shard.result == 'failure' || needs.mutation-shard.result == 'cancelled') }}
+    name: fail fast (mutation-shard)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::mutation-shard failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::mutation-shard failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-visual:
+    needs: [visual]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.visual.result == 'failure' || needs.visual.result == 'cancelled') }}
+    name: fail fast (visual)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::visual failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::visual failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-registry:
+    needs: [registry]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.registry.result == 'failure' || needs.registry.result == 'cancelled') }}
+    name: fail fast (registry)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::registry failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::registry failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-e2e-shard:
+    needs: [e2e-shard]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.e2e-shard.result == 'failure' || needs.e2e-shard.result == 'cancelled') }}
+    name: fail fast (e2e-shard)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::e2e-shard failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::e2e-shard failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-theme-install:
+    needs: [theme-install]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.theme-install.result == 'failure' || needs.theme-install.result == 'cancelled') }}
+    name: fail fast (theme-install)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::theme-install failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::theme-install failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-lighthouse:
+    needs: [lighthouse]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.lighthouse.result == 'failure' || needs.lighthouse.result == 'cancelled') }}
+    name: fail fast (lighthouse)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::lighthouse failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::lighthouse failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-install-shard:
+    needs: [install-shard]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.install-shard.result == 'failure' || needs.install-shard.result == 'cancelled') }}
+    name: fail fast (install-shard)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::install-shard failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::install-shard failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-install:
+    needs: [install]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.install.result == 'failure' || needs.install.result == 'cancelled') }}
+    name: fail fast (install)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::install failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::install failed, but cancelling the rest of the run did not work."
+          fi
+  fail-fast-install-upgrade:
+    needs: [install-upgrade]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && (needs.install-upgrade.result == 'failure' || needs.install-upgrade.result == 'cancelled') }}
+    name: fail fast (install-upgrade)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel the rest of the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" > /dev/null; then
+            echo "::notice::install-upgrade failed, so fail fast cancelled the rest of this pull request's run to free its runners. The failed job's own log says why."
+          else
+            echo "::warning::install-upgrade failed, but cancelling the rest of the run did not work."
+          fi
