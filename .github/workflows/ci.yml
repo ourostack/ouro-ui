@@ -60,7 +60,18 @@ jobs:
       components: ${{ steps.plan.outputs.components }}
       tested: ${{ steps.tested.outputs.tested }}
       installs: ${{ steps.plan.outputs.installs }}
+      browser: ${{ steps.browser.outputs.run }}
     steps:
+      # How many of the repository's runs wait for a runner as this one starts, in the run's
+      # summary: every run's jobs share the organization's runners.
+      - name: Queued runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          queued=$(gh api "repos/$REPO/actions/runs?status=queued&per_page=1" --jq .total_count) || queued="unknown (the API did not answer)"
+          echo "Queued runs in $REPO: $queued"
+          echo "**Queued runs** in $REPO as this run planned: $queued" >> "$GITHUB_STEP_SUMMARY"
       - id: tested
         name: Did the merge queue test this commit?
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -117,6 +128,25 @@ jobs:
           else
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
             echo "full=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Whether the browser shards run at all (scripts/ci-relevance.mjs browser): a pull request into
+      # main whose every changed file is one the browser tests never read (a change fragment, a
+      # Node script test, an end-to-end spec, another workflow) skips them, and so the coverage they
+      # measure and the fallback shards; the coverage, ci and motion-coverage checks still report.
+      # Anything else, and a diff that cannot be read, runs them, as every other event does.
+      - id: browser
+        name: Can the change reach the browser shards?
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
+            node scripts/ci-relevance.mjs browser HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The browser shards run: $EVENT on $REF${BASE_REF:+ into $BASE_REF}."
+            echo "run=true" >> "$GITHUB_OUTPUT"
           fi
   checks:
     # The checks that need no browser: the generated docs, the types, the lint, the site as Pages
@@ -192,9 +222,10 @@ jobs:
     # long each file took (`node scripts/shard.mjs refresh`), then checks its share of the installed
     # subsets: an app that installs some components with their tests reaches 100% of what it
     # installed (the button, the dialog, the sheet and the forms set, each alone and together; on a
-    # reduced pull request, the sets that install a selected component). Part of the ci check.
+    # reduced pull request, the sets that install a selected component). Part of the ci check. A
+    # pull request that changes nothing they read skips them (the plan's `browser`).
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     # In Playwright's image (see the note above jobs:).
@@ -344,7 +375,8 @@ jobs:
     # reduced pull request that falls short, a line may be covered only by another component's
     # tests, so the browser-fallback shards run the full suite to decide (scripts/test-impact.mjs
     # coverage), and the ci check holds their merged coverage to 100% instead. Its outputs say which,
-    # for the motion-coverage job. Part of the ci check.
+    # for the motion-coverage job. When the plan skipped the browser shards, it passes with nothing
+    # measured (`ran=false`). Part of the ci check.
     needs: [plan, browser]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -353,34 +385,53 @@ jobs:
       reduced: ${{ steps.tests.outputs.reduced }}
       stems: ${{ steps.tests.outputs.stems }}
       fallback: ${{ steps.tests.outputs.fallback }}
+      ran: ${{ steps.shards.outputs.ran }}
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       BROWSER_SHARDS: 6
+      BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' }}
     steps:
       # A failed shard decides the ci check whatever the full suite would do, so it runs only after every shard passed.
-      - name: Every browser shard passed
+      - id: shards
+        name: Every browser shard passed
         env:
           BROWSER: ${{ needs.browser.result }}
         run: |
+          if [ "$BROWSER_RUN" = false ]; then
+            if [ "$BROWSER" != skipped ]; then
+              echo "::error::The plan skipped the browser shards, but they report $BROWSER: see the browser (n/6) jobs."
+              exit 1
+            fi
+            echo "Nothing the browser tests read changed, so the browser shards did not run and there is no coverage to measure."
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$BROWSER" != success ]; then
             echo "::error::The browser jobs did not pass ($BROWSER): see the browser (n/6) jobs."
             exit 1
           fi
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+          echo "ran=true" >> "$GITHUB_OUTPUT"
+      - if: env.BROWSER_RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - if: env.BROWSER_RUN == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: env.BROWSER_RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - if: env.BROWSER_RUN == 'true'
+        run: pnpm i --frozen-lockfile
+      - if: env.BROWSER_RUN == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: coverage-browser-*
           path: ${{ runner.temp }}/coverage
       - id: tests
+        if: env.BROWSER_RUN == 'true'
         name: Browser test coverage
         run: |
           if [ "$FULL" = true ]; then
@@ -447,8 +498,9 @@ jobs:
     # Passes when every part of it passed (checks, every browser shard, the coverage job and every
     # script test job) and the browser shards' merged coverage reached 100%; or, on a reduced pull
     # request whose merged coverage fell short, when every browser-fallback shard passed too and their
-    # merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs). Its outputs tell
-    # motion-coverage which shards' motion evidence to read.
+    # merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs); or, when the plan
+    # skipped the browser shards because nothing they read changed, without them. Its outputs tell
+    # motion-coverage which shards' motion evidence to read, if any.
     needs: [plan, checks, browser, scripts, scripts-browser, coverage, browser-fallback]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -457,9 +509,11 @@ jobs:
       reduced: ${{ needs.coverage.outputs.reduced }}
       stems: ${{ needs.coverage.outputs.stems }}
       fallback: ${{ needs.coverage.outputs.fallback }}
+      browser: ${{ needs.plan.outputs.browser != 'false' }}
     env:
       FALLBACK: ${{ needs.coverage.outputs.fallback }}
       FALLBACK_SHARDS: 16
+      BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' }}
     steps:
       - name: Every part passed
         env:
@@ -471,6 +525,8 @@ jobs:
           BROWSER_FALLBACK: ${{ needs.browser-fallback.result }}
         run: |
           failed=0
+          # Skipped by the plan, the browser shards count as passed; skipped for any other reason, they do not.
+          if [ "$BROWSER_RUN" = false ] && [ "$BROWSER" = skipped ]; then BROWSER=success; fi
           for part in "checks=$CHECKS" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
@@ -514,6 +570,8 @@ jobs:
     # when the full suite decided, the browser-fallback shards' partitions instead.
     # A reduced pull request still runs every project; it ran only some components' tests, so
     # --stems holds only their maps complete (the ci job's `stems`).
+    # When the plan skipped the browser shards (nothing they read changed), no motion was recorded
+    # and no map changed, so it passes without reading any.
     needs: [ci]
     # ci passes after skipped fallback shards, which would skip this job by default: run it whenever ci passed.
     if: ${{ !cancelled() && needs.ci.result == 'success' }}
@@ -525,22 +583,31 @@ jobs:
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
       FALLBACK: ${{ needs.ci.outputs.fallback }}
+      BROWSER_RUN: ${{ needs.ci.outputs.browser != 'false' }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: env.BROWSER_RUN == 'false'
+        run: echo "Nothing the browser tests read changed, so they did not run and there is no motion evidence to hold."
+      - if: env.BROWSER_RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - if: env.BROWSER_RUN == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: env.BROWSER_RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - if: env.BROWSER_RUN == 'true'
+        run: pnpm i --frozen-lockfile
       # Each browser test job's artifact lands in a folder of its own, so no partition overwrites another.
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - if: env.BROWSER_RUN == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: ${{ needs.ci.outputs.fallback == 'true' && 'motion-fallback-*' || 'motion-browser-*' }}
           path: ${{ runner.temp }}/motion
-      - name: Motion coverage
+      - if: env.BROWSER_RUN == 'true'
+        name: Motion coverage
         run: |
           if [ "$FALLBACK" = true ]; then MOTION_PARTITIONS=$FULL_SUITE_PARTITIONS; fi
           if [ "$REDUCED" = true ]; then
