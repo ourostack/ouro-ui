@@ -10,6 +10,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { isTransparent } from "@/registry/ouro/lib/ouro/testing/color";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -542,6 +543,86 @@ describe("NavigationRail overflow", () => {
     const { nav } = await render(<NavigationRail label="Main" items={[]} />);
     expect(nav.querySelectorAll("li")).toHaveLength(0);
   });
+});
+
+describe("NavigationRail fit", () => {
+  /** Room for three rows and More, as in the overflow tests. */
+  const tight = 16 + 4 * 56 + 3 * 4;
+  const withCount = (count: number) => many.map((entry) => (entry.type !== "separator" && entry.label === "Activity" ? { ...entry, count } : entry));
+  const renamed = (from: string, to: string) => many.map((entry) => (entry.type !== "separator" && entry.label === from ? { ...entry, label: to } : entry));
+
+  it("lays nothing out when it renders again with only a new count, or with the same items", async () => {
+    const rail = await render(<NavigationRail label="Main" items={many} currentPath="/chat" />, tight);
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "Calendar", "More"]);
+    // The resize observer reports the items moved under More a frame later, and measures then, where layout is free.
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    for (let count = 1; count <= 10; count++) {
+      const reads = watchLayoutReads();
+      await rail.rerender(<NavigationRail label="Main" items={withCount(count)} currentPath="/chat" />);
+      reads.stop();
+      expect(reads.names()).toEqual([]);
+      expect(rail.items[0]!.querySelector("[data-ouro-navigation-rail-count]")!.textContent).toBe(String(count));
+    }
+    // A parent that renders again with a new array of the same items, then with a new icon.
+    const same = watchLayoutReads();
+    await rail.rerender(<NavigationRail label="Main" items={withCount(10).map((entry) => ({ ...entry }))} currentPath="/chat" />);
+    same.stop();
+    expect(same.names()).toEqual([]);
+    const newIcon = watchLayoutReads();
+    await rail.rerender(<NavigationRail label="Main" items={withCount(10).map((entry) => (entry.type !== "separator" && entry.label === "Chat" ? { ...entry, icon: icon("chat-new") } : entry))} currentPath="/chat" />);
+    newIcon.stop();
+    expect(newIcon.names()).toEqual([]);
+    expect(rail.items[1]!.querySelector("[data-icon]")!.getAttribute("data-icon")).toBe("chat-new");
+  });
+
+  it("fits again before paint when a label changes", async () => {
+    const rail = await render(<NavigationRail label="Main" items={many} />, tight);
+    // A label on two lines makes its row 68px tall, so Calendar no longer fits. No frame has passed, so no resize observer has run.
+    await rail.rerender(<NavigationRail label="Main" items={renamed("Chat", "Customer support escalations")} />);
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "More"]);
+  });
+
+  it("fits again before paint when the current item changes, the labels hide, More is renamed or the rail widens", async () => {
+    const rail = await render(<NavigationRail label="Main" items={many} currentPath="/chat" />, tight);
+    await rail.rerender(<NavigationRail label="Main" items={many} currentPath="/help" />);
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Help", "More"]);
+    // 44px rows: Chat fits too.
+    await rail.rerender(<NavigationRail label="Main" items={many} currentPath="/help" hideLabels />);
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "Help", "More"]);
+    await rail.rerender(<NavigationRail label="Main" items={many} currentPath="/help" moreLabel="Everything else" />);
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Help", "More"]);
+    const long = renamed("Chat", "Customer support escalations");
+    await rail.rerender(<NavigationRail label="Main" items={long} />);
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "More"]);
+    // Wide enough for the label on one line.
+    await rail.rerender(<NavigationRail label="Main" items={long} className="w-80" />);
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "Calendar", "More"]);
+  });
+
+  it("fits again when its width or the text size changes", async () => {
+    // Two labels on two lines in a 68px rail, the second moved under More at 68px tall.
+    const long = renamed("Chat", "Customer support escalations").map((entry) => (entry.type !== "separator" && entry.label === "Calendar" ? { ...entry, label: "Notes for the team" } : entry));
+    const rail = await render(
+      <div style={{ display: "flex", width: 68 }}>
+        <NavigationRail label="Main" items={long} className="w-full" />
+      </div>,
+      tight,
+    );
+    const box = rail.nav.parentElement!;
+    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "More"]);
+    // Wider, each label fits one line: only the shown one tells the rail so, and the hidden one comes back too.
+    box.style.width = "320px";
+    await expect.poll(() => rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "Notes for the team", "More"]);
+    // 20px text makes each row 70px tall.
+    document.documentElement.style.fontSize = "20px";
+    try {
+      await expect.poll(() => rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "More"]);
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+    await expect.poll(() => rail.shown.map(labelOf)).toEqual(["Activity", "Customer support escalations", "Notes for the team", "More"]);
+  });
+
 });
 
 describe("NavigationRail labels", () => {
