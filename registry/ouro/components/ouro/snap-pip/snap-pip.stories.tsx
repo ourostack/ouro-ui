@@ -8,7 +8,7 @@ import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 // made-up gradient: SnapPiP renders no media of its own.
 
 /** A call's stage: someone else's picture, as a gradient, with their name. */
-function Stage({ children, band }: { children: ReactNode; band?: RefObject<HTMLDivElement | null> }) {
+function Stage({ children, band, name }: { children: ReactNode; band?: RefObject<HTMLDivElement | null>; name?: RefObject<HTMLParagraphElement | null> }) {
   return (
     <div
       data-testid="stage"
@@ -21,7 +21,7 @@ function Stage({ children, band }: { children: ReactNode; band?: RefObject<HTMLD
         color: "white",
       }}
     >
-      <p style={{ position: "absolute", insetBlockStart: 16, insetInlineStart: 16, margin: 0, padding: "4px 10px", borderRadius: 999, background: "oklch(0 0 0 / 0.6)", fontSize: 14 }}>
+      <p ref={name} style={{ position: "absolute", insetBlockStart: 16, insetInlineStart: 16, margin: 0, padding: "4px 10px", borderRadius: 999, background: "oklch(0 0 0 / 0.6)", fontSize: 14 }}>
         Mara Lind
       </p>
       {band ? (
@@ -81,16 +81,17 @@ export const Playground: Story = {};
 
 function InACall() {
   const band = useRef<HTMLDivElement>(null);
+  const name = useRef<HTMLParagraphElement>(null);
   return (
-    <Stage band={band}>
-      <SnapPiP label="Your camera" keepOut={[band]}>
+    <Stage band={band} name={name}>
+      <SnapPiP label="Your camera" keepOut={[band, name]}>
         <SelfView />
       </SnapPiP>
     </Stage>
   );
 }
 
-/** A call's stage with a band of controls along the bottom, which the bottom corners keep clear of. */
+/** A call's stage with a band of controls along the bottom and a name tag at the top, which the corners keep clear of. */
 export const InCall: Story = {
   parameters: { screenshot: { name: "snap-pip-in-call" } },
   render: () => <InACall />,
@@ -98,6 +99,7 @@ export const InCall: Story = {
 
 function Remembered() {
   const [corner, setCorner] = useState<SnapPiPCorner>("top-left");
+  const name = useRef<HTMLParagraphElement>(null);
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -111,8 +113,8 @@ function Remembered() {
           Saved corner: {corner}
         </span>
       </div>
-      <Stage>
-        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner}>
+      <Stage name={name}>
+        <SnapPiP label="Your camera" corner={corner} onCornerChange={setCorner} keepOut={[name]}>
           <SelfView />
         </SnapPiP>
       </Stage>
@@ -120,7 +122,7 @@ function Remembered() {
   );
 }
 
-/** A controlled corner an app remembers: `onCornerChange` reports each throw, and the buttons set it. */
+/** A controlled corner an app remembers: `onCornerChange` reports each throw, and the buttons set it. The top-left corner sits below the name tag. */
 export const ControlledCorner: Story = {
   render: () => <Remembered />,
 };
