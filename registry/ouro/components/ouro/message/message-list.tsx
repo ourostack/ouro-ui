@@ -792,16 +792,45 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let end = 0;
     // The scroll position then: the reader's scrolling since is what the correction leaves alone.
     let taken = 0;
-    const atOf = (node: Element) => boxOf(node).top - content.getBoundingClientRect().top;
+    // The messages, in the order they come in the page, found again only when messages come or go, not on every scroll.
+    let list = [...content.querySelectorAll(items)];
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
-      const all = [...content.querySelectorAll(items)];
-      // The messages whose top is in view, so not one partly above the view, whose growth the reader is not reading.
-      // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
-      const below = all.filter((message) => boxOf(message).top >= view.top && boxOf(message).top < view.bottom);
-      // When none starts in view, the message filling it, then those below.
-      // Stryker disable next-line EqualityOperator: a message that ends exactly at the view's top is out of view either way, and one below follows it.
-      anchors = (below.length > 0 ? below : all.filter((message) => boxOf(message).bottom > view.top)).map((node) => ({ node, at: atOf(node) }));
+      const origin = content.getBoundingClientRect().top;
+      // Laid out, the messages' tops only grow down the list (one inside another starts within it), so the first whose top
+      // is in view is found by halving, and only the messages near the view are read: a long conversation, scrolled, costs
+      // what a short one does.
+      let first = 0;
+      let after = list.length;
+      while (first < after) {
+        const at = (first + after) >> 1;
+        // Stryker disable next-line EqualityOperator: a message whose top meets the view's edge to the pixel is the same anchor either way.
+        if (boxOf(list[at]!).top < view.top) first = at + 1;
+        else after = at;
+      }
+      // The messages whose top is in view, so not one partly above the view, whose growth the reader is not reading. When none
+      // starts in view, the messages filling it, then those that start within a view's height below it.
+      const held: { node: Element; at: number }[] = [];
+      const take = (from: number, until: number) => {
+        for (let at = from; at < list.length; at++) {
+          const top = boxOf(list[at]!).top;
+          // Stryker disable next-line EqualityOperator: a message whose top meets the edge to the pixel is out of the band either way.
+          if (top >= until) break;
+          held.push({ node: list[at]!, at: top - origin });
+        }
+      };
+      take(first, view.bottom);
+      if (held.length === 0) {
+        // Back from the first below the view's top, those that reach into the view, through to a message that is inside no other.
+        for (let at = first - 1; at >= 0; at--) {
+          const box = boxOf(list[at]!);
+          // Stryker disable next-line EqualityOperator: a message that ends exactly at the view's top is out of view either way, and one below follows it.
+          if (box.bottom > view.top) held.unshift({ node: list[at]!, at: box.top - origin });
+          if (!content.contains(list[at]!.parentElement!.closest(items))) break;
+        }
+        take(first, view.bottom + view.height);
+      }
+      anchors = held;
       end = farthest();
       taken = scroller.scrollTop;
     };
@@ -846,7 +875,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       else if (near && !native) {
         // Each message held that is still in the page, with where it sat in the content and how far it moved since. With each, how many
         // of the others it passed or fell behind: a message that moved on its own (a post that a reply moved to the end) passed them.
-        const held = anchors.filter(({ node }) => node.isConnected).map(({ node, at }) => ({ at, moved: atOf(node) - at }));
+        const origin = content.getBoundingClientRect().top;
+        const held = anchors.filter(({ node }) => node.isConnected).map(({ node, at }) => ({ at, moved: boxOf(node).top - origin - at }));
         const ranked = held.map((message) => ({
           moved: message.moved,
           // Stryker disable next-line EqualityOperator: two messages never sit at one place, and a message compared with itself is alike either way.
@@ -875,10 +905,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const moves = new MutationObserver((all) => {
       const records = all.filter((record) => !barOnly(record));
       if (records.length === 0) return;
+      const touched = records.some(touchesItems);
+      if (touched) list = [...content.querySelectorAll(items)];
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
-      if (pinned.current ? farthest() !== end : records.some(touchesItems)) hold();
+      if (pinned.current ? farthest() !== end : touched) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
@@ -1000,6 +1032,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let tabTop = 0;
     // The positions this list wrote, so an app's own aria-posinset stands.
     const written = new WeakMap<Element, string>();
+    // The list's own messages, as `sync` last found them.
+    // Stryker disable next-line ArrayDeclaration: sync(true) finds them below, before any scroll can read them.
+    let tops: HTMLElement[] = [];
 
     // The message an element is in, or is, among this list's messages.
     const itemOf = (node: Element, list = topItems(content)): HTMLElement | null => list.find((item) => item.contains(node)) ?? null;
@@ -1040,10 +1075,33 @@ export function MessageList(props: MessageListProps): JSX.Element {
       return tabbables(scroller).filter((element) => [null, current].includes(itemOf(element, list)));
     };
 
+    // The Tab stop, while focus is out of the list: the message focus was last in while it shows, else the last message
+    // the view shows whole, else the last it shows any of. Laid out, the messages only go down the list, so the last that
+    // starts above the view's bottom is found by halving, and only the few in view are read: a scroll through a long
+    // conversation costs what one through a short one does.
     const place = (list: HTMLElement[]) => {
       if (current?.isConnected && scroller.contains(doc.activeElement)) return;
-      const whole = (item: Element) => shows(item, true);
-      setCurrent(last?.isConnected && shows(last) ? last : (list.findLast(whole) ?? list.findLast((item) => shows(item)) ?? list.at(-1) ?? null));
+      if (last?.isConnected && shows(last)) return setCurrent(last);
+      const view = scroller.getBoundingClientRect();
+      let after = 0;
+      let until = list.length;
+      while (after < until) {
+        const at = (after + until) >> 1;
+        // Stryker disable next-line EqualityOperator: a message whose top meets the list's bottom to the pixel shows none of itself either way.
+        if (boxOf(list[at]!).top < view.bottom) after = at + 1;
+        else until = at;
+      }
+      let showing: HTMLElement | null = null;
+      for (let at = after - 1; at >= 0; at--) {
+        const box = boxOf(list[at]!);
+        // Above the view: so is every message before it.
+        // Stryker disable next-line EqualityOperator: a message whose edge meets the list's edge to the pixel counts either way.
+        if (box.bottom <= view.top) break;
+        showing ??= list[at]!;
+        // Stryker disable next-line EqualityOperator: a message whose edge meets the list's edge to the pixel counts either way.
+        if (box.top >= view.top && box.bottom <= view.bottom) return setCurrent(list[at]!);
+      }
+      setCurrent(showing ?? list.at(-1) ?? null);
     };
     // After React's commit, so it reads no layout unless the Tab stop went: reading where messages
     // are here would lay the page out before the browser does, at every new message.
@@ -1058,7 +1116,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         left.slice(at, at + 1).forEach(move);
       }
       if (!changed) return;
-      const list = topItems(content);
+      const list = (tops = topItems(content));
       list.forEach((item, index) => {
         // Focusable from code and by a click, in the Tab order only as the current message.
         if (item !== current) mark(item, "tabindex", "-1");
@@ -1199,7 +1257,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       tabTop = scroller.scrollTop;
       setTimeout(() => (tabbing = null));
     };
-    const scrolled = () => place(topItems(content));
+    // The messages, found again only when messages come or go (`sync`), not on every scroll.
+    const scrolled = () => place(tops);
 
     sync(true);
     const observer = new MutationObserver((records) => {
