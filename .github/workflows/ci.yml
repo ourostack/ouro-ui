@@ -50,8 +50,14 @@ jobs:
     # `installs=queue`, unless the pull request changes the install test itself (`installPaths`
     # below). Its required checks still report on the pull request, passing with a notice; every
     # merge-queue entry, push to main, dispatched run and release branch runs it in full.
+    #
+    # On a pull request, the plan first yields to the merge queue (scripts/ci-yield.mjs): while a
+    # merge group's run has a job waiting for a runner, it waits, up to 20 minutes, before any of
+    # this run's jobs queue, so the queue's jobs take the organisation's shared runners first. It
+    # fails open, and ci-budget leaves the wait out of the critical path. Its time limit is the
+    # yield's 22 minutes and the plan's own 8 on a pull request, and its own 10 on every other run, which never yields.
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 10 }}
     permissions:
       actions: read
       contents: read
@@ -99,6 +105,13 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - name: Yield to the merge queue
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 22
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci-yield.mjs
       - run: pnpm i --frozen-lockfile
       - id: plan
         name: Plan the tests
@@ -1489,15 +1502,17 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
   fail-fast:
-    # Fail fast on a pull request (scripts/ci-fail-fast.mjs): beside every other job, it reads this
+    # Fail fast on a pull request (scripts/ci-fail-fast.mjs): beside every job after the plan, it reads this
     # run attempt's jobs and, once one has failed and finished, cancels the run, so a red job frees
     # the runners the run still holds rather than when its slowest job ends. The failed job keeps
     # its failure conclusion, log and artifacts; the jobs the run had not finished report cancelled,
     # and ci-budget does not run, so the pull request stays blocked. No job needs it, so where it is
     # skipped (a merge-queue entry, a push to main, a dispatched run) every job runs as before. Its
     # own failure never fails the run (continue-on-error), and it is the only job that may write to
-    # Actions.
-    if: github.event_name == 'pull_request'
+    # Actions. It starts once the plan has finished, so while the plan yields to the merge queue it
+    # holds no runner.
+    needs: [plan]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     continue-on-error: true
