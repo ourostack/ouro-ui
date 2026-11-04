@@ -71,10 +71,11 @@ export function MessageActionBar({
       setMenuOpen(true);
     });
   const hasMenu = menu !== undefined && menu.length > 0;
-  // Fetched now, not on the first press, so nobody waits for the menu's code; it stays off the first paint.
+  // Fetched now, not on the first press, so nobody waits for the menu's code; it stays off the first
+  // paint. After every render, so a bar that gains a menu fetches it too; loadMenu fetches once.
   useEffect(() => {
     if (hasMenu) void loadMenu();
-  }, [hasMenu]);
+  });
   const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
   if (hasMenu) keys.push(MENU_KEY);
   const [current, setCurrent] = useState<string | undefined>(undefined);

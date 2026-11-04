@@ -44,6 +44,7 @@ describe("Message's menu code", () => {
     requests.stop();
   });
 
+  // Its own test, after the one above: Menu's code, once fetched, stays in the page for the file.
   it("is fetched as a bar with a menu mounts, before anyone presses its button", async () => {
     const requests = watchRequests();
     await render(
