@@ -50,8 +50,10 @@ const WAS_WORDS: Record<State, string> = { holds: "held before", fails: "failed 
 
 function Mark({ state }: { state: State }): JSX.Element {
   return (
-    <span className={`apple-mark apple-mark-${state}`} aria-hidden="true">
-      {state === "holds" ? "✓" : state === "fails" ? "✗" : "–"}
+    <span className={`apple-mark apple-mark-${state}`}>
+      <span aria-hidden="true">{state === "holds" ? "✓" : state === "fails" ? "✗" : "–"}</span>
+      {/* The mark is drawn; a screen reader hears the word. */}
+      <span className="sr-only">{state === "holds" ? "Holds: " : state === "fails" ? "Fails: " : "Not checked: "}</span>
     </span>
   );
 }
@@ -164,6 +166,10 @@ export function XrayExplorer({ initialApp = "spoonjoy" }: { initialApp?: AppKey 
           <span className="apple-xray-of"> of {report.summary.claims} claims hold</span>
         </p>
         <Dots report={report} other={other} />
+        <p className="apple-dots-key" aria-hidden="true">
+          <span className="apple-dot apple-dot-holds" /> holds <span className="apple-dot apple-dot-fails" /> fails <span className="apple-dot apple-dot-open" /> not
+          checked
+        </p>
         <p className="apple-xray-context">
           {data.app} on {data.platform}, {report.label}. {inventory.intents} intents, {inventory.entities} {inventory.entities === 1 ? "entity" : "entities"}, {inventory.shortcuts} App Shortcuts,{" "}
           {inventory.skills} {inventory.skills === 1 ? "app skill" : "app skills"}. Checks: {report.summary.checks.pass} pass, {report.summary.checks.fail} fail, {report.summary.checks.skip} not checked.

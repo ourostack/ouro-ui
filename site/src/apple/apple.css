@@ -856,6 +856,28 @@
     font-size: 1.125rem;
     color: var(--muted-foreground);
   }
+  @media (max-width: 40rem) {
+    /* On a phone a showcase capture takes the whole column, so its words stay readable. */
+    .apple-showcase > .apple-loop {
+      max-width: none !important;
+    }
+  }
+  .apple-dots-key {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 1.5);
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+  .apple-dots-key > .apple-dot:not(:first-child) {
+    margin-inline-start: calc(var(--spacing) * 2);
+  }
+  /* A light-only capture on a dark page: dimmed a touch, so it doesn't glare. */
+  .dark .apple-loop-frame:not([data-apple-dark]) {
+    filter: brightness(0.88);
+  }
   .apple-dots {
     display: flex;
     flex-wrap: wrap;

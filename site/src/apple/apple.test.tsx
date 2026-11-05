@@ -61,6 +61,9 @@ describe("Ouro UI for Apple", () => {
     await expect.element(xray.getByText("Nothing fails. Not one.", { exact: false })).toBeInTheDocument();
     await userEvent.click(xray.getByRole("radio", { name: /^Hold / }));
     await expect.poll(() => xray.element().querySelectorAll(".apple-claim").length).toBe(14);
+    // Each claim says its result in words, not only with a drawn mark.
+    const summaries = [...xray.element().querySelectorAll(".apple-claim summary")].map((summary) => summary.textContent ?? "");
+    expect(summaries.every((text) => text.includes("Holds: "))).toBe(true);
   });
 
   it("runs the web twin on the kit's own spring, and its curve settles where it says", () => {

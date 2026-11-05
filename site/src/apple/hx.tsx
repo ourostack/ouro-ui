@@ -155,7 +155,7 @@ export default function AppleHx(): JSX.Element {
               source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Sources/OuroHX/Tokens/OuroTokens.swift#L9-L14" },
               verify: { equals: "site/src/apple/kit.json#themes.5", is: "coral" },
             })}{" "}
-            Try the dots in the site's header. OuroColor checks contrast for you and picks a readable label for any fill, in light, dark and Increase Contrast.
+            Open the theme picker up top and repaint the whole ship. OuroColor checks contrast for you and picks a readable label for any fill, in light, dark and Increase Contrast.
           </p>
         }
       >
