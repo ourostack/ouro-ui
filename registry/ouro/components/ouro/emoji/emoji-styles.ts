@@ -83,32 +83,41 @@ interface FoundEmoji {
   tone: EmojiSkinTone;
 }
 
+/** Finds an emoji by a key: an id, a token's name or an emoji's text. */
+interface EmojiLookup {
+  get(key: string): FoundEmoji | undefined;
+  has(key: string): boolean;
+}
+
 /** A catalogue's emoji by id, by token and by text, built once per catalogue. */
 interface CatalogueIndex {
   /**
    * The catalogue's emoji in order, each id once.
    *
-   * @claim "each id once" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > indexes a catalogue once, each emoji once, by id, tone id, token and text)
+  
+ * @claim "each id once" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > indexes a catalogue once, each emoji once, by id, tone id, token and text)
    */
   items: readonly EmojiItem[];
   /** An emoji by its id or a tone's id. */
-  byId: ReadonlyMap<string, FoundEmoji>;
+  byId: EmojiLookup;
   /** An emoji by what goes between the colons of a token: a shortcode (in lower case), an id or a tone's id. */
-  byToken: ReadonlyMap<string, FoundEmoji>;
+  byToken: EmojiLookup;
   /** An emoji by its text, without variation selectors. */
-  byText: ReadonlyMap<string, FoundEmoji>;
+  byText: EmojiLookup;
   /** Finds a token's colon and name, up to its closing colon, and the emoji text the catalogue lists, longest text first. */
   pattern: RegExp;
   /**
    * Finds only the emoji text the catalogue lists, longest first, and nothing when it lists none.
    *
-   * @claim "nothing when it lists none" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text into its runs and emoji with no empty runs between or around them)
+  
+ * @claim "nothing when it lists none" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > splits text into its runs and emoji with no empty runs between or around them)
    */
   textPattern: RegExp;
   /**
    * The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji.
    *
-   * @claim "The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji." registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > passes text with no colon and no emoji text's first character straight through, and still finds a plain-text emoji)
+  
+ * @claim "The first character of each emoji text the catalogue lists: text with none of them (and no colon) holds no emoji." registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > passes text with no colon and no emoji text's first character straight through, and still finds a plain-text emoji)
    */
   textStarts: ReadonlySet<string>;
 }
@@ -181,7 +190,7 @@ function noteBuild(items: readonly EmojiItem[]): void {
     if (builds.filter((build) => build.emoji === emoji).length > REBUILD_LIMIT) {
       devWarn(
         "EmojiCatalogue",
-        `the index of the same emoji was built more than ${REBUILD_LIMIT} times within a second, each time for a catalogue of new emoji objects. Each build maps every emoji and compiles two patterns of their text, so drawing a conversation this way can take seconds`,
+        `the index of the same emoji was built more than ${REBUILD_LIMIT} times within a second, each time for a catalogue of new emoji objects. Each build maps every emoji, and compiles two patterns of their text when they changed, so drawing a conversation this way can take seconds`,
         "build the catalogue once and pass that object every time (useMemo(() => toCatalogue(emoji), [emoji])), or give every copy the same id that changes only when the emoji do: { id: \"contoso-2026-11\", categories }",
       );
     }
@@ -194,7 +203,10 @@ function noteBuild(items: readonly EmojiItem[]): void {
  * the same emoji objects in the same order, found with a lookup per emoji, so an array the app
  * changed in place counts as new. An emoji object edited in place (its shortcodes or text)
  * keeps the index it had, so an app that edits emoji that way passes a new `id` or new emoji
- * objects. @internal
+ * objects. A catalogue whose emoji differ only in their pictures (new `src` addresses) shares the
+ * patterns that find their text, compiling nothing again, and finds its own pictures. @internal
+ *
+ * @claim "A catalogue whose emoji differ only" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
  *
  * @claim "A fresh catalogue object with the same emoji shares it" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between fresh catalogue objects holding the same emoji)
  * @claim "an array the app changed in place counts as new" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > finds an emoji the app pushed into the same array, in a fresh catalogue)
@@ -214,34 +226,114 @@ function catalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
   return index;
 }
 
-/** Builds a catalogue's index: maps of its emoji and the patterns that find their text. */
-function buildCatalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
-  const items: EmojiItem[] = [];
-  const byId = new Map<string, FoundEmoji>();
-  const byToken = new Map<string, FoundEmoji>();
-  const byText = new Map<string, FoundEmoji>();
-  for (const item of catalogue.categories.flatMap((category) => category.items)) {
-    if (byId.has(item.id)) continue;
-    items.push(item);
-    const tones = (item.skinTones ?? []).map((form, index): [EmojiItemTone, EmojiSkinTone] => [form, emojiSkinTones[index + 1]!]);
-    for (const [form, tone] of [[item, "default"] as [EmojiItem, EmojiSkinTone], ...tones]) {
-      const found = { item, tone };
-      byId.set(form.id, found);
-      byToken.set(form.id.toLowerCase(), found);
-      if (form.text) byText.set(form.text.replace(VARIATION, ""), found);
-    }
+/**
+ * What a catalogue's index holds that depends only on its emoji's ids, texts and shortcodes, not on their pictures: where
+ * each id, token and text leads (an emoji's place in the catalogue, times 8, plus its tone's), and the patterns that find
+ * the text. Shared by every catalogue whose emoji say the same, so a catalogue that changes only its pictures' addresses
+ * (a new `src` for each, as a CDN's signed addresses do) compiles nothing again.
+ * @claim "What a catalogue's index holds that" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
+ * @claim "Shared by every catalogue whose emoji" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
+ */
+interface IndexShape {
+  byId: ReadonlyMap<string, number>;
+  byToken: ReadonlyMap<string, number>;
+  byText: ReadonlyMap<string, number>;
+  pattern: RegExp;
+  textPattern: RegExp;
+  textStarts: ReadonlySet<string>;
+}
+
+/**
+ * The shapes of the catalogues indexed most recently, by what their emoji say, at most `SHAPES` of them.
+ * @claim "The shapes of the catalogues indexed" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > keeps the shapes of the 8 catalogues indexed most recently, and compiles again for one indexed before them)
+ */
+const shapes = new Map<string, IndexShape>();
+const SHAPES = 8;
+
+/**
+ * What a catalogue's emoji say, each id, text and shortcode in order: the same for catalogues whose emoji differ only in their pictures.
+ * @claim "What a catalogue's emoji say, each" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
+ */
+function signatureOf(items: readonly EmojiItem[]): string {
+  // Stryker disable next-line StringLiteral: the signature only has to be the same for the same emoji, whatever it starts with.
+  let signature = "";
+  for (const item of items) {
+    signature += `\u0001${item.id}\u0002${item.text ?? ""}\u0002${item.shortcodes?.join("\u0003") ?? ""}`;
+    for (const form of item.skinTones ?? []) signature += `\u0002${form.id}\u0003${form.text ?? ""}`;
   }
-  /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
-  if (process.env.NODE_ENV !== "production") noteBuild(items);
+  return signature;
+}
+
+/**
+ * Compiles the shape of a catalogue's emoji: where each id, token and text leads, and the patterns that find their text.
+ * @claim "Compiles the shape of a catalogue's" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures)
+ * @claim "Compiles the shape of a catalogue's" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > indexes a catalogue once, each emoji once, by id, tone id, token and text)
+ */
+function buildShape(items: readonly EmojiItem[]): IndexShape {
+  const byId = new Map<string, number>();
+  const byToken = new Map<string, number>();
+  const byText = new Map<string, number>();
+  items.forEach((item, at) => {
+    const forms: [{ id: string; text?: string | undefined }, number][] = [[item, 0], ...(item.skinTones ?? []).map((form, tone): [EmojiItemTone, number] => [form, tone + 1])];
+    for (const [form, tone] of forms) {
+      byId.set(form.id, at * 8 + tone);
+      byToken.set(form.id.toLowerCase(), at * 8 + tone);
+      if (form.text) byText.set(form.text.replace(VARIATION, ""), at * 8 + tone);
+    }
+  });
   // Shortcodes win over ids that look the same, so they go in last.
-  for (const item of items) item.shortcodes?.forEach((shortcode) => byToken.set(shortcode.toLowerCase(), { item, tone: "default" }));
+  items.forEach((item, at) => item.shortcodes?.forEach((shortcode) => byToken.set(shortcode.toLowerCase(), at * 8)));
   // Longest first, so a sequence wins over the emoji it starts with; a variation selector may follow any character.
   const texts = [...byText.keys()].sort((a, b) => b.length - a.length).map((text) => Array.from(text, (char) => `${escape(char)}\\uFE0F?`).join(""));
   const pattern = new RegExp([":[^\\s:]+(?=:)", ...texts].join("|"), "gu");
   // (?!) matches nothing, for a catalogue that lists no text.
   const textPattern = new RegExp(["(?!)", ...texts].join("|"), "gu");
   const textStarts = new Set([...byText.keys()].map((text) => Array.from(text)[0]!));
-  return { items, byId, byToken, byText, pattern, textPattern, textStarts };
+  return { byId, byToken, byText, pattern, textPattern, textStarts };
+}
+
+/** A shape's places, as the emoji of the catalogue in hand. */
+function lookup(places: ReadonlyMap<string, number>, items: readonly EmojiItem[]): EmojiLookup {
+  return {
+    get: (key) => {
+      const at = places.get(key);
+      return at === undefined ? undefined : { item: items[at >> 3]!, tone: emojiSkinTones[at & 7]! };
+    },
+    has: (key) => places.has(key),
+  };
+}
+
+/**
+ * Builds a catalogue's index: its emoji, each id once, with the shape of what they say, compiled only when no catalogue indexed lately said the same.
+ * @claim "Builds a catalogue's index: its emoji" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > keeps the shapes of the 8 catalogues indexed most recently, and compiles again for one indexed before them)
+ * @claim "Builds a catalogue's index: its emoji" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > indexes a catalogue once, each emoji once, by id, tone id, token and text)
+ */
+function buildCatalogueIndex(catalogue: EmojiCatalogue): CatalogueIndex {
+  const items: EmojiItem[] = [];
+  const seen = new Set<string>();
+  for (const item of catalogue.categories.flatMap((category) => category.items)) {
+    // Stryker disable next-line ConditionalExpression: an emoji listed twice adds nothing the first did not.
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    items.push(item);
+  }
+  /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+  if (process.env.NODE_ENV !== "production") noteBuild(items);
+  const signature = signatureOf(items);
+  const shape = shapes.get(signature) ?? buildShape(items);
+  // Most recently used last, so the first is the one to let go.
+  shapes.delete(signature);
+  shapes.set(signature, shape);
+  if (shapes.size > SHAPES) shapes.delete(shapes.keys().next().value!);
+  return {
+    items,
+    byId: lookup(shape.byId, items),
+    byToken: lookup(shape.byToken, items),
+    byText: lookup(shape.byText, items),
+    pattern: shape.pattern,
+    textPattern: shape.textPattern,
+    textStarts: shape.textStarts,
+  };
 }
 
 /** A run of text, or an emoji found in it with the text it was found as. */
