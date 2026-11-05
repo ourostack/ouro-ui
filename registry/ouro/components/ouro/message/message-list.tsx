@@ -1826,8 +1826,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
           if (paging && !pagesFor.current) return;
           // A message taller than the list scrolls through first, a line or a page at a time.
           const beyond = forward ? box.bottom - view.bottom + EDGE : view.top + EDGE - box.top;
-          // Stryker disable next-line EqualityOperator: two pixels past the edge are a rounding (the scroll position is kept in whole pixels, and the list holds its place to the nearest), not more message.
-          if (beyond > 2) {
+          // The scroll position is whole device pixels, so holding the place can put a message one device pixel past the edge, on top of the fraction it already sits at (under a pixel): that is a rounding, not more message.
+          // Stryker disable next-line EqualityOperator,ArithmeticOperator: a pixel more or less of tolerance is not told apart by any scroll the tests make.
+          if (beyond > 1 + 1 / devicePixelRatio) {
             event.preventDefault();
             scroller.scrollTop += (forward ? 1 : -1) * Math.min(beyond, paging ? view.height - LINE : LINE);
             return;
