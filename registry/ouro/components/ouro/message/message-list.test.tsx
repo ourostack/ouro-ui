@@ -641,9 +641,9 @@ describe("MessageList", () => {
   });
 
   /** A conversation whose messages carry ids, so it can open at one, as an app does at a message found by search. */
-  function Found({ items, initialAnchor }: { items: Item[]; initialAnchor?: string }) {
+  function Found({ items, initialAnchor, windowing }: { items: Item[]; initialAnchor?: string; windowing?: boolean }) {
     return (
-      <MessageList label="Conversation" style={{ height: 300, marginTop: 120 }} initialAnchor={initialAnchor}>
+      <MessageList label="Conversation" style={{ height: 300, marginTop: 120 }} initialAnchor={initialAnchor} windowing={windowing}>
         {items.map((item) => (
           <Message key={item.id} id={`found-${item.id}`} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"}>
             {item.text}
@@ -722,8 +722,9 @@ describe("MessageList", () => {
   });
 
   it("puts pages of older messages in a few at a time, holding the reader's message in place in every frame", async () => {
+    // The whole list: a windowed one puts a page in at once, as space above the messages drawn.
     let items = history(200);
-    const { scroller, rerender } = await render(<Found items={items} />);
+    const { scroller, rerender } = await render(<Found items={items} windowing={false} />);
     await settle(scroller);
     scroller.scrollTop = 3000;
     await settle(scroller);
@@ -749,11 +750,11 @@ describe("MessageList", () => {
     for (let page = 1; page <= 3; page++) {
       // A page of 100: five frames' worth, so the test stays well inside its time on a busy runner.
       items = [...history(100, -100 * page), ...items];
-      await rerender(<Found items={items} />);
+      await rerender(<Found items={items} windowing={false} />);
       // The app drawing the list again for something else, in the same frame, puts no more in.
       await act(async () => {
-        flushSync(() => roots.at(-1)!.render(<Found items={items} />));
-        flushSync(() => roots.at(-1)!.render(<Found items={items} />));
+        flushSync(() => roots.at(-1)!.render(<Found items={items} windowing={false} />));
+        flushSync(() => roots.at(-1)!.render(<Found items={items} windowing={false} />));
       });
       await expect.poll(() => scroller.querySelectorAll('[data-ouro="message"]').length).toBe(200 + 100 * page);
     }

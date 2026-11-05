@@ -8,8 +8,8 @@
       "source": "original-svg",
       "published": "2026-11-01",
       "licence": "repository",
-      "sha256": "5387fd864a48c06d066687a7f5a1caf8ec02f2acf8d5a615f0bfbb3743a8336a",
-      "modifications": "None: Hand-drawn for Ouro UI; MIT. A person and their agent at one desk. Lines take currentColor; the person's cap and heart read --duo-heart (else a fixed amber), the agent's eyes, antenna and glow --duo-eye (else a fixed teal), and its visor --duo-visor (else a fixed navy).",
+      "sha256": "4806c90b18dabaf73aff7ff246339e61fcea1973dfcb59d0b2e50d73ffff11a1",
+      "modifications": "None: Hand-drawn for Ouro UI; MIT. A person and their agent at one desk; the person wears a tool belt, with no cap. Lines take currentColor; the person's tool belt and heart read --duo-heart (else a fixed amber), the agent's eyes, antenna and glow --duo-eye (else a fixed teal), and its visor --duo-visor (else a fixed navy).",
       "subject": "people"
     },
     {
@@ -30,8 +30,8 @@
       "source": "original-svg",
       "published": "2026-11-01",
       "licence": "repository",
-      "sha256": "0c607872acf53996568842ca38df77eabafa26a87f162078f59ff36afa256d53",
-      "modifications": "None: Hand-drawn for Ouro UI; MIT. The person's mark beside their asks in the chat. Faceless; lines take currentColor; the cap reads --duo-heart (else a fixed amber).",
+      "sha256": "bfb85a6ac9458d218fd3a1b044b7924a574fc60b9fe6f99453697735b2e1f0d1",
+      "modifications": "None: Hand-drawn for Ouro UI; MIT. The person's mark beside their asks in the chat: head and shoulders down to the tool belt, faceless, with no cap. Lines take currentColor; the tool belt reads --duo-heart (else a fixed amber).",
       "subject": "people"
     }
   ]

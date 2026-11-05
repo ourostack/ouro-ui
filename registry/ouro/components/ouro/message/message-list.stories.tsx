@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
-import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
 
 /** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
 async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
@@ -353,6 +353,61 @@ function ActionsChannel() {
   );
 }
 
+const harnessStyle = {
+  font: "inherit",
+  padding: "8px 14px",
+  borderRadius: "var(--radius)",
+  border: "1px solid var(--border)",
+  background: "var(--background)",
+  color: "var(--foreground)",
+} as const;
+
+/** Two thousand messages, the newest quoting the first question. */
+const history: Item[] = Array.from({ length: 2000 }, (_, index) => ({
+  id: index,
+  role: index % 2 ? "assistant" : "user",
+  text: index === 1999 ? "Yes, as I said at the start: about an hour." : `${index % 2 ? answers[index % answers.length]! : questions[index % questions.length]!} (${index + 1})`,
+}));
+
+function LongChat() {
+  const actions = useRef<MessageListActions>(null);
+  const [query, setQuery] = useState("");
+  const [found, setFound] = useState<string | null>(null);
+  // Find in chat: the page holds only the messages drawn, so search the messages themselves, newest first, then reveal.
+  const find = (event: { preventDefault(): void }) => {
+    event.preventDefault();
+    const match = history.findLast((item) => query !== "" && item.text.toLowerCase().includes(query.toLowerCase()));
+    setFound(match ? `Showing message ${match.id + 1}` : "No message has that");
+    if (match) actions.current?.reveal(`long-${match.id}`, { focus: true });
+  };
+  return (
+    <Surface>
+      <form role="search" onSubmit={find} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <input data-test-harness="" aria-label="Find in chat" value={query} onChange={(event) => setQuery(event.target.value)} style={{ ...harnessStyle, flex: 1 }} />
+        <button type="submit" data-test-harness="" style={harnessStyle}>
+          Find
+        </button>
+        <span role="status" style={{ color: "var(--muted-foreground)" }}>
+          {found}
+        </span>
+      </form>
+      <MessageList label="Conversation with Ouro" style={{ height: 420 }} actionsRef={actions}>
+        {history.map((item) => (
+          <Message
+            key={item.id}
+            id={`long-${item.id}`}
+            role={item.role}
+            name={item.role === "user" ? "Ana Lind" : "Ouro"}
+            quote={item.id === 1999 ? { author: "Ana Lind", excerpt: history[0]!.text, onActivate: () => actions.current?.reveal("long-0", { focus: true }) } : undefined}
+          >
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>
+    </Surface>
+  );
+}
+
 /** Shows the list's one bar on the newest post, as the pointer over it would. */
 async function hoverNewest(canvasElement: HTMLElement) {
   const newest = await frameUntil(() => canvasElement.querySelector<HTMLElement>("#post-39"));
@@ -386,4 +441,14 @@ export const ActionsMenu: Story = {
     (await hoverNewest(canvasElement)).click();
     await frameUntil(() => document.querySelector('[data-ouro="menu"][data-open]'));
   },
+};
+
+/**
+ * A conversation of 2,000 messages: only those near the view are drawn, so it opens and scrolls as a short one does.
+ * Press the newest message's quote to go to the first question, or find a message by its words: the page holds only
+ * the messages drawn, so the search reads the messages themselves and reveals the match with `actionsRef`.
+ */
+export const LongConversation: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  render: () => <LongChat />,
 };

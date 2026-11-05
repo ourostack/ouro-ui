@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -56,16 +56,14 @@ export interface ShowMoreOpenProps {
 }
 
 /**
- * What folded content holds, for ShowMore's first guess at whether it is longer than its fold, when its elements cannot
- * say: a message's own components, or pictures that size themselves.
+ * What folded content holds. Not read: ShowMore decides from the browser's layout, and this leaves the first frame as
+ * it is. Kept so an app that passes it still compiles.
+ * @deprecated
  */
 export interface ShowMoreEstimate {
-  /**
-   * Its plain text, as a reader would read it, with its line breaks, each of which starts a line as it shows.
-   * @claim "with its line breaks, each of which" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > counts each line of an estimate's text, as it shows with its line breaks)
-   */
+  /** Its plain text. Not read. */
   text?: string | undefined;
-  /** The CSS pixels its pictures, cards and other blocks of known size take, besides the text. @default 0 */
+  /** The CSS pixels its pictures and cards take. Not read. */
   height?: number | undefined;
 }
 
@@ -86,15 +84,10 @@ export type ShowMoreLinesProps = ShowMoreBaseProps & ShowMoreOpenProps & {
    */
   showLessLabel?: string | undefined;
   /**
-   * What the content holds, when its elements cannot say (your own components, pictures that size themselves): its
-   * plain text and the pixels its pictures and cards take. ShowMore decides whether to start folded from it, before
-   * anything is laid out, as it does from text and sized elements it can see: content clearly short shows whole from the
-   * first frame, and long content starts folded. Without it, content holding a component or a picture with no height
-   * starts folded, and shows whole a frame later if it fits.
+   * Not read: ShowMore does not guess whether content is longer than its fold, so this changes nothing. Kept so an app
+   * that passes it still compiles.
    *
-   * @claim "Without it, content holding a component" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
-   * @claim "Without it, content holding a component" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > corrects a guess from the browser's layout: folded content that fits shows whole, and text that wraps more than guessed gets its button)
-   * @claim "content clearly short shows whole from" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded)
+   * @deprecated
    */
   estimate?: ShowMoreEstimate | undefined;
   /** Not with `lines`: fold by height or by lines, not both. */
@@ -149,15 +142,10 @@ export type ShowMoreHeightProps = ShowMoreBaseProps & ShowMoreOpenProps & {
    */
   showLessLabel?: string | undefined;
   /**
-   * What the content holds, when its elements cannot say (your own components, pictures that size themselves): its
-   * plain text and the pixels its pictures and cards take. ShowMore decides whether to start folded from it, before
-   * anything is laid out, as it does from text and sized elements it can see: content clearly short shows whole from the
-   * first frame, and long content starts folded. Without it, content holding a component or a picture with no height
-   * starts folded, and shows whole a frame later if it fits.
+   * Not read: ShowMore does not guess whether content is longer than its fold, so this changes nothing. Kept so an app
+   * that passes it still compiles.
    *
-   * @claim "Without it, content holding a component" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
-   * @claim "Without it, content holding a component" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > corrects a guess from the browser's layout: folded content that fits shows whole, and text that wraps more than guessed gets its button)
-   * @claim "content clearly short shows whole from" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded)
+   * @deprecated
    */
   estimate?: ShowMoreEstimate | undefined;
   /** Not with `maxHeight`: fold by height or by lines, not both. */
@@ -344,13 +332,9 @@ const DEFAULT_HEIGHT = 240;
  * the first newly shown item, so keyboard and screen reader users land on what they asked
  * for. A list that loads more also says how many items now show. The button names what it
  * folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`).
- * Folded text and content have their button in the first frame and in server HTML: ShowMore
- * guesses whether they are longer than the fold from their text and the sizes their elements
- * give, reading no layout, and corrects a wrong guess from the browser's own layout a frame later,
- * so a long list of folded messages lays the page out no more often than one without them. The
- * guess leans folded: content shows whole from the start only when it is clearly short and the
- * guess saw all of it (no component and no picture without a height), so a wrong guess costs a
- * button that goes a frame later, never a box that shrinks.
+ * Folded text and content are folded by CSS in the first commit and in server HTML, and the button comes after the
+ * browser has laid them out: ShowMore does not guess whether they are longer than the fold. One ResizeObserver reads the
+ * layout and adds the button to what overflows.
  * The visible items are in the server HTML. ShowMore draws the list itself: put a border
  * around the list on a wrapping element, and borders between rows on each item.
  *
@@ -369,11 +353,6 @@ const DEFAULT_HEIGHT = 240;
  * @claim "The button names what it folds" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore toggle semantics > names the list, the text or the fold it opens and says whether it is open, in every mode that folds)
  * @claim "The button names what it folds" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore toggle semantics > names the list a load adds to, and claims no open state, since loading more never folds)
  * @claim "folds content of any kind" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > folds long content to maxHeight under a fade, with Show more)
- * @claim "Folded text and content have their" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in its first frame > with %s, has its button as React commits it, so nothing below it moves a frame later)
- * @claim "guesses whether they are longer than" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in a long list > with %s, mounts 50 folded with their buttons and reads no layout as it commits, so it never lays the page out once per instance)
- * @claim "The guess leans folded: content shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
- * @claim "The guess leans folded: content shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > shows content clearly short and all seen whole from the start: %s)
- * @claim "corrects a wrong guess from the browser's" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > corrects a guess from the browser's layout: folded content that fits shows whole, and text that wraps more than guessed gets its button)
  * @claim "ShowMore draws the list itself: put" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys)
  */
 export function ShowMore(props: ShowMoreProps): JSX.Element {
@@ -405,10 +384,9 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   if (items === undefined && maxHeight !== undefined) {
-    const { children, showLessLabel = "Show less", open, onOpenChange, estimate } = props as ShowMoreHeightProps;
+    const { children, showLessLabel = "Show less", open, onOpenChange } = props as ShowMoreHeightProps;
     return (
       <ShowMoreHeight
-        estimate={estimate}
         open={open}
         onOpenChange={onOpenChange}
         maxHeight={isHeight(maxHeight) ? maxHeight : DEFAULT_HEIGHT}
@@ -423,11 +401,10 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
   }
   if (items === undefined) {
     // Text mode. A guessed maxLines (a type error) still clamps, as lines would.
-    const { children, showLessLabel = "Show less", open, onOpenChange, estimate } = props as ShowMoreLinesProps;
+    const { children, showLessLabel = "Show less", open, onOpenChange } = props as ShowMoreLinesProps;
     const clamp = [lines, maxLines].find(isCount) ?? DEFAULT_LINES;
     return (
       <ShowMoreText
-        estimate={estimate}
         open={open}
         onOpenChange={onOpenChange}
         lines={clamp}
@@ -445,99 +422,7 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
 
 const clampClass = "line-clamp-(--ouro-show-more-lines)";
 
-// A first guess at whether content is longer than its fold, made from what the app passes, before anything is laid out: so
-// the fold and its button are in the first commit, and the same on the server, with no layout read per instance. It leans
-// folded: content shows whole at first only when it is clearly short and the guess saw all of it, so a wrong guess costs a
-// button that goes a frame later, inside a box already folded, never a box that shrinks. A ResizeObserver then corrects it
-// from the browser's own layout.
-/** Characters a line holds, roughly: a message bubble's width of text. */
-const GUESS_LINE = 60;
-/** A line's height in px, roughly. */
-const GUESS_LINE_HEIGHT = 24;
-/**
- * Wide characters (CJK, Hangul, full-width forms), which take about two of a line's characters each.
- * @claim "Wide characters (CJK, Hangul, full-width forms)" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
- * @claim "Wide characters (CJK, Hangul, full-width forms)" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded)
- */
-const wide = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua960-\ua97f\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/g;
-/** Elements that start a block, and so a line, of their own. */
-const blocks = new Set(["p", "div", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "blockquote", "table", "tr", "figure", "hr", "br", "section", "article", "dl", "dt", "dd"]);
-/**
- * Elements whose size only their content says: a picture with no height given.
- * @claim "Elements whose size only their content" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
- */
-const media = new Set(["img", "picture", "video", "canvas", "iframe", "object", "embed"]);
-
-/**
- * The text in `node`, in lines of GUESS_LINE characters and blocks, and the px its elements give themselves, and whether
- * anything in it is unseen: a component (what it renders is its own) or a picture with no height.
- * @claim "The text in `node`, in lines" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
- * @claim "The text in `node`, in lines" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > shows content clearly short and all seen whole from the start: %s)
- */
-function guessSize(node: ReactNode | ShowMoreEstimate): { lines: number; px: number; unseen: boolean } {
-  if (isEstimate(node)) {
-    // An app's own text renders with its line breaks (a message's paragraphs), so each line counts on its own.
-    // Stryker disable next-line StringLiteral: an empty text and any text under one line both count as one line, so the fallback is not observable.
-    const lines = (node.text ?? "").split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil((line.length + (line.match(wide)?.length ?? 0)) / GUESS_LINE)), 0);
-    return { lines, px: node.height ?? 0, unseen: false };
-  }
-  let chars = 0;
-  let blocksSeen = 0;
-  let px = 0;
-  let unseen = false;
-  const visit = (each: ReactNode): void => {
-    if (typeof each === "string" || typeof each === "number") {
-      const text = String(each);
-      chars += text.length + (text.match(wide)?.length ?? 0);
-    } else if (Array.isArray(each)) each.forEach(visit);
-    else if (isValidElement<{ children?: ReactNode; height?: unknown; style?: CSSProperties }>(each)) {
-      const { type, props } = each;
-      // A fragment only groups; any other component renders what it likes.
-      if (type !== Fragment && typeof type !== "string") unseen = true;
-      const height = typeof props.height === "number" ? props.height : props.style?.height;
-      if (typeof height === "number") px += height;
-      else {
-        // Stryker disable next-line ConditionalExpression: a component is never in the set of tag names, so the string check only narrows the type.
-        if (typeof type === "string" && media.has(type)) unseen = true;
-      }
-      // Stryker disable next-line ConditionalExpression: a component is never in the set of tag names, so the string check only narrows the type.
-      if (typeof type === "string" && blocks.has(type)) blocksSeen++;
-      visit(props.children);
-    }
-  };
-  visit(node);
-  return { lines: Math.ceil(chars / GUESS_LINE) + blocksSeen, px, unseen };
-}
-
-/**
- * Whether `node` is an app's estimate rather than content: a plain object, which no React node is.
- * @claim "Whether `node` is an app's estimate" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > takes an estimate for what it cannot see: a short message whole from the first frame, a long one folded)
- */
-const isEstimate = (node: ReactNode | ShowMoreEstimate): node is ShowMoreEstimate =>
-  typeof node === "object" && node !== null && !Array.isArray(node) && !isValidElement(node) && Object.getPrototypeOf(node) === Object.prototype;
-
-/**
- * Whether `node` is clearly shorter than `lines` lines: half of them or fewer, and all of it seen.
- * @claim "Whether `node` is clearly shorter than `lines`" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > gives text its button from the start unless it is clearly within half its lines)
- */
-const clearlyFewerLines = (node: ReactNode | ShowMoreEstimate, lines: number) => {
-  const size = guessSize(node);
-  // A picture or card of a known height takes the lines it is as tall as.
-  return !size.unseen && size.lines + Math.ceil(size.px / GUESS_LINE_HEIGHT) <= lines / 2;
-};
-
-/**
- * Whether `node` is clearly shorter than `height` px: half of it or less, and all of it seen.
- * @claim "Whether `node` is clearly shorter than `height`" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > shows content clearly short and all seen whole from the start: %s)
- * @claim "Whether `node` is clearly shorter than `height`" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore's first guess > starts folded, with its button, when the content is not clearly short: %s)
- */
-const clearlyShorter = (node: ReactNode | ShowMoreEstimate, height: number) => {
-  const size = guessSize(node);
-  return !size.unseen && size.lines * GUESS_LINE_HEIGHT + size.px <= height / 2;
-};
-
 function ShowMoreText({
-  estimate,
   open,
   onOpenChange,
   lines,
@@ -547,7 +432,6 @@ function ShowMoreText({
   className,
   rootRef,
 }: {
-  estimate: ShowMoreEstimate | undefined;
   lines: number;
   children: ReactNode;
   showMoreLabel: string;
@@ -556,14 +440,9 @@ function ShowMoreText({
   rootRef: Ref<HTMLDivElement> | undefined;
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
-  // Guessed from the text, so the button is in the first commit and in server HTML, then corrected from the browser's own
-  // layout: a ResizeObserver reads after the browser lays the text out, and writes nothing, so no instance makes it lay
-  // the page out again.
-  const [overflowing, setOverflowing] = useState(() => !clearlyFewerLines(estimate ?? children, lines));
-  // What the text says, as the guess reads it with no layout: the observer starts again only when that changes, not each time
-  // the app renders the same text anew. A change it cannot see that resizes the text, the observer sees.
-  const size = guessSize(estimate ?? children);
-  const said = `${size.lines}:${size.px}:${size.unseen}`;
+  // Folded by CSS in the first commit and in server HTML, with no button and no guess: a ResizeObserver reads after the
+  // browser lays the text out and adds the button to text that overflows, so no instance makes the page lay out again.
+  const [overflowing, setOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
   useEffect(() => {
@@ -575,13 +454,15 @@ function ShowMoreText({
       // Stryker disable next-line EqualityOperator: a hidden line is many pixels, so > and >= differ only at a 1px rounding gap no text has
       if (clamped) setOverflowing(text.scrollHeight > text.clientHeight + 1);
       else {
+        // A line height that is not a length (`normal`) cannot say, so the button stays: shown whole, it is the way back.
         // Stryker disable next-line EqualityOperator: as above, a line is many pixels.
         if (lineHeight > 0) setOverflowing(text.clientHeight > lineHeight * lines + 1);
+        else setOverflowing(true);
       }
     });
     observer.observe(text);
     return () => observer.disconnect();
-  }, [expanded, said, lines]);
+  }, [expanded, lines]);
   return (
     <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       <div
@@ -613,7 +494,6 @@ function ShowMoreText({
 }
 
 function ShowMoreHeight({
-  estimate,
   open,
   onOpenChange,
   maxHeight,
@@ -623,7 +503,6 @@ function ShowMoreHeight({
   className,
   rootRef,
 }: {
-  estimate: ShowMoreEstimate | undefined;
   maxHeight: number;
   children: ReactNode;
   showMoreLabel: string;
@@ -632,9 +511,9 @@ function ShowMoreHeight({
   rootRef: Ref<HTMLDivElement> | undefined;
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
-  // Guessed from the content, so the fold and its button are in the first commit and in server HTML, then corrected from
-  // the browser's own layout: the ResizeObserver reads after the browser lays the content out, and writes nothing.
-  const [fits, setFits] = useState(() => clearlyShorter(estimate ?? children, maxHeight));
+  // Unknown until the browser has laid the content out, so the first commit and server HTML are folded by CSS with no
+  // button and no guess: the ResizeObserver reads after layout and says whether it fits.
+  const [fits, setFits] = useState<boolean | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const foldId = useId();
@@ -645,7 +524,7 @@ function ShowMoreHeight({
     observer.observe(content);
     return () => observer.disconnect();
   }, [maxHeight]);
-  const folded = !expanded && !fits;
+  const folded = !expanded && fits !== true;
   const toggle = () => {
     if (expanded) {
       setExpanded(false);
@@ -670,7 +549,7 @@ function ShowMoreHeight({
       <div
         id={foldId}
         data-ouro-show-more-fold=""
-        data-folded={folded ? "" : undefined}
+        data-folded={folded && fits === false ? "" : undefined}
         onFocus={reveal}
         className={cn(foldClass, folded && "max-h-(--ouro-show-more-height) overflow-hidden")}
         style={{ "--ouro-show-more-height": `${maxHeight}px` } as CSSProperties}
@@ -679,7 +558,7 @@ function ShowMoreHeight({
           {children}
         </div>
       </div>
-      {!fits && (
+      {fits === false && (
         <Button
           ref={buttonRef}
           variant="plain"

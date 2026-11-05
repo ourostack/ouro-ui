@@ -408,6 +408,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-page-scroll-hold`,
 `lib-people-cache`,
 `lib-portal-container`,
+`lib-porthole-view`,
 `lib-refs`,
 `lib-router-link`,
 `lib-row-hover`,
@@ -540,10 +541,13 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **chime** — Plays a short alert, three soft tones, for something that just finished: a timer at zero. [Docs](docs/chime.md)
 - **createChimeContext** — Makes an audio context for `chime`, or returns `null` where the browser has no Web Audio. [Docs](docs/createChimeContext.md)
 - **formatDuration** — Seconds as a clock reads them: `9:05`, or `1:02:03` from an hour up. [Docs](docs/formatDuration.md)
+- **formatPortholeAge** — An age in ms as short English words, rounded down so it never claims more recent than it is: `"less than a minute"`, `"4 min"`, `"3 hr"`, `"1 day"`, `"2 days"`. [Docs](docs/formatPortholeAge.md)
 - **InstallPrompt** — A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. [Docs](docs/InstallPrompt.md)
 - **LevelMeter** — A small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a "test your microphone" row). [Docs](docs/LevelMeter.md)
 - **Moment** — A moment in an app's life, shown in the space it is given: nothing here yet, on its way, something failed, a first run, or something finished. [Docs](docs/Moment.md)
 - **MomentProvider** — Sets `quiet` for every `Moment` inside it, so an app can make its moments compact everywhere, for a dense layout or for people who asked for less. [Docs](docs/MomentProvider.md)
+- **portholeStatus** — The agent read of a view: the stable, versioned JSON an agent reads through the status spot's `status` read and a CLI status command prints, so a person, the window and an agent see one truth. [Docs](docs/portholeStatus.md)
+- **portholeView** — Decides what the status spot shows, as a pure function of the service's snapshot, its last heartbeat and this clock, so a window, a CLI and a test reach the same answer. [Docs](docs/portholeView.md)
 - **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)
 - **resetTimer** — Cancels or dismisses a timer by its timerId, including when its screen is not mounted. [Docs](docs/resetTimer.md)
 - **restoreTimer** — Imports a saved countdown, leaving an existing native timer intact. [Docs](docs/restoreTimer.md)

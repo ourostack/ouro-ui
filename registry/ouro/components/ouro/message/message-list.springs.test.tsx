@@ -41,11 +41,11 @@ async function render(node: ReactNode) {
   };
 }
 
-function Chat({ count, from = 0, height = 300, springy }: { count: number; from?: number; height?: number; springy?: boolean }) {
+function Chat({ count, from = 0, height = 300, springy, windowing }: { count: number; from?: number; height?: number; springy?: boolean; windowing?: boolean }) {
   return (
     <div>
       <button type="button">Before</button>
-      <MessageList label="Conversation" style={{ height }} springy={springy}>
+      <MessageList label="Conversation" style={{ height }} springy={springy} windowing={windowing}>
         {Array.from({ length: count }, (_, index) => (
           <Message key={from + index} id={`m-${from + index}`} role={(from + index) % 2 ? "assistant" : "user"} name={(from + index) % 2 ? "Ouro" : "Ana"}>
             {`Message ${from + index}: ${"rest the dough ".repeat(3)}`}
@@ -293,7 +293,8 @@ describe("MessageList springs", () => {
   it("moves only the messages in or near view, reading as few in a thousand as in fifty, on one frame loop", async () => {
     const reads: number[] = [];
     for (const count of [50, 1000]) {
-      const { scroller, messages } = await render(<Chat count={count} />);
+      // The whole list, so a thousand messages are in the page.
+      const { scroller, messages } = await render(<Chat count={count} windowing={false} />);
       await scrollInCode(scroller, scroller.scrollHeight / 2);
       const frames = holdFrames();
       const asked = vi.spyOn(window, "requestAnimationFrame");
@@ -374,6 +375,25 @@ describe("MessageList springs", () => {
       expect(under.style.transform).toBe("");
       expect(messages().some((message) => shiftOf(message) > 0)).toBe(true);
     }
+  });
+
+  it("springs the messages as the arrow keys scroll the list to the next one", async () => {
+    const { scroller, messages } = await render(<Chat count={30} />);
+    (document.querySelector("button") as HTMLElement).focus();
+    await pressTab();
+    const frames = holdFrames();
+    // Up, message by message, until a key scrolls the list.
+    let top = scroller.scrollTop;
+    for (let step = 0; step < 12 && scroller.scrollTop === top; step++) {
+      top = scroller.scrollTop;
+      await userEvent.keyboard("{ArrowUp}");
+    }
+    expect(scroller.scrollTop).toBeLessThan(top);
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    expect(messages().some((message) => message !== document.activeElement && message.style.transform !== "")).toBe(true);
+    frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    frames.release();
   });
 
   it("follows the keys, with the focused message where the scroll starts, and its focus ring moves with it", async () => {
