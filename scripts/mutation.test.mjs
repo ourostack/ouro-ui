@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
@@ -24,6 +25,30 @@ test("runtimeSource takes component and lib code, and leaves tests, stories, typ
   ]) {
     assert.ok(!runtimeSource(path), path);
   }
+});
+
+test("every file the mutation shards can mutate is one the coverage gate measures, so a change it leaves out has nothing to mutate", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const config = readFileSync(join(root, "vitest.config.ts"), "utf8").split(/^ {4}coverage: \{$/m)[1];
+  const globs = (key) => JSON.parse(config.match(new RegExp(`^ {6}${key}: (\\[.*\\]),$`, "m"))[1]);
+  const [include, exclude] = [globs("include"), globs("exclude")];
+  const measured = (path) => include.some((glob) => matchesGlob(path, glob)) && !exclude.some((glob) => matchesGlob(path, glob));
+  const tracked = spawnSync("git", ["ls-files", "registry"], { cwd: root, encoding: "utf8" }).stdout.split("\n").filter(Boolean);
+  const runtime = tracked.filter(runtimeSource);
+  assert.ok(runtime.length > 100);
+  assert.deepEqual(runtime.filter((path) => !measured(path)), []);
+});
+
+test("mutates is true for a change to any runtime source, and false for tests, stories, the test kit and everything else, over real pull requests' diffs", () => {
+  // Pull requests' changed files, as GitHub listed them, with what CI's mutation plan should decide.
+  const diffs = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "fixtures/mutation-pr-diffs.json"), "utf8"));
+  assert.ok(diffs.some((diff) => diff.mutates) && diffs.some((diff) => !diff.mutates));
+  for (const { pr, files, mutates: expected } of diffs) assert.equal(mutates(files), expected, `#${pr}`);
+  // A change only to a component's tests used to start the shards, which then mutated nothing.
+  assert.equal(mutates(["registry/ouro/components/ouro/chart/chart.test.tsx", "registry/ouro/components/ouro/chart/chart.stories.tsx", "registry/ouro/lib/ouro/testing/motion.ts"]), false);
+  assert.equal(mutates(["registry/ouro/components/ouro/chart/chart.tsx"]), true);
+  assert.equal(mutates(["registry/ouro/lib/ouro/cn.ts"]), true);
+  assert.equal(mutates([]), false);
 });
 
 test("changedLines reads each hunk's new lines, and a hunk that only removed lines changes none", () => {

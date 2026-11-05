@@ -245,9 +245,10 @@ export interface MessageOwnProps {
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
    * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
-   * browser once its code loads, so server HTML has the message without it; Menu's code loads the
-   * first time someone opens a message's menu.
+   * browser once its code loads, so server HTML has the message without it; Menu's code loads as
+   * soon as a bar with a menu is on the page, so the first press opens it without a wait.
    *
+   * @claim "Menu's code loads as soon as" registry/ouro/components/ouro/message/message.warm.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.warm.test.tsx::Message's menu code > is fetched as a bar with a menu mounts, before anyone presses its button)
    * @claim "More actions, in a menu that" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > opens the menu from the last button, and keeps the bar while it is open)
    */
   menu?: readonly MenuEntry[] | undefined;

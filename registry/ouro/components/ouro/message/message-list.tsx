@@ -32,10 +32,12 @@ export interface MessageListOwnProps {
    */
   initialAnchor?: string | undefined;
   /**
-   * Whether older messages are loading above, as after the reader reaches the top: a small
-   * "Loading older messages" shows over the top of the list, and screen readers hear it once.
-   * It sits over the messages, not among them, so starting and ending it moves no message. At
-   * the very top it covers the first message unless `hasOlder` keeps room for it.
+   * Whether older messages are loading above: a small "Loading older messages" shows over the
+   * top of the list, and screen readers hear it once. It sits over the messages, not among them,
+   * so starting and ending it moves no message. At the very top it covers the first message
+   * unless `hasOlder` keeps room for it. Fetch older pages ahead of the reader, not when they
+   * reach the top: the next older page as soon as the one before it has arrived, while they are
+   * still screens away. Then this shows only when they get to the top first.
    * @claim "Whether older messages are loading above" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > shows older messages loading over the top of the list, moving no message as it starts or ends)
    * @claim "It sits over the messages, not" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > shows older messages loading over the top of the list, moving no message as it starts or ends)
    * @claim "At the very top it covers" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
@@ -497,7 +499,9 @@ interface Spoken {
  * it too, even as the first messages arrive. Scrolling is never announced.
  *
  * While older history may load, set `hasOlder`, and `loadingOlder` while it loads: the list keeps
- * room above the first message for "Loading older messages", so nothing moves as it shows.
+ * room above the first message for "Loading older messages", so nothing moves as it shows. Fetch
+ * older pages ahead of the reader, newer before older, rather than waiting for them to reach the
+ * top, so they seldom see it.
  *
  * Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it.
  * Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view

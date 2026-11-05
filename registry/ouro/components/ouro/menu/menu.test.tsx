@@ -297,6 +297,24 @@ describe("Menu items", () => {
     expect(item("Copy link").element().querySelector("[data-ouro-menu-icon]")).toBeNull();
   });
 
+  it("sets an entry's axAction as data-ax-action on its item or checkbox item, and nothing without one", async () => {
+    const items: MenuEntry[] = [
+      { label: "Mute", axAction: "mute" },
+      { type: "checkbox", label: "Captions", axAction: "toggle-captions" },
+      { label: "Leave" },
+      { type: "checkbox", label: "Noise suppression" },
+    ];
+    await render(<Menu trigger={<Button>Call</Button>} items={items} />);
+    await userEvent.click(page.getByRole("button", { name: "Call" }));
+    await expect.element(page.getByRole("menuitem", { name: "Mute" })).toHaveAttribute("data-ax-action", "mute");
+    // Its part attributes stay as they were.
+    await expect.element(page.getByRole("menuitem", { name: "Mute" })).toHaveAttribute("data-ouro-control", "menu");
+    await expect.element(page.getByRole("menuitem", { name: "Mute" })).toHaveAttribute("data-ouro-part", "item");
+    await expect.element(page.getByRole("menuitemcheckbox", { name: "Captions" })).toHaveAttribute("data-ax-action", "toggle-captions");
+    await expect.element(page.getByRole("menuitem", { name: "Leave" })).not.toHaveAttribute("data-ax-action");
+    await expect.element(page.getByRole("menuitemcheckbox", { name: "Noise suppression" })).not.toHaveAttribute("data-ax-action");
+  });
+
   it("shows a shortcut with Kbd at the end of the item", async () => {
     await openDropdown({}, <MenuItem shortcut={["mod", "e"]}>Edit</MenuItem>);
     const kbd = item("Edit").element().querySelector<HTMLElement>('[data-ouro="kbd"]')!;

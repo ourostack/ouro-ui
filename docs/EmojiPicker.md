@@ -2,7 +2,7 @@
 
 # EmojiPicker
 
-An emoji picker for reactions and for putting emoji into text. It has a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones. The app passes the emoji by category, with names and keywords in its own language, and the person's frequently used ones. With `catalogue` it offers an image catalogue's emoji instead (a standard set and an organization's custom emoji), drawn only as the catalogue's images, an animated one playing while it is in focus or under the mouse, and gives `onSelect` the emoji's id and the `:shortcode:` token to put into text.
+An emoji picker for reactions and for putting emoji into text. It has a search field, a bar of categories, an optional row of quick reactions, a skin tone choice and a grid of the platform's own emoji, in a `Popover` that is a bottom sheet on phones. The app passes the emoji by category, with names and keywords in its own language, and the person's frequently used ones. With `catalogue` it offers an image catalogue's emoji instead (a standard set and an organization's custom emoji), drawn only as the catalogue's images, an animated one playing while it is in focus or under the mouse, and gives `onSelect` the emoji's id and the `:shortcode:` token to put into text. A catalogue's images are all fetched as the picker opens, the quick row and the first two sections of the grid first.
 
 ```tsx
 import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
@@ -35,6 +35,8 @@ import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-
 ## Usage
 
 The search matches the start of any word in an emoji's name, keywords or shortcodes, ignoring case and accents, and announces how many it found. The grid is one Tab stop: the arrow keys move through it, Home and End go to the ends of a row (with Ctrl, of the grid), Page Down and Page Up go to the next and previous category, and Enter chooses. Every emoji is named for screen readers, and the one in focus shows large with its name under the grid. Choosing one calls `onSelect` and closes the picker; Escape closes it too.
+
+A closed picker makes nothing from its emoji, so one in each conversation's reply box costs next to nothing to mount; the first to open makes what it shows from a catalogue, once for every picker given that catalogue.
 
 ## Use instead when
 
@@ -174,10 +176,18 @@ Alignment classes (`text-center`) warn too: use the `align` prop.
 
 ### `EmojiCatalogue`
 
-An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete` and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an organization's custom emoji in a category of their own, labelled by the app. The image addresses are used as they are, so an app that loads images its own way (a content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can load in the catalogue when it builds it.
+An image-based emoji set, by category: what `EmojiPicker`, `ReactionBar`, `Autocomplete` and `EmojiText` draw instead of the platform's emoji font when an app passes it. Put an organization's custom emoji in a category of their own, labelled by the app. The image addresses are used as they are, so an app that loads images its own way (a content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can load in the catalogue when it builds it. Ouro indexes a catalogue's emoji once, to find them in text. Build the catalogue once and pass that object, or give each copy the same `id`: a catalogue of new emoji objects on every render is indexed again each time, and warns in development. Adding or removing emoji is seen in a new catalogue object, even in the same array; to edit an emoji's shortcodes or text, pass a new emoji object, or a new `id`.
 
 ```ts
 interface EmojiCatalogue {
+  /**
+   * Names this set of emoji, for an app that makes a new catalogue object, emoji and all, each
+   * time it draws: catalogues with the same id share one index of their emoji, so change it when
+   * the emoji change (`"contoso-2026-11"`), an emoji edited in place included. Without one, a
+   * new catalogue object shares the index when it holds the same emoji objects in the same order,
+   * and a catalogue of new emoji objects builds its own.
+   */
+  id?: string | undefined;
   /** The categories, in the order they show. An emoji in more than one counts once, by its id. */
   categories: readonly EmojiCatalogueCategory[];
 }

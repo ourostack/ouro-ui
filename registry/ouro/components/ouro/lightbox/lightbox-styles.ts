@@ -3,6 +3,7 @@ export {
   mosaicCellClass,
   mosaicClass,
   mosaicFrameClass,
+  mosaicImageClass,
   mosaicLayout,
   mosaicMoreClass,
   mosaicThumbnailClass,
@@ -83,11 +84,20 @@ const fullScreenClass =
 
 /**
  * Around a mosaic: as wide as its column, at most 25rem, and no wider than keeps it 17.5rem tall at
- * its shape (`--ouro-lightbox-ratio`, width over height), as big as a chat shows pictures. @internal
+ * its shape (`--ouro-lightbox-ratio`, width over height), as big as a chat shows pictures. Where the
+ * column takes its width from what is in it, as a chat bubble's does, an empty strut (`::before`)
+ * asks for that size, so the mosaic has it from the first frame, before its pictures load and when
+ * they fail, as wide as a loaded picture made it before its pictures were pinned to their cells, and
+ * never wider than its column. @internal
+ *
+ * @claim "so the mosaic has it from the first frame" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic in a chat message > holds %s at its final box from the first frame, before its pictures load and when they fail)
+ * @claim "as wide as a loaded picture made it before" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic in a chat message > is as big as before its pictures were pinned, in a column as wide as what is in it (%ipx, %s))
  *
  * @claim "as big as a chat shows pictures" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > is at most 25rem wide and 17.5rem tall at its shape, never wider than its column, unless the app gives it another width)
  */
-const mosaicFrameClass = "w-full min-w-0 max-w-[min(100%,25rem,calc(17.5rem*var(--ouro-lightbox-ratio)))]";
+const mosaicFrameClass =
+  "w-full min-w-0 max-w-[min(100%,25rem,calc(17.5rem*var(--ouro-lightbox-ratio)))] " +
+  "before:block before:h-0 before:w-[min(25rem,calc(17.5rem*var(--ouro-lightbox-ratio)))] before:max-w-full before:content-['']";
 
 /** The mosaic's frame: rounded corners and a hairline, with the card colour in the gaps between its pictures. @internal */
 const mosaicClass =
@@ -101,11 +111,28 @@ const mosaicClass =
  */
 const mosaicCellClass = "relative m-0 min-h-0 min-w-0 p-0 [&:first-child:nth-last-child(3)]:row-span-2";
 
-/** A mosaic's picture fills its cell. @internal */
+/**
+ * A mosaic's picture fills its cell from its corners: the button is pinned to the cell, and the
+ * picture stretches over the button's one grid cell, so no percentage height is resolved inside the
+ * mosaic's grid, which WebKit does slowly within nested flex columns, as in a conversation. @internal
+ *
+ * @claim "fills its cell from its corners" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > pins each picture to its cell's corners, with no percentage height to resolve, and fills it exactly)
+ * @claim "which WebKit does slowly within nested flex columns" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx, /it\.skipIf\(server\.browser !== "webkit"\)\("lays out a conversation of many mosaics quickly in WebKit"/)
+ */
 const mosaicThumbnailClass =
-  "group press relative box-border block size-full m-0 p-0 overflow-hidden cursor-zoom-in border-0 bg-muted " +
+  "group press absolute inset-0 box-border grid grid-cols-1 grid-rows-1 m-0 p-0 overflow-hidden cursor-zoom-in border-0 bg-muted " +
   "[-webkit-tap-highlight-color:transparent] motion-safe:active:scale-(--ouro-press-scale) " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
+/**
+ * A mosaic's picture: stretched over its button's one grid cell, cropped to it, with no size of its own. @internal
+ *
+ * @claim "with no size of its own" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox mosaic > pins each picture to its cell's corners, with no percentage height to resolve, and fills it exactly)
+ */
+const mosaicImageClass =
+  "block min-h-0 min-w-0 self-stretch justify-self-stretch object-cover " +
+  "motion-safe:transition-transform motion-safe:duration-(--ouro-duration-slow) motion-safe:ease-(--ouro-ease-out) " +
+  "motion-safe:pointer-fine:group-hover:scale-[1.04]";
 
 /** "+3" over the last picture shown, when more follow it in the viewer. @internal */
 const mosaicMoreClass =

@@ -18,7 +18,7 @@ The tests do not run in jsdom or happy-dom. They drag, flick and measure, so the
 ## Install and run
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.3 ourostack/ouro-ui/dialog-tests#v1.3.3
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.4 ourostack/ouro-ui/dialog-tests#v1.3.4
 ```
 
 A `<name>-tests` item installs the component's tests, type tests, stories and spec, the tests of every component and helper that came with it, and `ouro-testing`, the test kit.[^tests-closure] CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union.[^subsets] The forms set is `field`, `fieldset`, `text-field`, `text-area`, `checkbox`, `checkbox-group`, `radio-group`, `switch`, `form`, `select`, `native-select` and `combobox`. Other items receive their full test dependency closure but are not measured individually. This closure guarantee does not establish execution coverage for every item alone.[^subsets] `ouro-tests` adds every component with all of its tests.[^ouro-tests]
@@ -30,7 +30,14 @@ import { defineConfig, mergeConfig } from "vitest/config";
 import viteConfig from "./vite.config.ts";
 import { ouroTestProjects } from "./src/lib/ouro/testing/vitest.ts";
 
-export default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: "./src/index.css" }) } }));
+// A dependency found mid-run reloads the page and drops the next test file, so bundle it up front.
+export default mergeConfig(
+  viteConfig,
+  defineConfig({
+    optimizeDeps: { include: ["class-variance-authority", "cn"] },
+    test: { projects: ouroTestProjects({ css: "./src/index.css" }) },
+  }),
+);
 ```
 
 `ouroTestProjects` returns three projects: `ouro-chromium`, `ouro-webkit` and `ouro-touch` (Chromium as a 390x844 touch phone, for files named `*.touch.test.tsx`).[^projects] Run them with `npx vitest run`, and the specs with `npx playwright test e2e/ouro`.
@@ -126,6 +133,48 @@ announcements.stop();
 
 `changes` lists every announcement in order, each with its `region` and `text`; `matching(text)` and `count(text)` find those whose text includes `text`.[^announcements] Toast's tests use it.
 
+## Holding an interaction budget
+
+`lib-measure-interaction` measures an interaction from the input to the next paint, so a test can hold the interactions that matter to a budget you choose.[^interaction] `onInteraction(sink)` sends them to `sink`; `measureInteraction(name, fn)`, called in a handler, gives its interaction a name ([measureInteraction](../measureInteraction.md), [onInteraction](../onInteraction.md)). In a test build, keep the reports where the test can read them, and name the interactions you budget:
+
+```tsx
+import { measureInteraction, onInteraction, type InteractionReport } from "@/lib/ouro/measure-interaction";
+
+declare global {
+  interface Window {
+    interactions?: Pick<InteractionReport, "name" | "durationMs">[];
+  }
+}
+
+if (import.meta.env.MODE === "e2e") {
+  const reports: Pick<InteractionReport, "name" | "durationMs">[] = [];
+  window.interactions = reports;
+  onInteraction(({ name, durationMs }) => reports.push({ name, durationMs }));
+}
+
+<Button onClick={() => measureInteraction("open filters", () => setOpen(true))}>Filters</Button>;
+```
+
+Then press it in Playwright and read its report, which arrives after the paint. To stand in for a slow laptop, slow the CPU first, which Chromium does through the DevTools protocol:
+
+```ts
+import { expect, test } from "@playwright/test";
+
+test("opening the filters paints within 100 ms", async ({ page, browserName }) => {
+  await page.goto("/recipes");
+  if (browserName === "chromium") {
+    const devtools = await page.context().newCDPSession(page);
+    await devtools.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+  }
+  await page.getByRole("button", { name: "Filters" }).click();
+  const filters = () => page.evaluate(() => window.interactions?.find((report) => report.name === "open filters")?.durationMs);
+  await expect.poll(filters).toBeDefined();
+  expect(await filters()).toBeLessThanOrEqual(100);
+});
+```
+
+Ouro's own test measures a real click the same way, in Vitest's browser mode.[^interaction-test] Event Timing rounds a duration to 8 ms, and where it has no entry the fallback measures to the start of the second frame after the event, up to a frame past the paint, so leave a budget some room rather than comparing the two to the millisecond.[^interaction-rounding] A report counts from the event to the paint after the handlers ran, so a budget covers the work an interaction does in its handlers, not work it starts for later, such as a request.[^interaction]
+
 [^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/) verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
 [^ci-versions]: package.json verify:equals(package.json#devDependencies.vitest)=5.0.3 verify:equals(package.json#devDependencies.playwright)=1.63.0 verify:equals(package.json#devDependencies.storybook)=10.6.1
 [^ci-axe]: pnpm-lock.yaml verify:fileLine(pnpm-lock.yaml, /^  axe-core@4\.13\.0:$/)
@@ -150,3 +199,6 @@ announcements.stop();
 [^password-role]: test:test/finding-fields.test.tsx::Finding fields in tests, as the Testing page says > finds a password field by role and name too, required or not, apart from its show button; https://www.w3.org/TR/html-aria/#el-input-password verify:testExists(test/finding-fields.test.tsx::Finding fields in tests, as the Testing page says > finds a password field by role and name too, required or not, apart from its show button) verify:urlOk(https://www.w3.org/TR/html-aria/#el-input-password)
 [^form-alert]: test:test/finding-fields.test.tsx::Finding fields in tests, as the Testing page says > finds the form's message in its alert region only when there is a message verify:testExists(test/finding-fields.test.tsx::Finding fields in tests, as the Testing page says > finds the form's message in its alert region only when there is a message)
 [^announcements-batch]: test:registry/ouro/lib/ouro/testing/announcements.test.tsx::counts a change in an existing status region once, its exposed text only; test:registry/ouro/lib/ouro/testing/announcements.test.tsx::counts an alert added with its text, and leaves out a polite region's initial text; test:registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts a change in an existing status region once, its exposed text only) verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::counts an alert added with its text, and leaves out a polite region's initial text) verify:testExists(registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change)
+[^interaction]: test:registry/ouro/lib/ouro/measure-interaction.test.ts::onInteraction > reports a click once, named by its type, with its target, from the press to the paint; test:registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports a labelled click once, by its label, from the press to the paint; https://www.w3.org/TR/event-timing/ verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::onInteraction > reports a click once, named by its type, with its target, from the press to the paint) verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports a labelled click once, by its label, from the press to the paint) verify:urlOk(https://www.w3.org/TR/event-timing/)
+[^interaction-test]: test:registry/ouro/lib/ouro/measure-interaction.test.ts::onInteraction > in a browser with Event Timing, measures a real slow click from the press to the paint verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::onInteraction > in a browser with Event Timing, measures a real slow click from the press to the paint)
+[^interaction-rounding]: https://www.w3.org/TR/event-timing/; test:registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports from the event to the second animation frame when no entry arrives first, and ignores a later entry verify:urlOk(https://www.w3.org/TR/event-timing/) verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports from the event to the second animation frame when no entry arrives first, and ignores a later entry)

@@ -1,0 +1,319 @@
+[
+  {
+    "pr": 382,
+    "mutates": false,
+    "files": [
+      "registry/ouro/components/ouro/reorderable/reorderable.touch.test.tsx"
+    ]
+  },
+  {
+    "pr": 383,
+    "mutates": false,
+    "files": [
+      "registry.json",
+      "registry/ouro/components/ouro/field/field.test.tsx",
+      "registry/ouro/components/ouro/form/form.test.tsx"
+    ]
+  },
+  {
+    "pr": 409,
+    "mutates": false,
+    "files": [
+      "registry/ouro/components/ouro/select/select.test.tsx"
+    ]
+  },
+  {
+    "pr": 411,
+    "mutates": false,
+    "files": [
+      "changes/test-setup-real-timers.md",
+      "registry.json",
+      "registry/ouro/lib/ouro/testing/setup.test.ts",
+      "registry/ouro/lib/ouro/testing/setup.ts"
+    ]
+  },
+  {
+    "pr": 494,
+    "mutates": false,
+    "files": [
+      "registry/ouro/components/ouro/chart/chart.test.tsx"
+    ]
+  },
+  {
+    "pr": 532,
+    "mutates": false,
+    "files": [
+      "registry/ouro/components/ouro/command/command.test.tsx"
+    ]
+  },
+  {
+    "pr": 544,
+    "mutates": false,
+    "files": [
+      "registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx"
+    ]
+  },
+  {
+    "pr": 547,
+    "mutates": false,
+    "files": [
+      "registry/ouro/components/ouro/time-grid/time-grid.test.tsx",
+      "site/src/ax/ax.test.tsx",
+      "site/src/site.test.tsx",
+      "site/src/voyage/chapters/chapter-one.test.tsx",
+      "site/src/voyage/chapters/chapter-three.test.tsx",
+      "site/src/voyage/chapters/chapter-two.test.tsx",
+      "site/src/voyage/dive/dive.test.tsx",
+      "site/src/voyage/eggs/eggs.test.tsx",
+      "site/src/voyage/stage/stage.test.tsx",
+      "site/src/voyage/voyage.test.tsx",
+      "site/test/render.tsx"
+    ]
+  },
+  {
+    "pr": 552,
+    "mutates": true,
+    "files": [
+      "changes/menu-anchor.md",
+      "docs/Menu.md",
+      "registry/ouro/components/ouro/menu/menu.test.tsx",
+      "registry/ouro/components/ouro/menu/menu.tsx"
+    ]
+  },
+  {
+    "pr": 560,
+    "mutates": false,
+    "files": [
+      "scripts/workflows.test.mjs",
+      "vitest.config.ts"
+    ]
+  },
+  {
+    "pr": 561,
+    "mutates": true,
+    "files": [
+      "README.md",
+      "changes/measure-interaction.md",
+      "docs/guides/testing.md",
+      "docs/measureInteraction.md",
+      "docs/onInteraction.md",
+      "registry/ouro/lib/ouro/measure-interaction.test.ts",
+      "registry/ouro/lib/ouro/measure-interaction.ts",
+      "scripts/claims-urls.json",
+      "scripts/dev-strip.test.mjs",
+      "scripts/fixtures/dev-strip-app-probe.ts",
+      "scripts/gen-docs.mts"
+    ]
+  },
+  {
+    "pr": 563,
+    "mutates": false,
+    "files": [
+      "site/src/ax/art/manifest.json",
+      "site/src/ax/art/morning-with-an-agent.svg",
+      "site/src/ax/art/person-head.svg",
+      "site/src/ax/ax.css",
+      "site/src/ax/ax.test.tsx",
+      "site/src/ax/story.ts"
+    ]
+  },
+  {
+    "pr": 564,
+    "mutates": false,
+    "files": [
+      "AGENTS.md",
+      "changes/source-rules-gated-load.md",
+      "docs/guides/guardrails.md",
+      "registry/ouro/source-rules/source-rules.mjs",
+      "scripts/kits/source-rules.test.mjs"
+    ]
+  },
+  {
+    "pr": 565,
+    "mutates": true,
+    "files": [
+      "changes/message-menu-warm.md",
+      "docs/Message.md",
+      "registry/ouro/components/ouro/message/message-parts.tsx",
+      "registry/ouro/components/ouro/message/message.tsx",
+      "registry/ouro/components/ouro/message/message.warm.test.tsx"
+    ]
+  },
+  {
+    "pr": 566,
+    "mutates": true,
+    "files": [
+      "changes/message-list-windowing.md",
+      "docs/Message.md",
+      "docs/MessageList.md",
+      "registry/ouro/components/ouro/message/message-list.springs.test.tsx",
+      "registry/ouro/components/ouro/message/message-list.stories.tsx",
+      "registry/ouro/components/ouro/message/message-list.test.tsx",
+      "registry/ouro/components/ouro/message/message-list.tsx",
+      "registry/ouro/components/ouro/message/message-list.windowing.test.tsx",
+      "registry/ouro/components/ouro/message/message.tsx",
+      "registry/ouro/e2e/ouro/message-list.spec.ts",
+      "test/message-list-windowing.bench.test.tsx"
+    ]
+  },
+  {
+    "pr": 567,
+    "mutates": true,
+    "files": [
+      "changes/emoji-eager.md",
+      "docs/Emoji.md",
+      "docs/EmojiPicker.md",
+      "registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx",
+      "registry/ouro/components/ouro/emoji-picker/emoji-picker.tsx",
+      "registry/ouro/components/ouro/emoji/emoji.test.tsx",
+      "registry/ouro/components/ouro/emoji/emoji.tsx"
+    ]
+  },
+  {
+    "pr": 568,
+    "mutates": true,
+    "files": [
+      "changes/lightbox-thumbnails-eager.md",
+      "docs/Lightbox.md",
+      "registry/ouro/components/ouro/lightbox/lightbox.test.tsx",
+      "registry/ouro/components/ouro/lightbox/lightbox.tsx"
+    ]
+  },
+  {
+    "pr": 569,
+    "mutates": true,
+    "files": [
+      "changes/lightbox-warm.md",
+      "docs/Lightbox.md",
+      "registry/ouro/components/ouro/lightbox/lightbox.test.tsx",
+      "registry/ouro/components/ouro/lightbox/lightbox.tsx"
+    ]
+  },
+  {
+    "pr": 570,
+    "mutates": true,
+    "files": [
+      "changes/emoji-warm-animation.md",
+      "docs/Emoji.md",
+      "registry/ouro/components/ouro/emoji/emoji.test.tsx",
+      "registry/ouro/components/ouro/emoji/emoji.tsx"
+    ]
+  },
+  {
+    "pr": 571,
+    "mutates": true,
+    "files": [
+      "changes/message-list-older-guidance.md",
+      "docs/MessageList.md",
+      "registry/ouro/components/ouro/message/message-list.tsx"
+    ]
+  },
+  {
+    "pr": 572,
+    "mutates": false,
+    "files": [
+      "changes/copy-precise-failure-hx.md",
+      "docs/guides/guardrails.md",
+      "registry/ouro/source-rules/source-rules.mjs",
+      "scripts/claims-urls.json",
+      "scripts/kits/ratchets.test.mjs",
+      "scripts/kits/source-rules.test.mjs"
+    ]
+  },
+  {
+    "pr": 575,
+    "mutates": true,
+    "files": [
+      "README.md",
+      "UPGRADING.md",
+      "changes/avatar-label-in-name.md",
+      "docs/Avatar.md",
+      "docs/AvatarGroup.md",
+      "registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx",
+      "registry/ouro/components/ouro/avatar/avatar.test.tsx",
+      "registry/ouro/components/ouro/avatar/avatar.tsx",
+      "registry/ouro/components/ouro/combobox/combobox.test.tsx",
+      "registry/ouro/components/ouro/command/command.test.tsx",
+      "registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx",
+      "registry/ouro/components/ouro/message/message.test.tsx",
+      "registry/ouro/components/ouro/message/thread-summary.test.tsx",
+      "registry/ouro/e2e/ouro/avatar.spec.ts",
+      "test/install-fixture-next/src/app/sections/avatar.tsx",
+      "test/install-fixture-next/src/app/sections/message.tsx"
+    ]
+  },
+  {
+    "pr": 576,
+    "mutates": false,
+    "files": [
+      "README.md",
+      "changes/ax-precise-failure.md",
+      "changes/copy-precise-failure-hx.md",
+      "docs/ax/ax-checks.md",
+      "docs/ax/ax-claims.md",
+      "docs/ax/ax-exit-codes.md",
+      "docs/ax/ax-failure-copy.md",
+      "docs/ax/ax-xray.md",
+      "docs/guides/ax.md",
+      "docs/guides/guardrails.md",
+      "registry/ouro/ax/checks.test.mts",
+      "registry/ouro/ax/checks.ts",
+      "registry/ouro/ax/claims.test.mts",
+      "registry/ouro/ax/claims.ts",
+      "registry/ouro/ax/example-cli.ts",
+      "registry/ouro/ax/exit-codes.ts",
+      "registry/ouro/ax/failure-copy.test.mts",
+      "registry/ouro/ax/failure-copy.ts",
+      "registry/ouro/ax/fixtures/bad-cli.mjs",
+      "registry/ouro/ax/xray.test.mts",
+      "registry/ouro/ax/xray.ts",
+      "registry/ouro/source-rules/source-rules.mjs",
+      "scripts/claims-urls.json",
+      "scripts/kits/ratchets.test.mjs",
+      "scripts/kits/source-rules.test.mjs",
+      "scripts/registry.test.mjs",
+      "site/src/ax/ax-page.tsx"
+    ]
+  },
+  {
+    "pr": 577,
+    "mutates": false,
+    "files": [
+      "AGENTS.md",
+      "README.md",
+      "docs/decisions/README.md",
+      "scripts/claims-urls.json"
+    ]
+  },
+  {
+    "pr": 580,
+    "mutates": false,
+    "files": [
+      "docs/platforms/README.md",
+      "docs/platforms/android.md",
+      "docs/platforms/apple.md",
+      "docs/platforms/contributing.md",
+      "docs/platforms/windows.md",
+      "docs/platforms/your-platform.md",
+      "scripts/claims-urls.json",
+      "scripts/gen-docs.mts",
+      "scripts/gen-docs.test.mjs",
+      "site/scripts/prerender.mts",
+      "site/src/components/docs-sidebar.tsx",
+      "site/src/docs/content.ts",
+      "site/src/docs/markdown.tsx",
+      "site/src/docs/pages.ts",
+      "site/src/pages/docs.tsx",
+      "site/src/routes.ts",
+      "site/src/site.test.tsx"
+    ]
+  },
+  {
+    "pr": 581,
+    "mutates": false,
+    "files": [
+      "scripts/ci-budget.mjs",
+      "scripts/ci-budget.test.mjs"
+    ]
+  }
+]
