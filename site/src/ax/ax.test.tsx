@@ -213,6 +213,9 @@ describe("Ouro AX page", () => {
     await expect.poll(() => asks.element().textContent).toContain(ASKS[2]!.answer({ posted: true, heard: null, noted: true }));
     expect(asks.element().querySelectorAll(".ax-avatar-agent svg").length, "each reply carries the agent's mark").toBe(ASKS.length);
     expect(asks.element().querySelector(".ax-reward svg")).not.toBeNull();
+    // ax.css finds each heart by its place in the drawing, so a redrawn heart that moved would stop beating.
+    const beating = [...asks.element().querySelectorAll(".ax-reward circle")].filter((circle) => getComputedStyle(circle).animationName === "ax-heartbeat");
+    expect(new Set(beating.map((circle) => /--duo-(heart|eye)/.exec(circle.getAttribute("fill") ?? "")?.[1])), "both hearts beat").toEqual(new Set(["heart", "eye"]));
     expect(document.body.textContent, "every name slot is filled").not.toMatch(/\{[a-z]+(\.[a-z]+)?\}/i);
   });
 

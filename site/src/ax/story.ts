@@ -44,7 +44,7 @@ export const ROOM = "Design sync";
 
 /** The duo drawing (art/morning-with-an-agent.svg), in plain words. */
 export const MORNING_ART_ALT =
-  "A person and their agent at a desk on a sunny morning. The person, in an amber cap with a satchel, holds a coffee; the agent, a small robot with a visor and an antenna, sends the person's note from its terminal to a room of three people.";
+  "A person and their agent at a desk on a sunny morning. The person, in an amber tool belt with a screwdriver and a wrench, holds a coffee; the agent, a small robot with a visor and an antenna, sends the person's note from its terminal to a room of three people.";
 
 /** 9:03 on the person's screen: the ask, the room as it now reads, and the agent's reply. The hero and the home page show it too. */
 export const LATE_SEEN: Seen[] = [

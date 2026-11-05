@@ -26,7 +26,7 @@ interface CliIo {
 
 ### `dispatch`
 
-Runs a parsed command as runCli does, for a tool that reads stdin and prints errors its own way: on `--dry-run` the command's plan(), refused ("no-preview") when it has none, else its run(). It prints nothing and reads no stdin.
+Runs a parsed command as runCli does, for a tool that reads stdin and prints errors its own way: on `--dry-run` the command's plan(), refused ("no-preview") when it has none, else its run(). A self-scoped command is refused first when its item is not the calling agent's (`checkOwner`). It prints nothing and reads no stdin.
 
 ```ts
 function dispatch<C extends RunContext>(cli: Cli<C>, parsed: Parsed, ctx: C) => Promise<unknown>
@@ -101,6 +101,7 @@ interface CommandManifest {
   output: string | null;
   examples: readonly string[];
   hidden: boolean;
+  scope?: "self";
 }
 ```
 

@@ -136,6 +136,8 @@ interface CommandManifest {
   output: string | null;
   examples: readonly string[];
   hidden: boolean;
+  /** `"self"` on a command an agent runs only on its own item (`--agent`); left out otherwise. */
+  scope?: "self";
 }
 
 /** One command as data. */
@@ -156,6 +158,7 @@ function commandManifest(cli: Cli, cmd: CommandDef): CommandManifest {
     output: cmd.output ?? null,
     examples: cmd.examples ?? [],
     hidden: cmd.hidden === true,
+    ...(cmd.self ? { scope: "self" as const } : {}),
   };
 }
 

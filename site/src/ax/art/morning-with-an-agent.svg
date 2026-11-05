@@ -1,10 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
   <title>A person and their agent share one desk on a sunny morning; the agent sends the person's note to a room of three people</title>
   <!-- Original line drawing of a person and their agent, drawn by hand for Ouro HX's "A morning with an agent" and
-       released under ourostack/ouro-ui's MIT licence. The person, on the left, is a faceless chunky figurine in an amber
-       cycling cap with a satchel across the body and glass mitten hands, holding a coffee beside a laptop; the agent,
-       on the right, smaller, with a visor, two round eyes and an antenna, sends the note to a room from its terminal.
-       Lines take currentColor. Amber is the person's (cap and heart: the custom property duo-heart, else #f2a33a) and
+       released under ourostack/ouro-ui's MIT licence. The person, on the left, is a faceless chunky figurine with no cap,
+       an amber tool belt with a screwdriver and a wrench in its pouches and glass mitten hands, holding a coffee beside a
+       laptop: building the components agents use. The agent, on the right, smaller, with a visor, two round eyes and an
+       antenna, sends the note to a room from its terminal.
+       Lines take currentColor. Amber is the person's (tool belt and heart: the custom property duo-heart, else #f2a33a) and
        teal the agent's (eyes, antenna, glow: the custom property duo-eye, else #2ec4b6); the visor reads the custom
        property duo-visor, else a fixed navy. No other colour, so the pair reads the same on every theme.
        Everything that matters sits in the middle 60% of the width and 80% of the height, so a centred 4:3 crop
@@ -30,19 +31,21 @@
   <path d="M726 96 V82 M726 96 H714" stroke-width="1.8" />
   <path d="M726 79 V77 M743 96 H745 M726 113 V115 M709 96 H707" stroke-width="1.2" opacity="0.7" />
 
-  <!-- The person: a chunky figurine, faceless, in an amber cycling cap, the satchel across the body, glass mitten hands; a warm heart -->
+  <!-- The person: a chunky figurine, faceless, no cap, an amber tool belt at the waist, glass mitten hands; a warm heart -->
   <circle cx="356" cy="196" r="27" stroke-width="2.4" />
   <path d="M340 186 A18 18 0 0 1 350 178" stroke-width="1.4" opacity="0.6" />
-  <path d="M329 194 C328 176 339 168 356 168 C373 168 384 176 383 194 Z" fill="var(--duo-heart, #f2a33a)" stroke-width="2.2" />
-  <path d="M381 189 C391 189 399 192 400 197 L382 197" fill="var(--duo-heart, #f2a33a)" stroke-width="2" />
-  <circle cx="356" cy="168" r="3.2" fill="var(--duo-heart, #f2a33a)" stroke-width="1.6" />
   <path d="M322 300 V258 C322 236 337 223 356 223 C375 223 390 236 390 258 V300" stroke-width="2.4" />
-  <circle cx="356" cy="258" r="11" fill="var(--duo-heart, #f2a33a)" stroke="none" opacity="0.25" />
-  <circle cx="356" cy="258" r="5.5" fill="var(--duo-heart, #f2a33a)" stroke="none" />
-  <!-- Satchel across the body -->
-  <path d="M334 230 L384 282" stroke-width="2" />
-  <rect x="374" y="276" width="26" height="22" rx="4" stroke-width="2" />
-  <path d="M374 284 H400 M387 284 V289" stroke-width="1.4" />
+  <circle cx="356" cy="254" r="11" fill="var(--duo-heart, #f2a33a)" stroke="none" opacity="0.25" />
+  <circle cx="356" cy="254" r="5.5" fill="var(--duo-heart, #f2a33a)" stroke="none" />
+  <!-- Amber tool belt: the band and buckle, a screwdriver and a wrench standing in two pouches -->
+  <path d="M332 271 V262" stroke-width="1.6" />
+  <rect x="329" y="252" width="6" height="10" rx="2.5" stroke-width="1.8" />
+  <path d="M380 271 V261" stroke-width="2.6" />
+  <path d="M377.2 252.5 A5 5 0 1 0 382.8 252.5" stroke-width="2.2" />
+  <rect x="321" y="270" width="70" height="10" rx="2" fill="var(--duo-heart, #f2a33a)" stroke-width="2" />
+  <rect x="350" y="268" width="12" height="14" rx="2.5" stroke-width="1.8" />
+  <path d="M326 280 H339 V288 C339 291 337 292 334 292 H331 C328 292 326 291 326 288 Z" fill="var(--duo-heart, #f2a33a)" stroke-width="1.8" />
+  <path d="M373 280 H386 V288 C386 291 384 292 381 292 H378 C375 292 373 291 373 288 Z" fill="var(--duo-heart, #f2a33a)" stroke-width="1.8" />
   <!-- The person's short arms with glass mitten hands: one holding the mug up, one at the laptop -->
   <path d="M327 242 C319 250 316 255 316 260" stroke-width="2.4" />
   <path d="M309 262 C309 255 322 255 323 262 V269 C323 274 310 274 310 269 Z M310 264 C305 263 304 269 309 270" stroke-width="2" />
