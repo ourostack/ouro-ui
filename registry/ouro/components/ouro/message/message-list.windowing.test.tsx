@@ -565,6 +565,32 @@ describe("MessageList windowing", () => {
     expect(Math.abs(offCentre(scroller, "day-400"))).toBeLessThanOrEqual(ROUNDING);
   });
 
+  it("holds the reader's place by the messages when a heading that stays put in the view comes with them, as one fixed there would", async () => {
+    // One message taller than the view fills it, with the next just below. A heading that does not move with the content shows too.
+    const tall = "A long message. ".repeat(60);
+    const items = (above: string): Item[] => conversation(600).map((item) => (item.id === 300 ? { ...item, text: tall } : item.id === 299 ? { ...item, text: above } : item));
+    const actions = createRef<MessageListActions>();
+    const chat = (above: string, headingTop: number) => (
+      <Chat items={items(above)} actionsRef={actions} before={(id) => (id === 300 ? <p key="day" id="day-300" style={{ position: "fixed", top: headingTop }}>Tuesday</p> : null)} />
+    );
+    const { scroller, rerender } = await render(chat("Short.", 0));
+    const view = scroller.getBoundingClientRect();
+    await rerender(chat("Short.", view.top + 20));
+    await act(async () => void actions.current!.reveal("m300"));
+    await settle(scroller);
+    const filler = () => document.getElementById("m300")!.getBoundingClientRect();
+    await scrollTo(scroller, scroller.scrollTop + (filler().top - view.top) + 100);
+    expect(filler().top).toBeLessThan(view.top);
+    expect(filler().bottom).toBeGreaterThan(view.bottom);
+    expect(document.getElementById("day-300")!.getBoundingClientRect().top).toBeGreaterThan(view.top);
+    const top = filler().top;
+    const height = scroller.scrollHeight;
+    // The message above grows: the filler goes down with everything below it, and the list scrolls to hold it where it was.
+    await rerender(chat("A message that grows. ".repeat(40), view.top + 20));
+    expect(scroller.scrollHeight).toBeGreaterThan(height + 100);
+    expect(Math.abs(filler().top - top)).toBeLessThanOrEqual(ROUNDING);
+  });
+
   it("reveals nothing, and says so, for an id no message has", async () => {
     const actions = createRef<MessageListActions>();
     const { scroller } = await render(<Chat items={conversation(200)} actionsRef={actions} />);
