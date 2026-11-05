@@ -36,11 +36,14 @@ const emojiSkinTones: readonly EmojiSkinTone[] = ["default", "light", "medium-li
 
 /**
  * An emoji's image: 1.25em square, so it takes the size of the text around it as a font's
- * emoji does, sitting on the line. @internal
+ * emoji does, sitting on the line. It clips what it holds, so a picture that fails to load, which
+ * the browser draws as its name in the box, sits on the line where the picture would and moves no
+ * line. @internal
  *
  * @claim "image: 1.25em square, so" registry/ouro/components/ouro/emoji/emoji-styles.ts verify:fileLine(registry/ouro/components/ouro/emoji/emoji-styles.ts, /"inline-block size-\[1\.25em\]/)
+ * @claim "sits on the line where the picture would and moves no line" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::EmojiText > keeps every line and every emoji where a loaded picture would, when its picture fails to load)
  */
-const emojiClass = "inline-block size-[1.25em] shrink-0 align-[-0.3em] object-contain select-none";
+const emojiClass = "inline-block size-[1.25em] shrink-0 overflow-hidden align-[-0.3em] object-contain select-none";
 
 /**
  * An emoji's picture over its placeholder: the box of the emoji around it, hidden until the
