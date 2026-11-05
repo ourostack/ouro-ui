@@ -45,7 +45,8 @@ export function Words({ text }: { text: string }): JSX.Element {
   );
 }
 
-const STATE_WORDS: Record<State, string> = { holds: "Holds", fails: "Fails", open: "Not checked yet" };
+/** What a claim was before, for the badge on one that changed. */
+const WAS_WORDS: Record<State, string> = { holds: "held before", fails: "failed before", open: "unchecked before" };
 
 function Mark({ state }: { state: State }): JSX.Element {
   return (
@@ -79,7 +80,7 @@ function ClaimItem({ claim, before }: { claim: ClaimRow; before: ClaimRow | unde
           <span className="apple-claim-rule">
             <Words text={claim.rule} />
           </span>
-          {was && was !== state ? <span className="apple-claim-flip">was {STATE_WORDS[was].toLowerCase()}</span> : null}
+          {was && was !== state ? <span className="apple-claim-flip">{WAS_WORDS[was]}</span> : null}
         </summary>
         <div className="apple-claim-body">
           <p className="apple-claim-meta site-mono">
@@ -172,9 +173,9 @@ export function XrayExplorer({ initialApp = "spoonjoy" }: { initialApp?: AppKey 
           label="Show"
           items={[
             { value: "all", label: `All ${report.claims.length}` },
-            { value: "holds", label: `Holds ${count("holds")}` },
-            { value: "fails", label: `Fails ${count("fails")}` },
-            { value: "open", label: `Not yet ${count("open")}` },
+            { value: "holds", label: `Hold ${count("holds")}` },
+            { value: "fails", label: `Fail ${count("fails")}` },
+            { value: "open", label: `Open ${count("open")}` },
           ]}
           value={filter}
           onValueChange={(value) => setFilter(value as Filter)}

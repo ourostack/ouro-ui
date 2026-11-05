@@ -98,6 +98,8 @@ function Wave({ taps, playing }: { taps: Tap[]; playing: boolean }): JSX.Element
   return (
     <svg viewBox={`0 0 ${SPAN + 20} 48`} className={cn("apple-wave", playing && "apple-wave-playing")} aria-hidden="true">
       <line x1="0" x2={SPAN + 20} y1="40" y2="40" className="apple-wave-base" />
+      {/* The playhead sweeps through the taps in step with the soft clicks. */}
+      {playing ? <line x1="15" x2="15" y1="2" y2="46" className="apple-wave-head" style={{ animationDuration: `${SPAN}ms` }} /> : null}
       {taps.map((tap, index) => {
         const width = 4 + (1 - tap.sharpness) * 10;
         const height = 6 + tap.strength * 32;

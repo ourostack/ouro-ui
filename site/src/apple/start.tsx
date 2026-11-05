@@ -3,6 +3,7 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock, Command } from "../components/code";
 import { Container } from "../voyage/layout";
 import kit from "./kit.json";
+import { Loop } from "./loop";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 
 const FIRST_SCREEN = `import OuroHX
@@ -22,7 +23,7 @@ struct ContentView: View {
     @State private var saved = false
 
     var body: some View {
-        Button(saved ? "Saved, splendidly" : "Save") { saved.toggle() }
+        Button(saved ? "Saved" : "Save") { saved.toggle() }
             .foregroundStyle(colors.primaryForeground)
             .padding()
             .background(colors.primary, in: .rect(cornerRadius: theme.radius(.lg)))
@@ -48,7 +49,7 @@ export default function AppleStart(): JSX.Element {
       <AppleMenu current="/apple/start/" />
       <AppleHero id="apple-start-title" eyebrow="Get started" title="One line of Swift.">
         <p>Add the package in Xcode under File, Add Package Dependencies, or put this in your Package.swift:</p>
-        <CodeBlock code={kit.packageLine} label="Package.swift" wrap />
+        <CodeBlock code={kit.packageLine} label="Package.swift" wrap copy />
         <p className="apple-fine">
           {claim("It needs iOS 18 or macOS 15 and Swift 6.1 tools; newer things like the folding hinge and Siri AI switch on by themselves where the OS has them.", {
             source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9" },
@@ -62,7 +63,10 @@ export default function AppleStart(): JSX.Element {
       </AppleHero>
 
       <AppleBand id="first-screen" eyebrow="Five minutes" title="Your first screen with manners." lede={<p>A theme at the root, then a button that presses, springs and taps from the shared table.</p>}>
-        <CodeBlock code={FIRST_SCREEN} label="ContentView.swift" />
+        <div className="apple-pair">
+          <Loop clip="hx-press" size="sm" caption="What that button does: dips, springs, and turns into Saved." />
+          <CodeBlock code={FIRST_SCREEN} label="ContentView.swift" copy />
+        </div>
       </AppleBand>
 
       <AppleBand id="box" eyebrow="In the box" title="What you can import.">

@@ -20,16 +20,16 @@
       },
       "duration_s": 4.8,
       "width": 590,
-      "height": 1142,
+      "height": 710,
       "fps": 30,
       "loop_start_in_raw_s": 5.4,
       "bytes": {
-        "hx-spring.mp4": 72539,
-        "hx-spring.webm": 74736,
-        "hx-spring-poster.jpg": 33999,
-        "hx-spring-still.jpg": 32635,
-        "stills/hx-spring.png": 190953
-      }
+        "hx-spring.mp4": 74564,
+        "hx-spring.webm": 45296,
+        "hx-spring-poster.jpg": 11825,
+        "hx-spring-still.jpg": 10184
+      },
+      "siteCrop": "crop=590:710:0:310; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
     },
     {
       "name": "hx-spring-dark",
@@ -44,16 +44,16 @@
       },
       "duration_s": 4.8,
       "width": 590,
-      "height": 1142,
+      "height": 710,
       "fps": 30,
       "loop_start_in_raw_s": 5.233,
       "bytes": {
-        "hx-spring-dark.mp4": 61352,
-        "hx-spring-dark.webm": 65067,
-        "hx-spring-dark-poster.jpg": 34780,
-        "hx-spring-dark-still.jpg": 33444,
-        "stills/hx-spring-dark.png": 171405
-      }
+        "hx-spring-dark.mp4": 58716,
+        "hx-spring-dark.webm": 34349,
+        "hx-spring-dark-poster.jpg": 11999,
+        "hx-spring-dark-still.jpg": 10454
+      },
+      "siteCrop": "crop=590:710:0:310; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
     },
     {
       "name": "hx-press",
@@ -68,16 +68,16 @@
       },
       "duration_s": 4.0,
       "width": 590,
-      "height": 1142,
+      "height": 330,
       "fps": 30,
       "loop_start_in_raw_s": 4.9,
       "bytes": {
-        "hx-press.mp4": 41061,
-        "hx-press.webm": 36824,
-        "hx-press-poster.jpg": 30686,
-        "hx-press-still.jpg": 30860,
-        "stills/hx-press.png": 180058
-      }
+        "hx-press.mp4": 32273,
+        "hx-press.webm": 24915,
+        "hx-press-poster.jpg": 11910,
+        "hx-press-still.jpg": 11951
+      },
+      "siteCrop": "crop=590:330:0:487; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
     },
     {
       "name": "hx-themes",
@@ -92,16 +92,16 @@
       },
       "duration_s": 4.8,
       "width": 590,
-      "height": 1142,
+      "height": 564,
       "fps": 30,
       "loop_start_in_raw_s": 6.333,
       "bytes": {
-        "hx-themes.mp4": 83120,
-        "hx-themes.webm": 108917,
-        "hx-themes-poster.jpg": 39096,
-        "hx-themes-still.jpg": 39096,
-        "stills/hx-themes.png": 200189
-      }
+        "hx-themes.mp4": 67114,
+        "hx-themes.webm": 61021,
+        "hx-themes-poster.jpg": 17163,
+        "hx-themes-still.jpg": 17163
+      },
+      "siteCrop": "crop=590:564:0:372; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
     },
     {
       "name": "hx-themes-dark",
@@ -116,16 +116,16 @@
       },
       "duration_s": 4.8,
       "width": 590,
-      "height": 1142,
+      "height": 564,
       "fps": 30,
       "loop_start_in_raw_s": 4.867,
       "bytes": {
-        "hx-themes-dark.mp4": 88110,
-        "hx-themes-dark.webm": 124517,
-        "hx-themes-dark-poster.jpg": 39878,
-        "hx-themes-dark-still.jpg": 39878,
-        "stills/hx-themes-dark.png": 176726
-      }
+        "hx-themes-dark.mp4": 72156,
+        "hx-themes-dark.webm": 67958,
+        "hx-themes-dark-poster.jpg": 17410,
+        "hx-themes-dark-still.jpg": 17410
+      },
+      "siteCrop": "crop=590:564:0:372; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
     },
     {
       "name": "hx-reduce-motion",
@@ -140,16 +140,16 @@
       },
       "duration_s": 4.8,
       "width": 590,
-      "height": 1142,
+      "height": 722,
       "fps": 30,
       "loop_start_in_raw_s": 4.767,
       "bytes": {
-        "hx-reduce-motion.mp4": 69555,
-        "hx-reduce-motion.webm": 80232,
-        "hx-reduce-motion-poster.jpg": 40746,
-        "hx-reduce-motion-still.jpg": 40963,
-        "stills/hx-reduce-motion.png": 235028
-      }
+        "hx-reduce-motion.mp4": 69273,
+        "hx-reduce-motion.webm": 43732,
+        "hx-reduce-motion-poster.jpg": 15268,
+        "hx-reduce-motion-still.jpg": 15126
+      },
+      "siteCrop": "crop=590:722:0:291; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
     },
     {
       "name": "hx-haptics",
@@ -164,16 +164,16 @@
       },
       "duration_s": 5.6,
       "width": 590,
-      "height": 1142,
+      "height": 656,
       "fps": 30,
       "loop_start_in_raw_s": 6.3,
       "bytes": {
-        "hx-haptics.mp4": 69187,
-        "hx-haptics.webm": 93745,
-        "hx-haptics-poster.jpg": 35622,
-        "hx-haptics-still.jpg": 43496,
-        "stills/hx-haptics.png": 261044
-      }
+        "hx-haptics.mp4": 67706,
+        "hx-haptics.webm": 65327,
+        "hx-haptics-poster.jpg": 14117,
+        "hx-haptics-still.jpg": 22515
+      },
+      "siteCrop": "crop=590:656:0:330; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
     },
     {
       "name": "spoonjoy-add-recipe",
@@ -190,16 +190,16 @@
       },
       "duration_s": 4.7,
       "width": 590,
-      "height": 1150,
+      "height": 1142,
       "fps": 30,
       "loop_start_in_raw_s": 109.2,
       "bytes": {
-        "spoonjoy-add-recipe.mp4": 349024,
-        "spoonjoy-add-recipe.webm": 305382,
-        "spoonjoy-add-recipe-poster.jpg": 116431,
-        "spoonjoy-add-recipe-still.jpg": 43864,
-        "stills/spoonjoy-add-recipe.png": 307840
-      }
+        "spoonjoy-add-recipe.mp4": 433924,
+        "spoonjoy-add-recipe.webm": 333617,
+        "spoonjoy-add-recipe-poster.jpg": 114634,
+        "spoonjoy-add-recipe-still.jpg": 43328
+      },
+      "siteCrop": "crop=590:1142:0:8; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
     }
   ]
 }

@@ -3,6 +3,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock, Command } from "../components/code";
 import { href } from "../paths";
+import { Angler } from "./angler";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 import { XrayExplorer } from "./xray-explorer";
 
@@ -45,6 +46,7 @@ export default function AppleAx(): JSX.Element {
         id="apple-ax-title"
         eyebrow="Ouro AX for Apple"
         title="Siri reads your app like a manual. Write a good one."
+        media={<Angler />}
         actions={
           <>
             <Button href="#xray">Browse the X-ray</Button>
@@ -101,7 +103,7 @@ export default function AppleAx(): JSX.Element {
       <AppleBand
         id="xray"
         eyebrow="Real reports"
-        title="Spoonjoy and Ouro MD, X-rayed, before and after."
+        title="Spoonjoy and Ouro MD, X‑rayed, before and after."
         lede={
           <p>
             {claim(

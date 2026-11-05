@@ -47,7 +47,7 @@ describe("Ouro UI for Apple", () => {
 
   it("control: xray lets you flip apps and sides, and filter the claims", async () => {
     await renderPage("/apple/ax/");
-    const xray = page.getByRole("region", { name: "Spoonjoy and Ouro MD, X-rayed, before and after." });
+    const xray = page.getByRole("region", { name: "Spoonjoy and Ouro MD, X‑rayed, before and after." });
     await expect.element(xray).toBeInTheDocument();
     const holding = () => xray.element().querySelector(".apple-xray-holding")?.textContent;
     expect(holding()).toBe("12");
@@ -57,9 +57,9 @@ describe("Ouro UI for Apple", () => {
     await expect.poll(holding).toBe("8");
     await userEvent.click(xray.getByRole("radio", { name: "After" }));
     await expect.poll(holding).toBe("14");
-    await userEvent.click(xray.getByRole("radio", { name: /^Fails/ }));
+    await userEvent.click(xray.getByRole("radio", { name: /^Fail / }));
     await expect.element(xray.getByText("Nothing fails. Not one.", { exact: false })).toBeInTheDocument();
-    await userEvent.click(xray.getByRole("radio", { name: /^Holds/ }));
+    await userEvent.click(xray.getByRole("radio", { name: /^Hold / }));
     await expect.poll(() => xray.element().querySelectorAll(".apple-claim").length).toBe(14);
   });
 

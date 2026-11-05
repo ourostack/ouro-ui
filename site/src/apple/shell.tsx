@@ -1,4 +1,4 @@
-import type { JSX, ReactNode } from "react";
+import { useEffect, useRef, type JSX, type ReactNode } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { href } from "../paths";
 import { Container } from "../voyage/layout";
@@ -21,10 +21,17 @@ export type ApplePath = (typeof APPLE_PAGES)[number]["path"];
 
 /** The section's menu, under the site's header: where you are among the Apple pages. */
 export function AppleMenu({ current }: { current: ApplePath }): JSX.Element {
+  const list = useRef<HTMLUListElement>(null);
+  // On a phone the row scrolls: start it with the current page in view, without moving the page.
+  useEffect(() => {
+    const element = list.current;
+    const link = element?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (element && link && element.scrollWidth > element.clientWidth) element.scrollLeft = Math.max(link.offsetLeft - element.offsetLeft - 16, 0);
+  }, []);
   return (
     <nav aria-label="Ouro UI for Apple" className="apple-menu">
       <Container>
-        <ul className="apple-menu-list">
+        <ul ref={list} className="apple-menu-list">
           {APPLE_PAGES.map((page) => (
             <li key={page.path}>
               <a href={href(page.path)} aria-current={page.path === current ? "page" : undefined} className="apple-menu-link">

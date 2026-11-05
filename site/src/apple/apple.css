@@ -31,6 +31,13 @@
     overflow-x: auto;
     scrollbar-width: none;
   }
+  @media (max-width: 40rem) {
+    /* The row scrolls on a phone; its fading edge says there is more. */
+    .apple-menu-list {
+      mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent);
+      padding-inline-end: 2.5rem;
+    }
+  }
   .apple-menu-link {
     display: inline-flex;
     align-items: center;
@@ -323,6 +330,7 @@
     display: grid;
     gap: calc(var(--spacing) * 3);
     min-width: 0;
+    max-width: 34rem;
   }
   .apple-showcase-copy > p {
     margin: 0;
@@ -404,6 +412,105 @@
     outline: 2px solid var(--ring);
     outline-offset: 4px;
     border-radius: 6px;
+  }
+
+  /* The Ouro AX hero's anglerfish, lamp up to the manual Siri reads. */
+  .apple-angler {
+    justify-self: center;
+    width: 100%;
+    max-width: 26rem;
+  }
+  .apple-angler svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .apple-angler-page {
+    fill: color-mix(in oklab, var(--background) 82%, var(--foreground) 4%);
+    stroke: color-mix(in oklab, var(--foreground) 22%, transparent);
+    stroke-width: 1.2;
+  }
+  .apple-angler-title {
+    fill: color-mix(in oklab, var(--foreground) 70%, transparent);
+  }
+  .apple-angler-line {
+    fill: color-mix(in oklab, var(--foreground) 22%, transparent);
+  }
+  .apple-angler-tick {
+    fill: var(--primary);
+  }
+  .apple-angler-tick-open {
+    fill: none;
+    stroke: color-mix(in oklab, var(--foreground) 35%, transparent);
+    stroke-width: 1.4;
+  }
+  .apple-angler-light-core {
+    stop-color: color-mix(in oklab, var(--warning) 70%, white);
+    stop-opacity: 0.5;
+  }
+  .apple-angler-light-mid {
+    stop-color: var(--warning);
+    stop-opacity: 0.12;
+  }
+  .apple-angler-light-edge {
+    stop-color: var(--warning);
+    stop-opacity: 0;
+  }
+  .apple-angler-glow {
+    mix-blend-mode: multiply;
+    animation: apple-breathe 3.2s ease-in-out infinite alternate;
+  }
+  .dark .apple-angler-glow {
+    mix-blend-mode: screen;
+  }
+  .apple-angler-lamp {
+    fill: color-mix(in oklab, var(--warning) 55%, white);
+    filter: drop-shadow(0 0 6px var(--warning));
+    animation: apple-breathe 3.2s ease-in-out infinite alternate;
+  }
+  .apple-angler .c-body {
+    fill: color-mix(in oklab, var(--background) 55%, var(--primary));
+    stroke: var(--foreground);
+    stroke-width: 0.8;
+  }
+  .apple-angler .c-line {
+    fill: none;
+    stroke: var(--foreground);
+    stroke-width: 1.2;
+    stroke-linecap: round;
+  }
+  .apple-angler .c-eye-big {
+    fill: var(--background);
+    stroke: var(--foreground);
+  }
+  .apple-angler .c-pupil {
+    fill: var(--foreground);
+  }
+  .apple-angler .c-glow {
+    fill: color-mix(in oklab, var(--warning) 55%, white);
+  }
+  .apple-angler .c-mouth {
+    fill: color-mix(in oklab, var(--foreground) 80%, var(--background));
+  }
+  .apple-angler .c-teeth {
+    fill: none;
+    stroke: var(--background);
+    stroke-width: 1.2;
+  }
+  @keyframes apple-breathe {
+    from {
+      opacity: 0.7;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .apple-angler-glow,
+    .apple-angler-lamp {
+      animation: none;
+    }
   }
 
   /* The spring's web twin. */
@@ -501,6 +608,21 @@
     stroke: color-mix(in oklab, var(--foreground) 22%, transparent);
     stroke-dasharray: 3 4;
   }
+  .apple-curve-trace {
+    fill: none;
+    stroke: var(--warning);
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .apple-curve-dot {
+    fill: var(--warning);
+    opacity: 0;
+    transition: opacity var(--ouro-duration-base) var(--ouro-ease-out);
+  }
+  .apple-curve-dot[data-moving] {
+    opacity: 1;
+  }
   .apple-curve-caption {
     color: var(--muted-foreground);
     font-size: 0.75rem;
@@ -556,8 +678,29 @@
   }
   .apple-wave {
     width: 100%;
-    max-width: 22rem;
     height: 2.75rem;
+  }
+  .apple-wave-head {
+    stroke: var(--primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    opacity: 0;
+    animation-name: apple-sweep;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+  }
+  @keyframes apple-sweep {
+    0% {
+      opacity: 0.9;
+      transform: translateX(0);
+    }
+    90% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(300px);
+    }
   }
   .apple-wave-base {
     stroke: var(--apple-hairline);
@@ -631,7 +774,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    max-width: 30rem;
+    max-width: 40rem;
   }
   .apple-dot {
     width: 14px;
@@ -871,6 +1014,9 @@
     .apple-wave-playing .apple-wave-tap {
       animation: none;
       fill: var(--primary);
+    }
+    .apple-wave-head {
+      display: none;
     }
   }
 }

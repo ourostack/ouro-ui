@@ -42,11 +42,27 @@ export function SpringTwin(): JSX.Element {
   const [atEnd, setAtEnd] = useState(false);
   const [moving, setMoving] = useState(false);
   const drag = useRef<{ id: number; offset: number; last: number; at: number; velocity: number } | null>(null);
+  // The flight in progress, drawn live over the curve: where it set off, where it is going, when it left.
+  const flight = useRef<{ from: number; to: number; start: number; points: string[] } | null>(null);
+  const trace = useRef<SVGPolylineElement>(null);
+  const dot = useRef<SVGCircleElement>(null);
 
   const span = () => Math.max((track.current?.clientWidth ?? PUCK) - PUCK, 0);
   const place = (value: number) => {
     position.current = value;
     if (puck.current) puck.current.style.transform = `translate3d(${value}px, 0, 0)`;
+  };
+  /** Plots the puck's progress on the curve, in the curve's own box, as it flies. */
+  const plot = (value: number) => {
+    const current = flight.current;
+    if (!current || current.to === current.from) return;
+    const progress = (value - current.from) / (current.to - current.from);
+    const x = Math.min(((performance.now() - current.start) / (kit.spring.settle * 1000)) * 240, 240);
+    const y = 64 - progress * 52;
+    current.points.push(`${x.toFixed(1)},${y.toFixed(2)}`);
+    trace.current?.setAttribute("points", current.points.join(" "));
+    dot.current?.setAttribute("cx", x.toFixed(1));
+    dot.current?.setAttribute("cy", y.toFixed(2));
   };
 
   // A resize keeps the puck at its end.
@@ -80,9 +96,11 @@ export function SpringTwin(): JSX.Element {
       // Already moving: aim the same spring somewhere new, so it keeps its speed. That is what interruptible means.
       if (handle.current?.running && velocity === 0) {
         handle.current.retarget(to);
+        flight.current = { from: position.current, to, start: performance.now(), points: [] };
         return;
       }
       const from = handle.current?.running ? handle.current.stop() : { value: position.current, velocity };
+      flight.current = { from: from.value, to, start: performance.now(), points: [] };
       setMoving(true);
       handle.current = spring({
         from: from.value,
@@ -91,7 +109,10 @@ export function SpringTwin(): JSX.Element {
         ...TWIN,
         element,
         reduced: false,
-        onUpdate: place,
+        onUpdate: (value: number) => {
+          place(value);
+          plot(value);
+        },
         onRest: () => setMoving(false),
       });
     },
@@ -161,14 +182,16 @@ export function SpringTwin(): JSX.Element {
           description={device ? "Your device asks for less motion, so this twin only fades." : "Fade instead of moving, as OuroMotion does."}
         />
       </div>
-      <p className="apple-twin-help">Drag it, fling it, or press the button twice quickly to catch it mid-flight.</p>
+      <p className="apple-twin-help">Drag it, fling it, or press the button twice quickly to catch it mid-flight, and watch its path trace over the curve.</p>
       <figure className="apple-curve">
         <svg viewBox="0 0 240 72" role="img" aria-label="The spring's curve: it rises quickly, overshoots by a hair, and settles.">
           <line x1="0" x2="240" y1="12" y2="12" className="apple-curve-target" />
           <path d={curvePath()} className="apple-curve-line" />
+          <polyline ref={trace} points="" className="apple-curve-trace" />
+          <circle ref={dot} cx="0" cy="64" r="3.5" className="apple-curve-dot" data-moving={moving ? "" : undefined} />
         </svg>
         <figcaption className="apple-curve-caption site-mono">
-          response {TWIN.response} s · damping {TWIN.damping.toFixed(2)} · settles in {kit.spring.settle} s
+          response {TWIN.response} s · bounce {kit.spring.bounce} · still by {kit.spring.settle} s
         </figcaption>
       </figure>
     </div>

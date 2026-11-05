@@ -3,7 +3,8 @@
  * foundations reel is a small app built on ouro-ui-apple 0.2.1 alone, and Spoonjoy's are its own app. Files live in
  * site/public/apple/media/ as <name>.mp4 (HEVC), <name>.webm (VP9), <name>-poster.jpg (the first frame) and
  * <name>-still.jpg (the settled frame shown under reduced motion), with -dark variants where `dark` is set;
- * media/manifest.json records how each was made.
+ * media/manifest.json records how each was made; the reel's clips are cropped to the action, without the reel's own
+ * title and footnote, so the page's words (and its checked claims) are the only ones.
  */
 
 export interface Clip {
@@ -30,7 +31,7 @@ export const CLIPS = {
     caption: "Core's spring, re-aimed halfway.",
     source: REEL,
     width: 590,
-    height: 1142,
+    height: 710,
     dark: true,
     hevc: true,
   },
@@ -39,7 +40,7 @@ export const CLIPS = {
     caption: "The press, at 0.97.",
     source: REEL,
     width: 590,
-    height: 1142,
+    height: 330,
     dark: false,
     hevc: true,
   },
@@ -48,7 +49,7 @@ export const CLIPS = {
     caption: "Six themes, one screen.",
     source: REEL,
     width: 590,
-    height: 1142,
+    height: 564,
     dark: true,
     hevc: true,
   },
@@ -57,7 +58,7 @@ export const CLIPS = {
     caption: "Reduce Motion: a crossfade, not a trip.",
     source: REEL,
     width: 590,
-    height: 1142,
+    height: 722,
     dark: false,
     hevc: true,
   },
@@ -66,7 +67,7 @@ export const CLIPS = {
     caption: "Checked, stepped, finished.",
     source: REEL,
     width: 590,
-    height: 1142,
+    height: 656,
     dark: false,
     hevc: true,
   },
@@ -75,7 +76,7 @@ export const CLIPS = {
     caption: "Adding a recipe: you don't type it, you tell Siri.",
     source: SPOONJOY,
     width: 590,
-    height: 1150,
+    height: 1142,
     dark: false,
     hevc: true,
   },
