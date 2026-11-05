@@ -5,7 +5,8 @@
 // `cursor` (ignored), `nocursor`, `nolines`, `follow` (the follow fails), `resume` (a follow with a placeholder),
 // `state` (captions done without a follow), `extra` (a mention's needs-human carries lines), `unlisted` (a question's
 // follow is no command), `hidden` (a topic's needs-human hides the lines in human, target or next), `pushextra` (the untriggered
-// stream's refusal carries every line) and `reason` (a refusal that leaves out its reason).
+// stream's refusal carries every line), `reason` (a refusal that leaves out its reason) and `owner` (unfollow stops any
+// agent's listening, not only the caller's). Two agents listen: inbox-agent and research-agent.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { quietPipes, runCli } from "../cli.ts";
 import { defineCli, defineCommand, type CommandDef, type Input } from "../command.ts";
@@ -14,7 +15,18 @@ import { nextStep, outcome } from "../outcome.ts";
 
 const faults = new Set((process.env["CALL_FAULTS"] ?? "").split(","));
 const file = process.env["CALL_STATE"];
-const state: { follows: string[]; pinned: string[]; muted: boolean; hand: boolean; left: boolean; log: { verb: string }[] } = { follows: [], pinned: [], muted: false, hand: false, left: false, log: [] };
+const state: { follows: string[]; pinned: string[]; muted: boolean; hand: boolean; left: boolean; log: { verb: string }[]; listening: { agent: string; doing: string }[] } = {
+  follows: [],
+  pinned: [],
+  muted: false,
+  hand: false,
+  left: false,
+  log: [],
+  listening: [
+    { agent: "inbox-agent", doing: "Notes on the launch date" },
+    { agent: "research-agent", doing: "Questions about pricing" },
+  ],
+};
 if (file && existsSync(file)) Object.assign(state, JSON.parse(readFileSync(file, "utf8")));
 
 const meetings = [{ ref: "m1", title: "Design sync" }];
@@ -35,6 +47,14 @@ function meeting(ref: unknown) {
   return found;
 }
 const meetingArg = { name: "meeting", description: "A meeting's id.", required: true, source: "meetings" };
+
+/** The agent listening in the meeting, by name. */
+function listener(input: Input) {
+  meeting(input["meeting"]);
+  const found = state.listening.find((l) => l.agent === String(input["listener"]));
+  if (!found) throw new AxError({ code: "no-listener", exit: 1, thing: "listener", problem: `no agent "${String(input["listener"])}" is listening`, fix: `call agents ${String(input["meeting"])}` });
+  return found;
+}
 
 /** What people say in a meeting, after the cursor, once the person has asked you to follow it; needs-human before. */
 function listening(input: Input, lines: typeof said) {
@@ -112,6 +132,21 @@ const cli = defineCli({
       },
     }),
     defineCommand({
+      name: "agents", summary: "The agents listening in a meeting for the person, and what each listens for.", effect: "private", readOnly: true, args: [meetingArg], examples: ["call agents m1"],
+      run: (i) => (meeting(i["meeting"]), state.listening),
+    }),
+    defineCommand({
+      name: "unfollow", summary: "Stop your own listening in a meeting; never another agent's.", effect: "private",
+      args: [meetingArg, { name: "listener", description: "The listening agent: you.", required: true, source: "agents" }],
+      examples: ["call unfollow m1 inbox-agent --agent inbox-agent"],
+      ...(faults.has("owner") ? { flags: { agent: { type: "string" as const, placeholder: "<you>", description: "Who you are." } } } : { self: { owner: (i: Input) => listener(i).agent, instead: "unfollow <meeting> <agent> --agent <agent>" } }),
+      run: (i) => {
+        const l = listener(i);
+        state.listening = state.listening.filter((x) => x !== l);
+        return outcome({ action: "unfollow", state: "done", summary: `${l.agent} stopped listening in "${meeting(i["meeting"]).title}".` });
+      },
+    }),
+    defineCommand({
       name: "pin", summary: "Keep a participant's tile in the person's main view.", effect: "private", args: [{ name: "participant", description: "A participant's id.", required: true, source: "participants" }], examples: ["call pin p1"],
       run: (i) => (state.pinned.push(String(i["participant"])), outcome({ action: "pin", state: "done", summary: `Pinned ${String(i["participant"])}.` })),
     }),
@@ -127,6 +162,7 @@ const cli = defineCli({
     share: theirs,
     "captions on": { reason: "You can't turn the person's captions on or off; only they can.", how: "with the captions button in the call's controls" },
     join: { reason: "You can't join a call for the person, and you read from the app's one capture; only they join.", how: "from the meeting's join button" },
+    "unfollow-all": { reason: "You can't stop every agent; only the person can. Stop your own listening with unfollow.", how: "with Stop all in the list of listening agents" },
   },
 });
 

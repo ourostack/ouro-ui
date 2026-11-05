@@ -1,0 +1,47 @@
+name: Merge queue sweep
+# When the queue rebuilds its groups (an entry ahead merged, failed, timed out or was removed),
+# GitHub starts new merge_group runs but leaves the old groups' runs queued, and those runs still
+# take the organisation's shared runners. Each new group's run starts this sweep, which cancels
+# every merge_group run whose gh-readonly-queue branch no longer exists, so only live groups build.
+# It cancels only on a 404 for the group's branch, and stops on a 403 or 429.
+on:
+  merge_group:
+    types: [checks_requested]
+permissions:
+  actions: write
+  contents: read
+# One sweep runs at a time; a newer one replaces any sweep still waiting, since either sees the same queue.
+concurrency:
+  group: merge-queue-sweep
+  cancel-in-progress: false
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Cancel runs for groups that left the queue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          for status in queued in_progress; do
+            gh api --paginate "repos/$REPO/actions/runs?event=merge_group&status=$status&per_page=100" \
+              --jq '.workflow_runs[] | "\(.id) \(.head_branch)"'
+          done | sort -u | while read -r id branch; do
+            if err=$(gh api "repos/$REPO/git/ref/heads/$branch" 2>&1 >/dev/null); then
+              continue
+            fi
+            case "$err" in
+              *"HTTP 404"*)
+                echo "Cancelling run $id: $branch left the queue."
+                gh api -X POST "repos/$REPO/actions/runs/$id/cancel" >/dev/null || echo "Could not cancel run $id."
+                ;;
+              *"HTTP 403"*|*"HTTP 429"*)
+                echo "Stopping: the API answered $err"
+                exit 0
+                ;;
+              *)
+                echo "Leaving run $id: $err"
+                ;;
+            esac
+          done

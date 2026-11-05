@@ -29,6 +29,15 @@ export const liveCaptionsAx = defineComponentAx({
   actions: [],
 });
 
+export const agentPresenceAx = defineComponentAx({
+  component: "AgentPresence",
+  reads: [{ id: "listening", summary: "Which of the person's agents are listening, and what each listens for.", fields: ["agent", "doing"], consent: "none" }],
+  actions: [
+    { id: "stop", summary: "Stop your own listening: your row only, never another agent's.", effect: "private", agent: true, scope: "self" },
+    { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop." },
+  ],
+});
+
 export const ui = [
   ...bindAx(mediaTileAx, { reads: { participant: "call participants <meeting>" }, actions: { pin: "call pin <participant>" } }),
   ...bindAx(callControlsAx, {
@@ -37,5 +46,10 @@ export const ui = [
   }),
   ...bindAx(liveCaptionsAx, {
     reads: { captions: { read: "call captions <meeting>", push: "call events <meeting> --stream live-transcript", trigger: "--on mention" } },
+  }),
+  ...bindAx(agentPresenceAx, {
+    reads: { listening: "call agents <meeting>" },
+    actions: { stop: "call unfollow <meeting> <listener> --agent <me>" },
+    refuseAs: { "stop-all": "call unfollow-all" },
   }),
 ];

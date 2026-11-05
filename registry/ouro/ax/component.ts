@@ -1,5 +1,5 @@
 export { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, isReservedPersonOnly, READ_CONSENTS, RESERVED_PERSON_ONLY };
-export type { AxAction, AxAgentAction, AxBindings, AxPersonOnlyAction, AxRead, ComponentAx, ReadConsent, ReadTwin, Rendered, UiEntry };
+export type { AxAction, AxAgentAction, AxBindings, AxPersonOnlyAction, AxRead, AxScope, ComponentAx, ReadConsent, ReadTwin, Rendered, UiEntry };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
@@ -161,10 +161,25 @@ interface AxActionBase {
   effect: Effect;
 }
 
+/**
+ * Whose item an agent action may act on: `self`, only the calling agent's own, such as its own row in AgentPresence.
+ * An action without a scope acts on any item.
+ */
+type AxScope = "self";
+
 /** An action an agent may take; the app binds its CLI twin. */
 interface AxAgentAction extends AxActionBase {
   agent: true;
   personOnly?: never;
+  /**
+   * `"self"`: an agent may take it only on its own item. `bindAx` then needs a twin that says who is calling
+   * (`--agent <me>`), the twin's command declares `self` (ax-command), so the kit refuses another agent's item before
+   * anything runs, and the X-ray checks that the twin refuses a stranger.
+   *
+   * @claim "`bindAx` then needs a twin that says who is calling" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::a self-scoped action is an agent's, and bindAx needs its twin to say who is calling)
+   * @claim "the X-ray checks that the twin refuses a stranger" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::a self-scoped twin that does not check the owner fails ui.self-scope-refuses, with what it saw)
+   */
+  scope?: AxScope;
 }
 
 /**
@@ -174,6 +189,7 @@ interface AxAgentAction extends AxActionBase {
 interface AxPersonOnlyAction extends AxActionBase {
   personOnly: string;
   agent?: never;
+  scope?: never;
 }
 
 /** An action: either `agent: true` or `personOnly: "<why>"`, exactly one; a missing or doubled choice is a type error. */
@@ -217,14 +233,19 @@ interface UiEntry {
   push?: string;
   trigger?: string;
   refuseAs?: string;
+  scope?: AxScope;
 }
+
+// A twin's `--agent <placeholder>`: who is calling, filled in by the agent.
+const AGENT_WORDS = /(?:^|\s)--agent\s+<[^<>\s]+>(?:\s|$)/;
 
 const oneLine = (v: unknown): v is string => typeof v === "string" && v.trim() !== "" && !/[\r\n]/.test(v);
 
 /**
  * Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known
  * consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither,
- * and a reserved id (`isReservedPersonOnly`) never `agent: true`. A problem throws one line with its fix.
+ * a reserved id (`isReservedPersonOnly`) never `agent: true`, and a scope only `"self"`, only on an agent action. A
+ * problem throws one line with its fix.
  *
  * @example
  * const mediaTileAx = defineComponentAx({
@@ -275,6 +296,9 @@ function defineComponentAx(def: { component: string; reads: readonly AxRead[]; a
     if (raw.agent !== undefined && raw.personOnly !== undefined) throw fail(thing, "it says both agent and personOnly", "keep one: agent: true, or personOnly with its reason");
     if (raw.personOnly !== undefined && !oneLine(raw.personOnly)) throw fail(thing, "personOnly needs a one-line reason", 'personOnly: "You can\'t <do it> for the person; only they can."');
     if (raw.personOnly === undefined && raw.agent !== true) throw fail(thing, "it says neither agent: true nor personOnly", 'add agent: true, or personOnly: "You can\'t <do it> for the person; only they can."');
+    const scope = (a as { scope?: unknown }).scope;
+    if (scope !== undefined && scope !== "self") throw fail(thing, `scope is ${JSON.stringify(scope)}`, 'scope: "self", for an action an agent takes only on its own item, or leave it out');
+    if (scope !== undefined && raw.agent !== true) throw fail(thing, "it is the person's, so it has no scope", "drop scope, which is for an agent action");
     if (raw.agent === true && isReservedPersonOnly(a.id)) throw fail(thing, "it is the person's own, so it is never an agent action", `personOnly: ${JSON.stringify(RESERVED_PERSON_ONLY[reservedAs(a.id)!])}`);
   }
   return Object.freeze({ component: name, reads: Object.freeze([...def.reads]), actions: Object.freeze([...def.actions]) });
@@ -283,8 +307,9 @@ function defineComponentAx(def: { component: string; reads: readonly AxRead[]; a
 /**
  * Binds a component's twins to the app's commands and returns its entries for the X-ray inventory (`ui`). It throws when
  * a read or an agent action has no twin, a read with `push: "filtered"` has no stream, a person-only action is given a
- * twin or has no `refuseAs` words, `refuseAs` names an action that is not person-only, or a binding names nothing the
- * component declares.
+ * twin or has no `refuseAs` words, `refuseAs` names an action that is not person-only, a `scope: "self"` action's twin
+ * does not say who is calling (`--agent <me>`), or a binding names nothing the component declares. A scoped action's
+ * entry carries its scope.
  *
  * @example
  * const ui = [
@@ -297,6 +322,7 @@ function defineComponentAx(def: { component: string; reads: readonly AxRead[]; a
  * writeFileSync("inventory.json", JSON.stringify({ cli: commandNames, ui }));
  *
  * @claim "a person-only action is given a twin" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries)
+ * @claim "does not say who is calling" registry/ouro/ax/component.test.mts verify:testExists(registry/ouro/ax/component.test.mts::a self-scoped action is an agent's, and bindAx needs its twin to say who is calling)
  */
 function bindAx(ax: ComponentAx, bindings: AxBindings): UiEntry[] {
   const fail = (thing: string, problem: string, fix: string) => new Error(`${ax.component} ${thing}: ${problem}. Fix: ${fix}.`);
@@ -324,7 +350,8 @@ function bindAx(ax: ComponentAx, bindings: AxBindings): UiEntry[] {
     if (a.agent) {
       if (!oneLine(twin)) throw fail(thing, "an agent action has no twin", `actions: { "${a.id}": "<the CLI command that does it>" }`);
       if (words !== undefined) throw fail(thing, "refuseAs is for a person-only action, and this one is the agent's", `bind it under actions, or make it personOnly`);
-      entries.push({ component: ax.component, kind: "action", id: a.id, effect: a.effect, twin });
+      if (a.scope === "self" && !AGENT_WORDS.test(twin)) throw fail(thing, "an agent takes it only on its own item, and its twin does not say who is calling", `actions: { "${a.id}": "${twin} --agent <me>" }`);
+      entries.push({ component: ax.component, kind: "action", id: a.id, effect: a.effect, twin, ...(a.scope ? { scope: a.scope } : {}) });
     } else {
       if (twin !== undefined) throw fail(thing, "it is the person's, so it has no twin", `move "${twin}" to refuseAs, where its words refuse`);
       if (!oneLine(words)) throw fail(thing, "a person-only action needs the CLI words an agent might try, which refuse", `refuseAs: { "${a.id}": "<the CLI words an agent might try>" }`);

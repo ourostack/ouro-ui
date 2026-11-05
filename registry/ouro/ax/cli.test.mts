@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { defineChecks } from "./checks.ts";
 import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "./cli.ts";
-import { defineCli, defineCommand, parse, type Parsed, type RunContext } from "./command.ts";
+import { checkOwner, defineCli, defineCommand, parse, type Input, type Parsed, type RunContext } from "./command.ts";
+import { commandManifest } from "./help.ts";
 import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "./example-cli.ts";
 import { nextStep, outcome } from "./outcome.ts";
 import { hasAnsi, stripAnsi } from "./terminal.ts";
@@ -332,6 +333,71 @@ test("a person-only word refuses with its reason and how the person does it, as 
   const topicJson = io();
   assert.equal(await runCli(call, ["help", "unmute", "--json"], topicJson.io), 0);
   assert.deepEqual(JSON.parse(topicJson.o.out), { name: "unmute", reason: "You can't turn on the person's microphone; only they can.", how: "with the microphone button in the call's toolbar" });
+});
+
+test("a self-scoped command runs on the calling agent's own item and refuses another agent's before plan() or run(), naming both", async () => {
+  // Two agents listen for the person; each may stop only its own listening, and the person, in the app, stops any.
+  let listening = ["inbox-agent", "research-agent"];
+  const ran: string[] = [];
+  const owner = (i: Input) => (listening.includes(String(i["listener"])) ? String(i["listener"]) : null);
+  const listenerArg = { name: "listener", description: "The listening agent: you.", required: true };
+  const tool = defineCli({
+    name: "call",
+    about: ["call: the person's call."],
+    commands: [
+      defineCommand({
+        name: "unfollow", summary: "Stop your own listening.", effect: "private", args: [listenerArg],
+        self: { owner, instead: "unfollow <agent> --agent <agent>" },
+        run: (i) => (ran.push(`unfollow ${String(i["listener"])}`), (listening = listening.filter((a) => a !== i["listener"])), outcome({ action: "unfollow", state: "done", summary: `${String(i["listener"])} stopped listening.` })),
+      }),
+      defineCommand({
+        name: "announce", summary: "Tell everyone you stopped.", effect: "others", args: [listenerArg],
+        self: { owner },
+        plan: (i) => (ran.push("plan"), outcome({ action: "announce", effect: "others", audience: { only: false, who: "everyone in the call" }, state: "planned", summary: `Would tell everyone ${String(i["listener"])} stopped.` })),
+        run: () => (ran.push("announce"), "Told."),
+      }),
+      defineCommand({ name: "agents", summary: "Who listens.", effect: "private", readOnly: true, run: () => listening }),
+    ],
+  });
+  const go = async (argv: string[]) => {
+    const o = { out: "", err: "" };
+    const code = await runCli(tool, argv, { stdout: { write: (s: string) => (o.out += s) }, stderr: { write: (s: string) => (o.err += s) } });
+    return { code, ...o };
+  };
+  // Another agent's row is refused, naming whose it is and who called, with the command for the caller's own.
+  const theirs = "call: unfollow: that one is research-agent's, and you are inbox-agent; only research-agent or the person may do it. Do it on your own instead. Fix: call unfollow inbox-agent --agent inbox-agent.\n";
+  assert.deepEqual(await go(["unfollow", "research-agent", "--agent", "inbox-agent"]), { code: 2, out: "", err: theirs });
+  const json = await go(["unfollow", "research-agent", "--agent", "inbox-agent", "--json"]);
+  const answer = JSON.parse(json.out);
+  assert.deepEqual([json.code, answer.state, answer.action, answer.error.code, answer.error.fix], [2, "refused", "unfollow", "not-yours", "call unfollow inbox-agent --agent inbox-agent"]);
+  assert.deepEqual(listening, ["inbox-agent", "research-agent"]);
+  // A row no agent owns, a command with no instead, and --dry-run are refused before plan() or run() too.
+  assert.equal((await go(["unfollow", "nobody", "--agent", "inbox-agent"])).err, "call: unfollow: that one is no agent's, and you are inbox-agent; only the person may do it. Do it on your own instead. Fix: call unfollow inbox-agent --agent inbox-agent.\n");
+  assert.equal((await go(["announce", "research-agent", "--agent", "inbox-agent", "--why", "Jo asked", "--dry-run"])).err, "call: announce: that one is research-agent's, and you are inbox-agent; only research-agent or the person may do it. Ask the person if it should be done.\n");
+  assert.equal((await go(["unfollow", "research-agent", "--agent", " "])).err, "call: unfollow --agent: it is empty, so the call does not say who you are. Fix: call unfollow <listener> --agent <you>.\n");
+  assert.match((await go(["unfollow", "research-agent"])).err, /^call: unfollow: needs --agent: Who you are/);
+  assert.deepEqual(ran, []);
+  // The agent's own row runs, as a plan or for real.
+  assert.equal((await go(["announce", "inbox-agent", "--agent", "inbox-agent", "--why", "Jo asked", "--dry-run"])).code, 0);
+  assert.deepEqual(await go(["unfollow", "inbox-agent", "--agent", "inbox-agent"]), { code: 0, out: "inbox-agent stopped listening.\n", err: "" });
+  assert.deepEqual(ran, ["plan", "unfollow inbox-agent"]);
+  assert.deepEqual(listening, ["research-agent"]);
+  // dispatch, for a tool that prints its own way, refuses the same; checkOwner passes a command without self.
+  const parsed = parse(tool, ["unfollow", "research-agent", "--agent", "inbox-agent"]) as Parsed;
+  await assert.rejects(dispatch(tool, parsed, { stdin: async () => "", json: false }), { message: /^unfollow: that one is research-agent's/ });
+  const agents = tool.commands.find((c) => c.name === "agents")!;
+  await checkOwner(tool, agents, {}, { stdin: async () => "", json: false });
+  await assert.rejects(checkOwner(tool, tool.commands[0]!, { listener: "research-agent" }, { stdin: async () => "", json: false }), { message: /^unfollow --agent: it is empty/ });
+  // help --json marks the scoped commands, and only them.
+  assert.deepEqual(tool.commands.map((c) => commandManifest(tool, c).scope), ["self", "self", undefined]);
+  assert.equal(Object.hasOwn(commandManifest(tool, agents), "scope"), false);
+  // A scope without an owner, an instead on two lines, and an argument named agent are definition errors.
+  const define = (self: unknown, args = [listenerArg]) => () => defineCli({ name: "call", about: ["call."], commands: [defineCommand({ name: "unfollow", summary: "Stop.", effect: "private", args, self: self as never })] });
+  assert.throws(define({}), { message: "call unfollow: self needs owner, which says whose item a call names. Fix: self: { owner: (input) => <the agent that owns the item> }." });
+  assert.throws(define({ owner, instead: "unfollow\n<agent>" }), { message: 'call unfollow: self.instead needs one line. Fix: instead: "unfollow <agent> --agent <agent>", or leave it out.' });
+  assert.throws(define({ owner, instead: " " }), /self\.instead needs one line/);
+  assert.throws(define({ owner, instead: 3 }), /self\.instead needs one line/);
+  assert.throws(define({ owner }, [{ name: "agent", description: "The agent.", required: true }]), { message: "call unfollow: <agent> and --agent share one input key. Fix: rename one." });
 });
 
 test("a command that returns a checks report prints its verdict first, styled for stdout, and exits with its code", async () => {

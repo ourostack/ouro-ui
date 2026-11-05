@@ -288,6 +288,11 @@ const ISLANDS = [
   { chapter: "Chapter I", entry: "src/voyage/chapters/chapter-one.tsx", source: "site/src/voyage/chapters/chapter-one", recharts: false },
   { chapter: "Chapter II", entry: "src/voyage/chapters/chapter-two.tsx", source: "site/src/voyage/chapters/chapter-two", recharts: true },
   { chapter: "Chapter III", entry: "src/voyage/chapters/chapter-three.tsx", source: "site/src/voyage/chapters/chapter-three", recharts: false },
+  // The Ouro UI for Apple pages (site/src/apple/), each an island of its own.
+  { chapter: "Apple's overview", entry: "src/apple/home.tsx", source: "site/src/apple/", recharts: false },
+  { chapter: "Ouro HX for Apple", entry: "src/apple/hx.tsx", source: "site/src/apple/", recharts: false },
+  { chapter: "Ouro AX for Apple", entry: "src/apple/ax.tsx", source: "site/src/apple/", recharts: false },
+  { chapter: "Apple's get started", entry: "src/apple/start.tsx", source: "site/src/apple/", recharts: false },
 ] as const;
 
 for (const island of ISLANDS) {
