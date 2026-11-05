@@ -1227,12 +1227,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
     // The message an element is in, or is, among this list's messages.
     const itemOf = (node: Element, list = topItems(content)): HTMLElement | null => list.find((item) => item.contains(node)) ?? null;
-    // Whether any of a message shows in the list's view, or, `whole`, all of it.
-    const shows = (item: Element, whole = false) => {
+    // Whether any of a message shows in the list's view.
+    const shows = (item: Element) => {
       const box = boxOf(item);
       const view = scroller.getBoundingClientRect();
       // Stryker disable next-line EqualityOperator: a message whose edge meets the list's edge to the pixel counts either way.
-      return whole ? box.top >= view.top && box.bottom <= view.bottom : box.bottom > view.top && box.top < view.bottom;
+      return box.bottom > view.top && box.top < view.bottom;
     };
     const setCurrent = (item: HTMLElement | null) => {
       // Stryker disable next-line ConditionalExpression: the same message would take -1 and then 0 again, as it was.
