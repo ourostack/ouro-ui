@@ -92,7 +92,7 @@ describe("ConversationList windowing", () => {
     }
     const second = () => parseFloat(view.rows()[1]!.parentElement!.style.top);
     const before = second();
-    await view.rerender(<ConversationList label="Conversations" items={many(200, (index) => (index === 0 ? { preview: "A long preview that wraps. ".repeat(20) } : {}))} onSelect={() => {}} />);
+    await view.rerender(<ConversationList label="Conversations" items={many(200, (index) => (index === 0 ? { context: "Replied in a thread" } : {}))} onSelect={() => {}} />);
     await frames();
     expect(second()).toBeGreaterThan(before);
   });

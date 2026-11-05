@@ -533,9 +533,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       update();
     };
     // A sync reads layout, which inside a commit lays the page out at once, so a render runs it only when what it
-    // places changed: the rows, the window, the heights, the open or reached row. A row that changes size otherwise
+    // places changed: the rows, the window, the heights, the open, reached or focusable row. A row that changes size otherwise
     // (new text) is reported by the observer, once the page is laid out, where reads are free.
-    const inputs = JSON.stringify([keys, start, end, density, current, reach]);
+    const inputs = JSON.stringify([keys, start, end, density, current, reach, tabStop]);
     for (const control of controls.current.values()) rows.current!.observe(control.parentElement!);
     if (synced.current?.inputs === inputs && synced.current.heights === heights) return;
     synced.current = { inputs, heights };
