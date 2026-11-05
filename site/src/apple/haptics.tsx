@@ -58,7 +58,7 @@ const SPAN = 300;
 let audio: AudioContext | undefined;
 
 /** Plays taps as soft clicks: a short, quickly fading tone per tap, brighter for a crisper tap. */
-function playClicks(taps: Tap[]): void {
+export function playClicks(taps: Tap[]): void {
   const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Context) return;
   audio ??= new Context();
@@ -81,7 +81,7 @@ function playClicks(taps: Tap[]): void {
 }
 
 /** An Android phone taps along; an iPhone's browser can't, and doesn't pretend to. */
-function vibrate(taps: Tap[]): void {
+export function vibrate(taps: Tap[]): void {
   if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
   const pattern: number[] = [];
   let at = 0;
@@ -146,7 +146,12 @@ export function HapticTable(): JSX.Element {
         {kit.haptics.map((moment) => (
           <li key={moment.name} className="apple-haptic">
             <button type="button" className="apple-haptic-button" onClick={() => play(moment)} aria-describedby={`haptic-${moment.name}`}>
-              <span className="apple-haptic-name site-mono">.{moment.name}</span>
+              <span className="apple-haptic-name site-mono">
+                <svg viewBox="0 0 16 16" aria-hidden="true" className="apple-haptic-play">
+                  <path d="M5 3.5v9l7.5-4.5z" fill="currentColor" />
+                </svg>
+                .{moment.name}
+              </span>
               <Wave taps={tapsFor(moment)} playing={playing === moment.name} />
             </button>
             <p id={`haptic-${moment.name}`} className="apple-haptic-when">

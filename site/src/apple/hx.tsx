@@ -6,6 +6,7 @@ import { href } from "../paths";
 import { HapticTable } from "./haptics";
 import { Loop } from "./loop";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
+import { PressTwin } from "./press-twin";
 import { SpringTwin } from "./spring-twin";
 
 const SPRING_CODE = `withOuroAnimation(.spring, reduceMotion: reduceMotion) {
@@ -42,7 +43,7 @@ export default function AppleHx(): JSX.Element {
             </Button>
           </>
         }
-        media={<Loop clip="hx-press" size="lg" className="apple-hero-media" />}
+        media={<Loop clip="hx-haptics" size="md" className="apple-hero-media" />}
       >
         <p>
           {claim("The foundations ship today in 0.2.1: one spring, one press, eight named haptic moments and six themes.", {
@@ -118,12 +119,16 @@ export default function AppleHx(): JSX.Element {
                 { fileLine: "registry/ouro/theme/ouro-base.css", pattern: "--ouro-duration-press: 160ms;" },
               ],
             })}{" "}
-            The buttons on this page are Ouro HX for the web, so they're twins already. Press one and hold.
+            The buttons on this page are Ouro HX for the web, so they're twins already. The tart below has one; press it and hold.
           </p>
         }
       >
-        <div className="apple-press-row">
-          <CodeBlock code={PRESS_CODE} label="In SwiftUI" />
+        <div className="apple-pair">
+          <Loop clip="hx-press" />
+          <div className="apple-pair-side">
+            <PressTwin />
+            <CodeBlock code={PRESS_CODE} label="In SwiftUI" />
+          </div>
         </div>
       </AppleBand>
 
@@ -137,10 +142,7 @@ export default function AppleHx(): JSX.Element {
           </p>
         }
       >
-        <div className="apple-pair">
-          <HapticTable />
-          <Loop clip="hx-haptics" size="sm" />
-        </div>
+        <HapticTable />
       </AppleBand>
 
       <AppleBand

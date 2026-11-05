@@ -31,7 +31,7 @@ export default function AppleHome(): JSX.Element {
             </Button>
           </>
         }
-        media={<Loop clip="hx-spring" size="lg" className="apple-hero-media" />}
+        media={<Loop clip="hx-themes" size="lg" className="apple-hero-media" />}
       >
         <p>
           Ouro HX is how an app feels in the hand: its springs, its taps, its colours. Ouro AX is how it reads to Siri and the other agents that come knocking. Both now

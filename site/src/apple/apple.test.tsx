@@ -82,6 +82,26 @@ describe("Ouro UI for Apple", () => {
     await expect.element(page.getByRole("button", { name: "Send it over" })).toBeInTheDocument();
   });
 
+  it("control: press twin saves the tart and says so, like the capture beside it", async () => {
+    await renderPage("/apple/hx/");
+    const save = page.getByRole("button", { name: "Save", exact: true });
+    await expect.element(save).toBeInTheDocument();
+    await userEvent.click(save);
+    await expect.element(page.getByRole("button", { name: "✓ Saved" })).toHaveAttribute("aria-pressed", "true");
+    await expect.element(page.getByText("In your cookbook.")).toBeInTheDocument();
+  });
+
+  it("control: twin comes to rest on its end stop, inside its track", async () => {
+    await renderPage("/apple/hx/");
+    await userEvent.click(page.getByRole("button", { name: "Send it over" }));
+    await expect.element(page.getByRole("button", { name: "Send it back" })).toBeInTheDocument();
+    const track = document.querySelector<HTMLElement>(".apple-twin-track")!;
+    const puck = document.querySelector<HTMLElement>(".apple-twin-puck")!;
+    const stop = document.querySelector<HTMLElement>(".apple-twin-stop-end")!;
+    await expect.poll(() => Math.round(puck.getBoundingClientRect().left + puck.offsetWidth / 2 - (stop.getBoundingClientRect().left + stop.offsetWidth / 2))).toBe(0);
+    expect(puck.getBoundingClientRect().right).toBeLessThanOrEqual(track.getBoundingClientRect().right);
+  });
+
   it("control: haptics lists all eight moments, each with taps to see", async () => {
     await renderPage("/apple/hx/");
     const list = page.getByRole("list", { name: "OuroHaptics moments" });
@@ -110,7 +130,7 @@ describe("Ouro UI for Apple", () => {
     const showing = (clip: string) =>
       [...document.querySelectorAll(`[data-apple-clip="${clip}"] video`)].filter((el) => getComputedStyle(el).display !== "none").map((el) => el.getAttribute("data-apple-scheme"));
     expect(showing("spoonjoy-add-recipe")).toEqual(["light"]);
-    expect(showing("hx-spring")).toEqual(["dark"]);
+    expect(showing("hx-themes")).toEqual(["dark"]);
   });
 
   it("gives every clip an honest caption and real media names", () => {

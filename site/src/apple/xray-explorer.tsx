@@ -80,7 +80,10 @@ function ClaimItem({ claim, before }: { claim: ClaimRow; before: ClaimRow | unde
           <span className="apple-claim-rule">
             <Words text={claim.rule} />
           </span>
-          {was && was !== state ? <span className="apple-claim-flip">{WAS_WORDS[was]}</span> : null}
+          {was && was !== state ? <span className="apple-claim-flip">{WAS_WORDS[was]}</span> : <span />}
+          <svg viewBox="0 0 16 16" aria-hidden="true" className="apple-claim-chevron">
+            <path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </summary>
         <div className="apple-claim-body">
           <p className="apple-claim-meta site-mono">
@@ -193,6 +196,14 @@ export function XrayExplorer({ initialApp = "spoonjoy" }: { initialApp?: AppKey 
       <p className="apple-xray-made site-mono">
         ouro-ax-xray {report.checker} · claim set {report.claimSet} · Xcode tools {report.xcodeTools} · {report.at.slice(0, 10)}
       </p>
+      {report.xcodeTools !== other.xcodeTools || report.claims.length !== other.claims.length ? (
+        <p className="apple-xray-made">
+          These reports are as the X-ray wrote them on the day, so{" "}
+          {report.claims.length !== other.claims.length ? `the claim set grew from ${data.before.claims.length} to ${data.after.claims.length} between them` : null}
+          {report.claims.length !== other.claims.length && report.xcodeTools !== other.xcodeTools ? " and " : null}
+          {report.xcodeTools !== other.xcodeTools ? `they ran on different Xcode builds (${data.before.xcodeTools} before, ${data.after.xcodeTools} after)` : null}.
+        </p>
+      ) : null}
     </div>
   );
 }

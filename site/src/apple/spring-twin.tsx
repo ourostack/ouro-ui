@@ -47,7 +47,9 @@ export function SpringTwin(): JSX.Element {
   const trace = useRef<SVGPolylineElement>(null);
   const dot = useRef<SVGCircleElement>(null);
 
-  const span = () => Math.max((track.current?.clientWidth ?? PUCK) - PUCK, 0);
+  /** How far the puck travels: the track less the puck and the 1.5rem inset at each end (apple.css). */
+  const INSET = 24;
+  const span = () => Math.max((track.current?.clientWidth ?? PUCK) - PUCK - 2 * INSET, 0);
   const place = (value: number) => {
     position.current = value;
     if (puck.current) puck.current.style.transform = `translate3d(${value}px, 0, 0)`;
