@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, isReservedPersonOnly, READ_CONSENTS, RESERVED_PERSON_ONLY, type AxAction } from "./component.ts";
-import { liveCaptionsAx, mediaTileAx, callControlsAx, ui } from "./fixtures/call-components.mts";
+import { agentPresenceAx, liveCaptionsAx, mediaTileAx, callControlsAx, ui } from "./fixtures/call-components.mts";
 
 const throwsLine = (fn: () => unknown, line: string) => assert.throws(fn, (e: Error) => e.message === line);
 
@@ -45,6 +45,9 @@ test("bindAx needs a twin for every read and agent action, refuses one for a per
     { component: "CallControls", kind: "action", id: "share", effect: "others", personOnly: "You can't turn on the person's microphone, camera or screen; only they can.", refuseAs: "call share" },
     { component: "CallControls", kind: "action", id: "captions", effect: "private", personOnly: "You can't turn the person's captions on or off; only they can.", refuseAs: "call captions on" },
     { component: "LiveCaptions", kind: "read", id: "captions", twin: "call captions <meeting>", consent: "listening", fields: ["speaker", "text", "at"], push: "call events <meeting> --stream live-transcript", trigger: "--on mention" },
+    { component: "AgentPresence", kind: "read", id: "listening", twin: "call agents <meeting>", consent: "none", fields: ["agent", "doing"] },
+    { component: "AgentPresence", kind: "action", id: "stop", effect: "private", twin: "call unfollow <meeting> <listener> --agent <me>", scope: "self" },
+    { component: "AgentPresence", kind: "action", id: "stop-all", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop.", refuseAs: "call unfollow-all" },
   ]);
   const controls = { mute: "call mute <meeting>", leave: "call leave <meeting>", "raise-hand": "call raise-hand <meeting>", "lower-hand": "call lower-hand <meeting>" };
   const refuseAs = { unmute: "call unmute", camera: "call camera", share: "call share", captions: "call captions on" };
@@ -61,6 +64,21 @@ test("bindAx needs a twin for every read and agent action, refuses one for a per
   throwsLine(() => bindAx(liveCaptionsAx, { reads: { captions: "call captions" } }), 'LiveCaptions read "captions": it streams, but its stream or trigger is not bound. Fix: reads: { "captions": { read: "call captions", push: "<the stream asked for every line>", trigger: "<the words trigger, such as --on mention>" } }.');
   throwsLine(() => bindAx(liveCaptionsAx, { reads: { captions: { read: "call captions", push: "call events", trigger: "" } } }), 'LiveCaptions read "captions": it streams, but its stream or trigger is not bound. Fix: reads: { "captions": { read: "call captions", push: "<the stream asked for every line>", trigger: "<the words trigger, such as --on mention>" } }.');
   throwsLine(() => bindAx(mediaTileAx, { reads: { participant: { read: "call participants", push: "call events", trigger: "--on mention" } }, actions: { pin: "call pin" } }), 'MediaTile read "participant": a stream is bound, but the read does not declare push. Fix: add push: "filtered" to the read.');
+});
+
+test("a self-scoped action is an agent's, and bindAx needs its twin to say who is calling", () => {
+  const stop = agentPresenceAx.actions.find((a) => a.id === "stop")!;
+  assert.equal(stop.agent === true && stop.scope, "self");
+  const act = (a: object) => () => defineComponentAx({ component: "AgentPresence", reads: [], actions: [a as AxAction] });
+  throwsLine(act({ id: "stop", summary: "S.", effect: "private", agent: true, scope: "others" }), 'AgentPresence action "stop": scope is "others". Fix: scope: "self", for an action an agent takes only on its own item, or leave it out.');
+  throwsLine(act({ id: "stop-all", summary: "S.", effect: "private", personOnly: "You can't stop every agent; only the person can.", scope: "self" }), 'AgentPresence action "stop-all": it is the person\'s, so it has no scope. Fix: drop scope, which is for an agent action.');
+  const refuseAs = { "stop-all": "call unfollow-all" };
+  const twin = (stop: string) => () => bindAx(agentPresenceAx, { reads: { listening: "call agents <meeting>" }, actions: { stop }, refuseAs });
+  const fix = (stop: string) => `AgentPresence action "stop": an agent takes it only on its own item, and its twin does not say who is calling. Fix: actions: { "stop": "${stop} --agent <me>" }.`;
+  for (const words of ["call unfollow <meeting> <listener>", "call unfollow <meeting> --agent", "call unfollow <meeting> --agent me", "call unfollow <meeting> --agents <me>"]) throwsLine(twin(words), fix(words));
+  assert.deepEqual(twin("call unfollow <meeting> <listener> --agent <me> --json")().find((e) => e.id === "stop")?.scope, "self");
+  // An unscoped action's entry has no scope.
+  assert.equal(Object.hasOwn(ui.find((e) => e.id === "pin")!, "scope"), false);
 });
 
 test("a reserved action is always the person's: declaring it agent: true throws with its reason", () => {
