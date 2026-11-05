@@ -1477,9 +1477,9 @@ test("the mutation plan keys the kept results by pull request and dependency has
   assert.equal(none.status, 0);
   assert.deepEqual(none.output, { count: "0", shards: "[0]" });
   assert.equal(ciJobs()["mutation-shard"].match(/^ {4}if: (.+)$/m)?.[1], mutationRuns);
-  // Not a pull request: nothing to mutate, three shards, and no plan.
+  // Not a pull request: nothing to mutate, so no shard starts, and no plan.
   const other = runStep(planned(13), { KEY: "", MATCHED: "" });
-  assert.deepEqual(other.output, { count: "3", shards: "[1,2,3]" });
+  assert.deepEqual(other.output, { count: "0", shards: "[0]" });
   assert.doesNotMatch(other.calls, /CALL node/);
   // A plan that prints no count fails the job rather than guess.
   assert.notEqual(runStep(`node() { :; }\n${count}`, { KEY: "stryker-139-abc-", MATCHED: "" }).status, 0);
