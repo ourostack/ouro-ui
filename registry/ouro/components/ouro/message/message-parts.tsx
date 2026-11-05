@@ -34,7 +34,7 @@ const MENU_KEY = " menu";
 
 type MenuModule = typeof import("@/registry/ouro/components/ouro/menu/menu");
 
-// Menu's code, loaded once, the first time someone opens a message's menu (in a MessageList, the first time its bar shows).
+// Menu's code, loaded once, as the first bar with a menu mounts, so a press opens the menu at once.
 let menuModule: Promise<MenuModule> | undefined;
 let menuLoaded: MenuModule | undefined;
 const loadMenu = () => (menuModule ??= import("@/registry/ouro/components/ouro/menu/menu").then((module) => (menuLoaded = module)));
@@ -158,6 +158,11 @@ export function MessageActionBar({
     });
   const layered = onMenu !== undefined;
   const hasMenu = (menu !== undefined && menu.length > 0) || (reactions !== undefined && reactions.length > 0);
+  // Fetched now, not on the first press, so nobody waits for the menu's code; it stays off the first
+  // paint. After every render, so a bar that gains a menu fetches it too; loadMenu fetches once.
+  useEffect(() => {
+    if (hasMenu) void loadMenu();
+  });
   const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
   if (hasMenu) keys.push(MENU_KEY);
   const [current, setCurrent] = useState<{ row: Element | undefined; key: string } | undefined>(undefined);
