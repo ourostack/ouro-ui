@@ -327,6 +327,12 @@ describe("Toolbar", () => {
     expect(document.activeElement).toBe(buttons[0]);
   });
 
+  it("exports no agent side of its own", async () => {
+    const exports = Object.keys(await import("@/registry/ouro/components/ouro/toolbar/toolbar"));
+    expect(exports).toContain("Toolbar");
+    expect(exports.filter((name) => /ax$/i.test(name))).toEqual([]);
+  });
+
   it("takes the size of every control", async () => {
     const { buttons, toolbar, rerender } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 900);
     expect(toolbar.getAttribute("data-size")).toBe("sm");
@@ -387,6 +393,26 @@ describe("Toolbar overflow", () => {
     (more!.closest('[data-ouro="toolbar"]')!.parentElement as HTMLElement).style.width = "900px";
     await expect.poll(() => page.getByRole("button", { name: "Bold" }).query()).not.toBeNull();
     expect(page.getByRole("button", { name: "Bold" }).element().getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("sets each control's axAction as data-ax-action on the control in the row and on its More-menu item", async () => {
+    const items: ToolbarEntry[] = [
+      { label: "Undo", icon: Icon, hideLabel: true, axAction: "undo" },
+      { type: "separator" },
+      { type: "toggle", label: "Bold", axAction: "bold" },
+      { label: "Insert link", axAction: "insert-link" },
+      { type: "group", label: "Lists", items: [{ label: "Bulleted list" }] },
+    ];
+    const wide = await render(<Toolbar label="Formatting" size="sm" items={items} />, 900);
+    expect(wide.more).toBeNull();
+    expect(wide.buttons.map((button) => button.getAttribute("data-ax-action"))).toEqual(["undo", "bold", "insert-link", null]);
+    wide.host.remove();
+    const { buttons, more } = await render(<Toolbar label="Formatting" size="sm" items={items} />, 130);
+    expect(buttons[0]!.getAttribute("data-ax-action")).toBe("undo");
+    await userEvent.click(more!);
+    await expect.element(page.getByRole("menuitemcheckbox", { name: "Bold" })).toHaveAttribute("data-ax-action", "bold");
+    await expect.element(page.getByRole("menuitem", { name: "Insert link" })).toHaveAttribute("data-ax-action", "insert-link");
+    await expect.element(page.getByRole("menuitem", { name: "Bulleted list" })).not.toHaveAttribute("data-ax-action");
   });
 
   it("names the More button with moreLabel, and disables it with the rest", async () => {

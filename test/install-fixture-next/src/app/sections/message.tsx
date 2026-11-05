@@ -1,10 +1,11 @@
 import { Message } from "@/components/ouro/message/message";
 
-// The author's name, the message and the avatar's initials are in the server HTML.
+// The author's name, the message and the avatar's initials (drawn from their attribute) are in the
+// server HTML.
 // expect: <article[^>]*data-ouro="message"[^>]*data-role="assistant"
 // expect: Ouro message author
 // expect: Ouro message text
-// expect: >OA<
+// expect: data-ouro-avatar-initials="OA"
 // A post's subject and its footer render on the server; its action bar renders in the browser.
 // expect: data-variant="post"
 // expect: Ouro post subject

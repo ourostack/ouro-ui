@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
 import { runInNewContext } from "node:vm";
 import { assemble } from "./changes.mjs";
+import { relevance } from "./ci-relevance.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { treeFiles } from "./tree.mjs";
@@ -100,7 +101,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   // The script tests that drive a browser run in the image; the others need none.
   assert.doesNotMatch(jobs.scripts, /container:|playwright-browsers/);
   assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser\)/);
-  assert.match(jobs.ci, /needs: \[plan, checks, browser, scripts, scripts-browser, coverage, browser-fallback\]/);
+  assert.match(jobs.ci, /needs: \[plan, checks, attribution, browser, scripts, scripts-browser, coverage, browser-fallback\]/);
   assert.match(jobs.ci, /"scripts-browser=\$SCRIPTS_BROWSER"/);
 });
 
@@ -1162,7 +1163,7 @@ test("a push to main whose commit the merge queue already tested runs only insta
   // requests only) skips on it, gates included; motion-coverage waits on ci and browser-fallback on
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
-  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls].includes(condition(jobs[id])));
+  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns].includes(condition(jobs[id])));
   assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
@@ -1180,7 +1181,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1212,6 +1213,12 @@ const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 /** install-shard's: it also skips on a pull request whose install test waits for the merge queue (the plan's `installs`). */
 const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'queue' }}";
 
+/** The browser shards': they also skip on a pull request that changes nothing they read (the plan's `browser`). */
+const browserRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}";
+
+/** The mutation shards': they also skip when the plan counts none (no changed path is runtime source). */
+const mutationRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}";
+
 /** The checks the main ruleset requires (ruleset 24881709, .github/required-checks.json). */
 const requiredChecks = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
 
@@ -1229,7 +1236,8 @@ test("every required check is still a job that reports, under the name the rules
     // browser-fallback is no required check: it runs only when the coverage job asks, and the ci check fails when it then did not pass.
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : untested), `${id} has if: ${condition}`);
+    // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : untested), `${id} has if: ${condition}`);
   }
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
@@ -1328,12 +1336,12 @@ test("the full-suite fallback runs in shards, in the same Playwright image, runn
 test("the ci check passes only when its parts passed and the browser shards' merged coverage reaches 100%, or the full suite decides", () => {
   const jobs = ciJobs();
   const block = jobs.ci;
-  assert.match(block, /^ {4}needs: \[plan, checks, browser, scripts, scripts-browser, coverage, browser-fallback\]$/m);
+  assert.match(block, /^ {4}needs: \[plan, checks, attribution, browser, scripts, scripts-browser, coverage, browser-fallback\]$/m);
   const parts = stepScript(block, "Every part passed");
-  const passed = { CHECKS: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "false" };
+  const passed = { CHECKS: "success", ATTRIBUTION: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "false" };
   assert.equal(runStep(parts, passed).status, 0);
   assert.equal(runStep(parts, { ...passed, FALLBACK: "true", BROWSER_FALLBACK: "success" }).status, 0);
-  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {
+  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {
     const result = runStep(parts, { ...passed, ...failed });
     assert.equal(result.status, 1, JSON.stringify(failed));
     assert.match(result.stdout, /^::error::The [\w-]+ jobs did not pass/m);
@@ -1356,6 +1364,40 @@ test("the ci check passes only when its parts passed and the browser shards' mer
   assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}name: Full suite coverage\n/m);
   const merge = stepScript(block, "Full suite coverage");
   assert.match(runStep(merge, { RUNNER_TEMP: "/r", FALLBACK_SHARDS: "16" }).calls, /^CALL node scripts\/coverage-merge\.mjs \/r\/coverage --shards 16$/m);
+});
+
+test("the ci check requires the attribution job, which checks a pull request's commits and the merge queue's squash commits with git alone", () => {
+  const jobs = ciJobs();
+  const block = jobs.attribution;
+  assert.ok(jobs.ci.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(", ").includes("attribution"));
+  assert.match(stepScript(jobs.ci, "Every part passed"), /"attribution=\$ATTRIBUTION"/);
+  assert.match(jobs.ci, /^ {10}ATTRIBUTION: \$\{\{ needs\.attribution\.result \}\}$/m);
+  assert.match(block, /^ {4}needs: \[plan\]$/m);
+  assert.equal(block.match(/^ {4}if: (.+)$/m)?.[1], untested);
+  // Cheap: no install, and every commit without its trees, so any range reads.
+  assert.doesNotMatch(block, /pnpm|npm |npx /);
+  assert.match(block, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 0\n {10}filter: tree:0\n/);
+  const step = block.slice(block.search(/^ {6}- name: No AI attribution\n/m));
+  for (const [name, value] of [["EVENT", "github.event_name"], ["BASE_REF", "github.base_ref"], ["PR_HEAD", "github.event.pull_request.head.sha"], ["QUEUE_BASE", "github.event.merge_group.base_sha"], ["QUEUE_HEAD", "github.event.merge_group.head_sha"]]) {
+    assert.match(step, new RegExp(`^ {10}${name}: \\$\\{\\{ ${value.replace(/\./g, "\\.")} \\}\\}$`, "m"));
+  }
+  const script = stepScript(block, "No AI attribution");
+  const pull = runStep(script, { EVENT: "pull_request", BASE_REF: "main", PR_HEAD: "abc" });
+  assert.equal(pull.status, 0);
+  assert.match(pull.calls, /^CALL node scripts\/attribution\.mjs origin\/main abc$/m);
+  const queue = runStep(script, { EVENT: "merge_group", QUEUE_BASE: "base", QUEUE_HEAD: "head" });
+  assert.match(queue.calls, /^CALL node scripts\/attribution\.mjs base head$/m);
+  // A problem, or a range it cannot read, fails the job, and with it the ci check.
+  for (const env of [{ EVENT: "pull_request", BASE_REF: "main", PR_HEAD: "abc" }, { EVENT: "merge_group", QUEUE_BASE: "", QUEUE_HEAD: "" }]) {
+    assert.equal(runStep(script, env, { nodeStatus: 1 }).status, 1, env.EVENT);
+  }
+  // A push to main or a dispatched run adds no commit the pull request and the queue did not check.
+  for (const EVENT of ["push", "workflow_dispatch"]) {
+    const other = runStep(script, { EVENT });
+    assert.equal(other.status, 0);
+    assert.doesNotMatch(other.calls, /CALL node/);
+    assert.match(other.stdout, /^::notice::No commits to check/m);
+  }
 });
 
 test("the themes shards pass as not affected when a pull request changes no component, and scan only the selected stories otherwise", () => {
@@ -1406,6 +1448,10 @@ test("conformance and mutation are each one check over their shards, which passe
     assert.equal(runStep(script, { RESULT: "success" }).status, 0, check);
     for (const result of ["failure", "cancelled", "skipped"]) assert.notEqual(runStep(script, { RESULT: result }).status, 0, `${check} with ${result}`);
   }
+  // Mutation passes on skipped shards only when the plan counted none.
+  const mutation = stepScript(jobs.mutation, "Every shard passed");
+  assert.equal(runStep(mutation, { COUNT: "0", RESULT: "skipped" }).status, 0);
+  for (const [count, result] of [["0", "failure"], ["0", "cancelled"], ["3", "skipped"], ["", "skipped"]]) assert.notEqual(runStep(mutation, { COUNT: count, RESULT: result }).status, 0, `${count} ${result}`);
 });
 
 test("the mutation plan keys the kept results by pull request and dependency hash, and plans a pull request's shards from its estimated work, at least five without kept results, three with", () => {
@@ -1426,6 +1472,11 @@ test("the mutation plan keys the kept results by pull request and dependency has
   const warm = runStep(planned(2), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
   assert.match(warm.calls, /--count 3\/24$/m);
   assert.deepEqual(warm.output, { count: "3", shards: "[1,2,3]" });
+  // No changed path is runtime source: no shard starts (the matrix still needs a value).
+  const none = runStep(`node() { echo 0; }\n${count}`, { KEY: "stryker-139-abc-", MATCHED: "" });
+  assert.equal(none.status, 0);
+  assert.deepEqual(none.output, { count: "0", shards: "[0]" });
+  assert.equal(ciJobs()["mutation-shard"].match(/^ {4}if: (.+)$/m)?.[1], mutationRuns);
   // Not a pull request: nothing to mutate, three shards, and no plan.
   const other = runStep(planned(13), { KEY: "", MATCHED: "" });
   assert.deepEqual(other.output, { count: "3", shards: "[1,2,3]" });
@@ -1464,6 +1515,8 @@ test("the mutation job merges the shards' results and keeps them under the plan'
     assert.match(step, /^if: (?:env\.KEY != ''|\$\{\{ env\.KEY != '' && hashFiles\('\.tmp\/stryker-incremental\.json'\) != '' \}\})$/m, step);
     assert.match(step, /^ {8}continue-on-error: true$/m, step);
   }
+  // With no shard planned there is nothing to merge or keep.
+  assert.match(block, /^ {6}KEY: \$\{\{ needs\.mutation-plan\.outputs\.count != '0' && needs\.mutation-plan\.outputs\.key \|\| '' \}\}$/m);
   assert.match(block, /run: node scripts\/mutation\/cache\.mjs merge \.tmp\/stryker-incremental\.json \.tmp\/shards\/\*\/stryker-incremental\.json/);
   assert.match(block, /uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ env\.KEY \}\}\$\{\{ github\.sha \}\}$/m);
 });
@@ -1592,7 +1645,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const mySpecs = installSpecShard(specs.slice(0, 3), { index: 2, count: 2 });
   assert.ok(mine.length > 0 && mySpecs.length > 0);
   const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
-  assert.match(shard.stdout, new RegExp(`^npx vitest run ${escaped(mine)}$`, "m"));
+  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=1 ${escaped(mine)}$`, "m"));
   assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel ${escaped(mySpecs)}$`, "m"));
   const empty = run({ OURO_SHARD: "2/2" });
   assert.equal(empty.status, 1);
@@ -1640,7 +1693,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.doesNotMatch(ciJobs()["install-shard"], /OURO_BROWSER_DEPS|browser-deps/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
-  assert.match(some.stdout, /^npx vitest run --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
+  assert.match(some.stdout, /^npx vitest run --maxWorkers=1 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
   assert.match(some.stdout, /^npx playwright test --fully-parallel --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
@@ -1658,7 +1711,12 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   const coverage = jobs["motion-coverage"];
   assert.ok(coverage, "ci.yml has a motion-coverage job");
   assert.match(coverage, /^ {4}needs: \[ci\]$/m, "motion-coverage runs after the ci check, which waits on every browser shard");
-  assert.match(coverage, /- uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: \$\{\{ needs\.ci\.outputs\.fallback == 'true' && 'motion-fallback-\*' \|\| 'motion-browser-\*' \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
+  assert.match(coverage, /- if: env\.BROWSER_RUN == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: \$\{\{ needs\.ci\.outputs\.fallback == 'true' && 'motion-fallback-\*' \|\| 'motion-browser-\*' \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
+  // When the plan skipped the browser shards, no motion was recorded: every step but a notice is skipped.
+  assert.match(coverage, /^ {6}BROWSER_RUN: \$\{\{ needs\.ci\.outputs\.browser != 'false' \}\}$/m);
+  const steps = coverage.slice(coverage.indexOf("    steps:")).split(/\n {6}- /).slice(1);
+  assert.match(steps[0], /^if: env\.BROWSER_RUN == 'false'\n {8}run: echo /);
+  for (const step of steps.slice(1)) assert.match(step, /^if: env\.BROWSER_RUN == 'true'$/m, step);
   const check = stepScript(coverage, "Motion coverage");
   // Full: every map complete. Reduced: every project still ran, and only the ci job's stems' maps must be complete.
   const env = { MOTION_PARTITIONS: "p:6", FULL_SUITE_PARTITIONS: "p:12", RUNNER_TEMP: "/r" };
@@ -1691,6 +1749,24 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   for (const [project, suite] of [["ouro-chromium", "test/stories.test.tsx"], ["ouro-webkit", "test/stories.test.tsx"], ["ouro-touch", "test/text-size.touch.test.tsx"], ["site", "site/src/site.test.tsx"]]) {
     assert.ok(slicedSuites.includes(suite), `${project} runs ${suite} in every shard`);
   }
+});
+
+test("a browser shard runs two test files at a time in each Vitest project, and every other run keeps Vitest's default", () => {
+  // vitest.config.ts reads the shard from its process's arguments and the suite from the environment, so each case loads it afresh.
+  const configUrl = new URL("../vitest.config.ts", import.meta.url).href;
+  const maxWorkers = (args, env = {}) => {
+    const probe = `const config = (await import(${JSON.stringify(configUrl)})).default; console.log(JSON.stringify(config.test.maxWorkers ?? null));`;
+    const clean = { ...process.env, OURO_THEMES: "", OURO_CONFORMANCE: "", OURO_MUTATION: "", CI_VISUAL: "" };
+    const run = spawnSync(process.execPath, ["--input-type=module", "-e", probe, "--", ...args], { cwd: root, env: { ...clean, ...env }, encoding: "utf8" });
+    assert.equal(run.status, 0, run.stderr);
+    return JSON.parse(run.stdout.trim().split("\n").at(-1));
+  };
+  assert.equal(maxWorkers(["--shard=3/6"]), 2);
+  assert.equal(maxWorkers(["--shard", "7/16"]), 2);
+  assert.equal(maxWorkers([]), null);
+  assert.equal(maxWorkers(["--shard=1/3"], { OURO_THEMES: "1" }), null);
+  assert.equal(maxWorkers(["--shard=1/3"], { OURO_CONFORMANCE: "1" }), null);
+  assert.equal(maxWorkers(["--shard=1/3"], { OURO_MUTATION: "1" }), null);
 });
 
 test("the budget job waits on every other job, reads the run's jobs and nothing else, and its name patterns match every check", async () => {
@@ -2124,6 +2200,128 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
       assert.match(block, /^ {2}group: [\w-]+\$\{\{ github\.event\.pull_request\.number \}\}\n {2}cancel-in-progress: true$/, file);
     }
   }
+});
+
+/** A workflow expression's value, `${{ … }}` and all, in a context: GitHub's operators are JavaScript's here. */
+const evaluate = (expression, context) => {
+  const inner = expression.match(/^\$\{\{ (.+) \}\}$/)?.[1];
+  if (inner === undefined) return expression;
+  return runInNewContext(inner.replace(/([!=])=/g, "$1=="), context, { timeout: 100 });
+};
+/** A workflow's top-level concurrency group and cancel-in-progress, evaluated for an event. */
+const concurrencyFor = (text, github) => {
+  const block = text.split(/^concurrency:\n/m)[1].split(/\n(?=\S)/)[0];
+  const group = block.match(/^ {2}group: (.+)$/m)[1].replace(/\$\{\{ (.+?) \}\}/g, (whole) => String(evaluate(whole, { github })));
+  return { group, cancel: String(evaluate(block.match(/^ {2}cancel-in-progress: (.+)$/m)[1], { github })) };
+};
+const pullRequest = (number, run) => ({ event_name: "pull_request", ref: `refs/pull/${number}/merge`, run_id: run, event: { pull_request: { number } } });
+
+test("every workflow a pull request starts cancels that pull request's superseded run of it, and only that: its group is per pull request and per workflow", () => {
+  const prWorkflows = workflows.filter(({ text }) => /^ {2}pull_request:/m.test(text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0]));
+  assert.ok(["ci.yml", "screens.yml", "claims.yml", "conformance-exemptions.yml", "form-answer-proof.yml"].every((file) => prWorkflows.some((workflow) => workflow.file === file)));
+  const groups = new Map();
+  for (const { file, text } of prWorkflows) {
+    assert.match(text, /^concurrency:$/m, `${file} runs on pull requests but cancels no superseded run`);
+    const first = concurrencyFor(text, pullRequest(12, 1));
+    // A new push to the same pull request lands in the same group, and cancels the run there.
+    assert.deepEqual(concurrencyFor(text, pullRequest(12, 2)), first, `${file}: a pull request's next run shares its group`);
+    assert.equal(first.cancel, "true", `${file} cancels a pull request's superseded run`);
+    // Another pull request's run is never in it.
+    assert.notEqual(concurrencyFor(text, pullRequest(13, 3)).group, first.group, `${file}: two pull requests share a group`);
+    // Nor is another workflow's run: a group shared across workflows would cancel one with the other.
+    assert.ok(!groups.has(first.group), `${file} shares its group with ${groups.get(first.group)}`);
+    groups.set(first.group, file);
+    // A merge-queue entry, a push to main, a dispatch or a schedule is never cancelled, and never waits in another run's group.
+    const events = [...text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0].matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]).filter((event) => event !== "pull_request");
+    for (const event_name of events) {
+      const github = (run) => ({ event_name, ref: event_name === "merge_group" ? "refs/heads/gh-readonly-queue/main/pr-12-abc" : "refs/heads/main", run_id: run, event: {} });
+      const one = concurrencyFor(text, github(1));
+      assert.equal(one.cancel, "false", `${file}: a ${event_name} run is never cancelled`);
+      assert.notEqual(concurrencyFor(text, github(2)).group, one.group, `${file}: two ${event_name} runs share a group`);
+    }
+  }
+});
+
+test("a pull request that changes nothing the browser tests read skips the browser shards, and the checks that read them still pass", () => {
+  const jobs = ciJobs();
+  assert.match(jobs.plan, /^ {6}browser: \$\{\{ steps\.browser\.outputs\.run \}\}$/m);
+  const decide = stepScript(jobs.plan, "Can the change reach the browser shards?");
+  const pr = { EVENT: "pull_request", REF: "refs/pull/12/merge", HEAD_REF: "fix", BASE_REF: "main" };
+  const asked = runStep(decide, pr);
+  assert.match(asked.calls, /^CALL node scripts\/ci-relevance\.mjs browser HEAD\^1 HEAD$/m);
+  // The stand-in node writes nothing: the decision is the script's. When it fails, the shards run.
+  assert.deepEqual(runStep(decide, pr, { nodeStatus: 1 }).output, { run: "true" });
+  for (const env of [{ EVENT: "merge_group", REF: "refs/heads/gh-readonly-queue/main/pr-12-abc" }, { EVENT: "push", REF: "refs/heads/main" }, { EVENT: "workflow_dispatch", REF: "refs/heads/release/v1.0.0" }, { ...pr, HEAD_REF: "release/v1.0.0" }, { ...pr, BASE_REF: "next" }]) {
+    const result = runStep(decide, env);
+    assert.doesNotMatch(result.calls, /ci-relevance/, JSON.stringify(env));
+    assert.deepEqual(result.output, { run: "true" }, JSON.stringify(env));
+  }
+  // The shards skip only on browser=false: a plan that failed or never ran leaves it empty, and they run.
+  const runs = (browser) => runInNewContext(browserRuns.slice(4, -3).replace("!cancelled()", "true").replace("needs.plan.outputs.tested", "''").replace("needs.plan.outputs.browser", "value"), { value: browser });
+  assert.deepEqual(["", "true", "false"].map(runs), [true, true, false]);
+  assert.equal(jobs.browser.match(/^ {4}if: (.+)$/m)?.[1], browserRuns);
+  // The coverage job passes with nothing measured only when the plan skipped them and they did skip.
+  assert.match(jobs.coverage, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
+  assert.match(jobs.coverage, /^ {6}ran: \$\{\{ steps\.shards\.outputs\.ran \}\}$/m);
+  const passed = stepScript(jobs.coverage, "Every browser shard passed");
+  assert.deepEqual(runStep(passed, { BROWSER_RUN: "false", BROWSER: "skipped" }).output, { ran: "false" });
+  assert.equal(runStep(passed, { BROWSER_RUN: "false", BROWSER: "skipped" }).status, 0);
+  assert.deepEqual(runStep(passed, { BROWSER_RUN: "true", BROWSER: "success" }).output, { ran: "true" });
+  for (const [run, result] of [["true", "skipped"], ["false", "success"], ["false", "failure"]]) assert.equal(runStep(passed, { BROWSER_RUN: run, BROWSER: result }).status, 1, `${run} ${result}`);
+  // Every other coverage step waits for shards that ran.
+  const steps = jobs.coverage.slice(jobs.coverage.indexOf("    steps:")).split(/\n {6}- /).slice(2);
+  for (const step of steps) assert.match(step, /^(id: \w+\n {8})?if: env\.BROWSER_RUN == 'true'$/m, step);
+  // The ci check counts a skip as a pass only when the plan asked for it.
+  assert.match(jobs.ci, /^ {6}browser: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
+  assert.match(jobs.ci, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
+  const parts = stepScript(jobs.ci, "Every part passed");
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", BROWSER: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "" };
+  assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false" }).status, 0);
+  assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "true" }).status, 1);
+  assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", BROWSER: "failure" }).status, 1);
+  assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", COVERAGE: "failure" }).status, 1);
+});
+
+test("Screens checks a pull request's screens only when its change can reach the site build or the check, and every other run's always", () => {
+  const { text } = workflows.find(({ file }) => file === "screens.yml");
+  const jobs = Object.fromEntries(text.split(/^jobs:\n/m)[1].split(/\n(?= {2}[\w-]+:\n)/).map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]));
+  assert.deepEqual(Object.keys(jobs), ["changes", "screens-shard", "screens"]);
+  assert.match(jobs.changes, /^ {6}run: \$\{\{ steps\.relevance\.outputs\.run \}\}$/m);
+  assert.match(jobs.changes, /^ {10}fetch-depth: 2$/m);
+  // No pnpm i: scripts/ci-relevance.mjs imports only Node's own modules.
+  assert.doesNotMatch(jobs.changes, /pnpm/);
+  assert.match(jobs["screens-shard"], /^ {4}needs: \[changes\]\n {4}if: \$\{\{ !cancelled\(\) && needs\.changes\.outputs\.run != 'false' \}\}$/m);
+  assert.match(jobs.screens, /^ {4}needs: \[changes, screens-shard\]\n {4}if: \$\{\{ !cancelled\(\) && needs\.changes\.outputs\.run != 'false' \}\}$/m);
+  const decide = stepScript(jobs.changes, "Can the change reach the screens?");
+  const pr = { EVENT: "pull_request", HEAD_REF: "fix", BASE_REF: "main" };
+  assert.match(runStep(decide, pr).calls, /^CALL node scripts\/ci-relevance\.mjs screens HEAD\^1 HEAD$/m);
+  assert.deepEqual(runStep(decide, pr, { nodeStatus: 1 }).output, { run: "true" });
+  for (const env of [{ EVENT: "push" }, { EVENT: "workflow_dispatch" }, { ...pr, HEAD_REF: "release/v1.0.0" }]) {
+    const result = runStep(decide, env);
+    assert.doesNotMatch(result.calls, /ci-relevance/);
+    assert.deepEqual(result.output, { run: "true" });
+  }
+  // This workflow and the check it runs are among what Screens reads.
+  assert.equal(relevance("screens", [".github/workflows/screens.yml"]).run, true);
+  assert.equal(relevance("screens", [".github/actions/check/action.yml"]).run, true);
+});
+
+test("CI's plan prints the repository's queued runs in its summary, and an API that does not answer stops nothing", () => {
+  const script = stepScript(ciJobs().plan, "Queued runs");
+  const dir = scratchDir("ouro-queued-");
+  const summary = (ghStatus) => {
+    const file = join(dir, `summary-${ghStatus}.md`);
+    writeFileSync(file, "");
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `gh() { echo "$*" > "${dir}/call"; [ "$GH_STATUS" = 0 ] || return "$GH_STATUS"; echo 39; }\n${script}`], {
+      encoding: "utf8",
+      env: { ...process.env, GH_STATUS: String(ghStatus), GITHUB_STEP_SUMMARY: file, REPO: "o/r" },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return readFileSync(file, "utf8");
+  };
+  assert.equal(summary(0), "**Queued runs** in o/r as this run planned: 39\n");
+  assert.equal(readFileSync(join(dir, "call"), "utf8"), "api repos/o/r/actions/runs?status=queued&per_page=1 --jq .total_count\n");
+  assert.equal(summary(1), "**Queued runs** in o/r as this run planned: unknown (the API did not answer)\n");
 });
 
 test("the conformance exemptions check runs on each pull request and its description's edits, and passes in the merge queue without checking", () => {

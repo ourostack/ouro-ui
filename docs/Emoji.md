@@ -2,7 +2,7 @@
 
 # Emoji
 
-One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named by its `alt` (the emoji's name). An animated emoji shows its still image until it plays: while the mouse is on it or on the button around it, or that button has focus, or while `play` says so. With reduced motion it always shows the still image. `skinTone` draws an emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
+One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named by its `alt` (the emoji's name). An animated emoji shows its still image until it plays: while the mouse is on it or on the button around it, or that button has focus, or while `play` says so. With reduced motion it always shows the still image. `skinTone` draws an emoji with tones in one of them, and `placeholder` stands in until its picture has loaded. Its picture is fetched as soon as it is drawn, not when it nears the screen, so an emoji in an older message is there when the reader scrolls back to it. Its box is the text's size from the first frame, and a picture that fails to load keeps it, so no line moves as emoji load or fail.
 
 ```tsx
 import { Emoji } from "@/registry/ouro/components/ouro/emoji/emoji";

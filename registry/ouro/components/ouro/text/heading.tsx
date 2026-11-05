@@ -26,6 +26,13 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
    * @claim "derived from `level`" registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading > derives a smaller default size for deeper levels)
    */
   size?: HeadingSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl" or, larger, "display"': never }) | undefined;
+  /**
+   * Cuts the heading to one line with an ellipsis, as a list row or a title bar needs. A heading
+   * otherwise balances its lines, which would wrap it again, so `truncate` drops the balancing.
+   * @default false
+   * @claim "Cuts the heading to one line" registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading > cuts to one line with an ellipsis with truncate, without balancing it back onto two)
+   */
+  truncate?: boolean | undefined;
   /** Alignment in writing direction. @default inherited */
   align?: TextAlign | (string & { 'Use "start", "center" or "end": left is "start", right is "end"': never }) | undefined;
   /**
@@ -75,9 +82,10 @@ function headingHint(token: string): string {
  * <Heading level={1}>Recipes</Heading>
  * <Heading level={2} size="lg">Ingredients</Heading>
  * <Heading level={1} size="display">Dinner, sorted</Heading>
+ * <Heading level={3} truncate>{thread.subject}</Heading>
  */
 export function Heading(props: HeadingProps): JSX.Element {
-  const { level: levelProp, size: sizeProp, align: alignProp, className, ref, color, as, ...rest } = props;
+  const { level: levelProp, size: sizeProp, align: alignProp, truncate, className, ref, color, as, ...rest } = props;
   const level = levelProp as keyof typeof sizeByLevel;
   const [align, alignWarning] = checkAlign("Heading", alignProp);
   if (!(level in sizeByLevel) || typeof level !== "number") {
@@ -118,7 +126,8 @@ export function Heading(props: HeadingProps): JSX.Element {
   );
   const Tag = `h${level}` as const;
   const classes = cn(
-    "[@layer_ouro-reset]:m-0 font-[family-name:var(--font-heading,inherit)] font-semibold text-balance text-foreground",
+    "[@layer_ouro-reset]:m-0 font-[family-name:var(--font-heading,inherit)] font-semibold text-foreground",
+    truncate ? "truncate" : "text-balance",
     sizes[size],
     align && alignClasses[align],
     className,

@@ -1,6 +1,7 @@
 import { type CSSProperties, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
+import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
 import { Avatar, AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
@@ -34,6 +35,32 @@ const photo =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4AWP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==";
 const broken = "data:image/png;base64,broken";
 
+/** The letters an avatar or a group's count draws: its `::before` content, as the browser resolved it. */
+function drawn(scope: Element): string {
+  const letters = scope.querySelector("[data-ouro-avatar-initials], [data-ouro-avatar-count]");
+  const content = letters ? getComputedStyle(letters, "::before").content : "none";
+  return content.startsWith('"') ? (JSON.parse(content) as string) : "";
+}
+
+/**
+ * Writes each drawn letter in `element` as text instead, in the same element with the same classes
+ * but without the `::before` that draws it: the avatar as it was when its initials were text.
+ */
+function write(element: Element): void {
+  for (const letters of element.querySelectorAll<HTMLElement>("[data-ouro-avatar-initials], [data-ouro-avatar-count]")) {
+    const text = letters.dataset["ouroAvatarInitials"] ?? letters.dataset["ouroAvatarCount"]!;
+    for (const name of [...letters.classList]) if (name.startsWith("before:")) letters.classList.remove(name);
+    letters.textContent = text;
+  }
+}
+
+/** A copy of `element` with its letters written as text ({@link write}). */
+function written(element: HTMLElement): HTMLElement {
+  const copy = element.cloneNode(true) as HTMLElement;
+  write(copy);
+  return copy;
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -50,7 +77,7 @@ describe("Avatar", () => {
     const { avatar } = await render(<Avatar name="Ana Rae Lind" />);
     expect(avatar.getAttribute("role")).toBe("img");
     expect(avatar.getAttribute("aria-label")).toBe("Ana Rae Lind");
-    expect(avatar.textContent).toBe("AL");
+    expect(drawn(avatar)).toBe("AL");
     await expect.element(page.getByRole("img", { name: "Ana Rae Lind" })).toBeVisible();
   });
 
@@ -62,12 +89,12 @@ describe("Avatar", () => {
     ["", ""],
   ])("derives initials from %j as %j", async (name, initials) => {
     const { avatar } = await render(<Avatar name={name} />);
-    expect(avatar.textContent).toBe(initials);
+    expect(drawn(avatar)).toBe(initials);
   });
 
   it("takes initials and alt that override the name", async () => {
     const { avatar } = await render(<Avatar name="Ana Lind" initials="AnL" alt="Ana, the author" />);
-    expect(avatar.textContent).toBe("AnL");
+    expect(drawn(avatar)).toBe("AnL");
     expect(avatar.getAttribute("aria-label")).toBe("Ana, the author");
   });
 
@@ -85,6 +112,7 @@ describe("Avatar", () => {
     expect(img.getAttribute("alt")).toBe("");
     expect(img.getAttribute("src")).toBe(photo);
     expect(avatar.textContent).toBe("");
+    expect(drawn(avatar)).toBe("");
     expect(avatar.getAttribute("aria-label")).toBe("Ana Lind");
     expect(getComputedStyle(img).objectFit).toBe("cover");
   });
@@ -93,7 +121,7 @@ describe("Avatar", () => {
     const { avatar } = await render(<Avatar name="Ana Lind" src={broken} />);
     await expect.poll(() => avatar.getAttribute("data-image")).toBe("error");
     expect(avatar.querySelector("img")).toBeNull();
-    expect(avatar.textContent).toBe("AL");
+    expect(drawn(avatar)).toBe("AL");
   });
 
   it("renders initials in server HTML and hydrates without a warning", async () => {
@@ -101,7 +129,7 @@ describe("Avatar", () => {
     const node = <Avatar name="Ana Lind" src={photo} />;
     const html = renderToString(node);
     expect(html).toContain('aria-label="Ana Lind"');
-    expect(html).toContain(">AL<");
+    expect(html).toContain('data-ouro-avatar-initials="AL"');
     const host = document.createElement("div");
     host.innerHTML = html;
     document.body.append(host);
@@ -403,7 +431,7 @@ describe("Avatar shapes and icons", () => {
     for (const avatar of avatars.slice(0, -1)) {
       const box = avatar.getBoundingClientRect();
       const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-initials]")!.getBoundingClientRect();
-      expect(avatar.textContent).toBe("HA");
+      expect(drawn(avatar)).toBe("HA");
       expect(Math.abs(letters.left + letters.width / 2 - (box.left + box.width / 2))).toBeLessThanOrEqual(0.5);
       expect(Math.abs(letters.top + letters.height / 2 - (box.top + box.height / 2))).toBeLessThanOrEqual(0.5);
     }
@@ -450,6 +478,7 @@ describe("Avatar shapes and icons", () => {
       />,
     );
     expect(avatar.textContent).toBe("");
+    expect(drawn(avatar)).toBe("");
     expect(avatar.getAttribute("aria-label")).toBe("Weekly sync");
     const icon = avatar.querySelector<SVGElement>('[data-testid="calendar"]')!;
     expect(icon.getBoundingClientRect().width).toBe(22);
@@ -462,7 +491,7 @@ describe("Avatar shapes and icons", () => {
 
   it("shows the initials when the icon is null", async () => {
     const { avatar } = await render(<Avatar name="Weekly sync" icon={null} />);
-    expect(avatar.textContent).toBe("WS");
+    expect(drawn(avatar)).toBe("WS");
     expect(avatar.querySelector("[data-ouro-avatar-initials]")).not.toBeNull();
   });
 });
@@ -483,8 +512,15 @@ describe("Avatar presence", () => {
         ))}
       </>,
     );
+    // axe measures the contrast of text, and the initials are drawn, so it measures them written
+    // as text: "draws its letters exactly as written text" proves the two paint the same pixels.
+    const copy = written(host);
+    host.after(copy);
+    mounted.push(copy);
+    host.hidden = true;
+    expect(copy.querySelectorAll("[data-ouro-avatar-initials]").length).toBe(4 * 7 * 4);
     try {
-      expect(describeFindings(await audit({ include: [host] }))).toBe("");
+      expect(describeFindings(await audit({ include: [copy] }))).toBe("");
     } finally {
       document.documentElement.classList.remove("dark");
     }
@@ -505,7 +541,7 @@ describe("Avatar presence", () => {
     for (const avatar of avatars) {
       const box = avatar.getBoundingClientRect();
       const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-initials]")!.getBoundingClientRect();
-      const where = `${size} ${avatar.textContent}${avatar.dataset["presence"] ? " with a dot" : ""}: letters ${JSON.stringify(letters)} avatar ${JSON.stringify(box)}`;
+      const where = `${size} ${drawn(avatar)}${avatar.dataset["presence"] ? " with a dot" : ""}: letters ${JSON.stringify(letters)} avatar ${JSON.stringify(box)}`;
       // The initials' box runs from the top of the capitals to the baseline (a cap height, under
       // 0.8em in any font, where the line would be at least 1em), so its middle is the letters' own.
       expect(letters.height / fontSize, where).toBeGreaterThan(0.6);
@@ -699,8 +735,9 @@ describe("AvatarGroup", () => {
     );
     expect(group.querySelectorAll('[data-ouro="avatar"]')).toHaveLength(3);
     const more = group.querySelector<HTMLElement>("[data-ouro-avatar-more]")!;
-    expect(more.textContent).toBe("+22 more");
-    expect(more.querySelector("[aria-hidden]")!.textContent).toBe("+2");
+    expect(more.textContent).toBe("2 more");
+    expect(drawn(more)).toBe("+2");
+    expect(more.querySelector("[aria-hidden]")!.textContent).toBe("");
     await expect.element(page.getByRole("group", { name: "Cooks" })).toBeVisible();
   });
 
@@ -712,7 +749,8 @@ describe("AvatarGroup", () => {
       </AvatarGroup>,
     );
     const more = group.querySelector<HTMLElement>("[data-ouro-avatar-more]")!;
-    expect(more.textContent).toBe("+118118 weitere");
+    expect(more.textContent).toBe("118 weitere");
+    expect(drawn(more)).toBe("+118");
   });
 
   it("passes its size to every avatar and the count", async () => {
@@ -750,7 +788,7 @@ describe("Avatar development messages", () => {
     const props = { name: "Ana Lind", ...extra } as unknown as Parameters<typeof Avatar>[0];
     const { avatar } = await render(<Avatar {...props} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Avatar: ${problem}. Fix: ${fix}.`);
-    expect(avatar.textContent).toBe("AL");
+    expect(drawn(avatar)).toBe("AL");
     expect(avatar.getBoundingClientRect().width).toBe(40);
   });
 
@@ -837,5 +875,125 @@ describe("Avatar development messages", () => {
     expect(html).toContain("+1");
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+const people = ["Ana Lind", "Grace Hopper", "Alan Turing", "Katherine Johnson", "Edsger Dijkstra"];
+
+describe("Avatar inside a link or button that has its own name", () => {
+  // What a speech-input user can say to press a control must be in its name (WCAG 2.5.3, Label in
+  // Name). axe's label-content-name-mismatch reads every text node a control shows, aria-hidden
+  // ones and SVG text included, so the initials are drawn, not written.
+  async function labelInName(node: Element): Promise<string[]> {
+    const result = await axe.run({ include: [node] }, { runOnly: ["label-content-name-mismatch"], resultTypes: ["violations", "incomplete"] });
+    return [...result.violations, ...result.incomplete].flatMap((rule) => rule.nodes.map(() => rule.id));
+  }
+
+  it.each([
+    ["its initials", <Avatar key="a" name="Ana Lind" />],
+    ["its initials with alt=\"\"", <Avatar key="a" name="Ana Lind" alt="" />],
+    ["initials it is given", <Avatar key="a" name="Ana Lind" initials="AnL" />],
+    ["its initials and a presence dot", <Avatar key="a" name="Ana Lind" presence="busy" presenceLabel="In a meeting" />],
+    ["a square's initials", <Avatar key="a" name="Ana Lind" shape="square" />],
+    ["an agent's hexagon and initials", <Avatar key="a" name="Ana Lind" shape="hexagon" />],
+    ["its initials after the picture fails", <Avatar key="a" name="Ana Lind" src={broken} />],
+  ])("a link named \"Ana Lind's profile\" around %s has no label-content-name-mismatch", async (_case, avatar) => {
+    const { host } = await render(
+      <a href="#ana" aria-label="Ana Lind's profile">
+        {avatar}
+      </a>,
+    );
+    await expect.poll(() => host.querySelector('[data-ouro="avatar"]')!.getAttribute("data-image")).not.toBe("loading");
+    expect(drawn(host)).not.toBe("");
+    expect(await labelInName(host)).toEqual([]);
+  });
+
+  it("a button named for the group around an AvatarGroup and its +N count has no label-content-name-mismatch", async () => {
+    const { host } = await render(
+      <button type="button" aria-label="See the 5 cooks">
+        <AvatarGroup label="Cooks" max={3}>
+          {people.map((name) => (
+            <Avatar key={name} name={name} />
+          ))}
+        </AvatarGroup>
+      </button>,
+    );
+    expect(drawn(host.querySelector("[data-ouro-avatar-more]")!)).toBe("+2");
+    expect(await labelInName(host)).toEqual([]);
+  });
+
+  it("the same link around initials written as text fails the rule, so the check can fail", async () => {
+    const { host } = await render(
+      <a href="#ana" aria-label="Ana Lind's profile">
+        <Avatar name="Ana Lind" />
+      </a>,
+    );
+    expect(await labelInName(host)).toEqual([]);
+    const copy = written(host);
+    host.after(copy);
+    mounted.push(copy);
+    expect(await labelInName(copy)).toEqual(["label-content-name-mismatch"]);
+  });
+
+  it("names a link with no label of its own by the person's name, not the letters", async () => {
+    await render(
+      <a href="#ana">
+        <Avatar name="Ana Lind" />
+      </a>,
+    );
+    await expect.element(page.getByRole("link", { name: "Ana Lind", exact: true })).toBeVisible();
+  });
+});
+
+describe("Avatar's drawn letters", () => {
+  async function pixels(element: Element): Promise<{ width: number; height: number; data: Uint8ClampedArray }> {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const image = new Image();
+    image.src = `data:image/png;base64,${await page.screenshot({ save: false, element, animations: "disabled", caret: "initial" })}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d", { willReadFrequently: true })!;
+    context.drawImage(image, 0, 0);
+    return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
+  }
+
+  it.each(["light", "dark", "forced colours"] as const)("look exactly as written text did, in every size, shape, color and the group's count (%s)", async (scheme) => {
+    document.documentElement.classList.toggle("dark", scheme === "dark");
+    if (scheme === "forced colours") await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
+      const { host } = await render(
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 4, width: 600, alignItems: "center", background: "var(--background)" }}>
+          {sizes.map((size) => (
+            <Avatar key={size} name="Grace Hopper" size={size} />
+          ))}
+          <Avatar name="Ana Lind" shape="square" color="brand" />
+          <Avatar name="Halden Agent" shape="hexagon" color="neutral" size="lg" />
+          <Avatar name="Émile Zola" presence="away" presenceLabel="Away" size="xl" />
+          <Avatar name="😀 Smile" size="lg" />
+          <AvatarGroup label="Cooks" max={2}>
+            {people.map((name) => (
+              <Avatar key={name} name={name} />
+            ))}
+          </AvatarGroup>
+        </div>,
+      );
+      // The same element, in the same place, drawn and then written: a copy elsewhere on the page
+      // can land its anti-aliasing differently.
+      const row = host.firstElementChild!;
+      const drawnPixels = await pixels(row);
+      write(row);
+      expect(row.textContent).toContain("GH");
+      const writtenPixels = await pixels(row);
+      expect([drawnPixels.width, drawnPixels.height]).toEqual([writtenPixels.width, writtenPixels.height]);
+      expect(drawnPixels.data.filter((value, index) => value !== writtenPixels.data[index]).length).toBe(0);
+      // And the letters are there to see: the row is not one flat colour.
+      expect(new Set(drawnPixels.data.filter((_, index) => index % 4 === 0)).size).toBeGreaterThan(8);
+    } finally {
+      document.documentElement.classList.remove("dark");
+      if (scheme === "forced colours") await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 });

@@ -85,7 +85,7 @@ describe("Message", () => {
       const author = message.querySelector<HTMLElement>("[data-ouro-message-author]")!;
       expect(author.querySelector('[aria-hidden="true"] [data-testid="sparkle"]')).not.toBeNull();
       expect(author.querySelector(".sr-only")!.textContent).toBe("Riley Example");
-      expect(message.querySelector('[data-ouro="avatar"]')!.textContent).toBe("RE");
+      expect(message.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("RE");
     }
   });
 
@@ -160,7 +160,7 @@ describe("Message", () => {
     );
     const avatars = host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]');
     expect(avatars).toHaveLength(1);
-    expect(avatars[0]!.textContent).toBe("OA");
+    expect(avatars[0]!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("OA");
     expect(avatars[0]!.getAttribute("aria-hidden")).toBe("true");
   });
 
@@ -855,7 +855,7 @@ describe("Message chat", () => {
       </>,
     );
     const [theo, priya, mara] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
-    expect(theo!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("TB!");
+    expect(theo!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("TB!");
     // Without a time, the header is the name alone.
     expect(headerOf(theo!).textContent).toBe("Theo Brandt");
     expect(headerOf(theo!).querySelector("time")).toBeNull();

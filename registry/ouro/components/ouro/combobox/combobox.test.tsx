@@ -856,8 +856,8 @@ describe("Combobox rich items", () => {
     await expect.poll(options).toHaveLength(3);
     const [rowan, iris, theo] = [...document.querySelectorAll<HTMLElement>('[role="listbox"] [role="option"]')];
     // Read in order: the name, the second line, then the mark.
-    // The avatar's initials ("RV") are hidden from screen readers with alt="".
-    expect(rowan!.textContent).toBe("RV" + "Rowan Vale" + "Principal Engineer, Platform Services and Developer Experience, North Harbor office" + "1:1");
+    // The avatar's initials ("RV") are drawn, not text, and hidden from screen readers with alt="".
+    expect(rowan!.textContent).toBe("Rowan Vale" + "Principal Engineer, Platform Services and Developer Experience, North Harbor office" + "1:1");
     const media = rowan!.querySelector<HTMLElement>("[data-ouro-combobox-media]")!;
     const description = rowan!.querySelector<HTMLElement>("[data-ouro-combobox-description]")!;
     const meta = rowan!.querySelector<HTMLElement>("[data-ouro-combobox-meta]")!;

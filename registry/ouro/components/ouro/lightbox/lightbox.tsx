@@ -31,6 +31,7 @@ import {
   mosaicCellClass,
   mosaicClass,
   mosaicFrameClass,
+  mosaicImageClass,
   mosaicLayout,
   mosaicMoreClass,
   mosaicThumbnailClass,
@@ -297,6 +298,8 @@ interface FigureProps {
   /** Reports how far the image can zoom: its own width over its fitted width. */
   onMaxScale: (max: number) => void;
   zoomLabel: string;
+  /** How soon its image is fetched: `high` for the image shown, `low` for those more than one step away. */
+  priority: "high" | "low" | undefined;
 }
 
 /** The image's fitted size, and its own width. */
@@ -425,7 +428,7 @@ function useDoubleTap(onDoubleTap: (x: number, y: number) => void): Pick<HTMLAtt
  * finger, a trackpad or the arrow keys move around it, and a swipe there pans instead of turning
  * the page. A double-tap zooms to the image's own size at the tap and back; a pinch zooms it too.
  */
-function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: FigureProps): JSX.Element {
+function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority }: FigureProps): JSX.Element {
   const figure = useRef<HTMLElement>(null);
   const picture = useRef<HTMLImageElement>(null);
   const view = useRef<HTMLDivElement>(null);
@@ -486,7 +489,7 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
       className={figureClass}
       {...taps}
     >
-      <img ref={picture} src={image.src} alt={image.alt} decoding="async" data-ouro-lightbox-image="" className={cn(imageClass, zoomed && "invisible")} />
+      <img ref={picture} src={image.src} alt={image.alt} decoding="async" fetchPriority={priority} data-ouro-lightbox-image="" className={cn(imageClass, zoomed && "invisible")} />
       {/* Zoomed, the image covers the caption, so the caption steps aside until it is fitted again. */}
       {(image.title !== undefined || image.caption !== undefined) && (
         <figcaption className={cn(captionClass, zoomed && "invisible")}>
@@ -521,6 +524,21 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel }: Figure
  * The viewer's contents. It mounts when the viewer opens, so it starts on the image chosen; an
  * index the app changes while it is open starts the carousel again on that image.
  */
+/**
+ * How soon the viewer fetches an image: the one shown first, then the ones a step either side
+ * (around the ends with `loop`), at the browser's own priority, then the rest.
+ */
+function priorityOf(position: number, shown: number, total: number, loop: boolean): "high" | "low" | undefined {
+  const away = Math.abs(position - shown);
+  const steps = loop ? Math.min(away, total - away) : away;
+  return steps === 0 ? "high" : steps > 1 ? "low" : undefined;
+}
+
+/** Starts fetching an image before it is drawn, as a thumbnail is pressed, so the viewer opens on it sooner. */
+function warm(src: string): void {
+  new Image().src = src;
+}
+
 function LightboxViewer({
   label,
   images,
@@ -667,6 +685,7 @@ function LightboxViewer({
             onScale={(next) => setZoom({ index: position, scale: next })}
             onMaxScale={(max) => setMaxima((list) => ({ ...list, [position]: max }))}
             zoomLabel={zoomLabel}
+            priority={priorityOf(position, shown, total, loop)}
           />
         ))}
       </Carousel>
@@ -684,7 +703,9 @@ function LightboxViewer({
  * politely, once, when the image arrives. With one image the viewer shows neither
  * the position nor Previous and Next. Escape, Close or a press outside closes it, and focus goes
  * to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and
- * slides between images; with reduced motion it fades and jumps instead.
+ * slides between images; with reduced motion it fades and jumps instead. Pressing a thumbnail
+ * starts fetching its full image before the viewer opens, and the viewer fetches the image shown
+ * first, then the ones a step either side, then the rest.
  * On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that
  * size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe
  * moves around the image rather than to the next one.
@@ -722,6 +743,8 @@ function LightboxViewer({
  *   onOpenChange={setOpen}
  *   onIndexChange={setIndex}
  * />
+ * @claim "Pressing a thumbnail starts fetching its" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox fetching > starts fetching the full image as its thumbnail is pressed, before the viewer opens)
+ * @claim "the viewer fetches the image shown first" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox fetching > fetches the image shown first, then the ones a step either side, then the rest)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > steps with the arrow keys from anywhere in the viewer, in reading order)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx::Lightbox on a touch screen > moves to the next image with a swipe)
  * @claim "politely, once, when the image arrives" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > shows the position and announces it once when it changes)
@@ -910,6 +933,11 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       data-ouro-control="lightbox"
       data-ouro-part="thumbnail"
       {...holdPageAtPress.dialog}
+      onPointerDown={(event) => {
+        // The press starts the image's fetch; the click that opens the viewer comes after the release.
+        warm(image.src);
+        holdPageAtPress.dialog.onPointerDown(event);
+      }}
       className={mosaic ? mosaicThumbnailClass : thumbnailClass}
       onClick={() => {
         setStart(position);
@@ -919,7 +947,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       {/* With reduced motion an animated image's thumbnail shows its still frame: chosen by the browser under the device's setting, always under OuroProvider's motion="reduced", never under "full". */}
       <picture className="contents">
         {image.still !== undefined && motion !== "full" && <source media={motion === "reduced" ? "all" : "(prefers-reduced-motion: reduce)"} srcSet={image.still} />}
-        <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={thumbnailImageClass} />
+        <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={mosaic ? mosaicImageClass : thumbnailImageClass} />
       </picture>
       {more > 0 && (
         <>

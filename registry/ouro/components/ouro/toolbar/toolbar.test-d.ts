@@ -1,4 +1,4 @@
-import { createElement, type ComponentProps } from "react";
+import { createElement, type ComponentProps, type RefObject } from "react";
 import { expectTypeOf } from "vitest";
 import { Toolbar, type ToolbarEntry, type ToolbarProps } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
@@ -43,8 +43,32 @@ expectTypeOf<{ label: "Formatting"; items: typeof items; children: "x" }>().not.
 expectTypeOf<{ label: "Formatting"; items: typeof items; orientation: "vertical" }>().not.toExtend<ToolbarProps>();
 expectTypeOf<{ label: "Formatting"; items: typeof items; actions: typeof items }>().not.toExtend<ToolbarProps>();
 
+// floating is a flag; autoHide takes milliseconds, not a flag; onHiddenChange gets the new state.
+expectTypeOf<{ label: "Call controls"; items: typeof items; floating: true; autoHide: 3000; onHiddenChange: (hidden: boolean) => void }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: true }>().not.toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: "3s" }>().not.toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; floating: "glass" }>().not.toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; onHiddenChange: (hidden: string) => void }>().not.toExtend<ToolbarProps>();
+// The guessed names are type errors whose hint names the fix.
+expectTypeOf<{ label: "Call controls"; items: typeof items; glass: true }>().not.toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHideDuration: 3000 }>().not.toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; area: HTMLElement }>().not.toExtend<ToolbarProps>();
+// autoHideArea takes an element, a ref or null; a selector is a type error.
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: HTMLDivElement }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: RefObject<HTMLDivElement | null> }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: null }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; autoHideArea: "#stage" }>().not.toExtend<ToolbarProps>();
+// hidden is a flag the app controls with onHiddenChange; visible is a type error whose hint names hidden.
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; hidden: boolean; onHiddenChange: (hidden: boolean) => void }>().toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; hidden: "true" }>().not.toExtend<ToolbarProps>();
+expectTypeOf<{ label: "Call controls"; items: typeof items; autoHide: 3000; visible: true }>().not.toExtend<ToolbarProps>();
+
 // The same checks through JSX.
 // @ts-expect-error a Toolbar is a row.
 createElement(Toolbar, { label: "Formatting", items, orientation: "vertical" });
 // @ts-expect-error the controls come from items.
 createElement(Toolbar, { label: "Formatting", items, children: "Bold" });
+// @ts-expect-error autoHide takes the milliseconds of rest.
+createElement(Toolbar, { label: "Call controls", items, autoHide: true });
+// @ts-expect-error the bar is controlled with hidden.
+createElement(Toolbar, { label: "Call controls", items, autoHide: 3000, visible: true });
