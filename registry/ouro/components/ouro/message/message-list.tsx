@@ -35,6 +35,28 @@ export interface MessageListOwnProps {
    */
   initialAnchor?: string | undefined;
   /**
+   * Which conversation the messages are, such as its id. Change it with the other conversation's messages, or before they
+   * come (as an app that keeps the last messages while it fetches does): the list opens that conversation at its newest
+   * message as they come, whatever keys they have, and moves nothing while the last one's still show. While it stays the
+   * same, nothing the messages do counts as a switch: keys swapped for the server's, the newest ones regenerated or removed.
+   * The first one named for messages the list already holds names them, and moves nothing. Messages that come before
+   * their conversation is named are taken for the last one's, and the name that follows them is taken for theirs, opening
+   * nothing; and a conversation whose
+   * messages carry exactly the last one's keys (keyed by place, as many of them) can't be told from it until they change,
+   * so key messages by their own ids. Without it, the list takes messages that share no `key` with the ones it held for
+   * another conversation, so it misses a switch between conversations whose messages share keys, and takes a short
+   * conversation whose every message gets a new key at once for another one.
+   * @claim "While it stays the same, nothing the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
+ * @claim "While it stays the same, nothing the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes removing the newest five, as a regenerated turn does, for the same conversation)
+ * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does)
+   * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
+   * @claim "The first one named for messages the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > adopts a conversation first named for the messages it holds, leaving a scrolled-up reader where they are)
+   * @claim "Messages that come before their conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > adopts a name that comes after its messages, so switching back in one commit opens the last conversation at its newest)
+   * @claim "Messages that come before their conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes messages that come before their conversation is named for the last one's, and opens nothing when it is named after them)
+   * @claim "Without it, the list takes messages that" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > keeps the reader's place, the messages and focus when the newest three get new keys in place, while scrolled up)
+   */
+  conversation?: Key | undefined;
+  /**
    * Whether older messages are loading above: a small "Loading older messages" shows over the
    * top of the list, and screen readers hear it once. It sits over the messages, not among them,
    * so starting and ending it moves no message. At the very top it covers the first message
@@ -191,6 +213,31 @@ const olderClass =
 
 /** How many older messages go into the list in a frame when a page of them comes at once, to keep the frame short. */
 const CHUNK = 20;
+/**
+ * How many of the newest children's keys, with the first child's, say the list's messages changed enough to look again for a switch.
+ * @claim "How many of the newest children's keys" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches a list %s to another conversation of a thousand at its newest, in its first frame, from anywhere in the one before)
+ */
+const RECENT = 3;
+/**
+ * How many of the newest messages a conversation opens with, more than a tall list shows at once; the rest go in above them, CHUNK a frame.
+ * @claim "How many of the newest messages a conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens a thousand messages at the newest in its first frame, drawing only the newest, then the rest above without moving the view)
+ */
+const FIRST = 40;
+
+/**
+ * The key of the first child a conversation opens drawing: the newest FIRST, or from CHUNK above the message `anchor`
+ * names. Every child when no child has that `id`, since the message may be one of an app's own that sets its `id` itself.
+ * @claim "The key of the first child a" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens at initialAnchor far back in a thousand messages, drawing from it, and holds it still as the rest go in above)
+ * @claim "Every child when no child has that" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the newest message when initialAnchor names no message in the list, or the newest itself)
+ */
+function openingKey(all: ReturnType<typeof Children.toArray>, anchor: string | undefined): Key | null {
+  let from = all.length - FIRST;
+  if (anchor) {
+    const at = all.findIndex((child) => isValidElement<{ id?: unknown }>(child) && child.props.id === anchor);
+    from = at === -1 ? 0 : Math.min(from, at - CHUNK);
+  }
+  return keyOf(all[Math.max(0, from)]);
+}
 
 /** How many announcements the live region keeps; older ones were already read. */
 const KEEP_SPOKEN = 5;
@@ -515,7 +562,8 @@ interface Spoken {
  * and it sits right above the first message. While the reader is at the bottom it follows new messages and streaming text; once they
  * scroll up, nothing moves their view, and a "Jump to latest" button appears. At the bottom it also
  * follows what reaches past its end without changing any message's size, such as the action bar
- * beside a reply's last line. Each new
+ * beside a reply's last line. Nor does something in a message that gets shorter for a moment and
+ * longer again, such as a picture's placeholder swapped for the picture, pull it off its end. Each new
  * message from someone else is read to screen readers once, politely: a streamed reply
  * when it finishes, and a first reply in a list that mounted empty. History is never
  * announced: the messages it mounts with, several messages filling an empty list at once
@@ -525,7 +573,18 @@ interface Spoken {
  * as a post a reply moves to the end. When the message they are on is the one that moves, the
  * messages around it keep their place. A page of many older messages goes in 20 a frame, those
  * nearest the reader first, so loading it never holds the page up for long (when the messages are
- * the list's own children, each with a `key`). A scroll up from the end stops the list following
+ * the list's own children, each with a `key`). A long conversation opens the same way: the list
+ * draws its newest 40 messages (or those from `initialAnchor`'s), at the end in the first frame,
+ * then the rest above them, 20 a frame, so opening a thousand messages costs about what opening 40
+ * does, and the view never moves as they go in. While any wait to go in, its content carries
+ * `data-ouro-message-list-drawing`, and those messages are not in the page yet: `getElementById`,
+ * `scrollIntoView` and the browser's find in page reach them once it goes, so open at a message
+ * with `initialAnchor`, and a test that reads the oldest messages waits for it to go.
+ * Switching to another conversation is opening one: key the list by the conversation, or give it
+ * the other conversation's messages with its `conversation` (or, without one, messages that share no
+ * `key` with those it held), even after it held none for a while. Either way it
+ * opens at the other's newest message, wherever the reader was, with nothing announced; focus that
+ * was on a message moves to the newest one in view. A scroll up from the end stops the list following
  * new messages at once, before the browser reports it. The list follows by how far it is from the
  * bottom, not which way it last scrolled, so your code going to a message (`scrollIntoView`) stops
  * it too, even as the first messages arrive. Scrolling is never announced.
@@ -616,6 +675,7 @@ interface Spoken {
  * @claim "Tab never stops on the other" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > reaches a control between messages in the Tab order, and passes over the other messages' controls)
  * @claim "Nor does it stop on the focus guards" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > passes over the focus guards around an open menu's button, so Tab never bounces back to the message)
  * @claim "A new message never takes focus" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > keeps focus where it is when a message arrives, and the Tab stop on the message focused last while it shows)
+ * @claim "and when the focused message goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > moves focus from a focused message replaced under a new key to its replacement, not to its old index, as older messages go in above)
  * @claim "and when the focused message goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > moves focus to the message now in the place of a focused message that goes, and leaves a control that goes from a message to the app)
  * @claim "Each message that is an article carries" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > gives each message its place among them for screen readers, and keeps an app's own)
  * @claim "On a Mac the list reads" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList keyboard > reads ⌘↑ and ⌘↓ as Home and End, and ⌥↑ and ⌥↓ as Page Up and Page Down, on a Mac)
@@ -630,11 +690,17 @@ interface Spoken {
  * @claim "The list follows by how far" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stays at a message an app scrolls to as the first messages arrive, instead of following to the newest)
  * @claim "A page of many older messages goes in 20" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > puts pages of older messages in a few at a time, holding the reader's message in place in every frame)
  * @claim "A page of many older messages goes in 20" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > puts a few older messages in at once)
+ * @claim "A long conversation opens the same" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens a thousand messages at the newest in its first frame, drawing only the newest, then the rest above without moving the view)
+ * @claim "A long conversation opens the same" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens at the newest in its first frame when a thousand messages come after it mounted empty)
+ * @claim "draws its newest 40 messages (or those" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens at initialAnchor far back in a thousand messages, drawing from it, and holds it still as the rest go in above)
+ * @claim "Switching to another conversation is opening" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches a list %s to another conversation of a thousand at its newest, in its first frame, from anywhere in the one before)
+ * @claim "focus that was on a message moves" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > moves focus on a message of the conversation before to the newest in view of the next, without scrolling)
  * @claim "A scroll up from the end" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > stops following the newest message once the list is scrolled up, even before the scroll event comes)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces the first messages that fill an empty list, such as history fetched after mount)
  * @claim "History is never announced: the messages" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces older history loaded above, and keeps the reader's place while it loads)
  * @claim "Nothing in it overflows the boxes around it" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it)
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
+ * @claim "Nor does something in a message" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > stays at its end when a picture in a message shrinks and grows back between frames, as a placeholder swapped for its picture does)
  * @claim "At the bottom it also follows" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > follows its end at the bottom when something in a message reaches past it, though no message changes size)
  * @claim "A short conversation sits at" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits a short conversation at its bottom, by the composer under it, with the room above it empty)
  * @claim "put what starts it (who" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > sits what starts a short conversation, its first child, right above the first message)
@@ -645,6 +711,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     children,
     jumpLabel = "Jump to latest",
     initialAnchor,
+    conversation,
     loadingOlder = false,
     hasOlder = false,
     loadingOlderLabel = "Loading older messages",
@@ -707,6 +774,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The list's ends, which Tab passes through to leave the messages behind (see the keyboard effect).
   const startRef = useRef<HTMLSpanElement | null>(null);
   const endRef = useRef<HTMLSpanElement | null>(null);
+  // The mark that holds the scroll height while the list follows its end (see the layout effect).
+  const floorRef = useRef<HTMLSpanElement | null>(null);
   // Moves focus to a message, making it the Tab stop; set by the keyboard effect.
   const moveTo = useRef<(item: HTMLElement) => void>(undefined);
   const keyHandler = useRef<(event: KeyboardEvent<HTMLElement>) => void>(undefined);
@@ -715,15 +784,82 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [hasItems, setHasItems] = useState(() => Children.count(children) > 0);
 
   // A page of older messages that comes at once goes in a chunk a frame, those nearest the reader first: each frame's
-  // work stays short, and the reader's place is kept as each chunk goes in. A few go in at once.
+  // work stays short, and the reader's place is kept as each chunk goes in. A few go in at once. So does a conversation
+  // the list opens on, or switches to: the newest messages first, then the rest above them.
   const all = Children.toArray(children);
   const top = keyOf(all[0]);
-  // The key of the first child, and of the first one drawn: a page of older ones above it waits.
-  // Stryker disable next-line ObjectLiteral: an empty start takes the first child's key in the first render instead; this only spares that render.
-  const [edge, setEdge] = useState(() => ({ first: top, drawn: top }));
-  if (top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
-  const shown = all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
+  // The keys of the newest few children: when they or the first child's change, the list looks again for a switch.
+  const recent = all.slice(-RECENT).map(keyOf);
   const latest = useRef(all);
+  // The keys of the first child and of the first one drawn: a page of older ones above the first drawn waits. Every key the
+  // list held when its first or newest ones last changed, and the conversation they were: another conversation is a new
+  // `conversation`, or without one, messages that share no key with those. Whether the list has held messages, and how
+  // many times it has switched to another conversation since.
+  const [edge, setEdge] = useState(() => ({
+    first: top,
+    drawn: openingKey(all, initialAnchor),
+    recent,
+    keys: new Set(all.map(keyOf)),
+    conversation,
+    pending: null as { conversation: Key | undefined; keys: ReadonlySet<Key | null> } | null,
+    // The keys it held when its conversation was last confirmed: what a wholesale change under the same name leaves alone.
+    confirmed: new Set(all.map(keyOf)) as ReadonlySet<Key | null>,
+    held: all.length > 0,
+    switches: 0,
+  }));
+  // Messages that share no key with `keys`: another conversation's, or the first ones.
+  const strangers = (keys: ReadonlySet<Key | null>) => !all.some((child) => keyOf(child) !== null && keys.has(keyOf(child)));
+  const changed = top !== edge.first || recent.length !== edge.recent.length || recent.some((key, at) => key !== edge.recent[at]);
+  const renamed = conversation !== edge.conversation && (edge.pending === null || conversation !== edge.pending.conversation);
+  // Named back to the conversation it holds before another one's messages came: nothing waits.
+  const back = edge.pending !== null && conversation === edge.conversation;
+  if (changed || renamed || back) {
+    // A conversation is switched to when `conversation` changes with its messages, or, named before they come (as an app
+    // that keeps the last messages while it fetches does), when messages come that share no key with those it held then.
+    // One first named for messages the list holds names them. Without `conversation`, messages that share no key with
+    // those held are another conversation's.
+    let pending = renamed || back ? null : edge.pending;
+    let fresh = false;
+    let named = edge.conversation;
+    if (all.length === 0) {
+      // None to show: whatever is named waits for its messages.
+      if (renamed) pending = { conversation, keys: edge.keys };
+    } else if (!edge.held) {
+      fresh = true;
+      named = conversation;
+    } else if (renamed && edge.conversation === undefined) {
+      fresh = changed && strangers(edge.keys);
+      named = conversation;
+    } else if (renamed && changed) {
+      fresh = true;
+      named = conversation;
+    } else if (renamed) {
+      // Messages already another conversation's, come before their name, take the name with no switch; else it waits for them.
+      if (strangers(edge.confirmed)) named = conversation;
+      else pending = { conversation, keys: edge.keys };
+    } else if (pending !== null) {
+      if (strangers(pending.keys)) [fresh, named, pending] = [true, pending.conversation, null];
+    } else fresh = conversation === undefined && strangers(edge.keys);
+    setEdge({
+      first: top,
+      drawn: fresh
+        ? openingKey(all, edge.held ? undefined : initialAnchor)
+        : top === edge.first || all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK
+          ? edge.drawn
+          : top,
+      recent,
+      keys: new Set(all.map(keyOf)),
+      conversation: named,
+      pending,
+      // Confirmed again by a new name or switch, and by any change under the same name but a wholesale one, which may be the
+      // next conversation's messages come ahead of its name.
+      confirmed:
+        named !== edge.conversation || fresh || (pending === null && all.length > 0 && edge.keys.size > 0 && !strangers(edge.keys)) ? new Set(all.map(keyOf)) : edge.confirmed,
+      held: edge.held || all.length > 0,
+      switches: edge.switches + (fresh && edge.held ? 1 : 0),
+    });
+  }
+  const shown = all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
   useLayoutEffect(() => {
     latest.current = all;
   });
@@ -740,6 +876,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line all: a step left from before goes in the same render as the next one; cancelling it only spares the call.
     return () => cancelAnimationFrame(frame);
   }, [edge]);
+  // Another conversation opens at its newest message, wherever the reader was in the one before, before the browser draws it.
+  const reopen = useRef<() => void>(undefined);
+  // Set as the list switches, for the keyboard effect: focus on a message that went goes to the new conversation's Tab stop.
+  const switched = useRef(false);
+  useLayoutEffect(() => {
+    if (edge.switches === 0) return;
+    switched.current = true;
+    reopen.current!();
+  }, [edge.switches]);
 
   // While older messages may load, room above the first message holds "Loading older messages". It outlasts `hasOlder`
   // until it has left the view, or the list is at its end, so it goes without moving a message.
@@ -860,6 +1005,28 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // else (the reader's, a key's, or code going to a message) leaves it.
     // Stryker disable next-line EqualityOperator: a list exactly as far from the bottom as counts as at it is at its end either way.
     const atBottom = () => Math.abs(end - scroller.scrollTop) <= AT_BOTTOM || farthest() - scroller.scrollTop <= AT_BOTTOM;
+    // While the list follows its end, the scroll height keeps at least the content's height there, held by a 1px mark at that
+    // depth (`floorRef`), so a change that shortens the content for a moment and lengthens it again (a picture's placeholder
+    // swapped for the picture, with a layout read between) never lets the browser pull the scroll position up, which would
+    // stop the following with no one scrolling. The mark is placed absolutely, so moving it lays out nothing else. A real
+    // change of height resizes the content, and the resize observer moves the mark with it before the browser draws. Once
+    // the reader has left the end, the next change lets it go, which moves nothing, since what it holds is past the
+    // content's end; not the scroll itself, since moving the mark then stops WebKit's own scroll anchoring where an app has
+    // it on.
+    const floorMark = floorRef.current!;
+    let floor = 0;
+    const setFloor = (px: number) => {
+      if (px === floor) return;
+      floor = px;
+      // Out of the layout when it holds nothing, so moving it never stops the browser's own scroll anchoring.
+      floorMark.style.display = px > 0 ? "block" : "";
+      floorMark.style.top = `${Math.max(0, px - 1)}px`;
+    };
+    const followEnd = () => {
+      const height = content.offsetHeight;
+      setFloor(height > scroller.clientHeight ? height : 0);
+      toBottom();
+    };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
     const open = () => {
@@ -867,8 +1034,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
       opened = true;
       const id = anchorFor.current;
       const target = id ? topItems(content).find((item) => item.id === id) : undefined;
-      // None: the list stays at the end, as it opened, and follows the messages there.
-      if (!target) return;
+      // None: the list stays at the end, as it opened, and follows the messages there: it goes there now, with messages that came
+      // after it mounted empty, before the browser draws them, unless code already scrolled it to one of them.
+      if (!target) {
+        pinned.current = atBottom();
+        if (pinned.current) followEnd();
+        return keepAnchor();
+      }
       const view = scroller.getBoundingClientRect();
       const box = boxOf(target);
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
@@ -878,9 +1050,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
       keepAnchor();
       pinned.current = atBottom();
     };
-    toBottom();
+    followEnd();
     keepAnchor();
     open();
+    reopen.current = () => {
+      pinned.current = true;
+      followEnd();
+      keepAnchor();
+      setShowJump(false);
+    };
     // After messages come, go, move or change size: follow the end while pinned, else hold the anchor in place.
     const hold = () => {
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
@@ -891,10 +1069,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Where an app turned the browser's own anchoring back on, the browser corrects.
       // Stryker disable next-line ConditionalExpression,StringLiteral: Chrome gives up its own anchoring once the list scrolls in that frame, so whether a second correction lands depends on timing a test cannot hold.
       const native = getComputedStyle(scroller).overflowAnchor === "auto";
-      if (pinned.current) {
-        owed = 0;
-        toBottom();
-      } else if (near && !native) {
+      if (pinned.current) followEnd();
+      else setFloor(0);
+      if (!pinned.current && near && !native) {
         // Each message held that is still in the page, with where it sat in the content and how far it moved since. With each, how many
         // of the others it passed or fell behind: a message that moved on its own (a post that a reply moved to the end) passed them.
         const origin = content.getBoundingClientRect().top;
@@ -937,7 +1114,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
-      if (pinned.current ? farthest() !== end : touched) hold();
+      // The mark holds the scroll height, so a committed change of the content's own height is looked for too.
+      if (pinned.current ? farthest() !== end || (floor > 0 && content.offsetHeight !== floor) : touched) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
@@ -974,8 +1152,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const textOf = (message: Element) => message.querySelector("[data-ouro-message-content]")!.textContent.trim();
     const spokenTextOf = (message: Element) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!.innerText.trim();
     let known = messages();
-    // Each known message's text when last checked, to tell a key swap from a new reply.
-    let texts = new Map(known.map((message) => [message, textOf(message)]));
     // Messages to read once they stop streaming.
     let waiting = new Set(known.filter(busy));
     const check = () => {
@@ -987,11 +1163,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         // Messages after the last one still here replace the ones that were there before, and
         // the rest are new. A replacement is the same message under a new key, so silent, only
         // when it keeps the text and is not streaming; one replacing a message still waiting
-        // takes its place in the queue.
+        // takes its place in the queue. A message that goes keeps its text, so only those that replace one read any:
+        // older messages going in above, a chunk at a time, read nothing.
         const replaced = known.slice(known.indexOf(now[last]!) + 1);
         now.slice(last + 1).forEach((message, index) => {
           const old = replaced[index];
-          if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) waiting.add(message);
+          if (old === undefined || waiting.has(old) || textOf(old) !== textOf(message)) waiting.add(message);
         });
       } else if (known.length === 0 && now.length === 1) {
         // One message into an empty list is a first reply or greeting. Several at once are
@@ -1002,7 +1179,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // known message that starts streaming again.
       for (const message of now) if (busy(message)) waiting.add(message);
       known = now;
-      texts = new Map(now.map((message) => [message, textOf(message)]));
       if (content.closest("[hidden]")) {
         waiting = new Set(now.filter(busy));
         return;
@@ -1051,8 +1227,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The message focus was last in, and its place among the messages.
     let last: HTMLElement | null = null;
     let lastIndex = 0;
-    // The message focus is in, until focus leaves it.
+    // The message focus is in, until focus leaves it, and whether it went with nothing in its place, waiting for the next messages.
     let focused: HTMLElement | null = null;
+    let waiting = false;
     // A Tab press in progress anywhere in the page (true for Shift+Tab), and where the list was
     // scrolled to before it: the browser scrolls to what it focuses before the list sends focus on.
     let tabbing: boolean | null = null;
@@ -1128,18 +1305,47 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // After React's commit, so it reads no layout unless the Tab stop went: reading where messages
     // are here would lay the page out before the browser does, at every new message.
-    const sync = (changed: boolean) => {
+    // The message now in the place of `gone`, which the changes in `records` took out: the first that follows the node that was
+    // before it, else the last before the node that was after it. Not the one at its index: messages put in above, as older ones
+    // load, would make that one further up, and scroll the reader there.
+    const placeOf = (gone: Element, records: readonly MutationRecord[], left: HTMLElement[]) => {
+      const record = records.find((each) => [...each.removedNodes].some((node) => node.contains(gone)));
+      const before = record?.previousSibling;
+      const after = record?.nextSibling;
+      if (before?.isConnected) {
+        const next = left.find((item) => (before.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 && !before.contains(item));
+        if (next) return next;
+      }
+      if (after?.isConnected) return left.findLast((item) => (after.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_PRECEDING) !== 0 && !item.contains(after));
+      return undefined;
+    };
+    const sync = (changed: boolean, records: readonly MutationRecord[] = []) => {
       // Out of the Tab order, for the list's Tab and the browser's alike (`guards`).
       // Stryker disable next-line StringLiteral: an empty or any other negative tabindex takes a span out of the Tab order too.
       for (const guard of content.querySelectorAll(guards)) mark(guard, "tabindex", "-1");
-      if (focused?.isConnected === false && doc.activeElement === doc.body) {
-        focused = null;
+      // A message removed with nothing in its place waited for the next messages, another conversation's: other messages
+      // coming instead let it go, so they never take focus from wherever the reader went since.
+      if (waiting && changed && !switched.current) [focused, waiting] = [null, false];
+      // In another conversation, focus goes to its Tab stop, below, without scrolling: no message is in the old one's place.
+      const refocus = focused?.isConnected === false && doc.activeElement === doc.body && switched.current;
+      if (focused?.isConnected === false && doc.activeElement === doc.body && !refocus) {
         const left = topItems(content);
-        const at = Math.min(lastIndex, left.length - 1);
-        left.slice(at, at + 1).forEach(move);
+        const place = placeOf(focused, records, left) ?? left[Math.min(lastIndex, left.length - 1)];
+        // With no message left, the focus waits for the next ones: another conversation's, say, after the list emptied.
+        waiting = place === undefined;
+        if (place) {
+          focused = null;
+          // A message that just came takes focus before the list has marked it below.
+          mark(place, "tabindex", "-1");
+          move(place);
+        }
       }
+      if (refocus) [focused, waiting] = [null, false];
+      switched.current = false;
       if (!changed) return;
       const list = (tops = topItems(content));
+      // Where the message focus was last in now is, as messages come and go around it (older ones going in above).
+      if (last?.isConnected) lastIndex = list.indexOf(last);
       list.forEach((item, index) => {
         // Focusable from code and by a click, in the Tab order only as the current message.
         if (item !== current) mark(item, "tabindex", "-1");
@@ -1154,6 +1360,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       });
       // Stryker disable next-line ConditionalExpression: placing it again picks the same message, since a scroll places it too; this only spares reading the layout.
       if (!current?.isConnected) place(list);
+      if (refocus && current !== null) focusOn(current);
       setHasItems(list.length > 0);
     };
 
@@ -1181,11 +1388,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
       last = item;
       lastIndex = topItems(content).indexOf(item);
     };
+    // Focus that lands anywhere outside the list lets go of a message that went: the reader has moved on.
+    const elsewhere = (event: FocusEvent) => {
+      if (!scroller.contains(event.target as Node)) [focused, waiting] = [null, false];
+    };
     const focusOut = (event: FocusEvent) => {
       if (scroller.contains(event.relatedTarget as Node | null)) return;
       // Focus left. When it left because what had it was removed, `sync` has already moved it, as
       // the mutation observer runs before this timer.
-      setTimeout(() => (focused = null));
+      // A message that was removed keeps its place, for the next messages to take focus (another conversation's, after the list
+      // emptied); Chromium reports its removal as focus leaving.
+      setTimeout(() => {
+        if (focused?.isConnected) focused = null;
+      });
     };
 
     const tab = (event: globalThis.KeyboardEvent) => {
@@ -1286,7 +1501,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     sync(true);
     const observer = new MutationObserver((records) => {
       // Stryker disable next-line ConditionalExpression,MethodExpression,BooleanLiteral: after only the bar moved, syncing finds and marks the same messages again; skipping it only spares the work.
-      if (!records.every(barOnly)) sync(records.some(touchesItems));
+      if (!records.every(barOnly)) sync(records.some(touchesItems), records);
     });
     observer.observe(content, { childList: true, subtree: true });
     scroller.addEventListener("focusin", focusIn);
@@ -1294,8 +1509,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
     scroller.addEventListener("scroll", scrolled, { passive: true });
     doc.addEventListener("keydown", tabKey, true);
+    doc.addEventListener("focusin", elsewhere);
     // Stryker disable next-line all: once the list is gone, nothing reads what these listeners would change; removing them frees memory only.
-    return () => (observer.disconnect(), scroller.removeEventListener("focusin", focusIn), scroller.removeEventListener("focusout", focusOut), scroller.removeEventListener("scroll", scrolled), doc.removeEventListener("keydown", tabKey, true));
+    return () => (observer.disconnect(), scroller.removeEventListener("focusin", focusIn), scroller.removeEventListener("focusout", focusOut), scroller.removeEventListener("scroll", scrolled), doc.removeEventListener("keydown", tabKey, true), doc.removeEventListener("focusin", elsewhere));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);
@@ -1338,6 +1554,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         <div
           ref={contentRef}
           data-ouro-message-list-content=""
+          data-ouro-message-list-drawing={edge.drawn === edge.first ? undefined : ""}
           className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-continued]]:-mt-3"
           style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
         >
@@ -1349,6 +1566,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
             in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
         {Layer && <Layer scroller={scrollerRef} layer={layer} />}
+        <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
       </div>
       {/* Read politely, outside the scrolling content, so new messages are heard once. */}
       <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">

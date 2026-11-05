@@ -2,6 +2,7 @@
 
 import {
   isValidElement,
+  type ComponentProps,
   type CSSProperties,
   useContext,
   useEffect,
@@ -9,6 +10,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type HTMLAttributes,
   type JSX,
   type MouseEvent,
@@ -230,13 +232,15 @@ export interface MessageOwnProps {
    * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
    * (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over
    * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
-   * keys moving between its buttons. In a `MessageList` the list draws one bar for all its
+   * keys moving between its buttons. Its code loads in the browser with the first message that has one; a message that
+   * mounts after that has its bar in its first render, so a conversation opened later draws each message once. In a `MessageList` the list draws one bar for all its
    * messages, on the message the pointer is over (or that keyboard focus is in, or was tapped), and
    * hides it as the pointer leaves, the list scrolls under it, the window loses focus or the menu opens,
    * so at most one bar shows and none stays behind. Escape hides it.
    *
    * @claim "In a `MessageList` the list draws" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > draws one bar for the whole list, on the message the pointer is over, and listens the same for a hundred messages as for two)
    * @claim "so at most one bar shows" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > leaves no bar behind when the pointer leaves, the list scrolls, the window loses focus or the menu opens)
+   * @claim "a message that mounts after that has" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > draws its bar in its first render once the bar's code has loaded, so a conversation opened later renders each message once)
    * @claim "It is a toolbar: one Tab" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > is one Tab stop, and the arrow keys, Home and End move between its buttons)
    * @claim "The bar shows while the pointer" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > shows the bar on hover and while focus is in the message, and hides it otherwise)
    */
@@ -470,9 +474,24 @@ const postHairline =
   "[[data-variant=post]+[data-variant=post]_&]:before:border-border [[data-variant=post]+[data-variant=post]_&]:before:content-['']";
 
 // The action bar's code, loaded once, the first time a message with actions or a menu mounts: a
-// page whose messages have no bar never loads it, nor the Tooltip and Menu it uses.
+// page whose messages have no bar never loads it, nor the Tooltip and Menu it uses. Once it has
+// loaded, a message that mounts draws its bar in its first render, so a conversation opened later
+// renders each message once, not again as its bar arrives.
 let barModule: Promise<typeof MessageActionBar> | undefined;
-const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => module.MessageActionBar));
+let loadedBar: typeof MessageActionBar | undefined;
+const barWaiters = new Set<() => void>();
+const loadBar = () =>
+  (barModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => {
+    loadedBar = module.MessageActionBar;
+    barWaiters.forEach((wake) => wake());
+    return loadedBar;
+  }));
+const waitForBar = (wake: () => void) => (barWaiters.add(wake), () => void barWaiters.delete(wake));
+/** The action bar, once its code has loaded. */
+function LoadedBar(props: ComponentProps<typeof MessageActionBar>): JSX.Element {
+  const Bar = loadedBar!;
+  return <Bar {...props} />;
+}
 
 // The ring a message shows when it has keyboard focus, as one in a MessageList takes: the focus
 // outline Ouro's controls have, with rounded corners, since the message's own box is bare.
@@ -697,10 +716,11 @@ export function Message(props: MessageProps): JSX.Element {
   const body = streaming && empty ? <Typing label={streamingLabel} /> : children;
   const quoted = quote && <Quote quote={quote} />;
   // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
-  const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
+  // Never in server HTML, so hydration matches; a message that mounts in the browser once the code is in has it at once.
+  const barLoaded = useSyncExternalStore(waitForBar, () => loadedBar !== undefined, () => false);
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression: the bar's code for a message without one renders nothing; site/e2e/catalog.spec.ts holds a page without bars to never loading it.
-    if (hasBar && !layered) void loadBar().then((Loaded) => setBar(() => Loaded));
+    if (hasBar && !layered) void loadBar();
   }, [hasBar, layered]);
   const slot = useRef<HTMLSpanElement | null>(null);
   // Beside the bubble: a chat or reply message's own layout, with the room before the bubble that the
@@ -717,8 +737,8 @@ export function Message(props: MessageProps): JSX.Element {
   const bar = layered ? (
     // The list's one bar goes here while it is on this message.
     <span ref={slot} data-ouro-message-bar-slot="" className="contents" />
-  ) : hasBar && Bar ? (
-    <Bar
+  ) : hasBar && barLoaded ? (
+    <LoadedBar
       actions={actions ?? []}
       menu={menu}
       reactions={quickReactions}
