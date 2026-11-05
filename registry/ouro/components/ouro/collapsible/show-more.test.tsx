@@ -1241,7 +1241,7 @@ describe("ShowMore's first guess", () => {
   });
 
   it.each(["p", "div", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "blockquote", "table", "tr", "figure", "section", "article", "dl", "dt", "dd"])(
-    "counts a %s as a line of its own",
+    "counts a block %s as a line of its own",
     (tag) => {
       // A table's parts in a div are not valid HTML, and React says so; the guess reads the elements, not the page.
       const error = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -1252,7 +1252,7 @@ describe("ShowMore's first guess", () => {
     },
   );
 
-  it.each(["hr", "br"])("counts a %s as a line of its own", (tag) => {
+  it.each(["hr", "br"])("counts a break %s as a line of its own", (tag) => {
     expect(toggle(guessed(<ShowMore lines={2}>{[createElement(tag, { key: "a" }), createElement(tag, { key: "b" })]}</ShowMore>))).not.toBeNull();
   });
 
