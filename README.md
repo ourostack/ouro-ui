@@ -397,6 +397,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-floating`,
 `lib-focus-handoff`,
 `lib-form-answer`,
+`lib-halve`,
 `lib-insert-text`,
 `lib-keep-clear`,
 `lib-key-shortcuts`,
