@@ -143,7 +143,7 @@ export const QuietAndInline: Story = {
       <Panel>
         <MomentProvider quiet>
           <Moment art={<TrayArt />} title="No drafts" description="Drafts you start show up here." />
-          <Moment kind="error" art={<BrokenLineArt />} title="Not synced: the server didn't answer" description="We'll try again in a minute." action={<Button size="sm" variant="outline">Retry</Button>} />
+          <Moment kind="error" art={<BrokenLineArt />} title="Not synced: no answer" description="We'll try again in a minute." action={<Button size="sm" variant="outline">Retry</Button>} />
         </MomentProvider>
       </Panel>
       <Panel>
