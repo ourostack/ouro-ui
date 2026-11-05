@@ -2935,6 +2935,17 @@ describe("MessageList switching conversations", () => {
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(2);
   });
 
+  it.each([
+    [60, 60],
+    [61, 40],
+  ])("opens %i messages drawing %i of them in its first frame, a late chunk of no more than 20 not being worth a layout of its own", async (count, drawn) => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed count={count} />);
+    expect(messagesOf(list.scroller)).toHaveLength(drawn);
+    await framesUntilDrawn(list.scroller, () => newestGap(list.scroller));
+    expect(messagesOf(list.scroller)).toHaveLength(count);
+  });
+
   it("opens at the newest in its first frame when a thousand messages come after it mounted empty", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed count={0} />);

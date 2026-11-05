@@ -225,13 +225,14 @@ const RECENT = 3;
 const FIRST = 40;
 
 /**
- * The key of the first child a conversation opens drawing: the newest FIRST, or from CHUNK above the message `anchor`
- * names. Every child when no child has that `id`, since the message may be one of an app's own that sets its `id` itself.
+ * The key of the first child a conversation opens drawing: the newest FIRST (every child when no more than a chunk would
+ * wait above them), or from CHUNK above the message `anchor` names. Every child when no child has that `id`, since the message may be one of an app's own that sets its `id` itself.
  * @claim "The key of the first child a" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens at initialAnchor far back in a thousand messages, drawing from it, and holds it still as the rest go in above)
  * @claim "Every child when no child has that" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > opens at the newest message when initialAnchor names no message in the list, or the newest itself)
  */
 function openingKey(all: ReturnType<typeof Children.toArray>, anchor: string | undefined): Key | null {
-  let from = all.length - FIRST;
+  // Not drawn in two steps when what would wait is one chunk: a frame later is a layout of its own for a few messages.
+  let from = all.length - FIRST <= CHUNK ? 0 : all.length - FIRST;
   if (anchor) {
     const at = all.findIndex((child) => isValidElement<{ id?: unknown }>(child) && child.props.id === anchor);
     from = at === -1 ? 0 : Math.min(from, at - CHUNK);
@@ -574,8 +575,8 @@ interface Spoken {
  * messages around it keep their place. A page of many older messages goes in 20 a frame, those
  * nearest the reader first, so loading it never holds the page up for long (when the messages are
  * the list's own children, each with a `key`). A long conversation opens the same way: the list
- * draws its newest 40 messages (or those from `initialAnchor`'s), at the end in the first frame,
- * then the rest above them, 20 a frame, so opening a thousand messages costs about what opening 40
+ * draws its newest 40 messages (or those from `initialAnchor`'s; all of them when no more than 20 would wait),
+ * at the end in the first frame, then the rest above them, 20 a frame, so opening a thousand messages costs about what opening 40
  * does, and the view never moves as they go in. While any wait to go in, its content carries
  * `data-ouro-message-list-drawing`, and those messages are not in the page yet: `getElementById`,
  * `scrollIntoView` and the browser's find in page reach them once it goes, so open at a message
