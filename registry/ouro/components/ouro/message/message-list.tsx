@@ -2,9 +2,11 @@
 
 import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
+import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { halveShown } from "@/registry/ouro/lib/ouro/halve";
+import { createRowLayer, RowLayerContext, type RowLayer } from "@/registry/ouro/lib/ouro/row-hover";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
@@ -151,6 +153,12 @@ function tabbables(root: Element): HTMLElement[] {
 }
 
 /** Whether a change added or removed a message. */
+// Whether a change is only the list's one action bar moving between messages or changing in place, which leaves the
+// messages as they were: the list skips placing, marking and announcing for it.
+function barOnly(record: MutationRecord): boolean {
+  return (record.target as Element).closest("[data-ouro-message-bar-slot]") !== null;
+}
+
 function touchesItems(record: MutationRecord): boolean {
   return [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches(items) || node.querySelector(items) !== null));
 }
@@ -227,6 +235,10 @@ let shifted = 0;
  * @claim "How far the springs draw each" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
  */
 const shifts = new WeakMap<Element, number>();
+
+// The list's one action bar and menu, loaded with the first message that has actions.
+let layerModule: Promise<typeof MessageBarLayer> | undefined;
+const loadLayer = () => (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => module.MessageBarLayer));
 
 /** Where an element is laid out: its box, less the spring of the message it is in. */
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
@@ -673,6 +685,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  // One action bar and one menu for every message, rather than one each: the messages give the layer what to show.
+  const [Layer, setLayer] = useState<typeof MessageBarLayer | undefined>(undefined);
+  const [layer] = useState(() => createRowLayer<MessageBarData>(() => void loadLayer().then((Loaded) => setLayer(() => Loaded))));
   // Whether the view follows new content: whether it was at the bottom before the content changed.
   const pinned = useRef(true);
   const [showJump, setShowJump] = useState(false);
@@ -910,9 +925,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: while
     // the reader is scrolled up, the anchor is held as they move, before the browser draws. A move that also resizes
     // the list is held here first, and the resize observer then finds it held. At the end, the list follows wherever its end
-    // went: something put in a message that reaches past the end (a reply's action bar, which loads after the message,
-    // beside its last line) moves the end without resizing anything, so the resize observer would not see it.
-    const moves = new MutationObserver((records) => {
+    // went: something put in a message that reaches past the end (a reply's action bar, which loads after the message, or a picture
+    // that loads beside its last line) moves the end without resizing anything, so the resize observer would not see it. The list's
+    // one action bar moving between messages is left out: it shows on hover, and following it would move the list under the pointer.
+    const moves = new MutationObserver((all) => {
+      const records = all.filter((record) => !barOnly(record));
+      if (records.length === 0) return;
       const touched = records.some(touchesItems);
       // Stryker disable next-line ConditionalExpression: finding the messages again when none came or went finds the same ones.
       if (touched) list = [...content.querySelectorAll(items)];
@@ -1113,7 +1131,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const sync = (changed: boolean) => {
       // Out of the Tab order, for the list's Tab and the browser's alike (`guards`).
       // Stryker disable next-line StringLiteral: an empty or any other negative tabindex takes a span out of the Tab order too.
-      for (const guard of content.querySelectorAll(guards)) guard.setAttribute("tabindex", "-1");
+      for (const guard of content.querySelectorAll(guards)) mark(guard, "tabindex", "-1");
       if (focused?.isConnected === false && doc.activeElement === doc.body) {
         focused = null;
         const left = topItems(content);
@@ -1266,7 +1284,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const scrolled = () => place(tops);
 
     sync(true);
-    const observer = new MutationObserver((records) => sync(records.some(touchesItems)));
+    const observer = new MutationObserver((records) => {
+      // Stryker disable next-line ConditionalExpression,MethodExpression,BooleanLiteral: after only the bar moved, syncing finds and marks the same messages again; skipping it only spares the work.
+      if (!records.every(barOnly)) sync(records.some(touchesItems));
+    });
     observer.observe(content, { childList: true, subtree: true });
     scroller.addEventListener("focusin", focusIn);
     scroller.addEventListener("focusout", focusOut);
@@ -1322,9 +1343,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         >
           {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
           {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
-          {shown}
+          <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{shown}</RowLayerContext.Provider>
         </div>
         <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
+        {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
+            in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
+        {Layer && <Layer scroller={scrollerRef} layer={layer} />}
       </div>
       {/* Read politely, outside the scrolling content, so new messages are heard once. */}
       <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">
