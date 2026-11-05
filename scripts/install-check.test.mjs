@@ -158,6 +158,13 @@ test("an installed file must equal its source once import paths are mapped to th
   write(root, "registry/ouro/components/ouro/d/d.tsx", 'import { defineComponentAx } from "@/registry/ouro/ax/component";\nexport const d = defineComponentAx;\n');
   write(dir, "src/components/ouro/d/d.tsx", 'import { defineComponentAx } from "~/lib/ouro/ax/component";\nexport const d = defineComponentAx;\n');
   assert.deepEqual(checkSources(dir, root, aliases), []);
+  // An import written with its extension, as one must be where another item has a file of the same name: shadcn drops the extension.
+  write(root, "registry/ouro/components/ouro/e/e.test.tsx", 'import { defineCli } from "@/registry/ouro/ax/command.ts";\nexport const e = defineCli;\n');
+  write(dir, "src/components/ouro/e/e.test.tsx", 'import { defineCli } from "~/lib/ouro/ax/command";\nexport const e = defineCli;\n');
+  assert.deepEqual(checkSources(dir, root, aliases), []);
+  write(dir, "src/components/ouro/e/e.test.tsx", 'import { defineCli } from "~/components/ouro/command/command";\nexport const e = defineCli;\n');
+  assert.match(checkSources(dir, root, aliases).join("\n"), /e\.test\.tsx differs from registry\/ouro\/components\/ouro\/e\/e\.test\.tsx at line 1/);
+  write(dir, "src/components/ouro/e/e.test.tsx", 'import { defineCli } from "~/lib/ouro/ax/command";\nexport const e = defineCli;\n');
   write(dir, "src/components/ouro/d/d.tsx", 'import { defineComponentAx } from "~/components/ax/component";\nexport const d = defineComponentAx;\n');
   assert.match(checkSources(dir, root, aliases).join("\n"), /d\.tsx differs from registry\/ouro\/components\/ouro\/d\/d\.tsx at line 1/);
   write(dir, "src/components/ouro/d/d.tsx", 'import { defineComponentAx } from "~/lib/ouro/ax/component";\nexport const d = defineComponentAx;\n');
