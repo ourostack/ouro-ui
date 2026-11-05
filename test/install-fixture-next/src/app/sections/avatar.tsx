@@ -1,13 +1,14 @@
 import { Avatar, AvatarGroup } from "@/components/ouro/avatar/avatar";
 
-// The initials and the presence dot are in the server HTML; the picture loads on the client.
+// The initials (drawn from their attribute) and the presence dot are in the server HTML; the
+// picture loads on the client.
 // expect: aria-label="Ouro avatar"
-// expect: >OA<
+// expect: data-ouro-avatar-initials="OA"
 // expect: aria-label="Ouro person, Busy"
 // expect: data-presence="busy"
 // expect: data-shape="square"
 // expect: aria-label="Ouro cooks"
-// expect: \+1
+// expect: data-ouro-avatar-count="+1"
 export default function AvatarSection() {
   return (
     <>

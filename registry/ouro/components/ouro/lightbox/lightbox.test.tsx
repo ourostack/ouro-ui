@@ -271,6 +271,37 @@ describe("Lightbox opening and closing", () => {
   });
 });
 
+describe("Lightbox fetching", () => {
+  const priorities = () => [...popup()!.querySelectorAll("[data-ouro-lightbox-image]")].map((image) => image.getAttribute("fetchpriority"));
+
+  it("starts fetching the full image as its thumbnail is pressed, before the viewer opens", async () => {
+    const { host } = await render(lightbox());
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
+    await act(async () => thumbnails(host)[3]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 })));
+    expect(sources.mock.calls).toEqual([[kitchen[3]!.src]]);
+    expect(popup()).toBeNull();
+    sources.mockRestore();
+  });
+
+  it("fetches the image shown first, then the ones a step either side, then the rest", async () => {
+    const { host } = await render(lightbox());
+    await openAt(host, 1);
+    expect(priorities()).toEqual([null, "high", null, "low"]);
+  });
+
+  it("counts no step around the ends without loop", async () => {
+    const { host } = await render(lightbox());
+    await openAt(host, 0);
+    expect(priorities()).toEqual(["high", null, "low", "low"]);
+  });
+
+  it("counts a step around the ends as a step either side with loop", async () => {
+    const { host } = await render(lightbox({ loop: true }));
+    await openAt(host, 0);
+    expect(priorities()).toEqual(["high", null, "low", null]);
+  });
+});
+
 describe("Lightbox navigation", () => {
   it("steps with the arrow keys from anywhere in the viewer, in reading order", async () => {
     const { host } = await render(lightbox());

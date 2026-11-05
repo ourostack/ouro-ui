@@ -1,0 +1,10 @@
+{
+  "order": 2650,
+  "components": ["snap-pip"],
+  "titles": { "snap-pip": "SnapPiP" },
+  "controls": {
+    "snap-pip": [
+      {"part": "pip", "role": "group", "portal": false}
+    ]
+  }
+}

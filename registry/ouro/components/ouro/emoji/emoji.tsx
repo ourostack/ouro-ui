@@ -134,10 +134,27 @@ export interface EmojiCatalogueCategory {
  * content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can
  * load in the catalogue when it builds it.
  *
+ * Ouro indexes a catalogue's emoji once, to find them in text. Build the catalogue once and
+ * pass that object, or give each copy the same `id`: a catalogue of new emoji objects on every
+ * render is indexed again each time, and warns in development. Adding or removing emoji is seen
+ * in a new catalogue object, even in the same array; to edit an emoji's shortcodes or text, pass
+ * a new emoji object, or a new `id`.
+ *
  * @example
  * const catalogue: EmojiCatalogue = { categories: [{ id: "smileys", label: "Smileys", items: smileys }, { id: "custom", label: "Contoso", items: custom }] };
  */
 export interface EmojiCatalogue {
+  /**
+   * Names this set of emoji, for an app that makes a new catalogue object, emoji and all, each
+   * time it draws: catalogues with the same id share one index of their emoji, so change it when
+   * the emoji change (`"contoso-2026-11"`), an emoji edited in place included. Without one, a
+   * new catalogue object shares the index when it holds the same emoji objects in the same order,
+   * and a catalogue of new emoji objects builds its own.
+   *
+   * @claim "catalogues with the same id share one index of their emoji" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between catalogues with the same id, and keeps the most recent ids)
+   * @claim "a new catalogue object shares the index when it holds the same emoji objects" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between fresh catalogue objects holding the same emoji)
+   */
+  id?: string | undefined;
   /** The categories, in the order they show. An emoji in more than one counts once, by its id. */
   categories: readonly EmojiCatalogueCategory[];
 }
@@ -305,6 +322,9 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * while the mouse is on it or on the button around it, or that button has focus, or while
  * `play` says so. With reduced motion it always shows the still image. `skinTone` draws an
  * emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
+ * Its picture is fetched as soon as it is drawn, not when it nears the screen, so an emoji in an
+ * older message is there when the reader scrolls back to it. Its box is the text's size from the
+ * first frame, and a picture that fails to load keeps it, so no line moves as emoji load or fail.
  *
  * Use `EmojiText` instead to draw the emoji in a message's text, and an emoji character for an
  * app that uses the platform's emoji font.
@@ -317,6 +337,8 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * <Emoji item={party} placeholder="/emoji/waiting.svg" />
  * <Button variant="plain" aria-label="Party popper"><Emoji item={party} alt="" /></Button>
  * @claim "named by its `alt` (the emoji's name)" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > draws the still image named by the emoji's name, the size of the text, in the tone asked for)
+ * @claim "a picture that fails to load keeps it, so no line moves" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::EmojiText > keeps every line and every emoji where a loaded picture would, when its picture fails to load)
+ * @claim "Its picture is fetched as soon as" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:fileLine(registry/ouro/components/ouro/emoji/emoji.test.tsx, /expect\(img\.hasAttribute\("loading"\)\)\.toBe\(false\)/)
  * @claim "With reduced motion it always shows the" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > shows the still image with reduced motion, whatever play says or the pointer does)
  * @claim "while the mouse is on it or on" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > plays while the mouse is on its button or the button has focus, and stops after)
  */
@@ -374,7 +396,6 @@ export function Emoji(props: EmojiProps): JSX.Element {
   usePictureReady(box, own, shown, form.src, waits);
   const picture = (
     <img
-      loading="lazy"
       {...rest}
       ref={mergedRef}
       data-ouro={waits ? undefined : "emoji"}

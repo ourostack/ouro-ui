@@ -1,0 +1,39 @@
+name: Feel
+# Ouro Feel's real-engine leg: the cases in feel/cases.ts, in the system's own WKWebView on a
+# standard macOS runner, three runs each (feel/README.md). macOS runners are scarce, so it runs
+# nightly and by hand, never on a pull request. The report is in the job summary and the
+# `feel-report-wkwebview` artifact.
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: feel-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  wkwebview:
+    name: wkwebview (macos-15)
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - name: Build the WKWebView host
+        run: sh feel/hosts/wkwebview/build.sh
+      - name: Run the cases in WKWebView
+        run: node feel/run.mts --engine wkwebview --runs 3
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: feel-report-wkwebview
+          path: .tmp/feel/report
+          if-no-files-found: warn

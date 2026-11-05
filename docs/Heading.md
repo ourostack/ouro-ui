@@ -14,6 +14,7 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 <Heading level={1}>Recipes</Heading>
 <Heading level={2} size="lg">Ingredients</Heading>
 <Heading level={1} size="display">Dinner, sorted</Heading>
+<Heading level={3} truncate>{thread.subject}</Heading>
 ```
 
 ## Use instead when
@@ -32,6 +33,7 @@ Type: `HeadingProps`.
 | `level` (required) | `1 \| 2 \| 3 \| 4 \| 5 \| 6` |  | Outline level: sets the tag (`level={2}` renders `<h2>`). Required, because the level is about document structure, not looks; use `size` to change how big it looks. |
 | `ref` | `Ref<HTMLHeadingElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "display"` | derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`) | Visual size, independent of the level. `display` is the hero headline of a landing page, tightly set and larger from the `sm` breakpoint: `<Heading level={1} size="display">`. |
+| `truncate` | `boolean` | `false` | Cuts the heading to one line with an ellipsis, as a list row or a title bar needs. A heading otherwise balances its lines, which would wrap it again, so `truncate` drops the balancing. |
 
 ## Native attributes
 
