@@ -30,7 +30,14 @@ import { defineConfig, mergeConfig } from "vitest/config";
 import viteConfig from "./vite.config.ts";
 import { ouroTestProjects } from "./src/lib/ouro/testing/vitest.ts";
 
-export default mergeConfig(viteConfig, defineConfig({ test: { projects: ouroTestProjects({ css: "./src/index.css" }) } }));
+// A dependency found mid-run reloads the page and drops the next test file, so bundle it up front.
+export default mergeConfig(
+  viteConfig,
+  defineConfig({
+    optimizeDeps: { include: ["class-variance-authority"] },
+    test: { projects: ouroTestProjects({ css: "./src/index.css" }) },
+  }),
+);
 ```
 
 `ouroTestProjects` returns three projects: `ouro-chromium`, `ouro-webkit` and `ouro-touch` (Chromium as a 390x844 touch phone, for files named `*.touch.test.tsx`).[^projects] Run them with `npx vitest run`, and the specs with `npx playwright test e2e/ouro`.
