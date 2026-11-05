@@ -129,7 +129,10 @@ interface AvatarOwnProps {
    * name is already written next to the avatar, so it isn't read twice.
    */
   alt?: string | undefined;
-  /** The letters to show instead of the ones taken from `name`, such as "AnL". */
+  /**
+   * The letters to show instead of the ones taken from `name`, such as "AnL". Like the initials
+   * taken from `name`, they are drawn (CSS generated content), not written as text.
+   */
   initials?: string | undefined;
   /**
    * An icon to show in place of the initials, such as a calendar for a meeting or a note for
