@@ -82,6 +82,8 @@ test("the components come from each folder's component.json, in order, with the 
   assert.deepEqual(readComponents(root)[1].controls, undefined);
   assert.deepEqual(components.filter((name) => firstComponents.includes(name)), firstComponents);
   assert.equal(readComponents(root).find((entry) => entry.name === "confirm-dialog").title, "ConfirmDialog");
+  // A manifest's `titles` keeps an initialism's capitals.
+  assert.equal(readComponents(root).find((entry) => entry.name === "snap-pip").title, "SnapPiP");
 });
 
 test("a component folder without a valid component.json fails with the fix", () => {
@@ -92,6 +94,17 @@ test("a component folder without a valid component.json fails with the fix", () 
   assert.throws(() => readComponents(copy), /link\/component\.json lists missing, but missing\.tsx is not in the folder/);
   writeFileSync(manifest, JSON.stringify({ components: ["link"] }));
   assert.throws(() => readComponents(copy), /needs a numeric "order"/);
+  // A title differs from the stem in PascalCase only in letter case, for a stem the folder lists.
+  writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link"], titles: ["LINK"] }));
+  assert.throws(() => readComponents(copy), /link\/component\.json: "titles" maps a stem to its export name/);
+  writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link"], titles: { button: "BUTTON" } }));
+  assert.throws(() => readComponents(copy), /"titles" names button, which "components" does not list/);
+  for (const title of ["Anchor", "Link", 7]) {
+    writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link"], titles: { link: title } }));
+    assert.throws(() => readComponents(copy), /the title of link must be Link in other letter case/);
+  }
+  writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link"], titles: { link: "LInk" } }));
+  assert.equal(readComponents(copy).find((entry) => entry.name === "link").title, "LInk");
   cpSync(join(copy, "registry/ouro/components/ouro/link"), join(copy, "registry/ouro/components/ouro/badge"), { recursive: true });
   writeFileSync(join(copy, "registry/ouro/components/ouro/badge/component.json"), JSON.stringify({ order: 60, components: ["link"] }));
   writeFileSync(manifest, JSON.stringify({ order: 60, components: ["link"] }));

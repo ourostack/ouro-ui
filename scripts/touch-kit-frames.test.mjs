@@ -37,8 +37,11 @@ import { DRAG_SLOW_MS, drag, touchDrag, touchStep } from "../registry/ouro/lib/o
  * asked, as in a frame busy running its scripts. With `ackAfter`, Chromium acknowledges a touchStart
  * only that many ms after it is sent. With `ackHangs`, Chromium never acknowledges a
  * touchStart (Input.dispatchTouchEvent), as when a listener that can cancel it is busy in the page.
+ * With `holds`, Chromium keeps its own record of the finger, as it does: a touchMove or touchEnd
+ * while it holds none is refused ("Must send a TouchStart first"), and `letGo()` drops the finger
+ * as Chromium can on its own.
  */
-function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false, sessionEarly = 0, hitTestHangs = 0, ackHangs = false, ackAfter = 0 } = {}) {
+function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false, sessionEarly = 0, hitTestHangs = 0, ackHangs = false, ackAfter = 0, holds = false } = {}) {
   const page = new EventEmitter();
   const sent = [];
   const frame = (name, frameUrl, parent, id) => {
@@ -106,9 +109,17 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
   let hitTests = 0;
   let started = Date.now();
   const since = () => Date.now() - started;
+  let held = false;
   const session = {
     async send(method, params) {
       if (delays[method]) await new Promise((resolve) => setTimeout(resolve, delays[method]));
+      if (holds && method === "Input.dispatchTouchEvent") {
+        if (params.type !== "touchStart" && !held) {
+          sent.push({ type: params.type, refused: true });
+          throw new Error("Protocol error (Input.dispatchTouchEvent): Must send a TouchStart first to start a new touch.");
+        }
+        held = params.type !== "touchEnd";
+      }
       if (onPage && method === "Runtime.callFunctionOn") return { result: { value: { watched: tests.armed, where: "the test page" } } };
       if (onPage && method === "Input.dispatchTouchEvent") {
         sent.push({ type: params.type, at: Date.now() });
@@ -202,7 +213,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
     begin();
     return touchDrag(ctx, { from: [100, 350], to: [100, 380], steps: 3 });
   };
-  return { ctx, sent, target, tests, start, drag, stop: () => (clearTimeout(timer), clearTimeout(sessionTimer)) };
+  return { ctx, sent, target, tests, start, drag, letGo: () => (held = false), stop: () => (clearTimeout(timer), clearTimeout(sessionTimer)) };
 }
 
 test("a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it", async () => {
@@ -339,6 +350,48 @@ test("a touchstart or touchmove the page handled asks nothing more of the frame 
     await touchStep(ctx, { type: "touchEnd" });
     assert.deepEqual(actions, ["expect", "wait", "settle"]);
     assert.ok(performance.now() - started >= 790, "a lift waits for the frame's tidying");
+  } finally {
+    stop();
+  }
+});
+
+/** The touch events Chromium was sent, each marked when it refused it. */
+const sentTypes = (sent) => sent.map(({ type, refused }) => (refused ? `${type} refused` : type));
+
+test("a move Chromium refuses because it holds no finger records none, as after a timed-out test's afterEach lifted it, so later gestures go on", async () => {
+  const { ctx, sent, stop } = stage({ onPage: true, listAfter: 60_000, holds: true });
+  try {
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    await touchStep(ctx, { type: "touchEnd" });
+    // The timed-out test's body runs on and moves the finger its afterEach lifted.
+    await assert.rejects(touchStep(ctx, { type: "touchMove", x: 100, y: 60 }), /Must send a TouchStart first/);
+    // The next afterEach has nothing to lift, and the next gesture starts clean.
+    await touchStep(ctx, { type: "touchEnd" });
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    await touchStep(ctx, { type: "touchMove", x: 100, y: 60 });
+    await touchStep(ctx, { type: "touchEnd" });
+    assert.deepEqual(sentTypes(sent), ["touchStart", "touchEnd", "touchMove refused", "touchStart", "touchMove", "touchEnd"]);
+  } finally {
+    stop();
+  }
+});
+
+test("a lift Chromium refuses because it holds no finger forgets that finger, so every later gesture starts clean", async () => {
+  const { ctx, sent, letGo, stop } = stage({ onPage: true, listAfter: 60_000, holds: true });
+  try {
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    letGo();
+    // The next gesture first lifts the finger the kit left down, which Chromium no longer holds.
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    await touchStep(ctx, { type: "touchMove", x: 100, y: 60 });
+    await touchStep(ctx, { type: "touchEnd" });
+    // A lift in a finally, of a finger Chromium let go of, does not hide the test's own error.
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    letGo();
+    await touchStep(ctx, { type: "touchEnd" });
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    await touchStep(ctx, { type: "touchEnd" });
+    assert.deepEqual(sentTypes(sent), ["touchStart", "touchEnd refused", "touchStart", "touchMove", "touchEnd", "touchStart", "touchEnd refused", "touchStart", "touchEnd"]);
   } finally {
     stop();
   }

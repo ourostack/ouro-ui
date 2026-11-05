@@ -1248,24 +1248,41 @@ function acknowledged(command: string, point: TouchPoint, send: () => Promise<un
   );
 }
 
-/** Lifts a finger `touchStep` left down, so the next gesture starts clean. */
+/**
+ * Whether Chromium refused a touch event because it holds no finger to move or lift, as when a
+ * timed-out test's body moves a finger its afterEach has already lifted.
+ * @claim "Whether Chromium refused a touch event" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a move sent after a timed-out test's finger was lifted leaves no finger behind, so a later gesture in the tab works)
+ */
+function noFingerDown(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("Must send a TouchStart first");
+}
+
+/**
+ * Lifts a finger `touchStep` left down, so the next gesture starts clean. A finger Chromium no
+ * longer holds is already lifted: the kit forgets it rather than refusing every later gesture.
+ * @claim "A finger Chromium no longer holds" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a lift Chromium refuses because it holds no finger forgets that finger, so every later gesture starts clean)
+ */
 async function releaseFinger(command: string, page: Page, session: CDPSession) {
   const finger = fingersDown.get(page);
   if (!finger) return;
   fingersDown.delete(page);
   const send = () => session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   const end = { type: "touchEnd" as const, x: finger.x, y: finger.y };
-  if (finger.frame) {
-    await sendTouch(command, page, session, end, { frame: finger.frame }, send);
-    return;
+  try {
+    if (finger.frame) {
+      await sendTouch(command, page, session, end, { frame: finger.frame }, send);
+      return;
+    }
+    // A page that never handled the touchstart gets no touchend to wait for. A lift Chromium does not
+    // acknowledge keeps the finger down, to lift before the next gesture.
+    await acknowledged(command, end, send, TOUCH_HANDLED_TIMEOUT_MS).catch((error: unknown) => {
+      if (!noFingerDown(error)) fingersDown.set(page, finger);
+      throw error;
+    });
+    await Promise.all(watchTouch(page, "settle", end, TOUCH_TIDY_MS));
+  } catch (error) {
+    if (!noFingerDown(error)) throw error;
   }
-  // A page that never handled the touchstart gets no touchend to wait for. A lift Chromium does not
-  // acknowledge keeps the finger down, to lift before the next gesture.
-  await acknowledged(command, end, send, TOUCH_HANDLED_TIMEOUT_MS).catch((error: unknown) => {
-    fingersDown.set(page, finger);
-    throw error;
-  });
-  await Promise.all(watchTouch(page, "settle", end, TOUCH_TIDY_MS));
 }
 
 /**
@@ -1273,7 +1290,8 @@ async function releaseFinger(command: string, page: Page, session: CDPSession) {
  * gestures `touchDrag` can't make: a finger that stops and stays down mid-swipe. The same
  * finger stays down between calls until `touchEnd`. Lift it in a `finally`, so a failed
  * assertion mid-gesture doesn't leave it down; a finger left down anyway is lifted before
- * the next `touchStart` or `touchDrag`.
+ * the next `touchStart` or `touchDrag`. A step Chromium refuses leaves the finger where it was,
+ * or none when Chromium holds no finger, so a later gesture in the tab still starts clean.
  *
  * Each step resolves once the page has handled its event. A `touchStart` first waits until
  * the frame at its point has the kit's watcher, up to 5 seconds, and throws naming that frame
@@ -1287,6 +1305,9 @@ async function releaseFinger(command: string, page: Page, session: CDPSession) {
  * @claim "Once the gesture scrolls the page" https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc verify:urlOk(https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc)
  * @claim "So a step can take up" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_HANDLED_TIMEOUT_MS\s=\s5000;/)
  * @claim "So a step can take up" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a lift into a frame that has gone is sent all the same, and throws naming the frame)
+ * @claim "A step Chromium refuses leaves" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a move sent after a timed-out test's finger was lifted leaves no finger behind, so a later gesture in the tab works)
+ * @claim "A step Chromium refuses leaves" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a move Chromium refuses because it holds no finger records none, as after a timed-out test's afterEach lifted it, so later gestures go on)
+ * @claim "A step Chromium refuses leaves" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a lift Chromium refuses because it holds no finger forgets that finger, so every later gesture starts clean)
  */
 export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) => {
   const session = await chromiumSession(ctx);
@@ -1298,9 +1319,18 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   const last = fingersDown.get(page);
   const finger: { x: number; y: number; frame: Frame | undefined } = { x, y, frame: type === "touchMove" ? last?.frame : undefined };
   // The finger is down once the event is sent, and not before: a touch the kit refuses to send leaves none to lift.
+  // One Chromium refuses leaves the finger where it was, or none when Chromium holds no finger.
   const send = async () => {
     fingersDown.set(page, finger);
-    await session.send("Input.dispatchTouchEvent", { type, touchPoints: [{ x, y, id: 1 }] });
+    try {
+      await session.send("Input.dispatchTouchEvent", { type, touchPoints: [{ x, y, id: 1 }] });
+    } catch (error) {
+      if (fingersDown.get(page) === finger) {
+        if (last && !noFingerDown(error)) fingersDown.set(page, last);
+        else fingersDown.delete(page);
+      }
+      throw error;
+    }
   };
   // Chromium sends the page nothing for a move to where the finger already is.
   if (type === "touchMove" && last?.x === x && last.y === y) await acknowledged("touchStep", { type, x, y }, send, TOUCH_HANDLED_TIMEOUT_MS);

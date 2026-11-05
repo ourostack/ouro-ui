@@ -103,7 +103,8 @@ describe("Emoji", () => {
     expect(img.getBoundingClientRect().width).toBe(25);
     expect(img.getBoundingClientRect().height).toBe(25);
     expect(img.draggable).toBe(false);
-    expect(img.getAttribute("loading")).toBe("lazy");
+    // Fetched as soon as it is drawn, not when it nears the screen.
+    expect(img.hasAttribute("loading")).toBe(false);
     expect(img.getAttribute("decoding")).toBe("async");
     await rerender(<Emoji item={wave} skinTone="medium" />);
     expect(emoji(host).getAttribute("src")).toBe(image("wave tone3"));
@@ -796,6 +797,35 @@ describe("EmojiText", () => {
     expect(widths()).toEqual([20]);
   });
 
+  it("keeps every line and every emoji where a loaded picture would, when its picture fails to load", async () => {
+    // The same text twice, one with every picture there and one with every picture missing: the browser draws a
+    // missing one's name in its place, which must not move the line it sits on, or the lines after it.
+    const missing: EmojiCatalogue = {
+      categories: [{ id: "symbols", label: "Symbols", items: [party, heart, fern].map((item, index) => ({ ...item, src: `/__ouro-missing-emoji-${index}.png`, srcSet: undefined })) }],
+    };
+    const text = "Shipped :party: the notes, :heart: thanks all :fern: see you";
+    const paragraph = (set: EmojiCatalogue) => (
+      <p style={{ width: 160, margin: 0, fontSize: 16, lineHeight: 1.5 }}>
+        <EmojiText text={text} catalogue={set} />
+      </p>
+    );
+    const { host } = await render(
+      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+        {paragraph(catalogue)}
+        {paragraph(missing)}
+      </div>,
+    );
+    const [loaded, failed] = [...host.querySelectorAll("p")];
+    await expect.poll(() => images(host).every((img) => img.complete)).toBe(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(images(failed!).map((img) => img.naturalWidth)).toEqual([0, 0, 0]);
+    const layout = (p: Element) => {
+      const top = p.getBoundingClientRect().top;
+      return { height: p.getBoundingClientRect().height, emoji: images(p).map((img) => Math.round(img.getBoundingClientRect().top - top)) };
+    };
+    expect(layout(failed!)).toEqual(layout(loaded!));
+  });
+
   it("counts an emoji in two categories once, and keeps the span's attributes and layout classes", async () => {
     const { host } = await render(<EmojiText text="plain" catalogue={catalogue} id="body" className="mt-1" />);
     const root = host.querySelector<HTMLElement>('[data-ouro="emoji-text"]')!;
@@ -848,6 +878,29 @@ describe("Emoji helpers", () => {
     expect(splitEmojiText(":party: 🎉 ❤", catalogue, false)).toEqual([":party: ", { item: party, tone: "default", source: "🎉" }, " ", { item: heart, tone: "default", source: "❤" }]);
     expect(splitEmojiText("🎉 :tada:", { categories: [{ id: "plain", label: "Plain", items: [tada] }] }, false)).toEqual(["🎉 :tada:"]);
     expect(splitEmojiText("", catalogue)).toEqual([]);
+  });
+
+  it("passes text with no colon and no emoji text's first character straight through, and still finds a plain-text emoji", () => {
+    expect(splitEmojiText("just words, no emoji here", catalogue)).toEqual(["just words, no emoji here"]);
+    // A colon still lets a token through, and with tokens off it's plain text again.
+    expect(splitEmojiText("time: 10:30", catalogue)).toEqual(["time: 10:30"]);
+    expect(splitEmojiText("see :party:", catalogue, false)).toEqual(["see :party:"]);
+    // An emoji whose text is ordinary characters is still found: its first character opens the search.
+    const yes: EmojiItem = { id: "yes", name: "Yes", text: "(y)", src: image("yes") };
+    expect(splitEmojiText("ok (y)", { categories: [{ id: "plain", label: "Plain", items: [yes] }] })).toEqual(["ok ", { item: yes, tone: "default", source: "(y)" }]);
+  });
+
+  it("runs its patterns only on text that could hold an emoji", () => {
+    const matchAll = vi.spyOn(String.prototype, "matchAll");
+    onTestFinished(() => matchAll.mockRestore());
+    splitEmojiText("just words", catalogue);
+    splitEmojiText("see :party:", catalogue, false);
+    expect(matchAll).not.toHaveBeenCalled();
+    splitEmojiText("see :party:", catalogue);
+    expect(matchAll).toHaveBeenCalledTimes(1);
+    const yes: EmojiItem = { id: "yes", name: "Yes", text: "(y)", src: image("yes") };
+    splitEmojiText("ok (y)", { categories: [{ id: "plain", label: "Plain", items: [yes] }] }, false);
+    expect(matchAll).toHaveBeenCalledTimes(2);
   });
 
   it("finds emoji text with characters a pattern would read as its own", () => {

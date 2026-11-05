@@ -55,7 +55,10 @@ export interface AvatarOwnProps {
    * name is already written next to the avatar, so it isn't read twice.
    */
   alt?: string | undefined;
-  /** The letters to show instead of the ones taken from `name`, such as "AnL". */
+  /**
+   * The letters to show instead of the ones taken from `name`, such as "AnL". Like the initials
+   * taken from `name`, they are drawn (CSS generated content), not written as text.
+   */
   initials?: string | undefined;
   /**
    * An icon to show in place of the initials, such as a calendar for a meeting or a note for
@@ -337,6 +340,14 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  * agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in
  * once it loads.
  *
+ * The initials are drawn, not written: CSS generated content from a data attribute, which
+ * paints exactly as text did but is no text in the page. So a link or button that wraps the
+ * avatar and names itself (`<a aria-label="Ana Lind's profile">`) shows no visible text its
+ * name must hold, and passes axe's `label-content-name-mismatch` (WCAG 2.5.3, Label in Name);
+ * without a name of its own, it takes the avatar's: the person's name, never the letters. In a
+ * test, find an avatar by its role and name (`getByRole("img", { name: "Ana Lind" })`), not by
+ * its letters.
+ *
  * Use `AvatarGroup` instead to stack several, and `Badge` for a status label that isn't a person.
  *
  * @group Display
@@ -349,6 +360,9 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  * <Avatar name="Halden" shape="hexagon" src={agent.photoUrl} />
  * <span className="flex items-center gap-2"><Avatar name={user.name} alt="" size="sm" />{user.name}</span>
  * @claim "in a color picked from the name" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
+ * @claim "which paints exactly as text did" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar's drawn letters > look exactly as written text did, in every size, shape, color and the group's count (%s))
+ * @claim "and passes axe's `label-content-name-mismatch`" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar inside a link or button that has its own name > a link named "Ana Lind's profile" around %s has no label-content-name-mismatch) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar inside a link or button that has its own name > the same link around initials written as text fails the rule, so the check can fail)
+ * @claim "without a name of its own" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar inside a link or button that has its own name > names a link with no label of its own by the person's name, not the letters)
  */
 export function Avatar(props: AvatarProps): JSX.Element {
   const {
@@ -458,11 +472,14 @@ export function Avatar(props: AvatarProps): JSX.Element {
         ) : iconShown ? (
           icon
         ) : (
+          // Drawn from the attribute, not written as text, so a control that wraps the avatar has no
+          // visible text its name must contain (WCAG 2.5.3); the avatar's name is its aria-label.
           // Trimmed to the letters' cap height and baseline, so the letters themselves sit in the
           // middle, not their line with its room for accents and descenders.
-          <span data-ouro-avatar-initials="" className="block whitespace-nowrap [text-box:trim-both_cap_alphabetic]">
-            {initials ?? initialsOf(name)}
-          </span>
+          <span
+            data-ouro-avatar-initials={initials ?? initialsOf(name)}
+            className="block whitespace-nowrap [text-box:trim-both_cap_alphabetic] before:content-[attr(data-ouro-avatar-initials)]"
+          />
         )}
       </BaseAvatar.Fallback>
       {presence && (
@@ -485,6 +502,9 @@ export function Avatar(props: AvatarProps): JSX.Element {
  * Use a list of `Avatar`s with names beside them instead when readers need to see who
  * each person is.
  *
+ * The "+N" count is drawn like Avatar's initials, not written, and screen readers hear
+ * `moreLabel`, so a button that wraps the group and names itself shows no text its name must hold.
+ *
  * @group Display
  * @see https://ui.ouro.bot/docs/avatar
  *
@@ -494,6 +514,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
  * </AvatarGroup>
  * @claim "Its `label` names the group for" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > shows initials from the name, and the name to screen readers)
  * @claim "Its `label` names the group for" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::AvatarGroup > stacks avatars in a labeled group, overlapping)
+ * @claim "count is drawn like Avatar's initials" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar inside a link or button that has its own name > a button named for the group around an AvatarGroup and its +N count has no label-content-name-mismatch)
  */
 export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
   const { label, children, max, total, moreLabel = (count: number) => `${count} more`, size: sizeProp, className, ...rest } = props;
@@ -542,7 +563,7 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
             sizes[size],
           )}
         >
-          <span aria-hidden="true">{`+${more}`}</span>
+          <span aria-hidden="true" data-ouro-avatar-count={`+${more}`} className="before:content-[attr(data-ouro-avatar-count)]" />
           <span className="sr-only">{moreLabel(more)}</span>
         </span>
       )}

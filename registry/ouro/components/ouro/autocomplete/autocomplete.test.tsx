@@ -117,8 +117,8 @@ describe("Autocomplete", () => {
     await type(control, "@");
     await expect.poll(() => options().length).toBe(4);
     const [avery, jordan, priya, sasha] = options();
-    expect(avery!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("AK");
-    expect(jordan!.querySelector('[data-ouro="avatar"]')!.textContent).toBe("JL");
+    expect(avery!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("AK");
+    expect(jordan!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("JL");
     expect(priya!.querySelector('[data-ouro="avatar"]')).not.toBeNull();
     expect(sasha!.querySelector('[data-ouro="avatar"]')).toBeNull();
     // With neither an avatar nor a glyph, the row is the label alone.

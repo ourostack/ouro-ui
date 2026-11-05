@@ -21,6 +21,8 @@ const aliases: Readonly<Record<string, string>> = {
   "resizable-handle": "resizable",
   "resizable-panel": "resizable",
   "select-popup": "select",
+  "snap-pip-frame": "snap-pip",
+  "snap-pip-hint": "snap-pip",
   "time-grid-nav": "time-grid",
   toast: "toaster",
 };

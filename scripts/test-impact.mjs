@@ -56,6 +56,7 @@ const noComponent = [
   [/^changes\/[^/]+\.md$/, "a change fragment"],
   [/^registry\.json$/, "the generated registry"],
   [/^site\//, "the site, whose tests every run includes"],
+  [/^feel\//, "Ouro Feel, which its own workflow runs (feel.yml)"],
 ];
 
 /** Every component folder with its component stems, from each folder's component.json. */

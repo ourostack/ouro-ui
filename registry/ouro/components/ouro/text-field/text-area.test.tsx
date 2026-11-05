@@ -164,10 +164,13 @@ describe("TextArea autoGrow", () => {
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 2), 0);
     expect(getComputedStyle(textarea).overflowY).toBe("hidden");
 
-    await userEvent.type(textarea, "one{Enter}two{Enter}three");
+    // Each edit is one input event, as a paste is: typed a key at a time, its 27 keys were each a
+    // round trip through Vitest, which took WebKit past the test's 15 seconds on a busy runner.
+    // The next test types key by key.
+    await userEvent.fill(textarea, "one\ntwo\nthree");
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
 
-    await userEvent.type(textarea, "{Enter}four{Enter}five{Enter}six");
+    await userEvent.fill(textarea, "one\ntwo\nthree\nfour\nfive\nsix");
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 4), 0);
     expect(getComputedStyle(textarea).overflowY).toBe("auto");
 
@@ -217,6 +220,40 @@ describe("TextArea autoGrow", () => {
     const { host, textarea } = await render(<Controlled />);
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 1), 0);
     await userEvent.click(host.querySelector("button")!);
+    expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+  });
+
+  it("measures once per change of its text, and not on a render that changes nothing it fits", async () => {
+    /** How many times the textarea's style was read: each fit reads it once, and lays out the page. */
+    const reads = (textarea: HTMLTextAreaElement) => {
+      const spy = vi.spyOn(window, "getComputedStyle");
+      return () => spy.mock.calls.filter(([element]) => element === textarea).length;
+    };
+    function Controlled({ tick }: { tick: number }) {
+      const [value, setValue] = useState("one");
+      return <TextArea label="Notes" autoGrow rows={1} maxRows={4} value={value} onValueChange={setValue} data-tick={tick} />;
+    }
+    for (const node of [(tick: number) => <Controlled tick={tick} />, (tick: number) => <TextArea label="Notes" autoGrow rows={1} maxRows={4} defaultValue="one" data-tick={tick} />]) {
+      const { textarea, rerender } = await render(node(0));
+      textarea.focus();
+      textarea.setSelectionRange(3, 3);
+      const count = reads(textarea);
+      await userEvent.keyboard("\n");
+      expect(count()).toBe(1);
+      // A parent's render, as a message arrives beside a composer.
+      await rerender(node(1));
+      expect(count()).toBe(1);
+      vi.restoreAllMocks();
+      expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 2), 0);
+      roots.pop()!.unmount();
+    }
+  });
+
+  it("refits when rows, maxRows or size change", async () => {
+    const { textarea, rerender } = await render(<TextArea label="Notes" autoGrow rows={1} maxRows={4} defaultValue="one" />);
+    await rerender(<TextArea label="Notes" autoGrow rows={3} maxRows={4} defaultValue="one" />);
+    expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+    await rerender(<TextArea label="Notes" autoGrow rows={3} maxRows={4} size="lg" defaultValue="one" />);
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
   });
 

@@ -470,6 +470,61 @@ function setNativeValue(textarea: HTMLTextAreaElement, value: string) {
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, value);
 }
 
+describe("TextArea highlights' cost", () => {
+  /**
+   * How many times the textarea's style was read since this was called: each copy onto the layer
+   * reads it, and lays out the page. It starts once the frame after mount has run, where the
+   * layer's ResizeObserver delivers its first observation, as every observer does once.
+   */
+  const reads = async (textarea: HTMLTextAreaElement) => {
+    await act(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const spy = vi.spyOn(window, "getComputedStyle");
+    const of = () => spy.mock.calls.filter(([element]) => element === textarea).length;
+    const before = of();
+    return () => of() - before;
+  };
+  const busy = (tick: number, highlights: TextAreaHighlight[], props: Partial<TextAreaProps> = {}) => (
+    <TextArea label="Reply" defaultValue="A few words" highlights={highlights} data-tick={tick} {...props} />
+  );
+
+  it("copies nothing and draws no text with no marks, as the person types or the parent renders, and stays hidden", async () => {
+    const { textarea, layer, rerender } = await render(busy(0, []));
+    const count = await reads(textarea);
+    await typeAt(textarea, 11, " more");
+    await rerender(busy(1, []));
+    expect(count()).toBe(0);
+    expect(layer.textContent).toBe("\n\u200b");
+    expect(getComputedStyle(layer).visibility).toBe("hidden");
+  });
+
+  it("copies the textarea's box and type when marks appear and when a prop that styles it changes, not as the person types or the parent renders", async () => {
+    const mark = [{ start: 0, end: 5, label: "A" }];
+    const { textarea, layer, rerender } = await render(busy(0, []));
+    await rerender(busy(0, mark));
+    expect(getComputedStyle(layer).visibility).toBe("visible");
+    expect(layer.style.fontSize).toBe(getComputedStyle(textarea).fontSize);
+    const count = await reads(textarea);
+    await typeAt(textarea, 11, " more");
+    await rerender(busy(1, mark));
+    expect(count()).toBe(0);
+    // The layer's text follows the textarea's in the same box, so the marks stay over their words.
+    expect(layer.textContent).toBe(`${textarea.value}\n\u200b`);
+    // A prop that styles the textarea is copied in the same commit, before the frame is painted.
+    await rerender(busy(1, mark, { size: "lg" }));
+    expect(layer.style.fontSize).toBe("20px");
+    await rerender(busy(1, mark, { size: "lg", variant: "plain" }));
+    expect([layer.style.paddingLeft, layer.style.borderLeftWidth]).toEqual([getComputedStyle(textarea).paddingLeft, getComputedStyle(textarea).borderLeftWidth]);
+    await rerender(busy(1, [], { size: "lg", variant: "plain" }));
+    expect(getComputedStyle(layer).visibility).toBe("hidden");
+    // With no marks again, a scroll or a change of size copies nothing.
+    const after = await reads(textarea);
+    textarea.dispatchEvent(new Event("scroll"));
+    await rerender(busy(2, [], { size: "md", variant: "plain" }));
+    await act(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(after()).toBe(0);
+  });
+});
+
 describe("TextArea highlights layout", () => {
   it("scrolls the marks with the text once autoGrow stops at maxRows", async () => {
     const text = Array.from({ length: 12 }, (_, line) => `line ${line}`).join("\n");

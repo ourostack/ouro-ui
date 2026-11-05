@@ -23,7 +23,7 @@ import { AgentPresence } from "@/registry/ouro/components/ouro/agent-presence/ag
 
 The chip is a button named by the count and the names ("2 agents listening: inbox agent, research agent"). When an agent starts or stops listening, screen readers hear it once, politely ("inbox agent is now listening", "inbox agent stopped"). When a Stop goes with its agent, focus moves to the next Stop, and when the last agent goes, to the control after the chip.
 
-Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`, lets agents read who is listening and what for (consent `none`), and take Stop and Stop all, since stopping only reduces what is heard. It offers no way to start listening: that stays the person's.
+Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`, lets agents read who is listening and what for (consent `none`). An agent may stop only its own listening, through the app's `stop` twin, which refuses any other agent's row. Stop on another agent's row and Stop all are the person's, because the person asked those agents to listen. It offers no way to start listening: that stays the person's.
 
 ## Use instead when
 
@@ -40,7 +40,7 @@ Type: `AgentPresenceProps`.
 | `compact` | `boolean` |  | Only the sparkle and a count, for a tight bar or a floating mini-window. Its name still says who is listening. |
 | `label` (required) | `string` |  | Names the list of agents: the popover's title, "Agents listening". It is always required. |
 | `labels` | `AgentPresenceLabels` |  | The words it says, for other languages. |
-| `onStop` (required) | `(id: string) => void` |  | Called with an agent's `id` when the person presses its Stop. Stop the agent and drop it from `agents`; AgentPresence says "inbox agent stopped" once it has gone. |
+| `onStop` (required) | `(id: string) => void` |  | Called with an agent's `id` when the person presses its Stop. Stop the agent and drop it from `agents`; AgentPresence says "inbox agent stopped" once it has gone. The person may stop any agent here. When an agent asks through the app's `stop` twin instead, stop it only if `id` is the calling agent's own, and refuse any other agent's row. |
 | `onStopAll` | `(() => void)` |  | Called when the person presses Stop all, which shows with two agents or more. Without it, Stop all calls `onStop` for each agent. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md" \| "lg"` | `"sm"` | The chip's size, Button's sizes. |

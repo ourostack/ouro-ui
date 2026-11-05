@@ -147,16 +147,89 @@ describe("createPeopleCache", () => {
 
   it.each([
     [5 * MINUTE, 5 * MINUTE],
+    [30 * MINUTE, 30 * MINUTE],
     [MINUTE, 2 * MINUTE],
+    [-MINUTE, 2 * MINUTE],
+    [Infinity, 2 * MINUTE],
+    [NaN, 2 * MINUTE],
     ["soon", 2 * MINUTE],
     [undefined, 2 * MINUTE],
-  ])("pauses for a failure's retryAfterMs when it is longer than pauseFor, else for pauseFor: %s gives %i ms", async (retryAfterMs, pause) => {
+  ])("honours a failure's retryAfterMs as given when it is longer than the step, even past longestPause, and ignores one that is no length: %s gives %i ms", async (retryAfterMs, pause) => {
     const { read, calls } = held();
-    const cache = createPeopleCache({ read, pauseFor: 2 * MINUTE });
+    const cache = createPeopleCache({ read, pauseFor: 2 * MINUTE, longestPause: 10 * MINUTE });
     const load = cache.load("a");
     await run();
     calls[0]!.reject(retryAfterMs === undefined ? null : Object.assign(new Error("throttled"), { retryAfterMs }));
     expect((await load).retryAt).toBe(START + pause);
+  });
+
+  /** Fails a read of a new person in each round, and gives the pause each failure set, in ms. */
+  async function pausesOf(cache: ReturnType<typeof createPeopleCache<string>>, calls: ReturnType<typeof held>["calls"], failures: unknown[]) {
+    const pauses: number[] = [];
+    for (const failure of failures) {
+      const load = cache.load(`person ${calls.length}`);
+      await run();
+      calls.at(-1)!.reject(failure);
+      const { retryAt } = await load;
+      pauses.push(retryAt! - Date.now());
+      await run(retryAt! - Date.now());
+    }
+    return pauses;
+  }
+
+  it("doubles the pause with each round of reads that fails, up to longestPause", async () => {
+    const down = new Error("down");
+    const defaults = held();
+    expect(await pausesOf(createPeopleCache({ read: defaults.read }), defaults.calls, Array(8).fill(down))).toEqual([15, 30, 60, 120, 240, 480, 600, 600].map((s) => s * 1000));
+    const options = held();
+    const cache = createPeopleCache({ read: options.read, pauseFor: MINUTE, longestPause: 3 * MINUTE });
+    expect(await pausesOf(cache, options.calls, Array(4).fill(down))).toEqual([1, 2, 3, 3].map((m) => m * MINUTE));
+  });
+
+  it("caps each step of the pause at longestPause, the first step too", async () => {
+    const { read, calls } = held();
+    const down = new Error("down");
+    expect(await pausesOf(createPeopleCache({ read, pauseFor: 20 * MINUTE, longestPause: 10 * MINUTE }), calls, [down, down])).toEqual([10 * MINUTE, 10 * MINUTE]);
+  });
+
+  it("starts the pause from pauseFor again after a read that succeeds, even one that finds nothing", async () => {
+    const { read, calls } = held();
+    const cache = createPeopleCache({ read, pauseFor: MINUTE });
+    const down = new Error("down");
+    expect(await pausesOf(cache, calls, [down, down])).toEqual([MINUTE, 2 * MINUTE]);
+    const answers: Record<string, PersonRead<string>>[] = [{}, { b: { value: "Bo" } }];
+    for (const answer of answers) {
+      const load = cache.load("b");
+      await run();
+      calls.at(-1)!.resolve(answer);
+      await load;
+      expect(await pausesOf(cache, calls, [down, down])).toEqual([MINUTE, 2 * MINUTE]);
+      await run(DAY);
+    }
+  });
+
+  it("steps the pause once for reads that fail in the same round", async () => {
+    const { read, calls } = held();
+    const cache = createPeopleCache({ read, batchSize: 1, pauseFor: MINUTE });
+    const loads = ["a", "b", "c"].map((id) => cache.load(id));
+    await run();
+    expect(calls).toHaveLength(3);
+    calls[0]!.reject(new Error("down"));
+    calls[1]!.reject(new Error("down"));
+    await run(MINUTE / 2);
+    // A read of the same round that fails later, while the pause is in force.
+    calls[2]!.reject(new Error("down"));
+    expect((await Promise.all(loads)).map((entry) => entry.retryAt)).toEqual([START + MINUTE, START + MINUTE, START + MINUTE]);
+    await run(MINUTE / 2);
+    expect(read).toHaveBeenCalledTimes(3);
+    expect(await pausesOf(cache, calls, [new Error("down")])).toEqual([2 * MINUTE]);
+  });
+
+  it("pauses for a failure's retryAfterMs when it is longer than the pause's step, without changing the step", async () => {
+    const { read, calls } = held();
+    const cache = createPeopleCache({ read, pauseFor: MINUTE });
+    const throttled = (retryAfterMs: number) => Object.assign(new Error("throttled"), { retryAfterMs });
+    expect(await pausesOf(cache, calls, [throttled(MINUTE / 2), throttled(5 * MINUTE), new Error("down")])).toEqual([MINUTE, 5 * MINUTE, 4 * MINUTE]);
   });
 
   it("makes no one wait when the service refuses one person, and pauses for a person the service failed on", async () => {

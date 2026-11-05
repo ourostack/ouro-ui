@@ -37,7 +37,7 @@ import { MessageList } from "@/registry/ouro/components/ouro/message/message-lis
 
 ## Usage
 
-While older history may load, set `hasOlder`, and `loadingOlder` while it loads: the list keeps room above the first message for "Loading older messages", so nothing moves as it shows.
+While older history may load, set `hasOlder`, and `loadingOlder` while it loads: the list keeps room above the first message for "Loading older messages", so nothing moves as it shows. Fetch older pages ahead of the reader, newer before older, rather than waiting for them to reach the top, so they seldom see it.
 
 Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it. Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view scrolls the list, not the page around it.
 
@@ -65,7 +65,7 @@ Type: `MessageListProps`.
 | `initialAnchor` | `string` |  | The `id` of the message to open at, such as one found by search or a link to it. The list opens with that message in the middle of its view, before it first draws, so the newest is never shown first, and it follows new messages only once the reader reaches the end. The list reads it when it first has messages, so it can come with them; a message it does not hold, or the newest, opens at the end, and a later change moves nothing. |
 | `jumpLabel` | `string` | `"Jump to latest"` | The button that appears once the reader scrolls up, for other languages. |
 | `label` (required) | `string` |  | What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. |
-| `loadingOlder` | `boolean` |  | Whether older messages are loading above, as after the reader reaches the top: a small "Loading older messages" shows over the top of the list, and screen readers hear it once. It sits over the messages, not among them, so starting and ending it moves no message. At the very top it covers the first message unless `hasOlder` keeps room for it. |
+| `loadingOlder` | `boolean` |  | Whether older messages are loading above: a small "Loading older messages" shows over the top of the list, and screen readers hear it once. It sits over the messages, not among them, so starting and ending it moves no message. At the very top it covers the first message unless `hasOlder` keeps room for it. Fetch older pages ahead of the reader, not when they reach the top: the next older page as soon as the one before it has arrived, while they are still screens away. Then this shows only when they get to the top first. |
 | `loadingOlderLabel` | `string` | `"Loading older messages"` | What shows while older messages load, for other languages. |
 | `maxWidth` | `number` |  | The widest the conversation gets, in CSS pixels, centred in a wider list (`960` is 60rem at the default font size), so in a wide window the user's own messages stay near the others' and the eye never crosses an empty field between them. The list itself still fills its place, so it scrolls from anywhere across it. Leave it out for messages as wide as the list. |
 | `newMessageLabel` | `((author: string, text: string) => string)` | (author, text) => `${author}: ${text}` | What screen readers hear when a new message arrives, for other languages. It gets the author's name and the message's text. The user's own messages are not read back. |

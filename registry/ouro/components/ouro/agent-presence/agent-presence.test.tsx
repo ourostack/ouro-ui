@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { AX_ACTION_ATTRIBUTE, expectAxRendered, isReservedPersonOnly } from "@/registry/ouro/ax/component";
+import { AX_ACTION_ATTRIBUTE, bindAx, expectAxRendered, isReservedPersonOnly } from "@/registry/ouro/ax/component";
 import { AgentPresence, type AgentPresenceProps, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { agentPresenceAx } from "@/registry/ouro/components/ouro/agent-presence/agent-presence-styles";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -144,9 +144,11 @@ describe("AgentPresence", () => {
     await expect.element(page.getByRole("dialog", { name: "Agents listening" })).toBeVisible();
     const rows = [...popup()!.querySelectorAll("li")];
     expect(rows.map((row) => row.innerText.replace(/\s+/g, " ").trim())).toEqual([
-      "IA inbox agent listening for your name, and anything about the empty state Stop",
-      "NA notes agent Stop",
+      "inbox agent listening for your name, and anything about the empty state Stop",
+      "notes agent Stop",
     ]);
+    // The initials are drawn from an attribute, not written, so they are no text in the row.
+    expect(rows.map((row) => row.querySelector("[data-ouro-avatar-initials]")?.getAttribute("data-ouro-avatar-initials"))).toEqual(["IA", "NA"]);
     // Each agent wears the agent hexagon, read once: its name is written beside it.
     const avatar = rows[0]!.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
     expect(avatar.getAttribute("data-shape")).toBe("hexagon");
@@ -485,13 +487,13 @@ describe("AgentPresence", () => {
 });
 
 describe("AgentPresence agent side", () => {
-  it("declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening", async () => {
+  it("declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening", async () => {
     expect(agentPresenceAx).toEqual({
       component: "AgentPresence",
       reads: [{ id: "listening", summary: "Which of the person's agents are listening, and what each listens for.", fields: ["agent", "doing"], consent: "none" }],
       actions: [
-        { id: "stop", summary: "Stop an agent listening for the person.", effect: "private", agent: true },
-        { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", agent: true },
+        { id: "stop", summary: "Stop your own listening for the person: your row only, never another agent's.", effect: "private", agent: true },
+        { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop." },
       ],
     });
     for (const action of agentPresenceAx.actions) expect(isReservedPersonOnly(action.id)).toBe(false);
@@ -503,5 +505,20 @@ describe("AgentPresence agent side", () => {
     const marked = [...document.querySelectorAll<HTMLElement>(`[${AX_ACTION_ATTRIBUTE}]`)];
     expect(marked.map((element) => element.getAttribute(AX_ACTION_ATTRIBUTE))).toEqual(["stop", "stop", "stop-all"]);
     expect(marked.map((element) => element.getAttribute("data-ouro-part"))).toEqual(["stop", "stop", "stop-all"]);
+  });
+
+  it("binds stop to a twin that names the calling agent's row, and Stop all to words that refuse", () => {
+    const ui = bindAx(agentPresenceAx, {
+      reads: { listening: "call agents <meeting>" },
+      actions: { stop: "call unfollow <meeting> --agent <me>" },
+      refuseAs: { "stop-all": "call unfollow <meeting> --all" },
+    });
+    expect(ui.filter((entry) => entry.kind === "action")).toEqual([
+      { component: "AgentPresence", kind: "action", id: "stop", effect: "private", twin: "call unfollow <meeting> --agent <me>" },
+      { component: "AgentPresence", kind: "action", id: "stop-all", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop.", refuseAs: "call unfollow <meeting> --all" },
+    ]);
+    expect(() => bindAx(agentPresenceAx, { reads: { listening: "call agents <meeting>" }, actions: { stop: "call unfollow <meeting> --agent <me>", "stop-all": "call unfollow <meeting> --all" } })).toThrow(
+      'AgentPresence action "stop-all": it is the person\'s, so it has no twin. Fix: move "call unfollow <meeting> --all" to refuseAs, where its words refuse.',
+    );
   });
 });

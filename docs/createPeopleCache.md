@@ -2,7 +2,7 @@
 
 # createPeopleCache
 
-A cache of people's names, photos or profiles for an app's avatars and message names, read from your service in batches. A person asked for again while their read is queued or under way joins that read. A person the service has nothing for is kept as `missing` until `missingFor` runs out, so they are not asked about on every load. When the service fails, every read waits `pauseFor` and the people in that read are asked again after it; a person refused alone is `missing` and makes no one wait. With `storage`, what was read survives a reload; an entry whose time has run out is read again when next asked for, or at once while it is watched.
+A cache of people's names, photos or profiles for an app's avatars and message names, read from your service in batches. A person asked for again while their read is queued or under way joins that read. A person the service has nothing for is kept as `missing` until `missingFor` runs out, so they are not asked about on every load. When the service fails, every read pauses, and the people in that read are asked again after it; the pause starts at `pauseFor` and doubles with each round that fails, up to `longestPause`, however many reads fail in a round. A service's Retry-After is honoured as given when it is longer. A person refused alone is `missing` and makes no one wait. With `storage`, what was read survives a reload; an entry whose time has run out is read again when next asked for, or at once while it is watched.
 
 ```tsx
 import { createPeopleCache } from "@/registry/ouro/lib/ouro/people-cache";
