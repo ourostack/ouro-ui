@@ -107,7 +107,7 @@ export default function AppleHome(): JSX.Element {
       >
         <div className="apple-showcases">
           <article className="apple-showcase" aria-labelledby="showcase-spoonjoy">
-            <Loop clip="spoonjoy-cook-step" size="sm" />
+            <Loop clip="spoonjoy-add-recipe" size="sm" />
             <div className="apple-showcase-copy">
               <p className="apple-door-kicker">Spoonjoy, on iPhone</p>
               <h3 id="showcase-spoonjoy" className="site-h3">

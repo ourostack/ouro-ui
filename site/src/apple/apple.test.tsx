@@ -103,6 +103,16 @@ describe("Ouro UI for Apple", () => {
     expect(loop.querySelector("video")?.getAttribute("autoplay")).toBeNull();
   });
 
+  it("shows the light capture in dark mode when a clip has no dark one, and the dark capture when it has", async () => {
+    setScheme("dark");
+    await renderPage("/apple/");
+    await expect.element(page.getByRole("heading", { level: 1, name: TITLES["/apple/"] })).toBeInTheDocument();
+    const showing = (clip: string) =>
+      [...document.querySelectorAll(`[data-apple-clip="${clip}"] video`)].filter((el) => getComputedStyle(el).display !== "none").map((el) => el.getAttribute("data-apple-scheme"));
+    expect(showing("spoonjoy-add-recipe")).toEqual(["light"]);
+    expect(showing("hx-spring")).toEqual(["dark"]);
+  });
+
   it("gives every clip an honest caption and real media names", () => {
     for (const [name, clip] of Object.entries(CLIPS)) {
       expect(clip.label.length, name).toBeGreaterThan(0);

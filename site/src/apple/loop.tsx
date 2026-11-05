@@ -78,7 +78,7 @@ export function Loop({ clip, caption, className, size = "md" }: { clip: ClipName
 
   return (
     <figure className={cn("apple-loop", `apple-loop-${size}`, className)} data-apple-clip={clip}>
-      <div ref={frame} className="apple-loop-frame" style={{ aspectRatio: `${info.width} / ${info.height}` }}>
+      <div ref={frame} className="apple-loop-frame" data-apple-dark={info.dark ? "" : undefined} style={{ aspectRatio: `${info.width} / ${info.height}` }}>
         <Variant name={clip} scheme="light" label={info.label} hevc={info.hevc} />
         {info.dark ? <Variant name={`${clip}-dark`} scheme="dark" label={info.label} hevc={info.hevc} /> : null}
         <img className="apple-loop-still apple-loop-light" src={media(`${clip}-still.jpg`)} alt={info.label} width={info.width} height={info.height} loading="lazy" decoding="async" />

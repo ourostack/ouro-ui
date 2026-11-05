@@ -1,0 +1,205 @@
+{
+  "generated": "2026-11-04",
+  "notes": [
+    "mp4: HEVC (libx265, hvc1, crf 28, yuv420p, faststart, no audio). webm: VP9 crf 36, b:v 0, no audio.",
+    "Each clip is cropped below the status bar and above the home indicator, then scaled to 590 px wide (half of 1206).",
+    "Poster is the loop's first frame; -still.jpg is a settled frame for reduced motion; stills/<name>.png is that frame at full resolution (1206 px wide, same crop).",
+    "Loops: the reel scenes run a strictly periodic timeline, so each clip is exactly one period; Spoonjoy clips are cut from settled frame to settled frame."
+  ],
+  "clips": [
+    {
+      "name": "hx-spring",
+      "shows": "A tile springs corner to corner on core's spring (0.4 s, bounce 0.15) and is re-targeted mid-flight, keeping its speed; Pearl, light.",
+      "source": {
+        "app": "Ouro HX reel (reel-source/), a scratch SwiftUI app using only OuroHX's public API",
+        "package": "ourostack/ouro-ui-apple v0.2.1 (c9a84aff2ec71b92981d70595df3158f7ba2c4d0)",
+        "simulator": "iPhone 17 Pro simulator, iOS 27.0 (24A434)",
+        "xcode": "Xcode 27.2 (27B52)",
+        "captured": "2026-11-04",
+        "recorder": "xcrun simctl io recordVideo --codec=h264; cut and encoded with ffmpeg (reel-source/tools/process.py)"
+      },
+      "duration_s": 4.8,
+      "width": 590,
+      "height": 1142,
+      "fps": 30,
+      "loop_start_in_raw_s": 5.4,
+      "bytes": {
+        "hx-spring.mp4": 72539,
+        "hx-spring.webm": 74736,
+        "hx-spring-poster.jpg": 33999,
+        "hx-spring-still.jpg": 32635,
+        "stills/hx-spring.png": 190953
+      }
+    },
+    {
+      "name": "hx-spring-dark",
+      "shows": "The same spring scene in dark mode; Pearl, dark.",
+      "source": {
+        "app": "Ouro HX reel (reel-source/), a scratch SwiftUI app using only OuroHX's public API",
+        "package": "ourostack/ouro-ui-apple v0.2.1 (c9a84aff2ec71b92981d70595df3158f7ba2c4d0)",
+        "simulator": "iPhone 17 Pro simulator, iOS 27.0 (24A434)",
+        "xcode": "Xcode 27.2 (27B52)",
+        "captured": "2026-11-04",
+        "recorder": "xcrun simctl io recordVideo --codec=h264; cut and encoded with ffmpeg (reel-source/tools/process.py)"
+      },
+      "duration_s": 4.8,
+      "width": 590,
+      "height": 1142,
+      "fps": 30,
+      "loop_start_in_raw_s": 5.233,
+      "bytes": {
+        "hx-spring-dark.mp4": 61352,
+        "hx-spring-dark.webm": 65067,
+        "hx-spring-dark-poster.jpg": 34780,
+        "hx-spring-dark-still.jpg": 33444,
+        "stills/hx-spring-dark.png": 171405
+      }
+    },
+    {
+      "name": "hx-press",
+      "shows": "A Save button dips to the press scale (0.97, 0.16 s ease out) twice, toggling to a green Saved state with a check and back; Pearl, light.",
+      "source": {
+        "app": "Ouro HX reel (reel-source/), a scratch SwiftUI app using only OuroHX's public API",
+        "package": "ourostack/ouro-ui-apple v0.2.1 (c9a84aff2ec71b92981d70595df3158f7ba2c4d0)",
+        "simulator": "iPhone 17 Pro simulator, iOS 27.0 (24A434)",
+        "xcode": "Xcode 27.2 (27B52)",
+        "captured": "2026-11-04",
+        "recorder": "xcrun simctl io recordVideo --codec=h264; cut and encoded with ffmpeg (reel-source/tools/process.py)"
+      },
+      "duration_s": 4.0,
+      "width": 590,
+      "height": 1142,
+      "fps": 30,
+      "loop_start_in_raw_s": 4.9,
+      "bytes": {
+        "hx-press.mp4": 41061,
+        "hx-press.webm": 36824,
+        "hx-press-poster.jpg": 30686,
+        "hx-press-still.jpg": 30860,
+        "stills/hx-press.png": 180058
+      }
+    },
+    {
+      "name": "hx-themes",
+      "shows": "One small screen (title, list row with a check, toggle, primary button) crossfading through all six themes with OuroMotion.Kind.base, 0.8 s each, in light mode.",
+      "source": {
+        "app": "Ouro HX reel (reel-source/), a scratch SwiftUI app using only OuroHX's public API",
+        "package": "ourostack/ouro-ui-apple v0.2.1 (c9a84aff2ec71b92981d70595df3158f7ba2c4d0)",
+        "simulator": "iPhone 17 Pro simulator, iOS 27.0 (24A434)",
+        "xcode": "Xcode 27.2 (27B52)",
+        "captured": "2026-11-04",
+        "recorder": "xcrun simctl io recordVideo --codec=h264; cut and encoded with ffmpeg (reel-source/tools/process.py)"
+      },
+      "duration_s": 4.8,
+      "width": 590,
+      "height": 1142,
+      "fps": 30,
+      "loop_start_in_raw_s": 6.333,
+      "bytes": {
+        "hx-themes.mp4": 83120,
+        "hx-themes.webm": 108917,
+        "hx-themes-poster.jpg": 39096,
+        "hx-themes-still.jpg": 39096,
+        "stills/hx-themes.png": 200189
+      }
+    },
+    {
+      "name": "hx-themes-dark",
+      "shows": "The six-theme crossfade in dark mode.",
+      "source": {
+        "app": "Ouro HX reel (reel-source/), a scratch SwiftUI app using only OuroHX's public API",
+        "package": "ourostack/ouro-ui-apple v0.2.1 (c9a84aff2ec71b92981d70595df3158f7ba2c4d0)",
+        "simulator": "iPhone 17 Pro simulator, iOS 27.0 (24A434)",
+        "xcode": "Xcode 27.2 (27B52)",
+        "captured": "2026-11-04",
+        "recorder": "xcrun simctl io recordVideo --codec=h264; cut and encoded with ffmpeg (reel-source/tools/process.py)"
+      },
+      "duration_s": 4.8,
+      "width": 590,
+      "height": 1142,
+      "fps": 30,
+      "loop_start_in_raw_s": 4.867,
+      "bytes": {
+        "hx-themes-dark.mp4": 88110,
+        "hx-themes-dark.webm": 124517,
+        "hx-themes-dark-poster.jpg": 39878,
+        "hx-themes-dark-still.jpg": 39878,
+        "stills/hx-themes-dark.png": 176726
+      }
+    },
+    {
+      "name": "hx-reduce-motion",
+      "shows": "The spring scene side by side with the same change under Reduce Motion, where OuroMotion.step(.spring, reduceMotion: true) makes it a 0.2 s crossfade; Pearl, light.",
+      "source": {
+        "app": "Ouro HX reel (reel-source/), a scratch SwiftUI app using only OuroHX's public API",
+        "package": "ourostack/ouro-ui-apple v0.2.1 (c9a84aff2ec71b92981d70595df3158f7ba2c4d0)",
+        "simulator": "iPhone 17 Pro simulator, iOS 27.0 (24A434)",
+        "xcode": "Xcode 27.2 (27B52)",
+        "captured": "2026-11-04",
+        "recorder": "xcrun simctl io recordVideo --codec=h264; cut and encoded with ffmpeg (reel-source/tools/process.py)"
+      },
+      "duration_s": 4.8,
+      "width": 590,
+      "height": 1142,
+      "fps": 30,
+      "loop_start_in_raw_s": 4.767,
+      "bytes": {
+        "hx-reduce-motion.mp4": 69555,
+        "hx-reduce-motion.webm": 80232,
+        "hx-reduce-motion-poster.jpg": 40746,
+        "hx-reduce-motion-still.jpg": 40963,
+        "stills/hx-reduce-motion.png": 235028
+      }
+    },
+    {
+      "name": "hx-haptics",
+      "shows": "A checklist ticking off (.checked), a servings stepper stepping (.stepped) and a finish seal (.finished), each moment named on screen; haptics themselves can't be recorded; Pearl, light.",
+      "source": {
+        "app": "Ouro HX reel (reel-source/), a scratch SwiftUI app using only OuroHX's public API",
+        "package": "ourostack/ouro-ui-apple v0.2.1 (c9a84aff2ec71b92981d70595df3158f7ba2c4d0)",
+        "simulator": "iPhone 17 Pro simulator, iOS 27.0 (24A434)",
+        "xcode": "Xcode 27.2 (27B52)",
+        "captured": "2026-11-04",
+        "recorder": "xcrun simctl io recordVideo --codec=h264; cut and encoded with ffmpeg (reel-source/tools/process.py)"
+      },
+      "duration_s": 5.6,
+      "width": 590,
+      "height": 1142,
+      "fps": 30,
+      "loop_start_in_raw_s": 6.3,
+      "bytes": {
+        "hx-haptics.mp4": 69187,
+        "hx-haptics.webm": 93745,
+        "hx-haptics-poster.jpg": 35622,
+        "hx-haptics-still.jpg": 43496,
+        "stills/hx-haptics.png": 261044
+      }
+    },
+    {
+      "name": "spoonjoy-add-recipe",
+      "shows": "Spoonjoy's Add Recipe sheet rising from the Kitchen and closing again; light.",
+      "source": {
+        "app": "Spoonjoy for iOS (BootstrapDebug simulator build, CODE_SIGNING_ALLOWED=NO)",
+        "repo": "spoonjoy/spoonjoy-apple main @ a61c16010ea00097ea518493bc77c75a74a8ebf3 (uses ouro-ui-apple 0.2.1)",
+        "data": "the screenshot fixture kitchen: fake account chef_kitchen_capture, cache only, no network; the 'Saved copy' pill is an offline-fixture artefact",
+        "driver": "a scratch XCUITest (SiteCaptureUITests, not committed)",
+        "simulator": "iPhone 17 Pro simulator, iOS 27.0 (24A434)",
+        "xcode": "Xcode 27.2 (27B52)",
+        "captured": "2026-11-04",
+        "recorder": "xcrun simctl io recordVideo --codec=h264; cut and encoded with ffmpeg (reel-source/tools/process.py)"
+      },
+      "duration_s": 4.7,
+      "width": 590,
+      "height": 1150,
+      "fps": 30,
+      "loop_start_in_raw_s": 109.2,
+      "bytes": {
+        "spoonjoy-add-recipe.mp4": 349024,
+        "spoonjoy-add-recipe.webm": 305382,
+        "spoonjoy-add-recipe-poster.jpg": 116431,
+        "spoonjoy-add-recipe-still.jpg": 43864,
+        "stills/spoonjoy-add-recipe.png": 307840
+      }
+    }
+  ]
+}

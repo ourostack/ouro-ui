@@ -186,7 +186,7 @@
   .dark .apple-loop-video.apple-loop-dark {
     display: block;
   }
-  .dark .apple-loop-video.apple-loop-light {
+  .dark .apple-loop-frame[data-apple-dark] .apple-loop-video.apple-loop-light {
     display: none;
   }
   .apple-loop-toggle {
@@ -239,7 +239,7 @@
     .apple-loop-still.apple-loop-light {
       display: block;
     }
-    .dark .apple-loop-still.apple-loop-light {
+    .dark .apple-loop-frame[data-apple-dark] .apple-loop-still.apple-loop-light {
       display: none;
     }
     .dark .apple-loop-still.apple-loop-dark {
