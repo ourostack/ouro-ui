@@ -840,6 +840,30 @@ describe("MessageList", () => {
     expect(Math.abs(tall(11) - before)).toBeLessThanOrEqual(1);
   });
 
+  it("holds the post that fills the view, not the reply above it, when replies sit inside the post", async () => {
+    function Thread({ above }: { above: number }) {
+      return (
+        <MessageList label="Channel" style={{ height: 300 }}>
+          <article id="parent" data-ouro-message-list-item="" data-role="user" style={{ margin: 0 }}>
+            <div data-ouro-message-list-item="" id="reply-a" style={{ height: above }} />
+            <div data-ouro-message-list-item="" id="reply-b" style={{ height: 3000 }} />
+          </article>
+        </MessageList>
+      );
+    }
+    const { scroller, rerender } = await render(<Thread above={200} />);
+    await settle(scroller);
+    scroller.scrollTop = 1200;
+    await settle(scroller);
+    const parentTop = () => document.getElementById("parent")!.getBoundingClientRect().top;
+    const before = parentTop();
+    await rerender(<Thread above={400} />);
+    await settle(scroller);
+    // The post that fills the view holds the place, and it did not move, so the list does not correct for the reply's growth.
+    expect(Math.abs(parentTop() - before)).toBeLessThanOrEqual(1);
+    expect(scroller.scrollTop).toBe(1200);
+  });
+
   it("keeps the reader's place by the other message in view when the one they are on moves to the end", async () => {
     // Posts 160px tall, so only two start in the view: the one that stayed tells the list where the reader is.
     const { order, scroller, rerender } = await scrolledTo10(160);
