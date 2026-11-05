@@ -221,6 +221,14 @@ describe("EmojiPicker with a catalogue", () => {
     expect(fetching(cells())).toEqual([...Array(64).fill("high"), ...Array(37).fill("low")]);
   });
 
+  it("fetches every image as it opens in a browser with no navigator.connection to ask for Save-Data", async () => {
+    Object.defineProperty(navigator, "connection", { configurable: true, value: undefined });
+    onTestFinished(() => void Reflect.deleteProperty(navigator, "connection"));
+    await open({ catalogue: large, quick: ["e0-1"] });
+    expect(fetching(quickCells())).toEqual(["high"]);
+    expect(fetching(cells())).toEqual([...Array(64).fill("high"), ...Array(36).fill("low")]);
+  });
+
   it("fetches the grid past its first eight rows only as it nears the screen while the browser asks to save data", async () => {
     Object.defineProperty(navigator, "connection", { configurable: true, value: { saveData: true } });
     onTestFinished(() => void Reflect.deleteProperty(navigator, "connection"));
