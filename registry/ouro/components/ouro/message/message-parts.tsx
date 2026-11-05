@@ -241,8 +241,6 @@ export function MessageActionBar({
       {hasMenu &&
         (M && !layered ? (
           <M.Menu
-            // The reactions on top, if any, then the rest: with none, just the menu's entries.
-            children={<MessageMenuItems M={M} reactions={reactions} entries={menu} label={reactionsLabel} />}
             open={menuOpen}
             onOpenChange={setMenuOpen}
             // No tooltip here: one reopened as focus comes back from the menu would cover the bar of
@@ -262,7 +260,10 @@ export function MessageActionBar({
                 {more}
               </Button>
             }
-          />
+          >
+            {/* The reactions on top, if any, then the rest: with none, just the menu's entries. */}
+            <MessageMenuItems M={M} reactions={reactions} entries={menu} label={reactionsLabel} />
+          </M.Menu>
         ) : (
           <Button
             data-ouro-control="message"
