@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import { createElement, useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -1238,6 +1238,73 @@ describe("ShowMore's first guess", () => {
     const half = (px: number) => guessed(<ShowMore maxHeight={120} estimate={{ text: "Hi", height: px }}><Opaque /></ShowMore>);
     expect(toggle(half(36))).toBeNull();
     expect(toggle(half(37))).not.toBeNull();
+  });
+
+  it.each(["p", "div", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "blockquote", "table", "tr", "figure", "section", "article", "dl", "dt", "dd"])(
+    "counts a %s as a line of its own",
+    (tag) => {
+      // A table's parts in a div are not valid HTML, and React says so; the guess reads the elements, not the page.
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const one = createElement(tag, { key: "a" }, "a");
+      const two = createElement(tag, { key: "b" }, "b");
+      expect(toggle(guessed(<ShowMore lines={2}>{[one, two]}</ShowMore>))).not.toBeNull();
+      error.mockRestore();
+    },
+  );
+
+  it.each(["hr", "br"])("counts a %s as a line of its own", (tag) => {
+    expect(toggle(guessed(<ShowMore lines={2}>{[createElement(tag, { key: "a" }), createElement(tag, { key: "b" })]}</ShowMore>))).not.toBeNull();
+  });
+
+  it.each(["img", "picture", "video", "canvas", "iframe", "object", "embed"])("does not take a %s with no height for short", (tag) => {
+    expect(toggle(guessed(<ShowMore lines={4}>{createElement(tag)}</ShowMore>))).not.toBeNull();
+  });
+
+  it("reads the height an element gives itself, as an attribute or in its style, as the lines it takes", () => {
+    expect(toggle(guessed(<ShowMore lines={4}><svg height={24} /></ShowMore>))).toBeNull();
+    expect(toggle(guessed(<ShowMore lines={4}><svg height={400} /></ShowMore>))).not.toBeNull();
+    expect(toggle(guessed(<ShowMore lines={4}><svg style={{ height: 24 }} /></ShowMore>))).toBeNull();
+    expect(toggle(guessed(<ShowMore lines={4}><svg style={{ height: 400 }} /></ShowMore>))).not.toBeNull();
+  });
+
+  it("starts its observer again only when what the text says changes", async () => {
+    let observers = 0;
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor() {
+          observers += 1;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    try {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      roots.push(root);
+      const render = (node: ReactElement) => act(async () => root.render(node));
+      await render(<ShowMore lines={4}>{"Hi"}</ShowMore>);
+      const first = observers;
+      await render(<ShowMore lines={4}>{"Hi".slice(0)}</ShowMore>);
+      expect(observers).toBe(first);
+      await render(<ShowMore lines={4}>{"word ".repeat(100)}</ShowMore>);
+      expect(observers).toBe(first + 1);
+      await render(<ShowMore lines={4} estimate={{ text: "Hi" }}>{"word ".repeat(100)}</ShowMore>);
+      const estimated = observers;
+      await render(<ShowMore lines={4} estimate={{ text: "word ".repeat(100) }}>{"word ".repeat(100)}</ShowMore>);
+      expect(observers).toBe(estimated + 1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("drops the button of text that, open, takes no more than its lines", async () => {
+    const host = guessed(<ShowMore lines={2} open>{["a", <br key="b" />, "b"]}</ShowMore>);
+    expect(toggle(host)).not.toBeNull();
+    await expect.poll(() => toggle(host)).toBeNull();
   });
 
   it("counts each line of an estimate's text, as it shows with its line breaks", () => {

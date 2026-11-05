@@ -496,7 +496,11 @@ function guessSize(node: ReactNode | ShowMoreEstimate): { lines: number; px: num
       if (type !== Fragment && typeof type !== "string") unseen = true;
       const height = typeof props.height === "number" ? props.height : props.style?.height;
       if (typeof height === "number") px += height;
-      else if (typeof type === "string" && media.has(type)) unseen = true;
+      else {
+        // Stryker disable next-line ConditionalExpression: a component is never in the set of tag names, so the string check only narrows the type.
+        if (typeof type === "string" && media.has(type)) unseen = true;
+      }
+      // Stryker disable next-line ConditionalExpression: a component is never in the set of tag names, so the string check only narrows the type.
       if (typeof type === "string" && blocks.has(type)) blocksSeen++;
       visit(props.children);
     }
@@ -570,8 +574,10 @@ function ShowMoreText({
       const lineHeight = parseFloat(getComputedStyle(text).lineHeight);
       // Stryker disable next-line EqualityOperator: a hidden line is many pixels, so > and >= differ only at a 1px rounding gap no text has
       if (clamped) setOverflowing(text.scrollHeight > text.clientHeight + 1);
-      // Stryker disable next-line EqualityOperator: as above, a line is many pixels.
-      else if (lineHeight > 0) setOverflowing(text.clientHeight > lineHeight * lines + 1);
+      else {
+        // Stryker disable next-line EqualityOperator: as above, a line is many pixels.
+        if (lineHeight > 0) setOverflowing(text.clientHeight > lineHeight * lines + 1);
+      }
     });
     observer.observe(text);
     return () => observer.disconnect();
