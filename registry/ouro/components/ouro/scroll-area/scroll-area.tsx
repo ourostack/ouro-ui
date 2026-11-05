@@ -60,9 +60,12 @@ const orientations = ["vertical", "horizontal", "both"] as const;
 // The custom scrollbar is for a mouse: it fades in on hover, scroll or keyboard focus. On a
 // coarse pointer it lets touches through to the native scroll container under it, so a
 // finger anywhere pans the content with the platform's momentum, and it is a thin indicator.
+// Keyboard focus reaches it as the viewport's sibling, not through `:has()` on the root: a rule
+// whose subject is any element under a `:has()` makes Chromium restyle the whole area each time
+// something inside it comes or goes, such as a row in a long list.
 const scrollbar =
   "flex p-0.5 opacity-0 transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) " +
-  "data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0 group-has-[[data-scroll-viewport]:focus-visible]/scroll-area:opacity-100 " +
+  "data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0 [[data-scroll-viewport]:focus-visible~&]:opacity-100 " +
   "pointer-coarse:pointer-events-none";
 const scrollbars = {
   vertical: "w-2.5 pointer-coarse:w-1.5",
@@ -151,7 +154,7 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
       {...rest}
       data-ouro="scroll-area"
       className={cn(
-        "group/scroll-area relative flex min-h-0 min-w-0 flex-col overflow-hidden",
+        "relative flex min-h-0 min-w-0 flex-col overflow-hidden",
         // The focus ring is the root's, drawn over the viewport, so the viewport's edge fade never hides it.
         "outline-ring -outline-offset-2 has-[>[data-scroll-viewport]:focus-visible]:outline-2 has-[>[data-scroll-viewport]:focus-visible]:outline-solid",
         className,

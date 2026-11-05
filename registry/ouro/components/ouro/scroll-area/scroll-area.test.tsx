@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -164,6 +165,29 @@ describe("ScrollArea", () => {
     expect(getComputedStyle(area).outlineStyle).toBe("solid");
     await userEvent.keyboard("{PageDown}");
     await expect.poll(() => viewport.scrollTop).toBeGreaterThan(0);
+  });
+
+  it("fades its scrollbar in while the area has keyboard focus, and out when focus leaves", async () => {
+    const { host, area, viewport } = await render(
+      <>
+        <button type="button">Before</button>
+        <ScrollArea className="h-40" label="Method">
+          {tall}
+        </ScrollArea>
+      </>,
+    );
+    const scrollbar = area.querySelector<HTMLElement>('[data-orientation="vertical"]:not([data-scroll-viewport])')!;
+    const settled = () => Promise.all(scrollbar.getAnimations().map((animation) => animation.finished));
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    // The pointer rests outside the area, so only focus shows the scrollbar.
+    await userEvent.hover(host.querySelector("button")!);
+    await expect.poll(() => scrollbar.hasAttribute("data-hovering")).toBe(false);
+    host.querySelector("button")!.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(viewport);
+    await expect.poll(async () => (await settled(), getComputedStyle(scrollbar).opacity)).toBe("1");
+    await pressTab({ shift: true });
+    await expect.poll(async () => (await settled(), getComputedStyle(scrollbar).opacity)).toBe("0");
   });
 
   it("adds no tab stop when the content fits", async () => {
