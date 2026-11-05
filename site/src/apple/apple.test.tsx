@@ -91,7 +91,7 @@ describe("Ouro UI for Apple", () => {
     await expect.element(save).toBeInTheDocument();
     await userEvent.click(save);
     await expect.element(page.getByRole("button", { name: "✓ Saved" })).toHaveAttribute("aria-pressed", "true");
-    await expect.element(page.getByText("In your cookbook.")).toBeInTheDocument();
+    await expect.poll(() => document.querySelector('[data-apple-twin="press"] [aria-live]')?.textContent).toBe("In your cookbook.");
   });
 
   it("control: twin comes to rest on its end stop, inside its track", async () => {
