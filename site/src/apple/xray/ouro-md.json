@@ -1,0 +1,1090 @@
+{
+ "app": "Ouro MD",
+ "platform": "Mac",
+ "before": {
+  "label": "ouro-md main before adopting Ouro AX",
+  "at": "2026-11-04T02:09:20.466Z",
+  "commit": "8f27349",
+  "checker": "0.2.0",
+  "claimSet": "0.1.0",
+  "xcodeTools": "27B52",
+  "inventory": {
+   "intents": 4,
+   "entities": 1,
+   "shortcuts": 3,
+   "skills": 0
+  },
+  "summary": {
+   "checks": {
+    "fail": 7,
+    "pass": 19,
+    "skip": 19
+   },
+   "claims": 29,
+   "holding": 8,
+   "must": 0,
+   "mustHolding": 0,
+   "mustSkipped": 0,
+   "score": 73.1
+  },
+  "lanes": [
+   {
+    "lane": "app-intents-metadata",
+    "ran": true,
+    "claims": [
+     "intent.title",
+     "intent.description",
+     "intent.parameter-title",
+     "intent.parameter-description",
+     "intent.tool",
+     "intent.tool-not-on-schema",
+     "intent.shortcuts",
+     "entity.type-name",
+     "entity.properties",
+     "entity.findable",
+     "entity.transferable"
+    ]
+   },
+   {
+    "lane": "skills-lint",
+    "ran": false,
+    "claims": [
+     "skill.bundle-shape",
+     "skill.names",
+     "skill.frontmatter",
+     "skill.body"
+    ]
+   },
+   {
+    "lane": "app-intents-testing",
+    "ran": false,
+    "claims": [
+     "intent.error-names-fix",
+     "entity.indexed",
+     "entity.ids-resolve",
+     "entity.transfer-round-trip",
+     "annotation.onscreen"
+    ]
+   },
+   {
+    "lane": "siri-evaluations",
+    "ran": false,
+    "claims": [
+     "intent.siri-calls",
+     "intent.siri-says-what-happened",
+     "entity.siri-finds",
+     "annotation.siri-onscreen",
+     "skill.loads"
+    ]
+   },
+   {
+    "lane": "person",
+    "ran": false,
+    "claims": [
+     "intent.confirms-what-others-see",
+     "intent.reads-in-shortcuts",
+     "entity.private-properties",
+     "entity.display-representation"
+    ]
+   }
+  ],
+  "claims": [
+   {
+    "id": "intent.title",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every intent has a title a person would say, not its type name.",
+    "why": "Siri tells intents apart by their titles, and Shortcuts lists them by title.",
+    "fix": "Give the intent `static let title: LocalizedStringResource = \"<what it does, in a person's words>\"`.",
+    "holds": true,
+    "pass": 4,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.description",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every intent has a description that says what it does, beyond its title.",
+    "why": "Siri decides which intent fits a request from its title and description together.",
+    "fix": "Add `static let description = IntentDescription(\"<what it does and what it returns>\")`.",
+    "holds": true,
+    "pass": 4,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.parameter-title",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every parameter has a title.",
+    "why": "Siri and Shortcuts show the title when they ask the person for a value.",
+    "fix": "Pass `title:` to the parameter's `@Parameter`.",
+    "holds": true,
+    "pass": 6,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.parameter-description",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every parameter has a description that says what value it wants.",
+    "why": "Siri fills parameters from what the person said, guided by each parameter's description.",
+    "fix": "Pass `description:` to `@Parameter`, saying what the value is and what form it takes.",
+    "holds": false,
+    "pass": 0,
+    "fail": 6,
+    "skip": 0,
+    "found": [
+     "“Markdown” has no description",
+     "“Document” has no description",
+     "“Document” has no description",
+     "“Document” has no description",
+     "“Markdown” has no description",
+     "“Document” has no description"
+    ],
+    "open": []
+   },
+   {
+    "id": "intent.tool",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "The app's main actions are tool intents (`@AppIntent(.tool)`) or adopt a Siri schema, so Siri AI can call them.",
+    "why": "With the Siri AI preview, Siri calls only the custom intents an app marks as tools.",
+    "fix": "Mark the intents people would ask Siri for with `@AppIntent(.tool)`, building with the 27.3 SDK behind an availability check.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "metadata from Xcode tools 27B52 cannot mark tool intents, and no intent adopts a schema; build with the 27.3 SDK to check"
+    ]
+   },
+   {
+    "id": "intent.tool-not-on-schema",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "No intent is both a tool and an adopter of a schema that already reaches Siri.",
+    "why": "A schema in a domain Siri supports already makes the action available; marking it a tool as well is the misuse Apple's guide names.",
+    "fix": "Remove `.tool` from that intent; the schema already brings it to Siri. Use `@AppIntent(.tool, schema:)` only for Shortcuts-only domains.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.shortcuts",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "The app offers App Shortcuts for its main actions, so Siri and Spotlight find them with no setup.",
+    "why": "App Shortcuts are how an app's actions reach Siri and Spotlight before the person builds anything.",
+    "fix": "Add an `AppShortcutsProvider` with an `AppShortcut` for each main action, with phrases that include the app's name.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.error-names-fix",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "When an intent is refused, its error is one sentence that says what to do next.",
+    "why": "Siri reads the error to the person; an error that names the fix lets the person, or Siri, recover in one step.",
+    "fix": "Throw an error that conforms to `CustomLocalizedStringResourceConvertible` and says what to do: \"There's no note X. Pick one from your notes, then try again.\"",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "intent.confirms-what-others-see",
+    "tier": "should",
+    "checkedBy": "person",
+    "rule": "An intent whose result other people see asks the person to confirm before it acts.",
+    "why": "Siri can run an intent from a misheard request; a confirmation stops a message or a share from going out by mistake.",
+    "fix": "Call `requestConfirmation` before the intent sends, shares or posts anything other people see.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a person: run these through Siri and Shortcuts and check each asks first, if others see or it cannot be undone: Replace Markdown Document"
+    ]
+   },
+   {
+    "id": "intent.reads-in-shortcuts",
+    "tier": "should",
+    "checkedBy": "person",
+    "rule": "Each intent appears under the app in Shortcuts, and its parameter summary reads like a sentence.",
+    "why": "People read and edit the summary; awkward phrasing cannot be found by a code-level test.",
+    "fix": "Give the intent a `parameterSummary` that reads as a sentence, such as `Summary(\"Open \\(\\.$note)\")`.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a person: find the app's 4 intents in the Shortcuts action library and read each summary"
+    ]
+   },
+   {
+    "id": "intent.siri-calls",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "Siri calls the right intent with the right parameters for direct, indirect and incomplete wording, and declines unexpected requests.",
+    "why": "This is the outcome the metadata claims are for: Siri doing what the person asked.",
+    "fix": "Read the failing transcripts and sharpen the intent's title, description, parameter descriptions or app skill.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   },
+   {
+    "id": "intent.siri-says-what-happened",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "After an action, what Siri says names what happened.",
+    "why": "The person hears the outcome, not only a chime; a reply that names the result is the spoken receipt.",
+    "fix": "Return a result with a dialog or a value that names the outcome, such as `.result(dialog: \"Added milk to Groceries.\")`.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   },
+   {
+    "id": "entity.type-name",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every entity type has a display name a person would say, not its type name.",
+    "why": "Siri and Shortcuts name the kind of thing with it (\"Recipe\", \"Note\").",
+    "fix": "Set `static let typeDisplayRepresentation: TypeDisplayRepresentation = \"<a person's word for it>\"`.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "entity.properties",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "An entity exposes what a person would ask about it as properties.",
+    "why": "Siri matches requests to content through an entity's properties; an entity with none offers only its display text.",
+    "fix": "Add `@Property(title:)` (with `description:` on the 27.3 SDK) for each fact a person would ask about: name, date, amount.",
+    "holds": false,
+    "pass": 0,
+    "fail": 1,
+    "skip": 0,
+    "found": [
+     "“Markdown Document” has no properties"
+    ],
+    "open": []
+   },
+   {
+    "id": "entity.private-properties",
+    "tier": "should",
+    "checkedBy": "person",
+    "rule": "Sensitive properties require authentication, and properties only the app needs are hidden from Siri.",
+    "why": "By default Siri and Shortcuts can show entity information without unlocking; financial or health data should not be.",
+    "fix": "Pass `authenticationPolicy: .requiresAuthentication` to sensitive properties and `visibility: .internal` to app-only ones.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a person: no entity exposes properties yet; review each one when it does"
+    ]
+   },
+   {
+    "id": "entity.findable",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Siri can find every entity: it is indexed in Spotlight, or its query can list or search it.",
+    "why": "Siri finds entities through Spotlight, an enumerable query or dynamic options; an entity it cannot find, it cannot act on.",
+    "fix": "Make the entity an `IndexedEntity` and index it with `CSSearchableIndex.indexAppEntities`, or give it an `EnumerableEntityQuery` or `EntityStringQuery`.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "entity.indexed",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "An entity that says it is indexed is in the Spotlight index once the app has content.",
+    "why": "Spotlight is the door to personal context: Siri answers from what the app indexed.",
+    "fix": "Call `CSSearchableIndex.default().indexAppEntities(_:)` when content is created or changes, and on first launch.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "entity.ids-resolve",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "An entity's identifier resolves back to the same entity.",
+    "why": "Siri holds an entity by identifier between turns; one that does not resolve breaks a multi-turn request.",
+    "fix": "Make the query's `entities(for:)` return every identifier its other methods hand out.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "entity.transferable",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every entity is `Transferable`.",
+    "why": "Siri moves content between apps (\"email this recipe\"), and Apple's testing guide treats a transferable representation as a requirement for every entity; one without it cannot go anywhere.",
+    "fix": "Conform the entity to `Transferable` with at least one representation other apps read, such as plain text or a file.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "entity.transfer-round-trip",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "An exported entity can be read back.",
+    "why": "Apple names a broken Transferable as the way multi-turn Siri requests and drag and drop silently fail.",
+    "fix": "Give the entity an importing representation, or a `ProxyRepresentation`, that turns the exported data back into the entity.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "entity.display-representation",
+    "tier": "should",
+    "checkedBy": "person",
+    "rule": "Each entity shows a title a person recognises, with a subtitle or image where it helps.",
+    "why": "The display representation is what the person sees in Siri, Shortcuts and Spotlight; code-level tests cannot read it.",
+    "fix": "Return a `DisplayRepresentation(title:subtitle:image:)` built from the entity's own fields.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a person: find each in Spotlight and Shortcuts and check its title, subtitle and image: Markdown Document"
+    ]
+   },
+   {
+    "id": "entity.siri-finds",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "Siri finds the entity the person means from their words.",
+    "why": "Finding the right recipe or note is most of the work in a request about it.",
+    "fix": "Index the entity's searchable text, describe its properties, and make its display title the name people use.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   },
+   {
+    "id": "annotation.onscreen",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "Entities shown on screen are annotated, so \"this\" means what the person sees.",
+    "why": "Onscreen context lets a person say \"add this to my list\"; without an annotation Siri cannot know what \"this\" is.",
+    "fix": "Add `.appEntityIdentifier(EntityIdentifier(for: entity))` to each row or detail view that shows an entity, or set `NSUserActivity.appEntityIdentifier` for a single one.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "annotation.siri-onscreen",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "Siri resolves \"this\" to the entity on screen.",
+    "why": "The annotation is for this moment: the person points at something and asks.",
+    "fix": "Annotate the views that show entities, and keep the selected one marked as selected.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   },
+   {
+    "id": "skill.bundle-shape",
+    "tier": "should",
+    "checkedBy": "skills-lint",
+    "rule": "A skills bundle is `Skills.skillsbundle` holding only `Skills/<name>/SKILL.md`, one bundle per target.",
+    "why": "Siri reads nothing else in the bundle, so anything else is dead weight or a sign of a misplaced file.",
+    "fix": "Keep one `Skills.skillsbundle` per target with one folder per skill, each holding only SKILL.md.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "the app ships no Skills.skillsbundle; app skills are optional"
+    ]
+   },
+   {
+    "id": "skill.names",
+    "tier": "should",
+    "checkedBy": "skills-lint",
+    "rule": "Each skill's name is lowercase letters, numbers and hyphens, the same in its folder and frontmatter, and unique across the app.",
+    "why": "Two skills with one name leave the system to pick between them, and nothing says which it picks.",
+    "fix": "Rename the skill folder and its `name:` to one lowercase-hyphen name used nowhere else in the app.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "the app ships no Skills.skillsbundle; app skills are optional"
+    ]
+   },
+   {
+    "id": "skill.frontmatter",
+    "tier": "should",
+    "checkedBy": "skills-lint",
+    "rule": "A skill's frontmatter holds only `name` and `description`.",
+    "why": "App skills take a subset of the Agent Skills format; other fields are not read.",
+    "fix": "Start SKILL.md with `---`, `name: <folder name>`, `description: <the requests it handles>`, `---`, and nothing else.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "the app ships no Skills.skillsbundle; app skills are optional"
+    ]
+   },
+   {
+    "id": "skill.body",
+    "tier": "should",
+    "checkedBy": "skills-lint",
+    "rule": "A skill's body is at most 10,000 characters and names tools informally, not by type.",
+    "why": "Siri reads at most 10,000 characters, and knows tools by their titles, not their Swift names.",
+    "fix": "Cut the body to what the intents' titles and descriptions don't already say, and call each tool by its title (\"the add item tool\").",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "the app ships no Skills.skillsbundle; app skills are optional"
+    ]
+   },
+   {
+    "id": "skill.loads",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "Siri loads the skill for the requests it is written for.",
+    "why": "A skill Siri never loads is guidance nobody reads.",
+    "fix": "Make the skill's `description` name the requests it handles, in the words people use.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   }
+  ]
+ },
+ "after": {
+  "label": "after adopting Ouro AX (v0.9.107 onward)",
+  "at": "2026-11-04T03:12:47.643Z",
+  "commit": "eab4333",
+  "checker": "0.2.0",
+  "claimSet": "0.1.0",
+  "xcodeTools": "17F113",
+  "inventory": {
+   "intents": 4,
+   "entities": 1,
+   "shortcuts": 3,
+   "skills": 1
+  },
+  "summary": {
+   "checks": {
+    "fail": 0,
+    "pass": 30,
+    "skip": 18
+   },
+   "claims": 30,
+   "holding": 14,
+   "must": 0,
+   "mustHolding": 0,
+   "mustSkipped": 0,
+   "score": 100
+  },
+  "lanes": [
+   {
+    "lane": "app-intents-metadata",
+    "ran": true,
+    "claims": [
+     "intent.title",
+     "intent.description",
+     "intent.parameter-title",
+     "intent.parameter-description",
+     "intent.tool",
+     "intent.tool-not-on-schema",
+     "intent.shortcuts",
+     "entity.type-name",
+     "entity.properties",
+     "entity.property-description",
+     "entity.findable",
+     "entity.transferable"
+    ]
+   },
+   {
+    "lane": "skills-lint",
+    "ran": true,
+    "claims": [
+     "skill.bundle-shape",
+     "skill.names",
+     "skill.frontmatter",
+     "skill.body"
+    ]
+   },
+   {
+    "lane": "app-intents-testing",
+    "ran": false,
+    "claims": [
+     "intent.error-names-fix",
+     "entity.indexed",
+     "entity.ids-resolve",
+     "entity.transfer-round-trip",
+     "annotation.onscreen"
+    ]
+   },
+   {
+    "lane": "siri-evaluations",
+    "ran": false,
+    "claims": [
+     "intent.siri-calls",
+     "intent.siri-says-what-happened",
+     "entity.siri-finds",
+     "annotation.siri-onscreen",
+     "skill.loads"
+    ]
+   },
+   {
+    "lane": "person",
+    "ran": false,
+    "claims": [
+     "intent.confirms-what-others-see",
+     "intent.reads-in-shortcuts",
+     "entity.private-properties",
+     "entity.display-representation"
+    ]
+   }
+  ],
+  "claims": [
+   {
+    "id": "intent.title",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every intent has a title a person would say, not its type name.",
+    "why": "Siri tells intents apart by their titles, and Shortcuts lists them by title.",
+    "fix": "Give the intent `static let title: LocalizedStringResource = \"<what it does, in a person's words>\"`.",
+    "holds": true,
+    "pass": 4,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.description",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every intent has a description that says what it does, beyond its title.",
+    "why": "Siri decides which intent fits a request from its title and description together.",
+    "fix": "Add `static let description = IntentDescription(\"<what it does and what it returns>\")`.",
+    "holds": true,
+    "pass": 4,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.parameter-title",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every parameter has a title.",
+    "why": "Siri and Shortcuts show the title when they ask the person for a value.",
+    "fix": "Pass `title:` to the parameter's `@Parameter`.",
+    "holds": true,
+    "pass": 6,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.parameter-description",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every parameter has a description that says what value it wants.",
+    "why": "Siri fills parameters from what the person said, guided by each parameter's description.",
+    "fix": "Pass `description:` to `@Parameter`, saying what the value is and what form it takes.",
+    "holds": true,
+    "pass": 6,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.tool",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "The app's main actions are tool intents (`@AppIntent(.tool)`) or adopt a Siri schema, so Siri AI can call them.",
+    "why": "With the Siri AI preview, Siri calls only the custom intents an app marks as tools.",
+    "fix": "Mark the intents people would ask Siri for with `@AppIntent(.tool)`, building with the 27.3 SDK behind an availability check.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "metadata from Xcode tools 17F113 cannot mark tool intents, and no intent adopts a schema; build with the 27.3 SDK to check"
+    ]
+   },
+   {
+    "id": "intent.tool-not-on-schema",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "No intent is both a tool and an adopter of a schema that already reaches Siri.",
+    "why": "A schema in a domain Siri supports already makes the action available; marking it a tool as well is the misuse Apple's guide names.",
+    "fix": "Remove `.tool` from that intent; the schema already brings it to Siri. Use `@AppIntent(.tool, schema:)` only for Shortcuts-only domains.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.shortcuts",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "The app offers App Shortcuts for its main actions, so Siri and Spotlight find them with no setup.",
+    "why": "App Shortcuts are how an app's actions reach Siri and Spotlight before the person builds anything.",
+    "fix": "Add an `AppShortcutsProvider` with an `AppShortcut` for each main action, with phrases that include the app's name.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "intent.error-names-fix",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "When an intent is refused, its error is one sentence that says what to do next.",
+    "why": "Siri reads the error to the person; an error that names the fix lets the person, or Siri, recover in one step.",
+    "fix": "Throw an error that conforms to `CustomLocalizedStringResourceConvertible` and says what to do: \"There's no note X. Pick one from your notes, then try again.\"",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "intent.confirms-what-others-see",
+    "tier": "should",
+    "checkedBy": "person",
+    "rule": "An intent whose result other people see asks the person to confirm before it acts.",
+    "why": "Siri can run an intent from a misheard request; a confirmation stops a message or a share from going out by mistake.",
+    "fix": "Call `requestConfirmation` before the intent sends, shares or posts anything other people see.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a person: run these through Siri and Shortcuts and check each asks first, if others see or it cannot be undone: Replace Markdown Document"
+    ]
+   },
+   {
+    "id": "intent.reads-in-shortcuts",
+    "tier": "should",
+    "checkedBy": "person",
+    "rule": "Each intent appears under the app in Shortcuts, and its parameter summary reads like a sentence.",
+    "why": "People read and edit the summary; awkward phrasing cannot be found by a code-level test.",
+    "fix": "Give the intent a `parameterSummary` that reads as a sentence, such as `Summary(\"Open \\(\\.$note)\")`.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a person: find the app's 4 intents in the Shortcuts action library and read each summary"
+    ]
+   },
+   {
+    "id": "intent.siri-calls",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "Siri calls the right intent with the right parameters for direct, indirect and incomplete wording, and declines unexpected requests.",
+    "why": "This is the outcome the metadata claims are for: Siri doing what the person asked.",
+    "fix": "Read the failing transcripts and sharpen the intent's title, description, parameter descriptions or app skill.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   },
+   {
+    "id": "intent.siri-says-what-happened",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "After an action, what Siri says names what happened.",
+    "why": "The person hears the outcome, not only a chime; a reply that names the result is the spoken receipt.",
+    "fix": "Return a result with a dialog or a value that names the outcome, such as `.result(dialog: \"Added milk to Groceries.\")`.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   },
+   {
+    "id": "entity.type-name",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every entity type has a display name a person would say, not its type name.",
+    "why": "Siri and Shortcuts name the kind of thing with it (\"Recipe\", \"Note\").",
+    "fix": "Set `static let typeDisplayRepresentation: TypeDisplayRepresentation = \"<a person's word for it>\"`.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "entity.properties",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "An entity exposes what a person would ask about it as properties.",
+    "why": "Siri matches requests to content through an entity's properties; an entity with none offers only its display text.",
+    "fix": "Add `@Property(title:)` (with `description:` on the 27.3 SDK) for each fact a person would ask about: name, date, amount.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "entity.property-description",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every entity property has a description.",
+    "why": "Siri relies on a property's description to match it to a request and to present it.",
+    "fix": "Pass `description:` to each `@Property`, `@DeferredProperty` and `@ComputedProperty`, building with the 27.3 SDK.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 3,
+    "found": [],
+    "open": [
+     "metadata from Xcode tools 17F113: its @Property takes no description; build with the 27.3 SDK to check"
+    ]
+   },
+   {
+    "id": "entity.private-properties",
+    "tier": "should",
+    "checkedBy": "person",
+    "rule": "Sensitive properties require authentication, and properties only the app needs are hidden from Siri.",
+    "why": "By default Siri and Shortcuts can show entity information without unlocking; financial or health data should not be.",
+    "fix": "Pass `authenticationPolicy: .requiresAuthentication` to sensitive properties and `visibility: .internal` to app-only ones.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a person: mark any of these that are sensitive or internal: Markdown Document.Name, Markdown Document.Folder, Markdown Document.Modified"
+    ]
+   },
+   {
+    "id": "entity.findable",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Siri can find every entity: it is indexed in Spotlight, or its query can list or search it.",
+    "why": "Siri finds entities through Spotlight, an enumerable query or dynamic options; an entity it cannot find, it cannot act on.",
+    "fix": "Make the entity an `IndexedEntity` and index it with `CSSearchableIndex.indexAppEntities`, or give it an `EnumerableEntityQuery` or `EntityStringQuery`.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "entity.indexed",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "An entity that says it is indexed is in the Spotlight index once the app has content.",
+    "why": "Spotlight is the door to personal context: Siri answers from what the app indexed.",
+    "fix": "Call `CSSearchableIndex.default().indexAppEntities(_:)` when content is created or changes, and on first launch.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "entity.ids-resolve",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "An entity's identifier resolves back to the same entity.",
+    "why": "Siri holds an entity by identifier between turns; one that does not resolve breaks a multi-turn request.",
+    "fix": "Make the query's `entities(for:)` return every identifier its other methods hand out.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "entity.transferable",
+    "tier": "should",
+    "checkedBy": "app-intents-metadata",
+    "rule": "Every entity is `Transferable`.",
+    "why": "Siri moves content between apps (\"email this recipe\"), and Apple's testing guide treats a transferable representation as a requirement for every entity; one without it cannot go anywhere.",
+    "fix": "Conform the entity to `Transferable` with at least one representation other apps read, such as plain text or a file.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "entity.transfer-round-trip",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "An exported entity can be read back.",
+    "why": "Apple names a broken Transferable as the way multi-turn Siri requests and drag and drop silently fail.",
+    "fix": "Give the entity an importing representation, or a `ProxyRepresentation`, that turns the exported data back into the entity.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "entity.display-representation",
+    "tier": "should",
+    "checkedBy": "person",
+    "rule": "Each entity shows a title a person recognises, with a subtitle or image where it helps.",
+    "why": "The display representation is what the person sees in Siri, Shortcuts and Spotlight; code-level tests cannot read it.",
+    "fix": "Return a `DisplayRepresentation(title:subtitle:image:)` built from the entity's own fields.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a person: find each in Spotlight and Shortcuts and check its title, subtitle and image: Markdown Document"
+    ]
+   },
+   {
+    "id": "entity.siri-finds",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "Siri finds the entity the person means from their words.",
+    "why": "Finding the right recipe or note is most of the work in a request about it.",
+    "fix": "Index the entity's searchable text, describe its properties, and make its display title the name people use.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   },
+   {
+    "id": "annotation.onscreen",
+    "tier": "should",
+    "checkedBy": "app-intents-testing",
+    "rule": "Entities shown on screen are annotated, so \"this\" means what the person sees.",
+    "why": "Onscreen context lets a person say \"add this to my list\"; without an annotation Siri cannot know what \"this\" is.",
+    "fix": "Add `.appEntityIdentifier(EntityIdentifier(for: entity))` to each row or detail view that shows an entity, or set `NSUserActivity.appEntityIdentifier` for a single one.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs a behaviour run: AppIntentsTesting against the app on a device or simulator whose OS matches the Xcode (ouro-ax-xray plan, then the XrayProbe template)"
+    ]
+   },
+   {
+    "id": "annotation.siri-onscreen",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "Siri resolves \"this\" to the entity on screen.",
+    "why": "The annotation is for this moment: the person points at something and asks.",
+    "fix": "Annotate the views that show entities, and keep the selected one marked as selected.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   },
+   {
+    "id": "skill.bundle-shape",
+    "tier": "should",
+    "checkedBy": "skills-lint",
+    "rule": "A skills bundle is `Skills.skillsbundle` holding only `Skills/<name>/SKILL.md`, one bundle per target.",
+    "why": "Siri reads nothing else in the bundle, so anything else is dead weight or a sign of a misplaced file.",
+    "fix": "Keep one `Skills.skillsbundle` per target with one folder per skill, each holding only SKILL.md.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "skill.names",
+    "tier": "should",
+    "checkedBy": "skills-lint",
+    "rule": "Each skill's name is lowercase letters, numbers and hyphens, the same in its folder and frontmatter, and unique across the app.",
+    "why": "Two skills with one name leave the system to pick between them, and nothing says which it picks.",
+    "fix": "Rename the skill folder and its `name:` to one lowercase-hyphen name used nowhere else in the app.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "skill.frontmatter",
+    "tier": "should",
+    "checkedBy": "skills-lint",
+    "rule": "A skill's frontmatter holds only `name` and `description`.",
+    "why": "App skills take a subset of the Agent Skills format; other fields are not read.",
+    "fix": "Start SKILL.md with `---`, `name: <folder name>`, `description: <the requests it handles>`, `---`, and nothing else.",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "skill.body",
+    "tier": "should",
+    "checkedBy": "skills-lint",
+    "rule": "A skill's body is at most 10,000 characters and names tools informally, not by type.",
+    "why": "Siri reads at most 10,000 characters, and knows tools by their titles, not their Swift names.",
+    "fix": "Cut the body to what the intents' titles and descriptions don't already say, and call each tool by its title (\"the add item tool\").",
+    "holds": true,
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "found": [],
+    "open": []
+   },
+   {
+    "id": "skill.loads",
+    "tier": "should",
+    "checkedBy": "siri-evaluations",
+    "rule": "Siri loads the skill for the requests it is written for.",
+    "why": "A skill Siri never loads is guidance nobody reads.",
+    "fix": "Make the skill's `description` name the requests it handles, in the words people use.",
+    "holds": false,
+    "pass": 0,
+    "fail": 0,
+    "skip": 1,
+    "found": [],
+    "open": [
+     "needs SiriEvaluations: the app's scenario set, run five times on a 27.3 beta OS on an Apple Intelligence device"
+    ]
+   }
+  ]
+ }
+}
