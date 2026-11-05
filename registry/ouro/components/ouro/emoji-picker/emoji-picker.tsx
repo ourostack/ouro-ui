@@ -557,11 +557,17 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
  */
 type GlyphPriority = "high" | "low" | "saved";
 
+// Stryker disable next-line ArrowFunction: React takes an unsubscribe of undefined as none, and this store never changes.
 const noSubscription = () => () => {};
 const savingData = () => Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
 /** Whether the browser asks to save data (Save-Data), read after hydration, so the server's HTML and the first render agree. */
 function useSaveData(): boolean {
-  return useSyncExternalStore(noSubscription, savingData, () => false);
+  return useSyncExternalStore(
+    noSubscription,
+    savingData,
+    // Stryker disable next-line ArrowFunction,BooleanLiteral: the server's snapshot is read only while rendering on the server and hydrating, which no browser test does; false keeps the server's HTML and the first render alike.
+    () => false,
+  );
 }
 type GlyphRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone, play?: boolean, priority?: GlyphPriority) => ReactNode;
 
