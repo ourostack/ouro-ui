@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { ConversationList, type ConversationListItem, type ConversationListSection } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
@@ -78,6 +79,24 @@ function expectBand(pane: HTMLElement, kept: readonly string[]) {
 }
 
 describe("ConversationList windowing", () => {
+  it("lays nothing out when it renders again with the same rows, and measures a row that changes size once the page is laid out", async () => {
+    const list = (count: number) => <ConversationList label="Conversations" items={many(200, (index) => (index === 0 ? { unread: count % 2 === 0 } : {}))} onSelect={() => {}} />;
+    const view = await render(list(0));
+    const frames = () => act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await frames();
+    for (let count = 1; count <= 5; count++) {
+      const reads = watchLayoutReads();
+      await view.rerender(list(count));
+      reads.stop();
+      expect(reads.names()).toEqual([]);
+    }
+    const second = () => parseFloat(view.rows()[1]!.parentElement!.style.top);
+    const before = second();
+    await view.rerender(<ConversationList label="Conversations" items={many(200, (index) => (index === 0 ? { preview: "A long preview that wraps. ".repeat(20) } : {}))} onSelect={() => {}} />);
+    await frames();
+    expect(second()).toBeGreaterThan(before);
+  });
+
   it("renders only the rows near the view of a long list, in a list as tall as all of them", async () => {
     const { list, rows, ids, pane } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />);
     expectBand(pane, []);
