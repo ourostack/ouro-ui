@@ -7,20 +7,30 @@ import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 // 1280px. Runs only in the `visual` project (CI_VISUAL=1), in Chromium on
 // Linux, the renderer that produced the committed baselines: the
 // `visual-baselines.yml` workflow regenerates them with `--update`. Dark is
-// shadcn's `.dark` class on <html>.
+// shadcn's `.dark` class on <html>. A subject with `forcedColors` adds a forced-colours shot, light, at
+// each width.
 
 // Each subject is a story whose parameters name it (`parameters: { screenshot: { name, open } }`, see
 // test/stories.tsx), so a component adds its screenshots in its own story file.
 const subjects = stories.flatMap(({ id, Story, parameters }) =>
   parameters.screenshot
-    ? [{ name: parameters.screenshot.name, id, Story, open: parameters.screenshot.open ?? false, focus: parameters.screenshot.focus ?? false }]
+    ? [
+        {
+          name: parameters.screenshot.name,
+          id,
+          Story,
+          open: parameters.screenshot.open ?? false,
+          focus: parameters.screenshot.focus ?? false,
+          forcedColors: parameters.screenshot.forcedColors ?? false,
+        },
+      ]
     : [],
 );
 
 /** The committed Linux baselines' subject names: `<name>-<mode>-<width>-chromium-linux.png`. */
 const baselineNames = new Set(
   Object.keys(import.meta.glob("./__screenshots__/screenshots.visual.test.tsx/*-linux.png")).map((path) =>
-    path.replace(/^.*\/(.+)-(light|dark|reduced-motion)-\d+-chromium-linux\.png$/, "$1"),
+    path.replace(/^.*\/(.+)-(light|dark|reduced-motion|forced-colors)-\d+-chromium-linux\.png$/, "$1"),
   ),
 );
 
@@ -83,5 +93,23 @@ describe.each(widths)("at $width px", ({ width, height }) => {
         screenshotOptions: { animations: "disabled", caret: "hide" },
       });
     });
+  });
+});
+
+describe.each(widths)("at $width px, under forced colours", ({ width, height }) => {
+  it.each(subjects.filter((subject) => subject.forcedColors))("$name", async ({ name, Story }) => {
+    await page.viewport(width, height);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      setScheme("light");
+      await renderStory(Story);
+      await document.fonts.ready;
+      await settle();
+      await expect(page).toMatchScreenshot(`${name}-forced-colors-${width}`, {
+        screenshotOptions: { animations: "disabled", caret: "hide" },
+      });
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 });
