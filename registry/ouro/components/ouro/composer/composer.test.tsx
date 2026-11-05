@@ -990,6 +990,8 @@ describe("Composer expanded", () => {
     body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.click(expandButton()!);
     await userEvent.click(expandButton()!);
+    // From the height it shows, the row is below halfway as the collapse begins; from the full height, it would start above.
+    expect(body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
     // From the full height, a 10 s change would take 5 s to pass halfway; from the height it shows, it is below at once.
     await expect.poll(() => body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
     await expect.poll(() => heights(body)).toEqual(["height"]);
