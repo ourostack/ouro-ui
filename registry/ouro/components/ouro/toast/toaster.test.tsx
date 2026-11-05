@@ -11,6 +11,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
@@ -110,10 +111,27 @@ afterEach(async () => {
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 
 describe("Toaster", () => {
+  it("lays nothing out when it mounts, and reads its edge once the page is laid out", async () => {
+    // The first Toaster of a page checks the theme once, which reads layout and is not what this measures.
+    await (await render(<Toaster />)).unmount();
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const reads = watchLayoutReads();
+    await act(async () => root.render(<Toaster />));
+    reads.stop();
+    expect(reads.names()).toEqual([]);
+    expect(viewport()).not.toBeNull();
+    await until(() => viewport()!.getAttribute("data-edge"), "bottom");
+  });
+
   it("hangs from the top and unfurls downward when its layout classes put it at the top", async () => {
     const box = (message: string) => toastNamed(message)!.getBoundingClientRect();
     // At the bottom, by default: the older toast peeks out above the newest.
     const { unmount } = await render(<Toaster />);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
     await show("Older", { duration: 0 });
     await show("Newer", { duration: 0 });
@@ -127,6 +145,7 @@ describe("Toaster", () => {
     removed.mockRestore();
     // At the top: the newest at the top, the older one peeking out below it.
     await render(<Toaster className="top-4 bottom-auto" />);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(viewport()!.getAttribute("data-edge")).toBe("top");
     await show("Older", { duration: 0 });
     await show("Newer", { duration: 0 });
