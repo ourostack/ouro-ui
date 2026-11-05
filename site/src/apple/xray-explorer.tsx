@@ -172,7 +172,7 @@ export function XrayExplorer({ initialApp = "spoonjoy" }: { initialApp?: AppKey 
         </p>
         <p className="apple-xray-context">
           {data.app} on {data.platform}, {report.label}. {inventory.intents} intents, {inventory.entities} {inventory.entities === 1 ? "entity" : "entities"}, {inventory.shortcuts} App Shortcuts,{" "}
-          {inventory.skills} {inventory.skills === 1 ? "app skill" : "app skills"}. Checks: {report.summary.checks.pass} pass, {report.summary.checks.fail} fail, {report.summary.checks.skip} not checked.
+          {inventory.skills} {inventory.skills === 1 ? "app skill" : "app skills"}. Under the hood, the claims rest on smaller checks: {report.summary.checks.pass} pass, {report.summary.checks.fail} fail, {report.summary.checks.skip} not run.
         </p>
         <ul className="apple-lanes" aria-label="What ran">
           {report.lanes.map((lane) => (
