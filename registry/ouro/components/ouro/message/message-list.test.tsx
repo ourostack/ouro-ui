@@ -2743,4 +2743,40 @@ describe("MessageList's place, to the pixel", () => {
     await settle(scroller);
     expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
+
+  // What a correction the list's start stopped could not make is no debt: the next correction starts from the place the reader is at.
+  // The scroll position it is at, from the height of the first post that goes.
+  for (const [at, title] of [
+    [() => 3, "well short of the move"],
+    [(first: number) => first - 1, "a pixel short of the move"],
+  ] as const) {
+    it(`does not carry a move the start of the list stopped, ${title}, into the next correction`, async () => {
+      const first = (
+        <article key="first" data-ouro-message-list-item="" data-role="assistant">
+          <p data-ouro-message-content="" style={{ margin: 0, height: 2 }}>First</p>
+        </article>
+      );
+      const rest = page(1, 40);
+      const list = (posts: ReactNode[]) => (
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {posts}
+        </MessageList>
+      );
+      const { scroller, rerender } = await render(list([first, ...rest]));
+      const reader = scroller.querySelector<HTMLElement>("[data-ouro-message-list-item]:nth-child(2)")!;
+      // How far the reader's post moves up when the first goes.
+      const moves = reader.getBoundingClientRect().top - reader.previousElementSibling!.getBoundingClientRect().top;
+      scroller.scrollTop = at(moves);
+      scroller.dispatchEvent(new Event("scroll"));
+      await settle(scroller);
+      // The first goes: the reader's post moves up by its height, and the scroll position can go up only by what it is at.
+      await rerender(list(rest));
+      await expect.poll(() => scroller.scrollTop).toBe(0);
+      const top = reader.getBoundingClientRect().top;
+      await rerender(list([first, ...rest]));
+      await settle(scroller);
+      // It comes back as the first does, so the reader's post is where it was, not short of it by what the first move missed.
+      expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThan(0.5);
+    });
+  }
 });
