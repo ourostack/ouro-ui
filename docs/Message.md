@@ -31,7 +31,7 @@ The props the modes share. Type: `MessageProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. |
+| `actions` | `readonly MessageAction[]` |  | The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow keys moving between its buttons. Its code loads in the browser with the first message that has one; a message that mounts after that has its bar in its first render, so a conversation opened later draws each message once. |
 | `actionsLabel` | `string` | `"Message actions"` | What screen readers hear for the action bar, for other languages. |
 | `actionsPlacement` | `"corner" \| "beside"` | `"beside"` on a `reply`, "corner" on a `chat` | Where the action bar sits on a `chat` or `reply` message. `beside` puts it just past the bubble's end, level with its top, so it covers neither the name nor the message and stays with the bubble however wide the row; where the row has no room left, it ends at the row's edge, over the bubble's corner. On the user's own `chat` message it sits before the bubble. `corner` puts it over the bubble's top corner, raised over the line above. A `post`'s bar is over its top end, and the default layout's over its bubble's corner. |
 | `attachments` | `ReactNode` |  | Files and pictures sent with the message, shown under it: `<Attachment>` elements, and pictures as `<Lightbox layout="mosaic">`, which keeps them to a chat's size and opens them full size. |
@@ -410,7 +410,8 @@ interface MessageOwnProps {
    * The message's actions, as icon buttons with tooltips in a small bar at the bubble's top end
    * (`actionsPlacement`) or over a post's top end. The bar shows while the pointer is over
    * the message, while focus is in it, and after a tap on a touch screen. It is a toolbar: one Tab stop, with the arrow
-   * keys moving between its buttons.
+   * keys moving between its buttons. Its code loads in the browser with the first message that has one; a message that
+   * mounts after that has its bar in its first render, so a conversation opened later draws each message once.
    */
   actions?: readonly MessageAction[] | undefined;
   /**
