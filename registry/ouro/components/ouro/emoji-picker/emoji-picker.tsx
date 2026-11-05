@@ -642,7 +642,8 @@ function usePickerContent(
     const byIds = (ids: string | undefined) => ids?.split("\n").flatMap((id) => (byId.has(id) ? [entryOf(byId.get(id)!.item)] : []));
     const { list, toned: firstToned } = catalogueContent(catalogue);
     const found = { frequent: byIds(frequentKey as string | undefined), quick: byIds(quickKey as string | undefined) };
-    const sample = [...(found.quick ?? []), ...(found.frequent ?? [])].find((entry) => entry.skinTones) ?? firstToned;
+    const withTones = <T extends { skinTones?: unknown }>(list: readonly T[] | undefined) => list?.find((entry) => entry.skinTones);
+    const sample = withTones(found.quick) ?? withTones(found.frequent) ?? firstToned;
     // Draws a catalogue's emoji: its image, in the tone, playing for its button unless told otherwise.
     const drawCatalogue: GlyphRender = (item, skinTone, play, priority) => (
       <Emoji item={(item as CatalogueEntry).image} skinTone={skinTone} play={play} placeholder={placeholder} fetchPriority={priority} />

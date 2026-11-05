@@ -266,6 +266,20 @@ describe("EmojiPicker with a catalogue", () => {
     await expect.poll(previewArt).toBe(smile.src);
   });
 
+  const thumbs: EmojiItem = { ...wave, id: "thumbs", name: "Thumbs up", shortcodes: ["thumbs"], src: image("thumbs"), skinTones: [{ id: "thumbs-tone1", src: image("thumbs tone1") }] };
+  it.each<[string, Partial<EmojiPickerProps>, string]>([
+    ["the catalogue's first", {}, wave.src],
+    ["the quick ones'", { quick: ["smile", "thumbs"] }, thumbs.src],
+    ["the frequent ones'", { frequent: ["smile", "thumbs"] }, thumbs.src],
+    ["the frequent ones', with no tones among the quick", { quick: ["smile"], frequent: ["thumbs"] }, thumbs.src],
+    ["the quick ones', before the frequent", { quick: ["thumbs"], frequent: ["wave"] }, thumbs.src],
+    ["the catalogue's first, with no tones among those", { quick: ["smile"], frequent: ["smile"] }, wave.src],
+  ])("draws the skin tone button as the first emoji with tones: %s", async (_, props, expected) => {
+    const withThumbs: EmojiCatalogue = { categories: [{ id: "all", label: "All", items: [smile, wave, thumbs] }] };
+    await open({ catalogue: withThumbs, ...props });
+    expect(art(panel().querySelector('[data-ouro-part="skin-tone"]')!)).toBe(expected);
+  });
+
   it("offers the catalogue's skin tones as images, as a radio group the arrow keys move through", async () => {
     let tone: EmojiSkinTone = "default";
     await open({ onSkinToneChange: (next: EmojiSkinTone) => (tone = next) });
