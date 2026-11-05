@@ -184,6 +184,8 @@ describe("findSizeIssues: blurry-image", () => {
 
   it("names a picture with an address by its last two folders, never by its host, which a local server changes", async () => {
     render(`<img src="${new URL("../scripts/check/fixtures/picture-160.png?v=1", import.meta.url).href}" alt="a fixture" style="width:200px;height:200px">`);
+    // A picture fetched from the server can take longer than decodeImages waits on a loaded runner, and a picture not yet decoded is skipped, so this waits for it alone.
+    await Promise.all([...document.images].map((img) => img.decode()));
     await decodeImages();
     expect(await findSizeIssues({ density: 2 })).toMatchObject([{ rule: "blurry-image", element: "fixtures/picture-160.png" }]);
   });
