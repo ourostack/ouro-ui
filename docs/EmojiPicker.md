@@ -36,6 +36,8 @@ import { EmojiPicker } from "@/registry/ouro/components/ouro/emoji-picker/emoji-
 
 The search matches the start of any word in an emoji's name, keywords or shortcodes, ignoring case and accents, and announces how many it found. The grid is one Tab stop: the arrow keys move through it, Home and End go to the ends of a row (with Ctrl, of the grid), Page Down and Page Up go to the next and previous category, and Enter chooses. Every emoji is named for screen readers, and the one in focus shows large with its name under the grid. Choosing one calls `onSelect` and closes the picker; Escape closes it too.
 
+A closed picker makes nothing from its emoji, so one in each conversation's reply box costs next to nothing to mount; the first to open makes what it shows from a catalogue, once for every picker given that catalogue.
+
 ## Use instead when
 
 - Use `ReactionBar` instead to show a message's reactions and its few quick ones, with an EmojiPicker beside it for the rest.
