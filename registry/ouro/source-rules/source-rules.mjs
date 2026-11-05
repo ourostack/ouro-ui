@@ -64,6 +64,19 @@ import ts from "typescript";
 //   instead, which the compositor runs without layout. Tailwind's plain `transition`,
 //   `transition-colors`, `transition-opacity` and `transition-transform` pass. Like a spinner, it
 //   counts where it is written and never makes the component around it a hand-rolled control.
+// - gated-load: a data or asset load that waits for focus, visibility, return, idle or being
+//   scrolled into view: a fetch, a load/prefetch/refetch call, a data hook, import(), `new Image()`
+//   or a `src` set, inside a visibilitychange, focus, blur or pageshow listener on the window or
+//   document (or its `on…` handler), under a `document.hidden`, `visibilityState` or `hasFocus()`
+//   condition, in a requestIdleCallback, an IntersectionObserver or an in-view or idle hook's
+//   callback, or waiting on what such a hook returns (`enabled: inView`) or on state such a
+//   callback sets from what the gate says (`setShown(entry.isIntersecting)`, not `setOpen(false)`);
+//   and an element's `loading="lazy"`, or an address (`src`, `srcSet`, `poster`) that waits on a
+//   gate (`src={inView ? url : undefined}`).
+//   Rendering-only gates pass, since they load nothing: pausing an animation or a caret, windowing
+//   what is drawn while the data stays loaded, a media stream; so does saving on hide (a fetch with
+//   keepalive or another method). It counts where the load is written and never makes the
+//   component around it a hand-rolled control.
 // - vague-failure-copy: a string literal, a template literal (its static parts, joined) or JSX text
 //   with a vague failure phrase (VAGUE_FAILURE_PHRASES: "couldn't", "could not", "something went
 //   wrong", "unable to", "failed to load", "an error occurred"), or whose whole text is a bare
@@ -144,6 +157,7 @@ export const CATEGORIES = [
   "third-party-control",
   "content-spinner",
   "render-index",
+  "gated-load",
   "vague-failure-copy",
   "uses-hand-rolled-control",
 ];
@@ -257,11 +271,18 @@ export const LAYOUT_ANIMATION_FIX =
   "Animate transform and opacity instead, which the compositor runs without layout: slide with translate, grow or shrink with scale, fade with opacity. " +
   "Name the properties a transition runs (transition-[opacity,translate], transition-opacity, transition-transform) rather than transition-all; a size that must change changes at once.";
 
+/** What the gated-load rule tells an app to do, and what it lets through. */
+export const GATED_LOAD_FIX =
+  "Load it eagerly: start the fetch when the data is known to be needed (on mount, or as soon as the page before it lands), not when the page becomes visible, the window gets focus, the browser is idle or an element scrolls into view (loading=\"lazy\" included), " +
+  "so nobody waits for what could already be there. Spend the work on what the person is likely to look at next, newest first, within the performance budgets. " +
+  "Rendering-only gates pass: pausing an animation or a caret, windowing what is drawn while the data stays loaded, a media stream, and saving on hide (sendBeacon, or fetch with keepalive or a method other than GET).";
+
 // What each category's message says, for the categories whose fix is not an Ouro component.
 const CATEGORY_MESSAGES = {
   "content-spinner": { headline: "New spinner standing in for content", fix: CONTENT_SPINNER_FIX },
   "render-index": { headline: "New index built in render", fix: RENDER_INDEX_FIX },
   "layout-animation": { headline: "New animation of a layout property", fix: LAYOUT_ANIMATION_FIX },
+  "gated-load": { headline: "New load that waits for focus, visibility, idle or scrolling", fix: GATED_LOAD_FIX },
   // Names the phrase it found, the fingerprint's tag.
   "vague-failure-copy": (phrase) => ({
     headline: `New vague failure copy ("${phrase}")`,
@@ -1045,6 +1066,256 @@ function assignedName(node) {
   return ts.isVariableDeclaration(current) && ts.isIdentifier(current.name) ? current.name.text : "";
 }
 
+// gated-load: what decides a load (an event, a read, an observer or an idle wait), and what a load is.
+const DOCUMENT = /^(?:(?:window|globalThis|self)\.)?document$/;
+const GATE_TARGET = /^(?:(?:window|globalThis|self)(?:\.document)?|document)$/;
+const GATE_EVENTS = new Set(["visibilitychange", "focus", "blur", "pageshow"]);
+const GATE_DOCUMENT_READS = new Set(["hidden", "visibilityState", "webkitHidden", "hasFocus"]);
+const GATE_ENTRY_READS = new Set(["isIntersecting", "intersectionRatio"]);
+const GATE_HOOK =
+  /^use(?:InView|InViewport|IntersectionObserver|Intersection|OnScreen|IsVisible|Visible|Visibility|DocumentVisibility|PageVisibility|VisibilityChange|WindowFocus|HasFocus|PageFocus|Idle|IsIdle|IdleTimer|IdleCallback)$/;
+const GATE_CALLBACK = /^on(?:visibilitychange|focus|blur|pageshow|Idle|Active|Visible|VisibilityChange|WindowFocus|Intersect|Intersection|InView|EnterViewport)$/;
+const GATE_ELEMENT = /^(?:InView|Waypoint|VisibilitySensor)$/;
+const LOAD_VERB = /^(?:fetch|refetch|prefetch|preload|preinit|load|reload|refresh|revalidate|invalidate)(?:[A-Z]\w*)?$/;
+const DATA_HOOK = /^use(?:SWR|SWRInfinite|SWRImmutable|Query|Queries|InfiniteQuery|SuspenseQuery|SuspenseInfiniteQuery|LazyQuery)$/;
+const LOAD_CONSTRUCTORS = new Set(["Image", "XMLHttpRequest", "EventSource", "WebSocket", "FontFace"]);
+const ENABLE_OPTIONS = new Set(["enabled", "skip", "pause", "paused"]);
+// The attributes through which an element fetches what it shows.
+const ASSET_ATTRIBUTES = new Set(["src", "srcSet", "srcset", "poster", "data"]);
+const EXITS = new Set([ts.SyntaxKind.ReturnStatement, ts.SyntaxKind.ThrowStatement, ts.SyntaxKind.ContinueStatement, ts.SyntaxKind.BreakStatement]);
+const calleeName = (callee) => (ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : undefined);
+const exits = (statement) => EXITS.has((ts.isBlock(statement) ? statement.statements.at(-1) : statement)?.kind);
+const nameText = (name) => (ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : undefined);
+
+// A write is no load: a fetch with keepalive or a method other than GET, as an app saves when the page hides.
+function isWrite(init) {
+  if (!init || !ts.isObjectLiteralExpression(init)) return false;
+  return init.properties.some((property) => {
+    if (!ts.isPropertyAssignment(property)) return false;
+    const value = literalValue(property.initializer);
+    const name = nameText(property.name);
+    return (name === "keepalive" && value === "true") || (name === "method" && value !== undefined && !/^(?:get|head)$/i.test(value));
+  });
+}
+
+// What a node loads, by name: fetch, a load or prefetch call, a data hook, import(), `new Image()`, a
+// `src` or `srcset` set. Undefined for anything else.
+function loadOf(node) {
+  if (ts.isCallExpression(node)) {
+    if (node.expression.kind === ts.SyntaxKind.ImportKeyword) return "import()";
+    const name = calleeName(node.expression);
+    if (name === "fetch") return isWrite(node.arguments[1]) ? undefined : name;
+    if (name === "setAttribute") return /^src(?:set)?$/i.test(node.arguments[0]?.text ?? "") ? "src" : undefined;
+    return name !== undefined && (LOAD_VERB.test(name) || DATA_HOOK.test(name)) ? name : undefined;
+  }
+  if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && LOAD_CONSTRUCTORS.has(node.expression.text)) return `new ${node.expression.text}`;
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(node.left)) {
+    return /^src(?:set)?$/.test(node.left.name.text) ? node.left.name.text : undefined;
+  }
+  return undefined;
+}
+
+// Loads gated on focus, visibility, return, idle or being scrolled into view, counted where the load is written.
+function findGatedLoads({ file, sourceFile, declarations }) {
+  const recorded = new Map();
+  const record = (node, gate, load) => {
+    if (!recorded.has(node)) recorded.set(node, { gate, load });
+  };
+  // A same-file function a gate calls: `const sync = () => fetch(...)`, or one wrapped in useCallback.
+  const localFunction = (name) => {
+    let found = declarations.get(name);
+    if (found && ts.isCallExpression(found) && calleeName(found.expression) === "useCallback") found = found.arguments[0];
+    return found && isFunctionLike(found) ? found : undefined;
+  };
+  const loads = (node, seen = new Set()) => {
+    let found = false;
+    const walk = (current) => {
+      if (found) return;
+      const called = ts.isCallExpression(current) && ts.isIdentifier(current.expression) ? current.expression.text : undefined;
+      const local = called !== undefined && !seen.has(called) ? localFunction(called) : undefined;
+      if (local) seen.add(called);
+      found = loadOf(current) !== undefined || (local !== undefined && loads(local, seen));
+      ts.forEachChild(current, walk);
+    };
+    walk(node);
+    return found;
+  };
+  // Every load in a scope the gate decides; a call to a same-file function that loads counts at the call.
+  const scanScope = (scope, gate) => {
+    const walk = (node) => {
+      const load = loadOf(node);
+      const called = ts.isCallExpression(node) && ts.isIdentifier(node.expression) ? node.expression.text : undefined;
+      const local = called !== undefined ? localFunction(called) : undefined;
+      if (load) record(node, gate, load);
+      else if (local && loads(local, new Set([called]))) record(node, gate, called);
+      ts.forEachChild(node, walk);
+    };
+    walk(scope);
+  };
+  // A callback a gate runs: a function, or a name for a load or a same-file function.
+  const scanCallback = (callback, gate) => {
+    if (!callback) return;
+    if (ts.isIdentifier(callback) && (LOAD_VERB.test(callback.text) || DATA_HOOK.test(callback.text))) return record(callback, gate, callback.text);
+    const local = ts.isIdentifier(callback) ? localFunction(callback.text) : undefined;
+    if (local) return loads(local, new Set([callback.text])) ? record(callback, gate, callback.text) : undefined;
+    if (isFunctionLike(callback)) scanScope(callback, gate);
+  };
+
+  // Names that hold a gate: what a gate hook returns (`const { ref, inView } = useInView()`, refs
+  // aside), and state a gate's callback sets (`setVisible(!document.hidden)`).
+  const gateNames = new Map();
+  const setters = new Map();
+  const bind = (name, gate) => {
+    if (ts.isIdentifier(name)) {
+      if (!/ref$/i.test(name.text)) gateNames.set(name.text, gate);
+      return;
+    }
+    for (const element of name.elements) if (!ts.isOmittedExpression(element)) bind(element.name, gate);
+  };
+  const collect = (node) => {
+    if (ts.isVariableDeclaration(node) && node.initializer) {
+      const call = ts.isAwaitExpression(node.initializer) ? node.initializer.expression : node.initializer;
+      const hook = ts.isCallExpression(call) ? calleeName(call.expression) : undefined;
+      if (hook !== undefined && GATE_HOOK.test(hook)) bind(node.name, hook);
+      const [state, setter] = ts.isArrayBindingPattern(node.name) ? node.name.elements.map((element) => element.name) : [];
+      if (hook === "useState" && state && setter && ts.isIdentifier(state) && ts.isIdentifier(setter)) setters.set(setter.text, state.text);
+    }
+    ts.forEachChild(node, collect);
+  };
+  collect(sourceFile);
+
+  const gateRead = (node) => {
+    let gate;
+    const walk = (current) => {
+      if (ts.isPropertyAccessExpression(current)) {
+        const name = current.name.text;
+        if (GATE_DOCUMENT_READS.has(name) && DOCUMENT.test(current.expression.getText())) gate = `document.${name}`;
+        if (GATE_ENTRY_READS.has(name)) gate = name;
+        return gate ?? walk(current.expression);
+      }
+      if (ts.isIdentifier(current) && gateNames.has(current.text)) gate = gateNames.get(current.text);
+      if (!gate) ts.forEachChild(current, walk);
+    };
+    walk(node);
+    return gate;
+  };
+
+  // The callbacks a gate runs, with the gate's name: a visibility, focus or pageshow listener on the
+  // window or document, its `on…` handler, requestIdleCallback, an IntersectionObserver, a gate
+  // hook's callbacks, an idle or in-view callback prop, and an in-view component's function props.
+  const callbacksOf = (node) => {
+    if (ts.isCallExpression(node)) {
+      const name = calleeName(node.expression);
+      const target = ts.isPropertyAccessExpression(node.expression) ? node.expression.expression.getText() : "window";
+      const [event, callback] = node.arguments;
+      if (name === "addEventListener" && GATE_TARGET.test(target) && event && GATE_EVENTS.has(event.text)) return [[callback, event.text]];
+      if (name === "requestIdleCallback") return [[node.arguments[0], name]];
+      if (name !== undefined && GATE_HOOK.test(name)) {
+        return node.arguments.flatMap((argument) =>
+          ts.isObjectLiteralExpression(argument)
+            ? argument.properties.filter(ts.isPropertyAssignment).map((property) => [property.initializer, name])
+            : [[argument, name]],
+        );
+      }
+    }
+    if (ts.isNewExpression(node) && calleeName(node.expression) === "IntersectionObserver") return [[node.arguments?.[0], "IntersectionObserver"]];
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(node.left)) {
+      const name = node.left.name.text;
+      return GATE_CALLBACK.test(name) && GATE_TARGET.test(node.left.expression.getText()) ? [[node.right, name]] : [];
+    }
+    if ((ts.isPropertyAssignment(node) || ts.isJsxAttribute(node)) && GATE_CALLBACK.test(nameText(node.name) ?? "")) {
+      const value = ts.isJsxAttribute(node) ? node.initializer?.expression : node.initializer;
+      return [[value, nameText(node.name)]];
+    }
+    if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && GATE_ELEMENT.test(node.tagName.getText())) {
+      return node.attributes.properties.filter(ts.isJsxAttribute).map((attribute) => [attribute.initializer?.expression, node.tagName.getText()]);
+    }
+    return [];
+  };
+  // State a gate's callback sets to what the gate says is a gate too, so a load that waits for it
+  // is gated: `setShown(entry.isIntersecting)`, `setVisible(!document.hidden)`, or the callback's
+  // own argument (`(seen) => setShown(seen)`). A setter given anything else is not: a popover that
+  // closes on blur (`setOpen(false)`) leaves `open` an ordinary state.
+  const mentions = (node, names) => {
+    let found = false;
+    const walk = (current) => {
+      found ||= ts.isIdentifier(current) && names.has(current.text);
+      if (!found) ts.forEachChild(current, walk);
+    };
+    walk(node);
+    return found;
+  };
+  const feed = (node) => {
+    for (const [callback, gate] of callbacksOf(node)) {
+      const said = new Set();
+      const name = (current) => {
+        if (ts.isIdentifier(current)) said.add(current.text);
+        ts.forEachChild(current, name);
+      };
+      for (const parameter of callback?.parameters ?? []) name(parameter.name);
+      const says = (argument) => gateRead(argument) !== undefined || mentions(argument, said);
+      const walk = (current) => {
+        const setter = ts.isCallExpression(current) && ts.isIdentifier(current.expression) ? setters.get(current.expression.text) : undefined;
+        if (setter && current.arguments.some(says)) gateNames.set(setter, gate);
+        ts.forEachChild(current, walk);
+      };
+      if (callback) walk(callback);
+    }
+    ts.forEachChild(node, feed);
+  };
+  feed(sourceFile);
+
+  const visit = (node) => {
+    for (const [callback, gate] of callbacksOf(node)) scanCallback(callback, gate);
+    if (ts.isIfStatement(node)) {
+      const gate = gateRead(node.expression);
+      if (gate) {
+        scanScope(node.thenStatement, gate);
+        if (node.elseStatement) scanScope(node.elseStatement, gate);
+        // `if (document.hidden) return;` gates everything after it in the block.
+        const siblings = node.elseStatement || !exits(node.thenStatement) ? [] : node.parent.statements ?? [];
+        for (const sibling of siblings.slice(siblings.indexOf(node) + 1)) scanScope(sibling, gate);
+      }
+    }
+    if (ts.isConditionalExpression(node)) {
+      const gate = gateRead(node.condition);
+      if (gate) for (const branch of [node.whenTrue, node.whenFalse]) scanScope(branch, gate);
+    }
+    if (ts.isBinaryExpression(node) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(node.operatorToken.kind)) {
+      const gate = gateRead(node.left);
+      if (gate) scanScope(node.right, gate);
+    }
+    // An element that fetches its asset only as it nears the screen (`loading="lazy"`), and one
+    // whose address waits on a gate (`src={inView ? url : undefined}`).
+    if (ts.isJsxAttribute(node) && ts.isJsxOpeningLikeElement(node.parent.parent)) {
+      const name = nameText(node.name);
+      const tag = node.parent.parent.tagName.getText();
+      if (name === "loading" && literalValue(node.initializer) === "lazy") record(node, "loading=lazy", tag);
+      const address = name !== undefined && ASSET_ATTRIBUTES.has(name) && node.initializer ? gateRead(node.initializer) : undefined;
+      if (address) record(node, address, `${tag}.${name}`);
+    }
+    // A data hook or load whose arguments read a gate (`useSWR(inView ? key : null)`), and an
+    // `enabled: inView` option.
+    const load = loadOf(node);
+    const gate = load && ts.isCallExpression(node) ? node.arguments.map(gateRead).find(Boolean) : undefined;
+    if (gate) record(node, gate, load);
+    if (ts.isPropertyAssignment(node) && ENABLE_OPTIONS.has(nameText(node.name))) {
+      const option = gateRead(node.initializer);
+      const call = node.parent.parent;
+      if (option) record(ts.isCallExpression(call) ? call : node, option, (ts.isCallExpression(call) && calleeName(call.expression)) || nameText(node.name));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+
+  return [...recorded].map(([node, { gate, load }]) => ({
+    category: "gated-load",
+    fingerprint: [file, componentName(node), "gated-load", `${gate}>${load}`, ""].join("::"),
+    file,
+    line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+  }));
+}
+
 function scanScript(module, resolver, failureCopyAllow) {
   const { file, sourceFile, imports, declarations, bindingDefaults } = module;
   const offenders = [];
@@ -1284,6 +1555,7 @@ function scanScript(module, resolver, failureCopyAllow) {
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
+  offenders.push(...findGatedLoads(module));
   return { module, offenders, ownerHits, renders, uses };
 }
 

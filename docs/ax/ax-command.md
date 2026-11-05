@@ -5,12 +5,20 @@
 One definition of a command: its words, effect, arguments and flags, examples and output. From it come the parser (whose refusals name the exact fix), the usage and help, `help --json` and the MCP tool's input schema, so the CLI and the MCP server can never disagree.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.3.3
+npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.3.4
 ```
 
 It installs `lib/ouro/ax/command.ts`, with `ax-effects`, `ax-exit-codes`, `ax-outcome`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
+
+### `AGENT_FLAG`
+
+The flag a self-scoped command takes: who is calling. The kit compares it with the item's owner, so an agent acts on its own item only.
+
+```ts
+const AGENT_FLAG: FlagSpec
+```
 
 ### `ArgSpec`
 
@@ -48,6 +56,14 @@ Checks an MCP call's arguments against the command, as the parser checks argv: a
 
 ```ts
 function checkInput(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, raw: unknown, thing?: string): Readonly<Record<string, InputValue>>
+```
+
+### `checkOwner`
+
+Refuses a self-scoped call on an item that is not the calling agent's (`not-yours`, the usage exit): it names whose item it is and who called, and gives the command for the caller's own item (`self.instead`) or says to ask the person. It passes a command without `self`, and the owner's own call. runCli, dispatch and the MCP server call it before plan() or run(); a tool that runs commands its own way calls it too.
+
+```ts
+function checkOwner<C extends RunContext>(cli: Cli<C>, cmd: CommandDef<unknown, C>, input: Readonly<Record<string, InputValue>>, ctx: C) => Promise<void>
 ```
 
 ### `Cli`
@@ -107,6 +123,7 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   hidden?: boolean;
   summarizes?: boolean;
   loose?: boolean;
+  self?: SelfScope<C>;
   run?(input: Input, ctx: C): R | Promise<R>;
   plan?(input: Input, ctx: C): Outcome | Promise<Outcome>;
   text?(result: R, input: Input): string;
@@ -145,7 +162,7 @@ function findCommand(cli: Pick<Cli<RunContext>, "commands">, words: readonly str
 
 ### `flagsOf`
 
-The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own; a command's own flag replaces a generated one of the same name.
+The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then its own; a command's own flag replaces a generated one of the same name, except a self-scoped command's `--agent`, which the owner check needs.
 
 ```ts
 function flagsOf(cli: Pick<Cli<RunContext>, "globalFlags">, cmd: CommandDef<unknown, RunContext>): Record<string, FlagSpec>
@@ -280,6 +297,17 @@ interface PersonOnly {
 interface RunContext {
   stdin(): Promise<string>;
   json: boolean;
+}
+```
+
+### `SelfScope`
+
+A command an agent may run only on its own item, such as its own row in the person's list of listening agents (the twin of a component action declared `scope: "self"`). The command takes `--agent <you>`, and the kit asks `owner` whose item the call names, before plan() or run(): when it is not the calling agent's, the call is refused (`not-yours`) and nothing runs. `help --json` marks the command `scope: "self"`.
+
+```ts
+interface SelfScope<C extends RunContext = RunContext> {
+  owner(input: Input, ctx: C): string | null | Promise<string | null>;
+  instead?: string;
 }
 ```
 

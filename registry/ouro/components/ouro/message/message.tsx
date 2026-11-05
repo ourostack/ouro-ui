@@ -73,7 +73,10 @@ export interface MessageQuote {
   excerpt: string;
   /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
-  /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
+  /**
+   * Makes the quote a button that shows the quoted message, as by scrolling to it. In a `MessageList`, which may not
+   * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
+   */
   onActivate?: (() => void) | undefined;
   /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
   label?: string | undefined;
@@ -245,9 +248,10 @@ export interface MessageOwnProps {
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
    * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
-   * browser once its code loads, so server HTML has the message without it; Menu's code loads the
-   * first time someone opens a message's menu.
+   * browser once its code loads, so server HTML has the message without it; Menu's code loads as
+   * soon as a bar with a menu is on the page, so the first press opens it without a wait.
    *
+   * @claim "Menu's code loads as soon as" registry/ouro/components/ouro/message/message.warm.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.warm.test.tsx::Message's menu code > is fetched as a bar with a menu mounts, before anyone presses its button)
    * @claim "More actions, in a menu that" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > opens the menu from the last button, and keeps the bar while it is open)
    */
   menu?: readonly MenuEntry[] | undefined;
@@ -432,12 +436,24 @@ const postRow = "order-3 basis-full";
 const peopleGutter = "2.75rem";
 
 // Between two posts, a hairline from the text's start to the end, midway between them as MessageList spaces them (16px,
-// and each post's 4px): a border, which forced colours keep.
+// and each post's 4px): a border, which forced colours keep. In a MessageList each post sits in a slot of its own (a
+// box it does not draw), so there the posts are each in the slot after the other's.
 const postHairline =
   "[[data-variant=post]+[data-variant=post]_&]:before:absolute [[data-variant=post]+[data-variant=post]_&]:before:inset-x-0 " +
   "[[data-variant=post]+[data-variant=post]_&]:before:-top-3 [[data-variant=post]+[data-variant=post]_&]:before:border-0 " +
   "[[data-variant=post]+[data-variant=post]_&]:before:border-t [[data-variant=post]+[data-variant=post]_&]:before:border-solid " +
-  "[[data-variant=post]+[data-variant=post]_&]:before:border-border [[data-variant=post]+[data-variant=post]_&]:before:content-['']";
+  "[[data-variant=post]+[data-variant=post]_&]:before:border-border [[data-variant=post]+[data-variant=post]_&]:before:content-[''] " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:absolute " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:inset-x-0 " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:-top-3 " +
+  // Stryker disable next-line StringLiteral: the tests' page loads Tailwind's base styles, which give ::before a solid border of no width; an app without them needs this.
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-0 " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-t " +
+  // Stryker disable next-line StringLiteral: the tests' page loads Tailwind's base styles, which give ::before a solid border of no width; an app without them needs this.
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-solid " +
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:border-border " +
+  // Stryker disable next-line StringLiteral: Tailwind gives every before: utility content: var(--tw-content), so the line draws without this class too.
+  "[[data-ouro-message-list-slot]:has(>[data-variant=post])+[data-ouro-message-list-slot]>[data-variant=post]_&]:before:content-['']";
 
 // The action bar's code, loaded once, the first time a message with actions or a menu mounts: a
 // page whose messages have no bar never loads it, nor the Tooltip and Menu it uses.

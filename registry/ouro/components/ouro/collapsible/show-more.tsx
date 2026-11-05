@@ -55,6 +55,18 @@ export interface ShowMoreOpenProps {
   onOpenChange?: ((open: boolean) => void) | undefined;
 }
 
+/**
+ * What folded content holds. Not read: ShowMore decides from the browser's layout, and this leaves the first frame as
+ * it is. Kept so an app that passes it still compiles.
+ * @deprecated
+ */
+export interface ShowMoreEstimate {
+  /** Its plain text. Not read. */
+  text?: string | undefined;
+  /** The CSS pixels its pictures and cards take. Not read. */
+  height?: number | undefined;
+}
+
 /** Long text clamped to `lines` lines, with "Show more" and "Show less". */
 export type ShowMoreLinesProps = ShowMoreBaseProps & ShowMoreOpenProps & {
   /** How many lines show while collapsed. The button appears only when the text is longer. */
@@ -71,6 +83,13 @@ export type ShowMoreLinesProps = ShowMoreBaseProps & ShowMoreOpenProps & {
    * @claim "The button's text while everything shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > takes translated labels)
    */
   showLessLabel?: string | undefined;
+  /**
+   * Not read: ShowMore does not guess whether content is longer than its fold, so this changes nothing. Kept so an app
+   * that passes it still compiles.
+   *
+   * @deprecated
+   */
+  estimate?: ShowMoreEstimate | undefined;
   /** Not with `lines`: fold by height or by lines, not both. */
   maxHeight?: never;
   /** List modes only: not with `lines`. */
@@ -122,6 +141,13 @@ export type ShowMoreHeightProps = ShowMoreBaseProps & ShowMoreOpenProps & {
    * @claim "The button's text while everything shows" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > unfolds when keyboard focus moves into the folded part)
    */
   showLessLabel?: string | undefined;
+  /**
+   * Not read: ShowMore does not guess whether content is longer than its fold, so this changes nothing. Kept so an app
+   * that passes it still compiles.
+   *
+   * @deprecated
+   */
+  estimate?: ShowMoreEstimate | undefined;
   /** Not with `maxHeight`: fold by height or by lines, not both. */
   lines?: never;
   /** List modes only: not with `maxHeight`. */
@@ -163,6 +189,8 @@ export interface ShowMoreListProps extends ShowMoreBaseProps {
   /** Renders an `<ol>`, for a ranked or numbered list. @default false (`<ul>`) */
   ordered?: boolean | undefined;
   /** Text mode only: not with `items`. */
+  /** Text and height modes only: a list shows its first items. */
+  estimate?: never;
   lines?: never;
   /** Height mode only: not with `items`. */
   maxHeight?: never;
@@ -304,6 +332,9 @@ const DEFAULT_HEIGHT = 240;
  * the first newly shown item, so keyboard and screen reader users land on what they asked
  * for. A list that loads more also says how many items now show. The button names what it
  * folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`).
+ * Folded text and content are folded by CSS in the first commit and in server HTML, and the button comes after the
+ * browser has laid them out: ShowMore does not guess whether they are longer than the fold. One ResizeObserver reads the
+ * layout and adds the button to what overflows.
  * The visible items are in the server HTML. ShowMore draws the list itself: put a border
  * around the list on a wrapping element, and borders between rows on each item.
  *
@@ -409,26 +440,29 @@ function ShowMoreText({
   rootRef: Ref<HTMLDivElement> | undefined;
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
-  // Measured after mount, so server HTML has no button and hydration matches.
+  // Folded by CSS in the first commit and in server HTML, with no button and no guess: a ResizeObserver reads after the
+  // browser lays the text out and adds the button to text that overflows, so no instance makes the page lay out again.
   const [overflowing, setOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
   useEffect(() => {
     const text = textRef.current!;
-    // Measured clamped, so text the app shows whole from the start still gets "Show less". The
-    // clamp goes back off before anything paints.
-    const measure = () => {
-      const whole = !text.classList.contains(clampClass);
-      text.classList.add(clampClass);
+    const observer = new ResizeObserver(() => {
+      // Clamped, whether it hides any; whole, whether it is taller than the lines it clamps to.
+      const clamped = !expanded;
+      const lineHeight = parseFloat(getComputedStyle(text).lineHeight);
       // Stryker disable next-line EqualityOperator: a hidden line is many pixels, so > and >= differ only at a 1px rounding gap no text has
-      setOverflowing(text.scrollHeight > text.clientHeight + 1);
-      text.classList.toggle(clampClass, !whole);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
+      if (clamped) setOverflowing(text.scrollHeight > text.clientHeight + 1);
+      else {
+        // A line height that is not a length (`normal`) cannot say, so the button stays: shown whole, it is the way back.
+        // Stryker disable next-line EqualityOperator: as above, a line is many pixels.
+        if (lineHeight > 0) setOverflowing(text.clientHeight > lineHeight * lines + 1);
+        else setOverflowing(true);
+      }
+    });
     observer.observe(text);
     return () => observer.disconnect();
-  }, [expanded, children, lines]);
+  }, [expanded, lines]);
   return (
     <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       <div
@@ -477,8 +511,8 @@ function ShowMoreHeight({
   rootRef: Ref<HTMLDivElement> | undefined;
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
-  // Unknown until measured after mount, so server HTML is folded with no button and hydration
-  // matches; content that turns out to fit then shows whole.
+  // Unknown until the browser has laid the content out, so the first commit and server HTML are folded by CSS with no
+  // button and no guess: the ResizeObserver reads after layout and says whether it fits.
   const [fits, setFits] = useState<boolean | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

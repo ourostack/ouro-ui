@@ -45,7 +45,7 @@ The props the modes share. Type: `MessageProps`.
 | `failed` | `MessageFailed \| false` |  | The message did not send, and what the person can do about it: `{ onRetry, onDelete }`. A calm marker under it says "Not sent" beside Retry and Delete buttons, and stays until the app clears `failed`, so a failed send never goes quiet. Screen readers hear the marker as the message's description. It appears at once, with no motion. To put the text back in a `Composer` instead, set the Composer's `value` to it and delete the message. |
 | `failedLabel` | `string` | `"Not sent"` | What the marker under a `failed` message says, for other languages. |
 | `footer` | `ReactNode` |  | Under the message: its reactions (`<ReactionBar>`), "Edited", whether it was delivered or seen. |
-| `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads the first time someone opens a message's menu. |
+| `menu` | `readonly MenuEntry[]` |  | More actions, in a menu that opens from the last button in the action bar: the same entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the browser once its code loads, so server HTML has the message without it; Menu's code loads as soon as a bar with a menu is on the page, so the first press opens it without a wait. |
 | `menuLabel` | `string` | `"More actions"` | The menu button's name, for other languages. |
 | `name` (required) | `string \| null` |  | The author's name. Screen readers hear it before the message, and the avatar's initials come from it. Required, so every message says who wrote it. The user's own name is read but not shown. Pass `null` while the name is still loading: a name-sized Skeleton line takes the name's place on its line, the avatar shimmers in its own shape, and screen readers hear `nameLoadingLabel`. Nothing moves when the name arrives. |
 | `nameContent` | `ReactNode` |  | What shows as the author's name in place of `name`, when plain text cannot draw it: their name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`). `name` stays what screen readers hear and the avatar's initials come from. |
@@ -427,8 +427,8 @@ interface MessageOwnProps {
   /**
    * More actions, in a menu that opens from the last button in the action bar: the same
    * entries as Menu's `items`, each with an optional `icon` before its label. The bar stays while the menu is open. The bar renders in the
-   * browser once its code loads, so server HTML has the message without it; Menu's code loads the
-   * first time someone opens a message's menu.
+   * browser once its code loads, so server HTML has the message without it; Menu's code loads as
+   * soon as a bar with a menu is on the page, so the first press opens it without a wait.
    */
   menu?: readonly MenuEntry[] | undefined;
   /** What screen readers hear for the action bar, for other languages. @default "Message actions" */
@@ -529,7 +529,10 @@ interface MessageQuote {
   excerpt: string;
   /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
-  /** Makes the quote a button that shows the quoted message, as by scrolling to it. */
+  /**
+   * Makes the quote a button that shows the quoted message, as by scrolling to it. In a `MessageList`, which may not
+   * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
+   */
   onActivate?: (() => void) | undefined;
   /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
   label?: string | undefined;

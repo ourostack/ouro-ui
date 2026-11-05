@@ -5,7 +5,7 @@ export type { CliIo, RunOptions };
 // first statement, which would take the JSDoc below with it.
 
 import { checksText, isChecksReport } from "./checks.ts";
-import { flagsOf, findCommand, parse, type ArgSpec, type Cli, type CommandDef, type Input, type InputValue, type Parsed, type RunContext } from "./command.ts";
+import { checkOwner, flagsOf, findCommand, parse, type ArgSpec, type Cli, type CommandDef, type Input, type InputValue, type Parsed, type RunContext } from "./command.ts";
 import { DRY_RUN_FLAG } from "./effects.ts";
 import { AxError, errorJson, errorLine, errorMessage, isAxError, type AxErrorShape } from "./problem.ts";
 import { commandManifest, helpJson, renderCommand, renderOverview, type OverviewOptions } from "./help.ts";
@@ -59,7 +59,8 @@ async function withStdin(cli: Cli, cmd: CommandDef, input: Input, stdin: () => P
 
 /**
  * Runs a parsed command as runCli does, for a tool that reads stdin and prints errors its own way: on `--dry-run` the
- * command's plan(), refused ("no-preview") when it has none, else its run(). It prints nothing and reads no stdin.
+ * command's plan(), refused ("no-preview") when it has none, else its run(). A self-scoped command is refused first
+ * when its item is not the calling agent's (`checkOwner`). It prints nothing and reads no stdin.
  *
  * @claim "It prints nothing and reads" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::dispatch runs the plan or run() with the tool's own context, and prints nothing)
  * @claim "on `--dry-run` the command's plan()" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::dispatch runs the plan or run() with the tool's own context, and prints nothing)
@@ -69,6 +70,7 @@ async function dispatch<C extends RunContext>(cli: Cli<C>, parsed: Parsed, ctx: 
   const dryRun = parsed.input[DRY_RUN_FLAG] === true;
   if (dryRun && !cmd.plan) throw new AxError({ code: "no-preview", exit: cli.exits.code("usage"), thing: `${cmd.name} --${DRY_RUN_FLAG}`, problem: "this command has no preview, so nothing was done", fix: null });
   if (!dryRun && !cmd.run) throw new AxError({ code: "not-runnable", exit: cli.exits.code("error"), thing: cmd.name, problem: "this command has no run() in its definition", fix: null });
+  await checkOwner(cli, cmd, parsed.input, ctx);
   return dryRun ? cmd.plan!(parsed.input, ctx) : cmd.run!(parsed.input, ctx);
 }
 
@@ -188,8 +190,9 @@ async function runCli(cli: Cli, argv: readonly string[], io: CliIo, options: Run
   } catch (e) {
     const shape: AxErrorShape = isAxError(e) ? e.shape : { code: "error", exit: cli.exits.code("error"), thing: cli.name, problem: e instanceof Error ? e.message : String(e), fix: null };
     io.stderr.write(`${errorLine(cli.name, shape)}\n`);
-    // A person-only word is a refusal of an action, so --json answers with its outcome, which carries the same error.
-    if (json) io.stdout.write(`${JSON.stringify(shape.code === "person-only" ? outcome({ action: shape.thing, state: "refused", summary: errorMessage(shape), error: shape }) : errorJson(shape), null, 2)}\n`);
+    // A person-only word, or another agent's item, is a refusal of an action, so --json answers with its outcome, which
+    // carries the same error.
+    if (json) io.stdout.write(`${JSON.stringify(shape.code === "person-only" || shape.code === "not-yours" ? outcome({ action: shape.thing, state: "refused", summary: errorMessage(shape), error: shape }) : errorJson(shape), null, 2)}\n`);
     return shape.exit;
   }
 }

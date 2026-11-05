@@ -42,6 +42,68 @@ const ready = "the index of the same emoji was built more than 3 times within a 
 const warnings = () => warn.mock.calls.filter(([message]) => String(message).includes(ready));
 
 describe("catalogueIndex", () => {
+  it("keeps the shapes of the 8 catalogues indexed most recently, and compiles again for one indexed before them", () => {
+    const kept = freshEmoji();
+    const first = catalogueIndex(wrap([{ id: "all", label: "All", items: kept }]));
+    for (let other = 0; other < 7; other++) catalogueIndex(wrap([{ id: "all", label: "All", items: freshEmoji() }]));
+    // Seven others since: its shape is still kept.
+    const moved = (version: number) => wrap([{ id: "all", label: "All", items: kept.map((item) => ({ ...item, src: `${item.src}?v=${version}` })) }]);
+    expect(catalogueIndex(moved(1)).pattern).toBe(first.pattern);
+    for (let other = 0; other < 8; other++) catalogueIndex(wrap([{ id: "all", label: "All", items: freshEmoji() }]));
+    // Eight others since: let go, so it compiles again.
+    expect(catalogueIndex(moved(2)).pattern).not.toBe(first.pattern);
+  });
+
+  it("compiles nothing again for a catalogue whose emoji differ only in their pictures' addresses, and finds the new pictures", () => {
+    const emoji = [...freshEmoji(), { ...freshEmoji(1)[0]!, skinTones: [{ id: `toned-${made}`, src: "/tone/1.png", text: "👋🏻" }] }];
+    const before = catalogueIndex(wrap([{ id: "all", label: "All", items: emoji }]));
+    // A CDN's addresses, signed afresh: new emoji objects, the same ids, text and shortcodes.
+    const moved = emoji.map((item) => ({ ...item, src: `${item.src}?signature=2` }));
+    const after = catalogueIndex(wrap([{ id: "all", label: "All", items: moved }]));
+    expect(after).not.toBe(before);
+    expect(after.pattern).toBe(before.pattern);
+    expect(after.textPattern).toBe(before.textPattern);
+    expect(after.textStarts).toBe(before.textStarts);
+    expect(after.byId.get(moved[0]!.id)).toEqual({ item: moved[0], tone: "default" });
+    expect(after.byText.get("👋🏻")).toEqual({ item: moved.at(-1), tone: "light" });
+    expect(after.byToken.get(moved[1]!.shortcodes![0]!)!.item).toBe(moved[1]);
+    // A change to what the emoji say compiles their patterns afresh.
+    const renamed = catalogueIndex(wrap([{ id: "all", label: "All", items: moved.map((item, at) => (at === 0 ? { ...item, text: "🦊" } : item)) }]));
+    expect(renamed.pattern).not.toBe(before.pattern);
+    expect(renamed.byText.get("🦊")!.item.id).toBe(moved[0]!.id);
+  });
+
+  it("keeps a shape in use among the 8 most recent, not only the 8 built most recently", () => {
+    const kept = freshEmoji();
+    const first = catalogueIndex(wrap([{ id: "all", label: "All", items: kept }]));
+    const moved = (version: number) => wrap([{ id: "all", label: "All", items: kept.map((item) => ({ ...item, src: `${item.src}?v=${version}` })) }]);
+    for (let round = 0; round < 3; round++) {
+      for (let other = 0; other < 7; other++) catalogueIndex(wrap([{ id: "all", label: "All", items: freshEmoji() }]));
+      expect(catalogueIndex(moved(round)).pattern).toBe(first.pattern);
+    }
+  });
+
+  it("tells apart catalogues whose emoji say different things, and not those that say the same in other words", () => {
+    const base = (): EmojiItem[] => [{ id: "a", name: "A", text: "🦊", shortcodes: ["ab", "c"], src: "/a.png", skinTones: [{ id: "a-1", src: "/a1.png", text: "🦊🏻" }] }];
+    const patternOf = (items: EmojiItem[]) => catalogueIndex(wrap([{ id: "all", label: "All", items }])).pattern;
+    const original = patternOf(base());
+    expect(patternOf(base())).toBe(original);
+    const changes: [string, (item: EmojiItem) => EmojiItem][] = [
+      ["a shortcode", (item) => ({ ...item, shortcodes: ["ab", "d"] })],
+      ["where shortcodes divide", (item) => ({ ...item, shortcodes: ["a", "bc"] })],
+      ["no shortcodes", (item) => ({ ...item, shortcodes: undefined })],
+      ["a tone's id", (item) => ({ ...item, skinTones: [{ id: "a-2", src: "/a1.png", text: "🦊🏻" }] })],
+      ["a tone's text", (item) => ({ ...item, skinTones: [{ id: "a-1", src: "/a1.png", text: "🦊🏼" }] })],
+      ["no tones", (item) => ({ ...item, skinTones: undefined })],
+      ["no text", (item) => ({ ...item, text: undefined })],
+    ];
+    for (const [, change] of changes) expect(patternOf(base().map(change))).not.toBe(original);
+    const bare = (): EmojiItem[] => [{ id: "b", name: "B", src: "/b.png", skinTones: [{ id: "b-1", src: "/b1.png" }] }];
+    const spelledOut = (): EmojiItem[] => [{ id: "b", name: "B", text: "", shortcodes: [], src: "/b.png", skinTones: [{ id: "b-1", src: "/b1.png", text: "" }] }];
+    expect(patternOf(spelledOut())).toBe(patternOf(bare()));
+    expect(patternOf([{ id: "b", name: "B", src: "/b.png" }])).toBe(patternOf([{ id: "b", name: "B", src: "/b.png", skinTones: [] }]));
+  });
+
   it("shares one index between fresh catalogue objects holding the same emoji", () => {
     const smileys = freshEmoji();
     const people = freshEmoji();

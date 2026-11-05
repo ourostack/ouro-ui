@@ -1163,7 +1163,7 @@ test("a push to main whose commit the merge queue already tested runs only insta
   // requests only) skips on it, gates included; motion-coverage waits on ci and browser-fallback on
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
-  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns].includes(condition(jobs[id])));
+  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns].includes(condition(jobs[id])));
   assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
@@ -1216,6 +1216,9 @@ const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' 
 /** The browser shards': they also skip on a pull request that changes nothing they read (the plan's `browser`). */
 const browserRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}";
 
+/** The mutation shards': they also skip when the plan counts none (no changed path is runtime source). */
+const mutationRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}";
+
 /** The checks the main ruleset requires (ruleset 24881709, .github/required-checks.json). */
 const requiredChecks = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
 
@@ -1234,7 +1237,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : id === "browser" ? browserRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : untested), `${id} has if: ${condition}`);
   }
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
@@ -1445,6 +1448,10 @@ test("conformance and mutation are each one check over their shards, which passe
     assert.equal(runStep(script, { RESULT: "success" }).status, 0, check);
     for (const result of ["failure", "cancelled", "skipped"]) assert.notEqual(runStep(script, { RESULT: result }).status, 0, `${check} with ${result}`);
   }
+  // Mutation passes on skipped shards only when the plan counted none.
+  const mutation = stepScript(jobs.mutation, "Every shard passed");
+  assert.equal(runStep(mutation, { COUNT: "0", RESULT: "skipped" }).status, 0);
+  for (const [count, result] of [["0", "failure"], ["0", "cancelled"], ["3", "skipped"], ["", "skipped"]]) assert.notEqual(runStep(mutation, { COUNT: count, RESULT: result }).status, 0, `${count} ${result}`);
 });
 
 test("the mutation plan keys the kept results by pull request and dependency hash, and plans a pull request's shards from its estimated work, at least five without kept results, three with", () => {
@@ -1465,6 +1472,11 @@ test("the mutation plan keys the kept results by pull request and dependency has
   const warm = runStep(planned(2), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
   assert.match(warm.calls, /--count 3\/24$/m);
   assert.deepEqual(warm.output, { count: "3", shards: "[1,2,3]" });
+  // No changed path is runtime source: no shard starts (the matrix still needs a value).
+  const none = runStep(`node() { echo 0; }\n${count}`, { KEY: "stryker-139-abc-", MATCHED: "" });
+  assert.equal(none.status, 0);
+  assert.deepEqual(none.output, { count: "0", shards: "[0]" });
+  assert.equal(ciJobs()["mutation-shard"].match(/^ {4}if: (.+)$/m)?.[1], mutationRuns);
   // Not a pull request: nothing to mutate, three shards, and no plan.
   const other = runStep(planned(13), { KEY: "", MATCHED: "" });
   assert.deepEqual(other.output, { count: "3", shards: "[1,2,3]" });
@@ -1503,6 +1515,8 @@ test("the mutation job merges the shards' results and keeps them under the plan'
     assert.match(step, /^if: (?:env\.KEY != ''|\$\{\{ env\.KEY != '' && hashFiles\('\.tmp\/stryker-incremental\.json'\) != '' \}\})$/m, step);
     assert.match(step, /^ {8}continue-on-error: true$/m, step);
   }
+  // With no shard planned there is nothing to merge or keep.
+  assert.match(block, /^ {6}KEY: \$\{\{ needs\.mutation-plan\.outputs\.count != '0' && needs\.mutation-plan\.outputs\.key \|\| '' \}\}$/m);
   assert.match(block, /run: node scripts\/mutation\/cache\.mjs merge \.tmp\/stryker-incremental\.json \.tmp\/shards\/\*\/stryker-incremental\.json/);
   assert.match(block, /uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ env\.KEY \}\}\$\{\{ github\.sha \}\}$/m);
 });
@@ -1631,7 +1645,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const mySpecs = installSpecShard(specs.slice(0, 3), { index: 2, count: 2 });
   assert.ok(mine.length > 0 && mySpecs.length > 0);
   const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
-  assert.match(shard.stdout, new RegExp(`^npx vitest run ${escaped(mine)}$`, "m"));
+  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=1 ${escaped(mine)}$`, "m"));
   assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel ${escaped(mySpecs)}$`, "m"));
   const empty = run({ OURO_SHARD: "2/2" });
   assert.equal(empty.status, 1);
@@ -1679,7 +1693,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.doesNotMatch(ciJobs()["install-shard"], /OURO_BROWSER_DEPS|browser-deps/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
-  assert.match(some.stdout, /^npx vitest run --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
+  assert.match(some.stdout, /^npx vitest run --maxWorkers=1 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
   assert.match(some.stdout, /^npx playwright test --fully-parallel --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
@@ -2268,7 +2282,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", COVERAGE: "failure" }).status, 1);
 });
 
-test("Screens checks a pull request's screens only when its change can reach the site build or the check, and every other run's always", () => {
+test("Screens checks a pull request's screens only when its change can reach the site build or the check, and main's daily", () => {
   const { text } = workflows.find(({ file }) => file === "screens.yml");
   const jobs = Object.fromEntries(text.split(/^jobs:\n/m)[1].split(/\n(?= {2}[\w-]+:\n)/).map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]));
   assert.deepEqual(Object.keys(jobs), ["changes", "screens-shard", "screens"]);
@@ -2282,7 +2296,10 @@ test("Screens checks a pull request's screens only when its change can reach the
   const pr = { EVENT: "pull_request", HEAD_REF: "fix", BASE_REF: "main" };
   assert.match(runStep(decide, pr).calls, /^CALL node scripts\/ci-relevance\.mjs screens HEAD\^1 HEAD$/m);
   assert.deepEqual(runStep(decide, pr, { nodeStatus: 1 }).output, { run: "true" });
-  for (const env of [{ EVENT: "push" }, { EVENT: "workflow_dispatch" }, { ...pr, HEAD_REF: "release/v1.0.0" }]) {
+  // Main is checked daily and on demand, never on each push: a push to main is a change a pull request's run already checked.
+  assert.match(text, /^on:\n {2}pull_request:\n {2}schedule:\n {4}- cron: "[^"]+"\n {2}workflow_dispatch:\n/m);
+  assert.doesNotMatch(text.split(/^permissions:/m)[0], /^ {2}push:/m);
+  for (const env of [{ EVENT: "schedule" }, { EVENT: "workflow_dispatch" }, { ...pr, HEAD_REF: "release/v1.0.0" }]) {
     const result = runStep(decide, env);
     assert.doesNotMatch(result.calls, /ci-relevance/);
     assert.deepEqual(result.output, { run: "true" });

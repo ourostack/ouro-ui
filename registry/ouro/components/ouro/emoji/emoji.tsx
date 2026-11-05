@@ -323,7 +323,8 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * `play` says so. With reduced motion it always shows the still image. `skinTone` draws an
  * emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
  * Its picture is fetched as soon as it is drawn, not when it nears the screen, so an emoji in an
- * older message is there when the reader scrolls back to it.
+ * older message is there when the reader scrolls back to it. Its box is the text's size from the
+ * first frame, and a picture that fails to load keeps it, so no line moves as emoji load or fail.
  *
  * Use `EmojiText` instead to draw the emoji in a message's text, and an emoji character for an
  * app that uses the platform's emoji font.
@@ -336,6 +337,7 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * <Emoji item={party} placeholder="/emoji/waiting.svg" />
  * <Button variant="plain" aria-label="Party popper"><Emoji item={party} alt="" /></Button>
  * @claim "named by its `alt` (the emoji's name)" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > draws the still image named by the emoji's name, the size of the text, in the tone asked for)
+ * @claim "a picture that fails to load keeps it, so no line moves" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::EmojiText > keeps every line and every emoji where a loaded picture would, when its picture fails to load)
  * @claim "Its picture is fetched as soon as" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:fileLine(registry/ouro/components/ouro/emoji/emoji.test.tsx, /expect\(img\.hasAttribute\("loading"\)\)\.toBe\(false\)/)
  * @claim "With reduced motion it always shows the" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > shows the still image with reduced motion, whatever play says or the pointer does)
  * @claim "while the mouse is on it or on" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > plays while the mouse is on its button or the button has focus, and stops after)

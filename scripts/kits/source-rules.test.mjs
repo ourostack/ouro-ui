@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, GATED_LOAD_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -28,6 +28,7 @@ describe("findOffendersInSource: each category", () => {
             "third-party-control",
             "content-spinner",
             "render-index",
+            "gated-load",
             "vague-failure-copy",
             "uses-hand-rolled-control",
         ]);
@@ -710,6 +711,89 @@ describe("vague-failure-copy", () => {
         ]);
         expect(narrowedSettings(config("could not"), config("card could not be charged"))).toEqual([]);
         expect(narrowedSettings(config("could not be charged"), config())).toEqual([]);
+    });
+});
+describe("gated-load", () => {
+    const gated = (source) => scan(source).filter((offender) => offender.category === "gated-load").map((offender) => offender.fingerprint.split("::").slice(1, 4).join("::"));
+    it("finds a fetch in a visibilitychange listener, counted where the load is written", () => {
+        expect(scan(`export function Feed() {\n  useEffect(() => {\n    document.addEventListener("visibilitychange", () => {\n      if (!document.hidden) fetch("/api/feed");\n    });\n  }, []);\n  return null;\n}`)).toEqual([
+            { category: "gated-load", fingerprint: "app/routes/fixture.tsx::Feed::gated-load::visibilitychange>fetch::", file: "app/routes/fixture.tsx", line: 4 },
+        ]);
+    });
+    it("finds a load on the window's focus or blur, on return to the page, and in their on… handlers", () => {
+        expect(gated(`export function Feed({ refetch }) { useEffect(() => { window.addEventListener("focus", refetch); }, []); return null; }`)).toEqual(["Feed::gated-load::focus>refetch"]);
+        expect(gated(`export function A() { globalThis.addEventListener("blur", () => loadDrafts()); addEventListener("pageshow", () => import("./x")); }`)).toEqual(["A::gated-load::blur>loadDrafts", "A::gated-load::pageshow>import()"]);
+        expect(gated(`const sync = () => fetch("/api"); export function A() { window.onfocus = () => sync(); document.onvisibilitychange = sync; }`)).toEqual(["A::gated-load::onfocus>sync", "A::gated-load::onvisibilitychange>sync"]);
+        expect(gated(`const warm = useCallback(() => { const image = new Image(); image.src = url; }, [url]); export function A() { window.addEventListener("focus", warm); }`)).toEqual(["A::gated-load::focus>warm"]);
+    });
+    it("finds a load under a document.hidden, visibilityState or hasFocus condition, after an early return too", () => {
+        expect(gated(`export function poll() { if (document.hidden) return; loadMessages(); }`)).toEqual(["poll::gated-load::document.hidden>loadMessages"]);
+        expect(gated(`export function poll() { if (window.document.visibilityState === "visible") { revalidate(); } else { prefetchQuery(key); } }`)).toEqual(["poll::gated-load::document.visibilityState>revalidate", "poll::gated-load::document.visibilityState>prefetchQuery"]);
+        expect(gated(`export function poll() { return document.hasFocus() ? refresh() : null; }`)).toEqual(["poll::gated-load::document.hasFocus>refresh"]);
+        expect(gated(`export function poll() { document.hidden || fetch("/api"); }`)).toEqual(["poll::gated-load::document.hidden>fetch"]);
+        expect(gated(`export function poll() { switch (x) { case 1: if (!document.hidden) { break; } img.setAttribute("src", url); } }`)).toEqual(["poll::gated-load::document.hidden>src"]);
+    });
+    it("finds a load an idle wait or an observer decides, and one that waits on an in-view or idle hook", () => {
+        expect(gated(`export function warm() { requestIdleCallback(() => import("./chart")); }`)).toEqual(["warm::gated-load::requestIdleCallback>import()"]);
+        expect(gated(`export function Lazy() { useEffect(() => { new IntersectionObserver(([entry]) => { if (entry.isIntersecting) fetchNextPage(); }); }, []); return null; }`)).toEqual(["Lazy::gated-load::IntersectionObserver>fetchNextPage"]);
+        expect(gated(`export function More() { const { ref, inView } = useInView(); useEffect(() => { if (inView) fetchNextPage(); }, [inView]); return <div ref={ref} />; }`)).toEqual(["More::gated-load::useInView>fetchNextPage"]);
+        expect(gated(`export function Q() { const [ref, inView] = useInView(); const q = useQuery({ queryKey: ["x"], queryFn, enabled: inView }); return null; }`)).toEqual(["Q::gated-load::useInView>useQuery"]);
+        expect(gated(`export function Q() { const visible = await usePageVisibility(); const r = useSWR(visible ? "/api" : null); return null; }`)).toEqual(["Q::gated-load::usePageVisibility>useSWR"]);
+        expect(gated(`export function Q() { const idle = useIdle(60000); const options = { enabled: !idle }; return null; }`)).toEqual(["Q::gated-load::useIdle>enabled"]);
+        expect(gated(`export function Q() { useIdleTimer({ onIdle: () => {}, onActive: () => refetch(), timeout: 1000 }); useIntersectionObserver(ref, () => new Image()); return null; }`)).toEqual(["Q::gated-load::useIdleTimer>refetch", "Q::gated-load::useIntersectionObserver>new Image"]);
+        expect(gated(`export function A() { return <><InView onChange={(seen) => seen && load()} as="div" /><Row onEnterViewport={loadRow} /><Waypoint onEnter={() => {}} /></>; }`)).toEqual(["A::gated-load::InView>load", "A::gated-load::onEnterViewport>loadRow"]);
+    });
+    it("finds an element that fetches only as it nears the screen, and an address that waits on a gate", () => {
+        expect(gated(`export function Card({ photo }) { return <><img src={photo} loading="lazy" alt="" /><iframe loading="lazy" src="/map" /><Image loading="eager" src={photo} /><img loading={mode} /></>; }`)).toEqual(["Card::gated-load::loading=lazy>img", "Card::gated-load::loading=lazy>iframe"]);
+        expect(gated(`export function Card({ photo }) { const { ref, inView } = useInView(); return <><img ref={ref} src={inView ? photo : undefined} alt="" /><video poster={inView && photo} /><img src={photo} srcSet={undefined} title={inView ? "a" : "b"} /><img src /></>; }`)).toEqual(["Card::gated-load::useInView>img.src", "Card::gated-load::useInView>video.poster"]);
+    });
+    it("follows state that a gate's callback sets, and a same-file function that loads", () => {
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); useEffect(() => { new IntersectionObserver(([e]) => setShown(e.isIntersecting)); }, []); useEffect(() => { shown && load(); }, [shown]); return null; }`)).toEqual(["Q::gated-load::IntersectionObserver>load"]);
+        expect(gated(`function sync() { again(); } function again() { sync(); fetch("/api"); } export function A() { requestIdleCallback(() => sync()); }`)).toEqual(["A::gated-load::requestIdleCallback>sync"]);
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); useInView({ onChange: (seen, { target }) => setShown(seen) }); if (shown) loadMore(); }`)).toEqual(["Q::gated-load::useInView>loadMore"]);
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); document.addEventListener("visibilitychange", () => setShown((was) => was || !document.hidden)); if (shown) loadMore(); }`)).toEqual(["Q::gated-load::visibilitychange>loadMore"]);
+    });
+    it("leaves state a gate's callback sets to something else ordinary: a popover that closes on blur", () => {
+        expect(gated(`export function Popover() {
+          const [open, setOpen] = useState(false);
+          useEffect(() => { window.addEventListener("blur", () => setOpen(false)); window.addEventListener("focus", (event) => setOpen()); }, []);
+          const q = useQuery({ queryKey: ["items"], queryFn, enabled: open });
+          return <Button onClick={() => { if (!open) loadItems(); }} />;
+        }`)).toEqual([]);
+    });
+    it("lets rendering-only gates through: an animation or caret paused, what is drawn windowed, a media stream", () => {
+        expect(gated(`export function A() { useEffect(() => { document.addEventListener("visibilitychange", () => { if (document.hidden) cancelAnimationFrame(frame); else start(); }); }, []); return null; }`)).toEqual([]);
+        expect(gated(`export function Caret() { const [paused, setPaused] = useState(false); useEffect(() => { window.addEventListener("blur", () => setPaused(true)); }, []); return paused ? null : <span className="caret" />; }`)).toEqual([]);
+        expect(gated(`export function A({ rows }) { const [shown, setShown] = useState(false); useEffect(() => { new IntersectionObserver(([e]) => setShown(e.isIntersecting)); }, []); return shown ? <List rows={rows} /> : null; }`)).toEqual([]);
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => { if (!document.hidden) video.srcObject = stream; else video.pause(); }); }`)).toEqual([]);
+        expect(gated(`const draw = () => paint(); export function A() { const [, setX] = useState(); window.onfocus = draw; window.addEventListener("focus", () => {}); requestIdleCallback(); }`)).toEqual([]);
+    });
+    it("lets saving on hide through: sendBeacon, and a fetch with keepalive or another method", () => {
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") fetch("/save", { method: "POST", keepalive: true }); }); }`)).toEqual([]);
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => navigator.sendBeacon("/log", data)); }`)).toEqual([]);
+        expect(gated(`export function A() { window.addEventListener("blur", () => fetch("/draft", { ...rest, method: "PUT" })); }`)).toEqual([]);
+        expect(gated(`export function A() { window.addEventListener("blur", () => fetch("/draft", { method: "GET", keepalive: false })); window.addEventListener("blur", () => fetch("/draft", init)); }`)).toEqual(["A::gated-load::blur>fetch", "A::gated-load::blur>fetch"]);
+    });
+    it("does not take an element's focus, another object's hidden or a plain condition for a gate", () => {
+        expect(gated(`export function A() { input.addEventListener("focus", () => fetch("/suggest")); panel.hidden && load(); if (open) refresh(); window.addEventListener(name, () => fetch("/x")); }`)).toEqual([]);
+        expect(gated(`export function A() { window.onclick = () => fetch("/x"); el.onfocus = () => fetch("/x"); return <Row onActive={undefined} data={{ [key]: 1 }} />; }`)).toEqual([]);
+        expect(gated(`export function A() { const { inViewRef } = useInView(); if (state.inView) load(); if (inViewRef) load(); }`)).toEqual([]);
+        expect(gated(`export function A() { if (!document.hidden) img.setAttribute(attribute(), url); if (open) {} else if (document.hidden) return; }`)).toEqual([]);
+    });
+    it("never makes the component around it a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/feed.tsx": `export function Feed() { useEffect(() => { window.addEventListener("focus", () => fetch("/api")); }, []); return null; }`,
+            "app/routes/home.tsx": `import { Feed } from "~/components/feed"; export function Home() { return <Feed />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["gated-load"]);
+    });
+    it("tells an app to load eagerly, newest first, and names what passes", () => {
+        const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::A::gated-load::focus>fetch::", file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([`New load that waits for focus, visibility, idle or scrolling: app/x.tsx::A::gated-load::focus>fetch:: (+1) at app/x.tsx:4. ${GATED_LOAD_FIX}`]);
+        expect(GATED_LOAD_FIX).toContain("Load it eagerly");
+        expect(GATED_LOAD_FIX).toContain('(loading="lazy" included)');
+        expect(GATED_LOAD_FIX).toContain("newest first, within the performance budgets");
+        expect(GATED_LOAD_FIX).toContain("Rendering-only gates pass");
     });
 });
 describe("third-party-control", () => {
@@ -1932,6 +2016,21 @@ describe("main", () => {
             main(["--base", "abc123"], deps);
             expect(io.error).toHaveBeenCalledWith(`Regression against abc123: ${V} (+1) at app/routes/v.tsx:2. "something went wrong" doesn't say what failed or why. ${VAGUE_FAILURE_COPY_FIX.replace(/\.$/, ";")} or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"`);
             expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("gives a gated load's rise the eager-loading advice, and lets it through once a reason is recorded", () => {
+            const G = "app/routes/g.tsx::G::gated-load::focus>fetch::";
+            const feed = { "/repo/app/routes/g.tsx": `const G = () => { window.addEventListener("focus", () => fetch("/api")); return null; };` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [G]: 1 }), feed);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + G));
+            expect(line).toContain("Load it eagerly");
+            expect(line).toContain('or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"');
+            expect(exit).toHaveBeenCalledWith(1);
+            const allowed = setup(baselineOf({ [A]: 1, [G]: 1 }, [{ fingerprint: G, count: 1, reason: "the server pushes this feed; focus only reconnects" }]), feed);
+            allowed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], allowed.deps);
+            expect(allowed.exit).not.toHaveBeenCalled();
         });
         it("passes a rise the new baseline allows with a reason and count, and not an empty reason or a smaller count", () => {
             const allowed = setup(baselineOf({ [A]: 1, [B]: 1 }, [{ fingerprint: B, count: 1, reason: "measured" }]), extra);
