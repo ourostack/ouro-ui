@@ -460,7 +460,7 @@ function SwitchingChats() {
         ))}
       </div>
       <Surface>
-        <MessageList key={open} label={`Chat with ${person.name}`} style={{ height: 460 }}>
+        <MessageList key={open} label={`Chat with ${person.name}`} style={{ height: 460, minWidth: 0 }}>
           {chats[open]!.map((item) => (
             <Message
               key={item.id}
