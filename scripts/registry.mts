@@ -83,7 +83,7 @@ export const testingSetup: Record<string, string> = {
     "export default mergeConfig(",
     "  viteConfig,",
     "  defineConfig({",
-    '    optimizeDeps: { include: ["class-variance-authority"] },',
+    '    optimizeDeps: { include: ["class-variance-authority", "cn"] },',
     '    test: { projects: ouroTestProjects({ css: "./src/index.css" }) },',
     "  }),",
     ");",

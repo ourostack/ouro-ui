@@ -6,7 +6,7 @@ import { ouroTestProjects } from "./src/lib/ouro/testing/vitest.ts";
 export default mergeConfig(
   viteConfig,
   defineConfig({
-    optimizeDeps: { include: ["class-variance-authority"] },
+    optimizeDeps: { include: ["class-variance-authority", "cn"] },
     test: { projects: ouroTestProjects({ css: "./src/index.css" }) },
   }),
 );
