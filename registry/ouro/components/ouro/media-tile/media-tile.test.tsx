@@ -168,7 +168,7 @@ describe("MediaTile", () => {
     expect(media.querySelector("[data-test-camera]")).toBe(camera);
     expect(getComputedStyle(media).visibility).toBe("hidden");
     expect(tile.hasAttribute("data-picture")).toBe(false);
-    expect(tile.querySelector('[data-ouro="avatar"]')!.textContent).toBe("ML");
+    expect(tile.querySelector('[data-ouro="avatar"] [data-ouro-avatar-initials]')!.getAttribute("data-ouro-avatar-initials")).toBe("ML");
     expect(tile.querySelector("[data-ouro-media-tile-paused]")).toBeNull();
     await rerender(
       <MediaTile name="Mara Lind" avatar={{ initials: "ML" }} paused>
