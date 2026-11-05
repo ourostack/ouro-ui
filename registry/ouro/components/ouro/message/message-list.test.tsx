@@ -2763,9 +2763,9 @@ describe("MessageList's place, to the pixel", () => {
         </MessageList>
       );
       const { scroller, rerender } = await render(list([first, ...rest]));
-      const reader = scroller.querySelector<HTMLElement>("[data-ouro-message-list-item]:nth-child(2)")!;
+      const [before, reader] = scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-item]") as unknown as [HTMLElement, HTMLElement];
       // How far the reader's post moves up when the first goes.
-      const moves = reader.getBoundingClientRect().top - reader.previousElementSibling!.getBoundingClientRect().top;
+      const moves = reader.getBoundingClientRect().top - before.getBoundingClientRect().top;
       scroller.scrollTop = at(moves);
       scroller.dispatchEvent(new Event("scroll"));
       await settle(scroller);
