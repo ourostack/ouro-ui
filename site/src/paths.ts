@@ -3,14 +3,17 @@
  * pulls the docs' generated Markdown (routes.ts) into its JavaScript.
  */
 
+/** The Ouro UI for Apple pages, in the order their own menu lists them (apple/pages.ts has their words). */
+export const APPLE_PATHS = ["/apple/", "/apple/hx/", "/apple/ax/", "/apple/start/"] as const;
+
 /**
  * The page module that renders a path: each has its own JavaScript closure (app.tsx). The voyage
  * module renders the home page and the Nautilus's page.
  */
 export type PageKind = "voyage" | "docs";
 
-/** The paths the voyage module renders: the home page, the Nautilus's and Ouro AX's. */
-export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/"] as const;
+/** The paths the voyage module renders: the home page, the Nautilus's, Ouro AX's and the Ouro UI for Apple pages. */
+export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/", ...APPLE_PATHS] as const;
 
 /** A site path with a trailing slash and no `index.html`. */
 export function normalizePath(path: string): string {

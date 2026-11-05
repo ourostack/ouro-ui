@@ -127,6 +127,34 @@
     "status": 200,
     "checked": "2026-11-01"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9": {
+    "status": 200,
+    "checked": "2026-11-05"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L7": {
+    "status": 200,
+    "checked": "2026-11-05"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L72": {
+    "status": 200,
+    "checked": "2026-11-05"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L89": {
+    "status": 200,
+    "checked": "2026-11-05"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Sources/OuroHX/Motion/OuroMotion.swift#L43-L47": {
+    "status": 200,
+    "checked": "2026-11-05"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1": {
+    "status": 200,
+    "checked": "2026-11-05"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json": {
+    "status": 200,
+    "checked": "2026-11-05"
+  },
   "https://github.com/ourostack/ouro-ui/issues/113": {
     "status": 200,
     "checked": "2026-10-30"
