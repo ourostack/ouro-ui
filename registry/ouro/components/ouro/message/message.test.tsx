@@ -1,4 +1,5 @@
 import { createRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -2082,6 +2083,29 @@ describe("Message actions", () => {
     expect(host.querySelector('[role="toolbar"]')).not.toBeNull();
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+
+  it("draws its bar in its first render once the bar's code has loaded, so a conversation opened later renders each message once", async () => {
+    await render(
+      <Message role="assistant" name="Ouro" actions={actionsFor([])}>
+        Hi
+      </Message>,
+    );
+    await barCode();
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // The commit alone, before any effect or promise of the message's own could add the bar.
+    flushSync(() =>
+      root.render(
+        <Message role="assistant" name="Ouro" actions={actionsFor([])}>
+          Hello again
+        </Message>,
+      ),
+    );
+    expect(host.querySelector('[role="toolbar"]')).not.toBeNull();
   });
 });
 
