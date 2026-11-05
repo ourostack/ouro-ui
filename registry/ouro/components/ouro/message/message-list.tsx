@@ -4,6 +4,7 @@ import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useR
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { halveShown } from "@/registry/ouro/lib/ouro/halve";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
 import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
@@ -257,20 +258,7 @@ function laidOut(element: Element): boolean {
  * @claim "A hidden message's zero box would" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList through a long conversation > never puts the Tab stop on a hidden message, the newest or one in view, as the view shows the messages around it)
  */
 function halve(list: readonly Element[], before: (box: { top: number; bottom: number }) => boolean): number {
-  let low = 0;
-  let high = list.length;
-  while (low < high) {
-    const middle = (low + high) >> 1;
-    let at = -1;
-    for (let offset = 0; at === -1 && (middle + offset < high || middle - offset >= low); offset++) {
-      if (middle + offset < high && laidOut(list[middle + offset]!)) at = middle + offset;
-      else if (middle - offset >= low && laidOut(list[middle - offset]!)) at = middle - offset;
-    }
-    if (at === -1) return high;
-    if (before(boxOf(list[at]!))) low = at + 1;
-    else high = at;
-  }
-  return low;
+  return halveShown(list, laidOut, (element) => before(boxOf(element)));
 }
 
 /**
