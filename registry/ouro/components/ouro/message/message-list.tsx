@@ -1219,7 +1219,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const applied = scroller.scrollTop - before;
           springsRef.current?.moved(applied);
           // What rounding left over, carried; not a move the list's end stopped, which no later scroll can make.
-          owed = Math.abs(moved - applied) < 1 ? moved - applied : 0;
+          const stopped = scroller.scrollTop <= 0 || scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight;
+          owed = !stopped && Math.abs(moved - applied) < 1 ? moved - applied : 0;
         }
       } else owed = 0;
       keepAnchor();
@@ -1782,8 +1783,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           if (paging && !pagesFor.current) return;
           // A message taller than the list scrolls through first, a line or a page at a time.
           const beyond = forward ? box.bottom - view.bottom + EDGE : view.top + EDGE - box.top;
-          // Stryker disable next-line EqualityOperator: a pixel past the edge is a rounding, not more message.
-          if (beyond > 1) {
+          // Stryker disable next-line EqualityOperator: two pixels past the edge are a rounding (the scroll position is kept in whole pixels, and the list holds its place to the nearest), not more message.
+          if (beyond > 2) {
             event.preventDefault();
             scroller.scrollTop += (forward ? 1 : -1) * Math.min(beyond, paging ? view.height - LINE : LINE);
             return;
