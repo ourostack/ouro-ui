@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { useState, useSyncExternalStore, type JSX } from "react";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import ouroMd from "./xray/ouro-md.json";
@@ -119,7 +119,14 @@ function ClaimItem({ claim, before }: { claim: ClaimRow; before: ClaimRow | unde
 }
 
 export function XrayExplorer({ initialApp = "spoonjoy" }: { initialApp?: AppKey }): JSX.Element {
-  const [app, setApp] = useState<AppKey>(initialApp);
+  // A link can open a particular app's report: /apple/ax/?app=ouro-md#xray. The server renders the default.
+  const asked = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("app"),
+    () => null,
+  );
+  const [chosen, setApp] = useState<AppKey | null>(null);
+  const app: AppKey = chosen ?? (asked && asked in REPORTS ? (asked as AppKey) : initialApp);
   const [side, setSide] = useState<Side>("after");
   const [filter, setFilter] = useState<Filter>("all");
   const data = REPORTS[app];

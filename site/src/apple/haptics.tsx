@@ -94,28 +94,29 @@ export function vibrate(taps: Tap[]): void {
   navigator.vibrate(pattern);
 }
 
+/** One tap as a damped ripple around the midline: stronger swings wider, crisper rings shorter and tighter. */
+function ripple(x: number, tap: Tap): string {
+  const amplitude = 4 + tap.strength * 18;
+  const length = 46 - tap.sharpness * 26;
+  const cycles = 2.5;
+  const points: string[] = [];
+  for (let step = 0; step <= 48; step++) {
+    const t = step / 48;
+    const y = 24 - amplitude * Math.exp(-3.2 * t) * Math.sin(t * cycles * 2 * Math.PI + Math.PI / 2) * (step === 0 ? 0 : 1);
+    points.push(`${(x + t * length).toFixed(1)} ${y.toFixed(1)}`);
+  }
+  return `M${points.join(" L")}`;
+}
+
 function Wave({ taps, playing }: { taps: Tap[]; playing: boolean }): JSX.Element {
   return (
     <svg viewBox={`0 0 ${SPAN + 20} 48`} className={cn("apple-wave", playing && "apple-wave-playing")} aria-hidden="true">
-      <line x1="0" x2={SPAN + 20} y1="40" y2="40" className="apple-wave-base" />
+      <line x1="0" x2={SPAN + 20} y1="24" y2="24" className="apple-wave-base" />
       {/* The playhead sweeps through the taps in step with the soft clicks. */}
       {playing ? <line x1="15" x2="15" y1="2" y2="46" className="apple-wave-head" style={{ animationDuration: `${SPAN}ms` }} /> : null}
-      {taps.map((tap, index) => {
-        const width = 4 + (1 - tap.sharpness) * 10;
-        const height = 6 + tap.strength * 32;
-        return (
-          <rect
-            key={index}
-            x={10 + tap.at - width / 2 + 5}
-            y={40 - height}
-            width={width}
-            height={height}
-            rx={width / 2}
-            className="apple-wave-tap"
-            style={{ animationDelay: `${tap.at}ms` }}
-          />
-        );
-      })}
+      {taps.map((tap, index) => (
+        <path key={index} d={ripple(15 + tap.at, tap)} className="apple-wave-tap" style={{ animationDelay: `${tap.at}ms` }} />
+      ))}
     </svg>
   );
 }
@@ -161,7 +162,7 @@ export function HapticTable(): JSX.Element {
         ))}
       </ul>
       <p className="apple-haptics-note">
-        The taps are a sketch of how a moment feels, drawn from Apple's system feedback rather than its exact waveform. Your iPhone's browser can't tap you back; the app can.
+        The taps are a sketch of how a moment feels, drawn from Apple's system feedback rather than its exact waveform. The choosing, ticking and stepping moments share iOS's selection tick on purpose: the name says what happened, the tick stays the same. Your iPhone's browser can't tap you back; the app can.
       </p>
     </div>
   );

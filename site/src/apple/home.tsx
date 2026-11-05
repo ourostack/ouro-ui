@@ -176,7 +176,7 @@ export default function AppleHome(): JSX.Element {
                   Get Ouro MD for your Mac
                 </a>
                 <span aria-hidden="true"> · </span>
-                <a className="site-quiet-link" href={href("/apple/ax/#xray")}>
+                <a className="site-quiet-link" href={href("/apple/ax/?app=ouro-md#xray")}>
                   Read its X-ray
                 </a>
               </p>

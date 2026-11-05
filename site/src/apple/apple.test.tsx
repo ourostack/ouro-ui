@@ -117,10 +117,18 @@ describe("Ouro UI for Apple", () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await renderPage("/apple/");
     await expect.element(page.getByRole("heading", { level: 1, name: TITLES["/apple/"] })).toBeInTheDocument();
-    const loop = document.querySelector(".apple-loop")!;
-    const visible = [...loop.querySelectorAll("video, img")].filter((el) => getComputedStyle(el).display !== "none");
-    expect(visible.map((el) => el.tagName)).toEqual(["IMG"]);
+    const loop = document.querySelector<HTMLElement>(".apple-loop")!;
+    const visible = () => [...loop.querySelectorAll("video, img")].filter((el) => getComputedStyle(el).display !== "none").map((el) => el.tagName);
+    await expect.poll(visible).toEqual(["IMG"]);
     expect(loop.querySelector("video")?.getAttribute("autoplay")).toBeNull();
+    // The reader can still choose to watch it.
+    const play = loop.querySelector<HTMLButtonElement>(".apple-loop-toggle")!;
+    expect(getComputedStyle(play).display).not.toBe("none");
+    expect(play.getAttribute("aria-label")).toMatch(/^Play: /);
+    expect(play.hasAttribute("aria-pressed")).toBe(false);
+    await userEvent.click(play);
+    await expect.poll(visible).toEqual(["VIDEO"]);
+    expect(play.getAttribute("aria-label")).toMatch(/^Pause: /);
   });
 
   it("shows the light capture in dark mode when a clip has no dark one, and the dark capture when it has", async () => {

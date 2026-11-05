@@ -98,11 +98,11 @@ export default function AppleStart(): JSX.Element {
       <Container className="apple-soon">
         <p className="apple-fine">
           The package is{" "}
-          <a className="site-quiet-link" href={kit.releaseUrl}>
+          <a className="apple-inline-link" href={kit.releaseUrl}>
             ouro-ui-apple {kit.release}
           </a>
           , with docs in its{" "}
-          <a className="site-quiet-link" href={kit.repository}>
+          <a className="apple-inline-link" href={kit.repository}>
             README
           </a>
           .

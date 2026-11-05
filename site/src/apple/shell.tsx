@@ -11,10 +11,10 @@ import "./apple.css";
 
 /** The section's pages, in reading order. */
 export const APPLE_PAGES = [
-  { path: "/apple/", label: "Overview" },
-  { path: "/apple/hx/", label: "Ouro HX for Apple" },
-  { path: "/apple/ax/", label: "Ouro AX for Apple" },
-  { path: "/apple/start/", label: "Get started" },
+  { path: "/apple/", label: "Overview", short: "Overview" },
+  { path: "/apple/hx/", label: "Ouro HX for Apple", short: "HX" },
+  { path: "/apple/ax/", label: "Ouro AX for Apple", short: "AX" },
+  { path: "/apple/start/", label: "Get started", short: "Get started" },
 ] as const;
 
 export type ApplePath = (typeof APPLE_PAGES)[number]["path"];
@@ -35,7 +35,17 @@ export function AppleMenu({ current }: { current: ApplePath }): JSX.Element {
           {APPLE_PAGES.map((page) => (
             <li key={page.path}>
               <a href={href(page.path)} aria-current={page.path === current ? "page" : undefined} className="apple-menu-link">
-                {page.label}
+                {page.short === page.label ? (
+                  page.label
+                ) : (
+                  <>
+                    {/* A phone shows the short name; a screen reader always hears the full one. */}
+                    <span className="apple-menu-long">{page.label}</span>
+                    <span className="apple-menu-short" aria-hidden="true">
+                      {page.short}
+                    </span>
+                  </>
+                )}
               </a>
             </li>
           ))}

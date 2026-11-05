@@ -8,8 +8,8 @@ import { CLIPS, type ClipName } from "./clips";
  * A real capture, played as a short muted loop: Apple's own product-page pattern (prior art in the desk's
  * apple-site notes). Frameless, with no drawn phone around it. Each clip has a light and, where it was captured, a
  * dark version, and the page's scheme picks one by CSS. Nothing downloads until the clip nears the screen. Under
- * reduced motion the video is hidden by CSS and its settled still (a JPEG) shows instead, so no video loads at all. Every
- * playing loop has a pause button (WCAG 2.2.2).
+ * reduced motion nothing plays by itself: the settled still (a JPEG) shows, and the clip loads only if the reader presses
+ * Play. Every loop has a play/pause button under it, off the recording (WCAG 2.2.2).
  */
 
 const media = (file: string) => href(`/apple/media/${file}`);
@@ -44,7 +44,9 @@ export function Loop({ clip, caption, className, size = "md" }: { clip: ClipName
   const info = CLIPS[clip];
   const frame = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
-  const [paused, setPaused] = useState(false);
+  // The reader's own choice, once they make one; until then, loops play unless the reader asked for reduced motion.
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const playing = chosen ?? !reduced;
   const [near, setNear] = useState(false);
 
   // Plays only near the screen, never under reduced motion, and never after the reader paused it.
@@ -61,23 +63,23 @@ export function Loop({ clip, caption, className, size = "md" }: { clip: ClipName
     const video = shown(element);
     for (const other of element.querySelectorAll("video")) if (other !== video) other.pause();
     if (!video) return;
-    if (near && !reduced && !paused) void video.play().catch(() => {});
+    if (near && playing) void video.play().catch(() => {});
     else video.pause();
-  }, [near, reduced, paused]);
+  }, [near, playing]);
   // The scheme can change while the clip plays: follow it to the variant now showing.
   useEffect(() => {
     const observer = new MutationObserver(() => {
       const element = frame.current;
       const video = shown(element);
       for (const other of element?.querySelectorAll("video") ?? []) if (other !== video) other.pause();
-      if (video && near && !reduced && !paused) void video.play().catch(() => {});
+      if (video && near && playing) void video.play().catch(() => {});
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
-  }, [near, reduced, paused]);
+  }, [near, playing]);
 
   return (
-    <figure className={cn("apple-loop", `apple-loop-${size}`, className)} data-apple-clip={clip}>
+    <figure className={cn("apple-loop", `apple-loop-${size}`, className)} data-apple-clip={clip} data-apple-playing={playing ? "" : undefined}>
       <div ref={frame} className="apple-loop-frame" data-apple-dark={info.dark ? "" : undefined} style={{ aspectRatio: `${info.width} / ${info.height}` }}>
         <Variant name={clip} scheme="light" label={info.label} hevc={info.hevc} />
         {info.dark ? <Variant name={`${clip}-dark`} scheme="dark" label={info.label} hevc={info.hevc} /> : null}
@@ -85,26 +87,27 @@ export function Loop({ clip, caption, className, size = "md" }: { clip: ClipName
         {info.dark ? (
           <img className="apple-loop-still apple-loop-dark" src={media(`${clip}-dark-still.jpg`)} alt={info.label} width={info.width} height={info.height} loading="lazy" decoding="async" />
         ) : null}
-        <button
-          type="button"
-          className="apple-loop-toggle"
-          aria-label={paused ? `Play: ${info.label}` : `Pause: ${info.label}`}
-          aria-pressed={paused}
-          onClick={() => setPaused((was) => !was)}
-        >
-          {paused ? (
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M5 3.5v9l7.5-4.5z" fill="currentColor" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M4.5 3.5h2.5v9H4.5zM9 3.5h2.5v9H9z" fill="currentColor" />
-            </svg>
-          )}
-        </button>
       </div>
       <figcaption className="apple-loop-caption">
-        {caption ?? info.caption} <span className="apple-loop-source">{info.source}</span>
+        <span>
+          {caption ?? info.caption} <span className="apple-loop-source">{info.source}</span>
+        </span>
+          <button
+            type="button"
+            className="apple-loop-toggle"
+            aria-label={playing ? `Pause: ${info.label}` : `Play: ${info.label}`}
+            onClick={() => setChosen(!playing)}
+          >
+            {!playing ? (
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M5 3.5v9l7.5-4.5z" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4.5 3.5h2.5v9H4.5zM9 3.5h2.5v9H9z" fill="currentColor" />
+              </svg>
+            )}
+          </button>
       </figcaption>
     </figure>
   );

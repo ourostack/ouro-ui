@@ -165,7 +165,7 @@ export default function AppleAx(): JSX.Element {
           <p className="apple-fine">
             That reads the metadata and lints the skills, right on your Mac. Add the behaviour stage when you're ready, and write a Siri scenario set for the parts only Siri can
             answer.{" "}
-            <a className="site-quiet-link" href={href("/apple/start/#xray")}>
+            <a className="apple-inline-link" href={href("/apple/start/#xray")}>
               The full recipe
             </a>
             .
