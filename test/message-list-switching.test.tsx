@@ -11,7 +11,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // What switching between two long conversations costs, as an app's conversation pane does it (MessageList keyed by the
 // conversation): recorded in each run's notes (a GitHub notice on CI), so a change in the cost shows beside the change.
-// It holds only what any version must: the switch lands at the newest message.
+// It holds only what any version must: the switch lands at the newest message with every message in.
 
 const COUNT = 1200;
 const SWITCHES = 4;
@@ -61,9 +61,11 @@ it("switches between two conversations of 1,200 messages with pictures, files, r
   const scroller = () => host!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
   const messages = () => scroller().querySelectorAll('[data-ouro="message"]');
   const newestGap = () => scroller().getBoundingClientRect().bottom - messages()[messages().length - 1]!.getBoundingClientRect().bottom;
-  // A first conversation, drawn and the action bar's code loaded, as after the app has run a while.
+  // Windowed, the list draws only the messages near its view: it is in once the newest is drawn, at its end.
+  const allIn = () => messages()[messages().length - 1]?.getAttribute("aria-setsize") === String(COUNT);
+  // A first conversation, every message in and the action bar's code loaded, as after the app has run a while.
   await act(async () => root!.render(<Conversation name="Mara" />));
-  await expect.poll(() => messages().length, { timeout: 60_000 }).toBeGreaterThan(0);
+  await expect.poll(allIn, { timeout: 60_000 }).toBe(true);
   await expect.poll(() => messages()[0]!.querySelector('[role="toolbar"]')).not.toBeNull();
 
   const runs: { commit: number; firstFrame: number; allIn: number; longestFrame: number; reads: number; jumps: number; blank: number }[] = [];
@@ -87,7 +89,8 @@ it("switches between two conversations of 1,200 messages with pictures, files, r
     let longestFrame = firstFrame;
     let jumps = atEnd ? 0 : 1;
     let blank = messages().length === 0 ? 1 : 0;
-    for (let frame = 0; frame < 6; frame++) {
+    // Ten frames after the first: what a switch costs past it, and whether anything moves.
+    for (let more = 0; more < 10; more++) {
       const now = await painted();
       longestFrame = Math.max(longestFrame, now - last);
       last = now;
@@ -95,13 +98,13 @@ it("switches between two conversations of 1,200 messages with pictures, files, r
       if (messages().length === 0) blank++;
     }
     runs.push({ commit, firstFrame, allIn: last - start, longestFrame, reads: reads.count, jumps, blank });
-    expect(messages().length).toBeGreaterThan(0);
+    expect(allIn()).toBe(true);
     expect(scroller().scrollHeight - scroller().clientHeight - scroller().scrollTop).toBeLessThanOrEqual(2);
   }
   const of = (key: keyof (typeof runs)[number]) => Math.round(median(runs.map((run) => run[key])));
   await annotate(
     `${server.browser}, switch to ${COUNT} messages, median of ${SWITCHES}: first frame ${of("firstFrame")} ms (commit ${of("commit")} ms), ` +
-      `six frames in ${of("allIn")} ms, longest frame ${of("longestFrame")} ms, boxes read before the first frame ${of("reads")}, ` +
+      `ten frames on ${of("allIn")} ms, longest frame ${of("longestFrame")} ms, boxes read before the first frame ${of("reads")}, ` +
       `jumps ${runs.reduce((sum, run) => sum + run.jumps, 0)}, blank frames ${runs.reduce((sum, run) => sum + run.blank, 0)}`,
   );
 });

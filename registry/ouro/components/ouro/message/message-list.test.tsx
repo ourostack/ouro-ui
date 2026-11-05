@@ -5,7 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
-import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -2907,6 +2907,7 @@ describe("MessageList switching conversations", () => {
     initialAnchor,
     items = conversation(open, count),
     welcome = false,
+    actions,
     named = false,
     called,
     byIndex = false,
@@ -2927,10 +2928,11 @@ describe("MessageList switching conversations", () => {
     byIndex?: boolean;
     /** What follows the list, such as a composer. */
     children?: ReactNode;
+    actions?: { current: MessageListActions | null };
   }) {
     return (
       <>
-      <MessageList key={keyed ? open : undefined} label={`Chat with ${open}`} style={{ height: 300 }} initialAnchor={initialAnchor} conversation={called ?? (named ? open : undefined)}>
+      <MessageList key={keyed ? open : undefined} label={`Chat with ${open}`} style={{ height: 300 }} initialAnchor={initialAnchor} conversation={called ?? (named ? open : undefined)} actionsRef={actions}>
         {welcome && <p key="welcome">The start of your conversation</p>}
         {items.map((item, at) => (
           <Message key={byIndex ? at : item.id} id={String(item.id)} role={item.role} name={item.role === "user" ? "Ana" : open}>
@@ -2970,15 +2972,17 @@ describe("MessageList switching conversations", () => {
     return handle;
   }
   const messagesOf = (scroller: HTMLElement) => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+  /** How many messages the conversation holds, as the newest says to screen readers: the whole conversation, drawn or not. */
+  const setSize = (scroller: HTMLElement) => messagesOf(scroller).at(-1)!.getAttribute("aria-setsize");
   /** How far the newest message's bottom is above the list's. */
   const newestGap = (scroller: HTMLElement) => scroller.getBoundingClientRect().bottom - messagesOf(scroller).at(-1)!.getBoundingClientRect().bottom;
   /**
-   * After each of six frames the browser draws: where `watched` sits in the list's view, and how many
+   * After each frame the browser draws, until every message is in: where `watched` sits in the list's view, and how many
    * messages show in it.
    */
   async function framesUntilDrawn(scroller: HTMLElement, watched: () => number) {
     const frames: { at: number; showing: number }[] = [];
-    for (let frame = 0; frame < 6; frame++) {
+    do {
       await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
       const view = scroller.getBoundingClientRect();
       const showing = messagesOf(scroller).filter((message) => {
@@ -2986,22 +2990,25 @@ describe("MessageList switching conversations", () => {
         return box.bottom > view.top && box.top < view.bottom;
       }).length;
       frames.push({ at: watched(), showing });
-    }
+    } while (frames.length < 6);
     return frames;
   }
   /** The frames that moved `watched` from where it was, or showed no message: none, with no jump and no blank frame. */
   const moved = (frames: { at: number; showing: number }[], at: number) => frames.filter((frame) => Math.abs(frame.at - at) > 1 || frame.showing === 0);
 
-  it("opens a thousand messages at the newest in its first frame, drawing only those near it, and holds the view still after", async () => {
+  it("opens a thousand messages at the newest in its first frame, drawing only the newest, then the rest above without moving the view", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed />);
     const { scroller } = list;
-    // The first commit draws no more messages than a tall list shows.
+    // The first commit draws no more messages than a tall list shows, and reads as many boxes for a thousand as for a hundred.
     expect(messagesOf(scroller).length).toBeLessThanOrEqual(40);
+    const short = mount();
+    await short.commit(<Switcher open="theo" keyed count={100} />);
+    expect(list.reads).toBeLessThanOrEqual(short.reads + 20);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(2);
     const gap = newestGap(scroller);
     expect(moved(await framesUntilDrawn(scroller, () => newestGap(scroller)), gap)).toEqual([]);
-    expect(messagesOf(scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(scroller)).toBe("1000");
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(2);
   });
 
@@ -3011,10 +3018,11 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="mara" keyed />);
     const { scroller } = list;
     expect(messagesOf(scroller).length).toBeLessThanOrEqual(40);
+    expect(list.reads).toBeLessThanOrEqual(400);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(2);
     const gap = newestGap(scroller);
     expect(moved(await framesUntilDrawn(scroller, () => newestGap(scroller)), gap)).toEqual([]);
-    expect(messagesOf(scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(scroller)).toBe("1000");
   });
 
   it.each([
@@ -3035,12 +3043,13 @@ describe("MessageList switching conversations", () => {
     const drawn = messagesOf(scroller);
     expect(drawn.length).toBeLessThanOrEqual(40);
     expect(drawn.every((message) => message.id.startsWith("theo-"))).toBe(true);
+    expect(list.reads).toBeLessThanOrEqual(400);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(2);
     await expect.poll(() => list.host.querySelector("[data-ouro-message-list-jump]")).toBeNull();
     expect(scroller.querySelector('[data-ouro="message"][tabindex="0"]')!.id).toBe("theo-999");
     const gap = newestGap(scroller);
     expect(moved(await framesUntilDrawn(scroller, () => newestGap(scroller)), gap)).toEqual([]);
-    expect(messagesOf(scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(scroller)).toBe("1000");
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(2);
     // History is never announced.
     expect(list.host.querySelector("[data-ouro-message-list-live]")!.textContent).toBe("");
@@ -3058,7 +3067,7 @@ describe("MessageList switching conversations", () => {
     expect(messagesOf(list.scroller).every((message) => message.id.startsWith("theo-"))).toBe(true);
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(messagesOf(list.scroller).at(-1)!.id).toBe("theo-999");
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
@@ -3073,9 +3082,9 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="theo" keyed={false} initialAnchor="mara-900" />);
     expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
-    expect(document.activeElement!.id).toBe("theo-999");
+    await expect.poll(() => document.activeElement?.id).toBe("theo-999");
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("1000");
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
@@ -3083,11 +3092,12 @@ describe("MessageList switching conversations", () => {
     const items = conversation("mara", 1000);
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} items={items} />);
+    // Focused while only the newest are drawn: the 40th of 40.
     messagesOf(list.scroller).at(-1)!.focus();
     await settle(list.scroller);
     await list.commit(<Switcher open="mara" keyed={false} items={[...items.slice(0, -1), { ...items.at(-1)!, id: "mara-sent" }]} />);
-    await expect.poll(() => document.activeElement!.id).toBe("mara-sent");
     await settle(list.scroller);
+    await expect.poll(() => document.activeElement?.id).toBe("mara-sent");
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
@@ -3142,7 +3152,7 @@ describe("MessageList switching conversations", () => {
     // Temporary ids swapped for the server's, with the same text.
     await list.commit(<Switcher open="mara" keyed={false} items={items.map((item, at) => (at >= 197 ? { ...item, id: `${item.id}-sent` } : item))} />);
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("200");
     expect(list.scroller.scrollTop).toBe(top);
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
     expect(document.activeElement).toBe(reading.message);
@@ -3158,11 +3168,12 @@ describe("MessageList switching conversations", () => {
     const reading = firstVisible(list.scroller);
     await list.commit(<Switcher open="mara" keyed={false} items={items.slice(0, -5)} />);
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
-    expect(Math.abs(document.getElementById(reading.message.id)!.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    // No switch: the place is kept, within what windowing moves as it measures again (it does not go to the end).
+    expect(setSize(list.scroller)).toBe("195");
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(8);
   });
 
-  it("takes a switch from conversation alone: one whose messages share keys with the last is a switch", async () => {
+  it("takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} named byIndex />);
     await settle(list.scroller);
@@ -3171,6 +3182,16 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="theo" keyed={false} named byIndex count={900} />);
     expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    const reading = firstVisible(list.scroller);
+    // Every message of the same conversation re-keyed at once: no switch. Windowing holds a place by a child's key, so the new keys
+    // cost it a few pixels as the measured heights are replaced (3 to 4 px measured), which the 8 px allows.
+    await list.commit(<Switcher open="theo" keyed={false} named count={900} />);
+    await settle(list.scroller);
+    expect(setSize(list.scroller)).toBe("900");
+    expect(Math.abs(firstVisible(list.scroller).top - reading.top)).toBeLessThanOrEqual(8);
+    expect(firstVisible(list.scroller).message.id).toBe(reading.message.id);
   });
 
   it("switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does", async () => {
@@ -3183,21 +3204,21 @@ describe("MessageList switching conversations", () => {
     // Named first, with the last conversation's messages still showing: nothing moves yet.
     await list.commit(<Switcher open="mara" keyed={false} called="theo" />);
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("1000");
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
     expect(document.activeElement).toBe(reading.message);
     // A message comes in the conversation still showing: still nothing moves, and the name still waits.
     await list.commit(<Switcher open="mara" keyed={false} called="theo" items={[...conversation("mara", 1000), { id: "mara-new", role: "assistant", text: "A reply." }]} />);
     await settle(list.scroller);
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("1001");
     // Its messages come: it opens at their newest, drawing only the newest, with focus on the newest in view.
     await list.commit(<Switcher open="theo" keyed={false} named />);
     expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
-    expect(document.activeElement!.id).toBe("theo-999");
+    await expect.poll(() => document.activeElement?.id).toBe("theo-999");
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("1000");
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
@@ -3209,17 +3230,17 @@ describe("MessageList switching conversations", () => {
     // The other conversation's messages, still under the last one's name: the same conversation, as far as the list can tell.
     await list.commit(<Switcher open="theo" keyed={false} called="mara" />);
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("1000");
     const top = list.scroller.scrollTop;
     // Named a commit later: it names the messages the list holds, so nothing moves, now or as the next message comes.
     await list.commit(<Switcher open="theo" keyed={false} named />);
     await settle(list.scroller);
     expect(list.scroller.scrollTop).toBe(top);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("1000");
     await list.commit(<Switcher open="theo" keyed={false} named items={[...conversation("theo", 1000), { id: "theo-new", role: "assistant", text: "A reply." }]} />);
     await settle(list.scroller);
     expect(list.scroller.scrollTop).toBe(top);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("1001");
   });
 
   it("adopts a name that comes after its messages, so switching back in one commit opens the last conversation at its newest", async () => {
@@ -3237,9 +3258,9 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="mara" keyed={false} named />);
     expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(40);
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
-    expect(document.activeElement!.id).toBe("mara-999");
+    await expect.poll(() => document.activeElement?.id).toBe("mara-999");
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("1000");
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
@@ -3252,7 +3273,7 @@ describe("MessageList switching conversations", () => {
     // A new chat gets its id from the server.
     await list.commit(<Switcher open="mara" keyed={false} count={200} named />);
     await settle(list.scroller);
-    expect(messagesOf(list.scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(list.scroller)).toBe("200");
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
     expect(list.host.querySelector("[data-ouro-message-list-jump]")).not.toBeNull();
     // Named back and forth before another's messages come: nothing waits, and nothing moves.
@@ -3311,7 +3332,7 @@ describe("MessageList switching conversations", () => {
     await settle(list.scroller);
     messagesOf(list.scroller)[0]!.focus();
     await list.commit(<Switcher open="mara" keyed={false} items={[{ ...items[0]!, id: "mara-first" }, ...items.slice(1)]} />);
-    await expect.poll(() => document.activeElement!.id).toBe("mara-first");
+    await expect.poll(() => document.activeElement?.id).toBe("mara-first");
   });
 
   it("lets go of a message that went when the same conversation's messages come back, which is no switch", async () => {
@@ -3326,6 +3347,20 @@ describe("MessageList switching conversations", () => {
     expect(document.activeElement).toBe(document.body);
   });
 
+  it("tells a reveal still on its way that it found nothing when the list switches, and opens the next conversation at its newest", async () => {
+    const actions: { current: MessageListActions | null } = { current: null };
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} actions={actions} />);
+    await settle(list.scroller);
+    let found: boolean | undefined;
+    // Far up, not drawn: on its way when the switch comes in the same task.
+    void actions.current!.reveal("mara-10").then((result) => (found = result));
+    await list.commit(<Switcher open="theo" keyed={false} actions={actions} />);
+    await expect.poll(() => found).toBe(false);
+    await settle(list.scroller);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
   it("moves focus on a message of the conversation before to the newest in view of the next, without scrolling", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} count={200} />);
@@ -3333,10 +3368,10 @@ describe("MessageList switching conversations", () => {
     messagesOf(list.scroller).at(-3)!.focus();
     await settle(list.scroller);
     await list.commit(<Switcher open="theo" keyed={false} count={200} />);
-    await expect.poll(() => document.activeElement!.id).toBe("theo-199");
+    await expect.poll(() => document.activeElement?.id).toBe("theo-199");
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
     await settle(list.scroller);
-    expect(document.activeElement!.id).toBe("theo-199");
+    await expect.poll(() => document.activeElement?.id).toBe("theo-199");
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
@@ -3361,16 +3396,16 @@ describe("MessageList switching conversations", () => {
     expect(list.host.querySelector("[data-ouro-message-list-jump]")).not.toBeNull();
   });
 
-  it("opens at initialAnchor far back in a thousand messages, drawing around it, and holds it still", async () => {
+  it("opens at initialAnchor far back in a thousand messages, drawing from it, and holds it still as the rest go in above", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed initialAnchor="mara-300" />);
     const { scroller } = list;
-    expect(messagesOf(scroller).length).toBeLessThanOrEqual(1000 - 300 + 20);
+    expect(messagesOf(scroller).length).toBeLessThanOrEqual(40);
     const anchor = () => document.getElementById("mara-300")!.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
     const at = anchor();
     expect(at).toBeGreaterThan(0);
     expect(at).toBeLessThan(scroller.clientHeight);
     expect(moved(await framesUntilDrawn(scroller, anchor), at)).toEqual([]);
-    expect(messagesOf(scroller).length).toBeLessThanOrEqual(60);
+    expect(setSize(scroller)).toBe("1000");
   });
 });
