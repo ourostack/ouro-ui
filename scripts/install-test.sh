@@ -620,7 +620,11 @@ while [ -n "${CI:-}" ] && pgrep -x 'apt-get|apt|dpkg' > /dev/null; do sleep 2; d
 
 echo "::group::Shipped Vitest browser tests"
 npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit
-npx vitest run ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
+# A shard runs two workers at a time, as the repository's own browser shards do (vitest.config.ts):
+# more starve the browsers, and a test file's frame does not become ready in time.
+workers=()
+[ -z "${OURO_SHARD:-}" ] || workers=(--maxWorkers=2)
+npx vitest run ${workers[@]+"${workers[@]}"} ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
 echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
