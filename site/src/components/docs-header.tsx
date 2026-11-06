@@ -99,9 +99,12 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
   const results = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLDivElement>(null);
   const input = () => field.current?.querySelector("input") ?? null;
-  // The menu is kept between opens: each opens with the search empty, as the first did.
+  // The menu is kept between opens: each opens as the first did, the search empty and only the page's own list unfolded.
+  const [round, setRound] = useState(0);
   useSheetShown(field, (on) => {
-    if (!on) setQuery("");
+    if (on) return;
+    setQuery("");
+    setRound((count) => count + 1);
   });
   return (
     <>
@@ -144,6 +147,8 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
         )
       ) : (
         <SiteMenu
+          // Built again once the sheet is hidden, so a list someone unfolded is folded again on the next open.
+          key={round}
           page={current}
           // Both docs sections list their pages, as the sidebar does on a wide screen, each list folded under its name.
           more={{

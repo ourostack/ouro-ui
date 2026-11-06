@@ -493,6 +493,28 @@ test("on a phone the menu, kept between opens, opens afresh each time: the searc
   expect(await body.evaluate((element) => element.scrollTop)).toBe(at);
 });
 
+test("on a phone the menu, scrolled past the page you are on and a list unfolded, opens afresh: at the page you are on, the list folded", async ({ page }) => {
+  await open(page, "docs/button/");
+  // real clock: the sheet is built when the browser says the page is idle, which no page clock drives.
+  await expect(page.locator('[data-ouro="sheet"][hidden]')).toBeAttached();
+  await openMenu(page);
+  const body = sheet(page).locator("[data-ouro-sheet-content]");
+  const at = await body.evaluate((element) => element.scrollTop);
+  const folded = sheet(page).locator('[data-site-menu-group] [aria-expanded="false"]').last();
+  const name = (await folded.textContent())!;
+  await folded.click();
+  await expect(sheet(page).locator("[data-site-menu-group] [aria-expanded]").filter({ hasText: name })).toHaveAttribute("aria-expanded", "true");
+  await body.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+  await expect(sheet(page).locator('[aria-current="page"]')).not.toBeInViewport();
+  await page.locator("[data-site-menu-close]").click();
+  // real clock: the sheet's slide out is a CSS transition, which the page's clock does not drive.
+  await expect(sheet(page)).toHaveCount(0);
+  await openMenu(page);
+  await expect(sheet(page).locator("[data-site-menu-group] [aria-expanded]").filter({ hasText: name })).toHaveAttribute("aria-expanded", "false");
+  await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
+  expect(await body.evaluate((element) => element.scrollTop)).toBe(at);
+});
+
 test("on a phone the keyboard's Close takes the corner from the pointer's, never both at once", async ({ page }) => {
   await open(page, "ax/");
   await openMenu(page);

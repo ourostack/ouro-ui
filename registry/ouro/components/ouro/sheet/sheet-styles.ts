@@ -81,8 +81,8 @@ function sheetHint(open: string, close: string) {
  * module) and where there is no `CSS.registerProperty`: on the server and in a browser
  * without it, where the variables inherit as before.
  *
- * It also registers Base UI's own drawer variables, as Base UI does (DrawerPopup's
- * registerDrawerSwipeVars), when the module loads. Left to Base UI, they are registered as
+ * It also registers Base UI's own drawer variables, as Base UI does (DrawerPopup's layout
+ * effect, through removeCSSVariableInheritance), when the module loads. Left to Base UI, they are registered as
  * its first sheet opens, restyling the whole page in the middle of that press; registered
  * here, Base UI finds them registered and does nothing.
  *

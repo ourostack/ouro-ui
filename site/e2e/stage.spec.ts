@@ -555,16 +555,21 @@ for (const { choice, press, speed } of [
 
 const siteMenu = (page: Page) => page.getByRole("banner").getByRole("button", { name: "Menu", exact: true });
 
-test("under the open site menu the fish wait, and swim on when it closes", async ({ page }) => {
+test("under the open site menu the fish wait, and swim on when it closes, at every open", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await open(page);
   await swimming(page);
+  // real clock: the sheet is built when the browser says the page is idle, which no page clock drives.
+  await expect(page.locator('[data-ouro="sheet"][hidden]')).toBeAttached();
   await expect.poll(() => ambient(page)).toBeGreaterThan(0);
-  await siteMenu(page).click();
-  await expect.poll(() => ambient(page)).toBe(0);
-  await page.keyboard.press("Escape");
-  await expect.poll(() => ambient(page)).toBeGreaterThan(0);
+  // The first open and the next, on the sheet kept between them.
+  for (let round = 0; round < 2; round += 1) {
+    await siteMenu(page).click();
+    await expect.poll(() => ambient(page)).toBe(0);
+    await page.keyboard.press("Escape");
+    await expect.poll(() => ambient(page)).toBeGreaterThan(0);
+  }
 });
 
 test("the stage judges the screen only once the site menu over it has closed", async ({ page }) => {
