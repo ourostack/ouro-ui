@@ -1,0 +1,3 @@
+PASS inside the window: every control inside the window in 3 poses
+  measured: outside=0, poses=3
+  on simulator (w12-gatefold-ipad, iOS 27.2), start not labelled, so treat as warm (not run by ouro-feel-cold.sh); timed by the test runner's wall clock, sampling accessibility snapshots

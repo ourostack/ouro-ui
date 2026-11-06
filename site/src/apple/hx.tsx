@@ -169,6 +169,21 @@ export default function AppleHx(): JSX.Element {
           </div>
         </div>
       </AppleBand>
+      <AppleBand
+        id="measured"
+        eyebrow="Measured"
+        title="Then Ouro Feel checks it stays that way."
+        lede={
+          <p>
+            A spring that feels lovely today can pick up a snap, a jump or a ghost copy tomorrow. Ouro Feel walks your app from a UI test and measures jank genre by
+            genre, so the manners on this page survive the next refactor.{" "}
+            <a className="apple-inline-link" href={href("/apple/feel/")}>
+              Meet Ouro Feel
+            </a>
+            , and duel a switch with a tap lock while you're there.
+          </p>
+        }
+      />
       <NextPage current="/apple/hx/" />
     </div>
   );

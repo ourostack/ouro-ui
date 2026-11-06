@@ -1,0 +1,418 @@
+/*
+ * Ouro Feel's and Ouro Reins' pages (/apple/feel/, /apple/reins/), on top of apple.css. Laid out openly like the rest
+ * of the section: the only framed things are the Gatefold capture (a screen), the duel's two switches and the Reins
+ * terminal (you touch them). Every colour is a theme variable or mixed from one. Under reduced motion the race's
+ * bars step instead of gliding, and nothing else here moves.
+ */
+@layer components {
+  /* The three ways of knowing, on every page that names one. */
+  .apple-layers {
+    display: grid;
+    gap: calc(var(--spacing) * 8) var(--apple-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .apple-layer {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    align-content: start;
+    gap: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
+    padding-top: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .apple-layer[data-current] {
+    border-top-color: var(--primary);
+    border-top-width: 2px;
+  }
+  .apple-layer > :not(.apple-lane-step) {
+    grid-column: 2;
+    margin: 0;
+  }
+  .apple-layer .apple-lane-step {
+    grid-row: span 4;
+  }
+  .apple-layer-kind {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .apple-layer-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .apple-layer-here {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .apple-layer-asks {
+    font-family: var(--font-heading, inherit);
+    font-size: 1.0625rem;
+    font-style: italic;
+  }
+  .apple-layer-body {
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+  }
+
+  /* Feel: the duel in the hero. */
+  .feel-duel {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    align-content: start;
+    min-width: 0;
+  }
+  .feel-duel-pair {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+  }
+  .feel-contender {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * 4);
+    border-radius: calc(var(--radius) * 2);
+    background: var(--apple-stage);
+    transition: box-shadow 200ms ease;
+  }
+  .feel-contender[data-verdict="fail"] {
+    box-shadow: inset 3px 0 0 var(--destructive);
+  }
+  .feel-contender[data-verdict="pass"] {
+    box-shadow: inset 3px 0 0 var(--success, var(--primary));
+  }
+  .feel-report {
+    margin: 0;
+    min-height: 2.5em;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+  }
+  .feel-contender[data-verdict="fail"] .feel-report {
+    color: var(--destructive);
+  }
+  .feel-tally {
+    display: flex;
+    gap: calc(var(--spacing) * 4);
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .feel-tally strong {
+    color: var(--foreground);
+  }
+  .feel-duel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 2);
+  }
+
+  /* Feel: Gatefold, before and after. */
+  .feel-flip {
+    display: grid;
+    gap: calc(var(--spacing) * 6);
+    justify-items: start;
+  }
+  .feel-flip-pair {
+    display: grid;
+    gap: var(--apple-gap);
+    width: 100%;
+  }
+  .feel-flip-figure {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    margin: 0;
+    max-width: 22rem;
+  }
+  .feel-flip-screen {
+    overflow: hidden;
+    border: 1px solid var(--apple-hairline);
+    border-radius: var(--apple-screen-radius);
+    background: #fff;
+  }
+  .feel-flip-screen img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .feel-flip-report {
+    display: grid;
+    align-content: start;
+    gap: calc(var(--spacing) * 3);
+    min-width: 0;
+  }
+  .feel-flip-report > * {
+    margin: 0;
+  }
+  .feel-verdict {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .feel-verdict-fail {
+    color: var(--destructive);
+  }
+  .feel-verdict-pass {
+    color: var(--success, var(--primary));
+  }
+  .feel-readings {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+    padding: 0;
+    list-style: none;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.15rem;
+    overflow-wrap: anywhere;
+  }
+  .feel-readings-more {
+    color: var(--foreground);
+  }
+  .feel-where {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+
+  /* Reins: the terminal. */
+  .reins-terminal {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    min-width: 0;
+    max-width: 52rem;
+  }
+  .reins-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing) * 3);
+  }
+  .reins-title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .reins-title-note {
+    color: var(--muted-foreground);
+    font-weight: 400;
+  }
+  .reins-log {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    max-height: 26rem;
+    margin: 0;
+    padding: calc(var(--spacing) * 4);
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) * 2);
+    background: var(--site-code);
+    list-style: none;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    overscroll-behavior: contain;
+    outline-color: var(--ring);
+  }
+  .reins-log:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .reins-entry {
+    display: grid;
+    gap: calc(var(--spacing) * 1.5);
+    min-width: 0;
+  }
+  .reins-entry p {
+    margin: 0;
+  }
+  .reins-line {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .reins-prompt {
+    color: var(--primary);
+  }
+  .reins-json {
+    margin: 0;
+    color: var(--muted-foreground);
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .reins-focus strong {
+    color: var(--primary);
+  }
+  .reins-path,
+  .reins-from {
+    color: var(--muted-foreground);
+  }
+  .reins-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 1.5) calc(var(--spacing) * 3);
+  }
+  .reins-action {
+    font-weight: 600;
+  }
+  .reins-refusal {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+    padding-inline-start: calc(var(--spacing) * 3);
+    border-inline-start: 2px solid var(--destructive);
+  }
+  .reins-exit {
+    color: var(--destructive);
+    font-weight: 600;
+  }
+  .reins-form {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+  }
+  .reins-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 2.75rem;
+    padding-inline: calc(var(--spacing) * 3);
+    border: 1px solid var(--input, var(--border));
+    border-radius: calc(var(--radius) * 1.5);
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 1rem;
+  }
+  .reins-input::placeholder {
+    color: var(--muted-foreground);
+  }
+  .reins-input:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+  .reins-try {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+  }
+  .reins-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .reins-chip {
+    min-height: 2.75rem;
+    max-width: 100%;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--foreground);
+    font-size: 0.8125rem;
+    text-align: start;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease;
+  }
+  .reins-chip:hover {
+    border-color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+  }
+  .reins-chip:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .reins-chip-mischief {
+    border-style: dashed;
+  }
+
+  /* Reins: the race. */
+  .reins-race {
+    display: grid;
+    gap: calc(var(--spacing) * 6);
+    max-width: 52rem;
+  }
+  .reins-lanes {
+    display: grid;
+    gap: calc(var(--spacing) * 6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .reins-lane {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+  }
+  .reins-lane p {
+    margin: 0;
+  }
+  .reins-lane-name {
+    font-weight: 600;
+  }
+  .reins-track {
+    height: 0.75rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--apple-stage);
+  }
+  .reins-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    transform-origin: left center;
+  }
+  .reins-fill-reins {
+    background: var(--primary);
+    transition: transform 120ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  .reins-fill-sim {
+    background: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+    transition: transform 100ms linear;
+  }
+  .reins-race[data-reduced] .reins-fill {
+    transition: none;
+  }
+  .reins-lane-time {
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .reins-lane-note {
+    color: var(--muted-foreground);
+  }
+  .reins-verdict {
+    min-height: 1.5em;
+    margin: 0;
+    font-size: 1.0625rem;
+  }
+
+  .feel-reins-code {
+    align-items: start;
+  }
+
+  @media (min-width: 40rem) {
+    .feel-duel-pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 56rem) {
+    .apple-layers {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .feel-flip-pair {
+      grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    }
+    .feel-reins-code {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .feel-duel-pair {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reins-fill,
+    .feel-contender {
+      transition: none;
+    }
+  }
+}

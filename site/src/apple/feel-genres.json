@@ -1,0 +1,55 @@
+{
+  "$comment": "Ouro Feel's genres and what good feels like, in its guide's words, lightly trimmed; each `source` is the guide's table row at ouro-ui-apple 700c973.",
+  "genres": [
+    {
+      "name": "The way back",
+      "good": "Every screen you reach has a visible way back and a gesture back, and both take you home.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L50"
+    },
+    {
+      "name": "Overlay dismissal",
+      "good": "Every sidebar, popover and menu leaves on a tap outside it, and once you pick something.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L51"
+    },
+    {
+      "name": "Inside the window",
+      "good": "Every control sits wholly on screen, in every orientation, and after a turn and back.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L52"
+    },
+    {
+      "name": "Tap landing",
+      "good": "One tap anywhere on a control works, every time. Two quick taps both count.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L53"
+    },
+    {
+      "name": "Double-draw",
+      "good": "Each thing is on screen once. No ghost twin mid-transition.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L54"
+    },
+    {
+      "name": "Jump after landing",
+      "good": "Once something lands, it stays landed. No little nudge afterwards.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L55"
+    },
+    {
+      "name": "Late or lingering chrome",
+      "good": "Bars hand over in one beat: never two at once, never a blank between.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L56"
+    },
+    {
+      "name": "Snap with no transition",
+      "good": "Things that move travel there. Nothing teleports.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L57"
+    },
+    {
+      "name": "Settle time",
+      "good": "The screen comes to rest promptly after you act.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L58"
+    },
+    {
+      "name": "Place stability",
+      "good": "Reopen, relaunch or turn the device, and you're exactly where you were.",
+      "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L59"
+    }
+  ]
+}
