@@ -1891,7 +1891,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       });
       // Stryker disable next-line ConditionalExpression: placing it again picks the same message, since a scroll places it too; this only spares reading the layout.
       if (!current?.isConnected) place(list);
-      if (refocus && current !== null) focusOn(current);
+      // A switch has its messages in, so there is a Tab stop to take the focus.
+      if (refocus) focusOn(current!);
       setHasItems(list.length > 0);
     };
 
