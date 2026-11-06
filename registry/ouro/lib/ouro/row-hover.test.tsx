@@ -345,6 +345,31 @@ describe("useRowHover", () => {
     await expect.poll(() => probe.hover.row).toBe(row("r0"));
   });
 
+  it("takes nothing from a pointer that has not moved: the page changing under it neither moves nor hides the layer, until it moves", async () => {
+    await render(<List count={3} fields={false} />);
+    // The pointer rests over r1's empty end, on a cover over the page, and the layer is on r0 from the keyboard.
+    const cover = document.createElement("div");
+    cover.setAttribute("style", "position:fixed;inset:0");
+    document.body.append(cover);
+    const box = row("r1").getBoundingClientRect();
+    await userEvent.hover(cover, { position: { x: box.right - 4, y: box.top + 20 } });
+    await userEvent.keyboard("{Shift}");
+    await act(async () => row("r0").focus());
+    expect(layerIn("r0")).not.toBeNull();
+    // The cover goes, and r1 is under the pointer: the browser says so with a pointerover where the pointer already was.
+    let resent = false;
+    document.addEventListener("pointerover", () => (resent = true), { once: true });
+    await act(async () => cover.remove());
+    await expect.poll(() => resent).toBe(true);
+    for (let frame = 0; frame < 3; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("focus");
+    // Moving, even within r1, which sends no pointerover, brings it there.
+    await userEvent.hover(row("r1"), { position: { x: box.width - 8, y: 20 } });
+    expect(layerIn("r1")).not.toBeNull();
+    expect(probe.hover.via).toBe("pointer");
+  });
+
   it("shows on a row focused from the keyboard, or the pointer rests on, before the layer arrived", async () => {
     function Late() {
       const [shown, setShown] = useState(false);

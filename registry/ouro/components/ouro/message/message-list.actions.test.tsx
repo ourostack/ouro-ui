@@ -373,6 +373,33 @@ describe("MessageList actions", () => {
     expect(stops.at(-1)).toBe("After");
   });
 
+  it("keeps its bar on the focused message, the same element and still, as the page changes under a pointer resting on another", async () => {
+    await render(<Channel count={8} before={<button type="button">Before</button>} />);
+    await ready("m7");
+    await userEvent.unhover(document.body);
+    // The pointer rests on a cover over m5, and the bar is on m7 from the keyboard.
+    const cover = document.createElement("div");
+    cover.setAttribute("style", "position:fixed;inset:0");
+    document.body.append(cover);
+    mounted.push(cover);
+    const box = message("m5").getBoundingClientRect();
+    await userEvent.hover(cover, { position: { x: box.left + box.width / 2, y: box.top + box.height / 2 } });
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    expect(document.activeElement).toBe(message("m7"));
+    await expect.poll(() => barIn("m7")).not.toBeNull();
+    const button = page.getByRole("button", { name: "More actions" }).element();
+    const place = JSON.stringify(button.getBoundingClientRect());
+    // The cover goes: m5 is under the pointer, which has not moved. For 30 frames, the bar's button stays the same element, in m7, in place.
+    await act(async () => cover.remove());
+    for (let frame = 0; frame < 30; frame++) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(page.getByRole("button", { name: "More actions" }).element()).toBe(button);
+      expect(message("m7").contains(button)).toBe(true);
+      expect(JSON.stringify(button.getBoundingClientRect())).toBe(place);
+    }
+  });
+
   it("opens the menu from the keyboard on the focused message, and Escape puts focus back on it", async () => {
     await render(<Channel count={3} before={<button type="button">Before</button>} />);
     await ready("m2");

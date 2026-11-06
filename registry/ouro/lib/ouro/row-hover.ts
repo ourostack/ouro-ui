@@ -79,12 +79,31 @@ export interface RowHover {
 // What a tap lands on that is the control's rather than the row's.
 const controls = "a, button, input, textarea, select, [tabindex]";
 // Where a mouse or pen last was in the page, for a layer that arrives under one resting still: the page's hover state
-// can lag a list that was just drawn, and a pointer that stays still sends nothing more.
+// can lag a list that was just drawn, and a pointer that stays still makes no move of its own.
 let pointerAt: { x: number; y: number } | null = null;
+// The events of a pointer that has not moved: as the page changes under a resting mouse, the browser hit-tests it again
+// and sends pointerover (WebKit, a moment later, pointermove too) where it already was. The page moved, not the person.
+const resting = new WeakSet<Event>();
+const still = (event: PointerEvent) => event.clientX === pointerAt?.x && event.clientY === pointerAt.y;
 // Stryker disable next-line ConditionalExpression: on a server there is no page to listen to.
 if (typeof document !== "undefined") {
-  // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: a finger leaves nothing resting; no browser test can move a touch pointer without lifting it.
-  document.addEventListener("pointermove", (event) => (pointerAt = event.pointerType === "touch" ? null : { x: event.clientX, y: event.clientY }), { capture: true, passive: true });
+  // Captured, so the list's own listeners, which run later, know.
+  document.addEventListener("pointerover", (event) => void (still(event) && resting.add(event)), {
+    capture: true,
+    // Stryker disable next-line BooleanLiteral: passive only tells the browser the listener never cancels the event.
+    passive: true,
+  });
+  document.addEventListener(
+    "pointermove",
+    (event) => {
+      // Stryker disable next-line ConditionalExpression,CallExpression: Chromium, where the mutants run, sends no pointermove for a pointer that has not moved; the WebKit runs of the tests hold it.
+      if (still(event)) resting.add(event);
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: a finger leaves nothing resting; no browser test can move a touch pointer without lifting it.
+      pointerAt = event.pointerType === "touch" ? null : { x: event.clientX, y: event.clientY };
+    },
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: capture marks WebKit's pointermove for a pointer that has not moved before the list sees it, which Chromium, where the mutants run, never sends (the WebKit runs of the tests hold it); passive only says the listener never cancels the event.
+    { capture: true, passive: true },
+  );
 }
 
 // Where a right-click stays the browser's: a field's own menu (spelling, paste).
@@ -99,7 +118,8 @@ const ownMenu = `${editable}, a[href], img, video`;
  * window's blur), so a list of a thousand rows costs what a list of one does, and the layer is on
  * at most one row at a time. A mouse or pen over a row shows it there at once (in the same event,
  * before the next frame), and moving off the row or the list hides it; a pointer already resting on a row when the
- * layer arrives shows it there too. Keyboard focus arriving in
+ * layer arrives shows it there too. A pointer that has not moved takes nothing: the events a browser sends for a resting
+ * pointer as the page changes under it neither move nor hide the layer, which goes to the pointer once it moves. Keyboard focus arriving in
  * a row shows it too, and Escape hides it, putting focus back on the row if it was in the layer; an Escape in a
  * field in the row is the field's.
  * A tap on a row shows it until a press lands elsewhere. Scrolling under the pointer, the window
@@ -120,6 +140,7 @@ const ownMenu = `${editable}, a[href], img, video`;
  * @claim "before the next frame" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows the layer within the pointer's own event, before the next frame)
  * @claim "an Escape in a field in the row is the field's" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on keyboard focus, not on a click's, and Escape hides it with focus back on the row)
  * @claim "a pointer already resting on a row when the" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on a row focused from the keyboard, or the pointer rests on, before the layer arrived)
+ * @claim "A pointer that has not moved takes nothing" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > takes nothing from a pointer that has not moved: the page changing under it neither moves nor hides the layer, until it moves)
  * @claim "Keyboard focus arriving in a row shows it too" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on keyboard focus, not on a click's, and Escape hides it with focus back on the row)
  * @claim "A tap on a row shows it until" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on a tap until a press lands elsewhere, and a tap on a control is the control's)
  * @claim "Scrolling under the pointer, the window" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > hides on a scroll until the pointer moves again, on the window's blur and when the row goes)
@@ -180,6 +201,8 @@ export function useRowHover<T>(
 
     const over = (event: PointerEvent) => {
       if (held || event.pointerType === "touch") return;
+      // A pointer that has not moved takes nothing: the layer stays where it is until the pointer moves.
+      if (resting.has(event)) return root.addEventListener("pointermove", over);
       root.removeEventListener("pointermove", over);
       show(rowOf(event.target), "pointer");
     };
