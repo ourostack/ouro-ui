@@ -174,10 +174,16 @@ describe("useRowHover", () => {
     await act(async () => row("r1").focus());
     expect(layerIn("r1")).not.toBeNull();
     expect(probe.hover.via).toBe("focus");
-    // Into the layer, and back out with Escape: focus goes to the row as the layer goes.
+    // Into the layer, and back out with Escape: focus goes to the row as the layer goes, by a call that
+    // tells the browser not to scroll for it (the layer is already in view; this is a refocus, not a nav).
     await act(async () => page.getByRole("button", { name: "Act" }).element().focus());
     expect(layerIn("r1")).not.toBeNull();
-    await key(document.activeElement!, { key: "Escape" });
+    const focusSpy = vi.spyOn(row("r1"), "focus");
+    const escaped = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(async () => void document.activeElement!.dispatchEvent(escaped));
+    expect(escaped.defaultPrevented).toBe(true);
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+    focusSpy.mockRestore();
     expect(layers()).toHaveLength(0);
     expect(document.activeElement).toBe(row("r1"));
     // Another key on the focused row brings it back, before the list's own handler sees the key.
@@ -238,6 +244,13 @@ describe("useRowHover", () => {
     // Nothing comes back until the pointer moves; then on the row it is over.
     await act(async () => void pointer(row("r3"), "pointermove"));
     expect(layerIn("r3")).not.toBeNull();
+    // A scroll under a row shown by a tap hides it too, not only one shown by the pointer.
+    await act(async () => void pointer(row("r3"), "pointerup", "touch"));
+    expect(probe.hover.via).toBe("touch");
+    await act(async () => void list().dispatchEvent(new Event("scroll")));
+    expect(layers()).toHaveLength(0);
+    await act(async () => void pointer(row("r3"), "pointermove"));
+    expect(layerIn("r3")).not.toBeNull();
     // Scrolling with keyboard focus keeps it: the layer moves with its row.
     await userEvent.unhover(document.body);
     await userEvent.keyboard("{Shift}");
@@ -255,7 +268,7 @@ describe("useRowHover", () => {
 
   it("opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields, links and selected text to the browser", async () => {
     const menu = vi.fn((target: HTMLElement) => target.id !== "r2");
-    await render(<List count={3} menu={menu} />);
+    const { rerender } = await render(<List count={3} menu={menu} />);
     const text = row("r0").querySelector("[data-text]")!;
     await userEvent.hover(text);
     const right = (target: Element) => {
@@ -288,6 +301,23 @@ describe("useRowHover", () => {
     await userEvent.keyboard("{Shift}");
     expect(right(row("r1"))).toBe(true);
     expect(menu).toHaveBeenLastCalledWith(row("r1"), null);
+    // A new `menu` prop on a re-render is the one a later right-click uses: the effect that keeps
+    // the ref in sync with it runs on every render, not just the first. `menu` opened for r1; menu2
+    // never does, so a stale ref calling the old one would still show true here.
+    const menu2 = vi.fn(() => false);
+    await rerender(<List count={3} menu={menu2} />);
+    expect(right(row("r1"))).toBe(false);
+    expect(menu2).toHaveBeenCalled();
+  });
+
+  it("leaves Shift+F10 and the context-menu key to the browser off a row: nothing to open for what the keydown did not land on", async () => {
+    const menu = vi.fn(() => true);
+    await render(<List count={2} menu={menu} />);
+    const plain = page.getByText("Not a row").element() as HTMLElement;
+    await key(plain, { key: "F10", shiftKey: true });
+    expect(menu).not.toHaveBeenCalled();
+    await key(plain, { key: "ContextMenu" });
+    expect(menu).not.toHaveBeenCalled();
   });
 
   it("stays hidden while held, as while a row's menu is open, and from hide until the pointer next arrives", async () => {
@@ -410,6 +440,43 @@ describe("useRowHover", () => {
     await act(async () => void pointer(target, "pointermove", "mouse", { x: 40, y: 60 }));
     expect(layerIn("r0")).toBeNull();
     expect(probe.hover.row).toBeNull();
+  });
+
+  it("takes the scroll listener out with the layer whose effect added it: scrolling after a layer swap never hides from the old one", async () => {
+    function Harness({ layer }: { layer: RowLayer<string> }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        layer.set(rowRef.current!, "r0");
+      }, [layer]);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={createRowLayer<string>()} />);
+    const target = row("r0");
+    // A plain pointerover, not a resting one: it shows the row right away, so this effect's `via` is "pointer".
+    await act(async () => {
+      pointer(target, "pointermove", "mouse", { x: -500, y: -500 });
+      pointer(target, "pointerover", "mouse", { x: 10, y: 10 });
+    });
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("pointer");
+    // A new layer: the old effect tears down, and its scroll listener (always on from mount, not armed like
+    // pointermove) should go with it. The new effect's own `via` starts null, so its own scroll handler no-ops.
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    await act(async () => void list().dispatchEvent(new Event("scroll")));
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("pointer");
   });
 
   it("shows on a row focused from the keyboard, or the pointer rests on, before the layer arrived", async () => {
