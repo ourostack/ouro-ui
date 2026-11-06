@@ -45,29 +45,49 @@ function Folds({ groups, current }: { groups: ReadonlyArray<{ label: string; lin
   return (
     <ul className="m-0 ms-4 grid list-none gap-0.5 border-0 border-s border-solid border-border p-0 ps-2">
       {groups.map((group) => (
-        <li key={group.label} data-site-menu-group="" className="ps-1">
-          <Collapsible
-            className="w-full"
-            defaultOpen={group.links.some((link) => link.path === current)}
-            title={
-              <span>
-                {group.label}{" "}
-                <span className="ms-1 font-normal text-muted-foreground">
-                  {group.links.length}
-                  <span className="sr-only">{group.links.length === 1 ? " page" : " pages"}</span>
-                </span>
-              </span>
-            }
-          >
-            <ul className="m-0 -ms-1 grid list-none gap-0.5 p-0">
-              {group.links.map((link) => (
-                <PageLink key={link.path} label={link.label} to={link.path} current={current} />
-              ))}
-            </ul>
-          </Collapsible>
-        </li>
+        <Fold key={group.label} label={group.label} links={group.links} current={current} />
       ))}
     </ul>
+  );
+}
+
+/**
+ * One fold. Its pages mount when it first unfolds and stay for its fold back: a folded list kept in the page (hidden until
+ * found) is still styled with the sheet, and the docs menu's dozen such lists held WebKit's frames past 90 ms when a press
+ * caught the sheet on its way out. The menu's own search finds what is folded.
+ */
+function Fold({ label, links, current }: { label: string; links: readonly DocsLink[]; current: string }): JSX.Element {
+  const here = links.some((link) => link.path === current);
+  const [open, setOpen] = useState(here);
+  const [unfolded, setUnfolded] = useState(here);
+  return (
+    <li data-site-menu-group="" className="ps-1">
+      <Collapsible
+        className="w-full"
+        open={open}
+        onOpenChange={(next) => {
+          if (next) setUnfolded(true);
+          setOpen(next);
+        }}
+        title={
+          <span>
+            {label}{" "}
+            <span className="ms-1 font-normal text-muted-foreground">
+              {links.length}
+              <span className="sr-only">{links.length === 1 ? " page" : " pages"}</span>
+            </span>
+          </span>
+        }
+      >
+        {unfolded && (
+          <ul className="m-0 -ms-1 grid list-none gap-0.5 p-0">
+            {links.map((link) => (
+              <PageLink key={link.path} label={link.label} to={link.path} current={current} />
+            ))}
+          </ul>
+        )}
+      </Collapsible>
+    </li>
   );
 }
 

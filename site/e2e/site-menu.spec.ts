@@ -515,6 +515,42 @@ test("on a phone the menu, scrolled past the page you are on and a list unfolded
   expect(await body.evaluate((element) => element.scrollTop)).toBe(at);
 });
 
+test("on a phone the docs menu's folded lists hold no pages until they unfold, then slide open with them and keep them", async ({ page }) => {
+  await open(page, "docs/button/");
+  await openMenu(page);
+  const groups = sheet(page).locator("[data-site-menu-group]");
+  const folded = await groups.evaluateAll((items) => items.findLastIndex((item) => item.querySelector('[aria-expanded="false"]')));
+  const group = groups.nth(folded);
+  const panel = group.locator("[data-ouro-collapsible-panel]");
+  // Folded, the list is not in the page at all: nothing in it to style with the sheet.
+  await expect(panel.locator("a")).toHaveCount(0);
+  // Each frame of the unfold, the panel's height: it grows through the frames between, not in one step.
+  const heights = panel.evaluate(
+    (element) =>
+      new Promise<number[]>((resolve) => {
+        const seen: number[] = [];
+        const start = performance.now();
+        const tick = () => {
+          seen.push(Math.round(element.getBoundingClientRect().height));
+          if (performance.now() - start < 900) requestAnimationFrame(tick);
+          else resolve(seen);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  await group.locator('[aria-expanded="false"]').click();
+  const grown = await heights;
+  const full = grown.at(-1)!;
+  expect(full).toBeGreaterThan(100);
+  expect(grown.some((height) => height > 0 && height < full)).toBe(true);
+  await expect(panel.getByRole("link").first()).toBeVisible();
+  const pages = await panel.getByRole("link").count();
+  await group.locator('[aria-expanded="true"]').click();
+  await expect(panel).toBeHidden();
+  // Folded again, it keeps its pages, hidden, until the menu next opens afresh.
+  await expect(panel.locator("a")).toHaveCount(pages);
+});
+
 test("on a phone the docs menu's search holds still as a search shortens the list, which takes it back to its top", async ({ page }) => {
   await open(page, "docs/tooltip/");
   await openMenu(page);
