@@ -163,7 +163,7 @@ export function ReinsTerminal(): JSX.Element {
           className="reins-input site-mono"
           aria-label="Command"
           value={draft}
-          placeholder="ls, help, or do openRecipe {…}"
+          placeholder="try ls, or help"
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}

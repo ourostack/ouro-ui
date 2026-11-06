@@ -43,6 +43,9 @@
   .feel-contender[data-verdict="fail"] .feel-report {
     color: var(--destructive);
   }
+  .feel-contender[data-verdict="pass"] .feel-report {
+    color: var(--success, var(--primary));
+  }
   .feel-quip {
     margin: 0;
     font-family: var(--font-heading, inherit);
@@ -102,7 +105,12 @@
   }
   .feel-flip-layer[data-shown] {
     opacity: 1;
-    animation: feel-flip-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* Only where motion is welcome; under reduced motion the captures just crossfade. */
+  @media (prefers-reduced-motion: no-preference) {
+    .feel-flip-layer[data-shown] {
+      animation: feel-flip-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
   }
   /* The new capture sweeps in from the right edge, where the panel was hiding, rather than appearing. */
   @keyframes feel-flip-in {
