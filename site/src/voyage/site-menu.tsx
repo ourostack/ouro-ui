@@ -190,8 +190,8 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
 /**
  * Around the menu, in the sheet: a close button a thumb can see, beside the sheet's title (the sheet's own Close,
  * which a keyboard and a screen reader reach, shows only on focus, so this one is for pointers and stays out of the
- * tab order), a fade under the title, so rows scroll away beneath it instead of being cut, and on a phone, first,
- * the header's `tools` its bar has no room for.
+ * tab order), a fade under the title, so rows scroll away beneath it instead of being cut, and on a phone, beside the
+ * close button, the header's `tools` its bar has no room for.
  */
 export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
   return (
@@ -204,7 +204,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
             aria-hidden="true"
             data-site-menu-close=""
             // Out of the way while the sheet's own Close shows, under keyboard focus, in the same corner.
-            className="[:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-2 z-2 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-foreground active:bg-accent"
+            className="[:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-2 z-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-foreground active:bg-accent"
           />
         }
       >
@@ -212,8 +212,8 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
           <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </SheetClose>
-      <div aria-hidden="true" className="pointer-events-none sticky top-0 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
-      {tools && <div className="mb-2 sm:hidden">{tools}</div>}
+      <div aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
+      {tools && <div className="absolute end-15 top-2 z-3 sm:hidden">{tools}</div>}
       {children}
     </>
   );

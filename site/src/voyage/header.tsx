@@ -163,10 +163,10 @@ function XraySwitch(): JSX.Element {
 }
 
 /**
- * X-ray in the menu, for a phone's bar, which has no room for its Switch: a row that turns it on or off and closes the
- * menu, so you see the page it outlines.
+ * X-ray in the menu, for a phone's bar, which has no room for its Switch: a pill beside the menu's close button that
+ * turns it on or off and closes the menu, so you see the page it outlines.
  */
-function XrayRow(): JSX.Element {
+function XrayPill(): JSX.Element {
   const on = useXray();
   return (
     <SheetClose
@@ -174,16 +174,20 @@ function XrayRow(): JSX.Element {
         <button
           type="button"
           aria-pressed={on}
+          aria-label="X-ray"
           onClick={() => setXray(!on)}
-          className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-md border-0 bg-transparent px-3 py-1.5 text-start outline-ring -outline-offset-2 touch-manipulation [-webkit-tap-highlight-color:transparent] focus-visible:outline-2 focus-visible:outline-solid pointer-fine:hover:bg-accent active:bg-accent"
+          className="inline-flex h-11 cursor-pointer items-center rounded-full border-0 bg-transparent p-0 outline-ring touch-manipulation [-webkit-tap-highlight-color:transparent] focus-visible:outline-2 focus-visible:outline-solid"
         />
       }
     >
-      <span className="grid min-w-0 flex-1 gap-0.5">
-        <span className="font-[family-name:var(--font-heading)] text-[1.0625rem] leading-6 font-semibold text-foreground">X-ray</span>
-        <span className="text-sm leading-5 text-muted-foreground">{on ? "Back to the paint" : "Peek at the parts under the paint"}</span>
+      {/* Its look is inline: it is the only thing on the voyage pages drawn this way, and they have a CSS budget. */}
+      <span
+        className="inline-flex h-8 items-center gap-1.5 rounded-full border border-solid px-3 text-sm font-medium"
+        style={{ borderColor: on ? "var(--primary)" : "var(--border)", color: on ? "var(--primary)" : "var(--foreground)" }}
+      >
+        <span aria-hidden="true" className="size-2 rounded-full" style={{ border: "1.5px solid currentColor", background: on ? "currentColor" : undefined }} />
+        X-ray
       </span>
-      <span aria-hidden="true" className="shrink-0 text-xs font-medium text-muted-foreground">{on ? "On" : "Off"}</span>
     </SheetClose>
   );
 }
@@ -229,7 +233,7 @@ export function VoyageHeader({
       // The brand is the way home, so the bar starts at the Nautilus.
       items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
       currentPath={href(path)}
-      menu={<SiteMenuFrame tools={<XrayRow />}>{menu ?? <SiteMenu page={page} />}</SiteMenuFrame>}
+      menu={<SiteMenuFrame tools={<XrayPill />}>{menu ?? <SiteMenu page={page} />}</SiteMenuFrame>}
       actions={
         <>
           <ThemePicker />

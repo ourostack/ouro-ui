@@ -214,7 +214,7 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
 test("on a phone the menu holds X-ray, which the bar has no room for, and closes to show it", async ({ page }) => {
   await open(page, "nautilus/");
   await openMenu(page);
-  await sheet(page).getByRole("button", { name: /^X-ray/ }).click();
+  await sheet(page).getByRole("button", { name: "X-ray", exact: true }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("region", { name: "X-ray" })).toBeVisible();
 });

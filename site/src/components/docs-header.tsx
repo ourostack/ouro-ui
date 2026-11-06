@@ -49,8 +49,8 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
   const found = findDocs(query);
   return (
     <>
-      {/* Stays at the top while the long lists scroll under it. */}
-      <div className="sticky top-0 z-2 -mx-5 mb-2 bg-popover px-6 pb-2">
+      {/* Stays at the top while the long lists scroll under it (-top-2: from the sheet body's edge, not its padding). */}
+      <div className="sticky -top-2 z-2 -mx-5 -mt-2 mb-2 bg-popover px-6 pt-2 pb-2" style={{ boxShadow: "0 0.75rem 0.75rem -0.25rem var(--popover)" }}>
         <TextField
           label="Find a docs page"
           hideLabel
