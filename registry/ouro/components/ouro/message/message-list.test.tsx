@@ -3404,6 +3404,60 @@ describe("MessageList switching conversations", () => {
     expect(firstVisible(list.scroller).message.id).toBe(reading.message.id);
   });
 
+  it("takes a rename with any one of the first message, the number of newest messages or one of them changed for a switch, and a name given to messages the list holds for none", async () => {
+    const opens = async (from: ReactNode, to: ReactNode) => {
+      const list = mount();
+      await list.commit(from);
+      await settle(list.scroller);
+      await upBy(list.scroller, 400);
+      await list.commit(to);
+      await settle(list.scroller);
+      return distanceFromBottom(list.scroller) <= 2;
+    };
+    const mara = conversation("mara", 1000);
+    const tall = [
+      { id: "tall-a", role: "assistant" as const, text: "word ".repeat(4000) },
+      { id: "tall-b", role: "user" as const, text: "ok" },
+    ];
+    // Only the first message is another's.
+    expect(await opens(<Switcher open="mara" keyed={false} named items={mara} />, <Switcher open="theo" keyed={false} named items={mara.map((item, at) => (at === 0 ? { ...item, id: "theo-first" } : item))} />)).toBe(true);
+    // Only the number of newest messages differs: the first is the same, so is the one that is left.
+    expect(await opens(<Switcher open="mara" keyed={false} named items={tall} />, <Switcher open="theo" keyed={false} named items={tall.slice(0, 1)} />)).toBe(true);
+    // Only the last message is another's.
+    expect(await opens(<Switcher open="mara" keyed={false} named items={mara} />, <Switcher open="theo" keyed={false} named items={mara.map((item, at) => (at === 999 ? { ...item, id: "theo-last" } : item))} />)).toBe(true);
+    // Named for the messages it holds, with another message come: still the same conversation.
+    expect(await opens(<Switcher open="mara" keyed={false} items={mara} />, <Switcher open="mara" keyed={false} named items={[...mara, { id: "mara-new", role: "assistant", text: "A reply." }]} />)).toBe(false);
+  });
+
+  it("opens the conversation named before its messages come when it is the one a list that mounted empty is first named for", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={[]} />);
+    await list.commit(<Switcher open="mara" keyed={false} named />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    // Named for another, its messages still those held: it waits for them, and opens at their newest when they come.
+    await list.commit(<Switcher open="mara" keyed={false} called="theo" />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="theo" keyed={false} named />);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+  });
+
+  it("forgets a name that waits for messages when the list is named for the conversation it holds again", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    await list.commit(<Switcher open="mara" keyed={false} called="theo" />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} called="mara" />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} called="mara" items={conversation("theo", 1000)} />);
+    await settle(list.scroller);
+    expect(distanceFromBottom(list.scroller)).toBeGreaterThan(100);
+  });
+
   it("switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} named />);
