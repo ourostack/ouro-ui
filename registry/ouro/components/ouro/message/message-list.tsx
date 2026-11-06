@@ -730,7 +730,7 @@ interface Spoken {
  * when it finishes, and a first reply in a list that mounted empty. History is never
  * announced: the messages it mounts with, several messages filling an empty list at once
  * (history fetched after mount), older messages loaded above, and a message whose `key` changes in place (a temporary id
- * swapped for the server's). Older messages loaded above a scrolled-up reader leave the message
+ * swapped for the server's). Every message re-keyed at once is not held that way: the view moves a little, since windowing holds a place by a child's key. Older messages loaded above a scrolled-up reader leave the message
  * they are reading where it was, in every frame, and so does a message above them that moves, such
  * as a post a reply moves to the end. When the message they are on is the one that moves, the
  * messages around it keep their place. A page of many older messages goes in 20 a frame, those
@@ -825,6 +825,7 @@ interface Spoken {
  *     </article>
  *   ))}
  * </MessageList>
+ * @claim "Every message re-keyed at once is not held that way" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > keeps the reader's place, and opens nothing, when every message in view gets a new key in place and the rest keep theirs)
  * @claim "The messages spring as the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > trails the wheel the more the farther a message is from the pointer, and settles back to no transform)
  * @claim "The messages spring as the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > spreads the messages apart on a push past either end, and draws them back)
  * @claim "The scroll position never moves" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
