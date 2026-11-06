@@ -1096,8 +1096,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let end = 0;
     // The scroll position then: the reader's scrolling since is what the correction leaves alone.
     let taken = 0;
-    // The messages, in the order they come in the page, found again only when messages come or go, not on every scroll.
-    let list = [...content.querySelectorAll(items)];
     const keepAnchor = () => {
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
@@ -1136,8 +1134,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
         return held;
       };
-      list = [...content.querySelectorAll(items)];
-      anchors = find(list);
+      anchors = find([...content.querySelectorAll(items)]);
       // When no message shows, what a child draws that holds none (a day's heading) holds the place: it may be all the view
       // shows, as when it is revealed in a windowed list, with the messages around it not drawn yet.
       // Stryker disable next-line EqualityOperator: a message whose edge meets the view's to the pixel shows none of itself either way.
@@ -1226,8 +1223,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // beside its last line) moves the end without resizing anything, so the resize observer would not see it.
     const moves = new MutationObserver((records) => {
       const touched = records.some(touchesItems);
-      // Stryker disable next-line ConditionalExpression: finding the messages again when none came or went finds the same ones.
-      if (touched) list = [...content.querySelectorAll(items)];
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
