@@ -578,6 +578,32 @@ test("the stage judges the screen only once the site menu over it has closed", a
   // The stage's beat put off by six seconds, so the menu opens first, on a page too slow for the fish.
   await onTheBeat(page, { delay: 6000 });
   await slowFrames(page, 150);
+  // A record of what the stage waits on, read back if it has not judged: the menu's mark on the root, its beats (the
+  // 500 ms waits) as they are set and fire, and the frames drawn.
+  await page.addInitScript(() => {
+    const record = { marks: [] as string[], beats: [] as string[], frames: 0 };
+    (window as unknown as { __stageRecord: typeof record }).__stageRecord = record;
+    const at = () => Math.round(performance.now());
+    new MutationObserver(() => record.marks.push(`${at()}:${document.documentElement.hasAttribute("data-site-menu-open") ? "open" : "shut"}`)).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-site-menu-open"],
+    });
+    const set = window.setTimeout;
+    window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
+      if (ms !== 500) return set(callback, ms, ...rest);
+      const id = set(() => {
+        record.beats.push(`${at()}:fire#${id}`);
+        callback();
+      }, ms, ...rest);
+      record.beats.push(`${at()}:set#${id}`);
+      return id;
+    }) as typeof setTimeout;
+    const count = () => {
+      record.frames += 1;
+      requestAnimationFrame(count);
+    };
+    requestAnimationFrame(count);
+  });
   await openSlow(page);
   await siteMenu(page).click();
   // real clock: past the stage's put-off beat and a second of frames, with the menu open all the while.
@@ -598,6 +624,8 @@ test("the stage judges the screen only once the site menu over it has closed", a
             speed: document.querySelector(".stage-scene")?.getAttribute("data-speed"),
             sheets: [...document.querySelectorAll<HTMLElement>('[data-ouro="sheet"]')].map((sheet) => (sheet.hidden ? "hidden" : "shown")),
             scrollY: Math.round(scrollY),
+            now: Math.round(performance.now()),
+            record: (window as unknown as { __stageRecord: unknown }).__stageRecord,
           });
         }),
       { timeout: 15_000 },

@@ -296,7 +296,6 @@ function clipped(element: HTMLElement): boolean {
   return srOnly(element) || (element.parentElement !== null && srOnly(element.parentElement));
 }
 
-/** Opens a trigger the way its only users do: focus, then Enter. */
 let clickId = 0;
 /**
  * Clicks this element and no other. Clicking the element itself has vitest name it by a selector it makes up, which can match
@@ -306,14 +305,18 @@ let clickId = 0;
 async function clickExactly(element: HTMLElement): Promise<void> {
   clickId += 1;
   const id = `ouro-opener-${clickId}`;
+  // A test id the story gave the opener is put back after the click.
+  const own = element.getAttribute("data-testid");
   element.setAttribute("data-testid", id);
   try {
     await userEvent.click(page.getByTestId(id));
   } finally {
-    element.removeAttribute("data-testid");
+    if (own === null) element.removeAttribute("data-testid");
+    else element.setAttribute("data-testid", own);
   }
 }
 
+/** Opens a trigger the way its only users do: focus, then Enter. */
 async function openFromKeyboard(element: HTMLElement): Promise<void> {
   element.focus();
   await userEvent.keyboard("{Enter}");
