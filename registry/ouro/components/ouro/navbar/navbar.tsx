@@ -281,7 +281,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
           // tab or window, with a modifier key held): the page stays, and so does the sheet. A router's link that handles the
           // click itself still closes it.
           onClick={(event) => {
-            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             if ((event.target as Element).closest("a[href]")) setOpen(false);
           }}
         >
