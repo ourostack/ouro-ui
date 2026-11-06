@@ -427,6 +427,13 @@ function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): 
   return isValidElement(child) ? child.key : null;
 }
 
+/** Each key's index, built when the keys change, not on every render: the keys are text, so they compare by what they say. */
+function useIndexByKey(keys: readonly string[]): Map<string, number> {
+  // Joined by NUL, which no key holds.
+  const text = keys.join("\0");
+  return useMemo(() => new Map(text.split("\0").map((key, index) => [key, index])), [text]);
+}
+
 function boxOf(element: Element): { top: number; bottom: number; height: number } {
   const box = element.getBoundingClientRect();
   if (shifted === 0) return box;
@@ -949,8 +956,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const estimate = measured.estimate;
   const sizeOf = (index: number) => measured.heights.get(keys[index]!) ?? cache.get(`${keys[index]!}\0${measured.bucket}`) ?? estimate;
   // Each child's index by its key, built when the keys change, not on every render (the keys are text, so they compare by what they say).
-  const keysText = keys.join("\0");
-  const indexes = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keysText]);
+  const indexes = useIndexByKey(keys);
   let draws: (index: number) => boolean = () => true;
   if (windowed) {
     const last = keys.length - 1;
