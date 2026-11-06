@@ -1,0 +1,1 @@
+- Fixed: MessageList, scrolled up, keeps the reader's place through any change in the list at once, as it already did for messages coming and going: a picture's placeholder giving way to the picture, or a row above the messages changing size, no longer leaves the reader's place moved until the resize observer runs, after the frame's animation callbacks.
