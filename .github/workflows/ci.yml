@@ -745,8 +745,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: conformance (${{ matrix.shard }}/3)
+        # Three shards for every run that checks every story; one for a reduced pull request, whose
+        # few selected stories (or only the checks' proofs) the other two shards would idle through.
+        shard: ${{ fromJSON(needs.plan.outputs.full != 'false' && '[1,2,3]' || '[1]') }}
+    name: conformance (${{ matrix.shard }}/${{ strategy.job-total }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
