@@ -160,6 +160,7 @@ export function useRowHover<T>(
   const api = useRef<Pick<RowHover, "hide" | "hold">>(null);
   // Off as the list goes, before React takes its elements out of the page (which can move focus and fire events):
   // the listeners below go only after that.
+  // Stryker disable next-line BooleanLiteral: its own mount layout effect below sets it true before anything can read it (every call through api.current, and the main effect's own listeners, run only once all of this commit's layout effects, including this one, are done), so forcing its initial value false here can't be observed.
   const live = useRef(true);
   useLayoutEffect(() => {
     live.current = true;
@@ -182,16 +183,22 @@ export function useRowHover<T>(
       return null;
     };
     const show = (next: HTMLElement | null, how: RowHoverVia | null, sync = true, refocus = true) => {
+      // Stryker disable next-line ConditionalExpression: forcing the false branch makes `to` always equal `how`; every call that passes a null `next` also passes a null `how` (hide's show(null, null), hold's close, changed's removal, and the mount's touch no-op all do), so this branch never runs with a how that disagrees with null, and no test can tell the forced value from the real one.
       const to = next === null ? null : how;
       if (!live.current || (next === row && to === via)) return;
       // Focus in the layer goes back to its row before the layer goes, so it never drops to the page; not when a menu
       // opens from it, which takes focus and gives it back to the row as it closes.
       const active = doc.activeElement;
-      if (refocus && row !== null && next !== row && active !== null && active !== row && row.contains(active) && active.closest("[data-ouro-row-layer]") !== null) {
+      // No `active !== null` or `active !== row` clause: `row.contains(null)` is already false by
+      // spec (a null activeElement, never real in a browser, falls through on its own), and a row
+      // is never inside its own toolbar (the portal puts the toolbar in the row, not the row in
+      // it), so `active.closest("[data-ouro-row-layer]")` already rules out `active === row` too.
+      if (refocus && row !== null && next !== row && row.contains(active) && active!.closest("[data-ouro-row-layer]") !== null) {
         row.focus({ preventScroll: true });
       }
       row = next;
       via = to;
+      // Stryker disable next-line ArithmeticOperator: version only forces a new object identity for the `changed` callback below, where row and via stay the same; here the guard above already means next or to differs from the previous row or via, so the object is already new regardless of which way version moves, and version itself is not part of RowHover, so no test can read it.
       const update = () => setShown((previous) => ({ row: next, via: to, version: previous.version + 1 }));
       // From the event itself, so the layer is in the page before the browser draws the next frame.
       if (sync) flushSync(update);
@@ -213,7 +220,9 @@ export function useRowHover<T>(
       if (held || event.pointerType !== "touch") return;
       const tapped = rowOf(event.target);
       const control = (event.target as Element).closest(controls);
-      if (tapped !== null && (control === null || control === tapped || !tapped.contains(control))) show(tapped, "touch");
+      // No `control === null` clause: `tapped.contains(null)` is already false by spec, so the
+      // next clause already covers a tap with no control ancestor at all.
+      if (tapped !== null && (control === tapped || !tapped.contains(control))) show(tapped, "touch");
     };
     const away = (event: PointerEvent) => {
       if (via === "touch" && !row!.contains(event.target as Node)) hide();
@@ -221,6 +230,7 @@ export function useRowHover<T>(
     const focusIn = (event: FocusEvent) => {
       if (held) return;
       const focused = rowOf(event.target);
+      // Stryker disable next-line ConditionalExpression: forcing the guard true adds a return only when focused and row are both null; then via is null too (show sets row and via together), so the branches below would do nothing.
       if (focused !== null && focused === row) return;
       if (focused !== null && lastInput() === "keyboard") show(focused, "focus");
       else if (via === "focus") hide();
@@ -253,6 +263,7 @@ export function useRowHover<T>(
       const clicked = rowOf(event.target);
       if (clicked === null || menuRef.current === undefined || (event.target as Element).closest(ownMenu) !== null) return;
       const selection = doc.getSelection();
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: `doc.getSelection()` is never null in a live document (only before dom-shim-less SSR, which this file's own document guard above already rules out), and a real Selection that is not collapsed always has at least one range (isCollapsed is true whenever rangeCount is 0), so `> 0` and `>= 0` agree on every reachable selection; no test can make a null or rangeless-uncollapsed selection to tell these apart.
       if (selection !== null && !selection.isCollapsed && selection.rangeCount > 0 && clicked.contains(selection.getRangeAt(0).commonAncestorContainer)) return;
       // The context-menu key, where the browser sends this event for it, opens it at the row, as Shift+F10 does.
       open(event, clicked, lastInput() === "keyboard" ? null : { x: event.clientX, y: event.clientY });
@@ -269,14 +280,18 @@ export function useRowHover<T>(
       else setShown((previous) => ({ ...previous, version: previous.version + 1 }));
     };
     // Held for a menu that opens: hidden in the same update as the menu, so opening it draws once.
+    // Stryker disable next-line BooleanLiteral: `act()` (and React itself) settles a scheduled update before any test reads the DOM, so sync's flushSync-or-not only changes when the update lands within this tick, never what it ends up as; no assertion can tell the two apart.
     api.current = { hide, hold: (on) => ((held = on), on && show(null, null, false, false)) };
     // Focus already in a row, from the keyboard, as the layer arrives; else the pointer already resting on one (the
     // layer's code came after the pointer did, and a pointer that stays still sends nothing more).
     const focused = rowOf(doc.activeElement);
     const under = pointerAt === null ? null : rowOf(doc.elementFromPoint(pointerAt.x, pointerAt.y));
+    // Stryker disable next-line ConditionalExpression: row and via are freshly null at the top of this effect, so forcing this guard true when focused is actually null calls show(null, "focus", false), which show's own (next === row && to === via) guard already turns into a no-op.
     if (focused !== null && lastInput() === "keyboard") show(focused, "focus", false);
-    // Stryker disable next-line ConditionalExpression,StringLiteral,LogicalOperator: a touch's lingering hover is the tap handler's to decide; no browser test can make one before the layer arrives.
-    else if (under !== null && lastInput() !== "touch") show(under, "pointer", false);
+    else {
+      // Stryker disable next-line ConditionalExpression,StringLiteral,LogicalOperator: a touch's lingering hover is the tap handler's to decide; no browser test can make one before the layer arrives. Forcing the whole condition true calls show(null, "pointer", false) when under is null, which is a no-op: row and via are freshly null at the top of this effect, so show's own (next === row && to === via) guard already returns before anything happens.
+      if (under !== null && lastInput() !== "touch") show(under, "pointer", false);
+    }
 
     root.addEventListener("pointerover", over);
     root.addEventListener("pointerleave", leave);
@@ -286,6 +301,7 @@ export function useRowHover<T>(
     root.addEventListener("keydown", key);
     root.addEventListener("contextmenu", contextMenu);
     // Scrolling does not bubble; the capture phase sees the list's own and any scroller's in it.
+    // Stryker disable next-line BooleanLiteral: passive only tells the browser this listener never cancels the scroll, which changes nothing this handler does or a dispatched (never cancelable) test scroll can observe.
     root.addEventListener("scroll", scrolled, { capture: true, passive: true });
     doc.addEventListener("pointerdown", away, true);
     win.addEventListener("blur", hide);
