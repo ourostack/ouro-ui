@@ -317,13 +317,16 @@ test("on a phone the menu closes on a choice, and Back returns to the page with 
 
 // The page stays free to take the menu's press: the longest gap between frames while the page sits for a second and a
 // half. A stage that holds the main thread shows here (Playwright sends its press only once the page is free, so a press
-// alone would hide it). Measured on CI's WebKit, which draws without the GPU (PR #648, the desk's press-latency notes):
-// 300-445 ms with the porthole's glow blurred under the moving fish, 40 ms with the blur drawn as a gradient instead. How
-// soon the press then draws the sheet is the latency job's (site-menu.latency.spec.ts): there no other worker shares the CPU.
+// alone would hide it). CI's WebKit draws without the GPU, and there the moving fish held frames 300-460 ms apart, 18 ms with
+// them still (ci.yml run 42259745492, job 128036522038): so a screen that slow gets still water once the stage has judged it
+// (stage.tsx, data-paced), and this reads the frames after that. How soon the press then draws the sheet is the latency
+// job's (site-menu.latency.spec.ts): there no other worker shares the CPU.
 const FRAME_GAP_BUDGET = 100;
 for (const path of ["./", "docs/button/"]) {
   test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press`, async ({ page }) => {
     await open(page, path);
+    // real clock: the stage judges the screen on its real frames, a beat and then a second of them, which is what this waits for.
+    if (path === "./") await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
     const longestGap = () =>
       page.evaluate(
         () =>

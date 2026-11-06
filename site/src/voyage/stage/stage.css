@@ -964,6 +964,7 @@
     animation-delay: -4.8s;
   }
   .stage[data-offscreen] .stage-caustics > svg,
+  .stage-scene[data-speed="stop"] .stage-caustics > svg,
   .stage-scene:not([data-band="sunlit"]) .stage-caustics > svg {
     animation-play-state: paused;
   }
@@ -1115,15 +1116,17 @@
   position: absolute;
   /*
    * Its soft edge is in the gradient, not a blur: a blurred layer under the moving fish is blurred again every frame they
-   * move over it, and on a renderer without the GPU that held the page's frames 300 ms apart (site/e2e/site-menu.spec.ts).
+   * move over it, and on a renderer without the GPU that held the page's frames 300 ms apart (CI's WebKit, PR #648).
    */
   inset: calc(6% - 22px) calc(4% - 22px) -22px;
   border-radius: 999px;
+  /* --porthole-glow is its strength at the centre; a theme sets only that. The stops match the old blur within 2/255. */
   background: radial-gradient(
     closest-side,
-    color-mix(in oklab, var(--primary) 22%, transparent),
-    color-mix(in oklab, var(--primary) 12%, transparent) 45%,
-    color-mix(in oklab, var(--primary) 3%, transparent) 78%,
+    color-mix(in oklab, var(--primary) calc(var(--porthole-glow, 22%) * 0.7), transparent),
+    color-mix(in oklab, var(--primary) calc(var(--porthole-glow, 22%) * 0.55), transparent) 30%,
+    color-mix(in oklab, var(--primary) calc(var(--porthole-glow, 22%) * 0.3), transparent) 55%,
+    color-mix(in oklab, var(--primary) calc(var(--porthole-glow, 22%) * 0.1), transparent) 78%,
     transparent
   );
   z-index: -1;
@@ -1834,7 +1837,7 @@
     0 24px 80px -24px color-mix(in oklab, var(--primary) 35%, transparent);
 }
 [data-theme="abyss"] .stage-porthole::before {
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 40%, transparent), transparent);
+  --porthole-glow: 40%;
 }
 [data-theme="abyss"] .stage-numeral {
   font-size: 1.75rem;

@@ -103,6 +103,42 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     return () => observer.disconnect();
   }, []);
 
+  // A screen too slow to swim the fish (under 10 frames in a second, as on a machine drawing without its GPU) gets still
+  // water: the speed goes to Stop, which its control shows, and Half or Full sets them swimming again. Moving fish there
+  // hold the page between frames, so a press anywhere lands late. Judged once a visit, while the stage is in view and the
+  // page is shown; a press on the speed first is the visitor's own choice, and it stands. data-paced says it has been judged.
+  const [paced, setPaced] = useState(false);
+  useEffect(() => {
+    if (paced || offscreen || speed !== "half" || typeof matchMedia === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    let wait = 0;
+    const judge = () => {
+      cancelAnimationFrame(frame);
+      if (document.hidden) return;
+      let frames = 0;
+      let start = 0;
+      const tick = (now: number) => {
+        if (document.hidden) return;
+        if (!start) start = now;
+        else frames++;
+        if (now - start < 1000) frame = requestAnimationFrame(tick);
+        else {
+          if (frames < 10) setSpeed("stop");
+          setPaced(true);
+        }
+      };
+      frame = requestAnimationFrame(tick);
+    };
+    // A beat after the stage comes into view, so the page's own first work is not counted against it.
+    wait = window.setTimeout(judge, 500);
+    document.addEventListener("visibilitychange", judge);
+    return () => {
+      clearTimeout(wait);
+      cancelAnimationFrame(frame);
+      document.removeEventListener("visibilitychange", judge);
+    };
+  }, [paced, offscreen, speed]);
+
   const onDepth = useStable((value: number) => {
     // Going down sends up a stream of bubbles.
     if (value > depth) setStream((count) => (value - depth >= 20 || count === 0 ? count + 1 : count));
@@ -149,6 +185,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     write(on ? (dived ? LOG.lightsOnDeep : LOG.lightsOn) : LOG.lightsOff);
   });
   const onSpeed = useStable((value: Speed) => {
+    setPaced(true);
     setSpeed(value);
     write(LOG.speed[value]);
   });
@@ -170,7 +207,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const scene = useAfterPaint(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
 
   return (
-    <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined}>
+    <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined} data-paced={paced ? "" : undefined}>
       <div className="stage-frame">
         {/* On a phone the porthole and the crew's newest line stay under the header while the console scrolls beneath them (stage.css), so every press shows its effect without the page jumping. */}
         <div className="stage-window">
