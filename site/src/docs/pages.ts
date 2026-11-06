@@ -15,8 +15,8 @@ export interface DocsPage {
   /** The page's address: docs/<name>/. */
   name: string;
   title: string;
-  kind: "guide" | "export";
-  /** The catalog group of an export, or "Guides". */
+  kind: "guide" | "export" | "platform";
+  /** The catalog group of an export, "Guides", or "Platforms" for a page in docs/platforms. */
   group: string;
   /** The Markdown file, from the repository root (`pageMarkdown`, once the docs route has loaded it). */
   file: string;
@@ -37,8 +37,10 @@ export function pageMarkdown(page: DocsPage): string {
 
 export const guidePages = docsPages.filter((page) => page.kind === "guide");
 export const exportPages = docsPages.filter((page) => page.kind === "export");
+/** The Platforms section (docs/platforms): its index at docs/platforms/, then a page per platform and the contributor guide. */
+export const platformPages = docsPages.filter((page) => page.kind === "platform");
 
-/** The site name of the page a Markdown file is published as: `Form.md` is `form`, `guides/testing.md` is `testing`. */
+/** The site name of the page a Markdown file is published as: `Form.md` is `form`, `guides/testing.md` is `testing`, `platforms/apple.md` is `platforms/apple`. */
 const published = new Map<string, string>([
   ...(catalog as Array<{ name: string; title: string }>).map((item) => [`${item.title}.md`, item.name] as const),
   ...docsPages.map((page) => [page.file.replace(/^docs\//, ""), page.name] as const),
@@ -78,11 +80,21 @@ export function repositoryLink(link: string, from: string): string | undefined {
   return `${GITHUB}/blob/main/${dir.join("/")}${fragment === "" ? "" : `#${fragment}`}`;
 }
 
+/** `to`, a published name, as a link from the published Markdown of the page named `from`: `platforms/apple` from `platforms/android` is `apple`, `claims` from it is `../claims`. */
+function relativeName(to: string, from: string | undefined): string {
+  const fromDir = (from ?? "").split("/").slice(0, -1);
+  const parts = to.split("/");
+  let shared = 0;
+  while (shared < fromDir.length && shared < parts.length - 1 && fromDir[shared] === parts[shared]) shared++;
+  return [...fromDir.slice(shared).map(() => ".."), ...parts.slice(shared)].join("/");
+}
+
 /** A page's Markdown as the site publishes it at docs/<name>.md: installed paths, links to the published `.md` files, and other repository links on GitHub. */
 export function publishedMarkdown(markdown: string, from: string): string {
+  const self = published.get(from.replace(/^docs\//, ""));
   return installedPaths(markdown).replace(/\]\(([^)\s]+)((?:\s+"[^"]*")?)\)/g, (whole, link: string, title: string) => {
     const target = publishedName(link, from);
-    if (target) return `](${target.name}.md${target.fragment}${title})`;
+    if (target) return `](${relativeName(target.name, self)}.md${target.fragment}${title})`;
     const repository = repositoryLink(link, from);
     return repository ? `](${repository}${title})` : whole;
   });

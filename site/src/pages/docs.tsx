@@ -23,7 +23,7 @@ import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
 import itemSources from "../docs/sources.json";
 
-function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: ReactNode }): JSX.Element {
+function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: ReactNode; lead: ReactNode }): JSX.Element {
   return (
     <header className="mb-10">
       <p className="m-0 mb-3 text-sm font-medium text-primary">{eyebrow}</p>
@@ -209,6 +209,24 @@ function siteLink(target: string, from: string): string {
 }
 
 /**
+ * A platform page's title, with the platform after "for" in smaller, quieter type than the
+ * products' names ("Ouro HX & AX" big, "for Apple" small): a platform's name is a trademark, so
+ * it only ever refers to where the products run and never reads as part of their name.
+ */
+export function PlatformTitle({ title }: { title: string }): JSX.Element {
+  const at = title.startsWith("Ouro ") ? title.indexOf(" for ") : -1;
+  if (at === -1) return <>{title}</>;
+  return (
+    <>
+      {title.slice(0, at)}{" "}
+      <span data-platform-for="" className="text-[0.6em] font-medium text-muted-foreground">
+        {title.slice(at + 1)}
+      </span>
+    </>
+  );
+}
+
+/**
  * A page that is not a registry item's: a guide (docs/guides) or a documented export with no
  * item of its own (Radio, OuroProvider). Links between Markdown files go to the site's pages.
  */
@@ -218,7 +236,7 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
   const link = (target: string) => siteLink(target, page.file);
   return (
     <DocsShell current={`/docs/${page.name}/`}>
-      <PageTitle eyebrow={page.group} title={page.title} lead={inline(lead.text, link)} />
+      <PageTitle eyebrow={page.group} title={page.kind === "platform" ? <PlatformTitle title={page.title} /> : page.title} lead={inline(lead.text, link)} />
       <Markdown blocks={body} link={link} />
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
         <a href={`${GITHUB}/blob/main/${page.file}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
