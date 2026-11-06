@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // A tiny CLI that breaks most Ouro AX CLI claims, for xray.test.mts: no help JSON, ignored flags, errors on stdout,
 // a stack trace, an ambiguous verb that acts, a send that needs no --why, and developer commands in its help, its
-// errors and its doctor's fix. Every call is appended to $FIXTURE_CALLS.
+// errors and its doctor's fix, and failures that say "something went wrong" or "could not". Every call is appended to $FIXTURE_CALLS.
 import fs from "node:fs";
 
 const argv = process.argv.slice(2);
@@ -16,7 +16,7 @@ const [cmd, ...rest] = argv.filter((a) => !a.startsWith("--"));
 const json = argv.includes("--json");
 if (cmd === "help" && json) {
   // Help that parses, but with no exit codes.
-  process.stdout.write(JSON.stringify({ commands: [{ name: "rooms", effect: "private", usage: ["rooms [--limit N]"] }, { name: "send", effect: "others", usage: ["send <room> <text>"] }, { name: "doctor", effect: "private", usage: ["doctor"], summary: "Checks the setup; run `pnpm build` first" }] }) + "\n");
+  process.stdout.write(JSON.stringify({ commands: [{ name: "rooms", effect: "private", usage: ["rooms [--limit N]"], errors: ["Could not reach the room service. Try later.", "Couldn't list rooms: the room service answered 503."] }, { name: "send", effect: "others", usage: ["send <room> <text>"] }, { name: "doctor", effect: "private", usage: ["doctor"], summary: "Checks the setup; run `pnpm build` first" }] }) + "\n");
   process.exit(0);
 }
 if (!cmd && argv.includes("--help")) {

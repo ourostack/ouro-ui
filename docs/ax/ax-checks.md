@@ -114,7 +114,7 @@ interface ChecksRunOptions {
 
 ### `CheckState`
 
-`errored` is a check that couldn't run: it threw, so the tool broke rather than found something.
+`errored` is a check that threw before finishing, so the tool broke rather than found something.
 
 ```ts
 type CheckState = "passed" | "warned" | "failed" | "errored" | "skipped";
