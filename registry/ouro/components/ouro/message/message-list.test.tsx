@@ -3467,6 +3467,18 @@ describe("MessageList switching conversations", () => {
     expect(distanceFromBottom(list.scroller)).toBeGreaterThan(100);
   });
 
+  it("takes a second new name given while one waits for its messages as a rename of its own, so it is a switch when messages changed with it", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    await list.commit(<Switcher open="mara" keyed={false} called="theo" />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} called="kai" items={[...conversation("mara", 1000), { id: "mara-new", role: "assistant", text: "A reply." }]} />);
+    await settle(list.scroller);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
   it("switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} named />);
