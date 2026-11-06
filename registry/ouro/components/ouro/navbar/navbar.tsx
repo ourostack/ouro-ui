@@ -84,11 +84,12 @@ export interface NavbarProps {
    * needs more than the bar, such as a section's own pages under its name, or a filter over a
    * long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`;
    * mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the
-   * sheet. It mounts before the first press, hidden, while the page is idle, and mounts again
-   * once each close has finished, so each open starts with the state it first had.
+   * sheet. Once the page has been idle it mounts, hidden, ahead of the first press (a press
+   * before then mounts it as it opens), and it mounts again once each close has finished, so
+   * each open starts with the state it first had.
    *
    * @claim "Choosing a link in it closes the sheet." registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > shows the menu prop in the sheet in place of the links, and closes it when a link there is chosen)
-   * @claim "It mounts before the first press" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens)
+   * @claim "Once the page has been idle" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens)
    * @claim "so each open starts with the" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > opens afresh after each close: the menu prop's state and the sheet's scroll as the first open had them)
    */
   menu?: ReactNode;

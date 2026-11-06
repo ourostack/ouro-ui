@@ -127,8 +127,9 @@ export function MenuPages({ pages, current }: { pages: readonly MenuPage[]; curr
 
 /**
  * Calls `shown(true)` each time the sheet around `ref` shows and `shown(false)` as it hides. The Navbar builds its sheet
- * while the page is idle and keeps it, hidden, between opens, so the menu inside mounts once, not on each open: this is
- * when it opens. A sheet already showing as the menu mounts (one pressed open before it was built) counts as shown.
+ * while the page is idle, and again once each close has finished, and keeps it hidden until a press: the menu inside
+ * mounts ahead of each open, not as it opens, so this is when it opens. A sheet already showing as the menu mounts (one
+ * pressed open before it was built) counts as shown.
  */
 export function useSheetShown(ref: RefObject<HTMLElement | null>, shown: (on: boolean) => void): void {
   const latest = useEffectEvent(shown);
