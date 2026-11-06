@@ -591,6 +591,27 @@ describe("MessageList windowing", () => {
     expect(Math.abs(filler().top - top)).toBeLessThanOrEqual(ROUNDING);
   });
 
+  it("holds a heading that shows alone in the view, not the messages below it, when the heading grows", async () => {
+    const actions = createRef<MessageListActions>();
+    const chat = (height: number) => (
+      <Chat items={conversation(600)} actionsRef={actions} before={(id) => (id === 300 ? <p key="day" id="day-300" style={{ margin: 0, height }}>Tuesday</p> : null)} />
+    );
+    const { scroller, rerender } = await render(chat(900));
+    await act(async () => void actions.current!.reveal("m300"));
+    await settle(scroller);
+    const view = scroller.getBoundingClientRect();
+    const heading = () => document.getElementById("day-300")!.getBoundingClientRect();
+    // The view sits inside the heading, with the next message a little below it: the only message drawn near is not in view.
+    await scrollTo(scroller, scroller.scrollTop + (heading().top - view.top) + 200);
+    expect(heading().top).toBeLessThan(view.top);
+    expect(heading().bottom).toBeGreaterThan(view.bottom);
+    const before = scroller.scrollTop;
+    await rerender(chat(1200));
+    await settle(scroller);
+    // The heading is what the reader is reading: its growth below them moves them nowhere.
+    expect(Math.abs(scroller.scrollTop - before)).toBeLessThanOrEqual(ROUNDING);
+  });
+
   it("reveals nothing, and says so, for an id no message has", async () => {
     const actions = createRef<MessageListActions>();
     const { scroller } = await render(<Chat items={conversation(200)} actionsRef={actions} />);
