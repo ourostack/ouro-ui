@@ -687,6 +687,18 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.5   # with their node
 
 Guides: [Ouro AX](docs/guides/ax.md), [make your CLI conformant](docs/guides/ax-adopt.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
 
+## Where things live
+
+- **[ourostack/ouro-ui-core](https://github.com/ourostack/ouro-ui-core):** the tokens, the decision records and the Ouro AX for Apple claims, with the design language, the Ouro AX standard and the site to follow.
+- **[ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple):** the Swift package (`OuroHX`, `OuroAX`, `ouro-ax-xray`).
+- **ourostack/ouro-ui (web, this repository):** React and the registry.
+
+The rules:
+
+- A token change goes to web first, then to core, with a `webTag` bump in core's `parity.json`.
+- New decision records go only in [ourostack/ouro-ui-core/docs/decisions/](https://github.com/ourostack/ouro-ui-core/tree/main/docs/decisions); this repository's [docs/decisions/](docs/decisions/) is frozen history.
+- Look for prior art first (Meerkat mode), and give every decision record a "Prior art" section that marks each find adopt, borrow, watch or ignore.
+
 ## License
 
 MIT

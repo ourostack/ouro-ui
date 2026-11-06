@@ -2,6 +2,20 @@
 
 Rules for people and coding agents who change this repository. (Consumers read `README.md` and `docs/`, not this file.)
 
+## Where things live
+
+- **[ourostack/ouro-ui-core](https://github.com/ourostack/ouro-ui-core):** the tokens, the decision records and the Ouro AX for Apple claims, with the design language, the Ouro AX standard and the site to follow.
+- **[ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple):** the Swift package (`OuroHX`, `OuroAX`, `ouro-ax-xray`).
+- **ourostack/ouro-ui (web, this repository):** React and the registry.
+
+The rules:
+
+- A token change goes to web first, then to core, with a `webTag` bump in core's `parity.json`.
+- New decision records go only in [ourostack/ouro-ui-core/docs/decisions/](https://github.com/ourostack/ouro-ui-core/tree/main/docs/decisions); this repository's [docs/decisions/](docs/decisions/) is frozen history.
+- Look for prior art first (Meerkat mode), and give every decision record a "Prior art" section that marks each find adopt, borrow, watch or ignore.
+
+A move, split or rename isn't done until every repository whose readers are affected says what moved, where it went and the rule for new work, in its README and AGENTS.md, in the same change.[^a-reorg] Then open an issue labelled `moved` in each old repository (create the label if it's missing), saying what moved, where it went and the rule for new work, and close it once the old home's README and AGENTS.md say so.
+
 ## Project constraints
 
 - Copy-in source distributed as a shadcn/ui registry; MIT license, repository `https://github.com/ourostack/ouro-ui`. There is no npm package and no build: apps compile the components with their own Tailwind CSS v4.[^a-tailwind]
@@ -372,3 +386,4 @@ Then regenerate, never hand-merge: `pnpm run docs` (`docs/` and `README.md`, whi
 [^a-spoonjoy]: site/scripts/spoonjoy.mts verify:fileLine(site/src/pages/docs.tsx, /<InSpoonjoy name=\{item\.name\} \/>/) verify:testExists(site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub)
 [^a-screens]: .github/workflows/screens.yml verify:fileLine(.github/workflows/screens.yml, /^  pull_request:$/) verify:fileLine(.github/workflows/screens.yml, /^        continue-on-error: true$/) verify:testExists(scripts/workflows.test.mjs::Screens checks a pull request's screens only when its change can reach the site build or the check, and main's daily)
 [^a-measure]: test:scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements verify:testExists(scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements)
+[^a-reorg]: https://github.com/ourostack/ouro-ui-core/blob/9620eb4d6e99f276f1146b3e0e5cdbc2a71152cf/AGENTS.md#L31 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/9620eb4d6e99f276f1146b3e0e5cdbc2a71152cf/AGENTS.md#L31)
