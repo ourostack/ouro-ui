@@ -293,7 +293,9 @@ const ISLANDS = [
   // The Ouro UI for Apple pages (site/src/apple/), each an island of its own.
   { chapter: "Apple's overview", entry: "src/apple/home.tsx", source: "site/src/apple/", recharts: false },
   { chapter: "Ouro HX for Apple", entry: "src/apple/hx.tsx", source: "site/src/apple/", recharts: false },
+  { chapter: "Ouro Feel", entry: "src/apple/feel.tsx", source: "site/src/apple/", recharts: false },
   { chapter: "Ouro AX for Apple", entry: "src/apple/ax.tsx", source: "site/src/apple/", recharts: false },
+  { chapter: "Ouro Reins", entry: "src/apple/reins.tsx", source: "site/src/apple/", recharts: false },
   { chapter: "Apple's get started", entry: "src/apple/start.tsx", source: "site/src/apple/", recharts: false },
 ] as const;
 

@@ -4,6 +4,7 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock, Command } from "../components/code";
 import { href } from "../paths";
 import { Angler } from "./angler";
+import { LayersBand } from "./layers";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 import { XrayExplorer } from "./xray-explorer";
 
@@ -172,6 +173,15 @@ export default function AppleAx(): JSX.Element {
           </p>
         </div>
       </AppleBand>
+      <LayersBand
+        current="/apple/ax/"
+        lede={
+          <p>
+            The X-ray checks what your app tells Siri. The other layers finish the picture: Ouro Reins lets an agent drive the app itself, headless, and Ouro Feel
+            measures how it feels in a person's hand.
+          </p>
+        }
+      />
       <NextPage current="/apple/ax/" />
     </div>
   );

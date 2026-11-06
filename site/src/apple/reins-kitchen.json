@@ -1,0 +1,110 @@
+{
+  "$comment": "The pretend kitchen's data and Reins' own words. The recipes' ids and titles, Lemon Pantry Pasta's first two steps, the kitchen's counts and the context shape are Spoonjoy's screenshot fixture as evidence/reins-cli-run.ndjson shows them; the rest of the food is pretend. `words` are OuroReins' help lines, schema problems and refusal wording at ouro-ui-apple 700c973 (Sources/OuroReins/ReinsWire.swift, ReinsSession.swift, ReinsSchema.swift), with {placeholders}.",
+  "recipes": [
+    {
+      "id": "recipe_lemon_pantry_pasta",
+      "title": "Lemon Pantry Pasta",
+      "servings": "4",
+      "steps": [
+        {
+          "title": "Boil Pasta",
+          "timer": "10 min",
+          "ingredients": [
+            {
+              "id": "ingredient_lemon_pasta_salt",
+              "title": "kosher salt",
+              "quantity": "1 tbsp"
+            },
+            {
+              "id": "ingredient_lemon_pasta_spaghetti",
+              "title": "spaghetti",
+              "quantity": "12 oz"
+            }
+          ]
+        },
+        {
+          "title": "Build Sauce",
+          "timer": "5 min",
+          "ingredients": [
+            {
+              "id": "ingredient_lemon_pasta_garlic",
+              "title": "garlic",
+              "quantity": "2 clove"
+            },
+            {
+              "id": "ingredient_lemon_pasta_lemon",
+              "title": "lemon",
+              "quantity": "1 each"
+            },
+            {
+              "id": "ingredient_lemon_pasta_oil",
+              "title": "olive oil",
+              "quantity": "2 tbsp"
+            }
+          ]
+        },
+        {
+          "title": "Finish",
+          "ingredients": [
+            {
+              "id": "ingredient_lemon_pasta_parmesan",
+              "title": "parmesan",
+              "quantity": "a snowdrift"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recipe_tomato_toast",
+      "title": "Tomato Toast",
+      "servings": "1",
+      "steps": [
+        {
+          "title": "Toast and Pile",
+          "ingredients": [
+            {
+              "id": "ingredient_toast_bread",
+              "title": "sourdough",
+              "quantity": "1 slice"
+            },
+            {
+              "id": "ingredient_toast_tomato",
+              "title": "tomato",
+              "quantity": "1 ripe"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "words": {
+    "help": [
+      "ls: the focused screen: focus, path, state, context (ancestor states) and actions (with input JSON Schema)",
+      "do <action> [json]: run an action on the focused screen; refused with the valid actions when it isn't offered",
+      "every reply is one JSON line: {ok, screen} or {ok:false, error:{code,exit,thing,problem,fix,message}, screen}"
+    ],
+    "unexpected": "{action} takes no input, got {input}",
+    "unexpectedFix": "send `do {action}` with no input",
+    "emptyDrawer": "An empty drawer: this pretend kitchen only stocked the Kitchen tab.",
+    "unavailable": "{action} isn't available on {focus}",
+    "unavailableFix": "use one of: {names}",
+    "nothingFix": "nothing can be done on {focus}; run ls",
+    "invalidFix": "send input matching {schema}",
+    "notJson": "the input after `do {action}` isn't JSON: {rest}",
+    "unknown": "unknown request `{text}`",
+    "badRequestFix": "send `ls`, `do <action> [json]`, or {\"op\":\"ls\"} / {\"op\":\"do\",\"action\":\"<name>\",\"input\":{...}}",
+    "requiredMissing": "{path}: required, missing",
+    "notAProperty": "{path}: not a property of this input (expected {keys})",
+    "notOneOf": "{path}: \"{value}\" isn't one of {allowed}",
+    "expected": "{path}: expected {expected}, got {got}",
+    "notJsonLine": "the line starts with { but isn't JSON",
+    "doNeedsAction": "a do request needs an \"action\" string",
+    "badOp": "\"op\" must be \"ls\", \"do\" or \"help\""
+  },
+  "counts": {
+    "recipes": 2,
+    "shoppingItems": 3
+  },
+  "bootstrap": "offlineStale"
+}
