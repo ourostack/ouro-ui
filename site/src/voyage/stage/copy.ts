@@ -124,7 +124,7 @@ export const LOG = {
     full: { name: "Ned Land", text: "Full speed! Now we are sailing!" },
   },
   bell: { name: "Conseil", text: "The bell rang. I counted it. One." },
-  stillWater: { name: "Captain Nemo", text: "Engines idle: this screen draws slowly, so the fish are resting. Press Half to sail on." },
+  stillWater: { name: "Captain Nemo", text: "Slow screen, so the fish rest. Press Half to sail on!" },
 } as const satisfies Record<string, unknown>;
 
 /** What the crew says when the bell rings, in turn. */

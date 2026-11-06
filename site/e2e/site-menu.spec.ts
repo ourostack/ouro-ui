@@ -26,8 +26,8 @@ async function open(page: Page, path: string): Promise<void> {
   await page.setViewportSize(PHONE);
   await page.goto(path);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  // Where the stage is, it has judged the screen first: on one too slow to swim its fish (CI's WebKit, drawing without
-  // the GPU) the fish hold the page between frames until then, and a press sent into that never lands in WebKit.
+  // Where the stage is, it has judged the screen first, so a slow screen's still water is in place before the presses
+  // (the press before that has its own test below).
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   if (await page.locator("[data-stage]").count()) await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
 }
@@ -362,6 +362,17 @@ for (const path of ["./", "docs/button/"]) {
     await expect(sheet(page)).toBeVisible({ timeout: 1000 });
   });
 }
+
+// A slow screen's moving fish once held WebKit's frames with the menu open over them until a press never came back (CI's
+// WebKit, drawing without the GPU): a press as soon as the page is ready, before the stage has judged the screen, opens it.
+test("on a phone the home page takes the menu's press as soon as it is ready, before the stage has judged the screen", async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await page.goto("./");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await menuButton(page).click({ timeout: 3000 });
+  // real clock: the sheet stays open until it is closed; no timer ends it.
+  await expect(sheet(page)).toBeVisible({ timeout: 3000 });
+});
 
 test("on a phone the menu closes on a tap outside it, and on Escape, with focus back on its button", async ({ page }) => {
   await open(page, "docs/button/");

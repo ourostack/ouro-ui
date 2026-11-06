@@ -114,6 +114,17 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     if (paced || offscreen || speed !== "half" || typeof matchMedia === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let frame = 0;
     let wait = 0;
+    let deadline = 0;
+    let starved = false;
+    const verdict = (slow: boolean) => {
+      cancelAnimationFrame(frame);
+      clearTimeout(deadline);
+      if (slow) {
+        setSpeed("stop");
+        write(LOG.stillWater);
+      }
+      setPaced(true);
+    };
     const judge = () => {
       const gaps: number[] = [];
       let start = 0;
@@ -124,19 +135,25 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
         else start = now;
         last = now;
         if (now - start < 1000 || gaps.length < 3) frame = requestAnimationFrame(tick);
-        else {
-          if (gaps.toSorted((x, y) => x - y)[Math.floor(gaps.length / 2)]! > 100) {
-            setSpeed("stop");
-            write(LOG.stillWater);
-          }
-          setPaced(true);
-        }
+        else verdict(gaps.toSorted((x, y) => x - y)[Math.floor(gaps.length / 2)]! > 100);
       };
       frame = requestAnimationFrame(tick);
+      // A screen that draws under three frames in two seconds, twice running, is slow, though it never gets to say so in
+      // frames; once could be one long task.
+      deadline = window.setTimeout(() => {
+        if (document.hidden) return;
+        cancelAnimationFrame(frame);
+        if (starved) verdict(true);
+        else {
+          starved = true;
+          judge();
+        }
+      }, 2000);
     };
     // A beat after the stage comes into view, or the page is shown again, so the page's own first work is not counted.
     const soon = () => {
       clearTimeout(wait);
+      clearTimeout(deadline);
       cancelAnimationFrame(frame);
       if (!document.hidden) wait = window.setTimeout(judge, 500);
     };
@@ -148,6 +165,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     element?.addEventListener("keydown", playing, true);
     return () => {
       clearTimeout(wait);
+      clearTimeout(deadline);
       cancelAnimationFrame(frame);
       document.removeEventListener("visibilitychange", soon);
       element?.removeEventListener("pointerdown", playing, true);

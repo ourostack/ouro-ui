@@ -294,6 +294,8 @@
   /* Stopped, off screen, or in water we are not looking at: the fish wait where they are. */
   .stage-scene[data-speed="stop"] .stage-drift,
   .stage[data-offscreen] .stage-drift,
+  /* Under an open sheet (the site's menu) too: there the fish only cost the sheet its frames. */
+  :root:has([data-ouro="sheet"][data-open]) .stage-drift,
   .stage-scene:not([data-band="sunlit"]) .stage-band-sunlit .stage-drift,
   .stage-scene:not([data-band="twilight"]) .stage-band-twilight .stage-drift,
   .stage-scene:not([data-band="midnight"]) .stage-band-midnight .stage-drift {
@@ -964,6 +966,7 @@
     animation-delay: -4.8s;
   }
   .stage[data-offscreen] .stage-caustics > svg,
+  :root:has([data-ouro="sheet"][data-open]) .stage-caustics > svg,
   .stage-scene[data-speed="stop"] .stage-caustics > svg,
   .stage-scene:not([data-band="sunlit"]) .stage-caustics > svg {
     animation-play-state: paused;

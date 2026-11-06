@@ -417,35 +417,63 @@ test("a screen too slow to swim the fish gets still water, its speed at Stop, an
   await expect.poll(() => ambient(page)).toBeGreaterThan(0);
 });
 
-test("one long task is not a slow screen: the fish keep swimming", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  // One stall of nearly a second, inside the second the stage reads its frames.
-  await page.addInitScript(() =>
-    addEventListener("load", () =>
-      setTimeout(() => {
-        const end = performance.now() + 900;
-        while (performance.now() < end);
-      }, 900),
-    ),
+/** Runs `then` in the page right after the stage's beat (its 500 ms wait before it reads the frames), or puts the beat off by `delay`. */
+const onTheBeat = (page: Page, { stall = 0, delay = 0 }: { stall?: number; delay?: number }) =>
+  page.addInitScript(
+    ({ stall, delay }) => {
+      const original = window.setTimeout;
+      window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
+        if (ms !== 500) return original(callback, ms, ...rest);
+        return original(
+          () => {
+            callback();
+            // The stall lands inside the second the stage reads: its first frame has started it.
+            if (stall)
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => {
+                  const end = performance.now() + stall;
+                  while (performance.now() < end);
+                }),
+              );
+          },
+          500 + delay,
+        );
+      }) as typeof setTimeout;
+    },
+    { stall, delay },
   );
+
+test("one long task is not a slow screen: the fish keep swimming", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "CI's WebKit is a slow screen with no stall: it draws without the GPU");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // One stall of nearly a second inside the second the stage reads, which a count of that second's frames calls slow.
+  await onTheBeat(page, { stall: 900 });
   await open(page);
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
   await expect(scene(page)).toHaveAttribute("data-speed", "half");
 });
 
-test("a speed chosen before the stage has judged the screen stands, however slow it draws", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await slowFrames(page, 150);
-  await openSlow(page);
-  await page.getByRole("radio", { name: "Full" }).click();
-  await expect(scene(page)).toHaveAttribute("data-speed", "full");
-  // real clock: the press itself marks the stage as judged; no timer is involved.
-  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
-  // real clock: a second and a half, longer than the stage takes to judge, to show it no longer does.
-  await page.waitForTimeout(1500);
-  await expect(scene(page)).toHaveAttribute("data-speed", "full");
-});
+for (const { choice, press, speed } of [
+  { choice: "a speed", press: (page: Page) => page.getByRole("radio", { name: "Full" }).click(), speed: "full" },
+  { choice: "a tank", press: (page: Page) => tank(page, FORE.name).click(), speed: "half" },
+]) {
+  test(`${choice} chosen before the stage has judged the screen stands, however slow it draws`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    // The stage's beat put off by four seconds, so the visitor's press comes first.
+    await onTheBeat(page, { delay: 4000 });
+    await slowFrames(page, 150);
+    await openSlow(page);
+    await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
+    await press(page);
+    // real clock: the press itself marks the stage as judged; no timer is involved.
+    await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+    // real clock: past the stage's put-off beat and a second of frames, to show it no longer judges.
+    await page.waitForTimeout(6000);
+    await expect(scene(page)).toHaveAttribute("data-speed", speed);
+    await expect(lastLog(page)).not.toContainText(LOG.stillWater.text);
+  });
+}
 
 test("the fish rest while the stage is off screen", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 600 });
