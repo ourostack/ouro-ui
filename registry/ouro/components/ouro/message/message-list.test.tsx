@@ -3160,6 +3160,13 @@ describe("MessageList switching conversations", () => {
     expect(reads).toBe(0);
   });
 
+  it("opens at its end, before the browser draws, when its messages come after it mounted empty", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} items={[]} />);
+    await list.commit(<Switcher open="mara" keyed={false} count={60} />);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
   /** Scrolls the list up from its end by `by`, as a reader does, and waits for it to settle. */
   async function upBy(scroller: HTMLElement, by: number) {
     scroller.scrollTop -= by;
