@@ -1174,6 +1174,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const opening = fresh && track.held;
     if (opening) {
       // The other conversation draws from its newest, whatever of the one before was drawn.
+      // Stryker disable next-line ObjectLiteral: an empty edge has no drawn key, so the slice starts at the first child, as drawn: top does; the next frame's step sets it to the first child's key. The same rows draw either way.
       setEdge({ first: top, drawn: top });
       setBand(null);
       // The next opens at its newest, with no jump to offer and no focus kept on a message of the one before.

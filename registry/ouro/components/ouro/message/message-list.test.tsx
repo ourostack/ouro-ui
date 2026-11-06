@@ -3477,6 +3477,21 @@ describe("MessageList switching conversations", () => {
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
   });
 
+  it("confirms nothing for messages that come back to a list emptied under the same name, so a rename that changes nothing is taken at once", async () => {
+    const list = mount();
+    const show = (name: string, items: Item[]) => <Switcher open={name} keyed={false} named items={items} />;
+    await list.commit(show("ann", conversation("ann", 30)));
+    await list.commit(show("ann", []));
+    const next = conversation("bo", 30);
+    await list.commit(show("ann", next));
+    // Named for bo, its messages unchanged: they are not ann's, so the name is taken with no switch.
+    await list.commit(show("bo", next));
+    upBy(list.scroller, 2000);
+    await list.commit(show("bo", conversation("cy", 30)));
+    // No switch: the reader is where they were, not at the newest.
+    expect(distanceFromBottom(list.scroller)).toBeGreaterThan(100);
+  });
+
   it("takes a rename with any one of the first message, the number of newest messages or one of them changed for a switch, and a name given to messages the list holds for none", async () => {
     const opens = async (from: ReactNode, to: ReactNode) => {
       const list = mount();
