@@ -206,7 +206,22 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
   // Search was pressed, so the field has focus, ready to type.
-  await expect(page.getByRole("dialog", { name: "Command palette" }).locator("input[data-ouro-part='input']")).toBeFocused();
+  const field = page.getByRole("dialog", { name: "Command palette" }).locator("input[data-ouro-part='input']");
+  await expect(field).toBeFocused();
+  // It finds what the menu lists, and every component and guide.
+  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"]] as const) {
+    await field.fill(query);
+    await expect(page.getByRole("option", { name: new RegExp(`^${name}\\b`) }).first()).toBeVisible();
+  }
+});
+
+test("on a phone the menu opens on the section you are in, its row just under the top, when its row is far down", async ({ page }) => {
+  await open(page, "docs/");
+  await openMenu(page);
+  const under = (await sheet(page).locator("[data-site-menu-pinned]").boundingBox())!;
+  const row = (await sheet(page).locator('a[aria-current="page"]').boundingBox())!;
+  expect(row.y - (under.y + under.height)).toBeGreaterThanOrEqual(-4);
+  expect(row.y - (under.y + under.height)).toBeLessThanOrEqual(24);
 });
 
 /** Opens the theme picker. The docs' header is an island, so its button works once it has hydrated. */

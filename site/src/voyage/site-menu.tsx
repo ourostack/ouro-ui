@@ -159,7 +159,8 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
         const here = section.href === current;
         const away = !section.href.startsWith("/");
         return (
-          <li key={section.label} className="grid gap-0.5">
+          // A group the menu opens on: the section, or inside it a folded list (the docs menu's).
+          <li key={section.label} data-site-menu-group="" className="grid gap-0.5">
             <a
               href={sectionHref(section.href)}
               aria-current={here ? "page" : undefined}

@@ -119,7 +119,8 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
           onKeyDown={(event) => {
             if (found?.length && walk(event, results.current, input())) return;
             // Escape clears a search first; with nothing typed it closes the menu.
-            if (event.key === "Escape" && query !== "") {
+            // Not the Escape that cancels a word being composed.
+            if (event.key === "Escape" && query !== "" && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {
               event.stopPropagation();
               event.preventDefault();
               setQuery("");
@@ -145,7 +146,8 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
             Docs: (
               <Folds
                 groups={[
-                  { label: "Guides", links: guides.filter((link) => !isAxPart(link)) },
+                  // A guide named as a section is ("Ouro AX") says it is the guide, so two links are never named alike.
+                  { label: "Guides", links: guides.filter((link) => !isAxPart(link)).map((link) => (SITE_SECTIONS.some((section) => section.label === link.label) ? { ...link, label: `${link.label} guide` } : link)) },
                   { label: "Ouro AX, part by part", links: guides.filter(isAxPart) },
                   { label: "Skill comparisons", links: comparisons },
                 ]}
