@@ -116,13 +116,27 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
   const id = useId();
   // Below the sheet's fold, the page you are on scrolls up into view as the sheet opens, without moving the page behind.
   useLayoutEffect(() => {
-    const link = list.current!.querySelector<HTMLElement>('[aria-current="page"]');
-    let scroller = list.current!.parentElement;
-    while (scroller && scroller.scrollHeight <= scroller.clientHeight) scroller = scroller.parentElement;
-    if (!link || !scroller || scroller === document.scrollingElement) return;
-    const box = scroller.getBoundingClientRect();
-    const spot = link.getBoundingClientRect();
-    if (spot.bottom > box.bottom - 16) scroller.scrollTop += spot.top - box.top - box.height / 3;
+    // True once there is nothing to do: no mark, or the mark in view. Until the sheet has its height nothing in it
+    // scrolls, so it tries again on the next frames.
+    const reveal = (): boolean => {
+      if (!list.current) return true;
+      const link = list.current.querySelector<HTMLElement>('[aria-current="page"]');
+      let scroller = list.current.parentElement;
+      // The nearest box that scrolls: one that overflows and lets you scroll it, not one whose overflow just shows.
+      while (scroller && (scroller.scrollHeight <= scroller.clientHeight || !/auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller = scroller.parentElement;
+      if (!link) return true;
+      if (!scroller || scroller === document.scrollingElement || scroller === document.body) return false;
+      const box = scroller.getBoundingClientRect();
+      const spot = link.getBoundingClientRect();
+      if (spot.bottom > box.bottom - 16) scroller.scrollTop += spot.top - box.top - box.height / 3;
+      return true;
+    };
+    if (reveal()) return;
+    let tries = 0;
+    let frame = requestAnimationFrame(function again() {
+      if (!reveal() && ++tries < 30) frame = requestAnimationFrame(again);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
   return (
     <ol ref={list} className="m-0 grid list-none gap-2 p-0">
@@ -167,9 +181,10 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
 /**
  * Around the menu, in the sheet: a close button a thumb can see, beside the sheet's title (the sheet's own Close,
  * which a keyboard and a screen reader reach, shows only on focus, so this one is for pointers and stays out of the
- * tab order), and a fade under the title, so rows scroll away beneath it instead of being cut.
+ * tab order), a fade under the title, so rows scroll away beneath it instead of being cut, and at the foot the
+ * header's `tools` a phone's bar has no room for.
  */
-export function SiteMenuFrame({ children }: { children: ReactNode }): JSX.Element {
+export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
   return (
     <>
       <SheetClose
@@ -187,8 +202,14 @@ export function SiteMenuFrame({ children }: { children: ReactNode }): JSX.Elemen
           <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </SheetClose>
-      <div aria-hidden="true" className="pointer-events-none sticky top-0 z-1 -mx-5 -mt-2 h-4 bg-linear-to-b from-popover to-transparent" />
+      <div aria-hidden="true" className="pointer-events-none sticky top-0 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
       {children}
+      {tools && (
+        <div className="mt-4 flex min-h-11 items-center justify-between gap-3 border-0 border-t border-solid border-border px-3 pt-4 sm:hidden">
+          <span className="text-sm leading-5 text-muted-foreground">Peek at the parts under the paint</span>
+          {tools}
+        </div>
+      )}
     </>
   );
 }

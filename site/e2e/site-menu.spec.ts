@@ -195,3 +195,19 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
   await expect(page.getByRole("navigation", { name: "Docs" })).toBeVisible();
   await expect(page.getByRole("banner").getByRole("link", { name: "Components", exact: true })).toHaveAttribute("aria-current", "page");
 });
+
+test("on a phone the menu holds X-ray, which the bar has no room for", async ({ page }) => {
+  await open(page, "nautilus/");
+  await openMenu(page);
+  await sheet(page).getByRole("switch", { name: "X-ray" }).click();
+  await expect(page.getByRole("region", { name: "X-ray" })).toBeVisible();
+});
+
+test("on a phone the Nautilus's first chapter marker is styled before any script runs, so it does not jump into place", async ({ page }) => {
+  await page.route("**/*.js", (route) => route.abort());
+  await page.setViewportSize(PHONE);
+  await page.goto("nautilus/");
+  const marker = page.locator("[data-chapter-marker]").first();
+  await expect(marker).toBeInViewport();
+  expect(await marker.evaluate((element) => getComputedStyle(element).position)).toBe("sticky");
+});

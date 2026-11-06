@@ -72,7 +72,7 @@ export function ThemePicker(): JSX.Element {
       />
       <PopoverPortal>
         <PopoverPositioner side="bottom" align="end">
-          <PopoverPopup ref={popup} initialFocus={popup} className="w-[22rem] max-w-[calc(100vw-2rem)]">
+          <PopoverPopup ref={popup} initialFocus={popup} className="w-[22rem] max-w-[calc(100vw-1rem)]">
             <div className="grid gap-1">
               <PopoverTitle>Theme</PopoverTitle>
               <PopoverDescription>
@@ -202,7 +202,7 @@ export function VoyageHeader({
       // The brand is the way home, so the bar starts at the Nautilus.
       items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
       currentPath={href(path)}
-      menu={<SiteMenuFrame>{menu ?? <SiteMenu page={page} />}</SiteMenuFrame>}
+      menu={<SiteMenuFrame tools={<XraySwitch />}>{menu ?? <SiteMenu page={page} />}</SiteMenuFrame>}
       actions={
         <>
           <ThemePicker />
