@@ -25,7 +25,7 @@ describe("live demos", () => {
     await renderFixture(<main><h1>Live example page</h1><LiveDemo name="not-an-item" title="Missing" /></main>, {
       onCaughtError: (error) => failures.push(error),
     });
-    await expect.element(page.getByText("Could not load the Missing example.", { exact: true })).toBeVisible();
+    await expect.element(page.getByText('The Missing example stopped with this error: Unknown live example "not-an-item". Reload the page to try again, or read the docs.', { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Live example page" })).toBeVisible();
     expect(failures).toHaveLength(1);
     expect(failures[0]).toBeInstanceOf(Error);
@@ -42,7 +42,7 @@ describe("live demos", () => {
     await renderFixture(<main><h1>Live example page</h1><LiveDemo name="form" title="Form" /></main>, {
       onCaughtError: (error) => failures.push(error),
     });
-    await expect.element(page.getByText("Could not load the Form example.", { exact: true })).toBeVisible();
+    await expect.element(page.getByText("The Form example stopped with this error: Form example import rejected. Reload the page to try again, or read the docs.", { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Live example page" })).toBeVisible();
     expect(failures).toEqual([failure]);
     expect(document.querySelector("[data-site-demo-loading]")).toBeNull();

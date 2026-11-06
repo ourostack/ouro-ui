@@ -524,7 +524,7 @@ describe("audit", () => {
     mountPage('<p id="flat" style="margin:0;height:0;color:#111;background:#fff">Text over a box with no height</p>');
     const shots = vi.spyOn(page, "screenshot").mockRejectedValue(new Error("locator.screenshot: Timeout 5000ms exceeded."));
     try {
-      expect(await measureTextContrast(document.querySelector("#flat")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/could not be screenshotted: locator\.screenshot: Timeout 5000ms exceeded\.$/) });
+      expect(await measureTextContrast(document.querySelector("#flat")!, 4.5)).toEqual({ pass: false, reason: expect.stringMatching(/the screenshot to measure it threw: locator\.screenshot: Timeout 5000ms exceeded\.$/) });
       expect(shots).toHaveBeenCalledTimes(1);
     } finally {
       shots.mockRestore();

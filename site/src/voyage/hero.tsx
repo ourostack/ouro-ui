@@ -90,7 +90,7 @@ function Install(): JSX.Element {
             const block = event.currentTarget.closest(".site-install-block");
             void navigator.clipboard.writeText(INSTALL_COMMAND).then(
               () => toast("Copied the install command", { tone: "success", description: `Run it in your app's folder. It adds ${title(install.item)}.` }),
-              () => toast("Couldn't copy", { tone: "destructive", description: "Select the command and copy it yourself." }),
+              () => toast("The browser blocked the clipboard", { tone: "destructive", description: "Select the command and copy it yourself." }),
             ).then(() => keepClearOfToasts(block));
           }}
         >
