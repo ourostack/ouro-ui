@@ -34,6 +34,12 @@
   .apple-menu-short {
     display: none;
   }
+  @media (max-width: 39.99rem) {
+    /* On a phone the header's one menu lists these pages under For Apple, so the row steps aside. */
+    .apple-menu {
+      display: none;
+    }
+  }
   @media (max-width: 40rem) {
     /* On a phone the row takes short names so all four fit; the full name stays for screen readers. */
     .apple-menu-short {

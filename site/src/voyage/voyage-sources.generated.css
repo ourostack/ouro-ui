@@ -70,7 +70,9 @@
 @source not "../../../registry/ouro/source-rules";
 @source not "../../../registry/ouro/theme";
 @source not "../ax/art/manifest.json";
+@source not "../components/docs-filter.tsx";
 @source not "../components/docs-header.tsx";
+@source not "../components/docs-sections.ts";
 @source not "../components/docs-shell.tsx";
 @source not "../components/docs-sidebar.tsx";
 @source not "../components/icons.tsx";

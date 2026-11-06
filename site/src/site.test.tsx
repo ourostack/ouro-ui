@@ -8,7 +8,7 @@ import { docsPages, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
-import { docsSections } from "./components/docs-sidebar";
+import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";

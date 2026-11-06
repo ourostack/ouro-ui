@@ -191,6 +191,31 @@ describe("Navbar", () => {
     await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
   });
 
+  it("shows the menu prop in the sheet in place of the links, and closes it when a link there is chosen", async () => {
+    await page.viewport(390, 844);
+    const { menuButton } = await render(
+      <Navbar
+        label="Main"
+        items={items}
+        menu={
+          <div>
+            <p>Recipes</p>
+            <a href="#new-recipe">New recipe</a>
+          </div>
+        }
+      />,
+    );
+    await userEvent.click(menuButton);
+    await sheetSettled();
+    const nav = page.getByRole("dialog").getByRole("navigation", { name: "Main" });
+    expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["New recipe"]);
+    await userEvent.click(nav.getByText("Recipes"));
+    await expect.element(page.getByRole("dialog")).toBeVisible();
+    await userEvent.click(nav.getByRole("link", { name: "New recipe" }));
+    await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
+    await expect.poll(() => document.activeElement).toBe(menuButton);
+  });
+
   it("returns focus to the menu button when the sheet closes with Escape", async () => {
     await page.viewport(390, 844);
     const { menuButton } = await render(<Navbar label="Main" items={items} />);

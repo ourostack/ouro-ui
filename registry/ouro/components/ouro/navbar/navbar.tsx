@@ -79,6 +79,15 @@ export interface NavbarProps {
    * @claim "The name of the button that" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > hides the menu button from 640px up)
    */
   menuLabel?: string | undefined;
+  /**
+   * What that sheet holds in place of the links, when a phone needs more than the bar, such as a
+   * section's own pages under its name, or a filter over a long list. It sits in the sheet's
+   * `nav`; mark the current page yourself (`aria-current="page"`). Choosing a link in it
+   * closes the sheet.
+   *
+   * @claim "Choosing a link in it closes the sheet." registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > shows the menu prop in the sheet in place of the links, and closes it when a link there is chosen)
+   */
+  menu?: ReactNode;
   /** The label of that sheet's close button. @default "Close" */
   closeLabel?: string | undefined;
   /** Layout only: margins, position (`sticky top-0`). Appearance classes warn in development. */
@@ -159,6 +168,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
     brand,
     actions,
     menuLabel = "Menu",
+    menu,
     closeLabel = "Close",
     className,
     ref,
@@ -230,7 +240,6 @@ export function Navbar(props: NavbarProps): JSX.Element {
         aria-current={link.current || link.href === marked ? "page" : undefined}
         data-ouro-control="navbar"
         data-ouro-part="sheet-link"
-        onClick={() => setOpen(false)}
         className={cn(link_, sheetLink)}
       >
         {link.label}
@@ -265,23 +274,31 @@ export function Navbar(props: NavbarProps): JSX.Element {
       </div>
       {actions !== undefined && <div className="ms-auto flex shrink-0 items-center gap-2">{actions}</div>}
       <SheetFrame title={menuLabel} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
-        <nav aria-label={label}>
-          <ul className={cn(list_, "flex-col gap-1")}>
-            {items.map((item, index) =>
-              item.links !== undefined ? (
-                <li key={index} className="grid gap-1 pt-3 first:pt-0">
-                  <p id={`${id}${index}`} className="m-0 px-3 py-1 text-xs leading-4 font-medium text-muted-foreground">
-                    {item.label}
-                  </p>
-                  <ul aria-labelledby={`${id}${index}`} className={cn(list_, "flex-col gap-1")}>
-                    {item.links.map(sheetLinkFor)}
-                  </ul>
-                </li>
-              ) : (
-                sheetLinkFor(item, index)
-              ),
-            )}
-          </ul>
+        <nav
+          aria-label={label}
+          // A link chosen in the sheet closes it: the items' links, and any in the menu prop.
+          onClick={(event) => {
+            if ((event.target as Element).closest("a[href]")) setOpen(false);
+          }}
+        >
+          {menu ?? (
+            <ul className={cn(list_, "flex-col gap-1")}>
+              {items.map((item, index) =>
+                item.links !== undefined ? (
+                  <li key={index} className="grid gap-1 pt-3 first:pt-0">
+                    <p id={`${id}${index}`} className="m-0 px-3 py-1 text-xs leading-4 font-medium text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <ul aria-labelledby={`${id}${index}`} className={cn(list_, "flex-col gap-1")}>
+                      {item.links.map(sheetLinkFor)}
+                    </ul>
+                  </li>
+                ) : (
+                  sheetLinkFor(item, index)
+                ),
+              )}
+            </ul>
+          )}
         </nav>
       </SheetFrame>
     </header>
