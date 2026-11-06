@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@2e167740521d1e6562c6630659e9d12d1c88aa42:brand/",
+  "origin": "ourostack/.github@9fed49b0c221d36d7b0f5061cf60ee1843572cfc:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -81,19 +81,19 @@
     },
     {
       "file": "phone/ouro-ui-apple-384.avif",
-      "sha256": "5e65b84a73f22873cb60f535f60a272d1cac6b17e0b1da61cc7085bc0aa715dc"
+      "sha256": "adea413798b30458d5b4aecccdb34939c9cae902d52ae51ff9bc598078e6fb7e"
     },
     {
       "file": "phone/ouro-ui-apple-384.webp",
-      "sha256": "0e21df77b35a44477d8b0052a7f30c8eb1863f6d54ef8458bb58172ae711e0af"
+      "sha256": "885aea1de98fe40895700319b3186d141f79286b69582a795bc0ac5ae716a5af"
     },
     {
       "file": "phone/ouro-ui-apple-768.avif",
-      "sha256": "39b610c568323c316268aadbe5e012b7c175aace8a68338b4c6e784ed1b4b75d"
+      "sha256": "3cebc1fc97fff31b1415b98d7c2625df02911a350bd919c42e7cee16298c50d9"
     },
     {
       "file": "phone/ouro-ui-apple-768.webp",
-      "sha256": "7816bfe06e28272fda8c771956ebeadeb4d46774021baa027113f4d76e0cfd47"
+      "sha256": "f99242314f945eaeac294523ef8da9bde5d6e3c20c6670ca3dfd1bdd8371e743"
     },
     {
       "file": "phone/ouro-ui-core-384.avif",
@@ -145,19 +145,19 @@
     },
     {
       "file": "phone/playwright-focus-proof-384.avif",
-      "sha256": "a16c382bfefa3f71c669cbfa89ee404a1f2e2af3df16bb951230c245e1de37ed"
+      "sha256": "3f2007a8f8839ef612fdbaf68454bcc6cca110f44efbfd6770e6468ad9d210ef"
     },
     {
       "file": "phone/playwright-focus-proof-384.webp",
-      "sha256": "f130fd676da3700456b29feef833c801d707d9ba6b22583827d593a723b6248c"
+      "sha256": "685adbd6fb2927f7afe99f40bbc5e56b93c745409efc87f32b4f743589fe9b9c"
     },
     {
       "file": "phone/playwright-focus-proof-768.avif",
-      "sha256": "9b4e7346699e5e0331fd1629a74fdb86910806e8f8f9740a1a9ea521167a2119"
+      "sha256": "81bcd58f21ccf9e5cbd4cf28bc5eaaf387ce7660b5103b232e9e11657291df3d"
     },
     {
       "file": "phone/playwright-focus-proof-768.webp",
-      "sha256": "0b562a44f2ccd1fbe12d2e8243658cdb09a2672fda3b6850fefc4714a3ca45d4"
+      "sha256": "b459a494a83de74a87b0e30d7c22b05b040d377d1408732d1a764e6c8ed4ddf6"
     },
     {
       "file": "scenes/ouro-hx-1536.avif",

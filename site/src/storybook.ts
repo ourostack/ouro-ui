@@ -41,7 +41,7 @@ export const SCENES: Record<SceneName, Scene> = {
     alt: "A little white robot leans over a phone, a tablet and a laptop on a garden bench, each showing the same green card with a switch, while Ouro smiles beside them.",
     sky: ["#fcbdac", "#f9bda6", "#f9b39e", "#fdc794", "#fde893"],
     height: 576,
-    phoneHeight: 576,
+    phoneHeight: 432,
     sun: [87, 11],
   },
   "ouro-ui-core": {
@@ -55,7 +55,7 @@ export const SCENES: Record<SceneName, Scene> = {
     alt: "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
     sky: ["#dac0c6", "#d1c5cf", "#d3ceda", "#f9cfb6", "#fbd6a7"],
     height: 576,
-    phoneHeight: 384,
+    phoneHeight: 320,
     sun: [87, 28],
   },
   "ouroboros-skills": {
