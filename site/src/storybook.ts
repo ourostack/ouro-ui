@@ -5,6 +5,8 @@
  * to it). Which page opens on which scene, and which card its link preview shows, is decided here.
  */
 
+import { claim } from "../../registry/ouro/lib/ouro/claims.ts";
+
 /** The scenes this site shows. */
 export type SceneName = "ouro-hx" | "ouro-ui-apple" | "ouro-ui-core" | "playwright-focus-proof" | "ouroboros-skills" | "ourostack";
 
@@ -91,7 +93,16 @@ export const CARDS: Record<string, Card> = {
   "/apple/ax/": { file: "apple-ax.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro AX for Apple", side: "left", width: 400 },
   "/apple/reins/": { file: "apple-reins.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro Reins", side: "left", width: 400 },
   "/apple/start/": { file: "apple-start.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Get started", side: "left", width: 400 },
-  "/docs/": { file: "docs.jpg", scene: "ouro-ui-core", kicker: "Ouro HX docs", title: "Every component, with a live demo to poke.", side: "left" },
+  "/docs/": {
+    file: "docs.jpg",
+    scene: "ouro-ui-core",
+    kicker: "Ouro HX docs",
+    title: claim("Every component, with a live demo to poke.", {
+      source: [{ file: "site/src/site.test.tsx" }, { file: "site/src/docs/demos.tsx" }],
+      verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" },
+    }),
+    side: "left",
+  },
 };
 
 /** The card a page's link preview shows: its own, or the docs card for every docs page (and the 404). */
