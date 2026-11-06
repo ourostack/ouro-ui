@@ -3146,6 +3146,20 @@ describe("MessageList switching conversations", () => {
     expect(mark().style.display).toBe("");
   });
 
+  it("does not read the content's height when a change at its end moves nothing and no floor is held", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} count={3} />);
+    await settle(list.scroller);
+    const content = list.scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const height = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get");
+    messagesOf(list.scroller).at(-1)!.append(document.createComment("nothing to see"));
+    await Promise.resolve();
+    await Promise.resolve();
+    const reads = height.mock.contexts.filter((on) => on === content).length;
+    height.mockRestore();
+    expect(reads).toBe(0);
+  });
+
   /** Scrolls the list up from its end by `by`, as a reader does, and waits for it to settle. */
   async function upBy(scroller: HTMLElement, by: number) {
     scroller.scrollTop -= by;
