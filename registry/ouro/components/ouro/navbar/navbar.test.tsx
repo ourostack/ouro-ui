@@ -219,6 +219,16 @@ describe("Navbar", () => {
     await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
   });
 
+  it("builds the sheet as soon as the browser says the page is idle, before the half second a browser without an idle callback waits", async () => {
+    // An idle callback that comes at once.
+    vi.stubGlobal("requestIdleCallback", (callback: () => void) => setTimeout(callback, 0));
+    vi.stubGlobal("cancelIdleCallback", (id: number) => clearTimeout(id));
+    await page.viewport(390, 844);
+    await render(<Navbar label="Main" items={items} />);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
+  });
+
   it("builds the sheet half a second in where the browser has no idle callback (Safari)", async () => {
     vi.stubGlobal("requestIdleCallback", undefined);
     await page.viewport(390, 844);
