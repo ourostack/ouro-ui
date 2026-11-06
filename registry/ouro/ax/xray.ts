@@ -14,6 +14,7 @@ import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "./claims
 import { isChecksReport, type ChecksReport } from "./checks.ts";
 import { isReservedPersonOnly, type UiEntry } from "./component.ts";
 import { devCommandIn, devCommandsIn, sourceCheckoutTexts } from "./dev-commands.ts";
+import { checkFailureCopyAllow, vagueFailureIn, vagueFailuresIn, type FailureCopyAllow } from "./precise-copy.ts";
 import { isGenericAudience, isOutcome, validateOutcome } from "./outcome.ts";
 import { hasAnsi, stripAnsi } from "./terminal.ts";
 import { isWait, validateWait } from "./wait.ts";
@@ -79,6 +80,7 @@ interface XrayOptions {
   inventory?: string | undefined;
   events?: string | undefined;
   commit?: string | undefined;
+  failureCopyAllow?: string | undefined;
   conformance: boolean;
   state: string[];
   volatile: string[];
@@ -487,6 +489,7 @@ interface Context {
   safety: Safety;
   inventory: Inventory | null;
   effects: { surface: string; note: string }[];
+  allow: FailureCopyAllow[];
 }
 
 /** Reads help JSON's commands: `usage` as a list or one line, with or without the tool's name in front. */
@@ -1194,6 +1197,30 @@ async function checkCli(ctx: Context) {
     if (!found.size) rec.add("cli.no-dev-commands", `all ${calls.length} calls`, "pass", "no developer command or repository path in help, errors, refusals or next steps");
   }
 
+  // No failure is vague: help in full, and of the rest what speaks to the agent or the person, as above, plus an Ouro
+  // AX answer's summary and its findings. A text the allow-list lets through passes with the entry's reason.
+  {
+    const found = new Map<string, string>();
+    const allowed = new Map<string, string>();
+    for (const c of calls) {
+      const isHelp = c.args[0] === "help" || c.args.includes("--help");
+      const j = parseJson(c.stdout);
+      const say = (where: string, phrase: string, text: string, entry: FailureCopyAllow | null) => {
+        if (entry) allowed.set(entry.match, entry.reason);
+        else if (!found.has(text)) found.set(text, `\`${clip(c.shown, 80)}\` ${where}: ${JSON.stringify(clip(text, 120))} says "${phrase}" and not what happened or why`);
+      };
+      if (j.ok) for (const f of vagueFailuresIn(j.value, { messagesOnly: !isHelp, allow: ctx.allow })) say(f.where, f.phrase, f.text, f.allowed);
+      const text = [c.stderr, ...(!j.ok && (isHelp || c.code !== 0) ? [c.stdout] : [])];
+      for (const line of lines(text.join("\n"))) {
+        const phrase = vagueFailureIn(line);
+        if (phrase) say("prints", phrase, line.trim(), ctx.allow.find((e) => line.includes(e.match)) ?? null);
+      }
+    }
+    for (const [text, note] of found) rec.add("copy.precise-failure", clip(text, 60), "fail", note);
+    for (const [match, reason] of allowed) rec.add("copy.precise-failure", clip(match, 60), "pass", `allowed: ${reason}`);
+    if (!found.size && !allowed.size) rec.add("copy.precise-failure", `all ${calls.length} calls`, "pass", "every failure in help, errors, refusals, outcomes and findings says what happened");
+  }
+
   // Across every call.
   const traced = calls.filter((c) => hasStack(c.stdout) || hasStack(c.stderr));
   if (traced.length) for (const c of traced) rec.add("cli.no-stack-trace", c.shown, "fail", clip(c.stderr.split("\n").slice(0, 3).join(" | ")));
@@ -1608,6 +1635,9 @@ Options:
   --state "<args>"       CLI args whose output is the state that must not change (repeat)
   --events "<args>"      CLI args that list the interface's work events, to validate
   --commit <sha>         the commit checked, recorded in the report
+  --failure-copy-allow <file>
+                         failure copy that is precise but holds a vague phrase, each with its reason:
+                         [{ "match": "<part of the text>", "reason": "<why it is precise>" }]
   --name <name>          the CLI's name in its messages (default: the command's file name)
   --volatile k,k         JSON keys to ignore when comparing state
   --sample k=v           a ref for <k> placeholders (repeat); others are harvested from reads
@@ -1620,7 +1650,7 @@ Exit codes: 0 no must claim fails (with --conformance: it conforms), 1 a must cl
 `;
 
 const FLAGS: Readonly<Record<string, boolean>> = Object.freeze({
-  "--cli": true, "--http": true, "--routes": true, "--mcp": true, "--name": true, "--env": true, "--guard": true, "--mock": true, "--home": true, "--inventory": true, "--events": true, "--commit": true,
+  "--cli": true, "--http": true, "--routes": true, "--mcp": true, "--name": true, "--env": true, "--guard": true, "--mock": true, "--home": true, "--inventory": true, "--events": true, "--commit": true, "--failure-copy-allow": true,
   "--state": true, "--volatile": true, "--sample": true, "--width": true, "--timeout": true, "--json": false, "--conformance": false, "--md": true, "--html": true, "--help": false,
 });
 
@@ -1656,6 +1686,7 @@ function parseArgs(argv: readonly string[]): XrayOptions {
       (a === "--env" ? o.env : o.samples)[v.slice(0, eq)] = v.slice(eq + 1);
     } else if (a === "--state") o.state.push(v);
     else if (a === "--volatile") o.volatile = v.split(",").filter(Boolean);
+    else if (a === "--failure-copy-allow") o.failureCopyAllow = v;
     else if (a === "--width" || a === "--timeout") {
       const n = Number(v);
       if (!Number.isFinite(n) || n <= 0) throw new UsageError(`${a} takes a positive number, not "${v}". Fix: ${a} ${a === "--width" ? 100 : 20000}.`);
@@ -1675,6 +1706,15 @@ function parseArgs(argv: readonly string[]): XrayOptions {
   return o;
 }
 
+/** The allow-list of precise failure copy, checked; a usage error names the file and its bad entries. */
+function readAllow(file: string): FailureCopyAllow[] {
+  try {
+    return checkFailureCopyAllow(JSON.parse(readFileSync(file, "utf8")));
+  } catch (e) {
+    throw new UsageError(`--failure-copy-allow ${file}: ${(e as Error).message}`);
+  }
+}
+
 /** Runs the X-ray: the guard, the safety proof, then the surfaces given; returns the report. */
 async function xray(opts: XrayOptions): Promise<Report> {
   const env = childEnv(opts);
@@ -1685,7 +1725,8 @@ async function xray(opts: XrayOptions): Promise<Report> {
     guardPassed = true;
   }
   const inventory = opts.inventory ? (JSON.parse(readFileSync(opts.inventory, "utf8")) as Inventory) : null;
-  const ctx: Context = { rec: new Recorder(), opts, env, safety: await checkSafety(opts, guardPassed), inventory, effects: [] };
+  const allow = opts.failureCopyAllow ? readAllow(opts.failureCopyAllow) : [];
+  const ctx: Context = { rec: new Recorder(), opts, env, safety: await checkSafety(opts, guardPassed), inventory, effects: [], allow };
   const target: Report["target"] = { commit: opts.commit ?? null };
   if (opts.cli) target.cli = await checkCli(ctx);
   if (opts.http) target.http = await checkHttp(ctx);

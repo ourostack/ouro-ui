@@ -21,7 +21,7 @@ export function VoyageFooter(): JSX.Element {
         <div className="grid gap-2">
           <p className="m-0">
             Ouro HX is part of Ouro UI, the interface family within{" "}
-            <a href="https://ouro.bot" className="text-foreground underline underline-offset-4">
+            <a href="https://ouroboros.bot/" className="text-foreground underline underline-offset-4">
               Ouro
             </a>
             . MIT license.

@@ -52,7 +52,7 @@ interface ExitTable {
 
 ### `FINDINGS_EXIT_CODE`
 
-The code a check or doctor tool declares beside the base codes: its checks ran and found a problem, with a fix beside it. A check that couldn't run is a crash and exits with the base `error` code instead, so an agent tells "the tool found something" from "the tool broke" by the code alone.
+The code a check or doctor tool declares beside the base codes: its checks ran and found a problem, with a fix beside it. A check that threw before finishing is a crash and exits with the base `error` code instead, so an agent tells "the tool found something" from "the tool broke" by the code alone.
 
 ```ts
 const FINDINGS_EXIT_CODE: ExitCode
