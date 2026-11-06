@@ -271,6 +271,8 @@ export interface SheetFrameProps {
   closeDisabled?: boolean | undefined;
   /** Keeps the closed sheet's content in the page, hidden, so an open only shows it (`Navbar` builds its sheet ahead of the press). */
   keepMounted?: boolean | undefined;
+  /** Called once an open or a close has finished, its slide included (`Navbar` builds its kept sheet afresh after a close). */
+  onOpenChangeComplete?: ((open: boolean) => void) | undefined;
 }
 
 /**
@@ -300,6 +302,7 @@ export function SheetFrame({
   finalFocus,
   closeDisabled,
   keepMounted,
+  onOpenChangeComplete,
 }: SheetFrameProps): JSX.Element {
   // A non-modal sheet keeps its header row, which its close button sits in, even with the title hidden.
   const showHeader = !hideTitle || description !== undefined || !modal;
@@ -311,6 +314,7 @@ export function SheetFrame({
       snapPoints={snapPoints}
       modal={modal}
       {...(open !== undefined ? { open, onOpenChange: (next: boolean) => onOpenChange!(next) } : {})}
+      {...(onOpenChangeComplete ? { onOpenChangeComplete } : {})}
     >
       {trigger !== undefined && <SheetTrigger render={trigger} />}
       <SheetPortal keepMounted={keepMounted}>

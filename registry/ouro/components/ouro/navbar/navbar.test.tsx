@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -206,8 +207,8 @@ describe("Navbar", () => {
     expect(popup()).toBe(built);
     await sheetSettled();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => popup()?.hidden).toBe(true);
-    expect(popup()).toBe(built);
+    // Kept, hidden, for the next press: built afresh once the close has finished.
+    await expect.poll(() => popup() !== built && popup()?.hidden).toBe(true);
   });
 
   it("builds the sheet when the menu button comes to show, on a window narrowed to a phone's", async () => {
@@ -250,6 +251,33 @@ describe("Navbar", () => {
       expect(document.querySelector('[data-ouro="sheet"]')).toBeNull();
     });
   }
+
+  it("opens afresh after each close: the menu prop's state and the sheet's scroll as the first open had them", async () => {
+    function Filter() {
+      const [text, setText] = useState("");
+      return (
+        <>
+          <input aria-label="Filter" value={text} onChange={(event) => setText(event.currentTarget.value)} />
+          <div style={{ height: 3000 }} />
+        </>
+      );
+    }
+    await page.viewport(390, 844);
+    await render(<Navbar label="Main" items={items} menu={<Filter />} />);
+    // The sheet built and kept before the first press, as on a page that has been idle.
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden, { timeout: 2000 }).toBe(true);
+    const button = page.getByRole("button", { name: "Menu", exact: true });
+    await userEvent.click(button);
+    await userEvent.fill(page.getByRole("textbox", { name: "Filter" }), "rec");
+    const body = () => document.querySelector<HTMLElement>("[data-ouro-sheet-content]")!;
+    await expect.poll(() => body().scrollHeight > body().clientHeight).toBe(true);
+    body().scrollTop = 400;
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
+    await userEvent.click(button);
+    await expect.element(page.getByRole("textbox", { name: "Filter" })).toHaveValue("");
+    expect(body().scrollTop).toBe(0);
+  });
 
   it("builds no sheet where the links fit the bar", async () => {
     await page.viewport(1024, 768);

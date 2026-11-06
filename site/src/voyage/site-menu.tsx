@@ -160,12 +160,11 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
   const list = useRef<HTMLOListElement>(null);
   const id = useId();
   // Below the sheet's fold, the page you are on scrolls up into view each time the sheet opens, without moving the page
-  // behind. Kept between opens, the sheet keeps where it was scrolled, so each open starts again from its top.
+  // behind. Navbar builds its kept sheet afresh after each close, so each open starts from the sheet's top.
   const frame = useRef(0);
   useSheetShown(list, (on) => {
     cancelAnimationFrame(frame.current);
     if (!on) return;
-    let fresh = false;
     // True once there is nothing to do: no mark, or the mark in view. Until the sheet has its height nothing in it
     // scrolls, so it tries again on the next frames.
     const reveal = (): boolean => {
@@ -179,10 +178,6 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
       if (!scroller || scroller === document.scrollingElement || scroller === document.body) {
         const spot = link.getBoundingClientRect();
         return spot.height > 0 && spot.top >= 0 && spot.bottom <= innerHeight;
-      }
-      if (!fresh) {
-        fresh = true;
-        scroller.scrollTop = 0;
       }
       const box = scroller.getBoundingClientRect();
       const spot = link.getBoundingClientRect();

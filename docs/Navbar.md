@@ -46,7 +46,7 @@ Type: `NavbarProps`.
 | `currentPath` | `string` |  | The path of the page being shown, from your router (`useLocation().pathname`, or `usePathname()` in Next.js). The link to that path, or else the longest link above it (`/recipes` for `/recipes/12`), gets `aria-current="page"` and the current look. |
 | `items` (required) | `readonly NavbarItem[]` |  | The links, in order, and groups of links (`{ label, links }`), which open a panel in the bar. When they do not fit, as on a phone, they move into a sheet. |
 | `label` (required) | `string` |  | Names the navigation for screen readers ("Main"). It is not shown. |
-| `menu` | `ReactNode` |  | What the sheet behind the menu button holds in place of the `items` links, when a phone needs more than the bar, such as a section's own pages under its name, or a filter over a long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`; mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the sheet. |
+| `menu` | `ReactNode` |  | What the sheet behind the menu button holds in place of the `items` links, when a phone needs more than the bar, such as a section's own pages under its name, or a filter over a long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`; mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the sheet. It mounts before the first press, hidden, while the page is idle, and mounts again once each close has finished, so each open starts with the state it first had. |
 | `menuLabel` | `string` | `"Menu"` | The name of the button that opens the links below 640px, and the title of the sheet it opens. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 

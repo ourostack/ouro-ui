@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type JSX, type KeyboardEve
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
 import { VoyageHeader } from "../voyage/header";
-import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu, useSheetShown } from "../voyage/site-menu";
+import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { comparisons, componentGroups, guides, helpers, isAxPart, startPages, type DocsLink } from "./docs-sections";
@@ -99,20 +99,15 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
   const results = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLDivElement>(null);
   const input = () => field.current?.querySelector("input") ?? null;
-  // The menu is kept between opens: each opens as the first did, the search empty and only the page's own list unfolded.
-  const [round, setRound] = useState(0);
-  useSheetShown(field, (on) => {
-    if (on) return;
-    setQuery("");
-    setRound((count) => count + 1);
-  });
   return (
     <>
-      {/* Stays at the top while the long lists scroll under it (-top-2: from the sheet body's edge, not its padding). */}
+      {/* Stays at the top while the long lists scroll under it (-top-2: from the sheet body's edge, not its padding). It
+          rests where it sticks, over the menu's top fade (-mt-4: the body's padding and the fade's room), so it holds
+          still under the thumb when a search scrolls the list back to its top. */}
       <div
         ref={field}
         data-site-menu-pinned=""
-        className="sticky -top-2 z-2 -mx-5 -mt-2 mb-2 bg-popover px-6 pt-2 pb-2"
+        className="sticky -top-2 z-2 -mx-5 -mt-4 mb-2 bg-popover px-6 pt-2 pb-2"
         style={{ boxShadow: "0 0.75rem 0.75rem -0.25rem var(--popover)" }}
       >
         <TextField
@@ -147,8 +142,6 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
         )
       ) : (
         <SiteMenu
-          // Built again once the sheet is hidden, so a list someone unfolded is folded again on the next open.
-          key={round}
           page={current}
           // Both docs sections list their pages, as the sidebar does on a wide screen, each list folded under its name.
           more={{

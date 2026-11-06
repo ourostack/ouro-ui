@@ -84,9 +84,12 @@ export interface NavbarProps {
    * needs more than the bar, such as a section's own pages under its name, or a filter over a
    * long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`;
    * mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the
-   * sheet.
+   * sheet. It mounts before the first press, hidden, while the page is idle, and mounts again
+   * once each close has finished, so each open starts with the state it first had.
    *
    * @claim "Choosing a link in it closes the sheet." registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > shows the menu prop in the sheet in place of the links, and closes it when a link there is chosen)
+   * @claim "It mounts before the first press" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens)
+   * @claim "so each open starts with the" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > opens afresh after each close: the menu prop's state and the sheet's scroll as the first open had them)
    */
   menu?: ReactNode;
   /** The label of that sheet's close button. @default "Close" */
@@ -213,8 +216,11 @@ export function Navbar(props: NavbarProps): JSX.Element {
   const list = useRef<HTMLUListElement>(null);
   if (!collapsed && open) setOpen(false);
   // Once the menu button shows, the sheet is built while the page is idle, so a press only shows it: building it then
-  // (a long menu is hundreds of elements) would hold up the press's first frame. Kept from then on, hidden while closed.
+  // (a long menu is hundreds of elements) would hold up the press's first frame. Kept from then on, hidden while closed,
+  // and built afresh once each close has finished, so every open starts as the first did: the `menu` prop's own state
+  // (a filter's text, a list unfolded) and the sheet's scroll left behind.
   const [built, setBuilt] = useState(false);
+  const [round, setRound] = useState(0);
   useEffect(() => {
     if (!collapsed || built) return;
     const build = () => setBuilt(true);
@@ -291,7 +297,13 @@ export function Navbar(props: NavbarProps): JSX.Element {
         <NavigationMenuView label={label} items={items} currentPath={currentPath} oneLine listRef={list} />
       </div>
       {actions !== undefined && <div className="ms-auto flex shrink-0 items-center gap-2">{actions}</div>}
-      <SheetFrame keepMounted={built} title={menuLabel} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
+      <SheetFrame
+        key={round}
+        onOpenChangeComplete={(shown) => {
+          if (!shown) setRound((count) => count + 1);
+        }}
+        keepMounted={built}
+        title={menuLabel} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
         <nav
           aria-label={label}
           // A link chosen in the sheet closes it: the items' links, and any in the menu prop. Not one opened elsewhere (a new

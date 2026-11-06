@@ -515,6 +515,19 @@ test("on a phone the menu, scrolled past the page you are on and a list unfolded
   expect(await body.evaluate((element) => element.scrollTop)).toBe(at);
 });
 
+test("on a phone the docs menu's search holds still as a search shortens the list, which takes it back to its top", async ({ page }) => {
+  await open(page, "docs/tooltip/");
+  await openMenu(page);
+  const body = sheet(page).locator("[data-ouro-sheet-content]");
+  const field = sheet(page).locator("[data-site-menu-pinned]");
+  // Opened at the page you are on, far down the list, so the search is stuck at the top.
+  expect(await body.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  const stuck = (await field.boundingBox())!.y;
+  await sheet(page).getByRole("searchbox", { name: "Find a page or component" }).fill("tool");
+  await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(0);
+  expect((await field.boundingBox())!.y).toBe(stuck);
+});
+
 test("on a phone the keyboard's Close takes the corner from the pointer's, never both at once", async ({ page }) => {
   await open(page, "ax/");
   await openMenu(page);
