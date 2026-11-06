@@ -816,8 +816,9 @@ jobs:
     # three with results cached under the same hash, five without, so a cold run's mutants spread
     # wider; none when no changed path is runtime source (scripts/mutation.mjs `mutates`: tests,
     # stories, the test kit, the site, scripts and docs give the shards nothing to mutate), and the
-    # mutation check passes without them. On any other run, three shards that each report nothing
-    # to mutate.
+    # mutation check passes without them. On any other run (merge queue, main, dispatch) none
+    # either: only a pull request's changed lines are mutated, and three container jobs that
+    # reported nothing to mutate held runners for nothing.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -877,7 +878,8 @@ jobs:
             [[ "$count" =~ ^[0-9]+$ ]] || { echo "::error::Could not plan the mutation shards (got '$count')."; exit 1; }
             echo "The changed lines' estimated work plans into $count shards."
           else
-            count=$min
+            echo "Not a pull request: only a pull request's changed lines are mutated, so no shard starts."
+            count=0
           fi
           echo "count=$count" >> "$GITHUB_OUTPUT"
           if [ "$count" = 0 ]; then
