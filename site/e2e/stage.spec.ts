@@ -371,11 +371,14 @@ test("the fish rest while the stage is off screen", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 600 });
   await open(page);
   const state = () => page.locator(".stage-band-sunlit .stage-drift").first().evaluate((element) => element.getAnimations()[0]?.playState);
-  expect(await state()).toBe("running");
+  // The page opens in Ouro's meadow, the porthole below it on a short screen: bring it up first.
+  const bringUp = () => page.evaluate(() => document.querySelector("[data-stage]")!.scrollIntoView({ block: "center", behavior: "instant" }));
+  await bringUp();
+  await expect.poll(state).toBe("running");
   await page.evaluate(() => window.scrollTo(0, document.querySelector("[data-stage]")!.getBoundingClientRect().bottom + window.scrollY + 40));
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-offscreen", "");
   await expect.poll(state).toBe("paused");
-  await page.evaluate(() => window.scrollTo(0, 0));
+  await bringUp();
   await expect.poll(state).toBe("running");
 });
 
