@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type JSX,
   type KeyboardEvent,
   type MouseEvent,
@@ -557,18 +556,8 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
  */
 type GlyphPriority = "high" | "low" | "saved";
 
-// Stryker disable next-line ArrowFunction: React takes an unsubscribe of undefined as none, and this store never changes.
-const noSubscription = () => () => {};
+/** Whether the browser asks to save data (Save-Data). */
 const savingData = () => Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
-/** Whether the browser asks to save data (Save-Data), read after hydration, so the server's HTML and the first render agree. */
-function useSaveData(): boolean {
-  return useSyncExternalStore(
-    noSubscription,
-    savingData,
-    // Stryker disable next-line ArrowFunction,BooleanLiteral: the server's snapshot is read only while rendering on the server and hydrating, which no browser test does; false keeps the server's HTML and the first render alike.
-    () => false,
-  );
-}
 type GlyphRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone, play?: boolean, priority?: GlyphPriority) => ReactNode;
 
 /** A catalogue's emoji as the panel holds it: its id as `emoji`, its tones' ids as its toned forms, and the item to draw. */
@@ -1124,7 +1113,8 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
 
   const { searching, sections, rows, total } = useSections(categories, frequent, query, labels, render);
-  const saving = useSaveData();
+  // Read as the panel mounts: it mounts only in the browser, as the picker opens, never on the server.
+  const [saving] = useState(savingData);
   // The app can take emoji away while the picker is open; the Tab stop stays on the last one.
   const active = Math.min(activeCell, total - 1);
   const itemAt = (index: number) => {
