@@ -1482,7 +1482,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
       // The mark holds the scroll height, so a committed change of the content's own height is looked for too.
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: a hold that finds nothing moved changes nothing, so asking more often, with or without a floor, only costs the read.
       const floorMoved = () => floor !== 0 && content.offsetHeight !== floor;
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
       if (pinned.current ? farthest() !== end || floorMoved() : touched) hold();
