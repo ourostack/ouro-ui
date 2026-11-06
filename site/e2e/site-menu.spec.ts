@@ -528,6 +528,31 @@ test("on a phone the docs menu's search holds still as a search shortens the lis
   expect((await field.boundingBox())!.y).toBe(stuck);
 });
 
+test("on a phone the docs menu's search starts each search at the top of what it found, and clearing it goes back to the page you are on", async ({ page }) => {
+  await open(page, "docs/button/");
+  await openMenu(page);
+  const body = sheet(page).locator("[data-ouro-sheet-content]");
+  const field = sheet(page).getByRole("searchbox", { name: "Find a page or component" });
+  const at = await body.evaluate((element) => element.scrollTop);
+  expect(at).toBeGreaterThan(0);
+  // A search that still scrolls: its first page found sits under the search, not above it.
+  await field.fill("to");
+  await expect.poll(() => body.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(0);
+  const first = sheet(page).locator("[data-ouro-sheet-content] a[href]").first();
+  const below = (await sheet(page).locator("[data-site-menu-pinned]").boundingBox())!;
+  expect((await first.boundingBox())!.y).toBeGreaterThanOrEqual(below.y + below.height - 1);
+  // Each way of clearing it goes back to where the menu opened.
+  for (const clear of [() => field.fill(""), () => field.press("Escape"), async () => { await field.focus(); for (let key = 0; key < 3; key += 1) await page.keyboard.press("Backspace"); }]) {
+    await field.fill("to");
+    await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(0);
+    await clear();
+    await expect(field).toHaveValue("");
+    await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(at);
+    await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
+  }
+});
+
 test("on a phone the keyboard's Close takes the corner from the pointer's, never both at once", async ({ page }) => {
   await open(page, "ax/");
   await openMenu(page);

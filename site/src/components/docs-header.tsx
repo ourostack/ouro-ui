@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type JSX, type KeyboardEvent } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type JSX, type KeyboardEvent } from "react";
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
 import { VoyageHeader } from "../voyage/header";
@@ -99,6 +99,13 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
   const results = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLDivElement>(null);
   const input = () => field.current?.querySelector("input") ?? null;
+  // Each search starts at the top of what it found, before it is drawn. Clearing it brings the menu back, which lands
+  // at the page you are on as an open does (SiteMenu).
+  useLayoutEffect(() => {
+    if (query === "") return;
+    const body = field.current?.closest<HTMLElement>("[data-ouro-sheet-content]");
+    if (body) body.scrollTop = 0;
+  }, [query]);
   return (
     <>
       {/* Stays at the top while the long lists scroll under it (-top-2: from the sheet body's edge, not its padding). It

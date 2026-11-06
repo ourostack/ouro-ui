@@ -180,6 +180,9 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
         const spot = link.getBoundingClientRect();
         return spot.height > 0 && spot.top >= 0 && spot.bottom <= innerHeight;
       }
+      // From the top each time, so the menu lands at the same place whatever it was scrolled to: on each open, and when
+      // the docs' search clears and brings the menu back.
+      scroller.scrollTop = 0;
       const box = scroller.getBoundingClientRect();
       const spot = link.getBoundingClientRect();
       // What stays pinned at the top of the sheet (the docs' search) covers the rows under it.
