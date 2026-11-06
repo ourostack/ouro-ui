@@ -175,5 +175,7 @@ export const RepaintIsland = island("themes", () => import("../repaint").then((m
 /** The Ouro UI for Apple pages (apple/): each page's body is an island, so its clips, twins and X-ray load only on it. */
 export const AppleHomeIsland = island("apple-home", () => import("../../apple/home"));
 export const AppleHxIsland = island("apple-hx", () => import("../../apple/hx"));
+export const AppleFeelIsland = island("apple-feel", () => import("../../apple/feel"));
 export const AppleAxIsland = island("apple-ax", () => import("../../apple/ax"));
+export const AppleReinsIsland = island("apple-reins", () => import("../../apple/reins"));
 export const AppleStartIsland = island("apple-start", () => import("../../apple/start"));

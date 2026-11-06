@@ -69,6 +69,10 @@
 @source not "../../../registry/ouro/images";
 @source not "../../../registry/ouro/source-rules";
 @source not "../../../registry/ouro/theme";
+@source not "../apple/evidence/gatefold-8ce5611-fail.txt";
+@source not "../apple/evidence/gatefold-bd9356e-pass.txt";
+@source not "../apple/evidence/reins-cli-run.ndjson";
+@source not "../apple/evidence/reins-xcuitest-timing.txt";
 @source not "../ax/art/manifest.json";
 @source not "../components/docs-header.tsx";
 @source not "../components/docs-shell.tsx";

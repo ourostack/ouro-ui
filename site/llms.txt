@@ -4,7 +4,7 @@
 
 Ouro HX is the component library within Ouro UI. Ouro AX, its counterpart for the interfaces agents use, is the other half (see "Ouro AX" below). The repository, @ouro namespace and install addresses are unchanged.
 
-Check what you build first: build your app, run node lib/ouro/check/check.ts <built folder> (from the ouro-check item: npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.4) and fix what it reports. It opens your pages at screen sizes from a phone to a wide desktop, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure.[^check] Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in ouro-check.json only where your design or the request sets it, and don't cap text width just to quiet the check. Guide: https://ui.ouro.bot/docs/guardrails.md
+Check what you build first: build your app, run node lib/ouro/check/check.ts <built folder> (from the ouro-check item: npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.5) and fix what it reports. It opens your pages at screen sizes from a phone to a wide desktop, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure.[^check] Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in ouro-check.json only where your design or the request sets it, and don't cap text width just to quiet the check. Guide: https://ui.ouro.bot/docs/guardrails.md
 
 ## Install
 
@@ -12,22 +12,22 @@ In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest search 'ourostack/ouro-ui#v1.3.4'      # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.4'  # read one item
+npx shadcn@latest search 'ourostack/ouro-ui#v1.3.5'      # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.5'  # read one item
 # Once per app, before the first component: the tokens every component needs.
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.4
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.4     # install a component
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.5
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.5     # install a component
 ```
 
 - Add ouro-base once, before the first component. No component installs it, so no later add changes the app's stylesheet (in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.7.0] Without it, overlays have no backdrop or motion and fields no border, and in development the first component to mount logs the command to run.[^theme-check]
 
 - A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6) before init: shadcn reads the root file, and tsc -b builds the app one.[^vite-app]
 - --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
-- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.3.4, github: and /tree/ URLs do not work.
-- A release tag (#v1.3.4) installs the item and every Ouro dependency at that tag.[^release-pins] Every install needs a release tag or @ouro: main has no registry.json, so an address without a ref fails with "did not return a root registry.json file".[^main-no-registry]
+- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.3.5, github: and /tree/ URLs do not work.
+- A release tag (#v1.3.5) installs the item and every Ouro dependency at that tag.[^release-pins] Every install needs a release tag or @ouro: main has no registry.json, so an address without a ref fails with "did not return a root registry.json file".[^main-no-registry]
 - Components land in components/ouro/<component>/ and the helpers they import in lib/ouro/, one file each.[^lands] Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.[^not-ui]
-- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.4 ourostack/ouro-ui/dialog-tests#v1.3.4), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
-- The @ouro namespace serves the newest release (the same code as #v1.3.4)[^namespace]: add "registries": { "@ouro": "https://ui.ouro.bot/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
+- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.5 ourostack/ouro-ui/dialog-tests#v1.3.5), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
+- The @ouro namespace serves the newest release (the same code as #v1.3.5)[^namespace]: add "registries": { "@ouro": "https://ui.ouro.bot/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
 
 ## Ouro AX
 
@@ -38,11 +38,25 @@ Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, su
 - The evaluation gate: a claim is `must` only when an agent evaluation shows agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.4         # the kit and the X-ray, in lib/ouro/ax/
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.4   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.5         # the kit and the X-ray, in lib/ouro/ax/
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.5   # with their node:test tests
 ```
 
 The guide: https://ui.ouro.bot/docs/ax.md. A morning with an agent, with the kit's example tool running in your browser: https://ui.ouro.bot/ax/
+
+## Ouro UI for Apple
+
+Ouro HX and Ouro AX in Swift, for iPhone, iPad and Mac (ourostack/ouro-ui-apple): https://ui.ouro.bot/apple/. The section's checks ask the same app different questions:
+
+- The App Intents X-ray (claims held): reads a built app's App Intents from outside and checks them against Ouro AX for Apple's claims. https://ui.ouro.bot/apple/ax/
+- Ouro Reins (behaviour): an agent reads the app's screens as state and actions and drives it with `ls` and `do`, headless, from fixtures, with the network blocked. Spoonjoy's Kitchen-to-cook-mode journey ran in a median 18.7 ms this way against 16.7 s through XCUITest.[^reins-timing] The idea is Shopify's Reflex (https://shopify.engineering/reflex). https://ui.ouro.bot/apple/reins/
+- Ouro Feel (how it feels): checks jank genre by genre from a UI test: the way back, overlay dismissal, inside the window, tap landing (with an absolute bar for rapid double taps), double-draw, jump after landing, late or lingering chrome, snap with no transition, settle time and place stability.[^feel-genres] https://ui.ouro.bot/apple/feel/
+
+```swift
+.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.2.1")   // the foundations and the X-ray
+```
+
+Ouro Feel and Ouro Reins are on ouro-ui-apple's main branch and are not in a release yet; their guides are docs/ouro-feel/README.md and docs/ouro-reins/README.md in that repository.
 
 ## Items
 
@@ -79,3 +93,5 @@ The guide: https://ui.ouro.bot/docs/ax.md. A morning with an agent, with the kit
 [^docs-md]: test:scripts/links.test.mjs::every registry item has a docs page, and every docs file is published; test:scripts/registry.test.mjs::every item's docs message names a docs page the site publishes verify:testExists(scripts/links.test.mjs::every registry item has a docs page, and every docs file is published) verify:testExists(scripts/registry.test.mjs::every item's docs message names a docs page the site publishes)
 [^check]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups)
 [^long-lines]: test:scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements verify:testExists(scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements)
+[^reins-timing]: site/src/apple/evidence/reins-headless-timing.json verify:fileLine(site/src/apple/evidence/reins-headless-timing.json, /"medianMs": 18\.7,/) verify:fileLine(site/src/apple/evidence/reins-headless-timing.json, /"medianJourneyMs": 16677,/)
+[^feel-genres]: site/src/apple/feel-genres.json verify:count(site/src/apple/feel-genres.json#genres)=10

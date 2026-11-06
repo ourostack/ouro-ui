@@ -119,12 +119,27 @@ export interface MessageListOwnProps {
    * conversation opens and redraws in about the time a screenful does. The browser's find in page, and
    * code that reads messages from the page, see only the messages drawn: search your own messages and
    * call `actionsRef.current.reveal(id)` to show a match. Set `false` to keep every message in the page.
+   * A list the reader scrolled up in that takes older and newer messages in one commit renders no more than 60 of the
+   * children it drew before, and the 20 newest, before it finds the view; scrolling up through rows never drawn moves
+   * what the reader looks at by under a pixel in every frame; and a list opens at its end with no frame moving it more
+   * than a pixel.
    * @default true
+   * @claim "renders no more than 60 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
+   * @claim "moves what the reader looks at by under a pixel" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px)
+   * @claim "opens at its end with no frame moving it more" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens a conversation of 300 rows of varied heights at its end, moving the view and the row at its top by no more than a pixel in any frame)
    * @claim "Above 60 children the list draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
    * @claim "Above 60 children the list draws" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /const OVERSCAN = 800;/) verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /Math\.max\(OVERSCAN, scroller\.clientHeight\)/)
    * @claim "Set `false` to keep every message" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps every message in the page with windowing={false})
    */
   windowing?: boolean | undefined;
+  /**
+   * A map the list writes the heights of its children into, under a child's key and the list's width in CSS pixels, rounded
+   * to a multiple of `BUCKET`, and reads before it measures. Keep one in your app, by conversation, and hand it to each list that shows the conversation:
+   * a list that mounts again with it is as tall, from its first commit, as the list before it was, so it opens
+   * with no row moving. Leave it out and the list keeps its own for as long as it lives.
+   * @claim "a list that mounts again with it is" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was)
+   */
+  heightCache?: Map<string, number> | undefined;
   /**
    * Gets the list's actions: `reveal(id)` brings a message into view, drawing it first if it is not
    * drawn, for a quote, a link to a message, or find in chat; `jumpToNewest()` goes to the end and
@@ -307,7 +322,17 @@ interface Measured {
   heights: ReadonlyMap<string, number>;
   gap: number;
   estimate: number;
+  /** The list's width, rounded to a multiple of BUCKET, the heights are of; null before it is measured. */
+  bucket: number | null;
 }
+
+/** The entry of a `heightCache` that holds the width the heights in it were last measured at. */
+// Stryker disable next-line StringLiteral: the entry only has to differ from the `<key>\0<width>` ones, as an empty string does.
+const CACHED_WIDTH = "\0width";
+/**
+ * The width, in CSS pixels, rounded to a multiple of this, that a height is cached for.
+ */
+const BUCKET = 8;
 /** A message to draw and bring into view: by key, the element with `id` in it or its first or last message, and whether to focus it. */
 interface Reach {
   key: string;
@@ -824,6 +849,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     springy = true,
     maxWidth,
     windowing = true,
+    heightCache,
     actionsRef,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -903,7 +929,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
   // no box, so the list's spacing and the continued messages' margins work as without one.
-  const [measured, setMeasured] = useState<Measured>({ heights: new Map(), gap: 16, estimate: ESTIMATE });
+  // The heights of every child measured, by key and width, kept for the life of the list or by the app (`heightCache`).
+  const [ownCache] = useState(() => new Map<string, number>());
+  const cache = heightCache ?? ownCache;
+  const [measured, setMeasured] = useState<Measured>(() => ({ heights: new Map(), gap: 16, estimate: ESTIMATE, bucket: cache.get(CACHED_WIDTH) ?? null }));
+  const cacheRef = useRef(cache);
+  useLayoutEffect(() => {
+    cacheRef.current = cache;
+  });
   // The children drawn around the view: the first and last, by key, as `<first>\0<last>`, so setting the same band again changes nothing.
   const [band, setBand] = useState<string | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
@@ -929,7 +962,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The key of the child focus was last in, kept drawn so focus stays as the reader scrolls away.
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const estimate = measured.estimate;
-  const sizeOf = (index: number) => measured.heights.get(keys[index]!) ?? estimate;
+  const sizeOf = (index: number) => measured.heights.get(keys[index]!) ?? cache.get(`${keys[index]!}\0${measured.bucket}`) ?? estimate;
   let draws: (index: number) => boolean = () => true;
   if (windowed) {
     const indexes = new Map(keys.map((key, index) => [key, index]));
@@ -942,9 +975,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line LogicalOperator,UnaryOperator: whatever range a band with a deleted edge draws, the window finds itself again before the browser draws.
       range = [indexes.get(from!) ?? last, indexes.get(to!) ?? -1];
     } else if (showJump && indexes.has(String(edge.drawn))) {
-      // A list the reader scrolled up in that grows long (older history loading above) draws what it drew whole once more,
-      // and finds its window from where those messages are, so the view stays where it is. One at its end opens at its end.
-      range = [indexes.get(String(edge.drawn))!, last];
+      // A list the reader scrolled up in that grows long (older history loading above, newer messages after) draws, to begin
+      // with, no more than the WINDOW_ABOVE children it drew whole, from the first of them: the rest, and what came with the
+      // page, is space. The window then finds itself from where those children are, before the browser draws, so the view
+      // stays where it is. One at its end opens at its end.
+      const from = indexes.get(String(edge.drawn))!;
+      range = [from, Math.min(last, from + WINDOW_ABOVE)];
     } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
     const kept = new Set<number | undefined>([last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)]);
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
@@ -1244,6 +1280,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (windowed && !scrolled) {
         const contentTop = content.getBoundingClientRect().top;
         let heights: Map<string, number> | undefined;
+        const rounded = Math.round(scroller.clientWidth / BUCKET);
+        // Stryker disable next-line ArithmeticOperator: the bucket only keys the cache, and any one number for each rounded width keys it alike.
+        const bucket = rounded * BUCKET;
+        cacheRef.current.set(CACHED_WIDTH, bucket);
+        // At a new width the heights are those of the old: the rows not drawn keep them as estimates until they draw.
+        if (measured.bucket !== bucket) heights = new Map(measured.heights);
         const found = new Map<string, { top: number; size: number }>();
         for (const slot of content.querySelectorAll(`:scope > [${SLOT}]`)) {
           const key = slot.getAttribute(SLOT)!;
@@ -1251,6 +1293,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // Only a child that draws a box has a place to find the others by.
           if (size > 0) found.set(key, { top: top - contentTop, size });
           counts.current.set(key, topItems(slot).length);
+          cacheRef.current.set(`${key}\0${bucket}`, size);
           if (measured.heights.get(key) !== size) (heights ??= new Map(measured.heights)).set(key, size);
         }
         tops.current = found;
@@ -1261,7 +1304,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           for (const key of heights.keys()) if (!present.has(key)) heights.delete(key);
           // A render follows at once, which comes back here with the space kept at its new size. The gap is 1rem, so it
           // changes only with the font size, which changes the heights too.
-          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate: measured.heights.size === 0 ? averageOf(heights) : measured.estimate });
+          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate: measured.heights.size === 0 ? averageOf(heights) : measured.estimate, bucket });
           return;
         }
         holdRef.current!();

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { resetRooms, rooms } from "@/registry/ouro/ax/example-cli";
-import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
+import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
 import { AX_SECTION } from "../copy";
 import mainReport from "../../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-main.json";
 import adoptionReport from "../../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.json";
@@ -12,6 +12,8 @@ import { cast, CAST } from "./cast";
 import { MORNING, MORNING_ART_ALT } from "./story";
 import { CHAT_TITLE, SPEAKERS } from "./parts";
 import transcripts from "./transcripts.json";
+
+await Promise.all([loadPageCode("/ax/"), loadPageCode("/")]);
 
 // Every source of the site's AX copy but the cast itself and this test, to hold the names to one file.
 const copySources = {

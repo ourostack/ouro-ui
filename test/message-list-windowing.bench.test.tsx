@@ -1,4 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
+import { type ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { server } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -121,5 +122,66 @@ describe("MessageList windowing benchmark", () => {
     expect(windowed.firstDraw).toBeLessThan(whole.firstDraw / 2);
     expect(windowed.redraw).toBeLessThan(whole.redraw / 2);
     expect(windowed.prependFrame).toBeLessThan(whole.prependFrame / 2);
+  });
+});
+
+/** How many times each row component rendered, by key, in the commits since it was last cleared. */
+const renders = new Map<number, number>();
+
+function Row({ id }: { id: number }) {
+  renders.set(id, (renders.get(id) ?? 0) + 1);
+  return (
+    <Message id={`r${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"}>
+      {`Row ${id}.${" A few more words, as people write.".repeat(((id % 4) + 4) % 4 * 3)}`}
+    </Message>
+  );
+}
+
+function Flat({ from, count }: { from: number; count: number }) {
+  const rows: ReactNode[] = Array.from({ length: count }, (_, offset) => <Row key={from + offset} id={from + offset} />);
+  return (
+    <MessageList label="Conversation" style={{ height: 700, width: 420 }}>
+      {rows}
+    </MessageList>
+  );
+}
+
+describe("MessageList older page", () => {
+  it("lands a page of 200 older rows above a scrolled-up reader as space, drawing and rendering only the band in that commit", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Flat from={0} count={500} />));
+    for (let wait = 0; wait < 5; wait++) await frame();
+    const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    await act(async () => void (scroller.scrollTop = scroller.scrollHeight / 2));
+    for (let wait = 0; wait < 8; wait++) await frame();
+    const band = host.querySelectorAll("[data-ouro-message-list-slot]").length;
+    renders.clear();
+    await act(async () => root.render(<Flat from={-200} count={700} />));
+    const slots = host.querySelectorAll("[data-ouro-message-list-slot]").length;
+    expect(slots).toBeLessThanOrEqual(band + 2);
+    expect(renders.size).toBeLessThanOrEqual(band + 2);
+    expect([...renders.keys()].some((id) => id < 0)).toBe(false);
+  });
+
+  it("renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Flat from={0} count={40} />));
+    for (let wait = 0; wait < 5; wait++) await frame();
+    const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    await act(async () => void (scroller.scrollTop = 200));
+    for (let wait = 0; wait < 5; wait++) await frame();
+    renders.clear();
+    await act(async () => root.render(<Flat from={-200} count={600} />));
+    expect(host.querySelectorAll("[data-ouro-message-list-slot]").length).toBeLessThanOrEqual(81);
+    // Those, and the band the window then finds for the view: a fifth of the 560 rows the list would draw whole.
+    expect(renders.size).toBeLessThanOrEqual(120);
   });
 });
