@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@02dde5515f14b71afecb3f6a12d47f7662130ccf:brand/",
+  "origin": "ourostack/.github@be512b2afe3b230fcdb7b4893cbf10835af85726:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -81,35 +81,35 @@
     },
     {
       "file": "phone/ouro-ui-apple-384.avif",
-      "sha256": "63eca1f2c40bca8f5f87c0ac7f388a9010e676bc8024ceb50c830510b701a3b2"
+      "sha256": "5e65b84a73f22873cb60f535f60a272d1cac6b17e0b1da61cc7085bc0aa715dc"
     },
     {
       "file": "phone/ouro-ui-apple-384.webp",
-      "sha256": "49e2bb372bb465356c20ae9ae1394655f0d4925a40d3cf5e23d7c806477ace6a"
+      "sha256": "0e21df77b35a44477d8b0052a7f30c8eb1863f6d54ef8458bb58172ae711e0af"
     },
     {
       "file": "phone/ouro-ui-apple-768.avif",
-      "sha256": "bc148a421c3eaa694d84012701042aee2d304e3e71bb2b20ee58753c4daeef98"
+      "sha256": "39b610c568323c316268aadbe5e012b7c175aace8a68338b4c6e784ed1b4b75d"
     },
     {
       "file": "phone/ouro-ui-apple-768.webp",
-      "sha256": "364714c9572db7d9328245387a220a8c89966b3465fe7816472713d2e777e2b7"
+      "sha256": "7816bfe06e28272fda8c771956ebeadeb4d46774021baa027113f4d76e0cfd47"
     },
     {
       "file": "phone/ouro-ui-core-384.avif",
-      "sha256": "28bb833d80d7dbea4705c0f4904c08962ecd768ecbae24096542e101f420d5ed"
+      "sha256": "f12f390970168c5d659b3e9930dfb798a4116db718864d3bdb955c0061ba3d0d"
     },
     {
       "file": "phone/ouro-ui-core-384.webp",
-      "sha256": "3a162baf6a30dfa93c07cd78b49c6a9f58bed900df6c72a1c69ea0a3ee38e06e"
+      "sha256": "78d8351c6ee43713cd4ffc4d81d6845066f1497ebc2b1d9534c63ebee597ae76"
     },
     {
       "file": "phone/ouro-ui-core-768.avif",
-      "sha256": "4e6245e855dc97bcaaf7c45b4965073fc607dc200380b1e8470abfc90cb07bf8"
+      "sha256": "6a5085b10fb1ebb2e21fdf9e8c4ab2addc5aa7bf76462ef63652156bf98d0eaf"
     },
     {
       "file": "phone/ouro-ui-core-768.webp",
-      "sha256": "1e5f84bfa7ceffdfe4fd14a563e059f9631a63675d1be1ccc23fa02c1676158e"
+      "sha256": "1f28949b2b2d4a45e17b8bc5860171de6469ca2d34f391026958ad1f2265ba63"
     },
     {
       "file": "phone/ouroboros-skills-384.avif",
@@ -145,19 +145,19 @@
     },
     {
       "file": "phone/playwright-focus-proof-384.avif",
-      "sha256": "29b85be45c7041421791e4ec8dd11fba1d4ab030d75e7dce18fdfde19317b622"
+      "sha256": "3fc0c4e998425fa7447a117b720ec799402a9b7705f657785bae6d291e5b636f"
     },
     {
       "file": "phone/playwright-focus-proof-384.webp",
-      "sha256": "8439726a5f957655870bae005a3e1c1d4d1ca88d2590dcf3017fd96926e8426f"
+      "sha256": "c4fe120d50dd8473e0b2f7fb195a435c074d2cd96636498982a62644a114ce3b"
     },
     {
       "file": "phone/playwright-focus-proof-768.avif",
-      "sha256": "cb707b3a0e671dfbfd0e468dd6a11df43ea4df9e841dd907cb84a50e9141dcda"
+      "sha256": "9d198e12fbe464330a7eb7ca2fde7dec2e9ad583989988f9a51d7c77972c5ee7"
     },
     {
       "file": "phone/playwright-focus-proof-768.webp",
-      "sha256": "97c78091760daaccde5f2f768a0d867df6e5bc35b907bfe000364c48bca46e15"
+      "sha256": "910fa5992c80ccbbfdbae9ef8ee6707a16afac463bef2df15934956dc5cb7508"
     },
     {
       "file": "scenes/ouro-hx-1536.avif",
