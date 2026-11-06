@@ -1174,7 +1174,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const opening = fresh && track.held;
     if (opening) {
       // The other conversation draws from its newest, whatever of the one before was drawn.
-      // Stryker disable next-line ObjectLiteral: an empty edge has no drawn key, so the slice starts at the first child, as drawn: top does; the next frame's step sets it to the first child's key. The same rows draw either way.
+      // Stryker disable next-line ObjectLiteral: an empty edge has no drawn key, so the slice starts at the first child, as drawn: top does; the next frame's step sets it to the first child's key. The same rows draw either way; on a non-windowed list the empty edge makes the render near line 1020 call setEdge again, one extra render before the commit and no extra commit.
       setEdge({ first: top, drawn: top });
       setBand(null);
       // The next opens at its newest, with no jump to offer and no focus kept on a message of the one before.
@@ -1191,7 +1191,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Confirmed again by a new name or switch, and by any change under the same name but a wholesale one, which may be the
       // next conversation's messages come ahead of its name.
       confirmed:
-        // Stryker disable next-line ConditionalExpression,EqualityOperator: a new name comes only with no pending name, so the last clause confirms it as well; with no keys held, or none now, every key is a stranger or nothing changes, so the set kept is the one that would be read.
+        // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: not equivalent for the two LogicalOperator mutants; "confirms nothing for messages that come back to a list emptied under the same name" and "adopts a name that comes after its messages" (message-list.test.tsx) fail on both, but per-test coverage attributes this expression to other tests, so the shard never runs them. A new name comes only with no pending name, so the last clause confirms it as well; with no keys held, or none now, every key is a stranger or nothing changes, so the set kept is the one that would be read.
         named !== track.conversation || fresh || (pending === null && all.length > 0 && track.keys.size > 0 && !strangers(track.keys)) ? new Set(all.map(keyOf)) : track.confirmed,
       // Stryker disable next-line ConditionalExpression,EqualityOperator: a list that holds nothing is empty at its first commit, and its first messages open it either way.
       held: track.held || all.length > 0,
