@@ -3114,6 +3114,7 @@ describe("MessageList switching conversations", () => {
     await settle(list.scroller);
     const focused = list.host.querySelector<HTMLElement>(`[id="${all[3]!.id}"]`)!;
     focused.focus();
+    await settle(list.scroller);
     expect(document.activeElement).toBe(focused);
     await list.commit(<Switcher open="mara" keyed={false} named items={all.filter((_, at) => at !== 3)} />);
     await settle(list.scroller);
@@ -3283,6 +3284,31 @@ describe("MessageList switching conversations", () => {
     await list.commit(room("theo"));
     await settle(list.scroller);
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
+  it("does not hold the end again when a change at its end leaves the content as tall as the floor it holds", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} count={60} />);
+    await settle(list.scroller);
+    const held = vi.spyOn(window, "getComputedStyle");
+    messagesOf(list.scroller).at(-1)!.append(document.createComment("nothing to see"));
+    await Promise.resolve();
+    await Promise.resolve();
+    const holds = held.mock.calls.length;
+    held.mockRestore();
+    expect(holds).toBe(0);
+  });
+
+  it("moves focus to the message that came where the focused one was, its temporary key swapped for the server's", async () => {
+    const list = mount();
+    const all = conversation("mara", 8);
+    await list.commit(<Switcher open="mara" keyed={false} named items={all} />);
+    await settle(list.scroller);
+    list.host.querySelector<HTMLElement>(`[id="${all[3]!.id}"]`)!.focus();
+    await settle(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} named items={all.map((item, at) => (at === 3 ? { ...item, id: "mara-sent" } : item))} />);
+    await settle(list.scroller);
+    expect(document.activeElement?.id).toBe("mara-sent");
   });
 
   it("holds a floor in the layout under long content at its end, and lets it out of the layout when the content is short", async () => {

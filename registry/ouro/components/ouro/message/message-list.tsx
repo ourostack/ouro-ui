@@ -1886,8 +1886,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ArrayDeclaration: undefined and null are alike to every read of `focused`.
       if (waiting && changed && !switched.current) [focused, waiting] = [null, false];
       // In another conversation, focus goes to its Tab stop, below, without scrolling: no message is in the old one's place.
-      const refocus = focused?.isConnected === false && doc.activeElement === doc.body && switched.current;
-      if (focused?.isConnected === false && doc.activeElement === doc.body && !refocus) {
+      // Stryker disable next-line ConditionalExpression: a focus that went elsewhere is reported by a focus event, which clears `focused` before this runs, so a message that went with `focused` still set left focus on the body.
+      const onBody = doc.activeElement === doc.body;
+      const lost = focused?.isConnected === false && onBody;
+      const refocus = lost && switched.current;
+      if (lost && !refocus) {
         if (viewRef.current.keys.length === 0) {
           // With no message left, the focus waits for the next ones: another conversation's, say, after the list emptied.
           waiting = true;
@@ -1902,6 +1905,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const kept = new Set(lastKeys);
           // A child that came where the focused one was (its temporary key swapped for the server's) takes focus, not the one after it.
           const before = lastKeys!.slice(0, was).findLast((earlier) => present.has(earlier));
+          // Stryker disable next-line ConditionalExpression: with none before it, `indexOf(undefined)` is -1, which also gives the first.
           const next = keys[before === undefined ? 0 : keys.indexOf(before) + 1];
           const key = next !== undefined && !kept.has(next) ? next : (after ?? keys.at(-1));
           // Stryker disable next-line StringLiteral: any block but "center" or "start" scrolls only as far as it needs.
@@ -1979,6 +1983,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // Focus that lands anywhere outside the list lets go of a message that went: the reader has moved on.
     const elsewhere = (event: FocusEvent) => {
+      // Stryker disable next-line ArrayDeclaration: an empty pattern leaves both undefined, which every read of them treats as null and false.
       if (!scroller.contains(event.target as Node)) [focused, waiting] = [null, false];
     };
     const focusOut = (event: FocusEvent) => {
