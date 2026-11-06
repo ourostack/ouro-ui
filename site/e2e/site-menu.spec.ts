@@ -542,6 +542,12 @@ test("on a phone the docs menu's search starts each search at the top of what it
   const first = sheet(page).locator("[data-ouro-sheet-content] a[href]").first();
   const below = (await sheet(page).locator("[data-site-menu-pinned]").boundingBox())!;
   expect((await first.boundingBox())!.y).toBeGreaterThanOrEqual(below.y + below.height - 1);
+  // Clearing a search scrolled part way down its results, short of where the menu opened, goes back there too.
+  await field.fill("a");
+  await body.evaluate((element, to) => (element.scrollTop = to), at - 150);
+  await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(at - 150);
+  await field.fill("");
+  await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(at);
   // Each way of clearing it goes back to where the menu opened.
   for (const clear of [() => field.fill(""), () => field.press("Escape"), async () => { await field.focus(); for (let key = 0; key < 3; key += 1) await page.keyboard.press("Backspace"); }]) {
     await field.fill("to");

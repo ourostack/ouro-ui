@@ -584,8 +584,25 @@ test("the stage judges the screen only once the site menu over it has closed", a
   await page.waitForTimeout(8000);
   await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
   await page.keyboard.press("Escape");
-  // real clock: a beat after the menu closes, and then a second of frames.
-  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 15_000 });
+  // real clock: a beat after the menu closes, and then a second of frames. Until then, what the stage is waiting on.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const stage = document.querySelector("[data-stage]")!;
+          if (stage.hasAttribute("data-paced")) return "judged";
+          return JSON.stringify({
+            menuOpen: document.documentElement.hasAttribute("data-site-menu-open"),
+            offscreen: stage.hasAttribute("data-offscreen"),
+            hidden: document.hidden,
+            speed: document.querySelector(".stage-scene")?.getAttribute("data-speed"),
+            sheets: [...document.querySelectorAll<HTMLElement>('[data-ouro="sheet"]')].map((sheet) => (sheet.hidden ? "hidden" : "shown")),
+            scrollY: Math.round(scrollY),
+          });
+        }),
+      { timeout: 15_000 },
+    )
+    .toBe("judged");
   await expect(scene(page)).toHaveAttribute("data-speed", "stop");
 });
 

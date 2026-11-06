@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { startTransition, useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
@@ -224,7 +224,9 @@ export function Navbar(props: NavbarProps): JSX.Element {
   const [round, setRound] = useState(0);
   useEffect(() => {
     if (!collapsed || built) return;
-    const build = () => setBuilt(true);
+    // As a transition, which React renders in slices that leave the frames between them free: built in one go, a long
+    // menu held a frame past 100 ms on a slow screen. A press in the middle opens the sheet as it is.
+    const build = () => startTransition(() => setBuilt(true));
     // Where the browser has no idle callback (Safari), after the page's other start-up work.
     if (typeof requestIdleCallback !== "function") {
       const timer = setTimeout(build, 500);

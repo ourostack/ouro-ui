@@ -2,7 +2,7 @@ import { composeStories, setProjectAnnotations } from "@storybook/react";
 import type { ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { inject, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { openPopupSelector, popupTriggerSelector } from "@/registry/ouro/lib/ouro/testing/popups";
@@ -297,6 +297,23 @@ function clipped(element: HTMLElement): boolean {
 }
 
 /** Opens a trigger the way its only users do: focus, then Enter. */
+let clickId = 0;
+/**
+ * Clicks this element and no other. Clicking the element itself has vitest name it by a selector it makes up, which can match
+ * a hidden copy too (a menu button named "Menu" and the Navbar's sheet, built hidden ahead of the press and named "Menu" by
+ * its title): an id of its own for the click cannot.
+ */
+async function clickExactly(element: HTMLElement): Promise<void> {
+  clickId += 1;
+  const id = `ouro-opener-${clickId}`;
+  element.setAttribute("data-testid", id);
+  try {
+    await userEvent.click(page.getByTestId(id));
+  } finally {
+    element.removeAttribute("data-testid");
+  }
+}
+
 async function openFromKeyboard(element: HTMLElement): Promise<void> {
   element.focus();
   await userEvent.keyboard("{Enter}");
@@ -326,13 +343,13 @@ export function overlayOpeners(
       // A trigger that lets taps through until shown (a message's action bar on a touch screen) is opened from the keyboard too.
       clipped(element) || getComputedStyle(element).pointerEvents === "none"
         ? { name: accessibleName(element), open: () => openFromKeyboard(element) }
-        : { name: accessibleName(element), open: () => userEvent.click(element), element },
+        : { name: accessibleName(element), open: () => clickExactly(element), element },
     );
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {
     const button = roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>("button")]).find((item) => accessibleName(item) === label);
     if (!button) throw new Error(`${id}: no button named "${label}" (parameters.plainOpeners)`);
-    return { name: label, open: () => userEvent.click(button), element: button };
+    return { name: label, open: () => clickExactly(button), element: button };
   });
   const shortcut = parameters.openShortcut;
   return [...triggers, ...plain, ...(shortcut ? [{ name: shortcut, open: () => userEvent.keyboard(shortcut) }] : [])];
