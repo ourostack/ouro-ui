@@ -427,7 +427,7 @@ function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): 
   return isValidElement(child) ? child.key : null;
 }
 
-/** Each key's index, built when the keys change, not on every render: the keys are text, so they compare by what they say. */
+// Each key's index, rebuilt only when the keys change; the keys are text, so they compare by what they say.
 function useIndexByKey(keys: readonly string[]): Map<string, number> {
   // Joined by NUL, which no key holds.
   const text = keys.join("\0");
