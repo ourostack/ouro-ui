@@ -221,6 +221,7 @@ export function useRowHover<T>(
     const focusIn = (event: FocusEvent) => {
       if (held) return;
       const focused = rowOf(event.target);
+      // Stryker disable next-line ConditionalExpression: focused and row are null together, never one without the other (show always sets them as a pair), so forcing this true only skips the return when focused and row are both null, where the two branches below are a no-op anyway (via is null too, so neither show nor hide runs).
       if (focused !== null && focused === row) return;
       if (focused !== null && lastInput() === "keyboard") show(focused, "focus");
       else if (via === "focus") hide();
@@ -275,7 +276,7 @@ export function useRowHover<T>(
     const focused = rowOf(doc.activeElement);
     const under = pointerAt === null ? null : rowOf(doc.elementFromPoint(pointerAt.x, pointerAt.y));
     if (focused !== null && lastInput() === "keyboard") show(focused, "focus", false);
-    // Stryker disable next-line ConditionalExpression,StringLiteral,LogicalOperator: a touch's lingering hover is the tap handler's to decide; no browser test can make one before the layer arrives.
+    // Stryker disable next-line ConditionalExpression,StringLiteral,LogicalOperator: a touch's lingering hover is the tap handler's to decide; no browser test can make one before the layer arrives. Forcing the whole condition true calls show(null, "pointer", false) when under is null, which is a no-op: row and via are freshly null at the top of this effect, so show's own (next === row && to === via) guard already returns before anything happens.
     else if (under !== null && lastInput() !== "touch") show(under, "pointer", false);
 
     root.addEventListener("pointerover", over);
