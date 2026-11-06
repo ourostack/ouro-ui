@@ -950,6 +950,20 @@ describe("MessageList", () => {
     expect(tops()).toEqual(before);
   });
 
+  it("takes a text node put in a message for no move of the messages, and throws nothing", async () => {
+    const { scroller } = await render(<Chat items={history(20, 10)} />);
+    // Scrolled up, where the list holds the reader's place for a change that moves messages.
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    const errors: unknown[] = [];
+    const report = (event: ErrorEvent) => errors.push(event.error);
+    window.addEventListener("error", report);
+    await act(async () => void scroller.querySelector('[data-ouro="message"]')!.append(document.createTextNode(" more")));
+    await settle(scroller);
+    window.removeEventListener("error", report);
+    expect(errors).toEqual([]);
+  });
+
   it("keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view", async () => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} hasOlder />);
@@ -973,6 +987,35 @@ describe("MessageList", () => {
     await expect.poll(room).toBeNull();
     await settle(scroller);
     tops().forEach((top, index) => near(top, scrolled[index]!));
+  });
+
+  it("holds the reader's message still in every frame as the last older page comes and the room above it goes", async () => {
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} hasOlder />);
+    await settle(scroller);
+    // Scrolled back to the start, where the next page loads.
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    // Where the reader's message is in every frame, and how much the layout shifted (where the browser measures it).
+    let moved = 0;
+    let watching = true;
+    const frame = () => {
+      moved = Math.max(moved, Math.abs(reading.message.getBoundingClientRect().top - reading.top));
+      if (watching) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    const shifts: number[] = [];
+    const layout = new PerformanceObserver((list) => list.getEntries().forEach((entry) => shifts.push((entry as PerformanceEntry & { value: number }).value)));
+    if (PerformanceObserver.supportedEntryTypes.includes("layout-shift")) layout.observe({ type: "layout-shift" });
+    // The last page: nothing older, so the room goes once the list has kept the reader's place and it is out of view.
+    await rerender(<Chat items={[...history(10), ...items]} />);
+    await expect.poll(() => scroller.querySelector("[data-ouro-message-list-older-room]")).toBeNull();
+    await settle(scroller);
+    watching = false;
+    layout.disconnect();
+    expect(moved).toBeLessThanOrEqual(1);
+    expect(shifts.reduce((sum, shift) => sum + shift, 0)).toBeLessThan(0.001);
   });
 
   it("drops the room at once when hasOlder ends at the list's end or with the room out of view, and adds it without moving a message", async () => {
