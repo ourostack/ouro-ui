@@ -47,11 +47,29 @@
   .story-world-sky .site-hero-line-second {
     color: var(--story-ink-soft);
   }
-  .story-world-sky a {
+  .story-world-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
     color: var(--story-ink);
+    border-radius: 0.25rem;
     text-decoration-line: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.25em;
+  }
+  .story-world-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  @media (pointer: coarse) {
+    .story-world-link {
+      min-height: 2.75rem;
+    }
+  }
+  @media (hover: hover) {
+    .story-world-link:hover {
+      text-decoration-thickness: 2px;
+    }
   }
   :root:not(.dark) .story-world-sky :where(.site-h1, .story-world-line) {
     text-shadow: 0 1px 24px color-mix(in oklab, white 55%, transparent);

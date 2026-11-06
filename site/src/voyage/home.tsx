@@ -70,7 +70,7 @@ export function TwoShips(): JSX.Element {
             Ouro HX is one corner of Ouro's meadow. There's a desk, a toy factory and a picnic going on just over the hill.
           </p>
           <p className="mt-3 mb-0">
-            <a href={OURO_HOME} className="site-quiet-link font-medium">
+            <a href={OURO_HOME} className="story-world-link font-medium">
               Meet the neighbours
             </a>
           </p>
