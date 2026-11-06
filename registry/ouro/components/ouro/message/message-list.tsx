@@ -1175,7 +1175,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
     if (opening) {
       // The other conversation draws from its newest, whatever of the one before was drawn.
       setEdge({ first: top, drawn: top });
-      // Stryker disable next-line CallExpression: the switch's layout effect reopens the list in the same commit, and the window's sync sets the band from where the view is before the browser draws; no test reads the render between.
       setBand(null);
       // The next opens at its newest, with no jump to offer and no focus kept on a message of the one before.
       setFocusKey(null);

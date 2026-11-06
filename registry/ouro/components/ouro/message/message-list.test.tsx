@@ -3444,6 +3444,24 @@ describe("MessageList switching conversations", () => {
     expect(messagesOf(list.scroller)[0]!.id).toBe("theo-0");
   });
 
+  it("draws the next conversation from its newest in the commit of a switch from a scrolled-up band, whatever band the one before drew", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={conversation("mara", 300)} />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 30000);
+    const seen: HTMLElement[] = [];
+    const watch = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof HTMLElement) seen.push(...(node.matches('[data-ouro="message"]') ? [node] : node.querySelectorAll<HTMLElement>('[data-ouro="message"]')));
+    });
+    watch.observe(list.scroller, { childList: true, subtree: true });
+    await list.commit(<Switcher open="theo" keyed={false} named items={conversation("theo", 300)} />);
+    watch.disconnect();
+    const ids = seen.map((node) => node.id);
+    // Only the newest are mounted, none of the old band's range; the stale band (a mutant that keeps it) draws a narrower first window.
+    expect(ids.every((id) => id.startsWith("theo-") && Number(id.slice(5)) >= 250)).toBe(true);
+    expect(ids).toContain("theo-277");
+  });
+
   it("confirms what a change under the same name leaves, so a rename that changes nothing waits for the messages to follow", async () => {
     const list = mount();
     const all = conversation("ann", 90);
