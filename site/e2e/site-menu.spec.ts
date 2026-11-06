@@ -326,22 +326,34 @@ const FRAME_GAP_BUDGET = 100;
 for (const path of ["./", "docs/button/"]) {
   test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press, and draws its sheet within a budget of it`, async ({ page, browserName }) => {
     await open(page, path);
-    const longestGap = await page.evaluate(
-      () =>
-        new Promise<number>((resolve) => {
-          let last = 0;
-          let longest = 0;
-          const start = performance.now();
-          const tick = (now: number) => {
-            if (last) longest = Math.max(longest, now - last);
-            last = now;
-            if (now - start < 1500) requestAnimationFrame(tick);
-            else resolve(longest);
-          };
-          requestAnimationFrame(tick);
-        }),
-    );
-    expect(longestGap, "the longest gap between frames, in ms").toBeLessThan(FRAME_GAP_BUDGET);
+    const gaps = () =>
+      page.evaluate(
+        () =>
+          new Promise<number>((resolve) => {
+            let last = 0;
+            let longest = 0;
+            const start = performance.now();
+            const tick = (now: number) => {
+              if (last) longest = Math.max(longest, now - last);
+              last = now;
+              if (now - start < 1500) requestAnimationFrame(tick);
+              else resolve(longest);
+            };
+            requestAnimationFrame(tick);
+          }),
+      );
+    const longestGap = await gaps();
+    // Over budget: say whether the page's running animations are what holds the frames, by pausing them and reading again.
+    let without = "";
+    if (longestGap >= FRAME_GAP_BUDGET) {
+      const running = await page.evaluate(() => {
+        const list = document.getAnimations().filter((animation) => animation.playState === "running");
+        for (const animation of list) animation.pause();
+        return list.map((animation) => (animation as CSSAnimation).animationName ?? "?").join(", ");
+      });
+      without = ` (with its ${running.split(", ").length} running animations [${running}] paused: ${Math.round(await gaps())} ms)`;
+    }
+    expect(longestGap, `the longest gap between frames, in ms${without}`).toBeLessThan(FRAME_GAP_BUDGET);
     await page.evaluate(() => {
       const button = document.querySelector("header [data-ouro-navbar-menu]")!;
       const marks: Record<string, number> = {};
