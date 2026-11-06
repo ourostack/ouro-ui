@@ -191,6 +191,36 @@ describe("Navbar", () => {
     await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
   });
 
+  it("leaves the sheet open for a link opened elsewhere, with a modifier key held", async () => {
+    await page.viewport(390, 844);
+    const { menuButton } = await render(
+      <Navbar
+        label="Main"
+        items={items}
+        menu={
+          <div>
+            <a href="#elsewhere">Elsewhere</a>
+          </div>
+        }
+      />,
+    );
+    await userEvent.click(menuButton);
+    await sheetSettled();
+    const nav = page.getByRole("dialog").getByRole("navigation", { name: "Main" });
+    // The browser's own default (a new tab) is held back after the menu has seen the click, so the test page stays.
+    const hold = (event: Event) => event.preventDefault();
+    window.addEventListener("click", hold);
+    try {
+      for (const modifier of ["metaKey", "ctrlKey", "shiftKey", "altKey"] as const) {
+        nav.getByRole("link", { name: "Elsewhere" }).element().dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, [modifier]: true }));
+        await act(async () => {});
+        expect(menuButton.getAttribute("aria-expanded"), modifier).toBe("true");
+      }
+    } finally {
+      window.removeEventListener("click", hold);
+    }
+  });
+
   it("shows the menu prop in the sheet in place of the links, and closes it when a link there is chosen", async () => {
     await page.viewport(390, 844);
     const { menuButton } = await render(

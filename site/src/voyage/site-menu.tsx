@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, type JSX, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type JSX, type ReactNode } from "react";
 import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { APPLE_PAGES, GITHUB, href, normalizePath } from "../paths";
@@ -212,11 +212,17 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
  * close button, the header's `tools` its bar has no room for.
  */
 export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
-  // While the menu is up, the root says so, and the Nautilus's fish wait under it (stage.css).
-  useLayoutEffect(() => {
+  // While the menu is up, the root says so, and the Nautilus's fish wait under it (stage.css). From the frame after the
+  // sheet first draws, so the press's own frame does not also restyle the fish.
+  useEffect(() => {
     const root = document.documentElement;
-    root.setAttribute("data-site-menu-open", "");
-    return () => root.removeAttribute("data-site-menu-open");
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => root.setAttribute("data-site-menu-open", ""));
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      root.removeAttribute("data-site-menu-open");
+    };
   }, []);
   return (
     <>

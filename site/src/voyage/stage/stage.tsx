@@ -106,7 +106,8 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   // A screen too slow to swim the fish (frames over 100 ms apart, as on a machine drawing without its GPU) gets still water:
   // the speed goes to Stop, which its control shows, and Half or Full sets them swimming again. Moving fish there hold the
   // page between frames, so a press anywhere lands late. Judged once a visit, on the middle gap of a second of frames (so
-  // one long task is not a slow screen), while the stage is in view and the page is shown; a press on the speed first is
+  // one long task is not a slow screen), while the stage is in view, the page is shown and the site menu is closed (under
+  // it the fish wait, so its frames would not say how they swim); a press on the speed first is
   // the visitor's own choice, and it stands, as does any press on the stage once they are playing. The captain says why the
   // fish stopped. data-paced says it has been judged.
   const [paced, setPaced] = useState(false);
@@ -116,6 +117,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     let wait = 0;
     let deadline = 0;
     let starved = false;
+    const menuOpen = () => document.documentElement.hasAttribute("data-site-menu-open");
     const verdict = (slow: boolean) => {
       cancelAnimationFrame(frame);
       clearTimeout(deadline);
@@ -130,7 +132,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       let start = 0;
       let last = 0;
       const tick = (now: number) => {
-        if (document.hidden) return;
+        if (document.hidden || menuOpen()) return;
         if (last) gaps.push(now - last);
         else start = now;
         last = now;
@@ -141,7 +143,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       // No verdict 2 s after judging starts means the frames never came (under three, or a second's worth, in that
       // time). Twice running, the screen is slow, though it never gets to say so in frames; once could be one long task.
       deadline = window.setTimeout(() => {
-        if (document.hidden) return;
+        if (document.hidden || menuOpen()) return;
         cancelAnimationFrame(frame);
         if (starved) verdict(true);
         else {
@@ -150,18 +152,21 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
         }
       }, 2000);
     };
-    // A beat after the stage comes into view, or the page is shown again, so the page's own first work is not counted.
+    // A beat after the stage comes into view, the page is shown again or the menu closes, so the page's own first work is
+    // not counted.
     const soon = () => {
       clearTimeout(wait);
       clearTimeout(deadline);
       cancelAnimationFrame(frame);
       starved = false;
-      if (!document.hidden) wait = window.setTimeout(judge, 500);
+      if (!document.hidden && !menuOpen()) wait = window.setTimeout(judge, 500);
     };
     soon();
     const playing = () => setPaced(true);
     const element = root.current;
     document.addEventListener("visibilitychange", soon);
+    const menu = new MutationObserver(soon);
+    menu.observe(document.documentElement, { attributes: true, attributeFilter: ["data-site-menu-open"] });
     element?.addEventListener("pointerdown", playing, true);
     element?.addEventListener("keydown", playing, true);
     return () => {
@@ -169,6 +174,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       clearTimeout(deadline);
       cancelAnimationFrame(frame);
       document.removeEventListener("visibilitychange", soon);
+      menu.disconnect();
       element?.removeEventListener("pointerdown", playing, true);
       element?.removeEventListener("keydown", playing, true);
     };
