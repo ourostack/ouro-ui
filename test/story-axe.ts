@@ -86,7 +86,7 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
  * stays where the last story's overlay trigger left it, and WebKit sends a mouse move to whatever
  * mounts under it: TimeGrid's slot preview then shows in the "closed" scan.
  */
-async function parkPointer(): Promise<void> {
+export async function parkPointer(): Promise<void> {
   await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
 }
 
