@@ -365,9 +365,11 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   // The menu's code, once the bar first shows, so the menu then opens at once.
   const showing = slot !== null;
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: the layer mounts as the first row takes it, and the bar shows in that same commit or the next, so fetching a moment before it shows is the same fetch.
     if (showing) void loadMenu();
   }, [showing]);
   const close = (open: boolean) => {
+    // Stryker disable next-line ConditionalExpression: the menu is opened by show() and asks only to close.
     if (open) return;
     hover.hold(false);
     setOpened((previous) => previous && { ...previous, open: false });

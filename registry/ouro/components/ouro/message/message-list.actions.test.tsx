@@ -248,6 +248,43 @@ describe("MessageList actions", () => {
     expect(await open("nameless", "Message actions")).toEqual({ items: ["Copy link"], groups: 0, lines: 0 });
   });
 
+  it("opens no menu, and leaves the browser's own, on a message whose menu and reactions hold nothing", async () => {
+    const like = [{ key: "like", label: "Like", icon: "👍", onClick: () => {} }];
+    await render(
+      <MessageList label="Launch channel" style={{ height: 360 }}>
+        <Message id="none" variant="chat" role="assistant" name="Grace Hopper" actions={like}>
+          No menu at all
+        </Message>
+        <Message id="empty-menu" variant="chat" role="assistant" name="Ana Lind" actions={like} menu={[]}>
+          An empty menu
+        </Message>
+        <Message id="empty-reactions" variant="chat" role="assistant" name="Mara Quill" actions={like} quickReactions={[]}>
+          Empty reactions
+        </Message>
+        <Message id="both-empty" variant="chat" role="assistant" name="Priya Okafor" actions={like} menu={[]} quickReactions={[]}>
+          Both empty
+        </Message>
+        <Message id="entries" variant="chat" role="assistant" name="Jonah Vale" actions={like} menu={[{ label: "Copy link", onClick: () => {} }]}>
+          One entry
+        </Message>
+      </MessageList>,
+    );
+    const rightClick = async (id: string) => {
+      await ready(id);
+      const text = message(id).querySelector("[data-ouro-message-content]")!;
+      const box = text.getBoundingClientRect();
+      let taken = false;
+      await act(async () => void (taken = !text.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.x + 4, clientY: box.y + 4 }))));
+      return taken;
+    };
+    for (const id of ["none", "empty-menu", "empty-reactions", "both-empty"]) {
+      expect(await rightClick(id)).toBe(false);
+      expect(menus()).toHaveLength(0);
+    }
+    expect(await rightClick("entries")).toBe(true);
+    await expect.poll(() => menus()).toHaveLength(1);
+  });
+
   it("starts the bar on each message at its first button, whatever had focus in it on the message before", async () => {
     await render(<Channel count={3} />);
     const buttons = (id: string) => [...barIn(id)!.querySelectorAll<HTMLElement>("button")];
