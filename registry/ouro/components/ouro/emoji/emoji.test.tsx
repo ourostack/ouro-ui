@@ -3,7 +3,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
+import { Emoji, EmojiText, type EmojiCatalogue, type EmojiItem, type EmojiSkinTone, type EmojiProps, type EmojiTextProps } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { catalogueIndex, emojiTextToTokens, emojiToken, matchWords, searchCatalogue, splitEmojiText } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -371,6 +371,71 @@ describe("Emoji", () => {
   });
 });
 
+describe("Emoji's animation", () => {
+  /** Every address an image was given; nothing on the page shows an animation that is not playing, so one here was fetched ahead. */
+  const fetched = (sources: { mock: { calls: unknown[][] } }) => sources.mock.calls.map(([src]) => src);
+
+  it("is fetched once the still image has loaded, so the first play starts at once, the still showing until then", async () => {
+    await motion();
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
+    const stills = [party.src, blink.src, heart.src, wave.src, tones[2]!.src];
+    // What was fetched ahead: every address but the stills the page draws.
+    const ahead = () => fetched(sources).filter((src) => !stills.includes(src as string));
+    const drawn = (item: EmojiItem, skinTone?: EmojiSkinTone) => (
+      <p>
+        <Emoji item={party} /> <Emoji item={blink} /> <Emoji item={heart} /> <Emoji item={item} skinTone={skinTone} />
+      </p>
+    );
+    const { host, rerender } = await render(drawn(wave));
+    await expect.poll(() => ahead().sort()).toEqual([party.animatedSrc, blink.filmstrip!.src, wave.animatedSrc].sort());
+    expect(images(host).map((picture) => picture.getAttribute("src"))).toEqual([party.src, blink.src, heart.src, wave.src]);
+    // Another tone is another animation.
+    await rerender(drawn(wave, "medium"));
+    await expect.poll(ahead).toContain(tones[2]!.animatedSrc);
+  });
+
+  it("is fetched at low priority, and not for a still fetched at low priority or while the browser asks to save data", async () => {
+    await motion();
+    const priorities: string[] = [];
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set").mockImplementation(function (this: HTMLImageElement, src: string) {
+      if (src === party.animatedSrc) priorities.push(this.fetchPriority);
+      this.setAttribute("src", src);
+    });
+    await render(<Emoji item={party} fetchPriority="high" />);
+    await expect.poll(() => priorities).toEqual(["low"]);
+    const low = await render(<Emoji item={wave} fetchPriority="low" />);
+    await act(() => emoji(low.host).decode());
+    Object.defineProperty(navigator, "connection", { configurable: true, value: { saveData: true } });
+    onTestFinished(() => void Reflect.deleteProperty(navigator, "connection"));
+    const saving = await render(<Emoji item={blink} />);
+    await act(() => emoji(saving.host).decode());
+    expect(fetched(sources)).not.toContain(wave.animatedSrc);
+    expect(fetched(sources)).not.toContain(blink.filmstrip!.src);
+  });
+
+  it("is fetched in a browser that does not say whether to save data, as Safari and Firefox do not", async () => {
+    await motion();
+    Object.defineProperty(navigator, "connection", { configurable: true, value: undefined });
+    onTestFinished(() => void Reflect.deleteProperty(navigator, "connection"));
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
+    await render(<Emoji item={party} />);
+    await expect.poll(() => fetched(sources)).toContain(party.animatedSrc);
+  });
+
+  it("is not fetched under reduced motion, which plays nothing, or for a still that fails to load", async () => {
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
+    const { host, rerender } = await render(<Emoji item={party} />);
+    await act(() => emoji(host).decode());
+    expect(fetched(sources)).not.toContain(party.animatedSrc);
+    // Gone before motion is let through, which would let it play.
+    await rerender(null);
+    await motion();
+    const broken = await render(<Emoji item={{ id: "broken", name: "Broken", src: "data:image/png;base64,AAAA", animatedSrc: image("broken moving") }} />);
+    await act(() => emoji(broken.host).decode().catch(() => {}));
+    expect(fetched(sources)).not.toContain(image("broken moving"));
+  });
+});
+
 describe("Emoji placeholder", () => {
   const waitingSrc = image("waiting");
   /** The emoji's picture: the root's own `<img>`, named by the emoji. */
@@ -730,6 +795,35 @@ describe("EmojiText", () => {
     );
     expect(root().hasAttribute("data-enlarged")).toBe(false);
     expect(widths()).toEqual([20]);
+  });
+
+  it("keeps every line and every emoji where a loaded picture would, when its picture fails to load", async () => {
+    // The same text twice, one with every picture there and one with every picture missing: the browser draws a
+    // missing one's name in its place, which must not move the line it sits on, or the lines after it.
+    const missing: EmojiCatalogue = {
+      categories: [{ id: "symbols", label: "Symbols", items: [party, heart, fern].map((item, index) => ({ ...item, src: `/__ouro-missing-emoji-${index}.png`, srcSet: undefined })) }],
+    };
+    const text = "Shipped :party: the notes, :heart: thanks all :fern: see you";
+    const paragraph = (set: EmojiCatalogue) => (
+      <p style={{ width: 160, margin: 0, fontSize: 16, lineHeight: 1.5 }}>
+        <EmojiText text={text} catalogue={set} />
+      </p>
+    );
+    const { host } = await render(
+      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+        {paragraph(catalogue)}
+        {paragraph(missing)}
+      </div>,
+    );
+    const [loaded, failed] = [...host.querySelectorAll("p")];
+    await expect.poll(() => images(host).every((img) => img.complete)).toBe(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(images(failed!).map((img) => img.naturalWidth)).toEqual([0, 0, 0]);
+    const layout = (p: Element) => {
+      const top = p.getBoundingClientRect().top;
+      return { height: p.getBoundingClientRect().height, emoji: images(p).map((img) => Math.round(img.getBoundingClientRect().top - top)) };
+    };
+    expect(layout(failed!)).toEqual(layout(loaded!));
   });
 
   it("counts an emoji in two categories once, and keeps the span's attributes and layout classes", async () => {

@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, renderPage, setScheme } from "../../../test/render";
+import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import frameStyles from "./frame.css?inline";
 import chapterOneStyles from "./chapter-one.css?inline";
 import { allChapterThreeText, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "./chapter-three-copy";
+
+await loadPageCode("/nautilus/");
 
 // Chapter III (site-design.md, slice S3): its words read at grade 6 or under, it renders in the
 // page with each control marked, and the fight goes as the crew says: up, feathers, and the squid lets

@@ -1,1 +1,0 @@
-- Lightbox: pressing a thumbnail starts fetching its full image before the viewer opens, and the viewer fetches the image shown first (`fetchPriority="high"`), then the ones a step either side, then the rest (`fetchPriority="low"`).

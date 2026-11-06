@@ -223,6 +223,40 @@ describe("TextArea autoGrow", () => {
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
   });
 
+  it("measures once per change of its text, and not on a render that changes nothing it fits", async () => {
+    /** How many times the textarea's style was read: each fit reads it once, and lays out the page. */
+    const reads = (textarea: HTMLTextAreaElement) => {
+      const spy = vi.spyOn(window, "getComputedStyle");
+      return () => spy.mock.calls.filter(([element]) => element === textarea).length;
+    };
+    function Controlled({ tick }: { tick: number }) {
+      const [value, setValue] = useState("one");
+      return <TextArea label="Notes" autoGrow rows={1} maxRows={4} value={value} onValueChange={setValue} data-tick={tick} />;
+    }
+    for (const node of [(tick: number) => <Controlled tick={tick} />, (tick: number) => <TextArea label="Notes" autoGrow rows={1} maxRows={4} defaultValue="one" data-tick={tick} />]) {
+      const { textarea, rerender } = await render(node(0));
+      textarea.focus();
+      textarea.setSelectionRange(3, 3);
+      const count = reads(textarea);
+      await userEvent.keyboard("\n");
+      expect(count()).toBe(1);
+      // A parent's render, as a message arrives beside a composer.
+      await rerender(node(1));
+      expect(count()).toBe(1);
+      vi.restoreAllMocks();
+      expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 2), 0);
+      roots.pop()!.unmount();
+    }
+  });
+
+  it("refits when rows, maxRows or size change", async () => {
+    const { textarea, rerender } = await render(<TextArea label="Notes" autoGrow rows={1} maxRows={4} defaultValue="one" />);
+    await rerender(<TextArea label="Notes" autoGrow rows={3} maxRows={4} defaultValue="one" />);
+    expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+    await rerender(<TextArea label="Notes" autoGrow rows={3} maxRows={4} size="lg" defaultValue="one" />);
+    expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+  });
+
   it("refits when its width changes and the text rewraps", async () => {
     const { host, textarea } = await render(<TextArea label="Notes" autoGrow rows={1} defaultValue={"word ".repeat(30).trim()} />);
     const wide = height(textarea);

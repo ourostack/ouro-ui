@@ -135,7 +135,9 @@ export interface TextAreaOwnProps {
    * field's description. As the person types, pastes or undoes, the marks follow their
    * words: what the person types is never marked, an edit inside a mark splits it, and undo
    * brings back the marks the text had. Pass `[]` for none, rather than switching the prop
-   * off and on, which remounts the textarea.
+   * off and on, which remounts the textarea: with no marks the layer draws nothing and costs
+   * nothing as the person types.
+   * @claim "with no marks the layer draws nothing" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights' cost > copies nothing and draws no text with no marks, as the person types or the parent renders, and stays hidden)
    * @claim "Ranges of the text to mark in" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights > marks each range over its words, in a layer with the textarea's box and type, and lets the pointer through)
    * @claim "The marks wrap with the words" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights > wraps a mark with its words onto the next line)
    * @claim "The marks wrap with the words" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights layout > scrolls the marks with the text once autoGrow stops at maxRows)
@@ -282,9 +284,13 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   const highlighting = highlights !== undefined;
   const marked = useHighlights(textareaRef, highlights, rest.value, rest.defaultValue);
 
-  // With autoGrow, fit after every render (a controlled value, a prop change) and on every
-  // keystroke. Without it, measure nothing: the inline height is the user's resize handle.
-  // Turning autoGrow off once clears the height autoGrow set, so `rows` applies again.
+  // With autoGrow, fit once per change of the text and when a prop that sets the height changes:
+  // an uncontrolled field as the person types, a controlled one once its value arrives. A render
+  // that changes neither (a parent's, as a message arrives beside a composer) measures nothing,
+  // since each fit reads the textarea's style and lays out the page. Without autoGrow, measure
+  // nothing: the inline height is the user's resize handle. Turning autoGrow off once clears the
+  // height autoGrow set, so `rows` applies again.
+  const controlled = rest.value !== undefined;
   const grew = useRef(autoGrow);
   const fit = () => {
     const textarea = textareaRef.current!;
@@ -295,9 +301,10 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     }
     grew.current = autoGrow;
   };
-  useLayoutEffect(fit);
+  useLayoutEffect(fit, [autoGrow, rows, maxRows, size, variant, rest.value]);
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    if (autoGrow) fitHeight(event.currentTarget, rows, maxRows);
+    // A controlled field fits once its value arrives, in the effect above.
+    if (autoGrow && !controlled) fitHeight(event.currentTarget, rows, maxRows);
     // Without highlights there is nothing to move, so this only skips the work.
     // Stryker disable next-line ConditionalExpression: as above.
     if (highlights !== undefined) {
@@ -367,7 +374,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
             return (
               <div data-ouro-highlights="" className="relative min-w-0">
                 {textarea}
-                <HighlightLayer textareaRef={textareaRef} text={marked.text} highlights={marked.ranges} />
+                <HighlightLayer textareaRef={textareaRef} text={marked.text} highlights={marked.ranges} styleKey={`${size} ${variant}`} />
                 {marksDescription && (
                   <span id={descriptionId} hidden>
                     {marksDescription}
@@ -470,14 +477,32 @@ function syncLayer(textarea: HTMLTextAreaElement, layer: HTMLDivElement): void {
 /**
  * The marks, drawn over the textarea: the same text, transparent, with the marked runs
  * underlined in their tones. It is measured after mount, so the server writes it hidden.
+ *
+ * Copying the textarea's box and type reads its computed style and lays out the page, so it runs
+ * only when that can change: when marks appear, when a prop that styles the textarea changes
+ * (`styleKey`), when the textarea's size changes (a breakpoint's type, a scrollbar) and when it
+ * scrolls. Not as the person types: the layer's text changes with the textarea's, in the same
+ * box. With no marks it draws no text and copies nothing, and stays hidden.
+ *
+ * @claim "With no marks it draws no text" registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.highlights.test.tsx::TextArea highlights' cost > copies nothing and draws no text with no marks, as the person types or the parent renders, and stays hidden)
  */
-function HighlightLayer({ textareaRef, text, highlights }: { textareaRef: { current: HTMLTextAreaElement | null }; text: string; highlights: readonly TextAreaHighlight[] }): JSX.Element {
+function HighlightLayer({ textareaRef, text, highlights, styleKey }: { textareaRef: { current: HTMLTextAreaElement | null }; text: string; highlights: readonly TextAreaHighlight[]; styleKey: string }): JSX.Element {
   const layerRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => syncLayer(textareaRef.current!, layerRef.current!));
+  const marking = highlights.length > 0;
+  const live = useRef(marking);
+  useLayoutEffect(() => {
+    live.current = marking;
+    const layer = layerRef.current!;
+    if (marking) syncLayer(textareaRef.current!, layer);
+    // Without marks the class hides it again.
+    else layer.style.visibility = "";
+  }, [textareaRef, marking, styleKey]);
   useEffect(() => {
     const textarea = textareaRef.current!;
     const layer = layerRef.current!;
-    const sync = () => syncLayer(textarea, layer);
+    const sync = () => {
+      if (live.current) syncLayer(textarea, layer);
+    };
     textarea.addEventListener("scroll", sync);
     // The type can change with the size (a breakpoint's font size). As in autoGrow, the sync runs in the next frame, never inside the observer's callback.
     let frame = 0;
@@ -495,15 +520,16 @@ function HighlightLayer({ textareaRef, text, highlights }: { textareaRef: { curr
   return (
     <div ref={layerRef} aria-hidden="true" data-ouro-highlights-layer="" className={cn(highlightLayerClass, "invisible")}>
       <div>
-        {highlightRuns(text, highlights).map((run, index) => {
-          if (run.mark === undefined) return run.text;
-          const tone = highlightTone(highlights[run.mark]!);
-          return (
-            <span key={index} data-ouro-highlight={tone} className={cn("rounded-xs box-decoration-clone forced-colors:decoration-[CanvasText]", highlightTones[tone])}>
-              {run.text}
-            </span>
-          );
-        })}
+        {marking &&
+          highlightRuns(text, highlights).map((run, index) => {
+            if (run.mark === undefined) return run.text;
+            const tone = highlightTone(highlights[run.mark]!);
+            return (
+              <span key={index} data-ouro-highlight={tone} className={cn("rounded-xs box-decoration-clone forced-colors:decoration-[CanvasText]", highlightTones[tone])}>
+                {run.text}
+              </span>
+            );
+          })}
         {/* The textarea keeps a line under a last line break; so does the layer. */}
         {"\n\u200b"}
       </div>
