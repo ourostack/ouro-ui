@@ -686,7 +686,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   scroller.addEventListener("touchmove", onTouchMove, passive);
   scroller.addEventListener("keydown", onKey);
   scroller.addEventListener("focusin", onFocus);
-  // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change; removing them frees memory only.
+  // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change, and stop() rests every message first, so a scrollend left behind finds none moving and asks for no frame; removing them frees memory only.
   const forget = () => (observer.disconnect(), scroller.removeEventListener("scrollend", onScrollEnd), scroller.removeEventListener("touchstart", onTouchStart), scroller.removeEventListener("keydown", onKey), scroller.removeEventListener("focusin", onFocus));
   return {
     moved(by) {
@@ -699,7 +699,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
       scroller.removeEventListener("scroll", onScroll);
       scroller.removeEventListener("wheel", onWheel);
       scroller.removeEventListener("touchmove", onTouchMove);
-      // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change.
+      // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change, and with no message moving a scrollend asks for no frame.
       forget();
     },
   };
