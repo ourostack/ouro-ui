@@ -298,6 +298,7 @@ Components:
 `link`,
 `live-captions`,
 `local-date`,
+`media-tile`,
 `menu`,
 `message`,
 `message-list`,
@@ -573,6 +574,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
 - **LiveCaptions** — A caption band for a live call or video: what people are saying, as they say it. [Docs](docs/LiveCaptions.md)
+- **MediaTile** — A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen. [Docs](docs/MediaTile.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. [Docs](docs/Skeleton.md)
 
