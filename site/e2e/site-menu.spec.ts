@@ -315,18 +315,16 @@ test("on a phone the menu closes on a choice, and Back returns to the page with 
   await expect(menuButton(page)).toHaveAttribute("aria-expanded", "false");
 });
 
-// The page stays free to take a press, and the press answers within a budget. Two reads, because Playwright sends its press only once
-// the page is free: the longest gap between frames while the page sits for a second and a half (a stage that blocks the main thread
-// shows here), and the time from the press to the first frame that draws the sheet.
-// Measured locally (ouro-check notes in the desk): no frame gap over 50 ms on the home page with its stage running, even at 4x CPU
-// throttle; press to sheet Chromium 25 ms (95 ms at 4x), WebKit 95-110 ms, the same on a page with no stage and on the live site
-// before this change. That cost is the sheet's own open (one layout of the page and the sheet's first render).
-const PRESS_BUDGET = { chromium: 100, webkit: 200 } as Record<string, number>;
+// The page stays free to take the menu's press: the longest gap between frames while the page sits for a second and a
+// half. A stage that holds the main thread shows here (Playwright sends its press only once the page is free, so a press
+// alone would hide it). Measured on CI's WebKit, which draws without the GPU (PR #648, the desk's press-latency notes):
+// 300-445 ms with the porthole's glow blurred under the moving fish, 40 ms with the blur drawn as a gradient instead. How
+// soon the press then draws the sheet is the latency job's (site-menu.latency.spec.ts): there no other worker shares the CPU.
 const FRAME_GAP_BUDGET = 100;
 for (const path of ["./", "docs/button/"]) {
-  test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press, and draws its sheet within a budget of it`, async ({ page, browserName }) => {
+  test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press`, async ({ page }) => {
     await open(page, path);
-    const gaps = () =>
+    const longestGap = () =>
       page.evaluate(
         () =>
           new Promise<number>((resolve) => {
@@ -342,58 +340,21 @@ for (const path of ["./", "docs/button/"]) {
             requestAnimationFrame(tick);
           }),
       );
-    const longestGap = await gaps();
-    // Over budget: say what holds the frames, one change at a time, each undone before the next.
-    let without = "";
-    if (longestGap >= FRAME_GAP_BUDGET) {
-      const variants: Array<[string, string]> = [
-        ["no blur on the porthole's glow", ".stage-porthole::before{filter:none!important}"],
-        ["porthole without its own layer", ".stage-porthole{will-change:auto!important}"],
-        ["caustics paused", ".stage-caustics>svg{animation-play-state:paused!important}"],
-        ["drift paused", ".stage-drift{animation-play-state:paused!important}"],
-        ["stage contained", ".stage-scene{contain:strict!important}"],
-        ["art svgs hidden", ".stage-art{visibility:hidden!important}"],
-        ["glass layers hidden", ".stage-glass-layer{visibility:hidden!important}"],
-        ["all paused", "*{animation-play-state:paused!important}"],
-      ];
-      const reads: string[] = [];
-      for (const [name, css] of variants) {
-        await page.evaluate((text) => {
-          const style = document.createElement("style");
-          style.id = "diag";
-          style.textContent = text;
-          document.head.append(style);
-        }, css);
-        reads.push(`${name}: ${Math.round(await gaps())}`);
-        await page.evaluate(() => document.getElementById("diag")?.remove());
-      }
-      reads.push(`again: ${Math.round(await gaps())}`);
-      without = ` [${reads.join("; ")}]`;
+    const gap = await longestGap();
+    // Over budget: say whether the page's running animations are what holds the frames, by pausing them and reading again.
+    let paused = "";
+    if (gap >= FRAME_GAP_BUDGET) {
+      const names = await page.evaluate(() => {
+        const running = document.getAnimations().filter((animation) => animation.playState === "running");
+        for (const animation of running) animation.pause();
+        return running.map((animation) => (animation as CSSAnimation).animationName ?? "?");
+      });
+      paused = ` (with its ${names.length} running animations [${names.join(", ")}] paused: ${Math.round(await longestGap())} ms)`;
     }
-    expect.soft(longestGap, `the longest gap between frames, in ms${without}`).toBeLessThan(FRAME_GAP_BUDGET);
-    await page.evaluate(() => {
-      const button = document.querySelector("header [data-ouro-navbar-menu]")!;
-      const marks: Record<string, number> = {};
-      (window as unknown as { marks: Record<string, number> }).marks = marks;
-      button.addEventListener("pointerdown", (event) => (marks.press ??= event.timeStamp), { capture: true });
-      button.addEventListener("pointerup", (event) => (marks.up ??= event.timeStamp), { capture: true });
-      button.addEventListener("click", (event) => {
-        marks.click ??= event.timeStamp;
-        marks.handled ??= performance.now();
-      }, { capture: true });
-      new MutationObserver(() => {
-        if (document.querySelector("[role='dialog']")) marks.inserted ??= performance.now();
-      }).observe(document.body, { childList: true, subtree: true });
-      const frame = () => (document.querySelector("[role='dialog']") ? (marks.frame = performance.now()) : requestAnimationFrame(frame));
-      requestAnimationFrame(frame);
-    });
+    expect(gap, `the longest gap between frames, in ms${paused}`).toBeLessThan(FRAME_GAP_BUDGET);
     await menuButton(page).click({ timeout: 1000 });
     // real clock: the sheet stays open until it is closed; no timer ends it.
     await expect(sheet(page)).toBeVisible({ timeout: 1000 });
-    const { press, frame } = await page.evaluate(() => (window as unknown as { marks: Record<string, number> }).marks);
-    const all = await page.evaluate(() => (window as unknown as { marks: Record<string, number> }).marks);
-    const steps = Object.entries(all).map(([key, value]) => `${key} +${Math.round(value - all.press!)}`).join(", ");
-    expect(frame! - press!, `press to the sheet's first frame, in ms (${steps})`).toBeLessThan(PRESS_BUDGET[browserName] ?? 200);
   });
 }
 
@@ -495,17 +456,15 @@ test("on a phone choosing the page you are on closes the menu and stays put", as
   await open(page, "ax/");
   await page.mouse.wheel(0, 600);
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(300);
-  // The wheel's scroll, and the page's islands drawing above it, have come to rest: two reads agree.
-  let last = -1;
+  // The wheel's scroll, and the page's islands drawing above it, have come to rest: three reads in a row agree.
+  const reads: number[] = [];
   await expect
     .poll(async () => {
-      const now = await page.evaluate(() => scrollY);
-      const same = now === last;
-      last = now;
-      return same;
+      reads.push(await page.evaluate(() => scrollY));
+      return reads.length >= 3 && reads.slice(-3).every((read) => read === reads.at(-1));
     })
     .toBe(true);
-  const before = last;
+  const before = reads.at(-1)!;
   await openMenu(page);
   await sheet(page).locator('[aria-current="page"]').click();
   await expect(sheet(page)).toHaveCount(0);
