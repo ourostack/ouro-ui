@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -948,9 +948,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const estimate = measured.estimate;
   const sizeOf = (index: number) => measured.heights.get(keys[index]!) ?? cache.get(`${keys[index]!}\0${measured.bucket}`) ?? estimate;
+  // Each child's index by its key, built when the keys change, not on every render (the keys are text, so they compare by what they say).
+  const keysText = keys.join("\0");
+  const indexes = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keysText]);
   let draws: (index: number) => boolean = () => true;
   if (windowed) {
-    const indexes = new Map(keys.map((key, index) => [key, index]));
     const last = keys.length - 1;
     let range: readonly [number, number];
     if (band !== null) {
@@ -967,18 +969,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
     } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
-    const kept = new Set<number | undefined>([last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)]);
+    const kept: (number | undefined)[] = [last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)];
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!) ?? last;
     // Stryker disable next-line EqualityOperator: the newest is kept as the last child anyway.
-    for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.add(index);
-    for (const key of waitingKeys.split("\n")) kept.add(indexes.get(key));
+    for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.push(index);
+    for (const key of waitingKeys.split("\n")) kept.push(indexes.get(key));
     all.forEach((child, index) => {
       if (!isValidElement(child)) return;
       const props = child.props as { streaming?: unknown; "aria-busy"?: unknown };
-      if (props.streaming === true || props["aria-busy"] === true || props["aria-busy"] === "true") kept.add(index);
+      if (props.streaming === true || props["aria-busy"] === true || props["aria-busy"] === "true") kept.push(index);
     });
-    draws = (index) => (index >= range[0] && index <= range[1]) || kept.has(index);
+    draws = (index) => (index >= range[0] && index <= range[1]) || kept.includes(index);
   }
   // The slots, with space kept for each run of children not drawn: their heights and the gaps between them, less the gap the
   // list puts before the space itself.
