@@ -2713,3 +2713,101 @@ describe("MessageList when no message starts in view", () => {
     expect(Math.abs(next.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
 });
+
+describe("MessageList's place, to the pixel", () => {
+  // A row with a fractional height, as text, pictures and zoom make them, and the content the list reads.
+  const row = (id: number) => (
+    <article key={id} data-ouro-message-list-item="" data-role="assistant">
+      <span data-ouro-message-author="">Ouro</span>
+      <p data-ouro-message-content="" style={{ margin: 0, height: "30.3px" }}>{`Post ${id}`}</p>
+    </article>
+  );
+  const page = (from: number, count: number) => Array.from({ length: count }, (_, index) => row(from + index));
+
+  it("keeps the reader's place to a pixel while older posts go in above a row at a time, where the scroll position is in whole pixels", async () => {
+    const posts = page(1000, 80);
+    const { scroller, rerender } = await render(<MessageList label="Channel" style={{ height: 300 }}>{posts}</MessageList>);
+    scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const reader = [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-item]")].find((post) => post.getBoundingClientRect().top >= scroller.getBoundingClientRect().top)!;
+    const top = reader.getBoundingClientRect().top;
+    // Forty rows, one per update, as an app draws an older page over later frames.
+    for (let drawn = 1; drawn <= 40; drawn++) {
+      await rerender(
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {[...page(1000 - drawn, drawn), ...posts]}
+        </MessageList>,
+      );
+    }
+    await settle(scroller);
+    expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("does not carry a move the browser took later, as smooth scrolling does, so the list does not overshoot", async () => {
+    const posts = page(1000, 80);
+    const { scroller, rerender } = await render(<MessageList label="Channel" style={{ height: 300 }}>{posts}</MessageList>);
+    scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const reader = [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-item]")].find((post) => post.getBoundingClientRect().top >= scroller.getBoundingClientRect().top)!;
+    const top = reader.getBoundingClientRect().top;
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    // A write that reads back unchanged and lands a moment later, as an animated scroll does.
+    Object.defineProperty(scroller, "scrollTop", {
+      configurable: true,
+      get: () => own.get!.call(scroller),
+      set: (value: number) => {
+        setTimeout(() => own.set!.call(scroller, value), 60);
+      },
+    });
+    for (let drawn = 1; drawn <= 3; drawn++) {
+      await rerender(
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {[...page(1000 - drawn, drawn), ...posts]}
+        </MessageList>,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      scroller.dispatchEvent(new Event("scroll"));
+    }
+    delete (scroller as { scrollTop?: number }).scrollTop;
+    await settle(scroller);
+    expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  // What a correction the list's start stopped could not make is no debt: the next correction starts from the place the reader is at.
+  // The scroll position it is at, from the height of the first post that goes.
+  for (const [at, title] of [
+    [() => 3, "well short of the move"],
+    [(first: number) => first - 1, "a pixel short of the move"],
+  ] as const) {
+    it(`does not carry a move the start of the list stopped, ${title}, into the next correction`, async () => {
+      const first = (
+        <article key="first" data-ouro-message-list-item="" data-role="assistant">
+          <p data-ouro-message-content="" style={{ margin: 0, height: 2 }}>First</p>
+        </article>
+      );
+      const rest = page(1, 40);
+      const list = (posts: ReactNode[]) => (
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {posts}
+        </MessageList>
+      );
+      const { scroller, rerender } = await render(list([first, ...rest]));
+      const [before, reader] = scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-item]") as unknown as [HTMLElement, HTMLElement];
+      // How far the reader's post moves up when the first goes.
+      const moves = reader.getBoundingClientRect().top - before.getBoundingClientRect().top;
+      scroller.scrollTop = at(moves);
+      scroller.dispatchEvent(new Event("scroll"));
+      await settle(scroller);
+      // The first goes: the reader's post moves up by its height, and the scroll position can go up only by what it is at.
+      await rerender(list(rest));
+      await expect.poll(() => scroller.scrollTop).toBe(0);
+      const top = reader.getBoundingClientRect().top;
+      await rerender(list([first, ...rest]));
+      await settle(scroller);
+      // It comes back as the first does, so the reader's post is where it was, not short of it by what the first move missed.
+      expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThan(0.5);
+    });
+  }
+});
