@@ -16,6 +16,7 @@ const PAGES: ReadonlyArray<{ path: string; navs: string[] }> = [
   ...APPLE_PATHS.map((path) => ({ path: path.slice(1), navs: ["Footer"] })),
   { path: "docs/", navs: ["Footer"] },
   { path: "docs/installing/", navs: ["Footer"] },
+  { path: "docs/ax-cli/", navs: ["Footer"] },
   { path: "docs/button/", navs: ["Footer"] },
 ];
 
@@ -49,16 +50,17 @@ async function openers(page: Page, root: string): Promise<string[]> {
 /** Opens the menu and waits for it to slide into place. The docs' header is an island, so its button works once it has hydrated. */
 async function openMenu(page: Page): Promise<void> {
   await expect(async () => {
-    await menuButton(page).click();
+    // Once the sheet is open its backdrop covers the button, and a second press would close it.
+    if ((await menuButton(page).getAttribute("aria-expanded")) !== "true") await menuButton(page).click({ timeout: 1000 });
     // real clock: the menu stays open until it is closed; no timer ends it.
     await expect(sheet(page)).toBeVisible({ timeout: 1000 });
   }).toPass();
   await settled(page);
 }
 
-/** The sheet has finished moving: nothing animates on it, and two reads of its place agree. */
+/** The sheet has finished moving: nothing animates on it (the "you're here" ping inside may go on), and two reads of its place agree. */
 async function settled(page: Page): Promise<void> {
-  const place = () => sheet(page).evaluate((element) => (element.getAnimations({ subtree: true }).length > 0 ? "moving" : `${element.getBoundingClientRect().x}`));
+  const place = () => sheet(page).evaluate((element) => (element.getAnimations().length > 0 ? "moving" : `${element.getBoundingClientRect().x}`));
   let last = "";
   await expect
     .poll(async () => {
@@ -100,15 +102,35 @@ test("on a phone the menu lists each section's pages, the Apple pages from their
   await expect(sheet(page).getByRole("link", { name: "Ouro HX for Apple" })).toHaveAttribute("aria-current", "page");
 });
 
-test("on a docs page the menu holds every component, with the filter", async ({ page }) => {
+test("on a docs page the menu holds every component, with a search for any docs page", async ({ page }) => {
   await open(page, "docs/button/");
   await openMenu(page);
-  // Opening it does not put the keyboard up: focus starts on a link, not the filter.
+  // Opening it does not put the keyboard up: focus starts on the sheet, not the search.
   expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe("INPUT");
   await expect(sheet(page).getByRole("link", { name: "Button", exact: true })).toHaveAttribute("aria-current", "page");
-  await sheet(page).getByRole("searchbox", { name: "Filter components" }).fill("segmented");
-  await expect(sheet(page).getByRole("link", { name: "SegmentedControl" })).toBeVisible();
+  await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeAttached();
+  const search = sheet(page).getByRole("searchbox", { name: "Find a docs page" });
+  await search.fill("segmented");
+  await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Toggle", exact: true })).toHaveCount(0);
+  await search.fill("ax-cli");
+  await sheet(page).getByRole("link", { name: "ax-cli", exact: true }).click();
+  await expect(page).toHaveURL(/\/docs\/ax-cli\/$/);
+});
+
+test("on a guide's page the menu unfolds the guides, not every component", async ({ page }) => {
+  await open(page, "docs/theming/");
+  await openMenu(page);
+  await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toHaveCount(0);
+});
+
+test("on a phone the menu's close button closes it", async ({ page }) => {
+  await open(page, "ax/");
+  await openMenu(page);
+  await sheet(page).locator("[data-site-menu-close]").click();
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(menuButton(page)).toBeFocused();
 });
 
 test("on a phone the menu closes on a choice, and Back returns to the page with it closed", async ({ page }) => {
@@ -155,7 +177,7 @@ test("on a phone the open menu keeps focus inside it, both ways round", async ({
     await expect.poll(inside).toBe(true);
   }
   for (let step = 0; step < stops + 2; step += 1) {
-    await page.keyboard.press("Shift+Tab");
+    await pressTab(page, { shift: true });
     await expect.poll(inside).toBe(true);
   }
   await page.keyboard.press("Escape");

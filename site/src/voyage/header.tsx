@@ -22,7 +22,7 @@ import type { Mode } from "../themes/prepaint";
 import { ByPreset, choiceList, Swatch } from "./presets";
 import { useLiveClock, useSiteTheme } from "./theme-store";
 import { ThemeDots } from "./theme-dots";
-import { sectionHref, SITE_SECTIONS, SiteMenu } from "./site-menu";
+import { sectionHref, SITE_SECTIONS, SiteMenu, SiteMenuFrame } from "./site-menu";
 import { openXray, setXray, useXray } from "./xray-store";
 
 /** Follow the device, or pin Surfaced (light) or Submerged (dark): the SegmentedControl's three segments. */
@@ -171,17 +171,17 @@ const GUTTERS = {
  * The site's one header, on the voyage pages and the docs alike, built from Ouro HX: Navbar, Popover,
  * RadioGroup, SegmentedControl, Switch, Command and Kbd. `path` is the bar's current link; `page` is the
  * page itself, which the menu marks. Whenever the links do not fit, its one menu (site-menu.tsx) lists every
- * section with its pages; `more` adds to a section there.
+ * section with its pages; `menu` takes its place (the docs' own, with their pages and a search).
  */
 export function VoyageHeader({
   path,
   page = path,
-  more,
+  menu,
   gutters = "voyage",
 }: {
   path: string;
   page?: string;
-  more?: Readonly<Record<string, ReactNode>>;
+  menu?: ReactNode;
   gutters?: keyof typeof GUTTERS;
 }): JSX.Element {
   return (
@@ -202,7 +202,7 @@ export function VoyageHeader({
       // The brand is the way home, so the bar starts at the Nautilus.
       items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
       currentPath={href(path)}
-      menu={<SiteMenu page={page} more={more} />}
+      menu={<SiteMenuFrame>{menu ?? <SiteMenu page={page} />}</SiteMenuFrame>}
       actions={
         <>
           <ThemePicker />

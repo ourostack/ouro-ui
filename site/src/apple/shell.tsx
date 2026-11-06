@@ -1,7 +1,6 @@
 import { useEffect, useRef, type JSX, type ReactNode } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { href } from "../paths";
-import { APPLE_PAGES, type ApplePath } from "./pages";
+import { APPLE_PAGES, href, type ApplePath } from "../paths";
 import { Container } from "../voyage/layout";
 import "./apple.css";
 
@@ -10,7 +9,7 @@ import "./apple.css";
  * out openly with space and hairline rules; the only framed things are the captures, because they are screens.
  */
 
-export { APPLE_PAGES, type ApplePath } from "./pages";
+export { APPLE_PAGES, type ApplePath } from "../paths";
 
 /** The section's menu, under the site's header: where you are among the Apple pages. */
 export function AppleMenu({ current }: { current: ApplePath }): JSX.Element {

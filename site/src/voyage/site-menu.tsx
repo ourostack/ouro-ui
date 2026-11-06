@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, type JSX, type ReactNode } from "react";
+import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { APPLE_PAGES } from "../apple/pages";
-import { GITHUB, href, normalizePath } from "../paths";
+import { APPLE_PAGES, GITHUB, href, normalizePath } from "../paths";
 
 /*
  * The site's one menu, in the header's sheet whenever the bar's links do not fit: every section, a line on what is
@@ -85,13 +85,14 @@ function PageLink({ label, to, current }: { label: string; to: string; current: 
 
 /** A section's pages: a line down their start edge, like the hull's ribs. */
 export function MenuPages({ pages, current }: { pages: readonly MenuPage[]; current: string }): JSX.Element {
+  const id = useId();
   return (
     <ul className="m-0 ms-4 grid list-none gap-0.5 border-0 border-s border-solid border-border p-0 ps-2">
-      {pages.map((page) =>
+      {pages.map((page, index) =>
         "links" in page ? (
           <li key={page.label} className="grid gap-0.5 pt-2">
-            <p className="m-0 px-3 py-1 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase">{page.label}</p>
-            <ul className="m-0 grid list-none gap-0.5 p-0">
+            <p id={`${id}${index}`} className="m-0 px-3 py-1 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase">{page.label}</p>
+            <ul aria-labelledby={`${id}${index}`} className="m-0 grid list-none gap-0.5 p-0">
               {page.links.map((link) => (
                 <PageLink key={link.href} label={link.label} to={link.href} current={current} />
               ))}
@@ -160,5 +161,34 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
         );
       })}
     </ol>
+  );
+}
+
+/**
+ * Around the menu, in the sheet: a close button a thumb can see, beside the sheet's title (the sheet's own Close,
+ * which a keyboard and a screen reader reach, shows only on focus, so this one is for pointers and stays out of the
+ * tab order), and a fade under the title, so rows scroll away beneath it instead of being cut.
+ */
+export function SiteMenuFrame({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <>
+      <SheetClose
+        render={
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden="true"
+            data-site-menu-close=""
+            className="absolute end-3 top-2 z-2 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-foreground active:bg-accent"
+          />
+        }
+      >
+        <svg viewBox="0 0 16 16" fill="none" className="size-4">
+          <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </SheetClose>
+      <div aria-hidden="true" className="pointer-events-none sticky top-0 z-1 -mx-5 -mt-2 h-4 bg-linear-to-b from-popover to-transparent" />
+      {children}
+    </>
   );
 }

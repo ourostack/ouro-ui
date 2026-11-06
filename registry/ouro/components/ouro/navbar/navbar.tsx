@@ -80,10 +80,11 @@ export interface NavbarProps {
    */
   menuLabel?: string | undefined;
   /**
-   * What that sheet holds in place of the links, when a phone needs more than the bar, such as a
-   * section's own pages under its name, or a filter over a long list. It sits in the sheet's
-   * `nav`; mark the current page yourself (`aria-current="page"`). Choosing a link in it
-   * closes the sheet.
+   * What the sheet behind the menu button holds in place of the `items` links, when a phone
+   * needs more than the bar, such as a section's own pages under its name, or a filter over a
+   * long list. It replaces them, so include every link they had. It sits in the sheet's `nav`;
+   * mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the
+   * sheet.
    *
    * @claim "Choosing a link in it closes the sheet." registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > shows the menu prop in the sheet in place of the links, and closes it when a link there is chosen)
    */

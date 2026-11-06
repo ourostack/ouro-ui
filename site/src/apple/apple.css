@@ -34,7 +34,7 @@
   .apple-menu-short {
     display: none;
   }
-  @media (max-width: 39.99rem) {
+  @media (width < 40rem) {
     /* On a phone the header's one menu lists these pages under For Apple, so the row steps aside. */
     .apple-menu {
       display: none;
@@ -88,7 +88,7 @@
 
   /* Hero. */
   @media (max-width: 40rem) {
-    /* Room between the sub-nav and the eyebrow on a phone. */
+    /* Room between the header and the eyebrow on a phone. */
     .apple-hero {
       padding-top: calc(var(--spacing) * 10) !important;
     }

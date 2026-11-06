@@ -2,8 +2,8 @@ import { lazy, Suspense, useEffect, useState, type JSX } from "react";
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
 import { VoyageHeader } from "../voyage/header";
-import { MenuPages } from "../voyage/site-menu";
-import { DocsFilter } from "./docs-filter";
+import { MenuPages, SiteMenu } from "../voyage/site-menu";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { comparisons, componentGroups, guides, type DocsLink } from "./docs-sections";
 import { setXray, useXray } from "../voyage/xray-store";
 
@@ -34,35 +34,72 @@ export function headerPath(current: string): string {
 
 const asPage = ({ path, label }: DocsLink) => ({ label, href: path });
 
+/** The guides worth a row of their own: the rest, the Ouro AX reference pages titled by their names, the search finds. */
+const titled = guides.filter((guide) => guide.label !== guide.path.slice("/docs/".length, -1));
+
 /**
- * The docs' own pages in the header's menu, where the sidebar hides (below 640px): the guides under Docs, and every
- * component, with the sidebar's filter, under Components.
+ * The docs' menu: the site's, with the section you are in unfolded (every guide under Docs on a guide's page, every
+ * component under Components on a component's), and a search on top that finds any docs page by its name.
  */
-function DocsGuides({ current }: { current: string }): JSX.Element {
+function DocsMenu({ current }: { current: string }): JSX.Element {
+  const [query, setQuery] = useState("");
+  const under = headerPath(current);
+  const listed = titled.some((guide) => guide.path === current) ? titled : [...titled, ...guides.filter((guide) => guide.path === current)];
+  const found = findDocs(query);
   return (
-    <div className="sm:hidden">
-      <MenuPages
-        pages={[
-          { label: "Guides", links: guides.map(asPage) },
-          { label: "Skill comparisons", links: comparisons.map(asPage) },
-        ]}
-        current={current}
-      />
-    </div>
+    <>
+      <div className="mb-3 px-1">
+        <TextField
+          label="Find a docs page"
+          hideLabel
+          type="search"
+          clearable
+          placeholder="Find a component or guide"
+          value={query}
+          onChange={(event) => setQuery(event.currentTarget.value)}
+        />
+      </div>
+      {found ? (
+        found.length > 0 ? (
+          <MenuPages pages={found} current={current} />
+        ) : (
+          <p role="status" className="m-0 px-3 py-2 text-sm text-muted-foreground">
+            Nothing aboard by that name. Try another?
+          </p>
+        )
+      ) : (
+        <SiteMenu
+          page={current}
+          more={
+            under === "/docs/"
+              ? { Components: <MenuPages pages={componentGroups().map((group) => ({ label: group.label, links: group.links.map(asPage) }))} current={current} /> }
+              : {
+                  Docs: (
+                    <MenuPages
+                      pages={[
+                        { label: "Guides", links: listed.map(asPage) },
+                        { label: "Skill comparisons", links: comparisons.map(asPage) },
+                      ]}
+                      current={current}
+                    />
+                  ),
+                }
+          }
+        />
+      )}
+    </>
   );
 }
 
-function DocsComponents({ current }: { current: string }): JSX.Element {
-  const [filter, setFilter] = useState("");
-  const groups = componentGroups(filter);
-  return (
-    <div className="grid gap-1 sm:hidden">
-      <div className="ms-4 ps-2">
-        <DocsFilter value={filter} onChange={setFilter} empty={groups.length === 0} />
-      </div>
-      {groups.length > 0 && <MenuPages pages={groups.map((group) => ({ label: group.label, links: group.links.map(asPage) }))} current={current} />}
-    </div>
-  );
+/** The docs pages whose names hold `query`, components then guides; undefined while it is empty. */
+function findDocs(query: string): Array<{ label: string; links: Array<{ label: string; href: string }> }> | undefined {
+  const wanted = query.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (wanted === "") return undefined;
+  const matches = (link: DocsLink) => `${link.label} ${link.path}`.toLowerCase().replace(/[^a-z0-9]/g, "").includes(wanted);
+  return [
+    { label: "Components", links: componentGroups(query).flatMap((group) => group.links).map(asPage) },
+    { label: "Guides", links: [...guides, ...comparisons].filter(matches).map(asPage) },
+  ].filter((group) => group.links.length > 0);
 }
 
 export default function DocsHeader({ current }: { current: string }): JSX.Element {
@@ -73,7 +110,7 @@ export default function DocsHeader({ current }: { current: string }): JSX.Elemen
       <VoyageHeader
         path={headerPath(current)}
         page={current}
-        more={{ Docs: <DocsGuides current={current} />, Components: <DocsComponents current={current} /> }}
+        menu={<DocsMenu current={current} />}
         gutters="docs"
       />
       <DocsXray />

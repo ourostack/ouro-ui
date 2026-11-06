@@ -8,7 +8,7 @@ import { docsSections } from "./docs-sections";
 
 /**
  * The docs sidebar: Ouro HX's Sidebar, in sections by catalog group, with a filter on top. It
- * scrolls on its own and opens scrolled to the current page; below 640px it is a menu button.
+ * scrolls on its own and opens scrolled to the current page. Below 640px it steps aside for the header's menu (docs-shell.tsx).
  */
 export default function DocsSidebar({ current }: { current: string }): JSX.Element {
   const [filter, setFilter] = useState("");
@@ -28,7 +28,6 @@ export default function DocsSidebar({ current }: { current: string }): JSX.Eleme
     <div ref={holder} className="sm:sticky sm:top-0 sm:h-dvh sm:py-4">
       <Sidebar
         label="Docs"
-        menuLabel="Browse docs"
         collapsible={false}
         currentPath={href(current)}
         header={<DocsFilter value={filter} onChange={setFilter} empty={sections.length === 0} />}

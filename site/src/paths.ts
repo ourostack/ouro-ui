@@ -3,8 +3,21 @@
  * pulls the docs' generated Markdown (routes.ts) into its JavaScript.
  */
 
-/** The Ouro UI for Apple pages, in the order their own menu lists them (apple/pages.ts has their words). */
+/** The Ouro UI for Apple pages, in the order their own menu lists them. */
 export const APPLE_PATHS = ["/apple/", "/apple/hx/", "/apple/ax/", "/apple/start/"] as const;
+
+/**
+ * The same pages with their names, for the section's own menu (apple/shell.tsx) and the site header's menu
+ * (voyage/site-menu.tsx). Here rather than in apple/, so the header loads no part of the Apple pages' islands.
+ */
+export const APPLE_PAGES = [
+  { path: "/apple/", label: "Overview", short: "Overview" },
+  { path: "/apple/hx/", label: "Ouro HX for Apple", short: "HX" },
+  { path: "/apple/ax/", label: "Ouro AX for Apple", short: "AX" },
+  { path: "/apple/start/", label: "Get started", short: "Get started" },
+] as const satisfies ReadonlyArray<{ path: (typeof APPLE_PATHS)[number]; label: string; short: string }>;
+
+export type ApplePath = (typeof APPLE_PAGES)[number]["path"];
 
 /**
  * The page module that renders a path: each has its own JavaScript closure (app.tsx). The voyage

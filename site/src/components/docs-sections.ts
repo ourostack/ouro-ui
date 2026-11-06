@@ -8,7 +8,7 @@ import { href } from "../paths";
 
 /** The pages that get you started, first in the sidebar. */
 const startPages = [
-  { href: "/docs/", label: "Overview" },
+  { href: "/docs/", label: "Components" },
   { href: "/docs/installing/", label: "Installing" },
   { href: "/docs/switching-from-shadcn/", label: "Switching from shadcn" },
   { href: "/docs/updating/", label: "Updating installed components" },
