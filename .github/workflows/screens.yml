@@ -5,11 +5,14 @@ name: Screens
 # violations, and measures layout shift, first content and each press against their budgets; the
 # measured rules are waived in .github/ouro-check.json while they settle. Eight shards side by side, then one report: the merge job's summary, and its artifact
 # with a contact sheet per page and a captioned close-up per finding. Not a required check, and it
-# reports without failing: the findings are for whoever changes the page next.
+# reports without failing: the findings are for whoever changes the page next. A pull request
+# that changes nothing the site build or the check reads skips both (the changes job). Main gets
+# its report once a day, not on every push: each push to main is a pull request's change that
+# Screens already checked, as that pull request merged into main.
 on:
   pull_request:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "37 4 * * *"
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,7 +20,37 @@ concurrency:
   group: screens-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  changes:
+    # Whether this run checks the screens: a pull request into main whose every changed file is one
+    # the site build and Ouro check never read (a test, a story, a spec, a change fragment, another
+    # workflow) passes here, and its shards and report never start (scripts/ci-relevance.mjs
+    # screens). Anything else, a diff that cannot be read, and every other event check the screens.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      run: ${{ steps.relevance.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - id: relevance
+        name: Can the change reach the screens?
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
+            node scripts/ci-relevance.mjs screens HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Screens run: $EVENT."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
   screens-shard:
+    needs: [changes]
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     container:
@@ -48,8 +81,8 @@ jobs:
           config: .github/ouro-check.json
           install-browser: "false"
   screens:
-    needs: [screens-shard]
-    if: ${{ !cancelled() }}
+    needs: [changes, screens-shard]
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:

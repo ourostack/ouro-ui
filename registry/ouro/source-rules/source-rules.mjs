@@ -42,6 +42,41 @@ import ts from "typescript";
 //   children or any of its props), which marks an action in progress, not missing content; Button's
 //   `loading` draws that one itself. It counts where the spinner is written and never makes the
 //   component around it a hand-rolled control.
+// - render-index: an index built at the top level of a render: `new Map(…)`, `new Set(…)`,
+//   `new RegExp(…)`, `Object.fromEntries(…)`, `Object.groupBy(…)` or `Map.groupBy(…)` with an
+//   argument, evaluated in the body of a component (a capitalised function in a .tsx file, also
+//   through `memo` or `forwardRef`, but not an all-capitals one such as a route handler's `GET`), a
+//   custom hook (`useX`) or a class's `render`, so it is rebuilt on every render.
+//   Build it in the store, once per change, wrap it in `useMemo` on its inputs, or hoist a constant
+//   to module scope. Anything inside a nested function (a `useMemo` or `useEffect` callback, a lazy
+//   `useState` initializer, an event handler) passes, and so does an empty `new Map()`. Like a
+//   spinner, it counts where it is written and never makes the component around it a hand-rolled
+//   control. Known gap: a callback that runs during render (`rows.map((row) => new Set(row.tags))`)
+//   is not counted.
+// - layout-animation: an animation of a property that re-runs layout on every frame (width,
+//   height, top, left, inset, margin, padding, border width, gap, flex, grid tracks, font size,
+//   line height) or of `all`: Tailwind's `transition-all`, `transition-[height]`, an arbitrary
+//   `[transition:…]` or `[transition-property:…]` in any string; a `transition` or
+//   `transitionProperty` style value; keyframes passed to an element's `animate()`, or Motion's
+//   `animate`, `exit` and `while…` props, as an object of layout properties; and in stylesheets, a
+//   `transition` or `transition-property` declaration (a shorthand with no property animates `all`),
+//   `@apply` of such a class, and `@keyframes` that set one. Animate `transform` and `opacity`
+//   instead, which the compositor runs without layout. Tailwind's plain `transition`,
+//   `transition-colors`, `transition-opacity` and `transition-transform` pass. Like a spinner, it
+//   counts where it is written and never makes the component around it a hand-rolled control.
+// - gated-load: a data or asset load that waits for focus, visibility, return, idle or being
+//   scrolled into view: a fetch, a load/prefetch/refetch call, a data hook, import(), `new Image()`
+//   or a `src` set, inside a visibilitychange, focus, blur or pageshow listener on the window or
+//   document (or its `on…` handler), under a `document.hidden`, `visibilityState` or `hasFocus()`
+//   condition, in a requestIdleCallback, an IntersectionObserver or an in-view or idle hook's
+//   callback, or waiting on what such a hook returns (`enabled: inView`) or on state such a
+//   callback sets from what the gate says (`setShown(entry.isIntersecting)`, not `setOpen(false)`);
+//   and an element's `loading="lazy"`, or an address (`src`, `srcSet`, `poster`) that waits on a
+//   gate (`src={inView ? url : undefined}`).
+//   Rendering-only gates pass, since they load nothing: pausing an animation or a caret, windowing
+//   what is drawn while the data stays loaded, a media stream; so does saving on hide (a fetch with
+//   keepalive or another method). It counts where the load is written and never makes the
+//   component around it a hand-rolled control.
 // - uses-hand-rolled-control: a JSX use of an imported app component that is offending, counted at
 //   the call site. A component is offending when an offender sits inside it, or it renders an
 //   offending component (same file or imported), to a fixed point across modules: a wrapper
@@ -94,8 +129,11 @@ export const CATEGORIES = [
   "plain-element-handler",
   "data-ouro-attr",
   "control-state-style",
+  "layout-animation",
   "third-party-control",
   "content-spinner",
+  "render-index",
+  "gated-load",
   "uses-hand-rolled-control",
 ];
 
@@ -122,6 +160,30 @@ export const CONTENT_SPINNER_FIX =
   'Show a Skeleton shaped like the content instead (<Skeleton shape="row" count={6}>, <Skeleton shape="text" lines={3}>, <Skeleton shape="card">), ' +
   "so the content takes its place and nothing moves when it arrives. " +
   "Inline progress for an action is allowed: a spinner inside a button (<Button loading>), in a prop such as a field's endAdornment or an icon, or beside the words that say what is under way.";
+
+/** What the render-index rule tells an app to do. */
+export const RENDER_INDEX_FIX =
+  "Build the index where its data changes, once per change: in the store or loader that holds the data, " +
+  "or in useMemo on its inputs (useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])); move a constant to module scope. " +
+  "Built in render, it is rebuilt on every render, a keystroke or a hover included.";
+/** What the layout-animation rule tells an app to do. */
+export const LAYOUT_ANIMATION_FIX =
+  "Animate transform and opacity instead, which the compositor runs without layout: slide with translate, grow or shrink with scale, fade with opacity. " +
+  "Name the properties a transition runs (transition-[opacity,translate], transition-opacity, transition-transform) rather than transition-all; a size that must change changes at once.";
+
+/** What the gated-load rule tells an app to do, and what it lets through. */
+export const GATED_LOAD_FIX =
+  "Load it eagerly: start the fetch when the data is known to be needed (on mount, or as soon as the page before it lands), not when the page becomes visible, the window gets focus, the browser is idle or an element scrolls into view (loading=\"lazy\" included), " +
+  "so nobody waits for what could already be there. Spend the work on what the person is likely to look at next, newest first, within the performance budgets. " +
+  "Rendering-only gates pass: pausing an animation or a caret, windowing what is drawn while the data stays loaded, a media stream, and saving on hide (sendBeacon, or fetch with keepalive or a method other than GET).";
+
+// What each category's message says, for the categories whose fix is not an Ouro component.
+const CATEGORY_MESSAGES = {
+  "content-spinner": { headline: "New spinner standing in for content", fix: CONTENT_SPINNER_FIX },
+  "render-index": { headline: "New index built in render", fix: RENDER_INDEX_FIX },
+  "layout-animation": { headline: "New animation of a layout property", fix: LAYOUT_ANIMATION_FIX },
+  "gated-load": { headline: "New load that waits for focus, visibility, idle or scrolling", fix: GATED_LOAD_FIX },
+};
 
 export const BASELINE_PATH = "ouro-source-rules.baseline.json";
 export const CONFIG_PATH = "ouro-source-rules.json";
@@ -335,6 +397,76 @@ export function isControlStateClass(token) {
   const parts = splitVariants(token);
   const utility = parts.pop();
   return utility !== "" && parts.some((variant) => STATE_SELECTOR.test(variantSelector(variant)));
+}
+
+// A property whose change re-runs layout, so animating it lays the page out again on every frame.
+const LAYOUT_PROPERTY =
+  /^(?:(?:min-|max-)?(?:width|height|inline-size|block-size)|top|right|bottom|left|inset(?:-[a-z-]+)?|(?:margin|padding)(?:-[a-z-]+)?|border(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?-width|(?:row-|column-)?gap|flex(?:-basis|-grow|-shrink)?|grid-template-(?:rows|columns)|font-size|line-height)$/;
+// The words of a transition shorthand that are not a property: times, easings and behaviors.
+const TRANSITION_TIMING = /^(?:-?[\d.]+m?s|ease(?:-in|-out|-in-out)?|linear(?:\(.*)?|step-start|step-end|steps\(.*|cubic-bezier\(.*|normal|allow-discrete)$/;
+const TRANSITION_TIME = /^-?([\d.]+)m?s$/;
+
+/**
+ * The first layout property, or `all`, that a CSS transition names: a `transition` shorthand
+ * (one with no property animates `all`) or, with `{ list: true }`, a `transition-property` list.
+ * A shorthand transition whose duration is zero or left out animates nothing, so one made only of
+ * keywords (`unset`, `initial`, `inherit`, `revert`, `none`) or with `0s` names no property; a
+ * duration from a variable counts as one that runs.
+ *
+ * @claim "one with no property animates" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::layout-animation > reads a transition value as a shorthand or a property list)
+ * @claim "A shorthand transition whose duration" scripts/kits/source-rules.test.mjs verify:testExists(scripts/kits/source-rules.test.mjs::layout-animation > reads a shorthand of keywords only, or with a zero or missing duration, as naming no property)
+ */
+export function layoutTransitionProperty(value, { list = false } = {}) {
+  for (const segment of value.split(/,(?![^(]*\))/)) {
+    const words = segment.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!list) {
+      // A shorthand's first time is its duration; with none, it lasts 0s unless a variable sets it.
+      const duration = words.find((word) => TRANSITION_TIME.test(word));
+      if (duration ? Number(duration.match(TRANSITION_TIME)[1]) === 0 : !words.some((word) => word.includes("var("))) continue;
+    }
+    const found = words.find((word) => word === "all" || LAYOUT_PROPERTY.test(word));
+    if (found) return found;
+    if (!list && words.every((word) => TRANSITION_TIMING.test(word))) return "all";
+  }
+  return undefined;
+}
+
+/** The layout property, or `all`, that one Tailwind class token transitions, after its variants. */
+export function layoutAnimationClass(token) {
+  const utility = splitVariants(token).at(-1).replace(/^!|!$/g, "");
+  if (utility === "transition-all") return "all";
+  const listed = utility.match(/^transition-\[(.+)\]$/);
+  if (listed) return layoutTransitionProperty(listed[1].replace(/_/g, " "), { list: true });
+  const arbitrary = utility.match(/^\[(transition(?:-property)?):(.+)\]$/);
+  if (arbitrary) return layoutTransitionProperty(arbitrary[2].replace(/_/g, " "), { list: arbitrary[1] !== "transition" });
+  return undefined;
+}
+
+// The first layout property an object of keyframes sets (`{ height: [0, 120] }`, camelCase or not).
+function layoutKeyframe(node) {
+  const objects = ts.isArrayLiteralExpression(node) ? node.elements : [node];
+  for (const object of objects) {
+    if (!ts.isObjectLiteralExpression(object)) continue;
+    for (const property of object.properties) {
+      const name = property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : "";
+      const css = name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+      if (LAYOUT_PROPERTY.test(css)) return css;
+    }
+  }
+  return undefined;
+}
+
+const STYLE_TRANSITION = /^(?:transition|transitionProperty|WebkitTransition|WebkitTransitionProperty)$/;
+const MOTION_ANIMATE = /^(?:animate|exit|while[A-Z]\w*)$/;
+
+// The style property a string is assigned to (`{ transition: "…" }`, `el.style.transition = "…"`).
+function styleProperty(node) {
+  const parent = node.parent;
+  if (ts.isPropertyAssignment(parent) && parent.initializer === node && (ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name))) return parent.name.text;
+  if (ts.isBinaryExpression(parent) && parent.right === node && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(parent.left)) {
+    return parent.left.name.text;
+  }
+  return undefined;
 }
 
 const hasControlStateClass = (strings) =>
@@ -668,6 +800,321 @@ const SPINNER_MODULE = /(?:^|\/)spinner\/spinner(?:\.[cm]?[jt]sx?)?$/;
 const SPIN_CLASS = /^!?animate-(?:spin|\[(?:ouro-)?spin(?:_|\]))/;
 const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
 
+// An index a render builds: `new Map(rows…)`, `Object.fromEntries(…)`, with at least one argument.
+const INDEX_CONSTRUCTORS = new Set(["Map", "Set", "RegExp"]);
+const INDEX_BUILDERS = new Set(["Object.fromEntries", "Object.groupBy", "Map.groupBy"]);
+const RENDER_WRAPPERS = /^(?:React\.)?(?:memo|forwardRef)$/;
+const HOOK_NAME = /^use[A-Z0-9]/;
+const COMPONENT_NAME = /^[A-Z]/;
+// All capitals is a constant or a route handler (Next.js's `GET`, `POST`), not a component.
+const CONSTANT_NAME = /^[A-Z][A-Z0-9_]+$/;
+// Components live in files that can hold JSX; a capitalised function in a .ts file is something else.
+const JSX_FILE = /\.[jt]sx$/;
+
+function indexBuilt(node) {
+  if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && INDEX_CONSTRUCTORS.has(node.expression.text)) {
+    return node.arguments?.length ? node.expression.text : undefined;
+  }
+  if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && INDEX_BUILDERS.has(node.expression.getText())) {
+    return node.arguments.length > 0 ? node.expression.getText() : undefined;
+  }
+  return undefined;
+}
+
+// The name of the render a function is: a component (a capitalised name that is not all capitals,
+// in a .tsx file, also through memo or forwardRef), a custom hook (useX), or a class's render
+// method; else undefined.
+function renderName(fn) {
+  if (ts.isMethodDeclaration(fn)) {
+    const owner = fn.parent;
+    return fn.name.getText() === "render" && ts.isClassLike(owner) && owner.heritageClauses?.length
+      ? owner.name?.text ?? declarationOf(owner)?.name.getText() ?? "render"
+      : undefined;
+  }
+  if (!ts.isFunctionDeclaration(fn) && !ts.isFunctionExpression(fn) && !ts.isArrowFunction(fn)) return undefined;
+  let name = fn.name?.text;
+  if (!name && !ts.isFunctionDeclaration(fn)) {
+    let node = fn.parent;
+    while (
+      ts.isParenthesizedExpression(node) ||
+      ts.isAsExpression(node) ||
+      ts.isSatisfiesExpression(node) ||
+      (ts.isCallExpression(node) && RENDER_WRAPPERS.test(node.expression.getText()))
+    ) {
+      node = node.parent;
+    }
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) name = node.name.text;
+  }
+  if (!name) return undefined;
+  if (HOOK_NAME.test(name)) return name;
+  return COMPONENT_NAME.test(name) && !CONSTANT_NAME.test(name) && JSX_FILE.test(fn.getSourceFile().fileName) ? name : undefined;
+}
+
+// The render whose own body evaluates `node`, or undefined at module scope or inside a nested function.
+function enclosingRender(node) {
+  for (let current = node.parent; current; current = current.parent) {
+    if (ts.isFunctionLike(current) || ts.isClassStaticBlockDeclaration(current)) return renderName(current);
+  }
+  return undefined;
+}
+
+// The variable an index is assigned to (`const byId = new Map(…)`), for its fingerprint.
+function assignedName(node) {
+  let current = node.parent;
+  while (ts.isParenthesizedExpression(current) || ts.isAsExpression(current) || ts.isSatisfiesExpression(current)) current = current.parent;
+  return ts.isVariableDeclaration(current) && ts.isIdentifier(current.name) ? current.name.text : "";
+}
+
+// gated-load: what decides a load (an event, a read, an observer or an idle wait), and what a load is.
+const DOCUMENT = /^(?:(?:window|globalThis|self)\.)?document$/;
+const GATE_TARGET = /^(?:(?:window|globalThis|self)(?:\.document)?|document)$/;
+const GATE_EVENTS = new Set(["visibilitychange", "focus", "blur", "pageshow"]);
+const GATE_DOCUMENT_READS = new Set(["hidden", "visibilityState", "webkitHidden", "hasFocus"]);
+const GATE_ENTRY_READS = new Set(["isIntersecting", "intersectionRatio"]);
+const GATE_HOOK =
+  /^use(?:InView|InViewport|IntersectionObserver|Intersection|OnScreen|IsVisible|Visible|Visibility|DocumentVisibility|PageVisibility|VisibilityChange|WindowFocus|HasFocus|PageFocus|Idle|IsIdle|IdleTimer|IdleCallback)$/;
+const GATE_CALLBACK = /^on(?:visibilitychange|focus|blur|pageshow|Idle|Active|Visible|VisibilityChange|WindowFocus|Intersect|Intersection|InView|EnterViewport)$/;
+const GATE_ELEMENT = /^(?:InView|Waypoint|VisibilitySensor)$/;
+const LOAD_VERB = /^(?:fetch|refetch|prefetch|preload|preinit|load|reload|refresh|revalidate|invalidate)(?:[A-Z]\w*)?$/;
+const DATA_HOOK = /^use(?:SWR|SWRInfinite|SWRImmutable|Query|Queries|InfiniteQuery|SuspenseQuery|SuspenseInfiniteQuery|LazyQuery)$/;
+const LOAD_CONSTRUCTORS = new Set(["Image", "XMLHttpRequest", "EventSource", "WebSocket", "FontFace"]);
+const ENABLE_OPTIONS = new Set(["enabled", "skip", "pause", "paused"]);
+// The attributes through which an element fetches what it shows.
+const ASSET_ATTRIBUTES = new Set(["src", "srcSet", "srcset", "poster", "data"]);
+const EXITS = new Set([ts.SyntaxKind.ReturnStatement, ts.SyntaxKind.ThrowStatement, ts.SyntaxKind.ContinueStatement, ts.SyntaxKind.BreakStatement]);
+const calleeName = (callee) => (ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : undefined);
+const exits = (statement) => EXITS.has((ts.isBlock(statement) ? statement.statements.at(-1) : statement)?.kind);
+const nameText = (name) => (ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : undefined);
+
+// A write is no load: a fetch with keepalive or a method other than GET, as an app saves when the page hides.
+function isWrite(init) {
+  if (!init || !ts.isObjectLiteralExpression(init)) return false;
+  return init.properties.some((property) => {
+    if (!ts.isPropertyAssignment(property)) return false;
+    const value = literalValue(property.initializer);
+    const name = nameText(property.name);
+    return (name === "keepalive" && value === "true") || (name === "method" && value !== undefined && !/^(?:get|head)$/i.test(value));
+  });
+}
+
+// What a node loads, by name: fetch, a load or prefetch call, a data hook, import(), `new Image()`, a
+// `src` or `srcset` set. Undefined for anything else.
+function loadOf(node) {
+  if (ts.isCallExpression(node)) {
+    if (node.expression.kind === ts.SyntaxKind.ImportKeyword) return "import()";
+    const name = calleeName(node.expression);
+    if (name === "fetch") return isWrite(node.arguments[1]) ? undefined : name;
+    if (name === "setAttribute") return /^src(?:set)?$/i.test(node.arguments[0]?.text ?? "") ? "src" : undefined;
+    return name !== undefined && (LOAD_VERB.test(name) || DATA_HOOK.test(name)) ? name : undefined;
+  }
+  if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && LOAD_CONSTRUCTORS.has(node.expression.text)) return `new ${node.expression.text}`;
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(node.left)) {
+    return /^src(?:set)?$/.test(node.left.name.text) ? node.left.name.text : undefined;
+  }
+  return undefined;
+}
+
+// Loads gated on focus, visibility, return, idle or being scrolled into view, counted where the load is written.
+function findGatedLoads({ file, sourceFile, declarations }) {
+  const recorded = new Map();
+  const record = (node, gate, load) => {
+    if (!recorded.has(node)) recorded.set(node, { gate, load });
+  };
+  // A same-file function a gate calls: `const sync = () => fetch(...)`, or one wrapped in useCallback.
+  const localFunction = (name) => {
+    let found = declarations.get(name);
+    if (found && ts.isCallExpression(found) && calleeName(found.expression) === "useCallback") found = found.arguments[0];
+    return found && isFunctionLike(found) ? found : undefined;
+  };
+  const loads = (node, seen = new Set()) => {
+    let found = false;
+    const walk = (current) => {
+      if (found) return;
+      const called = ts.isCallExpression(current) && ts.isIdentifier(current.expression) ? current.expression.text : undefined;
+      const local = called !== undefined && !seen.has(called) ? localFunction(called) : undefined;
+      if (local) seen.add(called);
+      found = loadOf(current) !== undefined || (local !== undefined && loads(local, seen));
+      ts.forEachChild(current, walk);
+    };
+    walk(node);
+    return found;
+  };
+  // Every load in a scope the gate decides; a call to a same-file function that loads counts at the call.
+  const scanScope = (scope, gate) => {
+    const walk = (node) => {
+      const load = loadOf(node);
+      const called = ts.isCallExpression(node) && ts.isIdentifier(node.expression) ? node.expression.text : undefined;
+      const local = called !== undefined ? localFunction(called) : undefined;
+      if (load) record(node, gate, load);
+      else if (local && loads(local, new Set([called]))) record(node, gate, called);
+      ts.forEachChild(node, walk);
+    };
+    walk(scope);
+  };
+  // A callback a gate runs: a function, or a name for a load or a same-file function.
+  const scanCallback = (callback, gate) => {
+    if (!callback) return;
+    if (ts.isIdentifier(callback) && (LOAD_VERB.test(callback.text) || DATA_HOOK.test(callback.text))) return record(callback, gate, callback.text);
+    const local = ts.isIdentifier(callback) ? localFunction(callback.text) : undefined;
+    if (local) return loads(local, new Set([callback.text])) ? record(callback, gate, callback.text) : undefined;
+    if (isFunctionLike(callback)) scanScope(callback, gate);
+  };
+
+  // Names that hold a gate: what a gate hook returns (`const { ref, inView } = useInView()`, refs
+  // aside), and state a gate's callback sets (`setVisible(!document.hidden)`).
+  const gateNames = new Map();
+  const setters = new Map();
+  const bind = (name, gate) => {
+    if (ts.isIdentifier(name)) {
+      if (!/ref$/i.test(name.text)) gateNames.set(name.text, gate);
+      return;
+    }
+    for (const element of name.elements) if (!ts.isOmittedExpression(element)) bind(element.name, gate);
+  };
+  const collect = (node) => {
+    if (ts.isVariableDeclaration(node) && node.initializer) {
+      const call = ts.isAwaitExpression(node.initializer) ? node.initializer.expression : node.initializer;
+      const hook = ts.isCallExpression(call) ? calleeName(call.expression) : undefined;
+      if (hook !== undefined && GATE_HOOK.test(hook)) bind(node.name, hook);
+      const [state, setter] = ts.isArrayBindingPattern(node.name) ? node.name.elements.map((element) => element.name) : [];
+      if (hook === "useState" && state && setter && ts.isIdentifier(state) && ts.isIdentifier(setter)) setters.set(setter.text, state.text);
+    }
+    ts.forEachChild(node, collect);
+  };
+  collect(sourceFile);
+
+  const gateRead = (node) => {
+    let gate;
+    const walk = (current) => {
+      if (ts.isPropertyAccessExpression(current)) {
+        const name = current.name.text;
+        if (GATE_DOCUMENT_READS.has(name) && DOCUMENT.test(current.expression.getText())) gate = `document.${name}`;
+        if (GATE_ENTRY_READS.has(name)) gate = name;
+        return gate ?? walk(current.expression);
+      }
+      if (ts.isIdentifier(current) && gateNames.has(current.text)) gate = gateNames.get(current.text);
+      if (!gate) ts.forEachChild(current, walk);
+    };
+    walk(node);
+    return gate;
+  };
+
+  // The callbacks a gate runs, with the gate's name: a visibility, focus or pageshow listener on the
+  // window or document, its `on…` handler, requestIdleCallback, an IntersectionObserver, a gate
+  // hook's callbacks, an idle or in-view callback prop, and an in-view component's function props.
+  const callbacksOf = (node) => {
+    if (ts.isCallExpression(node)) {
+      const name = calleeName(node.expression);
+      const target = ts.isPropertyAccessExpression(node.expression) ? node.expression.expression.getText() : "window";
+      const [event, callback] = node.arguments;
+      if (name === "addEventListener" && GATE_TARGET.test(target) && event && GATE_EVENTS.has(event.text)) return [[callback, event.text]];
+      if (name === "requestIdleCallback") return [[node.arguments[0], name]];
+      if (name !== undefined && GATE_HOOK.test(name)) {
+        return node.arguments.flatMap((argument) =>
+          ts.isObjectLiteralExpression(argument)
+            ? argument.properties.filter(ts.isPropertyAssignment).map((property) => [property.initializer, name])
+            : [[argument, name]],
+        );
+      }
+    }
+    if (ts.isNewExpression(node) && calleeName(node.expression) === "IntersectionObserver") return [[node.arguments?.[0], "IntersectionObserver"]];
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(node.left)) {
+      const name = node.left.name.text;
+      return GATE_CALLBACK.test(name) && GATE_TARGET.test(node.left.expression.getText()) ? [[node.right, name]] : [];
+    }
+    if ((ts.isPropertyAssignment(node) || ts.isJsxAttribute(node)) && GATE_CALLBACK.test(nameText(node.name) ?? "")) {
+      const value = ts.isJsxAttribute(node) ? node.initializer?.expression : node.initializer;
+      return [[value, nameText(node.name)]];
+    }
+    if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && GATE_ELEMENT.test(node.tagName.getText())) {
+      return node.attributes.properties.filter(ts.isJsxAttribute).map((attribute) => [attribute.initializer?.expression, node.tagName.getText()]);
+    }
+    return [];
+  };
+  // State a gate's callback sets to what the gate says is a gate too, so a load that waits for it
+  // is gated: `setShown(entry.isIntersecting)`, `setVisible(!document.hidden)`, or the callback's
+  // own argument (`(seen) => setShown(seen)`). A setter given anything else is not: a popover that
+  // closes on blur (`setOpen(false)`) leaves `open` an ordinary state.
+  const mentions = (node, names) => {
+    let found = false;
+    const walk = (current) => {
+      found ||= ts.isIdentifier(current) && names.has(current.text);
+      if (!found) ts.forEachChild(current, walk);
+    };
+    walk(node);
+    return found;
+  };
+  const feed = (node) => {
+    for (const [callback, gate] of callbacksOf(node)) {
+      const said = new Set();
+      const name = (current) => {
+        if (ts.isIdentifier(current)) said.add(current.text);
+        ts.forEachChild(current, name);
+      };
+      for (const parameter of callback?.parameters ?? []) name(parameter.name);
+      const says = (argument) => gateRead(argument) !== undefined || mentions(argument, said);
+      const walk = (current) => {
+        const setter = ts.isCallExpression(current) && ts.isIdentifier(current.expression) ? setters.get(current.expression.text) : undefined;
+        if (setter && current.arguments.some(says)) gateNames.set(setter, gate);
+        ts.forEachChild(current, walk);
+      };
+      if (callback) walk(callback);
+    }
+    ts.forEachChild(node, feed);
+  };
+  feed(sourceFile);
+
+  const visit = (node) => {
+    for (const [callback, gate] of callbacksOf(node)) scanCallback(callback, gate);
+    if (ts.isIfStatement(node)) {
+      const gate = gateRead(node.expression);
+      if (gate) {
+        scanScope(node.thenStatement, gate);
+        if (node.elseStatement) scanScope(node.elseStatement, gate);
+        // `if (document.hidden) return;` gates everything after it in the block.
+        const siblings = node.elseStatement || !exits(node.thenStatement) ? [] : node.parent.statements ?? [];
+        for (const sibling of siblings.slice(siblings.indexOf(node) + 1)) scanScope(sibling, gate);
+      }
+    }
+    if (ts.isConditionalExpression(node)) {
+      const gate = gateRead(node.condition);
+      if (gate) for (const branch of [node.whenTrue, node.whenFalse]) scanScope(branch, gate);
+    }
+    if (ts.isBinaryExpression(node) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(node.operatorToken.kind)) {
+      const gate = gateRead(node.left);
+      if (gate) scanScope(node.right, gate);
+    }
+    // An element that fetches its asset only as it nears the screen (`loading="lazy"`), and one
+    // whose address waits on a gate (`src={inView ? url : undefined}`).
+    if (ts.isJsxAttribute(node) && ts.isJsxOpeningLikeElement(node.parent.parent)) {
+      const name = nameText(node.name);
+      const tag = node.parent.parent.tagName.getText();
+      if (name === "loading" && literalValue(node.initializer) === "lazy") record(node, "loading=lazy", tag);
+      const address = name !== undefined && ASSET_ATTRIBUTES.has(name) && node.initializer ? gateRead(node.initializer) : undefined;
+      if (address) record(node, address, `${tag}.${name}`);
+    }
+    // A data hook or load whose arguments read a gate (`useSWR(inView ? key : null)`), and an
+    // `enabled: inView` option.
+    const load = loadOf(node);
+    const gate = load && ts.isCallExpression(node) ? node.arguments.map(gateRead).find(Boolean) : undefined;
+    if (gate) record(node, gate, load);
+    if (ts.isPropertyAssignment(node) && ENABLE_OPTIONS.has(nameText(node.name))) {
+      const option = gateRead(node.initializer);
+      const call = node.parent.parent;
+      if (option) record(ts.isCallExpression(call) ? call : node, option, (ts.isCallExpression(call) && calleeName(call.expression)) || nameText(node.name));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+
+  return [...recorded].map(([node, { gate, load }]) => ({
+    category: "gated-load",
+    fingerprint: [file, componentName(node), "gated-load", `${gate}>${load}`, ""].join("::"),
+    file,
+    line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+  }));
+}
+
 function scanScript(module, resolver) {
   const { file, sourceFile, imports, declarations, bindingDefaults } = module;
   const offenders = [];
@@ -869,9 +1316,36 @@ function scanScript(module, resolver) {
     ) {
       add("data-ouro-attr", node, "setAttribute");
     }
+    const built = indexBuilt(node);
+    const render = built && enclosingRender(node);
+    if (render) {
+      // Counted where it is written; an index is not a control, so the component around it stays clean.
+      offenders.push({ category: "render-index", fingerprint: [file, render, "render-index", built, assignedName(node)].join("::"), file, line: lineOf(node) });
+    }
+    // Counted where it is written; an animation is not a control, so the component around it stays clean.
+    const addLayout = (tag) => offenders.push({ category: "layout-animation", fingerprint: [file, componentName(node), "layout-animation", tag, ""].join("::"), file, line: lineOf(node) });
+    if (ts.isStringLiteralLike(node) || ts.isTemplateLiteralToken(node)) {
+      const property = styleProperty(node);
+      if (property && STYLE_TRANSITION.test(property)) {
+        const found = layoutTransitionProperty(node.text, { list: /Property$/.test(property) });
+        if (found) addLayout(`style.${property}:${found}`);
+      }
+      for (const token of node.text.split(/\s+/)) {
+        if (token && layoutAnimationClass(token)) addLayout(token);
+      }
+    }
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "animate" && node.arguments[0]) {
+      const found = layoutKeyframe(node.arguments[0]);
+      if (found) addLayout(`animate():${found}`);
+    }
+    if (ts.isJsxAttribute(node) && MOTION_ANIMATE.test(node.name.getText()) && node.initializer && ts.isJsxExpression(node.initializer) && node.initializer.expression) {
+      const found = layoutKeyframe(node.initializer.expression);
+      if (found) addLayout(`${node.name.getText()}:${found}`);
+    }
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
+  offenders.push(...findGatedLoads(module));
   return { module, offenders, ownerHits, renders, uses };
 }
 
@@ -929,6 +1403,15 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
       line: node.source.start.line,
     });
   };
+  // Counted where it is written, like a spinner: a stylesheet animation is not a control.
+  const addLayout = (node, scope, what) => {
+    offenders.push({
+      category: "layout-animation",
+      fingerprint: [file, "(stylesheet)", "layout-animation", scope, what].join("::"),
+      file,
+      line: node.source.start.line,
+    });
+  };
   const ancestors = (node) => {
     const rules = [];
     const atRules = [];
@@ -951,6 +1434,21 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
     if (node.type === "atrule" && node.name === "apply") {
       const scope = rules.join(" ");
       if (hook.test(scope) && hasControlStateClass([node.params])) add(node, scope, [...atRules, "@apply"]);
+      for (const token of node.params.split(/\s+/)) {
+        const found = token && layoutAnimationClass(token);
+        if (found) addLayout(node, scope, `@apply ${token}`);
+      }
+    }
+    if (node.type === "decl" && /^(?:-webkit-)?transition(?:-property)?$/i.test(node.prop)) {
+      const found = layoutTransitionProperty(node.value, { list: /property$/i.test(node.prop) });
+      if (found) addLayout(node, rules.join(" "), `${node.prop}: ${found}`);
+    }
+    if (node.type === "atrule" && /keyframes$/i.test(node.name)) {
+      let found;
+      node.walkDecls((decl) => {
+        if (!found && LAYOUT_PROPERTY.test(decl.prop.toLowerCase())) found = decl.prop.toLowerCase();
+      });
+      if (found) addLayout(node, `@${node.name} ${node.params}`, found);
     }
   });
   return offenders;
@@ -1095,11 +1593,12 @@ export function findRegressions(offenders, baseline) {
 
 export function formatComparison({ added, removed }) {
   return [
-    ...added.map(({ fingerprint, count, at }) =>
-      fingerprint.split("::")[2] === "content-spinner"
-        ? `New spinner standing in for content: ${fingerprint} (+${count}) at ${at.join(", ")}. ${CONTENT_SPINNER_FIX}`
-        : `New hand-rolled control: ${fingerprint} (+${count}) at ${at.join(", ")}. Use an Ouro component instead (add the missing one to Ouro UI first).`,
-    ),
+    ...added.map(({ fingerprint, count, at }) => {
+      const message = CATEGORY_MESSAGES[fingerprint.split("::")[2]];
+      return message
+        ? `${message.headline}: ${fingerprint} (+${count}) at ${at.join(", ")}. ${message.fix}`
+        : `New hand-rolled control: ${fingerprint} (+${count}) at ${at.join(", ")}. Use an Ouro component instead (add the missing one to Ouro UI first).`;
+    }),
     ...removed.map(
       ({ fingerprint, count }) => `Fixed: ${fingerprint} (-${count}); remove it from the baseline: ${UPDATE_COMMAND}`,
     ),
@@ -1284,7 +1783,7 @@ export function main(argv, deps) {
       }
       const permits = entry ? `, but its allowed regression permits ${entry.count ?? 0}` : "";
       lines.push(
-        `Regression against ${options.base}: ${fingerprint} (+${count}) at ${at.join(", ")}${permits}. ${fingerprint.split("::")[2] === "content-spinner" ? CONTENT_SPINNER_FIX.replace(/\.$/, ";") : "Use an Ouro component instead,"} or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
+        `Regression against ${options.base}: ${fingerprint} (+${count}) at ${at.join(", ")}${permits}. ${CATEGORY_MESSAGES[fingerprint.split("::")[2]]?.fix.replace(/\.$/, ";") ?? "Use an Ouro component instead,"} or record why: ${UPDATE_COMMAND} --base ${options.base} --allow-regression "<reason>"`,
       );
     }
     notes.push(`ouro-source-rules: ratchet against ${options.base}: ${allowedCount} allowed regression(s), ${moves.length} move(s).`);

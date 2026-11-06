@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type FocusEvent, type JSX, type KeyboardEvent, type SVGProps } from "react";
+import { useEffect, useState, type CSSProperties, type FocusEvent, type JSX, type KeyboardEvent, type SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { Menu as MenuComponent, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageAction } from "@/registry/ouro/components/ouro/message/message";
@@ -28,7 +28,7 @@ const buttons = (bar: HTMLElement) => [...bar.querySelectorAll<HTMLElement>("[da
 // Stryker disable next-line StringLiteral: any key no action uses works the same.
 const MENU_KEY = " menu";
 
-// Menu's code, loaded once, the first time someone opens a message's menu.
+// Menu's code, loaded once, as the first bar with a menu mounts, so a press opens the menu at once.
 let menuModule: Promise<typeof MenuComponent> | undefined;
 const loadMenu = () => (menuModule ??= import("@/registry/ouro/components/ouro/menu/menu").then((module) => module.Menu));
 
@@ -63,7 +63,7 @@ export function MessageActionBar({
   beside?: string | undefined;
 }): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
-  // Menu, once this bar's menu button has been pressed: until then the button stands alone.
+  // Menu, once this bar's menu button has been pressed: until then the button stands alone, so focus never moves under it.
   const [LoadedMenu, setLoadedMenu] = useState<typeof MenuComponent | undefined>(undefined);
   const openMenu = () =>
     void loadMenu().then((Loaded) => {
@@ -71,6 +71,11 @@ export function MessageActionBar({
       setMenuOpen(true);
     });
   const hasMenu = menu !== undefined && menu.length > 0;
+  // Fetched now, not on the first press, so nobody waits for the menu's code; it stays off the first
+  // paint. After every render, so a bar that gains a menu fetches it too; loadMenu fetches once.
+  useEffect(() => {
+    if (hasMenu) void loadMenu();
+  });
   const keys = actions.filter((action) => !action.disabled).map((action) => action.key);
   if (hasMenu) keys.push(MENU_KEY);
   const [current, setCurrent] = useState<string | undefined>(undefined);

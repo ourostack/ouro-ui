@@ -347,7 +347,9 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * have a row of their own; hours run down the side in the locale's words. Events that overlap sit side by
  * side, each a button (a link with `href`) that shows its title first and is named for screen
  * readers by the words it shows, in their order, then its day and its status ("Design review,
- * 9:00 – 10:00 AM, Thursday, needs your answer"). The grid is one Tab stop: the arrow keys move through events in time
+ * 9:00 – 10:00 AM, Thursday, needs your answer"). Its lines are separate words even where a column
+ * stacks them, so the name holds what it shows and a speech-input user can say it to press it
+ * (WCAG 2.5.3, Label in Name). The grid is one Tab stop: the arrow keys move through events in time
  * order (Up and Down) and across days (Left and Right), Home and End go to the first and the
  * last, and Enter opens one. It opens scrolled to now or to the working day (to today's first
  * event when now is before it), and a now line
@@ -369,6 +371,7 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  *   className="h-[40rem]"
  * />
  * @claim "Each day has a column" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws a week of days from the locale's first day, each a list named by its date, today marked)
+ * @claim "Its lines are separate words" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid label in name > shows each event's lines as words its name holds in order, on one line, two or three) verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid label in name > the same event with its lines run together fails the rule, so the check can fail)
  * @claim "Events that overlap sit side" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > shares a day's width between overlapping events)
  * @claim "It opens scrolled to now" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > runs the now line across today, under the events, with the time beside it)
  * @claim "It opens scrolled to now" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > opens at today's first event when now is before it, rather than at empty hours before now)
@@ -731,18 +734,28 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           <span dir="auto" className="font-medium">
             {event.title}
           </span>
-          {start ? <span className={mutedClass}> {formats.time.format(start)}</span> : null}
+          {start ? (
+            <>
+              {" "}
+              <span className={mutedClass}>{formats.time.format(start)}</span>
+            </>
+          ) : null}
         </span>
       ) : (
+        // A space between the lines, which a column doesn't draw, keeps them separate words in the
+        // event's visible text, as its name says them (WCAG 2.5.3, Label in Name).
         <>
           <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
-          </span>
+          </span>{" "}
           <span className={mutedLineClass}>{rangeText(formats.time, start!, end!)}</span>
           {lines >= 3 && event.description ? (
-            <span dir="auto" className={mutedLineClass}>
-              {event.description}
-            </span>
+            <>
+              {" "}
+              <span dir="auto" className={mutedLineClass}>
+                {event.description}
+              </span>
+            </>
           ) : null}
         </>
       );
@@ -857,7 +870,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             >
               <TouchTarget />
               <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <span className="truncate font-medium">{stackLabel(stack.length)}</span>
+                <span className="truncate font-medium">{stackLabel(stack.length)}</span>{" "}
                 <span className={mutedLineClass}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
               </span>
             </button>
@@ -888,7 +901,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       style={
         {
           ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${3.75 + lanes * 1.5}rem` }),
-          "--ouro-time-grid-lane": labelBackground ? "clamp(7rem, 40%, 32rem)" : "0.75rem",
+          "--ouro-time-grid-lane": labelBackground ? "max(7rem, 40%)" : "0.75rem",
           ...style,
         } as CSSProperties
       }

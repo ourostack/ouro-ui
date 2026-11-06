@@ -30,6 +30,13 @@ export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },
   { path: "/nautilus/", title: "The Nautilus · Ouro HX", description: NAUTILUS_DESCRIPTION },
   { path: "/ax/", title: "A morning with an agent · Ouro AX", description: AX_DESCRIPTION },
+  // The Ouro UI for Apple pages (apple/pages.ts says the same in each page's hero).
+  { path: "/apple/", title: "Ouro UI for Apple", description: "Ouro HX and Ouro AX in Swift: the springs, haptics and colours people feel, and the App Intents Siri reads. One package for iPhone, iPad and Mac." },
+  { path: "/apple/hx/", title: "Ouro HX for Apple", description: "The spring, the press, the named haptic moments and the themes, from the same tokens as the web. Watch them in SwiftUI, then poke their web twins." },
+  { path: "/apple/feel/", title: "Ouro Feel · Ouro UI for Apple", description: "Jank comes in genres, and Ouro Feel checks them from a UI test: the way back, overlays, inside the window, tap landing and more. Double-tap a switch with a tap lock and see what Feel saw." },
+  { path: "/apple/ax/", title: "Ouro AX for Apple", description: "The App Intents X-ray reads a built app from outside and checks it against Apple's side of the Ouro AX standard. Browse the real reports from Spoonjoy and Ouro MD, before and after." },
+  { path: "/apple/reins/", title: "Ouro Reins · Ouro UI for Apple", description: "Agents drive an app's screens as state and actions with ls and do: headless, in milliseconds, with the network blocked. Drive a pretend kitchen in your browser and race the simulator." },
+  { path: "/apple/start/", title: "Get started · Ouro UI for Apple", description: "Add one Swift package, set a theme, animate with the shared spring, play a named haptic, and X-ray your App Intents in CI." },
   {
     path: "/docs/",
     title: "Docs · Ouro HX",

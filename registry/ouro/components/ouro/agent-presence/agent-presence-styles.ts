@@ -20,14 +20,20 @@ const doingClass = "text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%
 
 /**
  * AgentPresence's agent side, declared with Ouro AX's `defineComponentAx`. Agents may read which
- * of the person's agents are listening and what each listens for, and may stop one, or all, since
- * stopping only reduces what is heard. Nothing here starts listening: that stays the person's,
- * from the app.
+ * of the person's agents are listening and what each listens for. An agent may stop only its own
+ * listening, its own row: `stop` is `scope: "self"`, so its twin says who is calling
+ * (`--agent <me>`) and the kit refuses a call on any other agent's row, with the reason. Another
+ * agent's Stop and Stop all are the person's, since the person asked those agents to listen.
+ * Nothing here starts listening: that stays the person's, from the app.
  *
  * @example
  * agentPresenceAx.actions.map((action) => action.id); // ["stop", "stop-all"]
- * @claim "Agents may read which of the" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening)
- * @claim "Nothing here starts listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening)
+ * @claim "Agents may read which of the" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
+ * @claim "An agent may stop only its own" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > through an app's stop twin, which the kit scopes to the calling agent's row > lets an agent stop its own row)
+ * @claim "the kit refuses a call on any other agent's row, with the reason" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > through an app's stop twin, which the kit scopes to the calling agent's row > refuses an agent on another agent's row, with the reason, and leaves the row)
+ * @claim "its twin says who is calling" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > binds stop to a twin that says who is calling, and Stop all to words that refuse)
+ * @claim "Another agent's Stop and Stop all are the person's" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
+ * @claim "Nothing here starts listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
  */
 const agentPresenceAx = defineComponentAx({
   component: "AgentPresence",
@@ -40,7 +46,7 @@ const agentPresenceAx = defineComponentAx({
     },
   ],
   actions: [
-    { id: "stop", summary: "Stop an agent listening for the person.", effect: "private", agent: true },
-    { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", agent: true },
+    { id: "stop", summary: "Stop your own listening for the person: your row only, never another agent's.", effect: "private", agent: true, scope: "self" },
+    { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop." },
   ],
 });

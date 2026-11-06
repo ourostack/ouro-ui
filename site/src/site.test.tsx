@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
+import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
@@ -18,6 +18,8 @@ import { SHIP_PAGES } from "./docs/ships";
 import readme from "../../README.md?raw";
 import registry from "../../registry.json";
 import { siteGroups } from "../../scripts/catalog-groups.mts";
+
+await loadPageCode("/");
 
 const llmsResponse = await fetch(href("/llms.txt"));
 if (!llmsResponse.ok || !llmsResponse.headers.get("content-type")?.includes("text/plain")) {

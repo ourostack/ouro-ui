@@ -134,10 +134,27 @@ export interface EmojiCatalogueCategory {
  * content security policy, a custom scheme, signed or `blob:` URLs) puts the addresses it can
  * load in the catalogue when it builds it.
  *
+ * Ouro indexes a catalogue's emoji once, to find them in text. Build the catalogue once and
+ * pass that object, or give each copy the same `id`: a catalogue of new emoji objects on every
+ * render is indexed again each time, and warns in development. Adding or removing emoji is seen
+ * in a new catalogue object, even in the same array; to edit an emoji's shortcodes or text, pass
+ * a new emoji object, or a new `id`.
+ *
  * @example
  * const catalogue: EmojiCatalogue = { categories: [{ id: "smileys", label: "Smileys", items: smileys }, { id: "custom", label: "Contoso", items: custom }] };
  */
 export interface EmojiCatalogue {
+  /**
+   * Names this set of emoji, for an app that makes a new catalogue object, emoji and all, each
+   * time it draws: catalogues with the same id share one index of their emoji, so change it when
+   * the emoji change (`"contoso-2026-11"`), an emoji edited in place included. Without one, a
+   * new catalogue object shares the index when it holds the same emoji objects in the same order,
+   * and a catalogue of new emoji objects builds its own.
+   *
+   * @claim "catalogues with the same id share one index of their emoji" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between catalogues with the same id, and keeps the most recent ids)
+   * @claim "a new catalogue object shares the index when it holds the same emoji objects" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between fresh catalogue objects holding the same emoji)
+   */
+  id?: string | undefined;
   /** The categories, in the order they show. An emoji in more than one counts once, by its id. */
   categories: readonly EmojiCatalogueCategory[];
 }
@@ -269,6 +286,27 @@ function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiF
 }
 
 /**
+ * Fetches the animation (`src`) once the still image has loaded, at low priority, so the first play
+ * starts at once rather than waiting for it. Undefined when nothing can play, as under reduced
+ * motion, or when the still itself is fetched at low priority (EmojiPicker's emoji further down its
+ * grid). Nothing is fetched ahead while the browser asks to save data.
+ */
+function useWarmAnimation(image: { current: HTMLImageElement | null }, src: string | undefined): void {
+  useEffect(() => {
+    if (src === undefined || (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    // A still that fails to load leaves the animation unfetched; it would most likely fail too.
+    image.current!.decode().then(
+      () => {
+        const ahead = new Image();
+        ahead.fetchPriority = "low";
+        ahead.src = src;
+      },
+      () => {},
+    );
+  }, [image, src]);
+}
+
+/**
  * Marks the emoji's root `data-loaded` while `watch` is on, once the image the `<img>` shows
  * (`shown`) has loaded and decoded, and unmarks it when that fails. A new still image waits for
  * its own picture, while the still and animated forms of one emoji share it. The mark lives on
@@ -303,8 +341,13 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * One emoji from an image catalogue, drawn as an `<img>` the size of the text around it, named
  * by its `alt` (the emoji's name). An animated emoji shows its still image until it plays:
  * while the mouse is on it or on the button around it, or that button has focus, or while
- * `play` says so. With reduced motion it always shows the still image. `skinTone` draws an
+ * `play` says so. Its animation is fetched once the still image has loaded, at low priority, so the
+ * first play starts at once; not for a still given `fetchPriority="low"`, nor while the browser asks
+ * to save data. With reduced motion it always shows the still image, and the animation is not fetched. `skinTone` draws an
  * emoji with tones in one of them, and `placeholder` stands in until its picture has loaded.
+ * Its picture is fetched as soon as it is drawn, not when it nears the screen, so an emoji in an
+ * older message is there when the reader scrolls back to it. Its box is the text's size from the
+ * first frame, and a picture that fails to load keeps it, so no line moves as emoji load or fail.
  *
  * Use `EmojiText` instead to draw the emoji in a message's text, and an emoji character for an
  * app that uses the platform's emoji font.
@@ -317,6 +360,11 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * <Emoji item={party} placeholder="/emoji/waiting.svg" />
  * <Button variant="plain" aria-label="Party popper"><Emoji item={party} alt="" /></Button>
  * @claim "named by its `alt` (the emoji's name)" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > draws the still image named by the emoji's name, the size of the text, in the tone asked for)
+ * @claim "Its animation is fetched once the still" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji's animation > is fetched once the still image has loaded, so the first play starts at once, the still showing until then)
+ * @claim "at low priority, so the first play" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji's animation > is fetched at low priority, and not for a still fetched at low priority or while the browser asks to save data)
+ * @claim "and the animation is not fetched" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji's animation > is not fetched under reduced motion, which plays nothing, or for a still that fails to load)
+ * @claim "a picture that fails to load keeps it, so no line moves" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::EmojiText > keeps every line and every emoji where a loaded picture would, when its picture fails to load)
+ * @claim "Its picture is fetched as soon as" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:fileLine(registry/ouro/components/ouro/emoji/emoji.test.tsx, /expect\(img\.hasAttribute\("loading"\)\)\.toBe\(false\)/)
  * @claim "With reduced motion it always shows the" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > shows the still image with reduced motion, whatever play says or the pointer does)
  * @claim "while the mouse is on it or on" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > plays while the mouse is on its button or the button has focus, and stops after)
  */
@@ -368,13 +416,13 @@ export function Emoji(props: EmojiProps): JSX.Element {
   // An animated image wins over a filmstrip.
   const strip = playing && !form.animatedSrc ? form.filmstrip : undefined;
   useFilmstrip(own, strip);
+  useWarmAnimation(own, animated && rest.fetchPriority !== "low" ? (form.animatedSrc ?? form.filmstrip!.src) : undefined);
   const shown = strip ? strip.src : playing ? form.animatedSrc : form.src;
   const waits = placeholder !== undefined;
   const box = useRef<HTMLSpanElement>(null);
   usePictureReady(box, own, shown, form.src, waits);
   const picture = (
     <img
-      loading="lazy"
       {...rest}
       ref={mergedRef}
       data-ouro={waits ? undefined : "emoji"}

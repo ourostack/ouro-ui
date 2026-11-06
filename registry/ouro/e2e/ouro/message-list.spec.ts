@@ -125,3 +125,27 @@ test("with reduced motion, the wheel scrolls the messages and moves none of them
   expect(await scroller.evaluate((el) => (el as HTMLElement & { sprang?: boolean }).sprang === true)).toBe(false);
   expect(await distanceFromBottom(scroller)).toBeGreaterThan(100);
 });
+
+test("a long conversation draws only what is near the view, and a quote or a search reaches a message far up", async ({ page }) => {
+  await openStory(page, "chat-messagelist--long-conversation");
+  const scroller = page.getByRole("region", { name: "Conversation with Ouro" });
+  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  expect(await page.getByRole("article").count()).toBeLessThan(60);
+
+  // The quote on the newest message goes to the first question, drawing it first.
+  await page.getByRole("button", { name: /Quoting Ana Lind/ }).click();
+  await expect(page.locator("#long-0")).toBeFocused();
+  await expect(page.locator("#long-0")).toBeInViewport();
+  await expect(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+
+  // Find in chat searches the messages, not the page, and reveals the match.
+  await page.getByRole("textbox", { name: "Find in chat" }).fill("(1200)");
+  await page.getByRole("button", { name: "Find" }).click();
+  await expect(page.locator("#long-1199")).toBeFocused();
+  await expect(page.locator("#long-1199")).toBeInViewport();
+
+  // Jump to latest draws the end again, and goes there.
+  await page.getByRole("button", { name: "Jump to latest" }).click();
+  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  await expect(page.locator("#long-1999")).toBeFocused();
+});

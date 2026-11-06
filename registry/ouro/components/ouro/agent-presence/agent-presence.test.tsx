@@ -1,9 +1,13 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { AX_ACTION_ATTRIBUTE, expectAxRendered, isReservedPersonOnly } from "@/registry/ouro/ax/component";
+import { runCli } from "@/registry/ouro/ax/cli";
+// With its extension: Command's command.tsx shares the name, and shadcn, resolving an import by its file name, takes a .tsx over a .ts.
+import { defineCli, defineCommand } from "@/registry/ouro/ax/command.ts";
+import { AX_ACTION_ATTRIBUTE, bindAx, expectAxRendered, isReservedPersonOnly } from "@/registry/ouro/ax/component";
+import { outcome } from "@/registry/ouro/ax/outcome";
 import { AgentPresence, type AgentPresenceProps, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";
 import { agentPresenceAx } from "@/registry/ouro/components/ouro/agent-presence/agent-presence-styles";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -144,9 +148,11 @@ describe("AgentPresence", () => {
     await expect.element(page.getByRole("dialog", { name: "Agents listening" })).toBeVisible();
     const rows = [...popup()!.querySelectorAll("li")];
     expect(rows.map((row) => row.innerText.replace(/\s+/g, " ").trim())).toEqual([
-      "IA inbox agent listening for your name, and anything about the empty state Stop",
-      "NA notes agent Stop",
+      "inbox agent listening for your name, and anything about the empty state Stop",
+      "notes agent Stop",
     ]);
+    // The initials are drawn from an attribute, not written, so they are no text in the row.
+    expect(rows.map((row) => row.querySelector("[data-ouro-avatar-initials]")?.getAttribute("data-ouro-avatar-initials"))).toEqual(["IA", "NA"]);
     // Each agent wears the agent hexagon, read once: its name is written beside it.
     const avatar = rows[0]!.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
     expect(avatar.getAttribute("data-shape")).toBe("hexagon");
@@ -485,13 +491,13 @@ describe("AgentPresence", () => {
 });
 
 describe("AgentPresence agent side", () => {
-  it("declares one read and two stops an agent may take, each on a control that names it, and nothing that starts listening", async () => {
+  it("declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening", async () => {
     expect(agentPresenceAx).toEqual({
       component: "AgentPresence",
       reads: [{ id: "listening", summary: "Which of the person's agents are listening, and what each listens for.", fields: ["agent", "doing"], consent: "none" }],
       actions: [
-        { id: "stop", summary: "Stop an agent listening for the person.", effect: "private", agent: true },
-        { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", agent: true },
+        { id: "stop", summary: "Stop your own listening for the person: your row only, never another agent's.", effect: "private", agent: true, scope: "self" },
+        { id: "stop-all", summary: "Stop every agent listening for the person.", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop." },
       ],
     });
     for (const action of agentPresenceAx.actions) expect(isReservedPersonOnly(action.id)).toBe(false);
@@ -503,5 +509,107 @@ describe("AgentPresence agent side", () => {
     const marked = [...document.querySelectorAll<HTMLElement>(`[${AX_ACTION_ATTRIBUTE}]`)];
     expect(marked.map((element) => element.getAttribute(AX_ACTION_ATTRIBUTE))).toEqual(["stop", "stop", "stop-all"]);
     expect(marked.map((element) => element.getAttribute("data-ouro-part"))).toEqual(["stop", "stop", "stop-all"]);
+  });
+
+  it("binds stop to a twin that says who is calling, and Stop all to words that refuse", () => {
+    const reads = { listening: "call agents <meeting>" };
+    const ui = bindAx(agentPresenceAx, {
+      reads,
+      actions: { stop: "call unfollow <meeting> <listener> --agent <me>" },
+      refuseAs: { "stop-all": "call unfollow <meeting> --all" },
+    });
+    expect(ui.filter((entry) => entry.kind === "action")).toEqual([
+      { component: "AgentPresence", kind: "action", id: "stop", effect: "private", twin: "call unfollow <meeting> <listener> --agent <me>", scope: "self" },
+      { component: "AgentPresence", kind: "action", id: "stop-all", effect: "private", personOnly: "You can't stop every agent; only the person can. Stop your own listening with stop.", refuseAs: "call unfollow <meeting> --all" },
+    ]);
+    expect(() => bindAx(agentPresenceAx, { reads, actions: { stop: "call unfollow <meeting> <listener>" }, refuseAs: { "stop-all": "call unfollow <meeting> --all" } })).toThrow(
+      'AgentPresence action "stop": an agent takes it only on its own item, and its twin does not say who is calling. Fix: actions: { "stop": "call unfollow <meeting> <listener> --agent <me>" }.',
+    );
+    expect(() => bindAx(agentPresenceAx, { reads, actions: { stop: "call unfollow <meeting> <listener> --agent <me>", "stop-all": "call unfollow <meeting> --all" } })).toThrow(
+      'AgentPresence action "stop-all": it is the person\'s, so it has no twin. Fix: move "call unfollow <meeting> --all" to refuseAs, where its words refuse.',
+    );
+  });
+
+  describe("through an app's stop twin, which the kit scopes to the calling agent's row", () => {
+    const inboxAgent: ListeningAgent = { id: "inbox-agent", name: "inbox agent", doing: "listening for your name" };
+    const researchAgent: ListeningAgent = { id: "research-agent", name: "research agent", doing: "noting every question about pricing" };
+    // What the app shows and how it stops an agent, as the twin reads them.
+    const app: { agents: readonly ListeningAgent[]; stop: (id: string) => void } = { agents: [], stop: () => {} };
+
+    /** An app whose Stop and whose stop twin both stop an agent the same way. */
+    function App({ onStopped }: { onStopped: (id: string) => void }) {
+      const [agents, setAgents] = useState([inboxAgent, researchAgent]);
+      const stop = (id: string) => {
+        onStopped(id);
+        setAgents((now) => now.filter((agent) => agent.id !== id));
+      };
+      useEffect(() => {
+        app.agents = agents;
+        app.stop = stop;
+      });
+      return <AgentPresence label="Agents listening" agents={agents} onStop={stop} />;
+    }
+
+    // The app's twin of stop: the kit asks whose row it names, and refuses another agent's before run().
+    const tool = defineCli({
+      name: "call",
+      about: ["call: the person's call, for agents."],
+      commands: [
+        defineCommand({
+          name: "unfollow",
+          summary: "Stop your own listening; never another agent's.",
+          effect: "private",
+          args: [{ name: "listener", description: "The listening agent: you.", required: true }],
+          self: { owner: (input) => app.agents.find((agent) => agent.id === input["listener"])?.id ?? null, instead: "unfollow <agent> --agent <agent>" },
+          run: (input) => {
+            app.stop(String(input["listener"]));
+            return outcome({ action: "unfollow", state: "done", summary: `${String(input["listener"])} stopped listening.` });
+          },
+        }),
+      ],
+    });
+    const agentRuns = async (argv: string[]) => {
+      const io = { out: "", err: "", code: -1 };
+      await act(async () => {
+        io.code = await runCli(tool, argv, { stdout: { write: (text: string) => (io.out += text) }, stderr: { write: (text: string) => (io.err += text) } });
+      });
+      return io;
+    };
+    const rows = () => app.agents.map((agent) => agent.id);
+
+    it("lets an agent stop its own row", async () => {
+      const stopped = vi.fn();
+      await render(<App onStopped={stopped} />);
+      expect(await agentRuns(["unfollow", "inbox-agent", "--agent", "inbox-agent"])).toEqual({ out: "inbox-agent stopped listening.\n", err: "", code: 0 });
+      expect(stopped).toHaveBeenCalledWith("inbox-agent");
+      await expect.poll(rows).toEqual(["research-agent"]);
+      await expect.element(page.getByRole("button", { name: "research agent listening", exact: true })).toBeVisible();
+    });
+
+    it("refuses an agent on another agent's row, with the reason, and leaves the row", async () => {
+      const stopped = vi.fn();
+      await render(<App onStopped={stopped} />);
+      expect(await agentRuns(["unfollow", "research-agent", "--agent", "inbox-agent"])).toEqual({
+        out: "",
+        err: "call: unfollow: that one is research-agent's, and you are inbox-agent; only research-agent or the person may do it. Do it on your own instead. Fix: call unfollow inbox-agent --agent inbox-agent.\n",
+        code: 2,
+      });
+      const refused = JSON.parse((await agentRuns(["unfollow", "research-agent", "--agent", "inbox-agent", "--json"])).out);
+      expect([refused.state, refused.error.code]).toEqual(["refused", "not-yours"]);
+      expect(stopped).not.toHaveBeenCalled();
+      expect(rows()).toEqual(["inbox-agent", "research-agent"]);
+    });
+
+    it("lets the person stop any agent's row", async () => {
+      const stopped = vi.fn();
+      await render(<App onStopped={stopped} />);
+      await userEvent.click(chip());
+      await settled();
+      await userEvent.click(stops()[1]!);
+      await expect.poll(rows).toEqual(["inbox-agent"]);
+      await userEvent.click(stops()[0]!);
+      await expect.poll(rows).toEqual([]);
+      expect(stopped.mock.calls).toEqual([["research-agent"], ["inbox-agent"]]);
+    });
   });
 });

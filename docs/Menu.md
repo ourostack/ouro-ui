@@ -18,11 +18,12 @@ import { Menu } from "@/registry/ouro/components/ouro/menu/menu";
   <MenuItem tone="destructive" onClick={remove}>Delete</MenuItem>
 </Menu>
 <Menu contextTrigger={<RecipeCard recipe={recipe} />} items={[{ label: "Copy link", onClick: copy }]} />
+<Menu anchor={{ x: event.clientX, y: event.clientY }} open={open} onOpenChange={setOpen} aria-label="Actions for Ana's message" returnFocus={row} items={entries} />
 ```
 
 ## Usage
 
-Pass `trigger` for a dropdown, `contextTrigger` for a context menu, or `label` for a menu in a `MenuBar`. Give the entries as children or as `items` data. To give the trigger a tooltip too, put the Tooltip inside `trigger`: `trigger={<Tooltip content="More actions"><Button aria-label="More">…</Button></Tooltip>}`.
+Pass `trigger` for a dropdown, `contextTrigger` for a context menu, `label` for a menu in a `MenuBar`, or `anchor` with `open` for a menu the app opens itself, at an element or a point, such as one menu shared by every row of a list. Give the entries as children or as `items` data. To give the trigger a tooltip too, put the Tooltip inside `trigger`: `trigger={<Tooltip content="More actions"><Button aria-label="More">…</Button></Tooltip>}`.
 
 It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css), like Dialog and Sheet.
 
@@ -49,6 +50,25 @@ The props the modes share. Type: `MenuProps`.
 
 `MenuProps` is a union: pass the props of exactly one mode. Mixing them is a type error.
 
+### Anchor: `MenuAnchorProps`
+
+A menu the app opens itself, at an element or a point: one menu that many rows share, opened from each row's own button, right-click or keys. Beside an element it is a bottom sheet below 640px, as a dropdown is; at a point it is a menu at every width, as a context menu is.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `align` | `"start" \| "center" \| "end"` | `"start"` | How the menu lines up with the trigger along that side. |
+| `anchor` (required) | `MenuAnchor` |  | Where the menu opens: beside an element (`side` and `align` place it), beside a box measured once (`{ getBoundingClientRect: () => box }`, for an element that goes as the menu opens), or at a point in the window, `{ x, y }`, as a right-click's `clientX` and `clientY`. |
+| `aria-label` (required) | `string` |  | What screen readers hear for the menu, in place of a button's name: "Actions for Ana's message". |
+| `returnFocus` | `HTMLElement \| null` |  | Where focus goes when the menu closes (Escape, an item chosen), such as the row it opened for. An item that moved focus itself, as one opening a dialog does, keeps it there. |
+| `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the menu sits on; it flips when there is no room. |
+
+Not in this mode (typed `never`):
+
+- `contextTrigger`: Not with `anchor`. Use one way to open a menu.
+- `label`: Not with `anchor`. `label` is for a Menu inside `MenuBar`; name this one with `aria-label`.
+- `modal`: Not with `anchor`: it leaves the page live, so it opens and closes without a layout of the whole page.
+- `trigger`: Not with `anchor`. Use one way to open a menu.
+
 ### Bar menu: `MenuBarMenuProps`
 
 A menu in a `MenuBar`: `label` is its button's text.
@@ -61,6 +81,7 @@ A menu in a `MenuBar`: `label` is its button's text.
 
 Not in this mode (typed `never`):
 
+- `anchor`: Not with `label`. A menu in a `MenuBar` gets its button from `label`.
 - `contextTrigger`: Not with `label`. A menu in a `MenuBar` gets its button from `label`.
 - `modal`: Not with `label`: the `MenuBar` decides how its menus hold the page.
 - `trigger`: Not with `label`. A menu in a `MenuBar` gets its button from `label`.
@@ -76,6 +97,7 @@ A context menu: right-click or long-press on `contextTrigger` opens it at the po
 Not in this mode (typed `never`):
 
 - `align`: Not with `contextTrigger`: a context menu opens at the pointer.
+- `anchor`: Not with `contextTrigger`. Use one way to open a menu.
 - `label`: Not with `contextTrigger`. `label` is for a Menu inside `MenuBar`.
 - `modal`: Not with `contextTrigger`: a context menu holds the page while it is open.
 - `side`: Not with `contextTrigger`: a context menu opens at the pointer.
@@ -94,6 +116,7 @@ A dropdown: `trigger` opens it. Below 640px it is a bottom sheet.
 
 Not in this mode (typed `never`):
 
+- `anchor`: Not with `trigger`. Use one way to open a menu.
 - `contextTrigger`: Not with `trigger`. Use one way to open a menu.
 - `label`: Not with `trigger`. `label` is for a Menu inside `MenuBar`.
 
@@ -117,6 +140,14 @@ Alignment classes (`text-center`) warn too: use the `align` prop.
 
 ## Types
 
+### `MenuAnchor`
+
+Where an anchored Menu opens: an element, a box (`{ getBoundingClientRect }`) or a point in the window (`{ x, y }`).
+
+```ts
+type MenuAnchor = Element | { getBoundingClientRect: () => DOMRect } | { x: number; y: number };
+```
+
 ### `MenuCheckboxEntry`
 
 A menu entry for `items`: an on/off setting that stays in the menu when toggled.
@@ -130,6 +161,8 @@ interface MenuCheckboxEntry {
   onCheckedChange?: ((checked: boolean) => void) | undefined;
   shortcut?: MenuShortcut | undefined;
   disabled?: boolean | undefined;
+  /** The id of the agent action it performs, set as `data-ax-action` on it, as on an item. */
+  axAction?: string | undefined;
 }
 ```
 
@@ -183,6 +216,11 @@ interface MenuItemEntry {
   tone?: "destructive" | undefined;
   /** Shown, but cannot be chosen. */
   disabled?: boolean | undefined;
+  /**
+   * The id of the agent action this item performs, set as `data-ax-action` on it, so the component
+   * that declares the action finds its control: `axAction: "mute"`.
+   */
+  axAction?: string | undefined;
 }
 ```
 

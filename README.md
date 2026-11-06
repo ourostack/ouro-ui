@@ -15,12 +15,12 @@ Designed down to the last tap and the last prop. Interactions that feel right to
 Ouro HX is the component library within Ouro UI. [Ouro AX](#ouro-ax), its counterpart for the interfaces agents use, is the other half. The repository, `@ouro` namespace and install addresses are unchanged.
 
 ```sh
-npx shadcn@latest search 'ourostack/ouro-ui#v1.3.3'     # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.3' # read one item
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.3    # install it
+npx shadcn@latest search 'ourostack/ouro-ui#v1.3.5'     # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.5' # read one item
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.5    # install it
 ```
 
-A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.3`, `github:` and `/tree/` URLs don't work. The same commands and the item list, for agents: [llms.txt](https://ui.ouro.bot/llms.txt).
+A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.5`, `github:` and `/tree/` URLs don't work. The same commands and the item list, for agents: [llms.txt](https://ui.ouro.bot/llms.txt).
 
 Ouro HX is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes.[^tailwind-4] Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
@@ -43,8 +43,8 @@ These are the paths in your app once the CLI has installed a component, with you
 # Existing Vite/Next app with Tailwind CSS v4 and an "@/*" path alias:
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
 # Once per app, before your first component: the tokens every component needs.
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.3
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.3
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.5
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.5
 ```
 
 - Add `ouro-base` once, before your first component. It is the only item that writes to your stylesheet (apart from the optional `ouro-theme`), so no later add touches it (from v0.8.0; in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.8.0][^v0.7.0] [Installing](docs/guides/installing.md) says what it writes.
@@ -62,7 +62,7 @@ In a React Router app, `OuroProvider` needs a small adapter, because the router'
 `OuroProvider` routes `href`s through `next/link` and groups tooltips. It comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] With only other components installed, such as `dialog` above, add it by name (v0.7.0 has no such item: there it comes with every component):[^v0.7.0]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/lib-ouro-provider#v1.3.3
+npx shadcn@latest add ourostack/ouro-ui/lib-ouro-provider#v1.3.5
 ```
 
 Put it in a client file, because a Server Component can't pass `Link`, a function, to a client component. `app/providers.tsx`:
@@ -101,15 +101,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 ### Details
 
-- Every install needs a release tag: `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.3`, or the `@ouro` namespace below.[^main-no-registry] The CLI reads `registry.json` at this repository's root at the ref you give, and only a [release](https://github.com/ourostack/ouro-ui/releases) commit has one: a tag such as `#v1.3.3` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag.[^release-pins] Without a ref, or with a branch or a commit, the CLI stops with "did not return a root registry.json file", because `main` commits none.[^main-no-registry]
-- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ui.ouro.bot/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/ouro-base @ouro/dialog` (`@ouro/ouro-base` once per app, as above). The namespace serves the newest release, the same code as `#v1.3.3`.[^namespace]
+- Every install needs a release tag: `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.5`, or the `@ouro` namespace below.[^main-no-registry] The CLI reads `registry.json` at this repository's root at the ref you give, and only a [release](https://github.com/ourostack/ouro-ui/releases) commit has one: a tag such as `#v1.3.5` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag.[^release-pins] Without a ref, or with a branch or a commit, the CLI stops with "did not return a root registry.json file", because `main` commits none.[^main-no-registry]
+- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ui.ouro.bot/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/ouro-base @ouro/dialog` (`@ouro/ouro-base` once per app, as above). The namespace serves the newest release, the same code as `#v1.3.5`.[^namespace]
 - Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the helpers they import in `lib/ouro/`, one file each: a component installs only the helpers it imports.[^lands] No component installs `ouro-base`; you add it once, as above.[^ouro-base-only] If you skip it, overlays have no backdrop or motion and fields no border, and in development the first Ouro HX component to mount logs the command to run.[^theme-check]
 - `init` is shadcn's: it writes `lib/utils.ts` and adds `cn`, `class-variance-authority`, `lucide-react` and `tw-animate-css`. Ouro HX doesn't use them; keep them for shadcn components. Ouro never writes to `components/ui/`, so don't pass `--overwrite` on a first install.[^not-ui]
-- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, with the tests of everything the component installs[^tests-closure]: `npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.3 ourostack/ouro-ui/dialog-tests#v1.3.3`. CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union (the [Testing guide](https://ui.ouro.bot/docs/testing/) lists the forms set).[^subsets] Other items receive their full test dependency closure but are not measured individually. `ouro-tests` adds every component with all of its tests in one command.[^ouro-tests] The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
+- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, with the tests of everything the component installs[^tests-closure]: `npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.5 ourostack/ouro-ui/dialog-tests#v1.3.5`. CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union (the [Testing guide](https://ui.ouro.bot/docs/testing/) lists the forms set).[^subsets] Other items receive their full test dependency closure but are not measured individually. `ouro-tests` adds every component with all of its tests in one command.[^ouro-tests] The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
 - The tests need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later.[^minimums] Ouro HX's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] A `-tests` item names those tools without a version, so the CLI installs one only when your app lacks it and never changes a version you have.[^test-versions] v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`).[^v0.7.0] [Testing](docs/guides/testing.md) has the requirements, what to do on Vitest 4, and how to find Ouro HX's fields in your own tests.[^testing-guide]
 - In a Vite or React Router app the components keep their `"use client";` line, which is harmless there. [Installing](docs/guides/installing.md#vite-and-react-router-apps-the-use-client-notice) says why, and how to drop Rollup's notice about it.
-- For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v1.3.3`. Skip it to keep your app's shadcn theme.
-- To update to the newest release, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.3 --dry-run` (or `@ouro/<item>`), review each one marked overwrite with `--diff <path>`, then add the item again at the same ref with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
+- For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v1.3.5`. Skip it to keep your app's shadcn theme.
+- To update to the newest release, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.5 --dry-run` (or `@ouro/<item>`), review each one marked overwrite with `--diff <path>`, then add the item again at the same ref with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
 
 ### Upgrading from v0.1.0
 
@@ -142,6 +142,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.2.14:** Avatar's initials take a hue from the name, from the tokens `--avatar-1` to `--avatar-8`, which only a fresh `ouro-base` adds (step 1 adds it again); without them the initials show with no tint.[^upgrade-avatar-colors] Pass `color="neutral"` to keep the plain grey. Avatar's presence dot sits over its edge, so the picture now rounds its own corners instead of the avatar clipping it.[^upgrade-avatar-dot]
 
+- **After v1.3.3:** Avatar's initials and AvatarGroup's "+N" count are drawn with CSS from a data attribute and are no longer text in the page, so a link or button that wraps an avatar and names itself passes WCAG 2.5.3, Label in Name.[^upgrade-avatar-drawn] A test that found an avatar by its letters, `getByText("AL")`, or expected them in a row's text, now finds it by role and name, `getByRole("img", { name: "Ana Lind" })`, or reads `data-ouro-avatar-initials`.[^upgrade-avatar-drawn]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -152,10 +154,10 @@ Review the diff of your Tailwind CSS file too, the one `components.json` names i
 
 Update every Ouro component in your app, not only the items you typed: v0.1.0 added each component's dependencies too, so an app that added only `dialog` also has `button` and `sheet`. Each component is one `.tsx` file in your `components/ouro/` folder (`dialog/` holds `dialog` and `confirm-dialog`, and `text/` holds `text` and `heading`).[^upgrade-v0.1.0] Add each one as `<name>` and `<name>-tests`, plus `ouro-base`, in one command at the same ref, with `--overwrite` (without it the CLI stops to ask about each file). For the app that added only `dialog`, that is `ouro-base button button-tests dialog dialog-tests sheet sheet-tests`. No component installs `ouro-base` any more, so this is where your stylesheet gets the tokens added since v0.1.0.[^upgrade-v0.8.0]
 
-This command finds the components, prints them and adds them. If it finds none, it stops before adding anything[^upgrade-none]; run it in the folder with `components.json`. If you use the Ouro theme, add `ourostack/ouro-ui/ouro-theme#v1.3.3` to the `add` in it.
+This command finds the components, prints them and adds them. If it finds none, it stops before adding anything[^upgrade-none]; run it in the folder with `components.json`. If you use the Ouro theme, add `ourostack/ouro-ui/ouro-theme#v1.3.5` to the `add` in it.
 
 ```sh
-( p() { npx shadcn@latest info --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).config.resolvedPaths.$1"; }; ouro="$(p components)/ouro"; items=$(find "$ouro" -name '*.tsx' ! -name '*-parts.tsx' ! -name '*.test.tsx' ! -name '*.stories.tsx' 2>/dev/null | sed -E 's|.*/(.*)\.tsx$|\1|' | sort); [ -n "$items" ] || { echo "No Ouro components in $ouro. Run this in the folder with components.json." >&2; exit 1; }; echo "Updating: $(echo "$items" | paste -sd " " -)"; npx shadcn@latest add $(echo "$items" | sed -E 's|.*|ourostack/ouro-ui/&#v1.3.3 ourostack/ouro-ui/&-tests#v1.3.3|') ourostack/ouro-ui/ouro-base#v1.3.3 --overwrite )
+( p() { npx shadcn@latest info --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).config.resolvedPaths.$1"; }; ouro="$(p components)/ouro"; items=$(find "$ouro" -name '*.tsx' ! -name '*-parts.tsx' ! -name '*.test.tsx' ! -name '*.stories.tsx' 2>/dev/null | sed -E 's|.*/(.*)\.tsx$|\1|' | sort); [ -n "$items" ] || { echo "No Ouro components in $ouro. Run this in the folder with components.json." >&2; exit 1; }; echo "Updating: $(echo "$items" | paste -sd " " -)"; npx shadcn@latest add $(echo "$items" | sed -E 's|.*|ourostack/ouro-ui/&#v1.3.5 ourostack/ouro-ui/&-tests#v1.3.5|') ourostack/ouro-ui/ouro-base#v1.3.5 --overwrite )
 ```
 
 This keeps the tests v0.1.0 installed, deletes none of your files and adds no component you didn't have. shadcn may print `Skipped N files: (files might be identical, use --overwrite to overwrite)` even with `--overwrite`: those files already equal the release's, so nothing was missed.[^upgrade-shadcn-add] The `-tests` items name Vitest, Storybook and Playwright without a version, so the versions in your `package.json` stay as they are. v0.7.0's items still carry versions: after an add at v0.7.0, restore every test-tool version you had pinned (`git diff package.json`): Vitest and its companions, Playwright and Storybook.[^upgrade-v0.7.0] The tests need Vitest 4.1.11 or later, Playwright 1.58.1 or later and Storybook 10.2.10 or later; update those yourself if yours are older (the README's "Details" links the Testing page).[^upgrade-minimums] The specs in `e2e/ouro` now import `test` and `expect` from `e2e/ouro-fixtures.ts`, a file of yours: add it with the one line `export { expect, test } from "@playwright/test";`, or export your own fixtures from it.
@@ -229,6 +231,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-audit-leaves]: registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails, naming what changed, when its Tab walk closes a popup that focus leaving closes, which it cannot open again)
 [^upgrade-avatar-colors]: registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--avatar-8:/) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
 [^upgrade-avatar-dot]: registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar shapes and icons > clips a square's picture to its corners)
+[^upgrade-avatar-drawn]: registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar inside a link or button that has its own name > the same link around initials written as text fails the rule, so the check can fail) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > shows initials from the name, and the name to screen readers)
 [^upgrade-toast-reachable]: registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed)
 <!-- upgrade:end -->
 
@@ -290,8 +293,10 @@ Components:
 `item`,
 `item-group`,
 `kbd`,
+`level-meter`,
 `lightbox`,
 `link`,
+`live-captions`,
 `local-date`,
 `menu`,
 `message`,
@@ -326,6 +331,7 @@ Components:
 `skeleton`,
 `skip-link`,
 `slider`,
+`snap-pip`,
 `spinner`,
 `stack`,
 `stacked-layout`,
@@ -395,12 +401,14 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-keep-clear`,
 `lib-key-shortcuts`,
 `lib-last-input`,
+`lib-measure-interaction`,
 `lib-navigation-key`,
 `lib-open-mode`,
 `lib-ouro-provider`,
 `lib-page-scroll-hold`,
 `lib-people-cache`,
 `lib-portal-container`,
+`lib-porthole-view`,
 `lib-refs`,
 `lib-router-link`,
 `lib-scroll-fade`,
@@ -532,9 +540,13 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **chime** — Plays a short alert, three soft tones, for something that just finished: a timer at zero. [Docs](docs/chime.md)
 - **createChimeContext** — Makes an audio context for `chime`, or returns `null` where the browser has no Web Audio. [Docs](docs/createChimeContext.md)
 - **formatDuration** — Seconds as a clock reads them: `9:05`, or `1:02:03` from an hour up. [Docs](docs/formatDuration.md)
+- **formatPortholeAge** — An age in ms as short English words, rounded down so it never claims more recent than it is: `"less than a minute"`, `"4 min"`, `"3 hr"`, `"1 day"`, `"2 days"`. [Docs](docs/formatPortholeAge.md)
 - **InstallPrompt** — A quiet offer to install the web app, shown only where the browser can install it (Chromium on Android and desktops), never while it already runs installed, and not again for two weeks after Not now. [Docs](docs/InstallPrompt.md)
+- **LevelMeter** — A small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a device menu, in a "test your microphone" row). [Docs](docs/LevelMeter.md)
 - **Moment** — A moment in an app's life, shown in the space it is given: nothing here yet, on its way, something failed, a first run, or something finished. [Docs](docs/Moment.md)
 - **MomentProvider** — Sets `quiet` for every `Moment` inside it, so an app can make its moments compact everywhere, for a dense layout or for people who asked for less. [Docs](docs/MomentProvider.md)
+- **portholeStatus** — The agent read of a view: the stable, versioned JSON an agent reads through the status spot's `status` read and a CLI status command prints, so a person, the window and an agent see one truth. [Docs](docs/portholeStatus.md)
+- **portholeView** — Decides what the status spot shows, as a pure function of the service's snapshot, its last heartbeat and this clock, so a window, a CLI and a test reach the same answer. [Docs](docs/portholeView.md)
 - **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)
 - **resetTimer** — Cancels or dismisses a timer by its timerId, including when its screen is not mounted. [Docs](docs/resetTimer.md)
 - **restoreTimer** — Imports a saved countdown, leaving an existing native timer intact. [Docs](docs/restoreTimer.md)
@@ -560,6 +572,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **DescriptionList** — One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. [Docs](docs/DescriptionList.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
+- **LiveCaptions** — A caption band for a live call or video: what people are saying, as they say it. [Docs](docs/LiveCaptions.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. [Docs](docs/Skeleton.md)
 
@@ -584,6 +597,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ResizablePanelGroup** — A group of panels with handles you place yourself, shadcn's shape: `ResizablePanel` and `ResizableHandle` elements as direct children. [Docs](docs/ResizablePanelGroup.md)
 - **Row** — Lays its children out side by side with an even gap, centered up and down. [Docs](docs/Row.md)
 - **ScrollArea** — A scrolling region with a slim scrollbar that matches the theme, inside a height you set. [Docs](docs/ScrollArea.md)
+- **SnapPiP** — A floating picture inside a container, such as the person's own camera in a call, that they drag and throw into a corner, where it comes to rest, as a phone's picture in picture does. [Docs](docs/SnapPiP.md)
 - **Stack** — Lays its children out top to bottom with an even gap. [Docs](docs/Stack.md)
 
 ### Navigation
@@ -633,6 +647,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **ColorSchemeProvider** — Keeps the page's color scheme: it applies the person's choice (`light`, `dark` or `system`) as the `.dark` class on `<html>`, which is how shadcn themes switch, keeps it in `localStorage`, and follows the system's setting live while the choice is `system`. [Docs](docs/ColorSchemeProvider.md)
 - **Inspector** — X-ray for a page built with Ouro HX: outlines every Ouro component on the page with its name, linked to its docs, and lists them all for keyboard and screen reader users. [Docs](docs/Inspector.md)
+- **measureInteraction** — Runs `fn` in an event handler and names the interaction it belongs to, so the reports `onInteraction` sends carry `name`. [Docs](docs/measureInteraction.md)
+- **onInteraction** — Sends the page's interactions to `sink`, measured from the input to the next paint, so an app can hold them to a budget. [Docs](docs/onInteraction.md)
 - **OuroProvider** — Optional app-level provider that routes internal `href`s through your router's link and groups tooltips: once one `Tooltip` shows, its neighbours open instantly instead of each waiting its own delay. [Docs](docs/OuroProvider.md)
 
 ### Parts
@@ -662,8 +678,8 @@ Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, su
 - **The evaluation gate.** A claim is `must` only when an agent evaluation shows agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.3         # the kit and the X-ray, in lib/ouro/ax/
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.3   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.5         # the kit and the X-ray, in lib/ouro/ax/
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.5   # with their node:test tests
 ```
 
 Guides: [Ouro AX](docs/guides/ax.md), [make your CLI conformant](docs/guides/ax-adopt.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).

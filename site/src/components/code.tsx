@@ -16,11 +16,26 @@ export function InlineCode({ children }: { children: ReactNode }): JSX.Element {
  * A block of code. It scrolls inside its own box on phones and is a tab stop so a keyboard can scroll it;
  * `wrap` wraps long lines instead, for a short snippet whose cut-off end would look broken.
  */
-export function CodeBlock({ code, label, wrap, className }: { code: string; label?: string; wrap?: boolean; className?: string }): JSX.Element {
+export function CodeBlock({ code, label, wrap, copy, className }: { code: string; label?: string; wrap?: boolean; copy?: boolean; className?: string }): JSX.Element {
   return (
-    <figure className={cn("m-0 min-w-0", className)}>
-      {label && <figcaption className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</figcaption>}
+    <figure className={cn("m-0 min-w-0", className)} style={copy && !label ? { position: "relative" } : undefined}>
+      {/* With a label, Copy sits in the caption row, so code that scrolls sideways never passes under it. */}
+      {label && copy ? (
+        <figcaption className="mb-2 flex items-center justify-between gap-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          <span>{label}</span>
+          <CopyButton text={code} label={`Copy ${label}`} />
+        </figcaption>
+      ) : label ? (
+        <figcaption className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</figcaption>
+      ) : null}
+      {/* Without a label, a Copy button sits in the block's corner and takes the exact code. */}
+      {copy && !label ? (
+        <div style={{ position: "absolute", insetInlineEnd: "0.375rem", bottom: "0.375rem" }}>
+          <CopyButton text={code} label={label ? `Copy ${label}` : "Copy the code"} />
+        </div>
+      ) : null}
       <pre
+        style={copy && !label ? { paddingInlineEnd: "5rem" } : undefined}
         tabIndex={0}
         className={cn("m-0 overflow-x-auto rounded-xl border border-border bg-(--site-code) px-4 py-3.5 font-mono text-[0.8125rem] leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
       >

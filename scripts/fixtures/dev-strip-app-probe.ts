@@ -13,6 +13,7 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { Form } from "@/registry/ouro/components/ouro/form/form";
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
+import { measureInteraction, onInteraction } from "@/registry/ouro/lib/ouro/measure-interaction";
 
 const Untyped = <P,>(component: P) => component as unknown as (props: Record<string, unknown>) => null;
 
@@ -29,3 +30,9 @@ export const elements = [
   createElement(DialogPopup),
   createElement(Untyped(Form), { errors: formErrors({}, {}), result: {} }, "Fields"),
 ];
+
+// Measured outside an event handler, which warns in development.
+export const measured = () => {
+  const stop = onInteraction(() => {});
+  measureInteraction("probe", () => stop());
+};

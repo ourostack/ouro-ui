@@ -29,7 +29,9 @@
 @source not "../../../registry/ouro/components/ouro/image-cropper";
 @source not "../../../registry/ouro/components/ouro/image-field";
 @source not "../../../registry/ouro/components/ouro/install-prompt";
+@source not "../../../registry/ouro/components/ouro/level-meter";
 @source not "../../../registry/ouro/components/ouro/lightbox";
+@source not "../../../registry/ouro/components/ouro/live-captions";
 @source not "../../../registry/ouro/components/ouro/local-date";
 @source not "../../../registry/ouro/components/ouro/message/attachment.tsx";
 @source not "../../../registry/ouro/components/ouro/message/thread-summary.tsx";
@@ -49,6 +51,7 @@
 @source not "../../../registry/ouro/components/ouro/share-button";
 @source not "../../../registry/ouro/components/ouro/sidebar";
 @source not "../../../registry/ouro/components/ouro/skip-link";
+@source not "../../../registry/ouro/components/ouro/snap-pip";
 @source not "../../../registry/ouro/components/ouro/spinner";
 @source not "../../../registry/ouro/components/ouro/stack";
 @source not "../../../registry/ouro/components/ouro/swipe-actions";
@@ -66,6 +69,10 @@
 @source not "../../../registry/ouro/images";
 @source not "../../../registry/ouro/source-rules";
 @source not "../../../registry/ouro/theme";
+@source not "../apple/evidence/gatefold-8ce5611-fail.txt";
+@source not "../apple/evidence/gatefold-bd9356e-pass.txt";
+@source not "../apple/evidence/reins-cli-run.ndjson";
+@source not "../apple/evidence/reins-xcuitest-timing.txt";
 @source not "../ax/art/manifest.json";
 @source not "../components/docs-header.tsx";
 @source not "../components/docs-shell.tsx";

@@ -163,9 +163,16 @@ interface CommandItem {
   /**
    * Whether closing the palette after this command runs puts focus back where it was (the
    * trigger). `false` leaves focus where `onSelect` puts it, as a command that opens a
-   * conversation and focuses its messages does. @default true
+   * conversation and focuses its messages does. @default true, or false for a command that `navigates`
    */
   restoreFocus?: boolean | undefined;
+  /**
+   * This command takes the person somewhere: it opens a conversation, a page or a record. Closing the
+   * palette then leaves focus where the destination put it, never back on the trigger, which may be
+   * gone or covered by then (`restoreFocus` defaults to false). Give `restoreFocus` to say otherwise.
+   * @default false
+   */
+  navigates?: boolean | undefined;
   /**
    * A second line under the label, such as a snippet of a message, which the search matches too.
    */

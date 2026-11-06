@@ -2,7 +2,7 @@
 
 # ShowMore
 
-"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height under a fade, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The button names what it folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`). The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
+"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height under a fade, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The button names what it folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`). Folded text and content are folded by CSS in the first commit and in server HTML, and the button comes after the browser has laid them out: ShowMore does not guess whether they are longer than the fold. One ResizeObserver reads the layout and adds the button to what overflows. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
 
 ```tsx
 import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more";
@@ -44,6 +44,7 @@ Long content of any kind folded to `maxHeight` pixels under a fade, with "Show m
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The content: rich text, pictures, cards. Screen readers always read all of it, and moving keyboard focus into the folded part unfolds it, so nothing focusable is out of sight. |
+| `estimate` | `ShowMoreEstimate` |  | Not read: ShowMore does not guess whether content is longer than its fold, so this changes nothing. Kept so an app that passes it still compiles. |
 | `maxHeight` (required) | `number` |  | How tall the content shows while folded, in CSS pixels, with its last part fading out. Content at most a fifth taller shows whole, since a button that reveals a line or two helps nobody. The button appears only when the content is folded. |
 | `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the button is pressed, or when keyboard focus moving below a `maxHeight` fold unfolds it, whether or not `open` is set. |
 | `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
@@ -79,9 +80,10 @@ A list cut to its first `initialCount` items, with "Show more" and "Show less".
 Not in this mode (typed `never`):
 
 - `children`: Text mode only: a list takes `items`.
+- `estimate`: Text and height modes only: a list shows its first items.
 - `hasMore`: Only with `onShowMore`.
 - `href`: Only with `onShowMore`.
-- `lines`: Text mode only: not with `items`.
+- `lines`: 
 - `loadedLabel`: Only with `onShowMore`.
 - `loading`: Only with `onShowMore`.
 - `loadingLabel`: Only with `onShowMore`.
@@ -96,6 +98,7 @@ Long text clamped to `lines` lines, with "Show more" and "Show less".
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The text. Screen readers always read all of it. |
+| `estimate` | `ShowMoreEstimate` |  | Not read: ShowMore does not guess whether content is longer than its fold, so this changes nothing. Kept so an app that passes it still compiles. |
 | `lines` (required) | `number` |  | How many lines show while collapsed. The button appears only when the text is longer. |
 | `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the button is pressed, or when keyboard focus moving below a `maxHeight` fold unfolds it, whether or not `open` is set. |
 | `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
@@ -134,8 +137,9 @@ A list the server grows a page at a time: "Show more" asks for the next page and
 Not in this mode (typed `never`):
 
 - `children`: Text mode only: a list takes `items`.
+- `estimate`: Text and height modes only: a list shows its first items.
 - `initialCount`: Only with `items` and no `onShowMore`.
-- `lines`: Text mode only: not with `items`.
+- `lines`: 
 - `maxHeight`: Height mode only: not with `items`.
 - `onOpenChange`: Not for a list that loads more, which only grows.
 - `open`: Not for a list that loads more, which only grows.
@@ -155,5 +159,20 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `ShowMoreEstimate`
+
+What folded content holds. Not read: ShowMore decides from the browser's layout, and this leaves the first frame as it is. Kept so an app that passes it still compiles.
+
+```ts
+interface ShowMoreEstimate {
+  /** Its plain text. Not read. */
+  text?: string | undefined;
+  /** The CSS pixels its pictures and cards take. Not read. */
+  height?: number | undefined;
+}
+```
 
 [^layout-classes]: test:registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys)

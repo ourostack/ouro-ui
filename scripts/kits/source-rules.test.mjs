@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, listSourceFiles, loadPaths, main, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, GATED_LOAD_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -24,8 +24,11 @@ describe("findOffendersInSource: each category", () => {
             "plain-element-handler",
             "data-ouro-attr",
             "control-state-style",
+            "layout-animation",
             "third-party-control",
             "content-spinner",
+            "render-index",
+            "gated-load",
             "uses-hand-rolled-control",
         ]);
     });
@@ -289,6 +292,324 @@ describe("content-spinner", () => {
         expect(formatComparison(comparison)).toEqual([`New spinner standing in for content: app/x.tsx::A::content-spinner::span:: (+1) at app/x.tsx:4. ${CONTENT_SPINNER_FIX}`]);
         expect(CONTENT_SPINNER_FIX).toContain('<Skeleton shape="row" count={6}>');
         expect(CONTENT_SPINNER_FIX).toContain("Inline progress for an action is allowed: a spinner inside a button (<Button loading>)");
+    });
+});
+describe("render-index", () => {
+    it("finds an index built at the top of a component's render, with the variable it is assigned to", () => {
+        expect(scan(`export function Rows({ rows }) {\n  const byId = new Map(rows.map((row) => [row.id, row]));\n  return <ul>{rows.length}</ul>;\n}`)).toEqual([
+            { category: "render-index", fingerprint: "app/routes/fixture.tsx::Rows::render-index::Map::byId", file: "app/routes/fixture.tsx", line: 2 },
+        ]);
+    });
+    it("finds each builder: Map, Set, RegExp, Object.fromEntries, Object.groupBy and Map.groupBy", () => {
+        const source = `export function Search({ rows, query, tags }) {
+          const a = new Set(tags);
+          const b = new RegExp(query, "i");
+          const c = Object.fromEntries(rows);
+          const d = Object.groupBy(rows, (row) => row.kind);
+          const e = Map.groupBy(rows, (row) => row.kind);
+          return null;
+        }`;
+        expect(fingerprints(source)).toEqual([
+            "app/routes/fixture.tsx::Search::render-index::Set::a",
+            "app/routes/fixture.tsx::Search::render-index::RegExp::b",
+            "app/routes/fixture.tsx::Search::render-index::Object.fromEntries::c",
+            "app/routes/fixture.tsx::Search::render-index::Object.groupBy::d",
+            "app/routes/fixture.tsx::Search::render-index::Map.groupBy::e",
+        ]);
+    });
+    it("finds one in JSX, a hook's argument, a custom hook, an arrow component, memo, forwardRef and a class's render", () => {
+        const source = `
+          import { memo, forwardRef, useState } from "react";
+          import * as React from "react";
+          export const List = ({ ids }) => <Rows selected={new Set(ids)} />;
+          export function Picker({ ids }) { const [chosen] = useState(new Set(ids)); return chosen.size; }
+          export function useIndex(rows) { return new Map(rows); }
+          export const Row = memo(({ tags }) => { const set = new Set(tags); return set.size; });
+          export const Field = React.forwardRef(function (props, ref) { const pattern = (new RegExp(props.pattern)); return pattern.source; });
+          export class Table extends React.Component { render() { const index = new Map(this.props.rows); return index.size; } }`;
+        expect(fingerprints(source)).toEqual([
+            "app/routes/fixture.tsx::List::render-index::Set::",
+            "app/routes/fixture.tsx::Picker::render-index::Set::",
+            "app/routes/fixture.tsx::useIndex::render-index::Map::",
+            "app/routes/fixture.tsx::Row::render-index::Set::set",
+            "app/routes/fixture.tsx::Field::render-index::RegExp::pattern",
+            "app/routes/fixture.tsx::Table::render-index::Map::index",
+        ]);
+    });
+    it("passes an index built in useMemo, a lazy initializer, an effect, an event handler or at module scope", () => {
+        const source = `
+          import { useEffect, useMemo, useState } from "react";
+          const KINDS = new Set(["a", "b"]);
+          const byKind = Object.fromEntries([["a", 1]]);
+          export function Rows({ rows, query }) {
+            const byId = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
+            const [seen] = useState(() => new Set(rows));
+            useEffect(() => { const index = new Map(rows); index.clear(); }, [rows]);
+            const onSearch = () => new RegExp(query);
+            function onPick(event) { return Object.fromEntries(new FormData(event.target)); }
+            return <input onChange={(event) => new Set(event.target.value)} />;
+          }`;
+        expect(scan(source).filter((offender) => offender.category === "render-index")).toEqual([]);
+    });
+    it("passes an empty Map or Set, another constructor, and a function that is no component, hook or render", () => {
+        const source = `
+          export function Rows() { const seen = new Set(); const cache = new Map(); const when = new Date(0); return null; }
+          export function indexRows(rows) { return new Map(rows); }
+          export const toIndex = (rows) => new Set(rows);
+          export const Lookup = { build: (rows) => new Map(rows) };
+          export class Store { constructor(rows) { this.index = new Map(rows); } get Index() { return new Map(this.rows); } render() { return new Set(this.rows); } }
+          export const helper = { render() { return new Set([1]); } };`;
+        expect(scan(source)).toEqual([]);
+    });
+    it("skips a route handler, an all-capitals function and a capitalised function in a .ts file, and still finds a hook there", () => {
+        const route = `
+          export async function GET(request) { const ids = new Set(request.ids); return Response.json([...ids]); }
+          export const POST = async (request) => Object.fromEntries(await request.formData());
+          export function Format(rows) { return new Map(rows); }
+          export function useIndex(rows) { return new Map(rows); }`;
+        expect(fingerprints(route, "app/routes/api.ts")).toEqual(["app/routes/api.ts::useIndex::render-index::Map::"]);
+        expect(scan(`export function GET(request) { const ids = new Set(request.ids); return null; }`, "app/routes/api.tsx")).toEqual([]);
+        expect(fingerprints(`export function C({ rows }) { const byId = new Map(rows); return byId.size; }`)).toEqual(["app/routes/fixture.tsx::C::render-index::Map::byId"]);
+    });
+    it("leaves a callback that runs during render uncounted, a known gap", () => {
+        expect(scan(`export function Rows({ rows }) { return rows.map((row) => new Set(row.tags).size); }`)).toEqual([]);
+    });
+    it("reads through as and satisfies, an anonymous class component, and skips a static block, a nameless default export and an empty builder", () => {
+        const source = `
+          import { memo, Component } from "react";
+          export const Rows = memo((({ rows }) => { const byId = new Map(rows) as Map<string, unknown>; const kinds = new Set(rows) satisfies Set<unknown>; return byId.size + kinds.size; }) as any) satisfies object;
+          export const Table = class extends Component { render() { return new Set(this.props.rows).size; } };
+          export function Empty() { const seen = new Map; const none = Object.fromEntries(); return seen.size; }
+          export default function (rows) { return new Set(rows); }
+          export class Cache { static { const warm = new Map([[1, 2]]); } }`;
+        expect(fingerprints(source)).toEqual([
+            "app/routes/fixture.tsx::Rows::render-index::Map::byId",
+            "app/routes/fixture.tsx::Rows::render-index::Set::kinds",
+            "app/routes/fixture.tsx::Table::render-index::Set::",
+        ]);
+        expect(fingerprints(`export default class extends Component { render() { return new Set(this.props.rows).size; } }`)).toEqual([
+            "app/routes/fixture.tsx::render::render-index::Set::",
+        ]);
+    });
+    it("never makes the component around it a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/rows.tsx": `export function Rows({ rows }) { const byId = new Map(rows); return byId.size; }`,
+            "app/routes/home.tsx": `import { Rows } from "~/components/rows"; export function Home() { return <Rows rows={[]} />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["render-index"]);
+    });
+    it("names the store, useMemo and module-scope fix in its message", () => {
+        const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::Rows::render-index::Map::byId", file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([`New index built in render: app/x.tsx::Rows::render-index::Map::byId (+1) at app/x.tsx:4. ${RENDER_INDEX_FIX}`]);
+        expect(RENDER_INDEX_FIX).toContain("in the store or loader that holds the data");
+        expect(RENDER_INDEX_FIX).toContain("useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])");
+        expect(RENDER_INDEX_FIX).toContain("module scope");
+    });
+});
+describe("layout-animation", () => {
+    const layout = (source, file) => scan(source, file).filter((offender) => offender.category === "layout-animation").map((offender) => offender.fingerprint);
+    it("finds transition-all and a transition of a layout property in a class, under any variant, counted where it is written", () => {
+        expect(scan(`export function Panel() { return <div className="rounded-md transition-all duration-200" />; }`)).toEqual([
+            { category: "layout-animation", fingerprint: "app/routes/fixture.tsx::Panel::layout-animation::transition-all::", file: "app/routes/fixture.tsx", line: 1 },
+        ]);
+        const source = `
+          const popover = "data-open:!transition-[width,opacity] md:transition-[max-height]";
+          const menu = \`[transition:top_200ms_ease,opacity_200ms] \${"x"} [transition-property:margin-left]\`;
+          const tooltip = "[transition:150ms_ease-out]";
+          export const Menu = () => <div className={popover + menu + tooltip} />;`;
+        expect(layout(source)).toEqual([
+            "app/routes/fixture.tsx::(module)::layout-animation::data-open:!transition-[width,opacity]::",
+            "app/routes/fixture.tsx::(module)::layout-animation::md:transition-[max-height]::",
+            "app/routes/fixture.tsx::(module)::layout-animation::[transition:top_200ms_ease,opacity_200ms]::",
+            "app/routes/fixture.tsx::(module)::layout-animation::[transition-property:margin-left]::",
+            "app/routes/fixture.tsx::(module)::layout-animation::[transition:150ms_ease-out]::",
+        ]);
+    });
+    it("passes a class that animates only transform, opacity or colour, and Tailwind's plain transition", () => {
+        const source = `export function Popover() {
+          return <div className="transition transition-colors transition-opacity transition-transform transition-[opacity,translate,scale] [transition:transform_var(--d)_var(--e),opacity_var(--d)] [transition-property:translate,scale] [transition:none] data-ending-style:opacity-0 w-64 h-auto top-2" />;
+        }`;
+        expect(layout(source)).toEqual([]);
+    });
+    it("finds a transition style value, an element's animate() keyframes and Motion's animate, exit and while props", () => {
+        const source = `
+          import { motion } from "motion/react";
+          export function Drawer({ el, open }) {
+            el.style.transition = "height 200ms ease";
+            el.style.transitionProperty = "opacity, padding-top";
+            el.animate([{ opacity: 0 }, { maxHeight: "0px" }], 200);
+            el.animate({ "margin-top": [0, 8] }, 200);
+            return <motion.div style={{ transition: "all 0.2s", WebkitTransition: "left .2s" }} animate={{ width: open ? 240 : 0 }} exit={{ height: 0 }} whileHover={{ fontSize: "2rem" }} />;
+          }`;
+        expect(layout(source)).toEqual([
+            "app/routes/fixture.tsx::Drawer::layout-animation::style.transition:height::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::style.transitionProperty:padding-top::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::animate():max-height::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::animate():margin-top::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::style.transition:all::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::style.WebkitTransition:left::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::animate:width::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::exit:height::",
+            "app/routes/fixture.tsx::Drawer::layout-animation::whileHover:font-size::",
+        ]);
+    });
+    it("passes transform and opacity in styles, keyframes and Motion, and strings that only look alike", () => {
+        const source = `
+          import { motion } from "motion/react";
+          const base = { opacity: 0 };
+          const key = "width";
+          export function Sheet({ el, frames }) {
+            el.style.transition = "transform 200ms, opacity 200ms";
+            el.style.transform += "translateY(0)";
+            el.animate([base, frames, { ...base, [key]: 1, translate: "0 8px", "object-position": "50% 0%" }], 200);
+            el.animate();
+            el.show({ height: 0 });
+            const copy = { "transition": "width" ? "a" : "b", [key]: "transition: width 1s" };
+            return <motion.div style={{ transition: "opacity .2s", width: 240 }} animate="open" initial={{ height: 0 }} exit={/* later */} whileTap={{ scale: 0.96 }} title=" transition with  width " />;
+          }`;
+        expect(layout(source)).toEqual([]);
+    });
+    it("finds a stylesheet's transition of a layout property or all, @apply transition-all, and keyframes that set a layout property", () => {
+        const css = `
+          .popover { transition: opacity 150ms, height 150ms; }
+          .menu { transition-property: inset-inline-start; }
+          @media (hover: hover) { .tooltip:hover { -webkit-transition: .2s; } }
+          .card { @apply  rounded transition-all; }
+          @keyframes grow { from { opacity: 0; width: 0; } to { width: 100%; height: 4rem; } }
+          @-webkit-keyframes slide { to { LEFT: 0; } }`;
+        expect(layout(css, "app/app.css")).toEqual([
+            "app/app.css::(stylesheet)::layout-animation::.popover::transition: height",
+            "app/app.css::(stylesheet)::layout-animation::.menu::transition-property: inset-inline-start",
+            "app/app.css::(stylesheet)::layout-animation::.tooltip:hover::-webkit-transition: all",
+            "app/app.css::(stylesheet)::layout-animation::.card::@apply transition-all",
+            "app/app.css::(stylesheet)::layout-animation::@keyframes grow::width",
+            "app/app.css::(stylesheet)::layout-animation::@-webkit-keyframes slide::left",
+        ]);
+    });
+    it("passes a stylesheet that animates transform, opacity and colours only", () => {
+        const css = `
+          .popover { transition: transform 150ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms; transition-property: opacity, background-color,; }
+          .press { transition: none; @apply transition-opacity; }
+          @keyframes ouro-spin { to { rotate: 1turn; } }
+          @keyframes shimmer { from { background-position: 100% 0; } }`;
+        expect(layout(css, "app/app.css")).toEqual([]);
+    });
+    it("reads a transition value as a shorthand or a property list", () => {
+        expect(layoutTransitionProperty("200ms ease-in-out 50ms")).toBe("all");
+        expect(layoutTransitionProperty("200ms ease-in-out 50ms", { list: true })).toBe(undefined);
+        expect(layoutTransitionProperty("var(--duration) var(--ease)")).toBe(undefined);
+        expect(layoutTransitionProperty("opacity steps(4, end), Gap 1s")).toBe("gap");
+        expect(layoutTransitionProperty("border-inline-start-width 1s linear(0, 1)")).toBe("border-inline-start-width");
+        expect(layoutAnimationClass("hover:transition-all!")).toBe("all");
+        expect(layoutAnimationClass("transition-[grid-template-columns]")).toBe("grid-template-columns");
+        expect(layoutAnimationClass("transition-shadow")).toBe(undefined);
+    });
+    it("reads a shorthand of keywords only, or with a zero or missing duration, as naming no property", () => {
+        for (const value of ["unset", "initial", "inherit", "revert", "revert-layer", "none", "0s", "0ms ease", "all 0s", "height 0.0s 200ms", "height", "ease-in"]) {
+            expect(layoutTransitionProperty(value)).toBe(undefined);
+        }
+        expect(layoutTransitionProperty("opacity 0s, height 200ms")).toBe("height");
+        expect(layoutTransitionProperty("height var(--duration)")).toBe("height");
+        expect(layoutTransitionProperty("height", { list: true })).toBe("height");
+        expect(layoutAnimationClass("[transition:unset]")).toBe(undefined);
+        expect(layoutAnimationClass("[transition:0s]")).toBe(undefined);
+        expect(layout(`.reset { transition: initial; } .instant { transition: width 0s; }`, "app/app.css")).toEqual([]);
+    });
+    it("never makes the component around it a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/panel.tsx": `export function Panel() { return <div className="transition-all" />; }`,
+            "app/routes/home.tsx": `import { Panel } from "~/components/panel"; export function Home() { return <Panel />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["layout-animation"]);
+    });
+    it("names transform and opacity in its message", () => {
+        const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::Menu::layout-animation::transition-all::", file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([`New animation of a layout property: app/x.tsx::Menu::layout-animation::transition-all:: (+1) at app/x.tsx:4. ${LAYOUT_ANIMATION_FIX}`]);
+        expect(LAYOUT_ANIMATION_FIX).toContain("Animate transform and opacity instead, which the compositor runs without layout");
+        expect(LAYOUT_ANIMATION_FIX).toContain("rather than transition-all");
+    });
+});
+describe("gated-load", () => {
+    const gated = (source) => scan(source).filter((offender) => offender.category === "gated-load").map((offender) => offender.fingerprint.split("::").slice(1, 4).join("::"));
+    it("finds a fetch in a visibilitychange listener, counted where the load is written", () => {
+        expect(scan(`export function Feed() {\n  useEffect(() => {\n    document.addEventListener("visibilitychange", () => {\n      if (!document.hidden) fetch("/api/feed");\n    });\n  }, []);\n  return null;\n}`)).toEqual([
+            { category: "gated-load", fingerprint: "app/routes/fixture.tsx::Feed::gated-load::visibilitychange>fetch::", file: "app/routes/fixture.tsx", line: 4 },
+        ]);
+    });
+    it("finds a load on the window's focus or blur, on return to the page, and in their on… handlers", () => {
+        expect(gated(`export function Feed({ refetch }) { useEffect(() => { window.addEventListener("focus", refetch); }, []); return null; }`)).toEqual(["Feed::gated-load::focus>refetch"]);
+        expect(gated(`export function A() { globalThis.addEventListener("blur", () => loadDrafts()); addEventListener("pageshow", () => import("./x")); }`)).toEqual(["A::gated-load::blur>loadDrafts", "A::gated-load::pageshow>import()"]);
+        expect(gated(`const sync = () => fetch("/api"); export function A() { window.onfocus = () => sync(); document.onvisibilitychange = sync; }`)).toEqual(["A::gated-load::onfocus>sync", "A::gated-load::onvisibilitychange>sync"]);
+        expect(gated(`const warm = useCallback(() => { const image = new Image(); image.src = url; }, [url]); export function A() { window.addEventListener("focus", warm); }`)).toEqual(["A::gated-load::focus>warm"]);
+    });
+    it("finds a load under a document.hidden, visibilityState or hasFocus condition, after an early return too", () => {
+        expect(gated(`export function poll() { if (document.hidden) return; loadMessages(); }`)).toEqual(["poll::gated-load::document.hidden>loadMessages"]);
+        expect(gated(`export function poll() { if (window.document.visibilityState === "visible") { revalidate(); } else { prefetchQuery(key); } }`)).toEqual(["poll::gated-load::document.visibilityState>revalidate", "poll::gated-load::document.visibilityState>prefetchQuery"]);
+        expect(gated(`export function poll() { return document.hasFocus() ? refresh() : null; }`)).toEqual(["poll::gated-load::document.hasFocus>refresh"]);
+        expect(gated(`export function poll() { document.hidden || fetch("/api"); }`)).toEqual(["poll::gated-load::document.hidden>fetch"]);
+        expect(gated(`export function poll() { switch (x) { case 1: if (!document.hidden) { break; } img.setAttribute("src", url); } }`)).toEqual(["poll::gated-load::document.hidden>src"]);
+    });
+    it("finds a load an idle wait or an observer decides, and one that waits on an in-view or idle hook", () => {
+        expect(gated(`export function warm() { requestIdleCallback(() => import("./chart")); }`)).toEqual(["warm::gated-load::requestIdleCallback>import()"]);
+        expect(gated(`export function Lazy() { useEffect(() => { new IntersectionObserver(([entry]) => { if (entry.isIntersecting) fetchNextPage(); }); }, []); return null; }`)).toEqual(["Lazy::gated-load::IntersectionObserver>fetchNextPage"]);
+        expect(gated(`export function More() { const { ref, inView } = useInView(); useEffect(() => { if (inView) fetchNextPage(); }, [inView]); return <div ref={ref} />; }`)).toEqual(["More::gated-load::useInView>fetchNextPage"]);
+        expect(gated(`export function Q() { const [ref, inView] = useInView(); const q = useQuery({ queryKey: ["x"], queryFn, enabled: inView }); return null; }`)).toEqual(["Q::gated-load::useInView>useQuery"]);
+        expect(gated(`export function Q() { const visible = await usePageVisibility(); const r = useSWR(visible ? "/api" : null); return null; }`)).toEqual(["Q::gated-load::usePageVisibility>useSWR"]);
+        expect(gated(`export function Q() { const idle = useIdle(60000); const options = { enabled: !idle }; return null; }`)).toEqual(["Q::gated-load::useIdle>enabled"]);
+        expect(gated(`export function Q() { useIdleTimer({ onIdle: () => {}, onActive: () => refetch(), timeout: 1000 }); useIntersectionObserver(ref, () => new Image()); return null; }`)).toEqual(["Q::gated-load::useIdleTimer>refetch", "Q::gated-load::useIntersectionObserver>new Image"]);
+        expect(gated(`export function A() { return <><InView onChange={(seen) => seen && load()} as="div" /><Row onEnterViewport={loadRow} /><Waypoint onEnter={() => {}} /></>; }`)).toEqual(["A::gated-load::InView>load", "A::gated-load::onEnterViewport>loadRow"]);
+    });
+    it("finds an element that fetches only as it nears the screen, and an address that waits on a gate", () => {
+        expect(gated(`export function Card({ photo }) { return <><img src={photo} loading="lazy" alt="" /><iframe loading="lazy" src="/map" /><Image loading="eager" src={photo} /><img loading={mode} /></>; }`)).toEqual(["Card::gated-load::loading=lazy>img", "Card::gated-load::loading=lazy>iframe"]);
+        expect(gated(`export function Card({ photo }) { const { ref, inView } = useInView(); return <><img ref={ref} src={inView ? photo : undefined} alt="" /><video poster={inView && photo} /><img src={photo} srcSet={undefined} title={inView ? "a" : "b"} /><img src /></>; }`)).toEqual(["Card::gated-load::useInView>img.src", "Card::gated-load::useInView>video.poster"]);
+    });
+    it("follows state that a gate's callback sets, and a same-file function that loads", () => {
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); useEffect(() => { new IntersectionObserver(([e]) => setShown(e.isIntersecting)); }, []); useEffect(() => { shown && load(); }, [shown]); return null; }`)).toEqual(["Q::gated-load::IntersectionObserver>load"]);
+        expect(gated(`function sync() { again(); } function again() { sync(); fetch("/api"); } export function A() { requestIdleCallback(() => sync()); }`)).toEqual(["A::gated-load::requestIdleCallback>sync"]);
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); useInView({ onChange: (seen, { target }) => setShown(seen) }); if (shown) loadMore(); }`)).toEqual(["Q::gated-load::useInView>loadMore"]);
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); document.addEventListener("visibilitychange", () => setShown((was) => was || !document.hidden)); if (shown) loadMore(); }`)).toEqual(["Q::gated-load::visibilitychange>loadMore"]);
+    });
+    it("leaves state a gate's callback sets to something else ordinary: a popover that closes on blur", () => {
+        expect(gated(`export function Popover() {
+          const [open, setOpen] = useState(false);
+          useEffect(() => { window.addEventListener("blur", () => setOpen(false)); window.addEventListener("focus", (event) => setOpen()); }, []);
+          const q = useQuery({ queryKey: ["items"], queryFn, enabled: open });
+          return <Button onClick={() => { if (!open) loadItems(); }} />;
+        }`)).toEqual([]);
+    });
+    it("lets rendering-only gates through: an animation or caret paused, what is drawn windowed, a media stream", () => {
+        expect(gated(`export function A() { useEffect(() => { document.addEventListener("visibilitychange", () => { if (document.hidden) cancelAnimationFrame(frame); else start(); }); }, []); return null; }`)).toEqual([]);
+        expect(gated(`export function Caret() { const [paused, setPaused] = useState(false); useEffect(() => { window.addEventListener("blur", () => setPaused(true)); }, []); return paused ? null : <span className="caret" />; }`)).toEqual([]);
+        expect(gated(`export function A({ rows }) { const [shown, setShown] = useState(false); useEffect(() => { new IntersectionObserver(([e]) => setShown(e.isIntersecting)); }, []); return shown ? <List rows={rows} /> : null; }`)).toEqual([]);
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => { if (!document.hidden) video.srcObject = stream; else video.pause(); }); }`)).toEqual([]);
+        expect(gated(`const draw = () => paint(); export function A() { const [, setX] = useState(); window.onfocus = draw; window.addEventListener("focus", () => {}); requestIdleCallback(); }`)).toEqual([]);
+    });
+    it("lets saving on hide through: sendBeacon, and a fetch with keepalive or another method", () => {
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") fetch("/save", { method: "POST", keepalive: true }); }); }`)).toEqual([]);
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => navigator.sendBeacon("/log", data)); }`)).toEqual([]);
+        expect(gated(`export function A() { window.addEventListener("blur", () => fetch("/draft", { ...rest, method: "PUT" })); }`)).toEqual([]);
+        expect(gated(`export function A() { window.addEventListener("blur", () => fetch("/draft", { method: "GET", keepalive: false })); window.addEventListener("blur", () => fetch("/draft", init)); }`)).toEqual(["A::gated-load::blur>fetch", "A::gated-load::blur>fetch"]);
+    });
+    it("does not take an element's focus, another object's hidden or a plain condition for a gate", () => {
+        expect(gated(`export function A() { input.addEventListener("focus", () => fetch("/suggest")); panel.hidden && load(); if (open) refresh(); window.addEventListener(name, () => fetch("/x")); }`)).toEqual([]);
+        expect(gated(`export function A() { window.onclick = () => fetch("/x"); el.onfocus = () => fetch("/x"); return <Row onActive={undefined} data={{ [key]: 1 }} />; }`)).toEqual([]);
+        expect(gated(`export function A() { const { inViewRef } = useInView(); if (state.inView) load(); if (inViewRef) load(); }`)).toEqual([]);
+        expect(gated(`export function A() { if (!document.hidden) img.setAttribute(attribute(), url); if (open) {} else if (document.hidden) return; }`)).toEqual([]);
+    });
+    it("never makes the component around it a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/feed.tsx": `export function Feed() { useEffect(() => { window.addEventListener("focus", () => fetch("/api")); }, []); return null; }`,
+            "app/routes/home.tsx": `import { Feed } from "~/components/feed"; export function Home() { return <Feed />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["gated-load"]);
+    });
+    it("tells an app to load eagerly, newest first, and names what passes", () => {
+        const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::A::gated-load::focus>fetch::", file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([`New load that waits for focus, visibility, idle or scrolling: app/x.tsx::A::gated-load::focus>fetch:: (+1) at app/x.tsx:4. ${GATED_LOAD_FIX}`]);
+        expect(GATED_LOAD_FIX).toContain("Load it eagerly");
+        expect(GATED_LOAD_FIX).toContain('(loading="lazy" included)');
+        expect(GATED_LOAD_FIX).toContain("newest first, within the performance budgets");
+        expect(GATED_LOAD_FIX).toContain("Rendering-only gates pass");
     });
 });
 describe("third-party-control", () => {
@@ -1478,6 +1799,45 @@ describe("main", () => {
             expect(line).toContain("Show a Skeleton shaped like the content instead");
             expect(line).not.toContain("Use an Ouro component instead");
             expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("gives an index's rise the useMemo advice, not \"use an Ouro component\"", () => {
+            const R = "app/routes/r.tsx::R::render-index::Map::byId";
+            const rows = { "/repo/app/routes/r.tsx": `export function R({ rows }) {\n  const byId = new Map(rows);\n  return byId.size;\n}` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [R]: 1 }), rows);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + R));
+            expect(line).toContain("or in useMemo on its inputs");
+            expect(line).toContain("on every render, a keystroke or a hover included; or record why:");
+            expect(line).not.toContain("Use an Ouro component instead");
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("gives a layout animation's rise the transform and opacity advice, not \"use an Ouro component\"", () => {
+            const L = "app/routes/l.tsx::L::layout-animation::transition-all::";
+            const panel = { "/repo/app/routes/l.tsx": `export function L() {\n  return <div className="transition-all" />;\n}` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [L]: 1 }), panel);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + L));
+            expect(line).toContain("Animate transform and opacity instead");
+            expect(line).toContain("a size that must change changes at once; or record why:");
+            expect(line).not.toContain("Use an Ouro component instead");
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("gives a gated load's rise the eager-loading advice, and lets it through once a reason is recorded", () => {
+            const G = "app/routes/g.tsx::G::gated-load::focus>fetch::";
+            const feed = { "/repo/app/routes/g.tsx": `const G = () => { window.addEventListener("focus", () => fetch("/api")); return null; };` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [G]: 1 }), feed);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + G));
+            expect(line).toContain("Load it eagerly");
+            expect(line).toContain('or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"');
+            expect(exit).toHaveBeenCalledWith(1);
+            const allowed = setup(baselineOf({ [A]: 1, [G]: 1 }, [{ fingerprint: G, count: 1, reason: "the server pushes this feed; focus only reconnects" }]), feed);
+            allowed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], allowed.deps);
+            expect(allowed.exit).not.toHaveBeenCalled();
         });
         it("passes a rise the new baseline allows with a reason and count, and not an empty reason or a smaller count", () => {
             const allowed = setup(baselineOf({ [A]: 1, [B]: 1 }, [{ fingerprint: B, count: 1, reason: "measured" }]), extra);

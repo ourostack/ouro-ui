@@ -192,7 +192,8 @@ describe("ConversationList windowing", () => {
 
   it("moves on from a row with focus that the pane scrolled away from, showing the next row at the nearest edge", async () => {
     const { pane, rows } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />);
-    await act(async () => rows()[5]!.focus());
+    // The row is in view. Without preventScroll, WebKit's scroll to it runs on a timer and could bring it back after the scroll below.
+    await act(async () => rows()[5]!.focus({ preventScroll: true }));
     await scrollPane(pane, 15000);
     expect(titleOf(document.activeElement)).toBe("c5");
     await userEvent.keyboard("{ArrowDown}");
@@ -202,18 +203,22 @@ describe("ConversationList windowing", () => {
 
   it("scrolls a short list to the row the keyboard reaches as the browser scrolls to anything that takes focus", async () => {
     const { pane, rows } = await render(<ConversationList label="Conversations" items={many(12)} onSelect={() => {}} />, 120);
+    // WebKit scrolls to an element that takes focus on a timer, which can fire after the key press or focus() returns.
+    const shown = () => inView(document.activeElement!, pane);
     await act(async () => rows()[0]!.focus());
     await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+    await expect.poll(shown).toBe(true);
     const before = pane.scrollTop;
     await userEvent.keyboard("{ArrowDown}");
     expect(titleOf(document.activeElement)).toBe("c4");
+    await expect.poll(shown).toBe(true);
     const after = pane.scrollTop;
     expect(after).toBeGreaterThan(before);
     // The same move made by the browser alone: focus from the row before, with the pane where it was.
     await act(async () => rows()[3]!.focus({ preventScroll: true }));
     await scrollPane(pane, before);
     await act(async () => rows()[4]!.focus());
-    expect(pane.scrollTop).toBe(after);
+    await expect.poll(() => pane.scrollTop).toBe(after);
   });
 
   it("is one Tab stop on the open conversation, however far down it is", async () => {
@@ -227,7 +232,8 @@ describe("ConversationList windowing", () => {
     await act(async () => pane.querySelector("button")!.focus());
     await pressTab();
     expect(titleOf(document.activeElement)).toBe("c400");
-    expect(inView(document.activeElement!, pane)).toBe(true);
+    // The browser's own scroll to the row Tab reached, which WebKit runs on a timer.
+    await expect.poll(() => inView(document.activeElement!, pane)).toBe(true);
   });
 
   it("renders the open conversation far down the list and scrolls it into view, and again when another opens", async () => {
@@ -285,7 +291,8 @@ describe("ConversationList windowing", () => {
 
   it("shows the row with focus at once when Home or End leaves focus where it is, and lets the pane scroll away after", async () => {
     const { pane, rows } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />);
-    await act(async () => rows()[0]!.focus());
+    // In view already; preventScroll leaves no scroll to it on WebKit's timer to undo the scroll below.
+    await act(async () => rows()[0]!.focus({ preventScroll: true }));
     await scrollPane(pane, 3000);
     await userEvent.keyboard("{Home}");
     expect(titleOf(document.activeElement)).toBe("c0");
@@ -306,7 +313,8 @@ describe("ConversationList windowing", () => {
   it("keeps the row with focus, and the Tab stop on it, when the window loses focus", async () => {
     const { pane, rows } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />);
     const row = rows()[5]!;
-    await act(async () => row.focus());
+    // In view already; preventScroll leaves no scroll to it on WebKit's timer to undo the scroll below.
+    await act(async () => row.focus({ preventScroll: true }));
     // The window losing focus blurs the row while it stays the page's focused element.
     await act(async () => row.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
     await scrollPane(pane, 15000);

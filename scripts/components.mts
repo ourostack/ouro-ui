@@ -4,7 +4,9 @@
 //   { "order": 70, "components": ["text-field", "text-area"] }
 //
 // `components` lists the file stems in the folder that are components (`<stem>.tsx`, item
-// name `<stem>`, export name the stem in PascalCase). `order` places the folder in the
+// name `<stem>`, export name the stem in PascalCase). An optional `titles` gives an export name
+// that keeps an initialism's capitals, `"titles": { "snap-pip": "SnapPiP" }`; it differs from the
+// PascalCase name only in letter case. `order` places the folder in the
 // registry and wherever else components are listed in order; ties sort by folder name.
 // scripts/registry.mts, scripts/gen-docs.mts and the tests read this list.
 //
@@ -100,6 +102,22 @@ function readControls(where: string, stems: string[], manifest: { modes?: unknow
   return { modes: modes as Record<string, string[]>, controls: controls as Record<string, ControlPart[]> };
 }
 
+/**
+ * A manifest's `titles`: export names that differ from the stem in PascalCase only in letter case
+ * (`snap-pip` to `SnapPiP`), so the docs page, the registry title and the import line all name it.
+ */
+function readTitles(where: string, stems: string[], titles: unknown): Record<string, string> {
+  if (titles === undefined) return {};
+  if (typeof titles !== "object" || titles === null || Array.isArray(titles)) throw new Error(`${where}: "titles" maps a stem to its export name: { "snap-pip": "SnapPiP" }.`);
+  for (const [stem, title] of Object.entries(titles)) {
+    if (!stems.includes(stem)) throw new Error(`${where}: "titles" names ${stem}, which "components" does not list.`);
+    if (typeof title !== "string" || title === pascal(stem) || title.toLowerCase() !== pascal(stem).toLowerCase()) {
+      throw new Error(`${where}: the title of ${stem} must be ${pascal(stem)} in other letter case, such as an initialism in capitals; leave it out for ${pascal(stem)}.`);
+    }
+  }
+  return titles as Record<string, string>;
+}
+
 /** `text-field` to `TextField`. */
 export const pascal = (stem: string) => stem.replace(/(^|-)([a-z])/g, (_, _dash: string, letter: string) => letter.toUpperCase());
 
@@ -113,7 +131,7 @@ export function readComponents(root: string = repoRoot): Component[] {
     .map((entry) => {
       const file = join(dir, entry.name, MANIFEST);
       if (!existsSync(file)) throw new Error(`${componentsDir}${entry.name}/ has no ${MANIFEST}. Add one: { "order": <number>, "components": ["<stem>"] }.`);
-      const manifest = JSON.parse(readFileSync(file, "utf8")) as { order?: unknown; components?: unknown; modes?: unknown; controls?: unknown };
+      const manifest = JSON.parse(readFileSync(file, "utf8")) as { order?: unknown; components?: unknown; modes?: unknown; controls?: unknown; titles?: unknown };
       const stems = manifest.components;
       if (typeof manifest.order !== "number" || !Array.isArray(stems) || stems.length === 0 || !stems.every((stem) => typeof stem === "string" && /^[a-z][a-z0-9-]*$/.test(stem))) {
         throw new Error(`${componentsDir}${entry.name}/${MANIFEST} needs a numeric "order" and a non-empty "components" list of kebab-case file stems.`);
@@ -122,15 +140,16 @@ export function readComponents(root: string = repoRoot): Component[] {
         if (!existsSync(join(dir, entry.name, `${stem}.tsx`))) throw new Error(`${componentsDir}${entry.name}/${MANIFEST} lists ${stem}, but ${stem}.tsx is not in the folder.`);
       }
       const { modes, controls } = readControls(`${componentsDir}${entry.name}/${MANIFEST}`, stems as string[], manifest);
-      return { folder: entry.name, order: manifest.order, stems: stems as string[], modes, controls };
+      const titles = readTitles(`${componentsDir}${entry.name}/${MANIFEST}`, stems as string[], manifest.titles);
+      return { folder: entry.name, order: manifest.order, stems: stems as string[], modes, controls, titles };
     })
     .sort((a, b) => a.order - b.order || (a.folder < b.folder ? -1 : 1));
-  return folders.flatMap(({ folder, stems, modes, controls }) =>
+  return folders.flatMap(({ folder, stems, modes, controls, titles }) =>
     stems.map((stem) => ({
       name: stem,
       folder,
       stem,
-      title: pascal(stem),
+      title: titles[stem] ?? pascal(stem),
       ...(modes[stem] ? { modes: modes[stem] } : {}),
       ...(controls[stem] ? { controls: controls[stem] } : {}),
     })),
