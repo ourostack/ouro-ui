@@ -240,7 +240,7 @@ function movesItems(record: MutationRecord): boolean {
   return (
     // Stryker disable next-line ConditionalExpression: holding for a change that moved nothing finds nothing moved, as the observer below says of its own check.
     touchesItems(record) ||
-    // Stryker disable next-line MethodExpression: the room goes in or out as a node of its own, never beside another in one record.
+    // Stryker disable next-line MethodExpression,ConditionalExpression: the room goes in or out as a node of its own, never beside another in one record; and holding for a change that moved nothing finds nothing moved.
     [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && node.hasAttribute("data-ouro-message-list-older-room"))
   );
 }
