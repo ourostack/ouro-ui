@@ -18,7 +18,7 @@ import {
   SheetViewport,
 } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { registerSheetProperties } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
-import { Sheet, type SheetProps } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { Sheet, SheetFrame, type SheetProps } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -414,6 +414,19 @@ describe("feel", () => {
       expect(getComputedStyle(inside).getPropertyValue(name), name).toBe("0px");
     }
     expect(getComputedStyle(inside).getPropertyValue("--ouro-sheet-transform")).toBe("");
+  });
+
+  it("SheetFrame tells onOpenChangeComplete once an open and a close have finished", async () => {
+    const complete = vi.fn();
+    const frame = (open: boolean) => (
+      <SheetFrame title="Filters" side="left" open={open} onOpenChange={() => {}} onOpenChangeComplete={complete}>
+        <p>Body</p>
+      </SheetFrame>
+    );
+    const { rerender } = await render(frame(true));
+    await expect.poll(() => complete.mock.calls).toEqual([[true]]);
+    await rerender(frame(false));
+    await expect.poll(() => complete.mock.calls).toEqual([[true], [false]]);
   });
 
   it("registers its own variables and Base UI's drawer ones, each with its syntax and starting value, none inherited", () => {

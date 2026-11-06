@@ -300,10 +300,17 @@ export function Navbar(props: NavbarProps): JSX.Element {
       <SheetFrame
         key={round}
         onOpenChangeComplete={(shown) => {
+          // Stryker disable next-line ArithmeticOperator: any key the sheet has not had builds it afresh, a count down as well as up.
           if (!shown) setRound((count) => count + 1);
         }}
         keepMounted={built}
-        title={menuLabel} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
+        title={menuLabel}
+        closeLabel={closeLabel}
+        side="left"
+        open={open}
+        onOpenChange={setOpen}
+        finalFocus={menuButton}
+      >
         <nav
           aria-label={label}
           // A link chosen in the sheet closes it: the items' links, and any in the menu prop. Not one opened elsewhere (a new

@@ -274,9 +274,16 @@ describe("Navbar", () => {
     body().scrollTop = 400;
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
-    await userEvent.click(button);
-    await expect.element(page.getByRole("textbox", { name: "Filter" })).toHaveValue("");
-    expect(body().scrollTop).toBe(0);
+    // After every close, not only the first.
+    for (let round = 0; round < 2; round += 1) {
+      await userEvent.click(button);
+      await expect.element(page.getByRole("textbox", { name: "Filter" })).toHaveValue("");
+      expect(body().scrollTop).toBe(0);
+      await userEvent.fill(page.getByRole("textbox", { name: "Filter" }), "rec");
+      body().scrollTop = 400;
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
+    }
   });
 
   it("builds no sheet where the links fit the bar", async () => {
