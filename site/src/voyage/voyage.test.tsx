@@ -223,7 +223,7 @@ describe("the header and the theme section", () => {
       await renderPage("/");
       await userEvent.click(page.getByRole("button", { name: "Copy theme", exact: true }));
       // A destructive toast is read out once, from an assertive live region.
-      await expect.poll(() => announced.matching("Couldn't copy").map((change) => change.region.getAttribute("role"))).toEqual(["alert"]);
+      await expect.poll(() => announced.matching("The browser blocked the clipboard").map((change) => change.region.getAttribute("role"))).toEqual(["alert"]);
     } finally {
       announced.stop();
       spy.mockRestore();

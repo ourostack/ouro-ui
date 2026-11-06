@@ -172,7 +172,7 @@
     },
     {
       "file": "registry/ouro/check/check.ts",
-      "sentence": "Exit codes: 0 ok, 1 error (the check could not run), 2 usage, 3 findings to fix.`;",
+      "sentence": "Exit codes: 0 ok, 1 error (the check stopped before it finished, as when the browser would not start), 2 usage, 3 findings to fix.`;",
       "reason": "Ouro check's --help names its exit codes, every Ouro tool's table, which scripts/check/check.test.mts asserts (Ouro check's command > exits as every Ouro tool does: …)"
     }
   ],

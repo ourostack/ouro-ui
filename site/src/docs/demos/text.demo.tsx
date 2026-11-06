@@ -10,7 +10,7 @@ export default function TextDemo(): JSX.Element {
       <Text size="sm" tone="muted">
         Updated 2 days ago
       </Text>
-      <Text tone="destructive">Could not save the recipe.</Text>
+      <Text tone="destructive">Recipe not saved: the server is offline.</Text>
       <Text tone="success">Saved to Weeknights.</Text>
     </div>
   );

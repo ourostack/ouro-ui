@@ -12,7 +12,7 @@ export default function AlertDemo(): JSX.Element {
       {error && (
         <Alert
           tone="destructive"
-          title="Couldn't save"
+          title="Not saved: you're offline"
           description="Check your connection and try again."
           action={
             <Button size="sm" tone="destructive" variant="soft" onClick={() => setError(false)}>
