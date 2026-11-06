@@ -89,7 +89,7 @@ export interface MessageListOwnProps {
    * trails the scroll a little, the farther from where the reader scrolls (the finger, the
    * pointer, the focused message) the more, and catches up on a spring. A fling, or a push past
    * either end, spreads the messages apart and they settle back. It draws with `transform` alone:
-   * the list's scroll position never moves for it, and at rest no message has a transform. Only the
+   * the list's scroll position never moves for it, and at rest, once the reader's scroll has ended, no message has a transform. Only the
    * messages in or near view move, so a long conversation costs what a short one does. It runs for
    * the reader's own wheel, trackpad, touch and keys, never for scrolling the list or your code
    * does (following new messages, setting `scrollTop`), and never with reduced motion (`prefers-reduced-motion: reduce`, or `OuroProvider`'s `motion`).
@@ -404,9 +404,15 @@ const REACH = 400;
 const SPREAD = 20;
 /** The share of a push past either end (a wheel or finger with nowhere left to scroll) that the messages follow. */
 const STRETCH = 0.25;
-/** How long a scroll counts as the reader's after their last wheel, touch or key, in ms: momentum keeps it going. */
+/**
+ * How long a scroll counts as the reader's after their last wheel, touch, key or scroll, in ms: momentum keeps it going.
+ * Once a scroll is theirs, so is the rest of it, until the browser says it ended (`scrollend`): a fling goes on off the main
+ * thread, so a long frame between its scroll events never hands the rest of it to the list. Without `scrollend`, this alone decides.
+ * @claim "until the browser says it ended" registry/ouro/components/ouro/message/message-list.springs.touch.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.touch.test.tsx::follows the whole of a fling through a long frame, and settles only once it stops)
+ * @claim "until the browser says it ended" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > keeps a scroll the reader's until the browser says it ended, however long a frame takes)
+ */
 const ARMED = 250;
-/** A message this close to its place, in px, and this slow, in px/ms, is at rest. */
+/** A message this close to its place, in px, and this slow, in px/ms, is at rest, once the reader's scroll has ended. */
 const REST = 0.25;
 const REST_SPEED = 0.01;
 
@@ -485,6 +491,11 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   // Where the reader scrolls from: the pointer or finger, or, null, the focused message, for the keys.
   let finger: number | null = null;
   let armedUntil = Number.NEGATIVE_INFINITY;
+  // Whether the reader's scroll is still going, from their first scroll event until `scrollend`, where the browser has it.
+  let scrolling = false;
+  const ends = "onscrollend" in scroller;
+  // Whether a scroll since the last frame went on with a scroll of the reader's still going.
+  let going = false;
   let touchY = 0;
   let touchTop = 0;
   let frame = 0;
@@ -544,8 +555,10 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
     const push = pushed;
     pushed = 0;
     if (reduced()) return [...moving.keys()].forEach(rest);
-    // A move of a list's height or more is a jump (End from far up, a link to an old message), not a scroll.
-    const kick = Math.abs(scrolled) < view.height ? scrolled : 0;
+    // A move of a list's height or more is a jump (End from far up, a link to an old message), not a scroll, unless it goes on
+    // with the reader's scroll: a fling that a long frame gathered into one scroll event.
+    const kick = going || Math.abs(scrolled) < view.height ? scrolled : 0;
+    going = false;
     const band = nearby(view);
     const near = new Set(band.map(({ item }) => item));
     // A message that leaves the band is out of sight: it rests at once.
@@ -572,21 +585,33 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
       }
     }
     seen = near;
+    let springing = false;
     for (const [item, state] of moving) {
       const next = springAt(state.value, 0, state.velocity, elapsed, SPRING);
       // Stryker disable next-line EqualityOperator: a spring lands exactly on the rest speed only by chance, and a frame later it rests either way.
-      if (Math.abs(next.value) < REST && Math.abs(next.velocity) < REST_SPEED) rest(item);
-      else {
+      if (Math.abs(next.value) < REST && Math.abs(next.velocity) < REST_SPEED) {
+        // While the reader's scroll goes on, a message drawn away that comes back to its place waits there for the scroll's end,
+        // asking for no frames: the next scroll event of a fling may come only after a long frame, and moves it again.
+        if (scrolling && shifts.has(item)) {
+          moving.set(item, { value: 0, velocity: 0 });
+          draw(item, 0);
+        } else rest(item);
+      } else {
+        springing = true;
         moving.set(item, next);
         draw(item, next.value);
       }
     }
-    if (moving.size > 0) frame = requestAnimationFrame(tick);
+    if (springing) frame = requestAnimationFrame(tick);
   };
-  const run = () => {
-    if (frame !== 0 || reduced()) return;
+  // A frame for the messages, when none is asked for yet.
+  const ask = () => {
+    if (frame !== 0) return;
     then = performance.now();
     frame = requestAnimationFrame(tick);
+  };
+  const run = () => {
+    if (!reduced()) ask();
   };
   const arm = () => {
     armedUntil = performance.now() + ARMED;
@@ -599,10 +624,17 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   };
 
   const onScroll = () => {
-    if (performance.now() <= armedUntil) {
+    if (scrolling || performance.now() <= armedUntil) {
+      going ||= scrolling;
+      scrolling = ends;
       arm();
       run();
     } else top = scroller.scrollTop;
+  };
+  // The reader's scroll ended: the messages waiting at their places rest, in the next frame.
+  const onScrollEnd = () => {
+    scrolling = false;
+    if (moving.size > 0) ask();
   };
   const onWheel = (event: WheelEvent) => {
     finger = event.clientY;
@@ -648,13 +680,14 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for these listeners.
   const passive = { passive: true };
   scroller.addEventListener("scroll", onScroll, passive);
+  scroller.addEventListener("scrollend", onScrollEnd);
   scroller.addEventListener("wheel", onWheel, passive);
   scroller.addEventListener("touchstart", onTouchStart, passive);
   scroller.addEventListener("touchmove", onTouchMove, passive);
   scroller.addEventListener("keydown", onKey);
   scroller.addEventListener("focusin", onFocus);
-  // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change; removing them frees memory only.
-  const forget = () => (observer.disconnect(), scroller.removeEventListener("touchstart", onTouchStart), scroller.removeEventListener("keydown", onKey), scroller.removeEventListener("focusin", onFocus));
+  // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change, and stop() rests every message first, so a scrollend left behind finds none moving and asks for no frame; removing them frees memory only.
+  const forget = () => (observer.disconnect(), scroller.removeEventListener("scrollend", onScrollEnd), scroller.removeEventListener("touchstart", onTouchStart), scroller.removeEventListener("keydown", onKey), scroller.removeEventListener("focusin", onFocus));
   return {
     moved(by) {
       top += by;
@@ -666,7 +699,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
       scroller.removeEventListener("scroll", onScroll);
       scroller.removeEventListener("wheel", onWheel);
       scroller.removeEventListener("touchmove", onTouchMove);
-      // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change.
+      // Stryker disable next-line all: with the scroll, wheel and touchmove listeners gone, nothing reads what these change, and with no message moving a scrollend asks for no frame.
       forget();
     },
   };
@@ -734,7 +767,7 @@ interface Spoken {
  * The messages spring as the reader scrolls, as in a phone's messages app: each trails the scroll a
  * little and catches up, the farther from the pointer, finger or focused message the more, and a
  * fling or a push past either end spreads them apart for a moment. The scroll position never moves
- * for it, and at rest no message has a transform. `springy={false}` turns it off, and it is off with
+ * for it, and at rest, once the reader's scroll has ended, no message has a transform. `springy={false}` turns it off, and it is off with
  * reduced motion.
  *
  * The messages are one Tab stop. Tab lands on the newest message in view (or the one focused
