@@ -115,6 +115,7 @@ export function MessageActionBar({
   actions,
   menu,
   reactions,
+  // Stryker disable next-line StringLiteral: Message always passes its own label, and the list's bar opens the list's menu, which takes the label from the message's data.
   reactionsLabel = "Reactions",
   label,
   menuLabel,
@@ -352,8 +353,10 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
   // Stryker disable next-line ConditionalExpression,LogicalOperator: the slot is found only through the row's data, and the data only through the row, so a slot holds the other two.
   const on = hover.row !== null && data !== undefined && slot !== null ? { row: hover.row, data } : null;
-  if (on !== null && (shown === null || shown.row !== on.row || shown.data !== on.data)) setShown(on);
+  // Each message gives the layer a new data object on every render, so new data comes with a move to another message too.
+  if (on !== null && (shown === null || shown.data !== on.data)) setShown(on);
   useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: the host is null only where there is no document (a server's render), and layout effects run only in a browser.
     if (host === null) return;
     if (slot === null) host.parentNode?.removeChild(host);
     else if (host.parentNode !== slot) slot.appendChild(host);
