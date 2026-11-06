@@ -196,12 +196,13 @@ describe("docs", () => {
   it("lists the components in the sidebar under a label per catalog group, with Start first and Guides last", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/checklist/");
+    // The sidebar is an island of its own (components/docs-shell.tsx), drawn once its chunk loads.
+    await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
     const nav = page.getByRole("navigation", { name: "Docs" });
     const groups = siteGroups.filter((group) => docsItems.some((item) => item.group === group));
     for (const group of groups) {
       const list = nav.getByRole("list", { name: group, exact: true });
-      // The sidebar draws its lists after the page; read them once they are there.
-      await expect.poll(() => list.getByRole("link").elements().map((link) => link.textContent), { message: group }).toEqual(docsItems.filter((item) => item.group === group).map((item) => item.title));
+      expect(list.getByRole("link").elements().map((link) => link.textContent), group).toEqual(docsItems.filter((item) => item.group === group).map((item) => item.title));
     }
     const labels = docsSections().map((section) => section.label);
     expect(labels).toEqual(["Start", ...groups, "Guides"]);
@@ -306,6 +307,7 @@ describe("docs", () => {
     // The docs sidebar sticks to the top of the window, so a header that stuck there too would cover its filter.
     await page.viewport(1280, 800);
     await renderPage("/docs/composer/");
+    await expect.poll(() => document.querySelector('input[placeholder="Filter components"]')).not.toBeNull();
     window.scrollTo({ top: 600, behavior: "instant" });
     const field = document.querySelector<HTMLInputElement>('input[placeholder="Filter components"]')!;
     await expect.poll(() => field.getBoundingClientRect().top).toBeLessThan(60);

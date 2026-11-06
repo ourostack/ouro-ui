@@ -122,7 +122,7 @@ test("on a docs page the menu holds every component, with a search for any docs 
   expect(actions.y - (under.y + under.height)).toBeGreaterThanOrEqual(-4);
   expect(actions.y - (under.y + under.height)).toBeLessThanOrEqual(24);
   await expect(sheet(page).getByRole("button", { name: /^Forms \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
-  const search = sheet(page).getByRole("searchbox", { name: "Find a docs page" });
+  const search = sheet(page).getByRole("searchbox", { name: "Find a page or component" });
   await search.fill("segmented");
   await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Toggle", exact: true })).toHaveCount(0);
@@ -133,6 +133,7 @@ test("on a docs page the menu holds every component, with a search for any docs 
   // A link off the site keeps its own address, and its address is not a name to find it by.
   await search.fill("github");
   await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toHaveAttribute("href", "https://github.com/ourostack/ouro-ui");
+  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toContainText("↗");
   await search.fill("ourostack");
   await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toHaveCount(0);
   // The guide and the section it shares a name with are told apart, as in the menu.
@@ -190,7 +191,7 @@ test("on any docs page the menu lists the guides and the components, as the side
 test("on a phone Enter in the docs search opens the first page it found", async ({ page }) => {
   await open(page, "docs/button/");
   await openMenu(page);
-  const search = sheet(page).getByRole("searchbox", { name: "Find a docs page" });
+  const search = sheet(page).getByRole("searchbox", { name: "Find a page or component" });
   await search.fill("shadcn");
   await search.press("Enter");
   await expect(page).toHaveURL(/\/docs\/switching-from-shadcn\/$/);
@@ -199,7 +200,7 @@ test("on a phone Enter in the docs search opens the first page it found", async 
 test("on a phone the arrow keys walk the docs search's results, and up from the first goes back to the search", async ({ page }) => {
   await open(page, "docs/button/");
   await openMenu(page);
-  const search = sheet(page).getByRole("searchbox", { name: "Find a docs page" });
+  const search = sheet(page).getByRole("searchbox", { name: "Find a page or component" });
   await search.fill("menu");
   const results = sheet(page).locator("nav a[href]");
   await search.press("ArrowDown");

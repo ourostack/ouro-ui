@@ -83,12 +83,14 @@ export function PageLink({ label, to, current }: { label: string; to: string; cu
         onClick={here ? stay : undefined}
         className={cn(row, "py-2 text-[0.9375rem] leading-5 text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground")}
       >
-        {label}
-        {!to.startsWith("/") && (
-          <span aria-hidden="true" className="-ms-1 text-muted-foreground">
-            ↗
-          </span>
-        )}
+        <span>
+          {label}
+          {!to.startsWith("/") && (
+            <span aria-hidden="true" className="ms-1 text-muted-foreground">
+              ↗
+            </span>
+          )}
+        </span>
         {here && <Here />}
       </a>
     </li>

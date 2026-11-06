@@ -169,8 +169,8 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
                 Browse components
               </Button>
             </div>
-            <div className="mt-6 lg:mt-9">
-              <p className="mb-2.5 text-sm text-muted-foreground">Pick a coat of paint. The whole page changes with it.</p>
+            <div className="mt-6 max-sm:order-first max-sm:mt-0 lg:mt-9">
+              <p className="mb-2.5 text-sm text-muted-foreground max-sm:sr-only">Pick a coat of paint. The whole page changes with it.</p>
               <ThemeDots label="Theme" nameClassName="max-sm:hidden" />
             </div>
           </div>

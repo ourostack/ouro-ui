@@ -109,11 +109,11 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
         style={{ boxShadow: "0 0.75rem 0.75rem -0.25rem var(--popover)" }}
       >
         <TextField
-          label="Find a docs page"
+          label="Find a page or component"
           hideLabel
           type="search"
           clearable
-          placeholder="Find a component or guide"
+          placeholder="Find a page or component"
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -166,7 +166,7 @@ function findDocs(query: string): Array<{ label: string; links: Array<{ label: s
   const wanted = query.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (wanted === "") return undefined;
   const holds = (...texts: string[]) => texts.join(" ").toLowerCase().replace(/[^a-z0-9]/g, "").includes(wanted);
-  // A docs page by its name and its slug, not "/docs/", which every one of them has; a page off the site by its name alone.
+  // A docs page by its name and its slug, not "/docs/", which every one of them has; a page off the site by its name and line, not its address.
   const slug = (path: string) => (path.startsWith("/") ? path.replace(/^\/docs\//, "") : "");
   // The docs' first pages by their own names (the catalog by the bar's), each with its section's line, then the sections
   // and their pages; a page met twice keeps its first name.
