@@ -52,7 +52,8 @@ export function ThemePicker(): JSX.Element {
   useLiveClock(preset === "live");
   const popup = useRef<HTMLDivElement>(null);
   return (
-    <PopoverRoot>
+    // Modal: a tap outside closes it without also pressing whatever lies under the tap.
+    <PopoverRoot modal>
       <PopoverTrigger
         render={
           <Button variant="soft" tone="secondary" size="sm" data-site-theme-trigger="" className="site-theme-trigger">

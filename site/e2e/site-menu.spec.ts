@@ -18,6 +18,8 @@ const PAGES: ReadonlyArray<{ path: string; navs: string[] }> = [
   { path: "docs/installing/", navs: ["Footer"] },
   { path: "docs/ax-cli/", navs: ["Footer"] },
   { path: "docs/button/", navs: ["Footer"] },
+  { path: "docs/tooltip/", navs: ["Footer"] },
+  { path: "docs/use-timer/", navs: ["Footer"] },
 ];
 
 async function open(page: Page, path: string): Promise<void> {
@@ -128,16 +130,49 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await search.press("Escape");
   await expect(search).toHaveValue("");
   await expect(sheet(page)).toBeVisible();
+  // With nothing typed, Escape closes the menu.
+  await search.press("Escape");
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(menuButton(page)).toBeFocused();
+  await openMenu(page);
   await search.fill("ax-cli");
   await sheet(page).getByRole("link", { name: "ax-cli", exact: true }).click();
   await expect(page).toHaveURL(/\/docs\/ax-cli\/$/);
 });
 
-test("on a guide's page the menu unfolds the guides, not every component", async ({ page }) => {
+test("on any docs page the menu lists the guides and the components, as the sidebar does", async ({ page }) => {
   await open(page, "docs/theming/");
   await openMenu(page);
   await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toHaveCount(0);
+  await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeAttached();
+  await sheet(page).getByRole("link", { name: "SegmentedControl", exact: true }).click();
+  await expect(page).toHaveURL(/\/docs\/segmented-control\/$/);
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await openMenu(page);
+  await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toBeAttached();
+  await expect(sheet(page).getByRole("link", { name: "ax-cli", exact: true })).toBeAttached();
+});
+
+test("on a phone Enter in the docs search opens the first page it found", async ({ page }) => {
+  await open(page, "docs/button/");
+  await openMenu(page);
+  const search = sheet(page).getByRole("searchbox", { name: "Find a docs page" });
+  await search.fill("shadcn");
+  await search.press("Enter");
+  await expect(page).toHaveURL(/\/docs\/switching-from-shadcn\/$/);
+});
+
+test("on a phone a tap outside the theme picker closes it without pressing what lies under the tap", async ({ page }) => {
+  await open(page, "docs/button/");
+  await page.locator("[data-site-theme-trigger]").click();
+  const picker = page.getByRole("dialog", { name: "Theme" });
+  // real clock: the picker stays open until it is closed; no timer ends it.
+  await expect(picker).toBeVisible();
+  const url = page.url();
+  const box = (await picker.boundingBox())!;
+  await page.mouse.click(PHONE.width / 2, Math.min(PHONE.height - 20, box.y + box.height + 120));
+  await expect(picker).toHaveCount(0);
+  expect(page.url()).toBe(url);
 });
 
 test("on a phone the menu's close button closes it", async ({ page }) => {
@@ -214,9 +249,44 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
 test("on a phone the menu holds X-ray, which the bar has no room for, and closes to show it", async ({ page }) => {
   await open(page, "nautilus/");
   await openMenu(page);
-  await sheet(page).getByRole("button", { name: "X-ray", exact: true }).click();
+  const pill = () => sheet(page).getByRole("button", { name: "X-ray", exact: true });
+  await expect(pill()).toHaveAttribute("aria-pressed", "false");
+  await pill().click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("region", { name: "X-ray" })).toBeVisible();
+  await openMenu(page);
+  await expect(pill()).toHaveAttribute("aria-pressed", "true");
+  await pill().click();
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "X-ray" })).toHaveCount(0);
+});
+
+test("on a phone the menu opens scrolled to a page far down it", async ({ page }) => {
+  await open(page, "docs/tooltip/");
+  await openMenu(page);
+  expect(await sheet(page).locator("[data-ouro-sheet-content]").evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
+});
+
+test("on a phone the keyboard's Close takes the corner from the pointer's, never both at once", async ({ page }) => {
+  await open(page, "ax/");
+  await openMenu(page);
+  const twin = sheet(page).locator("[data-site-menu-close]");
+  await expect(twin).toBeVisible();
+  await sheet(page).locator("[data-ouro-sheet-close]").focus();
+  await page.keyboard.press("Shift");
+  // A focus() from script is not focus-visible everywhere: Tab to it as a keyboard would, from the end of the sheet.
+  for (let step = 0; step < 60 && !(await sheet(page).locator("[data-ouro-sheet-close]").evaluate((element) => element.matches(":focus-visible"))); step += 1) await pressTab(page);
+  await expect(twin).toBeHidden();
+});
+
+test("on a phone a heading you jump to on a docs page lands below the sticky header", async ({ page }) => {
+  await open(page, "docs/button/");
+  const heading = page.getByRole("main").locator("h2[id]").nth(1);
+  const id = await heading.getAttribute("id");
+  await page.goto(`docs/button/#${id}`);
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await expect.poll(async () => (await heading.boundingBox())!.y).toBeGreaterThanOrEqual((await page.getByRole("banner").boundingBox())!.height);
 });
 
 test("on a phone choosing the page you are on closes the menu and stays put", async ({ page }) => {

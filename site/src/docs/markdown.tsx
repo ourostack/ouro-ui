@@ -160,11 +160,11 @@ export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: stri
         switch (block.kind) {
           case "heading":
             return block.level <= 2 ? (
-              <Heading key={index} level={2} size="lg" id={slug(block.text)} className="mt-14 mb-4 scroll-mt-6">
+              <Heading key={index} level={2} size="lg" id={slug(block.text)} className="mt-14 mb-4">
                 {inline(block.text, link)}
               </Heading>
             ) : (
-              <Heading key={index} level={3} size="sm" id={slug(block.text)} className="mt-8 mb-3 scroll-mt-6">
+              <Heading key={index} level={3} size="sm" id={slug(block.text)} className="mt-8 mb-3">
                 {inline(block.text, link)}
               </Heading>
             );
@@ -196,7 +196,7 @@ export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: stri
                 </Heading>
                 <ul className="grid max-w-[68ch] gap-2">
                   {block.items.map((item) => (
-                    <li key={item.id} id={`source-${slug(item.id)}`} className="scroll-mt-6">
+                    <li key={item.id} id={`source-${slug(item.id)}`}>
                       <Text as="span">
                         <span className="font-medium text-foreground">{item.id}:</span> {sourceBody(item.text)}
                       </Text>

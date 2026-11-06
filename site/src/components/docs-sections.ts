@@ -8,7 +8,7 @@ import { href } from "../paths";
 
 /** The pages that get you started, first in the sidebar. */
 export const startPages = [
-  { href: "/docs/", label: "Components" },
+  { href: "/docs/", label: "Overview" },
   { href: "/docs/installing/", label: "Installing" },
   { href: "/docs/switching-from-shadcn/", label: "Switching from shadcn" },
   { href: "/docs/updating/", label: "Updating installed components" },
@@ -41,6 +41,8 @@ export function componentGroups(filter = ""): Array<{ label: string; links: Docs
 }
 
 /** The guides, and the skill comparisons that fold under one heading after them. */
+/** The pages for the helpers and hooks a component exports (`canShare`, `useTimer`), named as code names them. */
+export const helpers: DocsLink[] = pageIndex.filter((page) => page.kind === "export").map((page) => ({ path: `/docs/${page.name}/`, label: page.title }));
 export const guides: DocsLink[] = guidePages.filter((page) => !isComparison(page.name)).map((page) => ({ path: `/docs/${page.name}/`, label: page.title }));
 export const comparisons: DocsLink[] = guidePages
   .filter((page) => isComparison(page.name))
