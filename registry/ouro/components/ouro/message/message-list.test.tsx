@@ -3107,6 +3107,37 @@ describe("MessageList switching conversations", () => {
     expect(list.host.contains(document.activeElement)).toBe(true);
   });
 
+  it("moves focus to the message that followed the one that went, in the same conversation", async () => {
+    const list = mount();
+    const all = conversation("mara", 8);
+    await list.commit(<Switcher open="mara" keyed={false} named items={all} />);
+    await settle(list.scroller);
+    const focused = list.host.querySelector<HTMLElement>(`[id="${all[3]!.id}"]`)!;
+    focused.focus();
+    expect(document.activeElement).toBe(focused);
+    await list.commit(<Switcher open="mara" keyed={false} named items={all.filter((_, at) => at !== 3)} />);
+    await settle(list.scroller);
+    expect(document.activeElement?.id).toBe(String(all[4]!.id));
+  });
+
+  it("keeps track of the message focus lands on when what a list held none of comes back as the same conversation", async () => {
+    const list = mount();
+    const all = conversation("mara", 6);
+    await list.commit(<Switcher open="mara" keyed={false} named items={all} />);
+    await settle(list.scroller);
+    list.host.querySelector<HTMLElement>(`[id="${all[5]!.id}"]`)!.focus();
+    await list.commit(<Switcher open="mara" keyed={false} named items={[]} />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} named items={all.slice(0, 5)} />);
+    await settle(list.scroller);
+    list.host.querySelector<HTMLElement>(`[id="${all[4]!.id}"]`)!.focus();
+    await list.commit(<Switcher open="mara" keyed={false} named items={all} />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} named items={all.slice(0, 4)} />);
+    await settle(list.scroller);
+    expect(list.host.contains(document.activeElement)).toBe(true);
+  });
+
   it("does not take focus into the next conversation's messages once the reader has moved focus elsewhere and let go of it", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} count={5} />);
@@ -3211,6 +3242,17 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="mari" keyed={false} count={3} />);
     // The content is as tall as the view, no taller: nothing to keep from shrinking.
     expect(content().offsetHeight).toBe(list.scroller.clientHeight);
+    expect(mark().style.display).toBe("");
+  });
+
+  it("holds a floor in the layout under long content at its end, and lets it out of the layout when the content is short", async () => {
+    const list = mount();
+    const mark = () => list.host.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
+    await list.commit(<Switcher open="mara" keyed={false} count={60} />);
+    await settle(list.scroller);
+    expect(mark().style.display).toBe("block");
+    await list.commit(<Switcher open="mari" keyed={false} count={1} />);
+    await settle(list.scroller);
     expect(mark().style.display).toBe("");
   });
 

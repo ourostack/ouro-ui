@@ -1373,6 +1373,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const floorMark = floorRef.current!;
     let floor = 0;
     const setFloor = (px: number) => {
+      // Stryker disable next-line ConditionalExpression: only spares writing the values the mark already holds.
       if (px === floor) return;
       floor = px;
       // Out of the layout when it holds nothing, so moving it never stops the browser's own scroll anchoring.
@@ -1881,6 +1882,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       for (const guard of content.querySelectorAll(guards)) guard.setAttribute("tabindex", "-1");
       // A message removed with nothing in its place waited for the next messages, another conversation's: other messages
       // coming instead let it go, so they never take focus from wherever the reader went since.
+      // Stryker disable next-line ArrayDeclaration: undefined and null are alike to every read of `focused`.
       if (waiting && changed && !switched.current) [focused, waiting] = [null, false];
       // In another conversation, focus goes to its Tab stop, below, without scrolling: no message is in the old one's place.
       const refocus = focused?.isConnected === false && doc.activeElement === doc.body && switched.current;
