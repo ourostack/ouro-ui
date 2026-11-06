@@ -80,6 +80,13 @@ test("every scene the site shows is there at each width, with the phone crop and
   }
   const { CARDS } = await import("../src/storybook.ts");
   for (const card of Object.values(CARDS)) assert.ok(have.has(`og/${card.scene}.jpg`), `og/${card.scene}.jpg, the card ${card.file}'s scene, is missing`);
+  // Each phone crop's shape is its own: the picture's height for it (SCENES[scene].phoneHeight) is the file's.
+  // A lossy WebP ("VP8 ") holds its width and height, 14 bits each, after its frame's start code.
+  for (const [scene, { phoneHeight }] of Object.entries(SCENES)) {
+    const webp = readFileSync(join(storybook, `phone/${scene}-768.webp`));
+    assert.equal(webp.toString("latin1", 12, 16), "VP8 ", scene);
+    assert.deepEqual([webp.readUInt16LE(26) & 0x3fff, webp.readUInt16LE(28) & 0x3fff], [768, phoneHeight], `phone/${scene}-768.webp`);
+  }
   for (const icon of ["icons/ouro-hx.svg", "icons/ouro-hx-180.png", "icons/ouro-hx-192.png", "icons/ouro-hx-512.png"]) assert.ok(have.has(icon), icon);
 });
 

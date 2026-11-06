@@ -9,16 +9,16 @@ const art = (path: string) => href(`${STORYBOOK}${path}`);
 
 /**
  * One of the storybook scenes (storybook.ts), as the canonical files serve it: AVIF then WebP at 640,
- * 960 and 1536 pixels wide, and on a phone the 4:3 crop around Ouro and the product. Its width and
+ * 960 and 1536 pixels wide, and on a phone the crop around Ouro and the friends, in its own shape. Its width and
  * height are given for each crop, so nothing moves when it arrives.
  */
 function ScenePicture({ scene, priority, sizes }: { scene: SceneName; priority: boolean; sizes: string }): JSX.Element {
-  const { alt, height } = SCENES[scene];
+  const { alt, height, phoneHeight } = SCENES[scene];
   const { phone, wide } = sceneSources(scene, art);
   return (
     <picture data-brand-scene={scene} className="story-world-picture">
-      <source media="(max-width: 640px)" type="image/avif" srcSet={phone("avif")} sizes="100vw" width={768} height={576} />
-      <source media="(max-width: 640px)" type="image/webp" srcSet={phone("webp")} sizes="100vw" width={768} height={576} />
+      <source media="(max-width: 640px)" type="image/avif" srcSet={phone("avif")} sizes="100vw" width={768} height={phoneHeight} />
+      <source media="(max-width: 640px)" type="image/webp" srcSet={phone("webp")} sizes="100vw" width={768} height={phoneHeight} />
       <source type="image/avif" srcSet={wide("avif")} sizes={sizes} width={1536} height={height} />
       <source type="image/webp" srcSet={wide("webp")} sizes={sizes} width={1536} height={height} />
       <img

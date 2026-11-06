@@ -20,6 +20,11 @@ export interface Scene {
   sky: readonly [string, string, string, string, string];
   /** The 1536px header's height: 576, or 512 for the whole-world panorama. */
   height: 576 | 512;
+  /**
+   * The phone crop's height at 768px wide: each crop is cut to hold the whole of its scene's friends,
+   * so its shape is its own (ourostack/.github brand/AGENTS.md), and the picture follows it.
+   */
+  phoneHeight: number;
   /** Where the sun rises in the wide scene, in percent across and down, for its glow. */
   sun: readonly [number, number];
 }
@@ -29,36 +34,42 @@ export const SCENES: Record<SceneName, Scene> = {
     alt: "A woman and a little white robot build a big green switch panel on a wooden workbench at dawn, while Ouro, a smiling green snake curled into an O, watches from the glowing trail.",
     sky: ["#cfc0d0", "#c4c1da", "#cfcbdb", "#faceb4", "#fbd9b6"],
     height: 576,
+    phoneHeight: 432,
     sun: [86, 30],
   },
   "ouro-ui-apple": {
     alt: "A little white robot leans over a phone, a tablet and a laptop on a garden bench, each showing the same green card with a switch, while Ouro smiles beside them.",
     sky: ["#fcbdac", "#f9bda6", "#f9b39e", "#fdc794", "#fde893"],
     height: 576,
+    phoneHeight: 576,
     sun: [87, 11],
   },
   "ouro-ui-core": {
     alt: "Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.",
     sky: ["#edb6b1", "#f7c7b1", "#fac0a5", "#fcd693", "#fdec95"],
     height: 576,
+    phoneHeight: 576,
     sun: [86, 13],
   },
   "playwright-focus-proof": {
     alt: "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
     sky: ["#dac0c6", "#d1c5cf", "#d3ceda", "#f9cfb6", "#fbd6a7"],
     height: 576,
+    phoneHeight: 384,
     sun: [87, 28],
   },
   "ouroboros-skills": {
     alt: "A little robot reads an unrolled scroll beside a bookshelf full of ribboned scrolls and books, while Ouro hands another scroll to a second robot.",
     sky: ["#ebb7ae", "#f1c3a0", "#fcc4a8", "#fcda9d", "#fdeca2"],
     height: 576,
+    phoneHeight: 384,
     sun: [86, 16],
   },
   ourostack: {
     alt: "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
     sky: ["#f8bcad", "#fabc9f", "#fbb59b", "#fdcb9d", "#fde99e"],
     height: 512,
+    phoneHeight: 432,
     sun: [86, 12],
   },
 };
