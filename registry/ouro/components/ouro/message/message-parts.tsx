@@ -300,6 +300,7 @@ export function MessageActionBar({
     pointerEvents: "none",
   };
   return (
+    // Stryker disable next-line StringLiteral: the list finds its layer by the attribute alone ([data-ouro-row-layer]), never by its value.
     <div data-ouro-message-actions-room="" data-ouro-row-layer={layered ? "" : undefined} style={room}>
       {bar}
     </div>

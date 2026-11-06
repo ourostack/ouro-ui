@@ -1705,6 +1705,23 @@ describe("Message actions", () => {
     expect(row.getByRole("menuitem", { name: "More reactions" }).element().hasAttribute("aria-keyshortcuts")).toBe(false);
   });
 
+  it("has a menu button for quick reactions alone, with no menu, and none for an empty list of them", async () => {
+    const reply = { key: "reply", label: "Reply", icon: "↩", onClick: () => {} };
+    const { message, rerender } = await render(
+      <Message variant="chat" role="assistant" name="Jonah Vale" actions={[reply]} quickReactions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => barOf(message).querySelector('[data-ouro-part="menu"]')).not.toBeNull();
+    await rerender(
+      <Message variant="chat" role="assistant" name="Jonah Vale" actions={[reply]} quickReactions={[]}>
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => barOf(message).querySelectorAll("[data-ouro-message-action]").length).toBe(1);
+    expect(barOf(message).querySelector('[data-ouro-part="menu"]')).toBeNull();
+  });
+
   it("opens the menu from the last button, and keeps the bar while it is open", async () => {
     const copied = vi.fn();
     const { message } = await render(

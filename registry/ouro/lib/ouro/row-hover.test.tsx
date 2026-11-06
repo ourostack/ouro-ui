@@ -136,6 +136,13 @@ describe("useRowHover", () => {
     // A finger's pointerover and pointerleave are a tap's, not a hover's.
     await act(async () => void pointer(row("r0"), "pointerover", "touch"));
     expect(layers()).toHaveLength(0);
+    await userEvent.hover(row("r1").querySelector("[data-text]")!);
+    expect(layerIn("r1")).not.toBeNull();
+    await act(async () => void pointer(list(), "pointerleave", "touch"));
+    expect(layerIn("r1")).not.toBeNull();
+    // The mouse leaving the list takes away what it showed.
+    await act(async () => void pointer(list(), "pointerleave"));
+    expect(layers()).toHaveLength(0);
   });
 
   it("shows the layer within the pointer's own event, before the next frame", async () => {
