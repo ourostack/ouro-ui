@@ -3056,6 +3056,23 @@ describe("MessageList switching conversations", () => {
     expect(document.activeElement?.textContent).toContain("theo");
   });
 
+  it("keeps track of the message focus lands on in the next conversation, after a list that held none, through messages that arrive", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} count={5} />);
+    await settle(list.scroller);
+    messagesOf(list.scroller).at(-1)!.focus();
+    await list.commit(<Switcher open="theo" keyed={false} count={5} items={[]} />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="theo" keyed={false} count={5} />);
+    await settle(list.scroller);
+    expect(list.host.contains(document.activeElement)).toBe(true);
+    await list.commit(<Switcher open="theo" keyed={false} count={6} />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="theo" keyed={false} count={4} />);
+    await settle(list.scroller);
+    expect(list.host.contains(document.activeElement)).toBe(true);
+  });
+
   it("does not take focus into the next conversation's messages once the reader has moved focus elsewhere and let go of it", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} count={5} />);

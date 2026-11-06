@@ -1858,6 +1858,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           requestRef.current({ key: key!, id: null, child: false, forward: true, focus: true, block: "nearest" });
         }
       }
+      // Stryker disable next-line ArrayDeclaration: an empty pattern leaves both undefined, which every read of them (`?.`, a truthiness test) treats as null and false.
       if (refocus) [focused, waiting] = [null, false];
       switched.current = false;
       if (!changed) return;
