@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { DEADLINE_MS, ERRORS, GRACE_MS, POLL_MS, RESERVE, waiting, WAITING, yieldToQueue } from "./ci-yield.mjs";
+import { DEADLINE_MS, ERRORS, GRACE_MS, ownQueueWait, POLL_MS, RESERVE, SATURATED_MS, waiting, WAITING, yieldToQueue } from "./ci-yield.mjs";
 
 // The yield to the merge queue (scripts/ci-yield.mjs): that a pull request's CI waits while a merge
 // group's run has a job waiting for a runner, that it always lets the run start in the end, and
@@ -41,11 +41,11 @@ function fakeGh(pages, { left = 900 } = {}) {
 }
 
 /** Runs yieldToQueue on a fake clock: each wait moves the clock on. */
-async function drive(gh, start = GRACE_MS * 3) {
+async function drive(gh, start = GRACE_MS * 3, queuedMs = null) {
   let clock = start;
   const logs = [];
   const waits = [];
-  const result = await yieldToQueue({ gh, repo: "o/r", now: () => Date.UTC(2026, 10, 2, 21, 0, 0) + clock, wait: async (ms) => { waits.push(ms); clock += ms; }, log: (line) => logs.push(line) });
+  const result = await yieldToQueue({ gh, repo: "o/r", queuedMs, now: () => Date.UTC(2026, 10, 2, 21, 0, 0) + clock, wait: async (ms) => { waits.push(ms); clock += ms; }, log: (line) => logs.push(line) });
   return { result, logs, waits };
 }
 
@@ -85,7 +85,7 @@ test("it never holds a run back past its deadline, which fits the step's and the
   const { result, logs, waits } = await drive(gh);
   assert.equal(result, "deadline");
   assert.equal(waits.length, DEADLINE_MS / POLL_MS);
-  assert.match(logs.at(-1), /^::notice::The merge queue still had jobs waiting for a runner after 20 minutes, so this run starts anyway\.$/);
+  assert.match(logs.at(-1), /^::notice::The merge queue still had jobs waiting for a runner after 10 minutes, so this run starts anyway\.$/);
   const step = jobs.plan.split(/\n {6}- /).find((block) => block.startsWith("name: Yield to the merge queue\n"));
   const stepMinutes = Number(step.match(/^ {8}timeout-minutes: (\d+)$/m)[1]);
   assert.ok(DEADLINE_MS + POLL_MS <= stepMinutes * 60_000, "the deadline and its last read fit the step's time limit");
@@ -95,6 +95,27 @@ test("it never holds a run back past its deadline, which fits the step's and the
   assert.ok(prMinutes >= stepMinutes + 8, "on a pull request the plan keeps its own 8 minutes besides the yield");
   assert.equal(otherMinutes, 10, "every other run, which never yields, keeps the plan's 10 minutes");
   assert.match(step, /^ {8}if: github\.event_name == 'pull_request'$/m, "only a pull request yields");
+});
+
+test("a plan that waited for its own runner finds the pool full and starts the run without reading the queue", async () => {
+  const { gh, calls } = fakeGh(() => ({ runs: [run(7)], jobs: { 7: [job("queued")] } }));
+  const { result, waits, logs } = await drive(gh, GRACE_MS * 3, SATURATED_MS);
+  assert.equal(result, "saturated");
+  assert.deepEqual(waits, []);
+  assert.deepEqual(calls, []);
+  assert.match(logs[0], /^The plan waited 5 minutes for its own runner, so the pool is full/);
+  // A shorter wait, or one that could not be told, yields as before.
+  assert.equal((await drive(gh, GRACE_MS * 3, SATURATED_MS - 1)).result, "deadline");
+  assert.equal((await drive(gh, GRACE_MS * 3, null)).result, "deadline");
+});
+
+test("ownQueueWait reads how long the job the runner took waited, and null when it cannot tell", () => {
+  const own = (extra = {}) => ({ runner_name: "GitHub Actions 7", status: "in_progress", created_at: at(0), started_at: at(4 * 60_000), ...extra });
+  const reply = (jobsList) => () => `HTTP/2.0 200 OK\nx-ratelimit-remaining: 900\n\n${JSON.stringify({ total_count: jobsList.length, jobs: jobsList })}`;
+  assert.equal(ownQueueWait(reply([{ runner_name: "other", status: "in_progress", created_at: at(0), started_at: at(1) }, own()]), "o/r", "9", "GitHub Actions 7"), 4 * 60_000);
+  assert.equal(ownQueueWait(reply([own({ runner_name: "other" })]), "o/r", "9", "GitHub Actions 7"), null);
+  assert.equal(ownQueueWait(reply([own()]), "o/r", "", "GitHub Actions 7"), null);
+  assert.equal(ownQueueWait(reply([own()]), "o/r", "9", ""), null);
 });
 
 test("it fails open: a rate limit, few requests left, or repeated failed reads start the run", async () => {

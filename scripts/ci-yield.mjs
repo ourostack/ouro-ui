@@ -8,6 +8,12 @@
 // script waits while a merge group's run of this repository has a job waiting for a Linux or
 // Windows runner, so the queue's jobs go first.
 //
+// It holds the plan's runner while it waits, so it waits only when that can help. A plan that itself
+// waited SATURATED_MS or more for a runner says the pool is full and every job is served in the
+// order it queued: more waiting only leaves a runner idle (of 34 recent plans, 20 waited the whole
+// 20 minutes, the plans of the waiting runs being part of what filled the pool, and 2 saw the queue
+// clear), so the run starts at once.
+//
 // It fails open: it starts the run once nothing waits, after DEADLINE_MS, when the API rate limits
 // this repository's token or says fewer than RESERVE requests are left, and after ERRORS failed
 // reads in a row. It never fails the step. macOS jobs draw on another pool, so they do not count,
@@ -26,7 +32,9 @@ import { rateLimited, requestsLeft } from "./ci-fail-fast.mjs";
 /** How often it reads the queue: once a minute. */
 export const POLL_MS = 60_000;
 /** The longest it holds a pull request's run back; then the run starts anyway. */
-export const DEADLINE_MS = 20 * 60_000;
+export const DEADLINE_MS = 10 * 60_000;
+/** A plan that waited this long for its own runner finds the pool full, and does not yield. */
+export const SATURATED_MS = 5 * 60_000;
 /** A job queued for less than this is being given a runner, not waiting for one. */
 export const GRACE_MS = 20_000;
 /** It starts the run when the API says fewer requests than this are left this hour, for the required checks. */
@@ -83,6 +91,18 @@ export function openRuns(gh, repo) {
     });
 }
 
+/**
+ * How long this job waited for its runner, from the run's jobs (the one the runner `runner` took),
+ * or null when it cannot be told.
+ */
+export function ownQueueWait(gh, repo, runId, runner) {
+  if (!runId || !runner) return null;
+  const { jobs } = read(gh, `repos/${repo}/actions/runs/${runId}/jobs?per_page=100`);
+  const own = jobs.find((job) => job.runner_name === runner && job.status === "in_progress");
+  if (!own?.created_at || !own.started_at) return null;
+  return Date.parse(own.started_at) - Date.parse(own.created_at);
+}
+
 /** The first line of an error's message, for a warning. */
 const firstLine = (error) => String(error?.message ?? error).split("\n")[0];
 
@@ -91,10 +111,15 @@ const said = (error) => [error?.stdout, error?.stderr, error?.message].filter(Bo
 
 /**
  * Waits while the merge queue has a job waiting for a runner, reading every POLL_MS, and returns
- * why it let the run start: "clear", "deadline", "rate-limited" or "errors". Never throws. `gh`
- * runs the GitHub CLI with an argument list and returns its output, or throws an error carrying it.
+ * why it let the run start: "saturated" (`queuedMs`, how long this plan waited for its runner, is
+ * SATURATED_MS or more), "clear", "deadline", "rate-limited" or "errors". Never throws. `gh` runs
+ * the GitHub CLI with an argument list and returns its output, or throws an error carrying it.
  */
-export async function yieldToQueue({ gh, repo, wait = sleep, now = Date.now, log = console.log }) {
+export async function yieldToQueue({ gh, repo, queuedMs = null, wait = sleep, now = Date.now, log = console.log }) {
+  if (queuedMs !== null && queuedMs >= SATURATED_MS) {
+    log(`The plan waited ${Math.round(queuedMs / 60_000)} minutes for its own runner, so the pool is full and its jobs are served in the order they queue: this run starts without yielding.`);
+    return "saturated";
+  }
   const start = now();
   let failures = 0;
   for (;;) {
@@ -129,13 +154,19 @@ export async function yieldToQueue({ gh, repo, wait = sleep, now = Date.now, log
 }
 
 async function main() {
-  const { GITHUB_REPOSITORY: repo } = process.env;
+  const { GITHUB_REPOSITORY: repo, GITHUB_RUN_ID: runId, RUNNER_NAME: runner } = process.env;
   if (!repo) {
     console.error("Run in GitHub Actions: GITHUB_REPOSITORY is missing.");
     return 0;
   }
   const gh = (args) => execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-  await yieldToQueue({ gh, repo });
+  let queuedMs = null;
+  try {
+    queuedMs = ownQueueWait(gh, repo, runId, runner);
+  } catch (error) {
+    console.log(`::warning::Could not tell how long this plan waited for its runner (${firstLine(error)}); yielding as usual.`);
+  }
+  await yieldToQueue({ gh, repo, queuedMs });
   return 0;
 }
 
