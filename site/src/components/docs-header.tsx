@@ -2,9 +2,9 @@ import { lazy, Suspense, useEffect, useState, type JSX } from "react";
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
 import { VoyageHeader } from "../voyage/header";
-import { MenuPages, SiteMenu } from "../voyage/site-menu";
+import { MenuPages, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { comparisons, componentGroups, guides, type DocsLink } from "./docs-sections";
+import { comparisons, componentGroups, guides, startPages, type DocsLink } from "./docs-sections";
 import { setXray, useXray } from "../voyage/xray-store";
 
 // The docs pages' header: the same one the home page and the Nautilus have. docs-shell.tsx loads
@@ -39,16 +39,18 @@ const titled = guides.filter((guide) => guide.label !== guide.path.slice("/docs/
 
 /**
  * The docs' menu: the site's, with the section you are in unfolded (every guide under Docs on a guide's page, every
- * component under Components on a component's), and a search on top that finds any docs page by its name.
+ * component under Components on a component's), and a search on top that finds a page by its name: the site's, the docs' first pages, a component or a guide.
  */
 function DocsMenu({ current }: { current: string }): JSX.Element {
   const [query, setQuery] = useState("");
   const under = headerPath(current);
-  const listed = titled.some((guide) => guide.path === current) ? titled : [...titled, ...guides.filter((guide) => guide.path === current)];
+  // An untitled reference page you are on joins the guides in its own place.
+  const listed = guides.filter((guide) => titled.includes(guide) || guide.path === current);
   const found = findDocs(query);
   return (
     <>
-      <div className="mb-3 px-1">
+      {/* Stays at the top while the long lists scroll under it. */}
+      <div className="sticky top-0 z-2 -mx-5 mb-2 bg-popover px-6 pb-2">
         <TextField
           label="Find a docs page"
           hideLabel
@@ -57,16 +59,22 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
           placeholder="Find a component or guide"
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
+          // Escape clears a search first; with nothing typed it closes the menu.
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && query !== "") {
+              event.stopPropagation();
+              event.preventDefault();
+              setQuery("");
+            }
+          }}
         />
       </div>
+      {/* Always in the page, so a screen reader hears it change. */}
+      <p role="status" className={found?.length === 0 ? "m-0 px-3 py-2 text-sm text-muted-foreground" : "sr-only"}>
+        {found === undefined ? "" : found.length === 0 ? "Nothing aboard by that name. Try another?" : `${found.reduce((sum, group) => sum + group.links.length, 0)} found`}
+      </p>
       {found ? (
-        found.length > 0 ? (
-          <MenuPages pages={found} current={current} />
-        ) : (
-          <p role="status" className="m-0 px-3 py-2 text-sm text-muted-foreground">
-            Nothing aboard by that name. Try another?
-          </p>
-        )
+        found.length > 0 && <MenuPages pages={found} current={current} />
       ) : (
         <SiteMenu
           page={current}
@@ -91,14 +99,28 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
   );
 }
 
-/** The docs pages whose names hold `query`, components then guides; undefined while it is empty. */
+/** The pages whose names hold `query`: the site's and the docs' first pages, then components, then guides; undefined while it is empty. */
 function findDocs(query: string): Array<{ label: string; links: Array<{ label: string; href: string }> }> | undefined {
   const wanted = query.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (wanted === "") return undefined;
-  const matches = (link: DocsLink) => `${link.label} ${link.path}`.toLowerCase().replace(/[^a-z0-9]/g, "").includes(wanted);
+  const holds = (...texts: string[]) => texts.join(" ").toLowerCase().replace(/[^a-z0-9]/g, "").includes(wanted);
+  // A docs page by its name and its slug, not "/docs/", which every one of them has.
+  const slug = (path: string) => path.replace(/^\/docs\//, "");
+  const candidates = [
+    ...startPages.map((page) => ({ ...page, about: "" })),
+    ...SITE_SECTIONS.flatMap((section) => [
+      { label: section.label, href: section.href, about: section.hint },
+      ...(section.pages ?? []).flatMap((page) => ("links" in page ? page.links : [page])).map((page) => ({ ...page, about: "" })),
+    ]),
+  ];
+  const site = candidates
+    .filter((page, index) => page.href.startsWith("/") && candidates.findIndex((other) => other.href === page.href) === index)
+    .filter((page) => holds(page.label, slug(page.href), page.about))
+    .map(({ label, href }) => ({ label, href }));
   return [
+    { label: "Around the site", links: site },
     { label: "Components", links: componentGroups(query).flatMap((group) => group.links).map(asPage) },
-    { label: "Guides", links: [...guides, ...comparisons].filter(matches).map(asPage) },
+    { label: "Guides", links: [...guides, ...comparisons].filter((link) => holds(link.label, slug(link.path))).map(asPage) },
   ].filter((group) => group.links.length > 0);
 }
 

@@ -51,7 +51,9 @@ async function openers(page: Page, root: string): Promise<string[]> {
 async function openMenu(page: Page): Promise<void> {
   await expect(async () => {
     // Once the sheet is open its backdrop covers the button, and a second press would close it.
-    if ((await menuButton(page).getAttribute("aria-expanded")) !== "true") await menuButton(page).click({ timeout: 1000 });
+    // A button that says open with no sheet to show for it is pressed again, closing it, and the next try opens it.
+    const expanded = (await menuButton(page).getAttribute("aria-expanded")) === "true";
+    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: 1000 });
     // real clock: the menu stays open until it is closed; no timer ends it.
     await expect(sheet(page)).toBeVisible({ timeout: 1000 });
   }).toPass();
@@ -113,6 +115,19 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await search.fill("segmented");
   await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Toggle", exact: true })).toHaveCount(0);
+  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"]] as const) {
+    await search.fill(query);
+    await expect(sheet(page).getByRole("link", { name, exact: true })).toBeVisible();
+  }
+  // "/docs/" is in every docs page's address, not in its name.
+  await search.fill("docs");
+  await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toHaveCount(0);
+  await search.fill("no such page at all");
+  await expect(sheet(page).getByRole("status")).toHaveText("Nothing aboard by that name. Try another?");
+  // Escape clears a search before it closes the menu.
+  await search.press("Escape");
+  await expect(search).toHaveValue("");
+  await expect(sheet(page)).toBeVisible();
   await search.fill("ax-cli");
   await sheet(page).getByRole("link", { name: "ax-cli", exact: true }).click();
   await expect(page).toHaveURL(/\/docs\/ax-cli\/$/);
@@ -196,11 +211,30 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
   await expect(page.getByRole("banner").getByRole("link", { name: "Components", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
-test("on a phone the menu holds X-ray, which the bar has no room for", async ({ page }) => {
+test("on a phone the menu holds X-ray, which the bar has no room for, and closes to show it", async ({ page }) => {
   await open(page, "nautilus/");
   await openMenu(page);
-  await sheet(page).getByRole("switch", { name: "X-ray" }).click();
+  await sheet(page).getByRole("button", { name: /^X-ray/ }).click();
+  await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("region", { name: "X-ray" })).toBeVisible();
+});
+
+test("on a phone choosing the page you are on closes the menu and stays put", async ({ page }) => {
+  await open(page, "ax/");
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(300);
+  const before = await page.evaluate(() => scrollY);
+  await openMenu(page);
+  await sheet(page).locator('[aria-current="page"]').click();
+  await expect(sheet(page)).toHaveCount(0);
+  expect(await page.evaluate(() => scrollY)).toBe(before);
+});
+
+test("on a phone a docs page keeps its header, and the menu, in reach as you scroll", async ({ page }) => {
+  await open(page, "docs/theming/");
+  await page.mouse.wheel(0, 1200);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(600);
+  await expect(menuButton(page)).toBeInViewport();
 });
 
 test("on a phone the Nautilus's first chapter marker is styled before any script runs, so it does not jump into place", async ({ page }) => {

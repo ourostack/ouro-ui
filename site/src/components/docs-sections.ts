@@ -7,7 +7,7 @@ import { href } from "../paths";
 // The docs' pages in sections, without the Sidebar: the sidebar island and the header's menu (voyage/site-menu.tsx) both read them.
 
 /** The pages that get you started, first in the sidebar. */
-const startPages = [
+export const startPages = [
   { href: "/docs/", label: "Components" },
   { href: "/docs/installing/", label: "Installing" },
   { href: "/docs/switching-from-shadcn/", label: "Switching from shadcn" },

@@ -67,6 +67,9 @@ function Here(): JSX.Element {
   );
 }
 
+/** Choosing the page you are on: the menu closes (the sheet sees the click) and the page stays where it is. */
+const stay = (event: { preventDefault(): void }) => event.preventDefault();
+
 function PageLink({ label, to, current }: { label: string; to: string; current: string }): JSX.Element {
   const here = to === current;
   return (
@@ -74,6 +77,7 @@ function PageLink({ label, to, current }: { label: string; to: string; current: 
       <a
         href={href(to)}
         aria-current={here ? "page" : undefined}
+        onClick={here ? stay : undefined}
         className={cn(row, "py-2 text-[0.9375rem] leading-5 text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground")}
       >
         {label}
@@ -125,7 +129,11 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
       // The nearest box that scrolls: one that overflows and lets you scroll it, not one whose overflow just shows.
       while (scroller && (scroller.scrollHeight <= scroller.clientHeight || !/auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller = scroller.parentElement;
       if (!link) return true;
-      if (!scroller || scroller === document.scrollingElement || scroller === document.body) return false;
+      // Nothing scrolls: either it all fits, or the sheet has no height yet (then a later frame looks again).
+      if (!scroller || scroller === document.scrollingElement || scroller === document.body) {
+        const spot = link.getBoundingClientRect();
+        return spot.height > 0 && spot.top >= 0 && spot.bottom <= innerHeight;
+      }
       const box = scroller.getBoundingClientRect();
       const spot = link.getBoundingClientRect();
       if (spot.bottom > box.bottom - 16) scroller.scrollTop += spot.top - box.top - box.height / 3;
@@ -148,6 +156,7 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
             <a
               href={sectionHref(section.href)}
               aria-current={here ? "page" : undefined}
+              onClick={here ? stay : undefined}
               aria-describedby={`${id}${index}`}
               className={cn(row, "py-1.5")}
             >
@@ -181,8 +190,8 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
 /**
  * Around the menu, in the sheet: a close button a thumb can see, beside the sheet's title (the sheet's own Close,
  * which a keyboard and a screen reader reach, shows only on focus, so this one is for pointers and stays out of the
- * tab order), a fade under the title, so rows scroll away beneath it instead of being cut, and at the foot the
- * header's `tools` a phone's bar has no room for.
+ * tab order), a fade under the title, so rows scroll away beneath it instead of being cut, and on a phone, first,
+ * the header's `tools` its bar has no room for.
  */
 export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
   return (
@@ -194,7 +203,8 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
             tabIndex={-1}
             aria-hidden="true"
             data-site-menu-close=""
-            className="absolute end-3 top-2 z-2 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-foreground active:bg-accent"
+            // Out of the way while the sheet's own Close shows, under keyboard focus, in the same corner.
+            className="[:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-2 z-2 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-foreground active:bg-accent"
           />
         }
       >
@@ -203,13 +213,8 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
         </svg>
       </SheetClose>
       <div aria-hidden="true" className="pointer-events-none sticky top-0 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
+      {tools && <div className="mb-2 sm:hidden">{tools}</div>}
       {children}
-      {tools && (
-        <div className="mt-4 flex min-h-11 items-center justify-between gap-3 border-0 border-t border-solid border-border px-3 pt-4 sm:hidden">
-          <span className="text-sm leading-5 text-muted-foreground">Peek at the parts under the paint</span>
-          {tools}
-        </div>
-      )}
     </>
   );
 }

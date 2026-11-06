@@ -82,7 +82,7 @@ export interface NavbarProps {
   /**
    * What the sheet behind the menu button holds in place of the `items` links, when a phone
    * needs more than the bar, such as a section's own pages under its name, or a filter over a
-   * long list. It replaces them, so include every link they had. It sits in the sheet's `nav`;
+   * long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`;
    * mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the
    * sheet.
    *
