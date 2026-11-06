@@ -1,6 +1,6 @@
 <!-- ourostack:brand:start -->
 <p align="center">
-  <a href="https://github.com/ourostack"><img src="https://raw.githubusercontent.com/ourostack/.github/main/brand/ouro-hx.png" alt="Ouro HX" width="160" height="160"></a>
+  <a href="https://github.com/ourostack"><img src="https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp" alt="A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn" width="100%"></a>
 </p>
 <!-- ourostack:brand:end -->
 
