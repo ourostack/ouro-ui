@@ -403,14 +403,18 @@ describe("MessageList springs", () => {
     const frames = holdFrames();
     const newest = document.activeElement as HTMLElement;
     expect(newest).toBe(messages().at(-1));
-    // After a wheel, the keys scroll from the focused message, not from where the pointer was.
-    wheel(scroller, -20, scroller.getBoundingClientRect().top);
+    // After a wheel, the keys scroll from the focused message, not from where the pointer was. The wheel leaves the
+    // focused message wholly in view (it is less than the list's 16px padding): a browser may reveal the focused
+    // message before a key (WebKit does when the page is busy), which would scroll the list without the reader.
+    wheel(scroller, -10, scroller.getBoundingClientRect().top);
     frames.step(16);
     frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
     // Past the wheel's 250ms, so only the key makes the scroll the reader's.
     frames.step(300);
     // Page Up: the focused message lands exactly where the key puts it, and the others trail above.
     const top = scroller.scrollTop;
+    newest.scrollIntoView({ block: "nearest" });
+    expect(scroller.scrollTop).toBe(top);
     await userEvent.keyboard("{PageUp}");
     scroller.dispatchEvent(new Event("scroll"));
     frames.step(16);
