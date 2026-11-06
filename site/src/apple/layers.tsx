@@ -10,7 +10,7 @@ import "./layers.css";
  */
 
 export const LAYERS = [
-  { name: "X-ray", path: "/apple/ax/", asks: "Does it say what it does?", body: "Reads the built app's App Intents from outside and checks that its claims hold.", kind: "Claims held" },
+  { name: "AX X-ray", path: "/apple/ax/", asks: "Does it say what it does?", body: "Reads the built app's App Intents from outside and checks that its claims hold.", kind: "Claims held" },
   { name: "Reins", path: "/apple/reins/", asks: "Does it do it?", body: "Drives the screens as state and actions, headless, with the network blocked.", kind: "Behaviour" },
   { name: "Feel", path: "/apple/feel/", asks: "Does it feel right while it does?", body: "Walks the real app in a simulator and measures its jank, genre by genre.", kind: "How it feels" },
 ] as const;

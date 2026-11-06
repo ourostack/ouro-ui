@@ -70,17 +70,27 @@ export function ReinsRace(): JSX.Element {
   const reinsDone = phase !== "ready";
   const laps = journeysIn(elapsed);
 
+  const verdicts: Record<Phase, string> = {
+    ready: "Ready when you are.",
+    racing: "Reins is home already. The simulator is still finding the Kitchen tab by its label.",
+    done: `The simulator crossed the line at ${seconds(SIMULATOR_MS)} s. In that time Reins could have run the whole journey ${journeysIn(SIMULATOR_MS).toLocaleString("en")} times.`,
+  };
+
+  // Every line keeps the height of its longest version from the start, so nothing around the race moves while it runs.
   return (
-    <div className="reins-race" data-reins-race={phase} data-reduced={reduced ? "" : undefined}>
+    <div className="reins-race" data-reins-race={phase} data-reduced={reduced ? "" : undefined} data-browser-ms={browser === null ? undefined : browser.toFixed(2)}>
       <ol className="reins-lanes">
-        <li className="reins-lane">
+        <li className="reins-lane" data-home={reinsDone ? "" : undefined}>
           <p className="reins-lane-name">Reins, headless</p>
           <div className="reins-track" aria-hidden="true">
             <span className="reins-fill reins-fill-reins" style={{ transform: `scaleX(${reinsDone ? 1 : 0})` }} />
           </div>
           <p className="reins-lane-time site-mono">
             {reinsDone ? `${HEADLESS_MS} ms` : "on the line"}
-            {reinsDone ? <span className="reins-lane-note"> and again, {laps.toLocaleString("en")} {laps === 1 ? "time" : "times"} so far</span> : null}
+            <span className="reins-lane-note" data-hidden={reinsDone ? undefined : ""}>
+              {" "}
+              and again, {laps.toLocaleString("en")} {laps === 1 ? "time" : "times"} so far
+            </span>
           </p>
         </li>
         <li className="reins-lane">
@@ -98,19 +108,16 @@ export function ReinsRace(): JSX.Element {
           <Button onClick={start}>{phase === "done" ? "Race again" : "Start the race"}</Button>
         )}
       </div>
-      <p className="reins-verdict" aria-live="polite">
-        {phase === "done"
-          ? `The simulator crossed the line at ${seconds(SIMULATOR_MS)} s. In that time Reins could have run the whole journey ${journeysIn(SIMULATOR_MS).toLocaleString("en")} times.`
-          : phase === "racing"
-            ? "Reins is home already. The simulator is finding the Kitchen tab by its label."
-            : ""}
+      <p className="sr-only" aria-live="polite">
+        {phase === "ready" ? "" : verdicts[phase]}
       </p>
-      {browser !== null ? (
-        <p className="apple-fine">
-          Your browser just ran the same journey through this page's pretend kitchen in {browser < 1 ? "under a millisecond" : `${browser.toFixed(1)} ms`}. That's this page's pretend kitchen, not the real
-          app, so the lanes use the real app's timings.
-        </p>
-      ) : null}
+      <div className="reins-verdicts" aria-hidden="true">
+        {(Object.keys(verdicts) as Phase[]).map((which) => (
+          <p key={which} className="reins-verdict" data-shown={which === phase ? "" : undefined}>
+            {verdicts[which]}
+          </p>
+        ))}
+      </div>
     </div>
   );
 }

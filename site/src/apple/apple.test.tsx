@@ -238,21 +238,29 @@ describe("Ouro UI for Apple", () => {
     const before = size();
     await userEvent.click(page.getByRole("button", { name: /do teleport/ }));
     await expect.poll(last).toContain("teleport isn't available on cook");
-    // A chip hands focus to the log, and the log scrolled itself while the page stayed put.
+    // A chip hands focus to the new screen's first chip, and the log scrolled itself while the page stayed put.
     const log = document.querySelector<HTMLElement>(".reins-log")!;
-    expect(document.activeElement).toBe(log);
+    await expect.poll(() => document.activeElement).toBe(document.querySelector(".reins-chips button"));
     expect(log.scrollTop).toBeGreaterThan(0);
     expect(size()).toEqual(before);
+    // Raw reply lines keep the newest reply in view.
+    log.scrollTop = 0;
+    await userEvent.click(page.getByRole("switch", { name: "Raw reply lines" }));
+    await expect.poll(() => log.scrollTop + log.clientHeight).toBeGreaterThanOrEqual(log.scrollHeight - 2);
   });
 
   it("control: race skips to the finish line with the real numbers", async () => {
     await renderPage("/apple/reins/");
     const start = page.getByRole("button", { name: "Start the race" });
+    // The race keeps its height from the line to the finish, so the page never moves under you.
+    const race = document.querySelector<HTMLElement>("[data-reins-race]")!;
+    const height = race.getBoundingClientRect().height;
     await expect.element(start).toBeInTheDocument();
     await userEvent.click(start);
     await userEvent.click(page.getByRole("button", { name: "Skip to the finish line" }));
     await expect.element(page.getByRole("button", { name: "Race again" })).toBeInTheDocument();
-    expect(document.querySelector(".reins-verdict")?.textContent).toBe("The simulator crossed the line at 16.7 s. In that time Reins could have run the whole journey 891 times.");
+    expect(document.querySelector(".reins-verdict[data-shown]")?.textContent).toBe("The simulator crossed the line at 16.7 s. In that time Reins could have run the whole journey 891 times.");
+    expect(race.getBoundingClientRect().height).toBe(height);
   });
 
   it("shows stills, not video, under Reduce Motion", async () => {

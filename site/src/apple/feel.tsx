@@ -2,7 +2,6 @@ import type { JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock } from "../components/code";
-import { href } from "../paths";
 import { TapLockDuel } from "./feel-duel";
 import { GatefoldFlip } from "./feel-gatefold";
 import kit from "./kit.json";

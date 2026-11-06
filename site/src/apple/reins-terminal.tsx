@@ -101,13 +101,14 @@ export function ReinsTerminal(): JSX.Element {
   // The newest reply scrolls into view inside the log, never the page.
   useEffect(() => {
     const element = log.current;
-    if (element && entries.length > 1) element.scrollTop = element.scrollHeight;
-  }, [entries]);
+    if (element && (entries.length > 1 || raw)) element.scrollTop = element.scrollHeight;
+  }, [entries, raw]);
 
-  /** A chip runs its line, then hands focus to the log, since the chip itself may be gone from the new screen. */
+  /** A chip runs its line, then hands focus to the first chip, since the chip itself may be gone from the new screen. */
+  const chips = useRef<HTMLUListElement>(null);
   const runChip = (line: string) => {
     send(line);
-    log.current?.focus({ preventScroll: true });
+    requestAnimationFrame(() => chips.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }));
   };
 
   const submit = (event: FormEvent) => {
@@ -121,7 +122,21 @@ export function ReinsTerminal(): JSX.Element {
         <p className="reins-title site-mono">
           spoonjoy-reins <span className="reins-title-note">a pretend kitchen, running in your browser</span>
         </p>
-        <Switch label="Raw reply lines" checked={raw} onCheckedChange={setRaw} />
+        <div className="reins-bar-tools">
+          <Switch label="Raw reply lines" checked={raw} onCheckedChange={setRaw} />
+          <button
+            type="button"
+            className="reins-chip reins-reset site-mono"
+            onClick={() => {
+              setState(START);
+              setEntries([{ ...OPENING, id: next.current++ }]);
+              say("Back to the Kitchen, fresh.");
+              log.current?.focus({ preventScroll: true });
+            }}
+          >
+            reset
+          </button>
+        </div>
       </div>
       <ol ref={log} className="reins-log site-mono" aria-label="Replies" tabIndex={0}>
         {entries.map((entry) => (
@@ -148,7 +163,7 @@ export function ReinsTerminal(): JSX.Element {
           className="reins-input site-mono"
           aria-label="Command"
           value={draft}
-          placeholder="ls, or do goBack"
+          placeholder="ls, help, or do openRecipe {…}"
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
@@ -176,7 +191,7 @@ export function ReinsTerminal(): JSX.Element {
         <p className="apple-twin-label" id="reins-try-label">
           Or press one. These are exactly what <code className="apple-code">ls</code> offers right now:
         </p>
-        <ul className="reins-chips" aria-labelledby="reins-try-label">
+        <ul ref={chips} className="reins-chips" aria-labelledby="reins-try-label">
           {suggestions(state).map((line) => (
             <li key={line}>
               <button type="button" className="reins-chip site-mono" title={line} onClick={() => runChip(line)}>
@@ -190,20 +205,6 @@ export function ReinsTerminal(): JSX.Element {
             <button type="button" className="reins-chip reins-chip-mischief site-mono" onClick={() => runChip(state.stack.length || state.cook ? "do teleport" : "do goBack")}>
               {state.stack.length || state.cook ? "do teleport" : "do goBack"}
               <span className="reins-from"> (it'll refuse)</span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              className="reins-chip site-mono"
-              onClick={() => {
-                setState(START);
-                setEntries([{ ...OPENING, id: next.current++ }]);
-                say("Back to the Kitchen, fresh.");
-                log.current?.focus({ preventScroll: true });
-              }}
-            >
-              reset
             </button>
           </li>
         </ul>

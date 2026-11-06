@@ -27,7 +27,7 @@ const DRIVABLE = `import OuroReins
 final class Shell: ReinsDrivable {
     let store: AppStore
     var path: [Route] = []
-    var page: ReinsNode { path.last.map(\.node) ?? .kitchen(store) }
+    var page: ReinsNode { path.last.map(\\.node) ?? .kitchen(store) }
     func select(_ tab: String) { path = []; store.tab = tab }
     var reinsNode: ReinsNode {
         .tabs(selected: store.tab, tabs: ["kitchen", "shopping"],

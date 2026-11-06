@@ -50,13 +50,17 @@ export function report(tally: Tally): string {
 }
 
 function Contender({ id, label, note, tally, onTap, busy }: { id: string; label: string; note: string; tally: Tally; onTap: () => void; busy: boolean }): JSX.Element {
-  const verdict = tally.pairs === 0 ? "waiting" : tally.kept === tally.pairs ? "pass" : "fail";
+  const verdict = busy || tally.pairs === 0 ? "waiting" : tally.kept === tally.pairs ? "pass" : "fail";
+  const quip = verdict === "fail" ? "Your second tap fell on the floor." : verdict === "pass" ? "Both taps landed. Smooth." : "\u00a0";
   return (
     <div className="feel-contender" data-feel-contender={id} data-verdict={verdict}>
       <Switch label={label} description={note} checked={tally.on} onCheckedChange={onTap} />
       {/* The region is always live. While Feel taps for you it holds still, so it speaks once at the end, not after every tap. */}
       <p className="feel-report site-mono" aria-live="polite" data-feel-report>
         {busy ? "Feel is double-tapping…" : report(tally)}
+      </p>
+      <p className="feel-quip" aria-hidden="true">
+        {quip}
       </p>
       <p className="feel-tally">
         <span>

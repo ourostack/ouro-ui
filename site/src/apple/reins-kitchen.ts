@@ -153,7 +153,12 @@ function live(state: KitchenState): { screen: Omit<Screen, "actions">; actions: 
   return { screen: { focus, path: ["spoonjoy", "tabs", "stack", focus], state: pageState, context }, actions: pageActions(state, page) };
 }
 
-const strip = ({ run: _run, ...action }: Live): Action => action;
+/** An action as `ls` shows it: everything but what it does. */
+const strip = (action: Live): Action => {
+  const shown: Action & { run?: unknown } = { ...action };
+  delete shown.run;
+  return shown;
+};
 
 /** `ls`: the focus, its path, its state and every action you may run now. */
 export function ls(state: KitchenState): Screen {

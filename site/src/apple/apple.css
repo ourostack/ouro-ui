@@ -284,8 +284,9 @@
   .apple-inline-link:hover {
     text-decoration-color: currentColor;
   }
-  #xray {
-    scroll-margin-top: 6rem;
+  /* Every jump target in the section clears the site header and the Apple subnav, which both stick. */
+  .apple [id] {
+    scroll-margin-top: 7.5rem;
   }
 
   /* Doors to the section's pages. */
