@@ -3211,6 +3211,46 @@ describe("MessageList switching conversations", () => {
     expect(mark().style.display).toBe("");
   });
 
+  it("looks again for another conversation only when the first or newest messages change, so a change inside leaves the keys it compares with as they were", async () => {
+    const list = mount();
+    const mara = conversation("mara", 60);
+    const renamed = (items: Item[], from: number, to: number, as: string) => items.map((item, at) => (at >= from && at < to ? { ...item, id: `${as}-${at}` } : item));
+    await list.commit(<Switcher open="mara" keyed={false} items={mara} />);
+    await settle(list.scroller);
+    const inside = renamed(mara, 1, 56, "x");
+    await list.commit(<Switcher open="mara" keyed={false} items={inside} />);
+    list.scroller.scrollTop = 0;
+    list.scroller.dispatchEvent(new Event("scroll"));
+    await settle(list.scroller);
+    // The first and the newest three change, so the list looks again: the messages share no key with those it held when it last looked.
+    const ends = renamed(renamed(inside, 0, 1, "y"), 56, 60, "y");
+    await list.commit(<Switcher open="mara" keyed={false} items={ends} />);
+    await settle(list.scroller);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
+  it("takes messages that are not elements, which have no key, for no sharing of keys with the conversation before", async () => {
+    const list = mount();
+    const room = (name: string) => (
+      <MessageList label="Chat" style={{ height: 300 }}>
+        {"Earlier"}
+        {conversation(name, 60).map((item) => (
+          <Message key={item.id} id={String(item.id)} role={item.role} name={name}>
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    await list.commit(room("mara"));
+    await settle(list.scroller);
+    list.scroller.scrollTop = 0;
+    list.scroller.dispatchEvent(new Event("scroll"));
+    await settle(list.scroller);
+    await list.commit(room("theo"));
+    await settle(list.scroller);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
   it("holds a floor in the layout under long content at its end, and lets it out of the layout when the content is short", async () => {
     const list = mount();
     const mark = () => list.host.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;

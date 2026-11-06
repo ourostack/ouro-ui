@@ -1086,6 +1086,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     pending: null as { conversation: Key | undefined; keys: ReadonlySet<Key | null> } | null,
     // The keys it held when its conversation was last confirmed: what a wholesale change under the same name leaves alone.
     confirmed: new Set(all.map(keyOf)) as ReadonlySet<Key | null>,
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: the first messages of a list that mounted empty, taken for a switch, reset only what it already holds (the edge, the band, no focus, no jump), and the keyboard effect's first sync clears `switched` before anything reads it.
     held: all.length > 0,
     switches: 0,
   }));
