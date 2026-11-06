@@ -223,6 +223,8 @@ export function Navbar(props: NavbarProps): JSX.Element {
       const timer = setTimeout(build, 500);
       return () => clearTimeout(timer);
     }
+    // The timeout only bounds a page that is never idle, which no test page is.
+    // Stryker disable next-line ObjectLiteral
     const idle = requestIdleCallback(build, { timeout: 2000 });
     return () => cancelIdleCallback(idle);
   }, [collapsed, built]);

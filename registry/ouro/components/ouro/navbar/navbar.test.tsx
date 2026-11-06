@@ -97,6 +97,7 @@ describe("Navbar current-page marks", () => {
 });
 afterEach(async () => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
@@ -208,6 +209,37 @@ describe("Navbar", () => {
     await expect.poll(() => popup()?.hidden).toBe(true);
     expect(popup()).toBe(built);
   });
+
+  it("builds the sheet when the menu button comes to show, on a window narrowed to a phone's", async () => {
+    await page.viewport(1024, 768);
+    await render(<Navbar label="Main" items={items} />);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(document.querySelector('[data-ouro="sheet"]')).toBeNull();
+    await page.viewport(390, 844);
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
+  });
+
+  it("builds the sheet half a second in where the browser has no idle callback (Safari)", async () => {
+    vi.stubGlobal("requestIdleCallback", undefined);
+    await page.viewport(390, 844);
+    await render(<Navbar label="Main" items={items} />);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(document.querySelector('[data-ouro="sheet"]')).toBeNull();
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden, { timeout: 2000 }).toBe(true);
+  });
+
+  for (const idle of [true, false]) {
+    it(`builds no sheet when the menu button hides again before the page is idle${idle ? "" : ", where the browser has no idle callback"}`, async () => {
+      // An idle callback that comes 300 ms on, cancelled as a timer is.
+      vi.stubGlobal("requestIdleCallback", idle ? (callback: () => void) => setTimeout(callback, 300) : undefined);
+      vi.stubGlobal("cancelIdleCallback", idle ? (id: number) => clearTimeout(id) : undefined);
+      await page.viewport(390, 844);
+      await render(<Navbar label="Main" items={items} />);
+      await page.viewport(1024, 768);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      expect(document.querySelector('[data-ouro="sheet"]')).toBeNull();
+    });
+  }
 
   it("builds no sheet where the links fit the bar", async () => {
     await page.viewport(1024, 768);
