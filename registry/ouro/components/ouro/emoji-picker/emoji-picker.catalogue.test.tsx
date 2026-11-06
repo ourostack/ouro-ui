@@ -199,15 +199,42 @@ describe("EmojiPicker with a catalogue", () => {
     expect(quickCells()).toEqual([]);
   });
 
-  it("fetches every image as it opens, the quick row and the first two sections of the grid first, then the rest in order", async () => {
-    const priorities = (list: HTMLElement[]) => list.map((element) => element.querySelector("img")!.getAttribute("fetchpriority"));
-    const { rerender } = await open({ frequent: ["heart"], quick: ["party"] });
+  /** A catalogue of 100 emoji in two categories, so the grid runs past its first eight rows. */
+  const large: EmojiCatalogue = {
+    categories: [0, 1].map((category) => ({
+      id: `set${category}`,
+      label: `Set ${category}`,
+      items: Array.from({ length: 50 }, (_, index) => ({ id: `e${category}-${index}`, name: `Emoji ${category}-${index}`, src: image(`e${category}-${index}`) })),
+    })),
+  };
+  const fetching = (list: HTMLElement[]) =>
+    list.map((element) => {
+      const picture = element.querySelector("img")!;
+      return `${picture.getAttribute("fetchpriority")}${picture.getAttribute("loading") === "lazy" ? " lazy" : ""}`;
+    });
+
+  it("fetches every image as it opens, the quick row and the grid's first eight rows first, then the rest in order", async () => {
+    await open({ catalogue: large, frequent: ["e1-0"], quick: ["e0-1"] });
     expect(panel().querySelector("img[loading]")).toBeNull();
-    expect(priorities(quickCells())).toEqual(["high"]);
-    // Frequently used and Smileys, then Symbols and Fernwood.
-    expect(priorities(cells())).toEqual(["high", "high", "high", "low", "low", "low", "low"]);
-    await rerender(picker({ quick: [] }));
-    expect(priorities(cells())).toEqual(["high", "high", "high", "high", "low", "low"]);
+    expect(fetching(quickCells())).toEqual(["high"]);
+    // Eight rows of eight across the sections: frequently used, all of the first set, then the second's first 13.
+    expect(fetching(cells())).toEqual([...Array(64).fill("high"), ...Array(37).fill("low")]);
+  });
+
+  it("fetches every image as it opens in a browser with no navigator.connection to ask for Save-Data", async () => {
+    Object.defineProperty(navigator, "connection", { configurable: true, value: undefined });
+    onTestFinished(() => void Reflect.deleteProperty(navigator, "connection"));
+    await open({ catalogue: large, quick: ["e0-1"] });
+    expect(fetching(quickCells())).toEqual(["high"]);
+    expect(fetching(cells())).toEqual([...Array(64).fill("high"), ...Array(36).fill("low")]);
+  });
+
+  it("fetches the grid past its first eight rows only as it nears the screen while the browser asks to save data", async () => {
+    Object.defineProperty(navigator, "connection", { configurable: true, value: { saveData: true } });
+    onTestFinished(() => void Reflect.deleteProperty(navigator, "connection"));
+    await open({ catalogue: large, quick: ["e0-1"] });
+    expect(fetching(quickCells())).toEqual(["high"]);
+    expect(fetching(cells())).toEqual([...Array(64).fill("high"), ...Array(36).fill("low lazy")]);
   });
 
   it("chooses an emoji: onSelect gets its id, name, token, tone and catalogue item, and the token draws as its image", async () => {

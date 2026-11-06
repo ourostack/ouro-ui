@@ -1454,9 +1454,9 @@ test("the conformance shards run only the checks' proofs on the first shard when
   assert.match(block, /^ {8}name: The checks prove they can fail\n {8}run: pnpm conformance -t "can fail"$/m);
   // The shard is the matrix entry over the matrix's size, and the job's name says the same count.
   assert.match(block, /^ {10}OURO_CONFORMANCE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}$/m);
-  const shards = block.match(/^ {8}shard: \[([^\]]*)\]$/m)[1].split(",").map((value) => Number(value.trim()));
-  assert.deepEqual(shards, shards.map((_, index) => index + 1));
-  assert.match(block, new RegExp(`^ {4}name: conformance \\(\\$\\{\\{ matrix\\.shard \\}\\}/${shards.length}\\)$`, "m"));
+  // Three shards where every story is checked (main, the merge queue, a full plan) and one on a reduced pull request.
+  assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.full != 'false' && '\[1,2,3\]' \|\| '\[1\]'\) \}\}$/m);
+  assert.match(block, /^ {4}name: conformance \(\$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\}\)$/m);
 });
 
 test("conformance and mutation are each one check over their shards, which passes only when every shard passed", () => {
@@ -1496,9 +1496,9 @@ test("the mutation plan keys the kept results by pull request and dependency has
   assert.equal(none.status, 0);
   assert.deepEqual(none.output, { count: "0", shards: "[0]" });
   assert.equal(ciJobs()["mutation-shard"].match(/^ {4}if: (.+)$/m)?.[1], mutationRuns);
-  // Not a pull request: nothing to mutate, three shards, and no plan.
+  // Not a pull request: nothing to mutate, so no shard starts, and no plan.
   const other = runStep(planned(13), { KEY: "", MATCHED: "" });
-  assert.deepEqual(other.output, { count: "3", shards: "[1,2,3]" });
+  assert.deepEqual(other.output, { count: "0", shards: "[0]" });
   assert.doesNotMatch(other.calls, /CALL node/);
   // A plan that prints no count fails the job rather than guess.
   assert.notEqual(runStep(`node() { :; }\n${count}`, { KEY: "stryker-139-abc-", MATCHED: "" }).status, 0);

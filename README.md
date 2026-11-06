@@ -1,6 +1,6 @@
 <!-- ourostack:brand:start -->
 <p align="center">
-  <a href="https://github.com/ourostack"><img src="https://raw.githubusercontent.com/ourostack/.github/main/brand/ouro-hx.png" alt="Ouro HX" width="160" height="160"></a>
+  <a href="https://github.com/ourostack"><img src="https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp" alt="A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn" width="100%"></a>
 </p>
 <!-- ourostack:brand:end -->
 
@@ -10,7 +10,7 @@ Designed down to the last tap and the last prop. Interactions that feel right to
 
 **[See it live: ui.ouro.bot](https://ui.ouro.bot/)**, with the [docs](https://ui.ouro.bot/docs/) and [Storybook](https://ui.ouro.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
-**Check what you built first.** Build your app, run `node lib/ouro/check/check.ts <built folder>` (from the `ouro-check` item) and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check could not run), `2` usage, `3` findings to fix.[^exit-codes]
+**Check what you built first.** Build your app, run `node lib/ouro/check/check.ts <built folder>` (from the `ouro-check` item) and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check stopped before it finished), `2` usage, `3` findings to fix.[^exit-codes]
 
 Ouro HX is the component library within Ouro UI. [Ouro AX](#ouro-ax), its counterpart for the interfaces agents use, is the other half. The repository, `@ouro` namespace and install addresses are unchanged.
 
@@ -373,6 +373,7 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-mcp`,
 `ax-outcome`,
 `ax-output`,
+`ax-precise-copy`,
 `ax-problem`,
 `ax-terminal`,
 `ax-voice`,
@@ -555,7 +556,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **restoreTimer** — Imports a saved countdown, leaving an existing native timer intact. [Docs](docs/restoreTimer.md)
 - **RouteProgress** — The thin bar across the top of the screen while the app loads the next page or submits a form, so a click that waits on the server never feels frozen: one global affordance instead of a pending state on every action. [Docs](docs/RouteProgress.md)
 - **Spinner** — A small spinning ring that says an action is under way, inline: in a field's adornment, a toast's or a menu entry's icon, or beside the words that say what is happening. [Docs](docs/Spinner.md)
-- **SyncStatus** — One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem. [Docs](docs/SyncStatus.md)
+- **SyncStatus** — One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Not saved (the server refused the changes), each with its icon, and Retry while there is a problem. [Docs](docs/SyncStatus.md)
 - **Timer** — A countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero "Time's up" with Dismiss and Restart. [Docs](docs/Timer.md)
 - **TimerTray** — The timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. [Docs](docs/TimerTray.md)
 - **toast** — Shows a toast: a short message that appears at the bottom of the screen, is read to screen readers once, and dismisses itself. [Docs](docs/toast.md)
@@ -687,6 +688,18 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.5   # with their node
 ```
 
 Guides: [Ouro AX](docs/guides/ax.md), [make your CLI conformant](docs/guides/ax-adopt.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
+
+## Where things live
+
+- **[ourostack/ouro-ui-core](https://github.com/ourostack/ouro-ui-core):** the tokens, the decision records and the Ouro AX for Apple claims, with the design language, the Ouro AX standard and the site to follow.
+- **[ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple):** the Swift package (`OuroHX`, `OuroAX`, `ouro-ax-xray`).
+- **ourostack/ouro-ui (web, this repository):** React and the registry.
+
+The rules:
+
+- A token change goes to web first, then to core, with a `webTag` bump in core's `parity.json`.
+- New decision records go only in [ourostack/ouro-ui-core/docs/decisions/](https://github.com/ourostack/ouro-ui-core/tree/main/docs/decisions); this repository's [docs/decisions/](docs/decisions/) is frozen history.
+- Look for prior art first (Meerkat mode), and give every decision record a "Prior art" section that marks each find adopt, borrow, watch or ignore.
 
 ## License
 

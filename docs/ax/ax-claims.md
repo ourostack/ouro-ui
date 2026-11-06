@@ -149,6 +149,7 @@ Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and chec
 | `cli.reads-stay-reads` | must | hazard |
 | `cli.refusals-change-nothing` | must | hazard |
 | `cli.no-dev-commands` | must | hazard |
+| `copy.precise-failure` | must | hazard |
 | `http.inventory` | must | hazard |
 | `http.wrong-ref-first` | must | hazard |
 | `http.others-need-why` | must | hazard |

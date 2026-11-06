@@ -2,11 +2,11 @@ import { Component, Suspense, useEffect, useLayoutEffect, useRef, useSyncExterna
 import { demos } from "../docs/demos";
 import { href } from "../routes";
 
-class DemoBoundary extends Component<{ name: string; title: string; children: ReactNode }, { failed: boolean }> {
-  override state = { failed: false };
+class DemoBoundary extends Component<{ name: string; title: string; children: ReactNode }, { failed: boolean; reason: string }> {
+  override state = { failed: false, reason: "" };
 
-  static getDerivedStateFromError(): { failed: boolean } {
-    return { failed: true };
+  static getDerivedStateFromError(error: unknown): { failed: boolean; reason: string } {
+    return { failed: true, reason: (error instanceof Error ? error.message : String(error)).replace(/\.$/, "") };
   }
 
   override render(): ReactNode {
@@ -14,7 +14,9 @@ class DemoBoundary extends Component<{ name: string; title: string; children: Re
       const known = Object.hasOwn(demos, this.props.name);
       return (
         <div role="alert">
-          <p>Could not load the {this.props.title} example.</p>
+          <p>
+            The {this.props.title} example stopped with this error: {this.state.reason}. Reload the page to try again, or read the docs.
+          </p>
           <a href={href(known ? `/docs/${this.props.name}/` : "/docs/")} className="text-primary underline underline-offset-4">
             {known ? `Read the ${this.props.title} docs` : "Browse component docs"}
           </a>

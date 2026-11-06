@@ -132,7 +132,10 @@ describe("ouro-source-rules: narrowedSettings", () => {
     exclude: fc.array(folder, { maxLength: 2 }),
     hookPrefix: fc.constantFrom("", "app", "ui"),
     baseline: fc.constantFrom(BASELINE_PATH, "test/ouro-source-rules.baseline.json"),
+    failureCopyAllow: fc.array(fc.record({ match: fc.constantFrom("could not", "could not be charged", "card could not", "Error", "went wrong"), reason: fc.constant("precise") }), { maxLength: 3 }),
   });
+  const copy = fc.constantFrom("Could not save", "The card service says your card could not be charged", "Error", "Something went wrong", "Your card could not be read");
+  const lets = (settings, text) => settings.failureCopyAllow.some((entry) => text.includes(entry.match));
   const file = fc.tuple(fc.array(segment, { minLength: 1, maxLength: 4 }), fc.constantFrom(".tsx", ".ts", ".css")).map(([parts, extension]) => `${parts.join("/")}/file${extension}`);
 
   it("reports a change whenever the head's settings stop reading a file the base's read", () => {
@@ -145,12 +148,22 @@ describe("ouro-source-rules: narrowedSettings", () => {
     );
   });
 
+  it("reports a change whenever the head's failureCopyAllow lets through copy the base's counted", () => {
+    fc.assert(
+      fc.property(settings, settings, fc.array(copy, { minLength: 1, maxLength: 5 }), (base, head, texts) => {
+        const hidden = texts.filter((text) => !lets(base, text) && lets(head, text));
+        if (hidden.length > 0) assert.ok(narrowedSettings(base, head).length > 0, `${hidden.join(", ")} stopped being counted with no change reported`);
+      }),
+      runs,
+    );
+  });
+
   it("reports nothing for the same settings or a scan that only widens, and each change once with its own fingerprint", () => {
     fc.assert(
       fc.property(settings, fc.nat(), (base, drop) => {
         assert.deepEqual(narrowedSettings(base, base), []);
-        // Reading more: fewer skipped folders and no hook prefix.
-        const wider = { ...base, ouroDirs: base.ouroDirs.filter((_, index) => index !== drop % (base.ouroDirs.length || 1)), exclude: [], hookPrefix: "" };
+        // Reading more: fewer skipped folders, no hook prefix and no allowed failure copy.
+        const wider = { ...base, ouroDirs: base.ouroDirs.filter((_, index) => index !== drop % (base.ouroDirs.length || 1)), exclude: [], hookPrefix: "", failureCopyAllow: [] };
         assert.deepEqual(narrowedSettings(base, wider), []);
         const changes = narrowedSettings(wider, base);
         assert.equal(new Set(changes.map((change) => change.fingerprint)).size, changes.length);

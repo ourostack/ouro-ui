@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { CHECKS_VERSION, checksText, defineChecks, isChecksReport, printChecks, type CheckDef, type ChecksReport } from "./checks.ts";
 import { BASE_EXIT_CODES, FINDINGS_EXIT_CODE } from "./exit-codes.ts";
 import { hasAnsi, stripAnsi, terminalStyle, type Timers } from "./terminal.ts";
+import { vagueFailureIn } from "./precise-copy.ts";
 
 const TTY = terminalStyle({ isTTY: true }, {});
 const PIPE = terminalStyle({}, {});
@@ -80,13 +81,15 @@ test("--json carries the same facts as the text: verdict, summary, counts, each 
 
 test("the text puts the verdict first, then failures with their fixes, warnings, what was not run, and the next steps", async () => {
   const report = await run(selfcheck);
+  // Every line a person or an agent reads says what happened, so copy.precise-failure holds for a doctor built on the kit.
+  for (const line of stripAnsi(checksText(report, TTY, { command: "app selfcheck" })).split("\n")) assert.equal(vagueFailureIn(line), null, line);
   assert.equal(
     stripAnsi(checksText(report, TTY, { command: "app selfcheck" })),
     [
       "✗ 1 of 6 checks failed: React with a like. 1 passed, 1 warned, 3 not run, in 1.7s.",
       "  Not run: 1 after an earlier problem, 1 waiting on something you name, 1 by hand",
       "",
-      "Failed",
+      "Found a problem",
       "  ✗ React with a like  1.4s",
       "    the service refused the reaction (HTTP 400)",
       "    Fix: Paste the report to your agent.",
@@ -191,7 +194,7 @@ test("a check that throws couldn't run, with what it said; one after a skipped c
   assert.deepEqual([report.rows[0]!.state, report.rows[0]!.detail], ["errored", "no window"]);
   assert.deepEqual(report.rows[0]!.fix, { byHand: "Report this error to the tool's maintainers; the check itself broke." });
   assert.equal(report.rows[1]!.detail, "plain");
-  assert.equal(report.rows[2]!.detail, "not checked: Boom couldn't run");
+  assert.equal(report.rows[2]!.detail, "not checked: Boom threw before finishing");
   assert.equal(report.rows[4]!.detail, "not checked: Off was not run");
   const written: string[] = [];
   const stream = { isTTY: false, write: (s: string) => written.push(s) };
@@ -215,13 +218,13 @@ test("findings exit with the declared findings code and a check that couldn't ru
   const crashed = await run([selfcheck[0]!, selfcheck[1]!, { id: "boom", label: "Window", run: () => { throw new Error("no window"); } }]);
   assert.deepEqual([crashed.verdict, crashed.exitCode], ["errored", BASE_EXIT_CODES[1]!.code]);
   assert.notEqual(found.exitCode, crashed.exitCode);
-  assert.equal(crashed.summary, "1 of 3 checks couldn't run: Window. 1 passed, 1 failed, in 1.7s.");
+  assert.equal(crashed.summary, "1 of 3 checks threw before finishing: Window. 1 passed, 1 failed, in 1.7s.");
   assert.equal(
     stripAnsi(checksText(crashed, terminalStyle({}, {}))).split("\n").slice(0, 6).join("\n"),
-    "ERROR 1 of 3 checks couldn't run: Window. 1 passed, 1 failed, in 1.7s.\n\nCouldn't run\n  ERROR Window\n    no window\n    Fix: Report this error to the tool's maintainers; the check itself broke.",
+    "ERROR 1 of 3 checks threw before finishing: Window. 1 passed, 1 failed, in 1.7s.\n\nThrew before finishing\n  ERROR Window\n    no window\n    Fix: Report this error to the tool's maintainers; the check itself broke.",
   );
   const one = await run([{ id: "boom", label: "Window", run: () => { throw new Error("no window"); } }]);
-  assert.equal(one.summary, "The check couldn't run: Window, in under 0.1s.");
+  assert.equal(one.summary, "The check threw before finishing: Window, in under 0.1s.");
   const both = await run([selfcheck[3]!, { id: "boom", label: "Window", run: () => { throw new Error("x"); } }]);
-  assert.equal(both.summary, "1 of 2 checks couldn't run: Window. 0 passed, 1 warned, in under 0.1s.");
+  assert.equal(both.summary, "1 of 2 checks threw before finishing: Window. 0 passed, 1 warned, in under 0.1s.");
 });
