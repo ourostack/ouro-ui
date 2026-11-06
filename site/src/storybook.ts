@@ -115,15 +115,6 @@ export function cardAlt(card: Card): string {
   return `${card.kicker}: ${card.title} ${SCENES[card.scene].alt}`;
 }
 
-/** The scene each page opens on, and how wide it is drawn on a wide screen (its picture's `sizes`). */
-export const HEROES: Record<string, { scene: SceneName; sizes: string }> = {
-  "/": { scene: "ouro-hx", sizes: "100vw" },
-  "/nautilus/": { scene: "ouroboros-skills", sizes: "100vw" },
-  "/ax/": { scene: "playwright-focus-proof", sizes: "100vw" },
-  ...Object.fromEntries(["/apple/", "/apple/hx/", "/apple/feel/", "/apple/ax/", "/apple/reins/", "/apple/start/"].map((path) => [path, { scene: "ouro-ui-apple" as const, sizes: "100vw" }])),
-  "/docs/": { scene: "ouro-ui-core", sizes: "(min-width: 64rem) 52rem, 100vw" },
-};
-
 /** The srcsets a scene's picture offers: the phone crop, and the wide scene, each in AVIF and WebP. */
 export function sceneSources(scene: SceneName, at: (path: string) => string = (path) => `${STORYBOOK}${path}`) {
   const phone = (type: "avif" | "webp") => `${at(`phone/${scene}-384.${type}`)} 384w, ${at(`phone/${scene}-768.${type}`)} 768w`;

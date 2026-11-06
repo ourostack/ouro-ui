@@ -5,7 +5,7 @@
 # site/scripts/serve-pages.mjs. Same Mac, one run at a time.
 #   desktop: --preset=desktop (1350x940, no CPU slowdown, desktop network)
 #   phone:   Lighthouse's mobile default (simulated Slow 4G, 4x CPU) at 390x844, density 3
-# The opening scene, a canonical 60-80 KB AVIF preloaded from the head, is the largest paint
+# The opening scene, a canonical 60-80 KB AVIF at fetchpriority=high, is the largest paint
 # after; before, it was the headline or the lede (the Apple overview's: its video, as before).
 #
 # page	device	LCP before (median ms)	LCP after	CLS before (max)	CLS after

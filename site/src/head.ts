@@ -2,7 +2,7 @@ import type { Route } from "./routes";
 import { pageKind } from "./paths";
 import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
-import { CARDS, cardAlt, HEROES, sceneSources, STORYBOOK } from "./storybook";
+import { CARDS, cardAlt, STORYBOOK } from "./storybook";
 
 /** Where Pages serves the site. */
 export const SITE = "https://ui.ouro.bot";
@@ -35,8 +35,6 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<link rel="icon" href="${STORYBOOK}icons/ouro-hx.svg" type="image/svg+xml" />`,
     `<link rel="apple-touch-icon" href="${STORYBOOK}icons/ouro-hx-180.png" sizes="180x180" />`,
     `<link rel="manifest" href="/manifest.webmanifest" />`,
-    // The page's opening scene, its largest paint, fetched before the stylesheet that lays it out is read.
-    ...heroPreload(route.path),
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Ouro HX" />`,
     `<meta property="og:title" content="${title}" />`,
@@ -92,13 +90,3 @@ export function redirectPage(to: string): string {
   ].join("\n");
 }
 
-/** Preloads for a page's opening scene, as its picture would choose it: the phone crop or the wide scene, in AVIF. */
-function heroPreload(path: string): string[] {
-  const hero = HEROES[path];
-  if (!hero) return [];
-  const { phone, wide } = sceneSources(hero.scene);
-  return [
-    `<link rel="preload" as="image" type="image/avif" media="(max-width: 640px)" imagesrcset="${phone("avif")}" imagesizes="100vw" fetchpriority="high" />`,
-    `<link rel="preload" as="image" type="image/avif" media="(min-width: 641px)" imagesrcset="${wide("avif")}" imagesizes="${hero.sizes}" fetchpriority="high" />`,
-  ];
-}
