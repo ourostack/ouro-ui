@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -609,12 +610,12 @@ describe("ShowMore announcements", () => {
 
 describe("ShowMore with lines", () => {
   it("clamps long text to lines and shows Show more", async () => {
-    const { root, button } = await render(<ShowMore lines={2}>{longText}</ShowMore>);
+    const { root } = await render(<ShowMore lines={2}>{longText}</ShowMore>);
     const text = root.querySelector<HTMLElement>("[data-ouro-show-more-text]")!;
     const lineHeight = parseFloat(getComputedStyle(text).lineHeight);
     expect(text.getBoundingClientRect().height).toBeCloseTo(lineHeight * 2, 0);
     await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
-    expect(button!.textContent).toBe("Show more");
+    expect(root.querySelector("[data-ouro-show-more-toggle]")!.textContent).toBe("Show more");
   });
 
   it("expands to the full text and back, keeping focus on the button", async () => {
@@ -646,6 +647,8 @@ describe("ShowMore with lines", () => {
   it("keeps the full text for screen readers and in server HTML", () => {
     const html = renderToString(<ShowMore lines={2}>{longText}</ShowMore>);
     expect(html).toContain("gremolata");
+    // Folded by CSS and not guessed: the button waits for the browser's layout.
+    expect(html).toContain("line-clamp-");
     expect(html).not.toContain("data-ouro-show-more-toggle");
   });
 });
@@ -705,8 +708,8 @@ describe("ShowMore with maxHeight", () => {
 
   it("folds once the content grows past maxHeight", async () => {
     const r = await render(<ShowMore maxHeight={120}><Tall height={20} /></ShowMore>);
-    await act(async () => {});
-    expect(r.button).toBeNull();
+    // A component the guess cannot see starts folded, and shows whole once the browser has laid it out.
+    await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
     await r.rerender(<ShowMore maxHeight={120}><Tall height={400} /></ShowMore>);
     await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
   });
@@ -730,13 +733,13 @@ describe("ShowMore with maxHeight", () => {
     expect(root.querySelector("[data-ouro-show-more-toggle]")!.textContent).toBe("Voir moins");
   });
 
-  it("is folded in server HTML with all of its content and no button, and hydrates without a mismatch", async () => {
+  it("is folded by CSS in server HTML with all of its content and no guessed fade or button, and hydrates without a mismatch", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const node = <ShowMore maxHeight={120}><Tall height={400} /></ShowMore>;
     const html = renderToString(node);
     expect(html).toContain("Top link");
     expect(html).toContain("max-h-(--ouro-show-more-height)");
-    // Not measured yet: no fade, and no button.
+    // Nothing is guessed about whether it overflows: the fade and the button wait for the browser's layout.
     expect(html).not.toMatch(/\sdata-folded=/);
     expect(html).not.toContain("data-ouro-show-more-toggle");
     const host = document.createElement("div");
@@ -1025,5 +1028,218 @@ describe("ShowMore development messages", () => {
     expect(html).toContain('data-ouro="show-more"');
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+const settle = () => act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+
+describe("ShowMore in its first frame", () => {
+  /** A component whose content ShowMore cannot see: it renders a block of `height` px. */
+  function Opaque({ height = 400 }: { height?: number }) {
+    return <div style={{ height }} />;
+  }
+  const committed = (node: ReactElement) => {
+    const host = document.createElement("div");
+    host.style.width = "360px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // The commit alone, before the browser draws a frame.
+    flushSync(() => root.render(node));
+    return host;
+  };
+  const toggle = (host: Element) => host.querySelector("[data-ouro-show-more-toggle]");
+  const foldOf = (host: Element) => host.querySelector<HTMLElement>("[data-ouro-show-more-fold]")!;
+  const textOf = (host: Element) => host.querySelector<HTMLElement>("[data-ouro-show-more-text]")!;
+
+  it.each([
+    ["long text", <ShowMore lines={2}>{longText}</ShowMore>],
+    ["short text", <ShowMore lines={4}>Hi</ShowMore>],
+    ["tall content", <ShowMore maxHeight={120}><Opaque /></ShowMore>],
+    ["short content", <ShowMore maxHeight={120}><Opaque height={20} /></ShowMore>],
+    ["content an estimate calls short", <ShowMore maxHeight={120} estimate={{ text: "Hi" }}><Opaque /></ShowMore>],
+    ["text an estimate calls long", <ShowMore lines={4} estimate={{ text: "word ".repeat(100) }}>Hi</ShowMore>],
+    ["text shown whole from the start", <ShowMore lines={2} open>{longText}</ShowMore>],
+  ])("with %s, has no button as React commits it, because it guesses nothing about overflow", (_, node) => {
+    expect(toggle(committed(node))).toBeNull();
+  });
+
+  it("folds by CSS in the first commit, whatever the content", () => {
+    const text = committed(<ShowMore lines={2}>{"Hi"}</ShowMore>);
+    expect(textOf(text).className).toContain("line-clamp-");
+    const tall = committed(<ShowMore maxHeight={120}><Opaque /></ShowMore>);
+    expect(foldOf(tall).className).toContain("max-h-");
+    expect(foldOf(tall).hasAttribute("data-folded")).toBe(false);
+    const short = committed(<ShowMore maxHeight={120}><Opaque height={20} /></ShowMore>);
+    expect(foldOf(short).className).toContain("max-h-");
+  });
+
+  it("does not move short content or the box of long content when the browser has measured it", async () => {
+    const boxes = (host: Element) => [...host.querySelectorAll("[data-ouro-show-more-text],[data-ouro-show-more-fold]")].map((box) => box.getBoundingClientRect().toJSON());
+    for (const node of [
+      <ShowMore lines={4}>{"Lunch at noon?"}</ShowMore>,
+      <ShowMore lines={2}>{longText}</ShowMore>,
+      <ShowMore maxHeight={120}><Opaque height={20} /></ShowMore>,
+      <ShowMore maxHeight={120}><Opaque /></ShowMore>,
+    ]) {
+      const host = committed(node);
+      const before = boxes(host);
+      await settle();
+      expect(boxes(host)).toEqual(before);
+    }
+  });
+
+  it("adds its button to what overflows once the browser has measured it, and to nothing else", async () => {
+    const long = committed(<ShowMore lines={2}>{longText}</ShowMore>);
+    const tall = committed(<ShowMore maxHeight={120}><Opaque /></ShowMore>);
+    const short = committed(<ShowMore lines={4}>Hi</ShowMore>);
+    const fits = committed(<ShowMore maxHeight={120}><Opaque height={20} /></ShowMore>);
+    await expect.poll(() => toggle(long)).not.toBeNull();
+    await expect.poll(() => toggle(tall)).not.toBeNull();
+    expect(foldOf(tall).hasAttribute("data-folded")).toBe(true);
+    await settle();
+    expect(toggle(short)).toBeNull();
+    expect(toggle(fits)).toBeNull();
+    expect(foldOf(fits).hasAttribute("data-folded")).toBe(false);
+  });
+
+  it("gives text that wraps more in a narrow box its button, once measured", async () => {
+    const narrow = committed(
+      <div style={{ width: 80 }}>
+        <ShowMore lines={4}>{"word ".repeat(20)}</ShowMore>
+      </div>,
+    );
+    expect(toggle(narrow)).toBeNull();
+    await expect.poll(() => toggle(narrow)).not.toBeNull();
+  });
+
+  it("drops the button of text that, open, takes no more than its lines", async () => {
+    const host = committed(<ShowMore lines={2} open>{["a", <br key="b" />, "b"]}</ShowMore>);
+    await settle();
+    expect(toggle(host)).toBeNull();
+  });
+
+  it("keeps the button of text shown whole when its line height is not a length", async () => {
+    const host = committed(
+      <div style={{ lineHeight: "normal" }}>
+        <ShowMore lines={2} open>
+          {longText}
+        </ShowMore>
+      </div>,
+    );
+    await expect.poll(() => toggle(host)?.textContent).toBe("Show less");
+  });
+});
+
+describe("ShowMore as its app renders again", () => {
+  it("reads no layout when the app renders the same text again, and measures text that changed", async () => {
+    const { root, rerender } = await render(<ShowMore lines={2}><>{longText}</></ShowMore>);
+    await settle();
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollHeight")!;
+    let reads = 0;
+    Object.defineProperty(Element.prototype, "scrollHeight", {
+      configurable: true,
+      get(this: Element) {
+        reads++;
+        return own.get!.call(this);
+      },
+    });
+    try {
+      // The same text, in new elements, as a parent's render makes them.
+      for (let again = 0; again < 5; again++) await rerender(<ShowMore lines={2}><>{longText}</></ShowMore>);
+      await settle();
+      expect(reads).toBe(0);
+      await rerender(<ShowMore lines={2}>Short now.</ShowMore>);
+      await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
+      expect(reads).toBeGreaterThan(0);
+    } finally {
+      Object.defineProperty(Element.prototype, "scrollHeight", own);
+    }
+  });
+
+  it("starts its observer again only when it opens or closes or its lines change", async () => {
+    let observers = 0;
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor() {
+          observers += 1;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    try {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      roots.push(root);
+      const render = (node: ReactElement) => act(async () => root.render(node));
+      await render(<ShowMore lines={4}>{"Hi"}</ShowMore>);
+      const first = observers;
+      await render(<ShowMore lines={4}>{"word ".repeat(100)}</ShowMore>);
+      expect(observers).toBe(first);
+      await render(<ShowMore lines={3}>{"word ".repeat(100)}</ShowMore>);
+      expect(observers).toBe(first + 1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("ShowMore in a long list", () => {
+  it.each([
+    ["lines", (index: number) => <ShowMore lines={2}>{`${index}: ${longText}`}</ShowMore>],
+    [
+      "maxHeight",
+      (index: number) => (
+        <ShowMore maxHeight={120}>
+          <p>{`${index}: ${longText}`}</p>
+          <div style={{ height: 300 }} />
+        </ShowMore>
+      ),
+    ],
+  ])("with %s, mounts 50 folded and reads no layout as it commits, so it never lays the page out once per instance, then gives each its button", async (_, folded) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const reads = { count: 0 };
+    const counted: [object, string][] = [
+      [Element.prototype, "scrollHeight"],
+      [Element.prototype, "clientHeight"],
+      [Element.prototype, "scrollWidth"],
+      [Element.prototype, "clientWidth"],
+      [Element.prototype, "scrollTop"],
+      [HTMLElement.prototype, "offsetHeight"],
+      [HTMLElement.prototype, "offsetWidth"],
+      [HTMLElement.prototype, "offsetTop"],
+      [HTMLElement.prototype, "offsetLeft"],
+    ];
+    const restore = counted.map(([prototype, name]) => {
+      const own = Object.getOwnPropertyDescriptor(prototype, name)!;
+      Object.defineProperty(prototype, name, {
+        configurable: true,
+        get(this: Element) {
+          reads.count++;
+          return own.get!.call(this);
+        },
+      });
+      return () => Object.defineProperty(prototype, name, own);
+    });
+    const rect = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    const rects = vi.spyOn(Element.prototype, "getClientRects");
+    const style = vi.spyOn(window, "getComputedStyle");
+    try {
+      flushSync(() => root.render(<div>{Array.from({ length: 50 }, (_, index) => <div key={index}>{folded(index)}</div>)}</div>));
+    } finally {
+      restore.forEach((undo) => undo());
+    }
+    expect(reads.count + rect.mock.calls.length + rects.mock.calls.length + style.mock.calls.length).toBe(0);
+    expect(host.querySelectorAll("[data-ouro-show-more-toggle]")).toHaveLength(0);
+    await expect.poll(() => host.querySelectorAll("[data-ouro-show-more-toggle]").length).toBe(50);
   });
 });

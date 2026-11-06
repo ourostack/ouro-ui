@@ -1,374 +1,462 @@
 {
   "https://base-ui.com/react/components/accordion": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://base-ui.com/react/components/menu": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://base-ui.com/react/components/navigation-menu": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://base-ui.com/react/components/number-field": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://base-ui.com/react/components/popover": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://base-ui.com/react/components/preview-card": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://base-ui.com/react/components/slider": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://base-ui.com/react/components/tooltip": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://bundlephobia.com/package/recharts@3.10.1": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://carbondesignsystem.com/patterns/status-indicator-pattern/": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://chromedevtools.github.io/devtools-protocol/tot/DOM/#method-getNodeForLocation": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/platform/widget/input/main_thread_event_queue.cc": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://dequeuniversity.com/rules/axe/4.10/scrollable-region-focusable": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://design-system.service.gov.uk/components/task-list/": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
+  },
+  "https://developer.apple.com/documentation/appintents/orchestrating-complex-actions-with-app-skills": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://developer.apple.com/documentation/appintents/siri-ai-developer-preview": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://developer.apple.com/documentation/sirievaluations": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://developer.apple.com/news/?id=gdk2umrf": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://developer.apple.com/videos/play/wwdc2026/295": {
+    "status": 200,
+    "checked": "2026-11-06"
   },
   "https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-custom-404-page-for-your-github-pages-site": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
+  },
+  "https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository": {
+    "status": 200,
+    "checked": "2026-11-06"
   },
   "https://docs.github.com/en/rest/actions/workflow-runs#approve-a-workflow-run-for-a-fork-pull-request": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://docs.github.com/en/rest/checks/runs": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://docs.npmjs.com/cli/commands/npm-docs": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://en.wikipedia.org/wiki/Crustacean": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://en.wikipedia.org/wiki/Decapoda": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://en.wikipedia.org/wiki/Fish": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://en.wikipedia.org/wiki/Giant_squid": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://en.wikipedia.org/wiki/League_(unit)": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://en.wikipedia.org/wiki/Mammal": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://en.wikipedia.org/wiki/Octopus": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/mui/base-ui/blob/47b40521eab921c2756bf9bdb0b0f07fbfdb8c8c/packages/react/src/select/trigger/SelectTrigger.tsx": {
     "status": 200,
-    "checked": "2026-11-01"
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L11-L13": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L144-L147": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L154-L156": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L154-L160": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L246-L250": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L48-L59": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-reins/README.md#L122-L126": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L7": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L72": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L89": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Sources/OuroHX/Motion/OuroMotion.swift#L43-L47": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1": {
+    "status": 200,
+    "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json": {
+    "status": 200,
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/issues/113": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/issues/118": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/issues/119": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/pull/354": {
     "status": 200,
-    "checked": "2026-11-01"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/pull/99": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.2.0": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.3.0": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.3.1": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.3": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.0.0": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.0.2": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.1.0": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.2.2": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33-L53": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/transformers/transform-rsc.ts#L4-L15": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/updaters/update-css-vars.ts#L91-L124": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/updaters/update-dependencies.ts#L177-L206": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://github.com/vitejs/vite/issues/15012": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://nodejs.org/api/typescript.html#type-stripping": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://react.dev/blog/2024/12/05/react-19#cleanup-functions-for-refs": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://react.dev/reference/react/act": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://support.apple.com/en-us/102650": {
     "status": 200,
-    "checked": "2026-11-01"
+    "checked": "2026-11-06"
   },
   "https://support.apple.com/guide/safari/advanced-ibrw1075/mac": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://tailwindcss.com/docs/margin#adding-space-between-children": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://tailwindcss.com/docs/max-width": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://tailwindcss.com/docs/responsive-design": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://ui.shadcn.com/docs/cli": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://ui.shadcn.com/docs/components": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://ui.shadcn.com/docs/components/resizable": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://ui.shadcn.com/docs/components/toggle": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://ui.shadcn.com/docs/components/toggle-group": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://ui.shadcn.com/docs/theming": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://vite.dev/guide/env-and-mode": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://vitest.dev/config/testtimeout": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://vitest.dev/guide/projects": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://web.dev/articles/stick-to-compositor-only-properties-and-manage-layer-count": {
     "status": 200,
-    "checked": "2026-11-03"
+    "checked": "2026-11-06"
   },
   "https://webpack.js.org/configuration/mode/": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.gutenberg.org/ebooks/164": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.nngroup.com/articles/data-tables/": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.nngroup.com/articles/progressive-disclosure/": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.nngroup.com/articles/theory-user-delight/": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.unicode.org/reports/tr51/#Diversity": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/TR/CSS2/visufx.html#overflow": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/TR/WCAG22/#keyboard": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/TR/WCAG22/#non-text-contrast": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/TR/WCAG22/#timing-adjustable": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/TR/css-transitions-1/#starting": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/TR/event-timing/": {
     "status": 200,
-    "checked": "2026-11-03"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/TR/html-aria/#el-input-password": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/WAI/WCAG22/Understanding/label-in-name": {
     "status": 200,
-    "checked": "2026-10-31"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
   },
   "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html": {
     "status": 200,
-    "checked": "2026-10-30"
+    "checked": "2026-11-06"
+  },
+  "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/": {
+    "status": 200,
+    "checked": "2026-11-06"
   }
 }

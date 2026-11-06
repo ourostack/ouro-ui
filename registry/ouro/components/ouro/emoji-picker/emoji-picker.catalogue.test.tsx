@@ -116,6 +116,31 @@ afterEach(async () => {
 });
 
 describe("EmojiPicker with a catalogue", () => {
+  it("reads none of its catalogue while closed, and builds what it shows once per catalogue as pickers open", async () => {
+    let reads = 0;
+    const counted: EmojiCatalogue = {
+      categories: catalogue.categories.map((category) => ({
+        ...category,
+        get items() {
+          reads++;
+          return category.items;
+        },
+      })),
+    };
+    // Each conversation's reply box: a picker of its own, closed.
+    await render(picker({ catalogue: counted }));
+    await render(picker({ catalogue: counted, quick: ["heart", "wave"] }));
+    expect(reads).toBe(0);
+    await userEvent.click(page.getByRole("button", { name: "React" }).first());
+    await expect.element(page.getByRole("dialog")).toBeVisible();
+    const built = reads;
+    expect(built).toBeGreaterThan(0);
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(page.getByRole("button", { name: "React" }).nth(1));
+    await expect.element(page.getByRole("dialog")).toBeVisible();
+    expect(reads).toBe(built);
+  });
+
   it("draws only the catalogue's images, each named by its emoji's name, with the custom category labelled by the app", async () => {
     await open({ quick: ["party"] });
     expect(headings()).toEqual(["Smileys", "Symbols", "Fernwood"]);
@@ -239,6 +264,20 @@ describe("EmojiPicker with a catalogue", () => {
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(() => art(cell("Smiling face"))).toBe(smile.src);
     await expect.poll(previewArt).toBe(smile.src);
+  });
+
+  const thumbs: EmojiItem = { ...wave, id: "thumbs", name: "Thumbs up", shortcodes: ["thumbs"], src: image("thumbs"), skinTones: [{ id: "thumbs-tone1", src: image("thumbs tone1") }] };
+  it.each<[string, { quick?: string[]; frequent?: string[] }, string]>([
+    ["the catalogue's first", {}, wave.src],
+    ["the quick ones'", { quick: ["smile", "thumbs"] }, thumbs.src],
+    ["the frequent ones'", { frequent: ["smile", "thumbs"] }, thumbs.src],
+    ["the frequent ones', with no tones among the quick", { quick: ["smile"], frequent: ["thumbs"] }, thumbs.src],
+    ["the quick ones', before the frequent", { quick: ["thumbs"], frequent: ["wave"] }, thumbs.src],
+    ["the catalogue's first, with no tones among those", { quick: ["smile"], frequent: ["smile"] }, wave.src],
+  ])("draws the skin tone button as the first emoji with tones: %s", async (_, props, expected) => {
+    const withThumbs: EmojiCatalogue = { categories: [{ id: "all", label: "All", items: [smile, wave, thumbs] }] };
+    await open({ catalogue: withThumbs, ...props } as Partial<EmojiPickerProps>);
+    expect(art(panel().querySelector('[data-ouro-part="skin-tone"]')!)).toBe(expected);
   });
 
   it("offers the catalogue's skin tones as images, as a radio group the arrow keys move through", async () => {

@@ -1,0 +1,65 @@
+/*
+ * The three layers band (layers.tsx), on the overview, AX, Feel and Reins pages. It lives with the component, so
+ * every page that shows the band loads its styles. Laid out openly with hairlines; the current page's rule is the
+ * primary colour.
+ */
+@layer components {
+  /* The three ways of knowing, on every page that names one. */
+  .apple-layers {
+    display: grid;
+    gap: calc(var(--spacing) * 8) var(--apple-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .apple-layer {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    align-content: start;
+    gap: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
+    padding-top: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .apple-layer[data-current] {
+    border-top-color: var(--primary);
+    border-top-width: 2px;
+  }
+  .apple-layer > :not(.apple-lane-step) {
+    grid-column: 2;
+    margin: 0;
+  }
+  .apple-layer .apple-lane-step {
+    grid-row: span 4;
+  }
+  .apple-layer-kind {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .apple-layer-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .apple-layer-here {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .apple-layer-asks {
+    font-family: var(--font-heading, inherit);
+    font-size: 1.0625rem;
+    font-style: italic;
+  }
+  .apple-layer-body {
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+  }
+
+  @media (min-width: 56rem) {
+    .apple-layers {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+}

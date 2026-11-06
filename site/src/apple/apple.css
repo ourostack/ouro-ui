@@ -1,0 +1,1149 @@
+/*
+ * The Ouro UI for Apple pages (/apple/…). It loads with their islands, not with the voyage's first paint, and each
+ * Apple page links it in its HTML (site/scripts/prerender.mts), so it paints styled. Like ax/ax.css, its layout
+ * classes stand in for Tailwind utilities no other voyage page uses, so the voyage's CSS stays within its ceiling.
+ * Every colour is a theme variable or mixed from one, so the six presets repaint these pages too.
+ *
+ * Laid out openly: space and hairline rules, never a box in a box. The only framed things are captures, because
+ * they are screens, and the web twins' stages, because you touch them.
+ *
+ * Under prefers-reduced-motion nothing here moves: the captures show their stills, the twin fades, and the only
+ * transitions are of opacity and colour.
+ */
+@layer components {
+  .apple {
+    --apple-gap: calc(var(--spacing) * 10);
+    --apple-screen-radius: calc(var(--radius) * 2.6);
+    --apple-hairline: color-mix(in oklab, var(--border) 70%, transparent);
+    --apple-stage: color-mix(in oklab, var(--muted) 70%, var(--background));
+    /* Quiet text a step toward the foreground, for quiet text that sits on the hero's glow. */
+    --apple-quiet-on-glow: color-mix(in oklab, var(--muted-foreground) 70%, var(--foreground));
+  }
+
+  /* The section's own menu, under the site's header. */
+  .apple-menu {
+    border-bottom: 1px solid var(--apple-hairline);
+  }
+  .apple-menu-list {
+    display: flex;
+    gap: calc(var(--spacing) * 1);
+    margin: 0;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1);
+    list-style: none;
+    overflow-x: auto;
+    /* A link that gets focus scrolls fully in, focus ring and all. */
+    scroll-padding-inline: calc(var(--spacing) * 4);
+    scrollbar-width: none;
+  }
+  .apple-menu-short {
+    display: none;
+  }
+  @media (max-width: 40rem) {
+    /* On a phone the row takes short names so all four fit; the full name stays for screen readers. */
+    .apple-menu-short {
+      display: inline;
+    }
+    .apple-menu-long {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+  .apple-menu-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    padding-inline: calc(var(--spacing) * 3);
+    border-radius: 999px;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    transition:
+      color var(--ouro-duration-fast) var(--ouro-ease-out),
+      background-color var(--ouro-duration-fast) var(--ouro-ease-out);
+  }
+  .apple-menu-link:hover {
+    color: var(--foreground);
+  }
+  .apple-menu-link[aria-current="page"] {
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+    color: var(--foreground);
+  }
+  .apple-menu-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    .apple-menu-link {
+      min-height: 2.75rem;
+    }
+  }
+
+  /* Hero. */
+  @media (max-width: 40rem) {
+    /* Room between the sub-nav and the eyebrow on a phone. */
+    .apple-hero {
+      padding-top: calc(var(--spacing) * 10) !important;
+    }
+  }
+  .apple-hero-grid {
+    display: grid;
+    align-items: center;
+    gap: calc(var(--spacing) * 10);
+  }
+  .apple-hero-copy {
+    display: grid;
+    align-content: start;
+    gap: calc(var(--spacing) * 5);
+    min-width: 0;
+  }
+  .apple-lede {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+  }
+  .apple-lede > p {
+    margin: 0;
+  }
+  .apple-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 3);
+  }
+  .apple-fine {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+  .apple-fine code {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+  }
+
+  /* Bands. */
+  .apple-band {
+    padding-block: calc(var(--spacing) * 16);
+    border-top: 1px solid var(--apple-hairline);
+    scroll-margin-top: calc(var(--spacing) * 20);
+  }
+  .apple-band-grid,
+  .apple-hero-grid,
+  .apple-pair,
+  .apple-showcase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .apple-band-grid > *,
+  .apple-hero-grid > *,
+  .apple-pair > *,
+  .apple-showcase > * {
+    min-width: 0;
+  }
+  .apple-band-grid {
+    display: grid;
+    gap: var(--apple-gap);
+  }
+  .apple-band-head {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    max-width: 46rem;
+  }
+
+  /* A capture beside what explains it. */
+  .apple-pair {
+    display: grid;
+    gap: var(--apple-gap);
+    align-items: start;
+  }
+  .apple-pair-side {
+    display: grid;
+    gap: calc(var(--spacing) * 8);
+    min-width: 0;
+  }
+  .apple-pair-quiet {
+    justify-items: start;
+  }
+
+  /* Captures. */
+  .apple-loop {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+    margin: 0;
+    width: 100%;
+    min-width: 0;
+  }
+  .apple-loop-sm {
+    max-width: 18rem;
+  }
+  .apple-loop-md {
+    max-width: 22rem;
+  }
+  .apple-loop-lg {
+    max-width: 24rem;
+  }
+  .apple-hero-media {
+    justify-self: center;
+  }
+  .apple-loop-frame {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--apple-screen-radius);
+    background: var(--apple-stage);
+    outline: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
+    outline-offset: -1px;
+  }
+  .apple-loop-video,
+  .apple-loop-still {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .apple-loop-still {
+    display: none;
+  }
+  .apple-loop-dark {
+    display: none;
+  }
+  .dark .apple-loop-video.apple-loop-dark {
+    display: block;
+  }
+  .dark .apple-loop-frame[data-apple-dark] .apple-loop-video.apple-loop-light {
+    display: none;
+  }
+  .apple-loop-toggle {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--foreground) 7%, transparent);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: opacity var(--ouro-duration-fast) var(--ouro-ease-out);
+  }
+  .apple-loop-toggle svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  .apple-loop-toggle:hover {
+    background: color-mix(in oklab, var(--foreground) 12%, transparent);
+  }
+  .apple-loop-toggle:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    .apple-loop-toggle {
+      width: 2.75rem;
+      height: 2.75rem;
+    }
+  }
+  @media (prefers-contrast: more) {
+    .apple-loop-toggle {
+      outline: 1px solid var(--border);
+    }
+  }
+  /* Under reduced motion the settled still shows until the reader presses Play. */
+  @media (prefers-reduced-motion: reduce) {
+    .apple-loop:not([data-apple-playing]) .apple-loop-video {
+      display: none !important;
+    }
+    .apple-loop:not([data-apple-playing]) .apple-loop-still.apple-loop-light {
+      display: block;
+    }
+    .dark .apple-loop:not([data-apple-playing]) .apple-loop-frame[data-apple-dark] .apple-loop-still.apple-loop-light {
+      display: none;
+    }
+    .dark .apple-loop:not([data-apple-playing]) .apple-loop-still.apple-loop-dark {
+      display: block;
+    }
+  }
+  .apple-loop-caption {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: calc(var(--spacing) * 3);
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+  .apple-loop-source {
+    display: block;
+  }
+  /* A link inside a sentence: no padding of its own, so punctuation sits right after it. */
+  .apple-inline-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+    text-underline-offset: 0.2em;
+  }
+  .apple-inline-link:hover {
+    text-decoration-color: currentColor;
+  }
+  /* Every jump target in the section clears the site header and the Apple subnav, which both stick. */
+  .apple [id] {
+    scroll-margin-top: 7.5rem;
+  }
+
+  /* Doors to the section's pages. */
+  .apple-doors,
+  .apple-quad,
+  .apple-products,
+  .apple-haptics-list,
+  .apple-lanes-list,
+  .apple-claims,
+  .apple-lanes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .apple-doors,
+  .apple-quad {
+    display: grid;
+    gap: calc(var(--spacing) * 8) var(--apple-gap);
+  }
+  .apple-door,
+  .apple-quad-item {
+    display: grid;
+    align-content: start;
+    gap: calc(var(--spacing) * 2);
+    padding-top: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .apple-door-kicker {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  .apple-door-link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .apple-door-link:hover {
+    color: var(--primary);
+  }
+  .apple-door-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  .apple-door-body,
+  .apple-quad-body {
+    margin: 0;
+    color: var(--muted-foreground);
+  }
+  .apple-quad-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Showcases: laid out on the page, not in cards. */
+  .apple-showcases {
+    display: grid;
+    gap: calc(var(--spacing) * 16);
+  }
+  .apple-showcase {
+    display: grid;
+    gap: calc(var(--spacing) * 8);
+    align-items: center;
+  }
+  .apple-showcase-copy {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+    min-width: 0;
+    max-width: 34rem;
+  }
+  .apple-showcase-copy > p {
+    margin: 0;
+  }
+  .apple-showcase-figure {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 calc(var(--spacing) * 2);
+    padding-top: calc(var(--spacing) * 2);
+  }
+  .apple-figure-from,
+  .apple-figure-to {
+    font-family: var(--font-heading);
+    font-size: clamp(2.5rem, 6vw, 3.5rem);
+    font-weight: 650;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .apple-figure-from {
+    color: var(--muted-foreground);
+  }
+  .apple-figure-to {
+    color: var(--primary);
+  }
+  .apple-figure-arrow {
+    color: var(--muted-foreground);
+    font-size: 1.5rem;
+  }
+  .apple-figure-label {
+    flex-basis: 100%;
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+  }
+  .apple-showcase-links {
+    font-size: 0.9375rem;
+  }
+
+  .apple-soon {
+    display: grid;
+    gap: calc(var(--spacing) * 3);
+    padding-block: calc(var(--spacing) * 16) calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .apple-soon-line {
+    margin: 0;
+    max-width: 40rem;
+    font-family: var(--font-heading);
+    font-size: clamp(1.25rem, 2.6vw, 1.625rem);
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+  }
+
+  .apple-next {
+    padding-block: calc(var(--spacing) * 10) calc(var(--spacing) * 20);
+  }
+  .apple-next-link {
+    display: inline-grid;
+    gap: calc(var(--spacing) * 1);
+    color: inherit;
+    text-decoration: none;
+  }
+  .apple-next-label {
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  .apple-next-title {
+    font-family: var(--font-heading);
+    font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+  .apple-next-link:hover .apple-next-title {
+    color: var(--primary);
+  }
+  .apple-next-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+    border-radius: 6px;
+  }
+
+  /* The Ouro AX hero's anglerfish, lamp up to the manual Siri reads. */
+  .apple-angler {
+    justify-self: center;
+    width: 100%;
+    max-width: 26rem;
+  }
+  .apple-angler svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .apple-angler-page {
+    fill: color-mix(in oklab, var(--background) 82%, var(--foreground) 4%);
+    stroke: color-mix(in oklab, var(--foreground) 22%, transparent);
+    stroke-width: 1.2;
+  }
+  .apple-angler-title {
+    fill: color-mix(in oklab, var(--foreground) 70%, transparent);
+  }
+  .apple-angler-line {
+    fill: color-mix(in oklab, var(--foreground) 22%, transparent);
+  }
+  .apple-angler-tick {
+    fill: var(--primary);
+  }
+  .apple-angler-tick-open {
+    fill: none;
+    stroke: color-mix(in oklab, var(--foreground) 35%, transparent);
+    stroke-width: 1.4;
+  }
+  .apple-angler-light-core {
+    stop-color: color-mix(in oklab, var(--warning) 70%, white);
+    stop-opacity: 0.5;
+  }
+  .apple-angler-light-mid {
+    stop-color: var(--warning);
+    stop-opacity: 0.12;
+  }
+  .apple-angler-light-edge {
+    stop-color: var(--warning);
+    stop-opacity: 0;
+  }
+  .apple-angler-glow {
+    mix-blend-mode: multiply;
+    animation: apple-breathe 3.2s ease-in-out infinite alternate;
+  }
+  .dark .apple-angler-glow {
+    mix-blend-mode: screen;
+  }
+  .apple-angler-lamp {
+    fill: color-mix(in oklab, var(--warning) 55%, white);
+    filter: drop-shadow(0 0 6px var(--warning));
+    animation: apple-breathe 3.2s ease-in-out infinite alternate;
+  }
+  .apple-angler .c-body {
+    fill: color-mix(in oklab, var(--background) 55%, var(--primary));
+    stroke: var(--foreground);
+    stroke-width: 0.8;
+  }
+  .apple-angler .c-line {
+    fill: none;
+    stroke: var(--foreground);
+    stroke-width: 1.2;
+    stroke-linecap: round;
+  }
+  .apple-angler .c-eye-big {
+    fill: var(--background);
+    stroke: var(--foreground);
+  }
+  .apple-angler .c-pupil {
+    fill: var(--foreground);
+  }
+  .apple-angler .c-glow {
+    fill: color-mix(in oklab, var(--warning) 55%, white);
+  }
+  .apple-angler .c-mouth {
+    fill: color-mix(in oklab, var(--foreground) 80%, var(--background));
+  }
+  .apple-angler .c-teeth {
+    fill: none;
+    stroke: var(--background);
+    stroke-width: 1.2;
+  }
+  @keyframes apple-breathe {
+    from {
+      opacity: 0.7;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .apple-angler-glow,
+    .apple-angler-lamp {
+      animation: none;
+    }
+  }
+
+  /* The spring's web twin. */
+  .apple-twin {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    min-width: 0;
+  }
+  .apple-twin-label,
+  .apple-twin-help {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+  .apple-twin-badge {
+    display: inline-block;
+    margin-inline-end: calc(var(--spacing) * 1.5);
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--primary) 14%, transparent);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .apple-twin-track {
+    position: relative;
+    height: 6.5rem;
+    padding: 1.5rem 0;
+    border-radius: var(--apple-screen-radius);
+    background: var(--apple-stage);
+    cursor: pointer;
+    touch-action: none;
+  }
+  .apple-twin-stop {
+    position: absolute;
+    top: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-top: -0.25rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+  .apple-twin-stop-start {
+    left: calc(1.5rem + 28px - 0.25rem);
+  }
+  .apple-twin-stop-end {
+    right: calc(1.5rem + 28px - 0.25rem);
+  }
+  .apple-twin-track > .apple-twin-puck {
+    position: absolute;
+    top: calc(50% - 28px);
+    left: 1.5rem;
+  }
+  .apple-twin-puck {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: var(--primary);
+    box-shadow: 0 10px 24px -12px color-mix(in oklab, var(--primary) 70%, transparent);
+    cursor: grab;
+    touch-action: none;
+    transition: opacity calc(var(--ouro-duration-base) / 2) var(--ouro-ease-out);
+  }
+  .apple-twin-puck:active {
+    cursor: grabbing;
+  }
+  .apple-twin-puck[data-apple-fading] {
+    opacity: 0;
+  }
+  .apple-twin-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 4) calc(var(--spacing) * 6);
+  }
+  .apple-curve {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    margin: 0;
+    max-width: 18rem;
+  }
+  .apple-curve svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .apple-curve-line {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 2.25;
+    stroke-linecap: round;
+  }
+  .apple-curve-target {
+    stroke: color-mix(in oklab, var(--foreground) 22%, transparent);
+    stroke-dasharray: 3 4;
+  }
+  .apple-curve-trace {
+    fill: none;
+    stroke: var(--warning);
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .apple-curve-dot {
+    fill: var(--warning);
+    opacity: 0;
+    transition: opacity var(--ouro-duration-base) var(--ouro-ease-out);
+  }
+  .apple-curve-dot[data-moving] {
+    opacity: 1;
+  }
+  .apple-curve-caption {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+
+  /* The press's twin: the capture's tart, as Ouro HX web. */
+  .apple-press-twin {
+    display: grid;
+    max-width: 24rem;
+    gap: calc(var(--spacing) * 4);
+  }
+  .apple-press-stage {
+    display: grid;
+    gap: calc(var(--spacing) * 1.5);
+    padding: calc(var(--spacing) * 6);
+    border-radius: var(--apple-screen-radius);
+    background: var(--apple-stage);
+  }
+  .apple-press-title {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+  }
+  .apple-press-meta {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+  .apple-press-button {
+    width: 100%;
+    margin-block: calc(var(--spacing) * 3) calc(var(--spacing) * 1);
+  }
+
+  /* Haptics. */
+  .apple-haptics {
+    display: grid;
+    gap: calc(var(--spacing) * 5);
+    min-width: 0;
+  }
+  .apple-haptics-list {
+    display: grid;
+  }
+  .apple-haptic {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+    padding-block: calc(var(--spacing) * 2.5);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  @media (min-width: 48rem) {
+    /* Three columns that line up down the table: the moment, its taps, and when to use it. */
+    .apple-haptic {
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      align-items: center;
+      gap: calc(var(--spacing) * 6);
+    }
+    .apple-haptic-when {
+      margin: 0 !important;
+    }
+  }
+  .apple-haptic-play {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-inline-end: 0.4rem;
+    color: var(--primary);
+    vertical-align: -0.05rem;
+  }
+  .apple-haptic-button:hover {
+    background: color-mix(in oklab, var(--primary) 7%, transparent);
+  }
+  .apple-haptic-button {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: calc(var(--spacing) * 4);
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .apple-haptic-button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  .apple-haptic-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .apple-haptic-when {
+    margin: 0 0 0 calc(7.5rem + var(--spacing) * 4);
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+  }
+  .apple-wave {
+    width: 100%;
+    height: 2.75rem;
+  }
+  .apple-wave-head {
+    stroke: var(--primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    opacity: 0;
+    animation-name: apple-sweep;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+  }
+  @keyframes apple-sweep {
+    0% {
+      opacity: 0.9;
+      transform: translateX(0);
+    }
+    90% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(300px);
+    }
+  }
+  .apple-wave-base {
+    stroke: var(--apple-hairline);
+  }
+  .apple-wave-tap {
+    fill: none;
+    stroke: color-mix(in oklab, var(--primary) 55%, var(--muted-foreground));
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke var(--ouro-duration-fast) var(--ouro-ease-out);
+  }
+  .apple-haptic-button:hover .apple-wave-tap {
+    stroke: var(--primary);
+  }
+  /* A pressed moment gives a little thunk, like the press everywhere else. */
+  @media (prefers-reduced-motion: no-preference) {
+    .apple-haptic-button {
+      transition: transform var(--ouro-duration-fast) var(--ouro-ease-out);
+    }
+    .apple-haptic-button:active {
+      transform: scale(0.98);
+    }
+  }
+  .apple-wave-playing .apple-wave-tap {
+    animation: apple-tap 320ms var(--ouro-ease-out) both;
+  }
+  @keyframes apple-tap {
+    0% {
+      stroke: var(--primary);
+      opacity: 0.35;
+    }
+    35% {
+      stroke: var(--primary);
+      opacity: 1;
+      stroke-width: 3;
+    }
+    100% {
+      stroke: var(--primary);
+      opacity: 1;
+    }
+  }
+  .apple-haptics-note {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+  }
+
+  /* The X-ray explorer. */
+  .apple-xray {
+    display: grid;
+    gap: calc(var(--spacing) * 8);
+    min-width: 0;
+  }
+  .apple-xray-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
+  }
+  .apple-xray-summary {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+  }
+  .apple-xray-figure {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 calc(var(--spacing) * 3);
+  }
+  .apple-xray-holding {
+    font-family: var(--font-heading);
+    font-size: clamp(3rem, 9vw, 5rem);
+    font-weight: 650;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .apple-xray-of {
+    font-size: 1.125rem;
+    color: var(--muted-foreground);
+  }
+  @media (max-width: 40rem) {
+    /* On a phone a showcase capture takes the whole column, so its words stay readable. */
+    .apple-showcase > .apple-loop {
+      max-width: none !important;
+    }
+  }
+  .apple-dots-key {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 1.5);
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+  .apple-dots-key > .apple-dot:not(:first-child) {
+    margin-inline-start: calc(var(--spacing) * 2);
+  }
+  /* A light-only capture on a dark page: dimmed a touch, so it doesn't glare. */
+  .dark .apple-loop-frame:not([data-apple-dark]) {
+    filter: brightness(0.88);
+  }
+  .apple-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 40rem;
+  }
+  .apple-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 1.5px solid transparent;
+    transition:
+      background-color var(--ouro-duration-slow) var(--ouro-ease-out),
+      border-color var(--ouro-duration-slow) var(--ouro-ease-out);
+  }
+  .apple-dot-holds {
+    background-color: var(--primary);
+  }
+  .apple-dot-fails {
+    background-color: var(--destructive);
+  }
+  .apple-dot-open {
+    background-color: transparent;
+    border-color: color-mix(in oklab, var(--foreground) 30%, transparent);
+  }
+  .apple-xray-context {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+    max-width: 46rem;
+  }
+  .apple-lanes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing) * 2) calc(var(--spacing) * 5);
+    font-size: 0.8125rem;
+  }
+  .apple-lane-ran {
+    color: var(--foreground);
+  }
+  .apple-lane-ran > span:first-child {
+    color: var(--primary);
+  }
+  .apple-lane-not {
+    color: var(--muted-foreground);
+  }
+  .apple-xray-list {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+  }
+  .apple-xray-empty {
+    margin: 0;
+    padding-block: calc(var(--spacing) * 6);
+    color: var(--muted-foreground);
+  }
+  .apple-claim {
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .apple-claim-summary {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto 1rem;
+    align-items: baseline;
+    gap: calc(var(--spacing) * 3);
+    min-height: 2.75rem;
+    padding-block: calc(var(--spacing) * 3);
+    cursor: pointer;
+    list-style: none;
+  }
+  .apple-claim-summary::-webkit-details-marker {
+    display: none;
+  }
+  .apple-claim-summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  .apple-claim-rule {
+    min-width: 0;
+  }
+  .apple-claim-chevron {
+    width: 1rem;
+    height: 1rem;
+    align-self: center;
+    color: var(--muted-foreground);
+  }
+  details[open] > .apple-claim-summary .apple-claim-chevron {
+    transform: rotate(90deg);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .apple-claim-chevron {
+      transition: transform var(--ouro-duration-fast) var(--ouro-ease-out);
+    }
+  }
+  .apple-claim-flip {
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .apple-mark {
+    font-weight: 700;
+    text-align: center;
+  }
+  .apple-mark-holds {
+    color: var(--primary);
+  }
+  .apple-mark-fails {
+    color: var(--destructive);
+  }
+  .apple-mark-open {
+    color: var(--muted-foreground);
+  }
+  .apple-claim-body {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    padding: 0 0 calc(var(--spacing) * 5) calc(1.5rem + var(--spacing) * 3);
+    font-size: 0.9375rem;
+  }
+  .apple-claim-body > p,
+  .apple-claim-found {
+    margin: 0;
+  }
+  .apple-code {
+    padding: 0.05em 0.3em;
+    border-radius: 0.3rem;
+    background: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    overflow-wrap: anywhere;
+  }
+  .apple-claim-meta {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+  }
+  .apple-claim-key {
+    font-weight: 600;
+  }
+  .apple-claim-found {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+    padding-inline-start: 1.1rem;
+    color: var(--muted-foreground);
+  }
+  .apple-claim-open {
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
+  .apple-xray-made {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+  }
+
+  /* The X-ray's lanes, as a numbered list. */
+  .apple-lanes-list {
+    display: grid;
+    max-width: 46rem;
+  }
+  .apple-lane-row {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
+    padding-block: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .apple-lane-step {
+    grid-row: span 2;
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .apple-lane-name {
+    font-weight: 600;
+  }
+  .apple-lane-body {
+    color: var(--muted-foreground);
+  }
+
+  /* Get started. */
+  .apple-steps {
+    display: grid;
+    gap: calc(var(--spacing) * 4);
+    max-width: 52rem;
+  }
+  .apple-products {
+    display: grid;
+    max-width: 52rem;
+  }
+  .apple-product {
+    display: grid;
+    gap: calc(var(--spacing) * 1) calc(var(--spacing) * 6);
+    padding-block: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--apple-hairline);
+  }
+  .apple-product-name {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .apple-product-body {
+    color: var(--muted-foreground);
+  }
+
+  @media (min-width: 40rem) {
+    .apple-product {
+      grid-template-columns: 11rem minmax(0, 1fr);
+    }
+    .apple-doors {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .apple-quad {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 56rem) {
+    .apple-band {
+      padding-block: calc(var(--spacing) * 24);
+    }
+    .apple-hero-grid {
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: calc(var(--spacing) * 16);
+    }
+    .apple-hero-solo {
+      grid-template-columns: minmax(0, 46rem);
+    }
+    .apple-pair {
+      grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+      gap: calc(var(--spacing) * 16);
+    }
+    .apple-pair > .apple-haptics {
+      order: 2;
+    }
+    .apple-pair:has(> .apple-haptics) {
+      grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+    }
+    .apple-pair-quiet {
+      grid-template-columns: minmax(0, 18rem);
+    }
+    .apple-showcase {
+      grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+      gap: calc(var(--spacing) * 16);
+    }
+    .apple-showcase:nth-child(2) {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+    }
+    .apple-showcase:nth-child(2) > .apple-loop {
+      order: 2;
+      max-width: 26rem;
+    }
+    .apple-quad {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .apple-wave-playing .apple-wave-tap {
+      animation: none;
+      stroke: var(--primary);
+    }
+    .apple-wave-head {
+      display: none;
+    }
+  }
+}

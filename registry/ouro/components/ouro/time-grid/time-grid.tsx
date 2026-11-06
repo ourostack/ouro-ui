@@ -911,7 +911,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       style={
         {
           ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${3.75 + lanes * 1.5}rem` }),
-          "--ouro-time-grid-lane": labelBackground ? "clamp(7rem, 40%, 32rem)" : "0.75rem",
+          "--ouro-time-grid-lane": labelBackground ? "max(7rem, 40%)" : "0.75rem",
           ...style,
         } as CSSProperties
       }

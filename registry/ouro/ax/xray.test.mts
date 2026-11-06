@@ -501,14 +501,14 @@ test("a voice in a pipe or --json, text without its refs, an unlisted command, l
   assert.match(traced!.note, /EPIPE|Unhandled 'error' event/);
 });
 
-const callCommands = ["meetings", "participants", "captions", "events", "follow", "pin", "mute", "leave", "raise-hand", "lower-hand"];
+const callCommands = ["meetings", "participants", "captions", "events", "follow", "agents", "unfollow", "pin", "mute", "leave", "raise-hand", "lower-hand"];
 const callInventory = (name: string, ui: unknown[] = callUi, cli: string[] = callCommands) => {
   const path = join(scratch, `${name}.json`);
   writeFileSync(path, JSON.stringify({ cli, ui }));
   return path;
 };
 const call = (name: string, faults: string, over: Partial<XrayOptions> = {}) =>
-  xray(base({ cli: fixture("call.mts"), name: "call", env: { CALL_STATE: join(scratch, `${name}-state.json`), CALL_FAULTS: faults }, state: ["state"], inventory: over.inventory ?? callInventory(name), ...over }));
+  xray(base({ cli: fixture("call.mts"), name: "call", env: { CALL_STATE: join(scratch, `${name}-state.json`), CALL_FAULTS: faults }, state: ["state"], samples: { listener: "research-agent" }, inventory: over.inventory ?? callInventory(name), ...over }));
 const failingNotes = (report: Report, claim: string) => report.results.filter((r) => r.claim === claim && r.verdict === "fail").map((r) => `${r.surface}: ${r.note}`);
 
 test("the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow", async () => {
@@ -517,7 +517,12 @@ test("the calling components' twins conform: each twin is listed with its effect
   assert.deepEqual(failing, []);
   assert.equal(report.conformant, true);
   assert.deepEqual(report.inventory.surfaces, ["cli", "ui"]);
-  for (const id of ["ui.twin-exists", "ui.twin-effect-matches", "ui.person-only-refuses", "ui.listening-needs-yes", "ui.read-fields", "cli.listening-push-filtered", "cli.listening-cursor"]) assert.equal(holds(report, id), true, id);
+  for (const id of ["ui.twin-exists", "ui.twin-effect-matches", "ui.person-only-refuses", "ui.self-scope-refuses", "ui.listening-needs-yes", "ui.read-fields", "cli.listening-push-filtered", "cli.listening-cursor"]) assert.equal(holds(report, id), true, id);
+  // The stop twin, run as an agent that owns nothing on research-agent's row, is refused and changes nothing.
+  assert.deepEqual(report.results.filter((r) => r.claim === "ui.self-scope-refuses").map((r) => `${r.verdict} ${r.surface}: ${r.note}`), [
+    "pass AgentPresence action stop: call: unfollow: that one is research-agent's, and you are stranger-agent; only research-agent or the person may do it. Do it on your own instead. Fix: call unfollow m1 stranger-agent --agent stranger-agent.",
+  ]);
+  assert.deepEqual(JSON.parse(readFileSync(join(scratch, "call-good-state.json"), "utf8")).listening.map((l: { agent: string }) => l.agent), ["inbox-agent", "research-agent"]);
   assert.deepEqual(verdicts(report, "ui.listening-needs-yes"), ["pass", "pass"]);
   assert.deepEqual(report.effects.map((e) => e.note), ["the person's yes, on the mock: followed, to read what people say"]);
   assert.deepEqual(JSON.parse(readFileSync(join(scratch, "call-good-state.json"), "utf8")).follows, ["m1"]);
@@ -564,6 +569,34 @@ test("a call tool that breaks the component claims fails each, with what it saw"
   assert.equal(verdictOf(report, "ui.read-fields", "MediaTile read bare"), "pass");
   assert.deepEqual(verdicts(report, "cli.listening-cursor"), ["skip"]);
   assert.equal(report.conformant, false);
+});
+
+test("a self-scoped twin that does not check the owner fails ui.self-scope-refuses, with what it saw", async () => {
+  const ui = [
+    ...callUi,
+    { component: "Roster", kind: "action", id: "drop", effect: "private", twin: "call unfollow <meeting> <listener>", scope: "self" },
+    { component: "Roster", kind: "action", id: "kick", effect: "private", twin: "call kick <listener> --agent <me>", scope: "self" },
+    { component: "Roster", kind: "action", id: "leave-room", effect: "private", twin: "call unfollow <room> <listener> --agent <me>", scope: "self" },
+  ];
+  const report = await call("call-owner", "owner", { inventory: callInventory("call-owner", ui) });
+  const result = (surface: string) => report.results.find((r) => r.claim === "ui.self-scope-refuses" && r.surface === surface)!;
+  // Any agent's call acts on research-agent's row: help gives the command no scope, and the state changes.
+  assert.equal(result("AgentPresence action stop").verdict, "fail");
+  assert.match(result("AgentPresence action stop").note, /^`call unfollow` does not check the owner: help --json gives it no scope: "self"; `call unfollow m1 research-agent --agent stranger-agent`, as stranger-agent, who owns nothing → exit 0: it did not refuse; the state changed: /);
+  assert.deepEqual(report.effects.filter((e) => e.surface.endsWith("(as stranger-agent)")).map((e) => e.surface), ["call unfollow m1 research-agent --agent stranger-agent (as stranger-agent)"]);
+  // A twin that does not say who is calling fails before it runs; its run refuses only because the row is gone.
+  assert.match(result("Roster action drop").note, /^its twin does not say who is calling \(--agent <me>\), so it cannot tell the caller's own item from another's; `call unfollow` does not check the owner: help --json gives it no scope: "self"; exit 1, not the usage code 2$/);
+  assert.deepEqual([result("Roster action kick").verdict, result("Roster action kick").note], ["skip", "the twin is no command (ui.twin-exists)"]);
+  assert.deepEqual([result("Roster action leave-room").verdict, result("Roster action leave-room").note], ["fail", '`call unfollow` does not check the owner: help --json gives it no scope: "self"']);
+  assert.equal(report.conformant, false);
+  // Unproven as a mock, nothing scoped runs.
+  const unsafe = await call("call-owner-unsafe", "", { mock: undefined });
+  assert.match(unsafe.results.find((r) => r.claim === "ui.self-scope-refuses")!.note, /^not run: the target is not proven a mock/);
+  assert.deepEqual(JSON.parse(readFileSync(join(scratch, "call-owner-unsafe-state.json"), "utf8")).listening.length, 2);
+  // Without a state command, the refusal is judged by its answers alone; a placeholder with no sample is skipped.
+  const stateless = await call("call-stateless", "", { state: [], inventory: callInventory("call-stateless", [...callUi, ui.at(-1)]) });
+  assert.equal(verdictOf(stateless, "ui.self-scope-refuses", "Roster action leave-room"), "skip");
+  assert.equal(verdictOf(stateless, "ui.self-scope-refuses", "AgentPresence action stop"), "pass");
 });
 
 test("a listening read's follow, fields and cursor: ignored, missing, no lines, a follow that fails, no sample, no mock, no help", async () => {

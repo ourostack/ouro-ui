@@ -814,7 +814,10 @@ jobs:
     # SHARD_TARGET_SECONDS of estimated work or under (scripts/mutation.mjs --count, shardCount in
     # cache.mjs), so a large change's shards each finish in about 10 minutes, at most 24; at least
     # three with results cached under the same hash, five without, so a cold run's mutants spread
-    # wider. On any other run, three shards that each report nothing to mutate.
+    # wider; none when no changed path is runtime source (scripts/mutation.mjs `mutates`: tests,
+    # stories, the test kit, the site, scripts and docs give the shards nothing to mutate), and the
+    # mutation check passes without them. On any other run, three shards that each report nothing
+    # to mutate.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -877,7 +880,13 @@ jobs:
             count=$min
           fi
           echo "count=$count" >> "$GITHUB_OUTPUT"
-          echo "shards=[$(seq "$count" | paste -sd , -)]" >> "$GITHUB_OUTPUT"
+          if [ "$count" = 0 ]; then
+            echo "No changed path is runtime source: no mutation shard starts, and the mutation check passes without them."
+            # A matrix needs a value even when its job is skipped.
+            echo "shards=[0]" >> "$GITHUB_OUTPUT"
+          else
+            echo "shards=[$(seq "$count" | paste -sd , -)]" >> "$GITHUB_OUTPUT"
+          fi
   mutation-shard:
     # Mutation testing of the lines a pull request added or changed in the runtime source: every
     # mutant Stryker makes of them must fail a test. The changed ranges are split across the shards
@@ -885,9 +894,10 @@ jobs:
     # and each shard starts from the results kept from the pull request's last run, so a push
     # reruns only the mutants its change touched. Pull requests only; on any other run, and on a
     # pull request that changes no runtime source, it reports that there is nothing to mutate. The
-    # `mutation` job below is the one check the rules require.
+    # `mutation` job below is the one check the rules require. When the plan counts no shard (no
+    # changed path is runtime source), none starts.
     needs: [plan, mutation-plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
@@ -955,13 +965,15 @@ jobs:
     # file and keeps it for the next run, under the plan's key. It keeps them after a failed run
     # too: each shard uploads only the mutants of its own ranges (scopeReport), so a survivor stays
     # Survived in the merge and fails the next run as well, unless a test that could kill it changed.
+    # When the plan counted no shard, it passes on their skip alone and keeps nothing.
     needs: [plan, mutation-plan, mutation-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       RESULT: ${{ needs.mutation-shard.result }}
-      KEY: ${{ needs.mutation-plan.outputs.key }}
+      COUNT: ${{ needs.mutation-plan.outputs.count }}
+      KEY: ${{ needs.mutation-plan.outputs.count != '0' && needs.mutation-plan.outputs.key || '' }}
     steps:
       - if: env.KEY != ''
         continue-on-error: true
@@ -991,6 +1003,10 @@ jobs:
           key: ${{ env.KEY }}${{ github.sha }}
       - name: Every shard passed
         run: |
+          if [ "$COUNT" = 0 ] && [ "$RESULT" = skipped ]; then
+            echo "No changed path is runtime source, so no mutation shard ran."
+            exit 0
+          fi
           echo "The mutation shards: $RESULT."
           [ "$RESULT" = success ]
   visual:

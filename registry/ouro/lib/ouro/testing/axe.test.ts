@@ -212,12 +212,26 @@ describe("audit", () => {
       '<svg role="img" aria-label="Plan" width="300" height="80"><defs><linearGradient id="paper"><stop offset="0" stop-color="#fff" /><stop offset="1" stop-color="#eee" /></linearGradient></defs>' +
         '<rect width="300" height="80" fill="url(#paper)" /><text id="dark-label" x="10" y="30" fill="#111">232 FEET</text><text id="faint-label" x="10" y="60" fill="#aaa">26 FT</text></svg>',
     );
-    const shots = vi.spyOn(page, "screenshot");
-    const findings = await scanPage();
-    expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided color-contrast #faint-label"]);
+    // The pictures the kit got. A try that ran out of time is no picture: on a box that holds still
+    // the kit tries once more, as when Vitest's own process stalled on a loaded runner.
+    const take = page.screenshot.bind(page);
+    const pictures: Element[] = [];
+    const shots = vi.spyOn(page, "screenshot").mockImplementation((options) =>
+      take(options).then((data) => {
+        pictures.push((options as { element: Element }).element);
+        return data;
+      }),
+    );
+    try {
+      const findings = await scanPage();
+      expect(findings.map((finding) => `${finding.undecided ? "undecided " : ""}${finding.rule} ${finding.target}`)).toEqual(["undecided color-contrast #faint-label"]);
+    } finally {
+      shots.mockRestore();
+    }
     // One picture of the SVG, and one of the faint label alone, as a sticky bar could have covered it.
-    expect(shots).toHaveBeenCalledTimes(2);
-    shots.mockRestore();
+    const svg = document.querySelector("svg")!;
+    const faint = document.querySelector("#faint-label")!;
+    expect(pictures.map((element) => (element === faint ? "the faint label" : element.contains(svg) ? "the SVG" : element.localName))).toEqual(["the SVG", "the faint label"]);
   });
 
   it("fails text that other text is drawn over, as a tag without a background over a line", async () => {

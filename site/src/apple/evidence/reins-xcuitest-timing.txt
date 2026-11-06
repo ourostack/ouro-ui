@@ -1,0 +1,1 @@
+[reins-spike-ui] 5 runs; launch ms [14288, 18211, 10342, 9837, 14590]; journey ms [18535, 19414, 16677, 16293, 16281]; median launch 14288 ms, median journey 16677 ms

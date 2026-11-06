@@ -22,6 +22,14 @@ import { ignoreReason } from "./mutation/plugins.mjs";
 
 export { runtimeSource, testFilesFor };
 
+/**
+ * Whether a change to these paths gives the mutation shards anything to do: a path that is runtime
+ * source (`runtimeSource`), changed, added, removed or moved. Tests, stories, type tests, the test
+ * kit and everything outside components/ and lib/ give them nothing, since only the changed lines
+ * of runtime source are mutated.
+ */
+export const mutates = (paths) => paths.some(runtimeSource);
+
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
@@ -303,9 +311,16 @@ async function main(args) {
   const git = (paths) => spawnSync("git", ["diff", "-U0", "-M", range, "--", ...paths], { cwd: root, encoding: "utf8" });
   const whole = git([componentsDir, libDir]);
   if (whole.status !== 0) throw new Error(`git diff failed: ${whole.stderr}`);
-  // `--count <min>/<max>`: how many shards CI's mutation-plan job starts (`shardCount`).
+  // `--count <min>/<max>`: how many shards CI's mutation-plan job starts (`shardCount`), or 0 when
+  // no changed path is runtime source (`mutates`), so a pull request with nothing to mutate starts none.
   const counting = option("--count");
   if (counting) {
+    const names = spawnSync("git", ["diff", "--name-only", "-M", range, "--", componentsDir, libDir], { cwd: root, encoding: "utf8" });
+    if (names.status !== 0) throw new Error(`git diff failed: ${names.stderr}`);
+    if (!mutates(names.stdout.split("\n").filter(Boolean))) {
+      console.log(0);
+      return 0;
+    }
     const [min, max] = counting.split("/").map(Number);
     console.log(shardCount(shardUnits(changedLines(whole.stdout)), testSeconds(), { min, max, target: SHARD_TARGET_SECONDS }));
     return 0;

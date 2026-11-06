@@ -6,11 +6,13 @@ name: Screens
 # measured rules are waived in .github/ouro-check.json while they settle. Eight shards side by side, then one report: the merge job's summary, and its artifact
 # with a contact sheet per page and a captioned close-up per finding. Not a required check, and it
 # reports without failing: the findings are for whoever changes the page next. A pull request
-# that changes nothing the site build or the check reads skips both (the changes job).
+# that changes nothing the site build or the check reads skips both (the changes job). Main gets
+# its report once a day, not on every push: each push to main is a pull request's change that
+# Screens already checked, as that pull request merged into main.
 on:
   pull_request:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "37 4 * * *"
   workflow_dispatch:
 permissions:
   contents: read
