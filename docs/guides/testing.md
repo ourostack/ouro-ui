@@ -133,6 +133,18 @@ announcements.stop();
 
 `changes` lists every announcement in order, each with its `region` and `text`; `matching(text)` and `count(text)` find those whose text includes `text`.[^announcements] Toast's tests use it.
 
+## Counting composited layers
+
+`commands.compositedLayers()` lists the layers Chromium's compositor draws on their own right now, each with the element it draws (`ARTICLE[data-ouro="message"]`), or null for one of the page's own.[^layers] An element gets one while it has `will-change: transform` or a running transform animation, so a test can prove that motion lets its layers go once it settles.[^layers] It reads Chromium's DevTools protocol and throws in other browsers.[^layers]
+
+```ts
+const before = await commands.compositedLayers();
+// … scroll the list, then wait until nothing carries data-ouro-settling …
+expect(await commands.compositedLayers()).toHaveLength(before.length);
+```
+
+MessageList's tests use it to hold its scroll springs to that: a message has a layer only while it springs, and none, with no `will-change` and no transform, once it rests.[^springs-rest]
+
 ## Holding an interaction budget
 
 `lib-measure-interaction` measures an interaction from the input to the next paint, so a test can hold the interactions that matter to a budget you choose.[^interaction] `onInteraction(sink)` sends them to `sink`; `measureInteraction(name, fn)`, called in a handler, gives its interaction a name ([measureInteraction](../measureInteraction.md), [onInteraction](../onInteraction.md)). In a test build, keep the reports where the test can read them, and name the interactions you budget:
@@ -202,3 +214,5 @@ Ouro's own test measures a real click the same way, in Vitest's browser mode.[^i
 [^interaction]: test:registry/ouro/lib/ouro/measure-interaction.test.ts::onInteraction > reports a click once, named by its type, with its target, from the press to the paint; test:registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports a labelled click once, by its label, from the press to the paint; https://www.w3.org/TR/event-timing/ verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::onInteraction > reports a click once, named by its type, with its target, from the press to the paint) verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports a labelled click once, by its label, from the press to the paint) verify:urlOk(https://www.w3.org/TR/event-timing/)
 [^interaction-test]: test:registry/ouro/lib/ouro/measure-interaction.test.ts::onInteraction > in a browser with Event Timing, measures a real slow click from the press to the paint verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::onInteraction > in a browser with Event Timing, measures a real slow click from the press to the paint)
 [^interaction-rounding]: https://www.w3.org/TR/event-timing/; test:registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports from the event to the second animation frame when no entry arrives first, and ignores a later entry verify:urlOk(https://www.w3.org/TR/event-timing/) verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports from the event to the second animation frame when no entry arrives first, and ignores a later entry)
+[^layers]: registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /compositedLayers lists a layer for an element only while it has will-change: transform/) verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /compositedLayers throws outside Chromium/)
+[^springs-rest]: registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.springs.test.tsx, /gives messages composited layers only while they spring, and none once they rest/) verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs at rest > leaves no will-change and no transform on anything in the list once its springs settle)

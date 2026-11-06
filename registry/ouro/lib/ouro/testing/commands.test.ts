@@ -81,3 +81,29 @@ test("pointerPress click presses and releases in one command, leaving the page's
     page.remove();
   }
 });
+
+test.skipIf(server.browser !== "chromium")("compositedLayers lists a layer for an element only while it has will-change: transform", async () => {
+  const box = document.createElement("div");
+  box.dataset.ouro = "layer-probe";
+  box.style.cssText = "width:40px;height:30px;background:rgb(255,0,0)";
+  document.body.append(box);
+  try {
+    const own = (layers: { element: string | null }[]) => layers.filter((layer) => layer.element === 'DIV[data-ouro="layer-probe"]');
+    const before = await commands.compositedLayers();
+    expect(own(before)).toEqual([]);
+    box.style.willChange = "transform";
+    const layered = await commands.compositedLayers();
+    expect(own(layered)).toEqual([{ element: 'DIV[data-ouro="layer-probe"]', width: 40, height: 30 }]);
+    expect(layered).toHaveLength(before.length + 1);
+    box.style.willChange = "";
+    expect(await commands.compositedLayers()).toHaveLength(before.length);
+    // A page that holds still draws no frame of its own; the count still comes, the same each time.
+    expect(await commands.compositedLayers()).toHaveLength(before.length);
+  } finally {
+    box.remove();
+  }
+});
+
+test.skipIf(server.browser === "chromium")("compositedLayers throws outside Chromium", async () => {
+  await expect(commands.compositedLayers()).rejects.toThrow("compositedLayers: CDP is Chromium only");
+});
