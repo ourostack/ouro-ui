@@ -426,4 +426,117 @@ describe("MessageList actions", () => {
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.activeElement).toBe(message("m1"));
   });
+
+  it("opens the menu within the event once its code has loaded, and draws the bar's host as no box of its own", async () => {
+    await render(<Channel count={3} />);
+    await ready("m2");
+    const slot = message("m2").querySelector("[data-ouro-message-bar-slot]")!;
+    expect(getComputedStyle(slot.firstElementChild!).display).toBe("contents");
+
+    const rightClick = (id: string) => {
+      const text = message(id).querySelector("[data-ouro-message-content]")!;
+      const box = text.getBoundingClientRect();
+      text.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.x + 4, clientY: box.y + 4 }));
+    };
+    const menuFor = (name: string) => document.querySelector(`[aria-label="Message actions for ${name}"]`);
+    // The first menu waits for Menu's code; the one after it opens before the event returns.
+    await act(async () => rightClick("m1"));
+    await expect.element(page.getByRole("menu", { name: "Message actions for Ana Lind" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => menus()).toHaveLength(0);
+    expect(menuFor("Grace Hopper")).toBeNull();
+    rightClick("m0");
+    expect(menuFor("Grace Hopper")).not.toBeNull();
+  });
+
+  it("moves along the reactions in its menu with Left and Right, the other way in a right-to-left page, and leaves any other target's keys alone", async () => {
+    await render(<Channel count={3} />);
+    await ready("m1");
+    const open = async () => {
+      const text = message("m1").querySelector("[data-ouro-message-content]")!;
+      const box = text.getBoundingClientRect();
+      await act(async () => void text.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.x + 4, clientY: box.y + 4 })));
+      await expect.element(page.getByRole("menu", { name: "Message actions for Ana Lind" })).toBeVisible();
+    };
+    const reaction = (name: string) => page.getByRole("menuitem", { name }).element();
+    const press = async (key: string, expected: string) => {
+      await userEvent.keyboard(key);
+      expect(document.activeElement).toBe(reaction(expected));
+    };
+    const close = async () => {
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => menus()).toHaveLength(0);
+    };
+
+    await open();
+    reaction("Like").focus();
+    await press("{ArrowRight}", "Heart");
+    await press("{ArrowRight}", "More reactions");
+    await press("{ArrowRight}", "Like");
+    await press("{ArrowLeft}", "More reactions");
+    await press("{ArrowLeft}", "Heart");
+
+    // The group itself holds none of the row's items, so its keys go on to the menu.
+    const group = page.getByRole("group", { name: "Reactions" }).element();
+    const heard: KeyboardEvent[] = [];
+    const listen = (event: Event) => heard.push(event as KeyboardEvent);
+    document.addEventListener("keydown", listen);
+    const arrow = () => new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    const before = document.activeElement;
+    expect(group.dispatchEvent(arrow())).toBe(true);
+    expect(document.activeElement).toBe(before);
+    expect(heard).toHaveLength(1);
+    // An item's own Right is the row's: taken, and kept from the page.
+    expect(reaction("Heart").dispatchEvent(arrow())).toBe(false);
+    expect(heard).toHaveLength(1);
+    document.removeEventListener("keydown", listen);
+    await close();
+
+    document.documentElement.dir = "rtl";
+    try {
+      await open();
+      reaction("Heart").focus();
+      await press("{ArrowRight}", "Like");
+      await press("{ArrowRight}", "More reactions");
+      await press("{ArrowLeft}", "Like");
+      await press("{ArrowLeft}", "Heart");
+      await close();
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
+  it("opens the menu from the keyboard under the message's bubble, where its bar's menu button is", async () => {
+    // The menu is a sheet on a narrow screen, with no anchor.
+    const { innerWidth: width, innerHeight: height } = window;
+    await page.viewport(1000, 900);
+    try {
+      await render(<Channel count={3} before={<button type="button">Before</button>} />);
+      await ready("m2");
+      await userEvent.unhover(document.body);
+      page.getByRole("button", { name: "Before" }).element().focus();
+      await pressTab();
+      expect(document.activeElement).toBe(message("m2"));
+      await expect.poll(() => barIn("m2")).not.toBeNull();
+      const bubble = message("m2").querySelector("[data-ouro-message-bar-slot]")!.parentElement!.getBoundingClientRect();
+      expect(bubble.left).toBeGreaterThan(message("m2").getBoundingClientRect().left + 20);
+      await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+      const menu = page.getByRole("menu", { name: "Message actions for Mara Quill" });
+      await expect.element(menu).toBeVisible();
+      const drawn = menu.element().getBoundingClientRect();
+      // The menu, wider than the bubble, starts at its start, just under it.
+      expect(Math.abs(drawn.left - bubble.left)).toBeLessThan(2);
+      expect(Math.abs(drawn.top - bubble.bottom)).toBeLessThan(10);
+    } finally {
+      await page.viewport(width, height);
+    }
+  });
+  it("takes its bar's host out of the message when the list goes", async () => {
+    await render(<Channel count={2} />);
+    await ready("m1");
+    const host = message("m1").querySelector("[data-ouro-message-bar-slot]")!.firstElementChild!;
+    expect(host.parentNode).not.toBeNull();
+    await act(async () => roots.pop()!.unmount());
+    expect(host.parentNode).toBeNull();
+  });
 });

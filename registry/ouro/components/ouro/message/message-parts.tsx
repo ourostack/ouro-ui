@@ -337,8 +337,8 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   const fromRow = (row: HTMLElement, at: RowMenuAt) => {
     const data = layer.get(row)!;
     if (!hasMenuEntries(data)) return false;
-    // From the keyboard, at the message's end: where its bar's menu button would be.
-    const box = data.slot()?.parentElement ?? row;
+    // From the keyboard, at the message's end: where its bar's menu button would be. A message with menu entries has a bar, so its slot is there in the message.
+    const box = data.slot()!.parentElement!;
     show(row, data, at ?? frozen(box));
     return true;
   };
@@ -349,7 +349,12 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   // is on, and out of the page while it is on none. Moving to another message only updates it, so it is in place within
   // the pointer's event, before the next frame, even on a slow computer; drawing a new bar for each would build every
   // button and tooltip again.
-  const [host] = useState(() => (typeof document === "undefined" ? null : Object.assign(document.createElement("span"), { className: "contents" })));
+  const [host] = useState(() =>
+    // Stryker disable next-line ConditionalExpression,StringLiteral: no browser has an undefined document, so the test browsers cannot reach the server-render branch (null); the host's className is on the next line, where its mutants are tested.
+    typeof document === "undefined"
+      ? null
+      : Object.assign(document.createElement("span"), { className: "contents" }),
+  );
   const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
   // Stryker disable next-line ConditionalExpression,LogicalOperator: the slot is found only through the row's data, and the data only through the row, so a slot holds the other two.
   const on = hover.row !== null && data !== undefined && slot !== null ? { row: hover.row, data } : null;
@@ -361,8 +366,10 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     if (slot === null) host.parentNode?.removeChild(host);
     else if (host.parentNode !== slot) slot.appendChild(host);
   });
-  useLayoutEffect(() => () => void host?.parentNode?.removeChild(host), [host]);
+  // Stryker disable next-line ArrayDeclaration: host is state that is never set, so [host] and [] run this effect alike.
+  useLayoutEffect(() => () => host!.remove(), [host]);
   // The menu's code, once the bar first shows, so the menu then opens at once.
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: the layer mounts as the first row takes it, and the bar shows in that same commit or the next, so fetching a moment before it shows is the same fetch.
   const showing = slot !== null;
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression: the layer mounts as the first row takes it, and the bar shows in that same commit or the next, so fetching a moment before it shows is the same fetch.
