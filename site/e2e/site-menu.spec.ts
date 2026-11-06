@@ -57,10 +57,9 @@ async function openMenu(page: Page): Promise<void> {
     // Once the sheet is open its backdrop covers the button, and a second press would close it.
     // A button that says open with no sheet to show for it is pressed again, closing it, and the next try opens it.
     const expanded = (await menuButton(page).getAttribute("aria-expanded")) === "true";
-    // A busy page (the home page's stage, in WebKit on a slow runner) can take a few seconds to take the press.
-    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: 5000 });
+    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: 1000 });
     // real clock: the menu stays open until it is closed; no timer ends it.
-    await expect(sheet(page)).toBeVisible({ timeout: 5000 });
+    await expect(sheet(page)).toBeVisible({ timeout: 1000 });
   }).toPass();
   await settled(page);
 }
@@ -315,6 +314,49 @@ test("on a phone the menu closes on a choice, and Back returns to the page with 
   await expect(sheet(page)).toHaveCount(0);
   await expect(menuButton(page)).toHaveAttribute("aria-expanded", "false");
 });
+
+// The page stays free to take a press, and the press answers within a budget. Two reads, because Playwright sends its press only once
+// the page is free: the longest gap between frames while the page sits for a second and a half (a stage that blocks the main thread
+// shows here), and the time from the press to the first frame that draws the sheet.
+// Measured locally (ouro-check notes in the desk): no frame gap over 50 ms on the home page with its stage running, even at 4x CPU
+// throttle; press to sheet Chromium 25 ms (95 ms at 4x), WebKit 95-110 ms, the same on a page with no stage and on the live site
+// before this change. That cost is the sheet's own open (one layout of the page and the sheet's first render).
+const PRESS_BUDGET = { chromium: 100, webkit: 200 } as Record<string, number>;
+const FRAME_GAP_BUDGET = 100;
+for (const path of ["./", "docs/button/"]) {
+  test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press, and draws its sheet within a budget of it`, async ({ page, browserName }) => {
+    await open(page, path);
+    const longestGap = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          let last = 0;
+          let longest = 0;
+          const start = performance.now();
+          const tick = (now: number) => {
+            if (last) longest = Math.max(longest, now - last);
+            last = now;
+            if (now - start < 1500) requestAnimationFrame(tick);
+            else resolve(longest);
+          };
+          requestAnimationFrame(tick);
+        }),
+    );
+    expect(longestGap, "the longest gap between frames, in ms").toBeLessThan(FRAME_GAP_BUDGET);
+    await page.evaluate(() => {
+      const button = document.querySelector("header [data-ouro-navbar-menu]")!;
+      const marks: Record<string, number> = {};
+      (window as unknown as { marks: Record<string, number> }).marks = marks;
+      button.addEventListener("pointerdown", (event) => (marks.press ??= event.timeStamp), { capture: true });
+      const frame = () => (document.querySelector("[role='dialog']") ? (marks.frame = performance.now()) : requestAnimationFrame(frame));
+      requestAnimationFrame(frame);
+    });
+    await menuButton(page).click({ timeout: 1000 });
+    // real clock: the sheet stays open until it is closed; no timer ends it.
+    await expect(sheet(page)).toBeVisible({ timeout: 1000 });
+    const { press, frame } = await page.evaluate(() => (window as unknown as { marks: Record<string, number> }).marks);
+    expect(frame! - press!, "press to the sheet's first frame, in ms").toBeLessThan(PRESS_BUDGET[browserName] ?? 200);
+  });
+}
 
 test("on a phone the menu closes on a tap outside it, and on Escape, with focus back on its button", async ({ page }) => {
   await open(page, "docs/button/");
