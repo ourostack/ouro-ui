@@ -70,7 +70,7 @@ function Here(): JSX.Element {
 /** Choosing the page you are on: the menu closes (the sheet sees the click) and the page stays where it is. */
 const stay = (event: { preventDefault(): void }) => event.preventDefault();
 
-function PageLink({ label, to, current }: { label: string; to: string; current: string }): JSX.Element {
+export function PageLink({ label, to, current }: { label: string; to: string; current: string }): JSX.Element {
   const here = to === current;
   return (
     <li>
@@ -136,7 +136,14 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
       }
       const box = scroller.getBoundingClientRect();
       const spot = link.getBoundingClientRect();
-      if (spot.bottom > box.bottom - 16) scroller.scrollTop += spot.top - box.top - box.height / 3;
+      // What stays pinned at the top of the sheet (the docs' search) covers the rows under it.
+      const top = box.top + (scroller.querySelector<HTMLElement>("[data-site-menu-pinned]")?.offsetHeight ?? 0);
+      if (spot.bottom > box.bottom - 16) {
+        // The page a third of the way down, or, nearer, the page's group from its heading, while the page stays in the top 60%.
+        const third = spot.top - top - (box.bottom - top) / 3;
+        const group = link.closest("[data-site-menu-group]")?.getBoundingClientRect();
+        scroller.scrollTop += group ? Math.min(Math.max(group.top - top - 8, third), spot.top - top - (box.bottom - top) * 0.6) : third;
+      }
       return true;
     };
     if (reveal()) return;
@@ -213,7 +220,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
         </svg>
       </SheetClose>
       <div aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
-      {tools && <div className="[:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-2 z-3 sm:hidden">{tools}</div>}
+      {tools && <div className="[:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-2 z-3 flex gap-1 sm:hidden">{tools}</div>}
       {children}
     </>
   );

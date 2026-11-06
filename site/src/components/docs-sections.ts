@@ -40,10 +40,12 @@ export function componentGroups(filter = ""): Array<{ label: string; links: Docs
     .filter((group) => group.links.length > 0);
 }
 
-/** The guides, and the skill comparisons that fold under one heading after them. */
 /** The pages for the helpers and hooks a component exports (`canShare`, `useTimer`), named as code names them. */
 export const helpers: DocsLink[] = pageIndex.filter((page) => page.kind === "export").map((page) => ({ path: `/docs/${page.name}/`, label: page.title }));
+/** The guides, and the skill comparisons that fold under one heading after them. */
 export const guides: DocsLink[] = guidePages.filter((page) => !isComparison(page.name)).map((page) => ({ path: `/docs/${page.name}/`, label: page.title }));
+/** The guides named as their code is (`ax-checks`, `ax-cli`): each part of the ax package, which the menu folds under one heading. */
+export const isAxPart = ({ path, label }: DocsLink): boolean => path === `/docs/${label}/` && label.startsWith("ax-");
 export const comparisons: DocsLink[] = guidePages
   .filter((page) => isComparison(page.name))
   .map((page) => ({ path: `/docs/${page.name}/`, label: page.title.replace("Comparison results: ", "") }));

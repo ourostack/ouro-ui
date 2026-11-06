@@ -34,7 +34,8 @@ const menuButton = (page: Page) => page.getByRole("banner").getByRole("button", 
 
 /**
  * The shown controls under `root` that open something: a button with a popup or an expanded state, or a disclosure.
- * The theme picker opens a popover of themes, not navigation, so it is left out.
+ * The theme picker opens a popover of themes, not navigation, so it is left out, and so is a fold that opens a list
+ * in place inside a dialog (a Collapsible: the docs menu's folded lists): that is the menu's own content, not another menu.
  */
 async function openers(page: Page, root: string): Promise<string[]> {
   return page.evaluate((selector) => {
@@ -45,6 +46,7 @@ async function openers(page: Page, root: string): Promise<string[]> {
     return [...document.querySelectorAll(selector)]
       .flatMap((scope) => [...scope.querySelectorAll("button[aria-haspopup], button[aria-expanded], [role='button'][aria-haspopup], [role='button'][aria-expanded], summary")])
       .filter((element) => shown(element) && !element.closest("[data-site-theme-trigger]"))
+      .filter((element) => !(element.closest("[role='dialog']") && element.matches("[data-ouro-control='collapsible']:not([aria-haspopup])")))
       .map((element) => element.getAttribute("aria-label") ?? element.textContent!.trim());
   }, root);
 }
@@ -112,7 +114,10 @@ test("on a docs page the menu holds every component, with a search for any docs 
   // Opening it does not put the keyboard up: focus starts on the sheet, not the search.
   expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe("INPUT");
   await expect(sheet(page).getByRole("link", { name: "Button", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeAttached();
+  // It opens on the heading of the page's list, which is open, the others folded.
+  await expect(sheet(page).getByRole("button", { name: /^Actions \d+ pages$/ })).toHaveAttribute("aria-expanded", "true");
+  await expect(sheet(page).getByRole("button", { name: /^Actions \d+ pages$/ })).toBeInViewport();
+  await expect(sheet(page).getByRole("button", { name: /^Forms \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
   const search = sheet(page).getByRole("searchbox", { name: "Find a docs page" });
   await search.fill("segmented");
   await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
@@ -140,17 +145,28 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await expect(page).toHaveURL(/\/docs\/ax-cli\/$/);
 });
 
-test("on any docs page the menu lists the guides and the components, as the sidebar does", async ({ page }) => {
+test("on any docs page the menu lists the guides and the components, as the sidebar does, each list folded", async ({ page }) => {
   await open(page, "docs/theming/");
   await openMenu(page);
   await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeAttached();
+  // Only the list with the page you are on is open.
+  await expect(sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "true");
+  const navigation = sheet(page).getByRole("button", { name: /^Navigation \d+ pages$/ });
+  await expect(navigation).toHaveAttribute("aria-expanded", "false");
+  await navigation.click();
   await sheet(page).getByRole("link", { name: "SegmentedControl", exact: true }).click();
   await expect(page).toHaveURL(/\/docs\/segmented-control\/$/);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await openMenu(page);
-  await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toBeAttached();
-  await expect(sheet(page).getByRole("link", { name: "ax-cli", exact: true })).toBeAttached();
+  await expect(sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
+  await sheet(page).getByRole("button", { name: /^Ouro AX, part by part \d+ pages$/ }).click();
+  await expect(sheet(page).getByRole("link", { name: "ax-cli", exact: true })).toBeVisible();
+  // A helper's page opens the helpers' list, every helper in it.
+  await page.goto("docs/use-timer/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await openMenu(page);
+  await expect(sheet(page).getByRole("button", { name: /^Helpers and hooks \d+ pages$/ })).toHaveAttribute("aria-expanded", "true");
+  await expect(sheet(page).getByRole("link", { name: "canShare", exact: true })).toBeAttached();
 });
 
 test("on a phone Enter in the docs search opens the first page it found", async ({ page }) => {
@@ -162,17 +178,76 @@ test("on a phone Enter in the docs search opens the first page it found", async 
   await expect(page).toHaveURL(/\/docs\/switching-from-shadcn\/$/);
 });
 
-test("on a phone a tap outside the theme picker closes it without pressing what lies under the tap", async ({ page }) => {
+test("on a phone the arrow keys walk the docs search's results, and up from the first goes back to the search", async ({ page }) => {
   await open(page, "docs/button/");
-  await page.locator("[data-site-theme-trigger]").click();
+  await openMenu(page);
+  const search = sheet(page).getByRole("searchbox", { name: "Find a docs page" });
+  await search.fill("menu");
+  const results = sheet(page).locator("nav a[href]");
+  await search.press("ArrowDown");
+  await expect(results.nth(0)).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(results.nth(1)).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(results.nth(0)).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(search).toBeFocused();
+});
+
+test("on a phone the menu's Search, away from the docs, opens the bar's search palette", async ({ page }) => {
+  await open(page, "nautilus/");
+  await openMenu(page);
+  await sheet(page).getByRole("button", { name: "Search", exact: true }).click();
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+});
+
+/** Opens the theme picker. The docs' header is an island, so its button works once it has hydrated. */
+async function openPicker(page: Page) {
   const picker = page.getByRole("dialog", { name: "Theme" });
-  // real clock: the picker stays open until it is closed; no timer ends it.
-  await expect(picker).toBeVisible();
-  const url = page.url();
+  await expect(async () => {
+    if ((await picker.count()) === 0) await page.locator("[data-site-theme-trigger]").click({ timeout: 1000 });
+    // real clock: the picker stays open until it is closed; no timer ends it.
+    await expect(picker).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  return picker;
+}
+
+/** The middle of a link on the page that is in view and clear of the picker, to tap through it. */
+async function linkBeside(page: Page, picker: ReturnType<Page["getByRole"]>): Promise<{ x: number; y: number; href: string }> {
   const box = (await picker.boundingBox())!;
-  await page.mouse.click(PHONE.width / 2, Math.min(PHONE.height - 20, box.y + box.height + 120));
+  return page.evaluate((popup) => {
+    const { innerWidth: width, innerHeight: height } = window;
+    for (const link of document.querySelectorAll<HTMLAnchorElement>("main a[href], footer a[href]")) {
+      const spot = link.getBoundingClientRect();
+      const x = spot.x + spot.width / 2;
+      const y = spot.y + spot.height / 2;
+      const clear = y > popup.y + popup.height + 8 || y < popup.y - 8;
+      if (spot.width > 0 && x > 0 && x < width && y > 60 && y < height - 8 && clear) return { x, y, href: link.href };
+    }
+    throw new Error("no link in view beside the picker");
+  }, box);
+}
+
+test("on a phone a tap outside the theme picker closes it without pressing the link under the tap", async ({ page }) => {
+  await open(page, "docs/button/");
+  const url = page.url();
+  const picker = await openPicker(page);
+  const link = await linkBeside(page, picker);
+  expect(link.href).not.toBe(url);
+  await page.mouse.click(link.x, link.y);
   await expect(picker).toHaveCount(0);
+  await page.waitForLoadState();
   expect(page.url()).toBe(url);
+});
+
+test("on a wide screen the theme picker leaves the page as it is: a click on a link outside it follows the link", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("docs/button/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await openPicker(page);
+  await page.getByRole("banner").getByRole("link", { name: "The Nautilus", exact: true }).click();
+  await expect(page).toHaveURL(/\/nautilus\/$/);
 });
 
 test("on a phone the menu's close button closes it", async ({ page }) => {
@@ -244,19 +319,21 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("navigation", { name: "Docs" })).toBeVisible();
   await expect(page.getByRole("banner").getByRole("link", { name: "Components", exact: true })).toHaveAttribute("aria-current", "page");
+  // A helper's page is under Components too.
+  await page.goto("docs/use-timer/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await expect(page.getByRole("banner").getByRole("link", { name: "Components", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
 test("on a phone the menu holds X-ray, which the bar has no room for, and closes to show it", async ({ page }) => {
   await open(page, "nautilus/");
   await openMenu(page);
-  const pill = () => sheet(page).getByRole("button", { name: "X-ray", exact: true });
-  await expect(pill()).toHaveAttribute("aria-pressed", "false");
-  await pill().click();
+  // Its name says what a press does.
+  await sheet(page).getByRole("button", { name: "Show X-ray", exact: true }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("region", { name: "X-ray" })).toBeVisible();
   await openMenu(page);
-  await expect(pill()).toHaveAttribute("aria-pressed", "true");
-  await pill().click();
+  await sheet(page).getByRole("button", { name: "Hide X-ray", exact: true }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("region", { name: "X-ray" })).toHaveCount(0);
 });

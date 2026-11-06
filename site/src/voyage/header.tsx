@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useRef, useState, type JSX, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useRef, useState, useSyncExternalStore, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -47,13 +47,23 @@ function ChevronIcon(): JSX.Element {
  * frame Base UI moves focus in, so focusing its first button scrolled the page to the popup's
  * unplaced position. Tab reaches the choices from there.
  */
+/** A phone, or any touch screen: where a tap that closes a popover should press nothing else. */
+const TOUCH = "(pointer: coarse), (width < 40rem)";
+const touchScreen = (changed: () => void) => {
+  const media = matchMedia(TOUCH);
+  media.addEventListener("change", changed);
+  return () => media.removeEventListener("change", changed);
+};
+
 export function ThemePicker(): JSX.Element {
   const { preset, scheme, setMode } = useSiteTheme();
   useLiveClock(preset === "live");
   const popup = useRef<HTMLDivElement>(null);
+  const touch = useSyncExternalStore(touchScreen, () => matchMedia(TOUCH).matches, () => false);
   return (
-    // Modal: a tap outside closes it without also pressing whatever lies under the tap.
-    <PopoverRoot modal>
+    // Modal on a touch screen: a tap outside closes it without also pressing whatever lies under the tap, which with the
+    // popover across a phone is most of the page. A mouse keeps the page: it scrolls, and a click on a link follows it.
+    <PopoverRoot modal={touch}>
       <PopoverTrigger
         render={
           <Button variant="soft" tone="secondary" size="sm" data-site-theme-trigger="" className="site-theme-trigger">
@@ -88,7 +98,7 @@ export function ThemePicker(): JSX.Element {
               <ThemeDots label="Themes" size="md" />
               <SegmentedControl label="Light or dark" fullWidth items={MODE_ITEMS} value={scheme} onValueChange={(value) => setMode(value as Mode | "system")} />
             </div>
-            <PopoverClose />
+            <PopoverClose>Close</PopoverClose>
           </PopoverPopup>
         </PopoverPositioner>
       </PopoverPortal>
@@ -100,8 +110,7 @@ export function ThemePicker(): JSX.Element {
 const Command = lazy(() => import("@/registry/ouro/components/ouro/command/command").then((module) => ({ default: module.Command })));
 
 /** ⌘K: the pages, the presets, light and dark, and X-ray. */
-function SiteCommand(): JSX.Element {
-  const [open, setOpen] = useCommandShortcut("mod+k");
+function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>> }): JSX.Element {
   const { setPreset, setMode } = useSiteTheme();
   const go = useCallback((url: string) => () => window.location.assign(url), []);
   const [wanted, setWanted] = useState(false);
@@ -163,33 +172,38 @@ function XraySwitch(): JSX.Element {
   return <Switch label="X-ray" checked={useXray()} onCheckedChange={setXray} />;
 }
 
-/**
- * X-ray in the menu, for a phone's bar, which has no room for its Switch: a pill beside the menu's close button that
- * turns it on or off and closes the menu, so you see the page it outlines.
- */
-function XrayPill(): JSX.Element {
-  const on = useXray();
+/** A pill in the menu, beside its close button, for what a phone's bar has no room for. Choosing it closes the menu. */
+function MenuPill({ children, label, lit = false, onClick }: { children: ReactNode; label: string; lit?: boolean; onClick: () => void }): JSX.Element {
   return (
     <SheetClose
       render={
         <button
           type="button"
-          aria-pressed={on}
-          aria-label="X-ray"
-          onClick={() => setXray(!on)}
+          aria-label={label}
+          onClick={onClick}
           className="inline-flex h-11 cursor-pointer items-center rounded-full border-0 bg-transparent p-0 outline-ring touch-manipulation [-webkit-tap-highlight-color:transparent] focus-visible:outline-2 focus-visible:outline-solid"
         />
       }
     >
-      {/* Its look is inline: it is the only thing on the voyage pages drawn this way, and they have a CSS budget. */}
+      {/* Its look is inline: only the menu draws this, and the voyage pages have a CSS budget. */}
       <span
         className="inline-flex h-8 items-center gap-1.5 rounded-full border border-solid px-3 text-sm font-medium"
-        style={{ borderColor: on ? "var(--primary)" : "var(--border)", color: on ? "var(--primary)" : "var(--foreground)" }}
+        style={{ borderColor: lit ? "var(--primary)" : "var(--border)", color: lit ? "var(--primary)" : "var(--foreground)" }}
       >
-        <span aria-hidden="true" className="size-2 rounded-full" style={{ border: "1.5px solid currentColor", background: on ? "currentColor" : undefined }} />
-        X-ray
+        {children}
       </span>
     </SheetClose>
+  );
+}
+
+/** X-ray in the menu: turns it on or off and closes the menu, so you see the page it outlines. Its name says what a press does. */
+function XrayPill(): JSX.Element {
+  const on = useXray();
+  return (
+    <MenuPill label={on ? "Hide X-ray" : "Show X-ray"} lit={on} onClick={() => setXray(!on)}>
+      <span aria-hidden="true" className="size-2 rounded-full" style={{ border: "1.5px solid currentColor", background: on ? "currentColor" : undefined }} />
+      X-ray
+    </MenuPill>
   );
 }
 
@@ -216,6 +230,7 @@ export function VoyageHeader({
   menu?: ReactNode;
   gutters?: keyof typeof GUTTERS;
 }): JSX.Element {
+  const [searching, setSearching] = useCommandShortcut("mod+k");
   return (
     <Navbar
       label="Site"
@@ -234,14 +249,38 @@ export function VoyageHeader({
       // The brand is the way home, so the bar starts at the Nautilus.
       items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
       currentPath={href(path)}
-      menu={<SiteMenuFrame tools={<XrayPill />}>{menu ?? <SiteMenu page={page} />}</SiteMenuFrame>}
+      menu={
+        <SiteMenuFrame
+          tools={
+            <>
+              {/* The docs' menu has its own search; elsewhere this opens the palette the bar's Search opens. */}
+              {menu === undefined && (
+                <MenuPill
+                  label="Search"
+                  // Once the menu has closed and handed focus back to its button, so the palette keeps the focus it takes.
+                  onClick={() => document.querySelector("[data-ouro-navbar-menu]")?.addEventListener("focus", () => setSearching(true), { once: true })}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="size-3.5">
+                    <circle cx="7" cy="7" r="4.25" />
+                    <path d="m10.25 10.25 3 3" />
+                  </svg>
+                  Search
+                </MenuPill>
+              )}
+              <XrayPill />
+            </>
+          }
+        >
+          {menu ?? <SiteMenu page={page} />}
+        </SiteMenuFrame>
+      }
       actions={
         <>
           <ThemePicker />
           <div className="max-sm:hidden">
             <XraySwitch />
           </div>
-          <SiteCommand />
+          <SiteCommand open={searching} setOpen={setSearching} />
         </>
       }
     />

@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useState, type JSX } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type JSX, type KeyboardEvent } from "react";
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
 import { VoyageHeader } from "../voyage/header";
-import { MenuPages, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
+import { MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
+import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { comparisons, componentGroups, guides, helpers, startPages, type DocsLink } from "./docs-sections";
+import { comparisons, componentGroups, guides, helpers, isAxPart, startPages, type DocsLink } from "./docs-sections";
 import { setXray, useXray } from "../voyage/xray-store";
 
 // The docs pages' header: the same one the home page and the Nautilus have. docs-shell.tsx loads
@@ -37,16 +38,75 @@ export function headerPath(current: string): string {
 const asPage = ({ path, label }: DocsLink) => ({ label, href: path });
 
 /**
+ * A section's long lists, each folded under its name and how many pages it holds, so the menu stays a few screens
+ * long; the list with the page you are on opens.
+ */
+function Folds({ groups, current }: { groups: ReadonlyArray<{ label: string; links: readonly DocsLink[] }>; current: string }): JSX.Element {
+  return (
+    <ul className="m-0 ms-4 grid list-none gap-0.5 border-0 border-s border-solid border-border p-0 ps-2">
+      {groups.map((group) => (
+        <li key={group.label} data-site-menu-group="" className="ps-1">
+          <Collapsible
+            className="w-full"
+            defaultOpen={group.links.some((link) => link.path === current)}
+            title={
+              <span>
+                {group.label}{" "}
+                <span className="ms-1 font-normal text-muted-foreground">
+                  {group.links.length}
+                  <span className="sr-only"> pages</span>
+                </span>
+              </span>
+            }
+          >
+            <ul className="m-0 -ms-1 grid list-none gap-0.5 p-0">
+              {group.links.map((link) => (
+                <PageLink key={link.path} label={link.label} to={link.path} current={current} />
+              ))}
+            </ul>
+          </Collapsible>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The search's keys: Enter (a phone's Go) opens the first page found and the down arrow steps into the list; in the
+ * list the arrows walk the pages, and up from the first goes back to the search. Not while a word is being composed.
+ */
+function walk(event: KeyboardEvent, results: HTMLElement | null, field: HTMLElement | null): boolean {
+  if (event.nativeEvent.isComposing || !results) return false;
+  const links = [...results.querySelectorAll<HTMLAnchorElement>("a[href]")];
+  if (links.length === 0) return false;
+  const at = links.indexOf(event.target as HTMLAnchorElement);
+  if (event.key === "Enter" && at === -1) links[0]?.click();
+  else if (event.key === "ArrowDown") links[Math.min(at + 1, links.length - 1)]?.focus();
+  else if (event.key === "ArrowUp" && at !== -1) (at === 0 ? field : links[at - 1])?.focus();
+  else return false;
+  event.preventDefault();
+  return true;
+}
+
+/**
  * The docs' menu: the site's, with the docs' own pages unfolded (every guide under Docs, every component under
  * Components), and a search on top that finds a page by its name: the site's, the docs' first pages, a component, a helper or a guide.
  */
 function DocsMenu({ current }: { current: string }): JSX.Element {
   const [query, setQuery] = useState("");
   const found = findDocs(query);
+  const results = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLDivElement>(null);
+  const input = () => field.current?.querySelector("input") ?? null;
   return (
     <>
       {/* Stays at the top while the long lists scroll under it (-top-2: from the sheet body's edge, not its padding). */}
-      <div className="sticky -top-2 z-2 -mx-5 -mt-2 mb-2 bg-popover px-6 pt-2 pb-2" style={{ boxShadow: "0 0.75rem 0.75rem -0.25rem var(--popover)" }}>
+      <div
+        ref={field}
+        data-site-menu-pinned=""
+        className="sticky -top-2 z-2 -mx-5 -mt-2 mb-2 bg-popover px-6 pt-2 pb-2"
+        style={{ boxShadow: "0 0.75rem 0.75rem -0.25rem var(--popover)" }}
+      >
         <TextField
           label="Find a docs page"
           hideLabel
@@ -55,15 +115,9 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
           placeholder="Find a component or guide"
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
-          // Escape clears a search first; with nothing typed it closes the menu.
           onKeyDown={(event) => {
-            const first = event.currentTarget.closest("[role='dialog']")?.querySelector<HTMLAnchorElement>("nav a[href]");
-            // Enter (a phone's Go) opens the first page found; the down arrow steps into the list.
-            if (found?.length && first && (event.key === "Enter" || event.key === "ArrowDown")) {
-              event.preventDefault();
-              if (event.key === "Enter") first.click();
-              else first.focus();
-            }
+            if (found?.length && walk(event, results.current, input())) return;
+            // Escape clears a search first; with nothing typed it closes the menu.
             if (event.key === "Escape" && query !== "") {
               event.stopPropagation();
               event.preventDefault();
@@ -77,31 +131,27 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
         {found === undefined ? "" : found.length === 0 ? "Nothing aboard by that name. Try another?" : `${found.reduce((sum, group) => sum + group.links.length, 0)} found`}
       </p>
       {found ? (
-        found.length > 0 && <MenuPages pages={found} current={current} />
+        found.length > 0 && (
+          <div ref={results} onKeyDown={(event) => walk(event, results.current, input())}>
+            <MenuPages pages={found} current={current} />
+          </div>
+        )
       ) : (
         <SiteMenu
           page={current}
-          // Both of the docs' sections unfold, as the sidebar lists them on a wide screen; the search sits on top.
+          // Both docs sections list their pages, as the sidebar does on a wide screen, each list folded under its name.
           more={{
             Docs: (
-              <MenuPages
-                pages={[
-                  { label: "Guides", links: guides.map(asPage) },
-                  { label: "Skill comparisons", links: comparisons.map(asPage) },
+              <Folds
+                groups={[
+                  { label: "Guides", links: guides.filter((link) => !isAxPart(link)) },
+                  { label: "Ouro AX, part by part", links: guides.filter(isAxPart) },
+                  { label: "Skill comparisons", links: comparisons },
                 ]}
                 current={current}
               />
             ),
-            Components: (
-              <MenuPages
-                pages={[
-                  ...componentGroups().map((group) => ({ label: group.label, links: group.links.map(asPage) })),
-                  // A helper's page you are on joins them, under its own heading.
-                  ...helpers.filter((page) => page.path === current).map((page) => ({ label: "Helpers and hooks", links: [asPage(page)] })),
-                ]}
-                current={current}
-              />
-            ),
+            Components: <Folds groups={[...componentGroups(), { label: "Helpers and hooks", links: helpers }]} current={current} />,
           }}
         />
       )}
