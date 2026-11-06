@@ -3073,6 +3073,23 @@ describe("MessageList switching conversations", () => {
     expect(list.host.querySelector("[data-ouro-message-list-jump]")).toBeNull();
   });
 
+  it.each([true, false])("does not switch on an empty commit, so a focused message that went waits for the next conversation's messages (named: %s)", async (named) => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} count={5} named={named} />);
+    await settle(list.scroller);
+    const item = list.host.querySelector<HTMLElement>("[role=article], article")!;
+    item.focus();
+    expect(document.activeElement).toBe(item);
+    // Loading: the next conversation named, with nothing of it yet. A switch here would find no message to focus.
+    await list.commit(<Switcher open="theo" keyed={false} count={5} named={named} items={[]} />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="theo" keyed={false} count={5} named={named} />);
+    await settle(list.scroller);
+    expect(list.host.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).not.toBe(item);
+    expect(document.activeElement?.textContent).toContain("theo");
+  });
+
   it("switches at the newest, drawing only the newest, when what starts every conversation keeps its key and conversation says which", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} welcome named />);
