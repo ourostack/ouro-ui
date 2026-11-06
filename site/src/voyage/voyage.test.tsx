@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
+import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
 import { headTags, redirectPage } from "../head";
 import { redirects, routeFor } from "../routes";
 import themes from "../themes/themes.json";
@@ -12,6 +12,8 @@ import { presetList } from "./presets";
 import { NAUTILUS_PAGE } from "./copy";
 import { spotlightFrom } from "./xray-store";
 import { finishReveal } from "./theme-store";
+
+await Promise.all([loadPageCode("/"), loadPageCode("/nautilus/")]);
 
 // The voyage preview's themes and header (site-design.md, slice S1): the stored theme applies
 // before paint, the header's controls repaint the page and remember it, Copy theme copies the
