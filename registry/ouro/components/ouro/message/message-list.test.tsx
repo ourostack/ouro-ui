@@ -3055,6 +3055,24 @@ describe("MessageList switching conversations", () => {
     expect(list.host.querySelector("[data-ouro-message-list-live]")!.textContent).toBe("");
   });
 
+  it("follows the end of the conversation it switched to, with nothing to jump to by its first frame, from where the reader was", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} />);
+    await settle(list.scroller);
+    list.scroller.scrollTop = list.scroller.scrollHeight / 2;
+    list.scroller.dispatchEvent(new Event("scroll"));
+    await settle(list.scroller);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+    await list.commit(<Switcher open="theo" keyed={false} />);
+    // Before any observer has spoken: the switch itself took the jump away.
+    expect(list.host.querySelector("[data-ouro-message-list-jump]")).toBeNull();
+    // The next message to come is followed, as at the end of any conversation, not held where the reader is.
+    await list.commit(<Switcher open="theo" keyed={false} items={[...conversation("theo", 1000), { id: "theo-1000", role: "assistant", text: "theo: and one more" }]} />);
+    await settle(list.scroller);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+    expect(list.host.querySelector("[data-ouro-message-list-jump]")).toBeNull();
+  });
+
   it("switches at the newest, drawing only the newest, when what starts every conversation keeps its key and conversation says which", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} welcome named />);

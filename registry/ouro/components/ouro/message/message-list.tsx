@@ -1417,8 +1417,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The window keeps the reader's place this way too, before it reads where the view is.
     holdRef.current = () => hold();
     reopen.current = () => {
+      // Stryker disable next-line BooleanLiteral: the list is at its end, which the next message finds and follows anyway; this is the same as toNewest's, for a switch.
       pinned.current = true;
       followEnd();
+      // Stryker disable next-line CallExpression: a pinned list's next hold follows the end and takes its anchors then; this only spares the one before it.
       keepAnchor();
       setShowJump(false);
     };
