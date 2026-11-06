@@ -413,6 +413,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-porthole-view`,
 `lib-refs`,
 `lib-router-link`,
+`lib-row-hover`,
 `lib-scroll-fade`,
 `lib-server-element`,
 `lib-share`,

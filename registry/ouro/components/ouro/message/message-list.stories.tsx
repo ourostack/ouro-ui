@@ -283,6 +283,76 @@ export const LoadingOlder: Story = {
   },
 };
 
+const channelPosts = Array.from({ length: 40 }, (_, index) => launchPosts[index % launchPosts.length]!);
+
+/** Icons for the stories' actions: drawn here, so the story needs no icon library. */
+function ReplyIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 4 4" />
+    </svg>
+  );
+}
+function ReactIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="7" cy="8" r="5.5" />
+      <path d="M5 9.5c.5.8 1.2 1.2 2 1.2s1.5-.4 2-1.2M5.2 6.5h.01M8.8 6.5h.01M13 2v3M11.5 3.5h3" />
+    </svg>
+  );
+}
+
+/** A busy channel whose every post has the same actions: the list draws one bar and one menu for all of them. */
+function ActionsChannel() {
+  const [reactions, setReactions] = useState<Record<string, string>>({});
+  const [said, setSaid] = useState("");
+  const react = (id: string, emoji: string) => () => setReactions((previous) => ({ ...previous, [id]: emoji }));
+  return (
+    <Surface>
+      <MessageList label="Launch channel" style={{ height: 420 }}>
+        {channelPosts.map((post, index) => {
+          const id = `post-${index}`;
+          return (
+            <Message
+              key={id}
+              id={id}
+              variant="chat"
+              role={post.author === "Ana Lind" ? "user" : "assistant"}
+              name={post.author}
+              time={`9:${String(10 + (index % 50)).padStart(2, "0")} AM`}
+              footer={reactions[id] ? <span aria-label={`You reacted ${reactions[id]}`}>{reactions[id]}</span> : undefined}
+              actions={[
+                { key: "like", label: "Like", icon: "👍", onClick: react(id, "👍"), shortcut: ["1"] },
+                { key: "react", label: "More reactions", icon: <ReactIcon />, onClick: () => setSaid(`Pick a reaction for post ${index + 1}`) },
+                { key: "reply", label: "Reply", icon: <ReplyIcon />, onClick: () => setSaid(`Replying to ${post.author}`) },
+              ]}
+              quickReactions={[
+                { key: "like", label: "Like", icon: "👍", onClick: react(id, "👍"), shortcut: ["1"] },
+                { key: "heart", label: "Heart", icon: "❤️", onClick: react(id, "❤️"), shortcut: ["2"] },
+                { key: "laugh", label: "Laugh", icon: "😄", onClick: react(id, "😄"), shortcut: ["3"] },
+                { key: "party", label: "Party", icon: "🎉", onClick: react(id, "🎉"), shortcut: ["4"] },
+                { key: "more", label: "More reactions", icon: <ReactIcon />, onClick: () => setSaid(`Pick a reaction for post ${index + 1}`) },
+              ]}
+              menu={[
+                { label: "Reply", icon: <ReplyIcon />, shortcut: ["r"], onClick: () => setSaid(`Replying to ${post.author}`) },
+                { label: "Copy link", shortcut: ["mod", "shift", "c"], onClick: () => setSaid("Link copied") },
+                { label: "Mark unread", shortcut: ["u"], onClick: () => setSaid("Marked unread") },
+                { type: "separator" },
+                { label: "Delete", tone: "destructive", onClick: () => setSaid("Deleted") },
+              ]}
+            >
+              {post.text}
+            </Message>
+          );
+        })}
+      </MessageList>
+      <p role="status" style={{ margin: 0, minHeight: "1.5em", fontSize: 14 }}>
+        {said}
+      </p>
+    </Surface>
+  );
+}
+
 const harnessStyle = {
   font: "inherit",
   padding: "8px 14px",
@@ -337,6 +407,41 @@ function LongChat() {
     </Surface>
   );
 }
+
+/** Shows the list's one bar on the newest post, as the pointer over it would. */
+async function hoverNewest(canvasElement: HTMLElement) {
+  const newest = await frameUntil(() => canvasElement.querySelector<HTMLElement>("#post-39"));
+  return frameUntil(() => {
+    newest.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+    return newest.querySelector<HTMLElement>('[data-ouro-part="menu"]');
+  });
+}
+
+/**
+ * Every post has actions, and the list draws one bar for all of them: on the post the pointer is
+ * over, or the one keyboard focus is in. It goes as the pointer leaves, so none stays behind.
+ * Right-click a post, press its "…" button, or Shift+F10 on a focused post: one menu, with quick
+ * reactions on top, each with its key under it, and each action's keys at its end.
+ */
+export const Actions: Story = {
+  args: { label: "Launch channel", children: null },
+  parameters: { screenshot: { name: "message-list-actions" } },
+  render: () => <ActionsChannel />,
+  play: async ({ canvasElement }) => {
+    await hoverNewest(canvasElement);
+  },
+};
+
+/** The list's one menu for a post, open from its "…" button: quick reactions on top, then the actions with their keys. */
+export const ActionsMenu: Story = {
+  args: { label: "Launch channel", children: null },
+  parameters: { screenshot: { name: "message-list-menu" } },
+  render: () => <ActionsChannel />,
+  play: async ({ canvasElement }) => {
+    (await hoverNewest(canvasElement)).click();
+    await frameUntil(() => document.querySelector('[data-ouro="menu"][data-open]'));
+  },
+};
 
 /**
  * A conversation of 2,000 messages: only those near the view are drawn, so it opens and scrolls as a short one does.
