@@ -75,7 +75,7 @@ export function PageLink({ label, to, current }: { label: string; to: string; cu
   return (
     <li>
       <a
-        href={href(to)}
+        href={sectionHref(to)}
         aria-current={here ? "page" : undefined}
         onClick={here ? stay : undefined}
         className={cn(row, "py-2 text-[0.9375rem] leading-5 text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground")}

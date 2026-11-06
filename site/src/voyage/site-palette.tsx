@@ -16,8 +16,8 @@ const KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   "/nautilus/": ["story", "chapters", "ship"],
   "/ax/": ["agents", "agent experience", "cli", "x-ray"],
   "/apple/": ["swift", "swiftui", "iphone", "mac", "siri", "app intents"],
-  "/docs/installing/": ["install", "guide"],
-  "/docs/": ["catalog"],
+  "/docs/installing/": ["install", "installing", "guide"],
+  "/docs/": ["catalog", "overview"],
 };
 
 const go = (url: string) => () => window.location.assign(url);
@@ -40,7 +40,14 @@ export default function SitePalette({ open, onOpenChange }: { open: boolean; onO
         group.links.map((link) => ({ label: link.label, description: group.label, onSelect: go(href(link.path)) })),
       ),
     },
-    { label: "Guides", items: [...guides, ...comparisons].map((link) => ({ label: link.label, onSelect: go(href(link.path)) })) },
+    {
+      label: "Guides",
+      items: [
+        // A guide named as a section is ("Ouro AX") says it is the guide, as in the menu.
+        ...guides.map((link) => ({ label: SITE_SECTIONS.some((section) => section.label === link.label) ? `${link.label} guide` : link.label, onSelect: go(href(link.path)) })),
+        ...comparisons.map((link) => ({ label: link.label, description: "Skill comparison", onSelect: go(href(link.path)) })),
+      ],
+    },
     {
       label: "Repaint",
       items: [
@@ -52,5 +59,5 @@ export default function SitePalette({ open, onOpenChange }: { open: boolean; onO
     },
     { label: "Tools", items: [{ label: "X-ray", onSelect: openXray, keywords: ["inspector", "outline", "components"] }] },
   ];
-  return <Command title="Command palette" open={open} onOpenChange={onOpenChange} placeholder="Dive, repaint, or find a page…" items={items} />;
+  return <Command title="Command palette" open={open} onOpenChange={onOpenChange} placeholder="Dive, repaint, or find a page…" emptyLabel="Nothing aboard by that name. Try another?" items={items} />;
 }

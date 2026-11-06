@@ -126,7 +126,7 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await search.fill("segmented");
   await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Toggle", exact: true })).toHaveCount(0);
-  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"]] as const) {
+  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "GitHub"]] as const) {
     await search.fill(query);
     await expect(sheet(page).getByRole("link", { name, exact: true })).toBeVisible();
   }
@@ -163,6 +163,10 @@ test("on any docs page the menu lists the guides and the components, as the side
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await openMenu(page);
   await expect(sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
+  // A guide named as a section is says it is the guide, so no two links share a name.
+  await sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ }).click();
+  await expect(sheet(page).getByRole("link", { name: "Ouro AX guide", exact: true })).toBeVisible();
+  await expect(sheet(page).getByRole("link", { name: "Ouro AX", exact: true })).toHaveCount(1);
   await sheet(page).getByRole("button", { name: /^Ouro AX, part by part \d+ pages$/ }).click();
   await expect(sheet(page).getByRole("link", { name: "ax-cli", exact: true })).toBeVisible();
   // A helper's page is in its component's group, after the components.
@@ -204,12 +208,14 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   await openMenu(page);
   await sheet(page).getByRole("button", { name: "Search", exact: true }).click();
   await expect(sheet(page)).toHaveCount(0);
+  // real clock: the palette stays open until it is closed; no timer ends it.
   await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
   // Search was pressed, so the field has focus, ready to type.
   const field = page.getByRole("dialog", { name: "Command palette" }).locator("input[data-ouro-part='input']");
+  // real clock: focus stays in the field until something moves it; no timer does.
   await expect(field).toBeFocused();
   // It finds what the menu lists, and every component and guide.
-  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"]] as const) {
+  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Docs"], ["ouro ax guide", "Ouro AX guide"]] as const) {
     await field.fill(query);
     await expect(page.getByRole("option", { name: new RegExp(`^${name}\\b`) }).first()).toBeVisible();
   }

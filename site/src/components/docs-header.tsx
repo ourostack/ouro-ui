@@ -178,7 +178,7 @@ function findDocs(query: string): Array<{ label: string; links: Array<{ label: s
       { label: section.label, href: section.href, about: section.hint },
       ...(section.pages ?? []).flatMap((page) => ("links" in page ? page.links : [page])).map((page) => ({ ...page, about: "" })),
     ]),
-  ].filter((page) => page.href.startsWith("/"));
+  ];
   const site = candidates
     .filter((page) => holds(page.label, slug(page.href), page.about))
     .filter((page, index, all) => all.findIndex((other) => other.href === page.href) === index)
