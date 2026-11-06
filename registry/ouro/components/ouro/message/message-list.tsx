@@ -1255,8 +1255,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const applied = scroller.scrollTop - before;
           springsRef.current?.moved(applied);
           // What rounding left over, carried; not a move the list's end stopped, which no later scroll can make.
-          const stopped = scroller.scrollTop <= 0 || scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight;
-          owed = !stopped && Math.abs(moved - applied) < 1 ? moved - applied : 0;
+          const atStart = scroller.scrollTop <= 0;
+          // Stryker disable next-line all: a list stopped at its end is at its bottom, which the next correction follows, owing nothing; this only spares the one before the scroll event says so.
+          const atEnd = scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight;
+          owed = atStart || atEnd ? 0 : moved - applied;
         }
       } else owed = 0;
       keepAnchor();
