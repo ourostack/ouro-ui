@@ -200,7 +200,7 @@ describe("Ouro images' command", () => {
     writeFileSync(join(cwd, "pictures/b.png"), "not a picture");
     const broken = await run(["pictures", "--widths", "320"], cwd);
     assert.equal(broken.code, 1);
-    assert.match(broken.err, /^Could not write b\.png: /);
+    assert.match(broken.err, /^Not written: b\.png: /);
     assert.match(broken.out, /0 written, 4 up to date, 0 left out, 1 failed\./);
     const red = await sharp({ create: { width: 20, height: 10, channels: 3, background: "#f00" } }).png().toBuffer();
     const blue = await sharp({ create: { width: 20, height: 10, channels: 3, background: "#00f" } }).png().toBuffer();

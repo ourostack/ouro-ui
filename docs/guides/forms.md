@@ -7,15 +7,15 @@ A form control is one component on the Field contract: pass `label`, `name` and 
 | The message is about | Use | How |
 | --- | --- | --- |
 | One field | The field's `error`, or `Form`'s `errors` with the field's `name` as the key | `errors={{ email: "Enter an email address." }}` puts it under that field and marks the field invalid. |
-| The whole form: the submit failed, the server is down | `Form`'s `errors` with the `form` key | `errors={{ form: "We could not save your changes." }}` shows it at the top of the form, in the form's alert region. |
-| Something outside any form: a reorder or a deletion the server refused, a step that could not be parsed | [Alert](../Alert.md) | Render `<Alert tone="destructive" title="…" />` where the action was taken, with `action` for the way out. |
+| The whole form: the submit failed, the server is down | `Form`'s `errors` with the `form` key | `errors={{ form: "The server is down, so your changes were not saved. Try again in a few minutes." }}` shows it at the top of the form, in the form's alert region. |
+| Something outside any form: a reorder or a deletion the server refused, an imported step the parser rejected | [Alert](../Alert.md) | Render `<Alert tone="destructive" title="…" />` where the action was taken, with `action` for the way out. |
 | A finished action the person need not answer | `toast()` and [Toaster](../Toaster.md) | `toast("Recipe saved")`. |
 | A destructive action, before it runs | [ConfirmDialog](../ConfirmDialog.md) | It asks first, with Cancel focused. |
 
 Use `Alert` for a message that belongs to neither a field nor a form. Don't add a `Form` only to show one, and don't put the message on a field it is not about.
 
 ```tsx
-{reorderError ? <Alert tone="destructive" title="We could not save the new order" description={reorderError} /> : null}
+{reorderError ? <Alert tone="destructive" title="The server refused the new order" description={reorderError} /> : null}
 <Reorderable items={steps} onReorder={saveOrder} />
 ```
 
