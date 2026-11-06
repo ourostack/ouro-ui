@@ -343,22 +343,47 @@ for (const path of ["./", "docs/button/"]) {
           }),
       );
     const longestGap = await gaps();
-    // Over budget: say whether the page's running animations are what holds the frames, by pausing them and reading again.
+    // Over budget: say what holds the frames, one change at a time, each undone before the next.
     let without = "";
     if (longestGap >= FRAME_GAP_BUDGET) {
-      const running = await page.evaluate(() => {
-        const list = document.getAnimations().filter((animation) => animation.playState === "running");
-        for (const animation of list) animation.pause();
-        return list.map((animation) => (animation as CSSAnimation).animationName ?? "?").join(", ");
-      });
-      without = ` (with its ${running.split(", ").length} running animations [${running}] paused: ${Math.round(await gaps())} ms)`;
+      const variants: Array<[string, string]> = [
+        ["no blur on the porthole's glow", ".stage-porthole::before{filter:none!important}"],
+        ["porthole without its own layer", ".stage-porthole{will-change:auto!important}"],
+        ["caustics paused", ".stage-caustics>svg{animation-play-state:paused!important}"],
+        ["drift paused", ".stage-drift{animation-play-state:paused!important}"],
+        ["stage contained", ".stage-scene{contain:strict!important}"],
+        ["art svgs hidden", ".stage-art{visibility:hidden!important}"],
+        ["glass layers hidden", ".stage-glass-layer{visibility:hidden!important}"],
+        ["all paused", "*{animation-play-state:paused!important}"],
+      ];
+      const reads: string[] = [];
+      for (const [name, css] of variants) {
+        await page.evaluate((text) => {
+          const style = document.createElement("style");
+          style.id = "diag";
+          style.textContent = text;
+          document.head.append(style);
+        }, css);
+        reads.push(`${name}: ${Math.round(await gaps())}`);
+        await page.evaluate(() => document.getElementById("diag")?.remove());
+      }
+      reads.push(`again: ${Math.round(await gaps())}`);
+      without = ` [${reads.join("; ")}]`;
     }
-    expect(longestGap, `the longest gap between frames, in ms${without}`).toBeLessThan(FRAME_GAP_BUDGET);
+    expect.soft(longestGap, `the longest gap between frames, in ms${without}`).toBeLessThan(FRAME_GAP_BUDGET);
     await page.evaluate(() => {
       const button = document.querySelector("header [data-ouro-navbar-menu]")!;
       const marks: Record<string, number> = {};
       (window as unknown as { marks: Record<string, number> }).marks = marks;
       button.addEventListener("pointerdown", (event) => (marks.press ??= event.timeStamp), { capture: true });
+      button.addEventListener("pointerup", (event) => (marks.up ??= event.timeStamp), { capture: true });
+      button.addEventListener("click", (event) => {
+        marks.click ??= event.timeStamp;
+        marks.handled ??= performance.now();
+      }, { capture: true });
+      new MutationObserver(() => {
+        if (document.querySelector("[role='dialog']")) marks.inserted ??= performance.now();
+      }).observe(document.body, { childList: true, subtree: true });
       const frame = () => (document.querySelector("[role='dialog']") ? (marks.frame = performance.now()) : requestAnimationFrame(frame));
       requestAnimationFrame(frame);
     });
@@ -366,7 +391,9 @@ for (const path of ["./", "docs/button/"]) {
     // real clock: the sheet stays open until it is closed; no timer ends it.
     await expect(sheet(page)).toBeVisible({ timeout: 1000 });
     const { press, frame } = await page.evaluate(() => (window as unknown as { marks: Record<string, number> }).marks);
-    expect(frame! - press!, "press to the sheet's first frame, in ms").toBeLessThan(PRESS_BUDGET[browserName] ?? 200);
+    const all = await page.evaluate(() => (window as unknown as { marks: Record<string, number> }).marks);
+    const steps = Object.entries(all).map(([key, value]) => `${key} +${Math.round(value - all.press!)}`).join(", ");
+    expect(frame! - press!, `press to the sheet's first frame, in ms (${steps})`).toBeLessThan(PRESS_BUDGET[browserName] ?? 200);
   });
 }
 
