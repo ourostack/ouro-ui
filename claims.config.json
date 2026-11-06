@@ -37,6 +37,11 @@
       "reason": "a latency run's record: the lines the latency spec printed on CI's runners, kept as a pull request's evidence"
     },
     {
+      "match": "^site/src/apple/evidence/",
+      "mode": "evidence",
+      "reason": "the Apple pages' evidence: reports Ouro Feel and Ouro Reins printed, copied unchanged, so the pages' claims about them can be checked"
+    },
+    {
       "match": "^docs/guides/evidence/",
       "mode": "evidence",
       "reason": "a guide's evidence: records copied as GitHub's API returned them, so a guide's claim about GitHub's behaviour can be checked"

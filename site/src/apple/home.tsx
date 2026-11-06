@@ -4,6 +4,7 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
 import { Container } from "../voyage/layout";
 import kit from "./kit.json";
+import { LayersBand } from "./layers";
 import { Loop } from "./loop";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 import ouroMd from "./xray/ouro-md.json";
@@ -73,6 +74,18 @@ export default function AppleHome(): JSX.Element {
             </p>
           </li>
           <li className="apple-door">
+            <p className="apple-door-kicker">Ouro Feel</p>
+            <h3 className="site-h3">
+              <a className="apple-door-link" href={href("/apple/feel/")}>
+                The tattletale <span aria-hidden="true">→</span>
+              </a>
+            </h3>
+            <p className="apple-door-body">
+              Jank comes in genres, from a missing way back to a switch that drops your second tap. Feel checks them from a UI test, and you can duel a twitchy switch
+              on its page.
+            </p>
+          </li>
+          <li className="apple-door">
             <p className="apple-door-kicker">Ouro AX for Apple</p>
             <h3 className="site-h3">
               <a className="apple-door-link" href={href("/apple/ax/")}>
@@ -85,6 +98,18 @@ export default function AppleHome(): JSX.Element {
                 verify: { equals: "site/src/apple/kit.json#claims", is: 30 },
               })}{" "}
               Browse Spoonjoy's and Ouro MD's real reports, before and after.
+            </p>
+          </li>
+          <li className="apple-door">
+            <p className="apple-door-kicker">Ouro Reins</p>
+            <h3 className="site-h3">
+              <a className="apple-door-link" href={href("/apple/reins/")}>
+                The reins <span aria-hidden="true">→</span>
+              </a>
+            </h3>
+            <p className="apple-door-body">
+              Agents drive your app's screens as state and actions with <code className="apple-code">ls</code> and <code className="apple-code">do</code>, headless and
+              offline. Drive a pretend kitchen yourself, then race the simulator.
             </p>
           </li>
           <li className="apple-door">
@@ -185,12 +210,17 @@ export default function AppleHome(): JSX.Element {
         </div>
       </AppleBand>
 
+      <LayersBand lede={<p>Ask the same app different questions, so neither people nor agents have to find out the hard way.</p>} />
+
       <Container className="apple-soon">
         <p className="site-eyebrow">Coming up</p>
         <p className="apple-soon-line">
           Components are in the workshop. They ship when a taste panel is properly delighted by them on an Apple screen, and not a spring sooner.
         </p>
-        <p className="apple-fine">Ouro UI for Apple {kit.release} has the foundations and the X-ray.</p>
+        <p className="apple-fine">
+          Ouro UI for Apple {kit.release} has the foundations and the X-ray.{" "}
+          {kit.feelReinsRelease ? `Ouro Feel and Ouro Reins ship in ${kit.feelReinsRelease}.` : "Ouro Feel and Ouro Reins are on its main branch, and come in a later release."}
+        </p>
       </Container>
       <NextPage current="/apple/" />
     </div>

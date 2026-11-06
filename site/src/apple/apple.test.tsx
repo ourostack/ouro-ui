@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { springAt } from "@/registry/ouro/lib/ouro/spring";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
@@ -8,6 +8,10 @@ import { CLIPS } from "./clips";
 import { tapsFor } from "./haptics";
 import kit from "./kit.json";
 import { TWIN } from "./spring-twin";
+import { FRESH, report, TAP_LOCK, tap } from "./feel-duel";
+import gatefold from "./feel-gatefold.json";
+import { JOURNEY, ls, run, START, suggestions } from "./reins-kitchen";
+import { journeysIn, SIMULATOR_MS } from "./reins-race";
 import { REPORTS, stateOf } from "./xray-explorer";
 
 beforeEach(async () => {
@@ -21,7 +25,9 @@ afterEach(async () => {
 const TITLES = {
   "/apple/": "Same manners, now in Swift.",
   "/apple/hx/": "Feel it before you read about it.",
+  "/apple/feel/": "Jank has genres. Feel has a check for each.",
   "/apple/ax/": "Siri reads your app like a manual. Write a good one.",
+  "/apple/reins/": "Hand an agent the reins.",
   "/apple/start/": "One line of Swift.",
 } as const;
 
@@ -116,6 +122,147 @@ describe("Ouro UI for Apple", () => {
     await expect.poll(() => list.element().querySelector(".apple-wave-playing")).not.toBeNull();
   });
 
+  it("scores a rapid pair as Feel does: the tap lock loses the second tap, the ready switch keeps both", () => {
+    expect(TAP_LOCK).toBe(400);
+    const pair = (locked: boolean) => tap(tap(FRESH, 1000, locked), 1090, locked);
+    expect(pair(true)).toMatchObject({ on: true, sent: 2, landed: 1, pairs: 1, kept: 0 });
+    expect(pair(false)).toMatchObject({ on: false, sent: 2, landed: 2, pairs: 1, kept: 1 });
+    expect(report(pair(true))).toBe("FAIL tap landing; rapid: 0 of 1 double taps ended where they started");
+    expect(report(pair(false))).toBe("PASS tap landing; rapid: 1 of 1 double taps ended where they started");
+    // Slow taps are not a pair, and both land even with the lock.
+    expect(tap(tap(FRESH, 0, true), 900, true)).toMatchObject({ landed: 2, pairs: 0 });
+  });
+
+  it("shows Gatefold's real report: 32 readings outside the window before, none after", () => {
+    expect(gatefold.before.outside).toBe(32);
+    expect(gatefold.before.readings).toHaveLength(32);
+    expect(gatefold.before.summary).toMatch(/^FAIL inside the window/);
+    expect(gatefold.after.summary).toMatch(/^PASS inside the window/);
+  });
+
+  it("drives the pretend kitchen like Spoonjoy's transcript, refusing in Reins' words", () => {
+    expect(ls(START)).toMatchObject({ focus: "kitchen", path: ["spoonjoy", "tabs", "stack", "kitchen"], context: { stack: { depth: 0 }, tabs: { selected: "kitchen" } } });
+    const problem = (line: string, at = START) => {
+      const reply = run(at, line).reply;
+      return !reply.ok && "error" in reply ? reply.error : undefined;
+    };
+    // ReinsWire parses the input before it looks the action up, and ReinsSchema words each problem.
+    expect(problem("do teleport {bad")).toMatchObject({ code: "bad-request", problem: "the input after `do teleport` isn't JSON: {bad" });
+    expect(problem("dance")?.problem).toBe("unknown request `dance`");
+    // The JSON form works too, as ReinsWire reads it.
+    expect(run(START, '{"op":"ls"}').reply.ok).toBe(true);
+    expect(run(START, '{"op":"do","action":"openRecipe","input":{"id":"recipe_tomato_toast"}}').state.stack).toEqual(["recipe:recipe_tomato_toast"]);
+    expect(problem('{"op":"dance"}')?.problem).toBe('"op" must be "ls", "do" or "help"');
+    expect(problem("{oops")?.problem).toBe("the line starts with { but isn't JSON");
+    expect(problem('do selectTab {"tab":5}')?.problem).toBe("$.tab: expected a string, got integer");
+    expect(problem('do openRecipe {"id":"recipe_tomato_toast","x":1}')?.problem).toBe("$.x: not a property of this input (expected id)");
+    expect(problem("do openRecipe null")?.problem).toBe("$: expected an object, got null");
+    expect(problem("do openRecipe")?.problem).toBe("$.id: required, missing");
+    expect(run(START, 'do openRecipe {"id":"recipe_lemon_pantry_pasta"}').state.stack).toHaveLength(1);
+    expect(problem('do goBack {"now":true}', run(START, 'do openRecipe {"id":"recipe_lemon_pantry_pasta"}').state)?.code).toBe("input-unexpected");
+    expect(ls(START).actions.map((action) => action.name)).toEqual(["openRecipe", "startCooking", "selectTab"]);
+    const refused = run(START, "do goBack").reply;
+    expect(refused.ok).toBe(false);
+    if (!refused.ok && "error" in refused) expect(refused.error.message).toBe("do goBack: goBack isn't available on kitchen. Fix: use one of: openRecipe, startCooking, selectTab.");
+    const wrong = run(START, 'do openRecipe {"id":"recipe_nope"}').reply;
+    if (!wrong.ok && "error" in wrong) expect(wrong.error.problem).toBe('$.id: "recipe_nope" isn\'t one of "recipe_lemon_pantry_pasta", "recipe_tomato_toast"');
+    let state = START;
+    const focuses = JOURNEY.map((line) => {
+      const result = run(state, line);
+      expect(result.reply.ok, line).toBe(true);
+      state = result.state;
+      return ls(state).focus;
+    });
+    expect(focuses).toEqual(["recipe", "cook", "cook", "cook", "recipe", "kitchen"]);
+    // Every suggestion is accepted as offered.
+    for (const line of suggestions(START)) expect(run(START, line).reply.ok, line).toBe(true);
+  });
+
+  it("races at the real medians", () => {
+    expect(SIMULATOR_MS).toBe(16677);
+    expect(journeysIn(SIMULATOR_MS)).toBe(891);
+  });
+
+  it("control: duel lets Feel double-tap both switches and reports the locked one failing", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await renderPage("/apple/feel/");
+      const go = page.getByRole("button", { name: "Let Feel double-tap both" });
+      await expect.element(go).toBeInTheDocument();
+      await userEvent.click(go);
+      // The button stays focusable while Feel taps, so keyboard focus never falls to the page.
+      expect(document.activeElement).toBe(go.element());
+      expect(go.element().getAttribute("aria-disabled")).toBe("true");
+      await vi.runAllTimersAsync();
+      const read = (id: string) => document.querySelector(`[data-feel-contender="${id}"] [data-feel-report]`)?.textContent;
+      await expect.poll(() => read("locked")).toBe("FAIL tap landing; rapid: 0 of 5 double taps ended where they started");
+      expect(read("ready")).toBe("PASS tap landing; rapid: 5 of 5 double taps ended where they started");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("control: duel switch takes a tap from the keyboard", async () => {
+    await renderPage("/apple/feel/");
+    const ready = page.getByRole("switch", { name: "Without a lock" });
+    await expect.element(ready).toBeInTheDocument();
+    ready.element().focus();
+    await userEvent.keyboard(" ");
+    await expect.element(ready).toBeChecked();
+    expect(document.querySelector('[data-feel-contender="ready"] [data-feel-report]')?.textContent).toBe("One tap landed. Now try two, quickly.");
+  });
+
+  it("control: gatefold flips between build 19 and the fix", async () => {
+    await renderPage("/apple/feel/");
+    const flip = () => document.querySelector("[data-feel-flip]")?.getAttribute("data-feel-flip");
+    await expect.element(page.getByRole("radio", { name: /The fix/ })).toBeInTheDocument();
+    expect(flip()).toBe("before");
+    await userEvent.click(page.getByRole("radio", { name: /The fix/ }));
+    await expect.poll(flip).toBe("after");
+    expect(document.querySelector("[data-shown] > .feel-verdict")?.textContent).toMatch(/^PASS inside the window/);
+  });
+
+  it("control: terminal runs a typed line and a suggested one, and refuses politely", async () => {
+    await renderPage("/apple/reins/");
+    const input = page.getByRole("textbox", { name: "Command" });
+    await expect.element(input).toBeInTheDocument();
+    await userEvent.fill(input, 'do openRecipe {"id":"recipe_lemon_pantry_pasta"}');
+    await userEvent.keyboard("{Enter}");
+    const last = () => [...document.querySelectorAll(".reins-entry")].at(-1)?.textContent ?? "";
+    await expect.poll(last).toContain("focus recipe");
+    await userEvent.click(page.getByRole("button", { name: "do startCooking", exact: true }));
+    await expect.poll(last).toContain("focus cook");
+    // A reply never changes the terminal's height or the page's: replies scroll inside the log, chips have their room.
+    const terminal = document.querySelector<HTMLElement>("[data-reins-terminal]")!;
+    const size = () => [terminal.getBoundingClientRect().height, document.documentElement.scrollHeight];
+    const before = size();
+    await userEvent.click(page.getByRole("button", { name: /do teleport/ }));
+    await expect.poll(last).toContain("teleport isn't available on cook");
+    // A chip hands focus to the new screen's first chip, and the log scrolled itself while the page stayed put.
+    const log = document.querySelector<HTMLElement>(".reins-log")!;
+    await expect.poll(() => document.activeElement).toBe(document.querySelector(".reins-chips button"));
+    expect(log.scrollTop).toBeGreaterThan(0);
+    expect(size()).toEqual(before);
+    // Raw reply lines keep the newest reply in view.
+    log.scrollTop = 0;
+    await userEvent.click(page.getByRole("switch", { name: "Raw reply lines" }));
+    await expect.poll(() => log.scrollTop + log.clientHeight).toBeGreaterThanOrEqual(log.scrollHeight - 2);
+  });
+
+  it("control: race skips to the finish line with the real numbers", async () => {
+    await renderPage("/apple/reins/");
+    const start = page.getByRole("button", { name: "Start the race" });
+    // The race keeps its height from the line to the finish, so the page never moves under you.
+    const race = document.querySelector<HTMLElement>("[data-reins-race]")!;
+    const height = race.getBoundingClientRect().height;
+    await expect.element(start).toBeInTheDocument();
+    await userEvent.click(start);
+    await userEvent.click(page.getByRole("button", { name: "Skip to the finish line" }));
+    await expect.element(page.getByRole("button", { name: "Race again" })).toBeInTheDocument();
+    expect(document.querySelector(".reins-verdict[data-shown]")?.textContent).toBe("The simulator crossed the line at 16.7 s. In that time Reins could have run the whole journey 891 times.");
+    expect(race.getBoundingClientRect().height).toBe(height);
+  });
+
   it("shows stills, not video, under Reduce Motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await renderPage("/apple/");
@@ -163,5 +310,5 @@ describe("Ouro UI for Apple", () => {
       expect(violations, `${path}: ${describeViolations(violations)}`).toEqual([]);
       await cleanupPage();
     }
-  }, pageScanTimeout * 4);
+  }, pageScanTimeout * 6);
 });
