@@ -2,7 +2,8 @@
  * A pretend kitchen for the Ouro Reins page to drive: a few lines of TypeScript shaped like the tree Spoonjoy's
  * real app gives Reins (evidence/reins-cli-run.ndjson, from its `spoonjoy-reins` spike): the same node path
  * (spoonjoy › tabs › stack › kitchen, a cover for cook mode), the same action names, lending and schemas, and the
- * same refusals word for word (OuroReins' ReinsProblem). It is not Swift and not Spoonjoy; the page says so.
+ * same refusals, worded and ordered as OuroReins' ReinsWire, ReinsSession and ReinsSchema word them. It is not Swift
+ * and not Spoonjoy; the page says so.
  */
 
 import kitchen from "./reins-kitchen.json";
@@ -51,6 +52,8 @@ export interface Screen {
   focus: string;
   path: string[];
   state: Json;
+  /** The states of the nodes above the focus, by name. */
+  context: Json;
   actions: Action[];
 }
 
@@ -121,7 +124,9 @@ function live(state: KitchenState): { screen: Omit<Screen, "actions">; actions: 
       screen: {
         focus: "cook",
         path: ["spoonjoy", "cover", "cook"],
+        context: { cover: { route: `recipe-cook:${found.id}` }, spoonjoy: { bootstrap: kitchen.bootstrap, route: `recipe-cook:${found.id}` } },
         state: {
+          recipe: found.id,
           title: found.title,
           step: `Step ${cook.step + 1} of ${found.steps.length}`,
           stepTitle: step.title,
@@ -136,7 +141,7 @@ function live(state: KitchenState): { screen: Omit<Screen, "actions">; actions: 
   const page = state.stack.at(-1) ?? state.tab;
   let pageState: Json;
   if (page === "kitchen") {
-    pageState = { recipes: RECIPES.map((item) => ({ id: item.id, title: item.title, steps: item.steps.length })), lead: { id: RECIPES[0]!.id, title: RECIPES[0]!.title } };
+    pageState = { counts: kitchen.counts, recipes: RECIPES.map((item) => ({ id: item.id, title: item.title, steps: item.steps.length })), lead: { id: RECIPES[0]!.id, title: RECIPES[0]!.title } };
   } else if (page.startsWith("recipe:")) {
     const found = recipe(page.slice("recipe:".length));
     pageState = { id: found.id, title: found.title, servings: found.servings, steps: found.steps.map((step, index) => ({ number: index + 1, title: step.title, ingredients: step.ingredients.map((item) => item.title) })) };
@@ -144,7 +149,8 @@ function live(state: KitchenState): { screen: Omit<Screen, "actions">; actions: 
     pageState = { note: kitchen.words.emptyDrawer };
   }
   const focus = page.startsWith("recipe:") ? "recipe" : page;
-  return { screen: { focus, path: ["spoonjoy", "tabs", "stack", focus], state: pageState }, actions: pageActions(state, page) };
+  const context: Json = { spoonjoy: { bootstrap: kitchen.bootstrap, route: page }, stack: { depth: state.stack.length }, tabs: { selected: state.tab, tabs: [...TABS] } };
+  return { screen: { focus, path: ["spoonjoy", "tabs", "stack", focus], state: pageState, context }, actions: pageActions(state, page) };
 }
 
 const strip = ({ run: _run, ...action }: Live): Action => action;
@@ -155,19 +161,38 @@ export function ls(state: KitchenState): Screen {
   return { ...screen, actions: actions.map(strip) };
 }
 
-/** The problems with an input, as Reins' schema check words them. */
-function problemsWith(schema: Json, value: Json, path = "$"): string[] {
-  const shape = schema as { properties: Record<string, { type: string; enum?: string[] }>; required: string[] };
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return [`${path}: expected an object`];
-  const found: string[] = [];
-  for (const key of [...shape.required].sort()) if (value[key] === undefined || value[key] === null) found.push(`${path}.${key}: required, missing`);
-  for (const [key, member] of Object.entries(value)) {
-    const rule = shape.properties[key];
-    if (!rule) found.push(`${path}.${key}: not allowed`);
-    else if (rule.enum && !(typeof member === "string" && rule.enum.includes(member))) found.push(`${path}.${key}: ${JSON.stringify(member)} isn't one of ${rule.enum.map((item) => `"${item}"`).join(", ")}`);
-    else if (rule.type === "boolean" && typeof member !== "boolean") found.push(`${path}.${key}: expected a boolean`);
+type Rule = { type: string; enum?: string[]; properties?: Record<string, Rule>; required?: string[] };
+
+const typeName = (value: Json) =>
+  value === null ? "null" : Array.isArray(value) ? "array" : typeof value === "number" ? (Number.isInteger(value) ? "integer" : "number") : typeof value === "string" ? "string" : typeof value === "boolean" ? "boolean" : "object";
+const expectedName = (rule: Rule) => (rule.type === "object" ? "an object" : rule.type === "boolean" ? "a boolean" : "a string");
+
+/** The problems with an input, worded and ordered as ReinsSchema.problems words them. */
+function problemsWith(rule: Rule, value: Json, path = "$"): string[] {
+  const words = kitchen.words;
+  if (rule.type === "boolean" && typeof value === "boolean") return [];
+  if (rule.type === "string" && typeof value === "string") {
+    return rule.enum && !rule.enum.includes(value) ? [fill(words.notOneOf, { path, value, allowed: rule.enum.map((item) => `"${item}"`).join(", ") })] : [];
   }
-  return found;
+  if (rule.type === "object" && typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const properties = rule.properties ?? {};
+    const found: string[] = [];
+    for (const key of [...(rule.required ?? [])].sort()) if (value[key] === undefined || value[key] === null) found.push(fill(words.requiredMissing, { path: `${path}.${key}` }));
+    for (const key of Object.keys(value).sort()) {
+      const member = properties[key];
+      if (!member) found.push(fill(words.notAProperty, { path: `${path}.${key}`, keys: Object.keys(properties).sort().join(", ") }));
+      else if (value[key] !== null || rule.required?.includes(key)) found.push(...problemsWith(member, value[key]!, `${path}.${key}`));
+    }
+    return found;
+  }
+  return [fill(words.expected, { path, expected: expectedName(rule), got: typeName(value) })];
+}
+
+/** JSON with its object keys sorted, as Reins' encoder writes it. */
+export function sorted(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sorted);
+  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sorted((value as Record<string, unknown>)[key])]));
+  return value;
 }
 
 /** Reins' wording with its {placeholders} filled in. */
@@ -177,33 +202,44 @@ const refuse = (code: Problem["code"], thing: string, problem: string, fix: stri
 
 export const HELP: string[] = kitchen.words.help;
 
-/** Runs one line, as `ReinsCommandLine` would: `ls`, `help` or `do <action> [json]`. Never throws. */
+/** Runs one line, as ReinsWire parses it and ReinsSession performs it: `ls`, `help` or `do <action> [json]`. Never throws. */
 export function run(state: KitchenState, line: string): { state: KitchenState; reply: Reply } {
+  const words = kitchen.words;
   const text = line.trim();
   const screen = () => ls(state);
-  if (text === "ls") return { state, reply: { ok: true, screen: screen() } };
-  if (text === "help") return { state, reply: { ok: true, help: HELP, screen: screen() } };
-  const match = /^do\s+([A-Za-z]\w*)\s*(.*)$/.exec(text);
-  if (!match) return { state, reply: { ok: false, error: refuse("bad-request", "request", `"${text}" isn't ls, help or do <action> [json]`, "send `ls`, `do <action> [json]` or `help`"), screen: screen() } };
-  const [, name, rest] = match as unknown as [string, string, string];
+  const bad = (problem: string) => ({ state, reply: { ok: false as const, error: refuse("bad-request", "request", problem, words.badRequestFix), screen: screen() } });
+  // Split as ReinsWire does: at most three parts, the third the rest of the line.
+  const parts = /^(\S+)(?:\s+(\S+)(?:\s+(.+))?)?$/.exec(text)?.slice(1).filter((part) => part !== undefined) ?? [];
+  if (parts[0] === "ls" && parts.length === 1) return { state, reply: { ok: true, screen: screen() } };
+  if (parts[0] === "help" && parts.length === 1) return { state, reply: { ok: true, help: HELP, screen: screen() } };
+  if (parts[0] !== "do" || parts.length < 2) return bad(fill(words.unknown, { text }));
+  const name = parts[1]!;
+  // The input is parsed before the action is looked up, so bad JSON is a bad request on any screen.
+  let input: Json | undefined;
+  if (parts[2] !== undefined) {
+    try {
+      input = JSON.parse(parts[2]) as Json;
+    } catch {
+      return bad(fill(words.notJson, { action: name, rest: parts[2] }));
+    }
+  }
   const { actions } = live(state);
   const action = actions.find((item) => item.name === name);
   if (!action) {
+    const focus = screen().focus;
     const names = actions.map((item) => item.name);
-    return { state, reply: { ok: false, error: refuse("action-unavailable", `do ${name}`, `${name} isn't available on ${screen().focus}`, `use one of: ${names.join(", ")}`), screen: screen() } };
+    const fix = names.length ? fill(words.unavailableFix, { names: names.join(", ") }) : fill(words.nothingFix, { focus });
+    return { state, reply: { ok: false, error: refuse("action-unavailable", `do ${name}`, fill(words.unavailable, { action: name, focus }), fix), screen: screen() } };
   }
-  let input: Json = null;
-  if (rest) {
-    try {
-      input = JSON.parse(rest) as Json;
-    } catch {
-      return { state, reply: { ok: false, error: refuse("bad-request", "request", `the input after do ${name} isn't JSON`, `send do ${name} {"key":"value"}`), screen: screen() } };
-    }
+  const empty = input === undefined || input === null || (typeof input === "object" && !Array.isArray(input) && Object.keys(input).length === 0);
+  if (!action.input && !empty) {
+    return { state, reply: { ok: false, error: refuse("input-unexpected", `do ${name}`, fill(words.unexpected, { action: name, input: JSON.stringify(input) }), fill(words.unexpectedFix, { action: name })), screen: screen() } };
   }
-  if (!action.input && input !== null) return { state, reply: { ok: false, error: refuse("input-unexpected", `do ${name}`, fill(kitchen.words.unexpected, { action: name, input: JSON.stringify(input) }), fill(kitchen.words.unexpectedFix, { action: name })), screen: screen() } };
   if (action.input) {
-    const problems = problemsWith(action.input, input ?? {});
-    if (problems.length) return { state, reply: { ok: false, error: refuse("input-invalid", `do ${name}`, problems.join("; "), `send input matching ${JSON.stringify(action.input)}`), screen: screen() } };
+    const problems = problemsWith(action.input as Rule, input === undefined ? {} : input);
+    if (problems.length) {
+      return { state, reply: { ok: false, error: refuse("input-invalid", `do ${name}`, problems.join("; "), fill(words.invalidFix, { schema: JSON.stringify(sorted(action.input)) })), screen: screen() } };
+    }
   }
   const next = action.run(state, (input ?? {}) as Record<string, Json>);
   return { state: next, reply: { ok: true, screen: ls(next) } };

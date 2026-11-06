@@ -3,7 +3,7 @@
   "genres": [
     {
       "name": "The way back",
-      "good": "Every screen you reach has a visible way back and a gesture back, and both take you home.",
+      "good": "Every screen you reach has a visible way back and a gesture back, and both return you where you were.",
       "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L50"
     },
     {
@@ -18,7 +18,7 @@
     },
     {
       "name": "Tap landing",
-      "good": "One tap anywhere on a control works, every time. Two quick taps both count.",
+      "good": "One tap anywhere on a control works, every time, with no second try.",
       "source": "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L53"
     },
     {

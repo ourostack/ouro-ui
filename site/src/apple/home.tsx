@@ -219,7 +219,7 @@ export default function AppleHome(): JSX.Element {
         </p>
         <p className="apple-fine">
           Ouro UI for Apple {kit.release} has the foundations and the X-ray.{" "}
-          {kit.feelReinsRelease ? `Ouro Feel and Ouro Reins ship in ${kit.feelReinsRelease}.` : "Ouro Feel and Ouro Reins are on its main branch, and come with its next release."}
+          {kit.feelReinsRelease ? `Ouro Feel and Ouro Reins ship in ${kit.feelReinsRelease}.` : "Ouro Feel and Ouro Reins are on its main branch, and come in a later release."}
         </p>
       </Container>
       <NextPage current="/apple/" />

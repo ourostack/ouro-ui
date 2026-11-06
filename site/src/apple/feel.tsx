@@ -28,7 +28,7 @@ final class FeelTests: XCTestCase {
     }
 }`;
 
-const RAPID_CODE = `let rapidBaseline = feel.osBaseline(rapid: true)   // the system's own switch, for context
+const RAPID_CODE = `let rapidBaseline = feel.osBaseline(rapid: true)  // UIKit, for context
 feel.expect(feel.tapLanding(on: app.switches["appearance.pageNumbers"],
                             trials: 5, rapid: 5, rapidBaseline: rapidBaseline))`;
 
@@ -59,7 +59,7 @@ export default function AppleFeel(): JSX.Element {
           your app the way a thumb would and leaves the humans only the real questions of taste.
         </p>
         <p className="apple-fine">
-          The switches beside this are the whole idea in miniature. One has the tap lock Feel's test app plants as a bug. Your thumb notices; now Feel does too.
+          These switches are the whole idea in miniature. One has the tap lock Feel's test app plants as a bug. Your thumb notices; now Feel does too.
         </p>
       </AppleHero>
 
@@ -77,8 +77,8 @@ export default function AppleFeel(): JSX.Element {
               verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60" },
             })}{" "}
             {claim("A check that couldn't see enough says \"could not check\", and never passes on a hunch.", {
-              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L188" },
-              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L188" },
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L246-L250" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L246-L250" },
             })}
           </p>
         }
@@ -139,11 +139,11 @@ export default function AppleFeel(): JSX.Element {
           </p>
         }
       >
-        <div className="apple-pair">
-          <CodeBlock code={RAPID_CODE} label="Rapid double taps" />
+        <div className="apple-pair feel-reins-wide">
+          <CodeBlock code={RAPID_CODE} label="Rapid double taps" copy />
           <div className="apple-pair-side">
             <p className="apple-fine">
-              Tried the duel up top? The locked switch is what a quick thumb meets on a control that's busy animating. Feel prints the same line you saw there, with
+              Tried the duel up top? The locked switch is what a quick thumb meets on a control that's busy animating. Feel's report puts it in the same words, plus
               where it ran and which clock timed it.
             </p>
           </div>
@@ -153,7 +153,7 @@ export default function AppleFeel(): JSX.Element {
       <AppleBand
         id="add-it"
         eyebrow="Add it"
-        title="One line in your UI tests."
+        title="A few lines in your UI tests."
         lede={
           <p>
             Link <code className="apple-code">OuroFeel</code> into your UI test target, point it at your entry points, and let it walk. A failing check fails the test,
@@ -161,14 +161,14 @@ export default function AppleFeel(): JSX.Element {
           </p>
         }
       >
-        <div className="apple-pair">
+        <div className="apple-pair feel-reins-wide">
           <CodeBlock code={TEST_CODE} label="FeelTests.swift" copy />
           <div className="apple-pair-side">
             <p className="apple-fine">
               {kit.feelReinsRelease ? (
                 <>Ouro Feel ships in ouro-ui-apple {kit.feelReinsRelease}. </>
               ) : (
-                <>Ouro Feel is on ouro-ui-apple's main branch now, and comes with its next release. </>
+                <>Ouro Feel is on ouro-ui-apple's main branch now, and comes in a later release. </>
               )}
               The{" "}
               <a className="apple-inline-link" href={GUIDE}>

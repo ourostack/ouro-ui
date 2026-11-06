@@ -123,12 +123,12 @@ describe("Ouro UI for Apple", () => {
   });
 
   it("scores a rapid pair as Feel does: the tap lock loses the second tap, the ready switch keeps both", () => {
-    expect(TAP_LOCK).toBe(250);
+    expect(TAP_LOCK).toBe(400);
     const pair = (locked: boolean) => tap(tap(FRESH, 1000, locked), 1090, locked);
     expect(pair(true)).toMatchObject({ on: true, sent: 2, landed: 1, pairs: 1, kept: 0 });
     expect(pair(false)).toMatchObject({ on: false, sent: 2, landed: 2, pairs: 1, kept: 1 });
-    expect(report(pair(true))).toBe("FAIL tap landing: 0 of 1 rapid pair ended where it started");
-    expect(report(pair(false))).toBe("PASS tap landing: 1 of 1 rapid pair ended where it started");
+    expect(report(pair(true))).toBe("FAIL tap landing; rapid: 0 of 1 double taps ended where they started");
+    expect(report(pair(false))).toBe("PASS tap landing; rapid: 1 of 1 double taps ended where they started");
     // Slow taps are not a pair, and both land even with the lock.
     expect(tap(tap(FRESH, 0, true), 900, true)).toMatchObject({ landed: 2, pairs: 0 });
   });
@@ -140,8 +140,21 @@ describe("Ouro UI for Apple", () => {
     expect(gatefold.after.summary).toMatch(/^PASS inside the window/);
   });
 
-  it("drives the pretend kitchen like Spoonjoy's transcript, refusals word for word", () => {
-    expect(ls(START)).toMatchObject({ focus: "kitchen", path: ["spoonjoy", "tabs", "stack", "kitchen"] });
+  it("drives the pretend kitchen like Spoonjoy's transcript, refusing in Reins' words", () => {
+    expect(ls(START)).toMatchObject({ focus: "kitchen", path: ["spoonjoy", "tabs", "stack", "kitchen"], context: { stack: { depth: 0 }, tabs: { selected: "kitchen" } } });
+    const problem = (line: string, at = START) => {
+      const reply = run(at, line).reply;
+      return !reply.ok && "error" in reply ? reply.error : undefined;
+    };
+    // ReinsWire parses the input before it looks the action up, and ReinsSchema words each problem.
+    expect(problem("do teleport {bad")).toMatchObject({ code: "bad-request", problem: "the input after `do teleport` isn't JSON: {bad" });
+    expect(problem("dance")?.problem).toBe("unknown request `dance`");
+    expect(problem('do selectTab {"tab":5}')?.problem).toBe("$.tab: expected a string, got integer");
+    expect(problem('do openRecipe {"id":"recipe_tomato_toast","x":1}')?.problem).toBe("$.x: not a property of this input (expected id)");
+    expect(problem("do openRecipe null")?.problem).toBe("$: expected an object, got null");
+    expect(problem("do openRecipe")?.problem).toBe("$.id: required, missing");
+    expect(run(START, 'do openRecipe {"id":"recipe_lemon_pantry_pasta"}').state.stack).toHaveLength(1);
+    expect(problem('do goBack {"now":true}', run(START, 'do openRecipe {"id":"recipe_lemon_pantry_pasta"}').state)?.code).toBe("input-unexpected");
     expect(ls(START).actions.map((action) => action.name)).toEqual(["openRecipe", "startCooking", "selectTab"]);
     const refused = run(START, "do goBack").reply;
     expect(refused.ok).toBe(false);
@@ -172,10 +185,13 @@ describe("Ouro UI for Apple", () => {
       const go = page.getByRole("button", { name: "Let Feel double-tap both" });
       await expect.element(go).toBeInTheDocument();
       await userEvent.click(go);
+      // The button stays focusable while Feel taps, so keyboard focus never falls to the page.
+      expect(document.activeElement).toBe(go.element());
+      expect(go.element().getAttribute("aria-disabled")).toBe("true");
       await vi.runAllTimersAsync();
       const read = (id: string) => document.querySelector(`[data-feel-contender="${id}"] [data-feel-report]`)?.textContent;
-      await expect.poll(() => read("locked")).toBe("FAIL tap landing: 0 of 5 rapid pairs ended where they started");
-      expect(read("ready")).toBe("PASS tap landing: 5 of 5 rapid pairs ended where they started");
+      await expect.poll(() => read("locked")).toBe("FAIL tap landing; rapid: 0 of 5 double taps ended where they started");
+      expect(read("ready")).toBe("PASS tap landing; rapid: 5 of 5 double taps ended where they started");
     } finally {
       vi.useRealTimers();
     }
@@ -185,7 +201,8 @@ describe("Ouro UI for Apple", () => {
     await renderPage("/apple/feel/");
     const ready = page.getByRole("switch", { name: "Without a lock" });
     await expect.element(ready).toBeInTheDocument();
-    await userEvent.click(ready);
+    ready.element().focus();
+    await userEvent.keyboard(" ");
     await expect.element(ready).toBeChecked();
     expect(document.querySelector('[data-feel-contender="ready"] [data-feel-report]')?.textContent).toBe("One tap landed. Now try two, quickly.");
   });
@@ -197,7 +214,7 @@ describe("Ouro UI for Apple", () => {
     expect(flip()).toBe("before");
     await userEvent.click(page.getByRole("radio", { name: /The fix/ }));
     await expect.poll(flip).toBe("after");
-    expect(document.querySelector(".feel-verdict")?.textContent).toMatch(/^PASS inside the window/);
+    expect(document.querySelector("[data-shown] > .feel-verdict")?.textContent).toMatch(/^PASS inside the window/);
   });
 
   it("control: terminal runs a typed line and a suggested one, and refuses politely", async () => {
@@ -210,11 +227,17 @@ describe("Ouro UI for Apple", () => {
     await expect.poll(last).toContain("focus recipe");
     await userEvent.click(page.getByRole("button", { name: "do startCooking", exact: true }));
     await expect.poll(last).toContain("focus cook");
-    await userEvent.click(page.getByRole("button", { name: /do teleport/ }));
+    // The click itself may scroll its chip into view; the reply must not move the page after that.
+    const teleport = page.getByRole("button", { name: /do teleport/ });
+    teleport.element().scrollIntoView({ block: "center" });
+    const scrolled = window.scrollY;
+    await userEvent.click(teleport);
     await expect.poll(last).toContain("teleport isn't available on cook");
-    // The page never scrolled for it: the log scrolls itself.
+    // A chip hands focus to the log, and the log scrolled itself while the page stayed put.
     const log = document.querySelector<HTMLElement>(".reins-log")!;
-    expect(log.scrollHeight).toBeGreaterThan(0);
+    expect(document.activeElement).toBe(log);
+    expect(log.scrollTop).toBeGreaterThan(0);
+    expect(window.scrollY).toBe(scrolled);
   });
 
   it("control: race skips to the finish line with the real numbers", async () => {

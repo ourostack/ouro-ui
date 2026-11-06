@@ -1,16 +1,17 @@
-import { useRef, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 
 /*
- * Ouro Feel's tap-landing genre, to touch: two switches, one with the tap lock Ouro Feel's fixture plants as its
- * bug (0.25 s, Examples/OuroFeelFixture in ouro-ui-apple), one that takes every tap. Double-tap each: a pair that
+ * Ouro Feel's tap-landing genre, to touch: two switches, one with a tap lock like the one Ouro Feel's fixture plants
+ * as its bug (Examples/OuroFeelFixture in ouro-ui-apple), held about as long as a switch takes to slide so an
+ * ordinary human double tap meets it, and one that takes every tap. Double-tap each: a pair that
  * ends where it started had both taps land; one that ends changed lost a tap. That is how Feel reads a rapid pair,
  * and its bar is absolute: every pair must end where it started.
  */
 
-/** The fixture's tap lock, in milliseconds. */
-export const TAP_LOCK = 250;
+/** The tap lock, in milliseconds: about a switch's slide, so a human double tap lands inside it. */
+export const TAP_LOCK = 400;
 /** Two taps this close together are a rapid pair. */
 export const PAIR_GAP = 450;
 
@@ -41,21 +42,21 @@ export function tap(tally: Tally, at: number, locked: boolean): Tally {
   return { ...next, open: { at, was: tally.on } };
 }
 
-/** What Feel would print for this switch, in its own report's shape. */
+/** Feel's verdict for this switch, its rapid part in FeelTaps' own words ("rapid: N of M double taps ended where they started"). */
 export function report(tally: Tally): string {
-  if (tally.pairs === 0) return tally.sent === 0 ? "Waiting for a double tap." : "One tap landed. Now try two, quickly.";
+  if (tally.pairs === 0) return tally.sent === 0 ? "Waiting for a double tap." : tally.sent === 1 ? "One tap landed. Now try two, quickly." : "Taps, but too slow to count as a double. Quicker!";
   const verdict = tally.kept === tally.pairs ? "PASS" : "FAIL";
-  return `${verdict} tap landing: ${tally.kept} of ${tally.pairs} rapid ${tally.pairs === 1 ? "pair" : "pairs"} ended where ${tally.pairs === 1 ? "it" : "they"} started`;
+  return `${verdict} tap landing; rapid: ${tally.kept} of ${tally.pairs} double taps ended where they started`;
 }
 
-function Contender({ id, label, note, tally, onTap, quiet }: { id: string; label: string; note: string; tally: Tally; onTap: () => void; quiet: boolean }): JSX.Element {
+function Contender({ id, label, note, tally, onTap, busy }: { id: string; label: string; note: string; tally: Tally; onTap: () => void; busy: boolean }): JSX.Element {
   const verdict = tally.pairs === 0 ? "waiting" : tally.kept === tally.pairs ? "pass" : "fail";
   return (
     <div className="feel-contender" data-feel-contender={id} data-verdict={verdict}>
       <Switch label={label} description={note} checked={tally.on} onCheckedChange={onTap} />
-      {/* While Feel taps for you, the report speaks once at the end, not after every tap. */}
-      <p className="feel-report site-mono" aria-live={quiet ? "off" : "polite"} data-feel-report>
-        {report(tally)}
+      {/* The region is always live. While Feel taps for you it holds still, so it speaks once at the end, not after every tap. */}
+      <p className="feel-report site-mono" aria-live="polite" data-feel-report>
+        {busy ? "Feel is double-tapping…" : report(tally)}
       </p>
       <p className="feel-tally">
         <span>
@@ -75,15 +76,20 @@ export function TapLockDuel(): JSX.Element {
   const [ready, setReady] = useState(FRESH);
   const [robot, setRobot] = useState(false);
   const timers = useRef<number[]>([]);
+  const stop = () => {
+    for (const timer of timers.current) clearTimeout(timer);
+    timers.current = [];
+  };
+  useEffect(() => stop, []);
 
   /** Feel's own move: five rapid pairs on each switch, 90 ms apart within a pair, settled between pairs. */
   const letFeelTry = () => {
-    for (const timer of timers.current) clearTimeout(timer);
+    if (robot) return;
+    stop();
     setLocked(FRESH);
     setReady(FRESH);
     setRobot(true);
     const start = performance.now();
-    timers.current = [];
     for (let pair = 0; pair < 5; pair++) {
       for (const offset of [0, 90]) {
         const delay = pair * 700 + offset;
@@ -102,22 +108,22 @@ export function TapLockDuel(): JSX.Element {
   return (
     <div className="feel-duel" data-feel-duel>
       <p className="apple-twin-label">
-        <span className="apple-twin-badge">Web twin</span> Double-tap both switches, fast. Space twice works too.
+        <span className="apple-twin-badge">Try it here</span> Double-tap both switches, fast. Space twice works too.
       </p>
       <div className="feel-duel-pair">
-        <Contender id="locked" label="With a tap lock" note="Ignores taps for a beat after one lands" quiet={robot} tally={locked} onTap={() => setLocked((was) => tap(was, performance.now(), true))} />
-        <Contender id="ready" label="Without a lock" note="Your second tap counts too" quiet={robot} tally={ready} onTap={() => setReady((was) => tap(was, performance.now(), false))} />
+        <Contender id="locked" label="With a tap lock" note="Ignores taps for a beat after one lands" busy={robot} tally={locked} onTap={() => !robot && setLocked((was) => tap(was, performance.now(), true))} />
+        <Contender id="ready" label="Without a lock" note="Your second tap counts too" busy={robot} tally={ready} onTap={() => !robot && setReady((was) => tap(was, performance.now(), false))} />
       </div>
       <div className="feel-duel-actions">
-        <Button size="sm" variant="outline" tone="secondary" onClick={letFeelTry} disabled={robot}>
-          {robot ? "Feel is tapping…" : "Let Feel double-tap both"}
+        <Button size="sm" variant="outline" tone="secondary" onClick={letFeelTry} aria-disabled={robot || undefined} aria-busy={robot || undefined}>
+          Let Feel double-tap both
         </Button>
         <Button
           size="sm"
           variant="plain"
           tone="secondary"
           onClick={() => {
-            for (const timer of timers.current) clearTimeout(timer);
+            stop();
             setRobot(false);
             setLocked(FRESH);
             setReady(FRESH);

@@ -2,6 +2,7 @@ import type { JSX, ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
 import { AppleBand } from "./shell";
+import "./layers.css";
 
 /*
  * How Ouro UI for Apple's three ways of checking an app fit: the X-ray reads what it claims, Reins drives what it

@@ -107,8 +107,8 @@ export function ReinsRace(): JSX.Element {
       </p>
       {browser !== null ? (
         <p className="apple-fine">
-          Your browser just ran the same journey through this page's pretend kitchen in {browser < 1 ? "under a millisecond" : `${browser.toFixed(1)} ms`}. That's TypeScript, not Spoonjoy, so the
-          lanes use the real app's medians.
+          Your browser just ran the same journey through this page's pretend kitchen in {browser < 1 ? "under a millisecond" : `${browser.toFixed(1)} ms`}. That's this page's pretend kitchen, not the real
+          app, so the lanes use the real app's timings.
         </p>
       ) : null}
     </div>

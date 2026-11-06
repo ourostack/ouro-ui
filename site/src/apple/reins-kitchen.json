@@ -1,5 +1,5 @@
 {
-  "$comment": "The pretend kitchen's data and Reins' own words. Lemon Pantry Pasta's first two steps and both recipes' ids and titles are Spoonjoy's screenshot fixture as evidence/reins-cli-run.ndjson shows them; the rest of the food is pretend. `words` are OuroReins' help lines and refusal wording at ouro-ui-apple 700c973 (Sources/OuroReins/ReinsWire.swift, ReinsSession.swift), with {placeholders}.",
+  "$comment": "The pretend kitchen's data and Reins' own words. The recipes' ids and titles, Lemon Pantry Pasta's first two steps, the kitchen's counts and the context shape are Spoonjoy's screenshot fixture as evidence/reins-cli-run.ndjson shows them; the rest of the food is pretend. `words` are OuroReins' help lines, schema problems and refusal wording at ouro-ui-apple 700c973 (Sources/OuroReins/ReinsWire.swift, ReinsSession.swift, ReinsSchema.swift), with {placeholders}.",
   "recipes": [
     {
       "id": "recipe_lemon_pantry_pasta",
@@ -86,6 +86,22 @@
     ],
     "unexpected": "{action} takes no input, got {input}",
     "unexpectedFix": "send `do {action}` with no input",
-    "emptyDrawer": "An empty drawer: this pretend kitchen only stocked the Kitchen tab."
-  }
+    "emptyDrawer": "An empty drawer: this pretend kitchen only stocked the Kitchen tab.",
+    "unavailable": "{action} isn't available on {focus}",
+    "unavailableFix": "use one of: {names}",
+    "nothingFix": "nothing can be done on {focus}; run ls",
+    "invalidFix": "send input matching {schema}",
+    "notJson": "the input after `do {action}` isn't JSON: {rest}",
+    "unknown": "unknown request `{text}`",
+    "badRequestFix": "send `ls`, `do <action> [json]`, or {\"op\":\"ls\"} / {\"op\":\"do\",\"action\":\"<name>\",\"input\":{...}}",
+    "requiredMissing": "{path}: required, missing",
+    "notAProperty": "{path}: not a property of this input (expected {keys})",
+    "notOneOf": "{path}: \"{value}\" isn't one of {allowed}",
+    "expected": "{path}: expected {expected}, got {got}"
+  },
+  "counts": {
+    "recipes": 2,
+    "shoppingItems": 3
+  },
+  "bootstrap": "offlineStale"
 }

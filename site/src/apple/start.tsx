@@ -104,7 +104,7 @@ export default function AppleStart(): JSX.Element {
           <p>
             {kit.feelReinsRelease
               ? `Ouro Feel and Ouro Reins ship in ${kit.feelReinsRelease}.`
-              : "Ouro Feel and Ouro Reins are on ouro-ui-apple's main branch, and come with its next release."}{" "}
+              : "Ouro Feel and Ouro Reins are on ouro-ui-apple's main branch, and come in a later release."}{" "}
             Until then the package line above doesn't include them; their pages show what they do.
           </p>
         }

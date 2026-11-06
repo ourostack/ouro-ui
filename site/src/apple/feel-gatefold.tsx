@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { useState, type CSSProperties, type JSX } from "react";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
@@ -13,10 +13,16 @@ import gatefold from "./feel-gatefold.json";
 type Side = "before" | "after";
 
 const SHOWN = 4;
+const SIDES: Side[] = ["before", "after"];
+
+/** Where the panel sits in each 675×900 capture, as the blur crops left it unblurred. */
+const RING: Record<Side, CSSProperties> = {
+  before: { left: "85.9%", top: "60.2%", width: "14.1%", height: "38.4%" },
+  after: { left: "24%", top: "60.2%", width: "52.1%", height: "38.4%" },
+};
 
 export function GatefoldFlip(): JSX.Element {
   const [side, setSide] = useState<Side>("before");
-  const before = side === "before";
   const report = gatefold[side];
   return (
     <div className="feel-flip" data-feel-flip={side}>
@@ -31,19 +37,27 @@ export function GatefoldFlip(): JSX.Element {
       />
       <div className="feel-flip-pair">
         <figure className="feel-flip-figure">
+          {/* Both captures stay mounted and crossfade, so a flip never snaps; a ring marks where the panel is. */}
           <div className="feel-flip-screen">
-            <img
-              src={href(`/apple/media/feel-gatefold-${side}.jpg`)}
-              width={675}
-              height={900}
-              alt={
-                before
-                  ? "Gatefold's Fine-Tune panel in portrait, pushed off the right edge of the iPad: only the start of its rows shows, and the switches are past the edge."
-                  : "Gatefold's Fine-Tune panel in portrait after the fix, wholly on screen: fonts, line spacing, margins and the switches, back in reach."
-              }
-              loading="lazy"
-              decoding="async"
-            />
+            {SIDES.map((which) => (
+              <div key={which} className="feel-flip-layer" data-shown={which === side ? "" : undefined} aria-hidden={which === side ? undefined : true}>
+                <img
+                  src={href(`/apple/media/feel-gatefold-${which}.jpg`)}
+                  width={675}
+                  height={900}
+                  alt={
+                    which === "before"
+                      ? "Gatefold's Fine-Tune panel in portrait, pushed off the right edge of the iPad: only the start of its rows shows, and the switches are past the edge."
+                      : "Gatefold's Fine-Tune panel in portrait after the fix, wholly on screen: fonts, line spacing, margins and the switches, back in reach."
+                  }
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span className="feel-flip-ring" style={RING[which]} aria-hidden="true">
+                  <span className="feel-flip-ring-label">{which === "before" ? "the panel, mostly off-screen" : "the panel"}</span>
+                </span>
+              </div>
+            ))}
           </div>
           <figcaption className="apple-loop-caption">
             <span>
@@ -58,26 +72,34 @@ export function GatefoldFlip(): JSX.Element {
             </span>
           </figcaption>
         </figure>
-        <div className="feel-flip-report" aria-live="polite">
-          <p className={before ? "feel-verdict feel-verdict-fail site-mono" : "feel-verdict feel-verdict-pass site-mono"}>{report.summary}</p>
-          {before ? (
-            <ul className="feel-readings site-mono">
-              {gatefold.before.readings.slice(0, SHOWN).map((reading, index) => (
-                <li key={index}>{reading}</li>
-              ))}
-              <li className="feel-readings-more">…and {gatefold.before.readings.length - SHOWN} more like them, off past the window's right edge.</li>
-            </ul>
-          ) : null}
-          <p className="feel-where site-mono">{report.measured}</p>
-          <p className="apple-fine">
-            {before
-              ? "A person would just see a panel that looks a bit cramped. Feel read the controls' frames against the window, in portrait, landscape and portrait again, and found the switches had wandered off the edge of the world."
-              : "Same check, same simulator, one fix later, and the whole panel is back on the page. Flip back and forth; the panel doesn't have to be told twice."}{" "}
-            <a className="apple-inline-link" href={href("/apple/feel/#genres")}>
-              Inside the window
-            </a>{" "}
-            is just one genre.
-          </p>
+        {/* Both reports share one cell, so the section keeps its height when you flip; only the verdict is spoken. */}
+        <p className="sr-only" aria-live="polite">
+          {report.summary}
+        </p>
+        <div className="feel-flip-reports">
+          {SIDES.map((which) => (
+            <div key={which} className="feel-flip-report" data-shown={which === side ? "" : undefined} aria-hidden={which === side ? undefined : true}>
+              <p className={which === "before" ? "feel-verdict feel-verdict-fail site-mono" : "feel-verdict feel-verdict-pass site-mono"}>{gatefold[which].summary}</p>
+              {which === "before" ? (
+                <ul className="feel-readings site-mono">
+                  {gatefold.before.readings.slice(0, SHOWN).map((reading, index) => (
+                    <li key={index}>{reading}</li>
+                  ))}
+                  <li className="feel-readings-more">…and {gatefold.before.readings.length - SHOWN} more like them, off past the window's right edge.</li>
+                </ul>
+              ) : null}
+              <p className="feel-where site-mono">{gatefold[which].measured}</p>
+              <p className="apple-fine">
+                {which === "before"
+                  ? "A person would just see a panel that looks a bit cramped. Feel read the controls' frames against the window, in portrait, landscape and portrait again, and found the switches had wandered off the edge of the world."
+                  : "Same check, same simulator, one fix later, and the whole panel is back on the page. Flip back and forth; the panel doesn't have to be told twice."}{" "}
+                <a className="apple-inline-link" href={href("/apple/feel/#genres")} tabIndex={which === side ? undefined : -1}>
+                  Inside the window
+                </a>{" "}
+                is just one genre.
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

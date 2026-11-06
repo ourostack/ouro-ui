@@ -17,7 +17,7 @@ const REFLEX = "https://shopify.engineering/reflex";
 const MODEL = [
   { name: "Nodes", body: "A screen is a little tree. A node has a name, its state as JSON, and the actions it offers, with an input schema for those that take input." },
   { name: "The focus", body: "The deepest node is the screen in front of you. ls shows it, its path, and the actions you may run right now." },
-  { name: "Lending", body: "A navigation stack lends goBack once you're deeper than its root; a tab bar lends selectTab. The nearest lender wins." },
+  { name: "Lending", body: "A navigation stack lends goBack once you're deeper than its root; a tab bar lends selectTab. If two could lend the same action, the nearest one does." },
   { name: "Refusal", body: "Ask for something that isn't on offer and Reins says no before any app code runs, and lists what is." },
 ] as const;
 
@@ -27,6 +27,8 @@ const DRIVABLE = `import OuroReins
 final class Shell: ReinsDrivable {
     let store: AppStore
     var path: [Route] = []
+    var page: ReinsNode { path.last.map(\.node) ?? .kitchen(store) }
+    func select(_ tab: String) { path = []; store.tab = tab }
     var reinsNode: ReinsNode {
         .tabs(selected: "kitchen", tabs: ["kitchen", "shopping"],
               select: { self.select($0) }, child:
@@ -51,11 +53,37 @@ export default function AppleReins(): JSX.Element {
         id="apple-reins-title"
         eyebrow="Ouro Reins"
         title="Hand an agent the reins."
+        media={
+          <div className="reins-hero-race" id="race">
+            <h2 className="reins-hero-race-title">
+              {claim("Nineteen milliseconds against seventeen seconds.", {
+                source: [{ evidence: "site/src/apple/evidence/reins-headless-timing.json" }],
+                verify: [
+                  { equals: "site/src/apple/evidence/reins-headless-timing.json#medianMs", is: 18.7 },
+                  { equals: "site/src/apple/evidence/reins-headless-timing.json#xcuitest.medianJourneyMs", is: 16677 },
+                ],
+              })}
+            </h2>
+            <ReinsRace />
+            <p className="apple-fine">
+              {claim("Spoonjoy's journey from the Kitchen to a recipe, into cook mode, a step forward and back, and home took a median 18.7 ms headless through Reins, over 50 runs, and 16.7 s through XCUITest on a simulator, over 5.", {
+                source: [{ evidence: "site/src/apple/evidence/reins-headless-timing.json" }, { evidence: "site/src/apple/evidence/reins-xcuitest-timing.txt" }],
+                verify: [
+                  { equals: "site/src/apple/evidence/reins-headless-timing.json#medianMs", is: 18.7 },
+                  { equals: "site/src/apple/evidence/reins-headless-timing.json#runs", is: 50 },
+                  { equals: "site/src/apple/evidence/reins-headless-timing.json#xcuitest.medianJourneyMs", is: 16677 },
+                  { fileLine: "site/src/apple/evidence/reins-xcuitest-timing.txt", pattern: "median journey 16677 ms" },
+                ],
+              })}{" "}
+              The simulator's lane runs at real speed, so bring a snack, or skip to the end.
+            </p>
+          </div>
+        }
         actions={
           <>
             <Button href="#drive">Take the reins</Button>
-            <Button href="#race" variant="outline" tone="secondary">
-              Race the simulator
+            <Button href="#model" variant="outline" tone="secondary">
+              See what an agent sees
             </Button>
           </>
         }
@@ -80,34 +108,12 @@ export default function AppleReins(): JSX.Element {
         title="Drive a kitchen from here."
         lede={
           <p>
-            This is a pretend kitchen in your browser, shaped like the tree Spoonjoy's real app hands Reins: the same screens, actions and refusals. Open the pasta, start
+            This is a pretend kitchen in your browser, shaped like the tree Spoonjoy's real app hands Reins: the same screens and actions, refusing in Reins' own words. Open the pasta, start
             cooking, turn a step, then ask for something that isn't on offer and watch it say no nicely.
           </p>
         }
       >
         <ReinsTerminal />
-      </AppleBand>
-
-      <AppleBand
-        id="race"
-        eyebrow="The race"
-        title="Nineteen milliseconds against seventeen seconds."
-        lede={
-          <p>
-            {claim("Spoonjoy's journey from the Kitchen to a recipe, into cook mode, a step forward and back, and home took a median 18.7 ms headless through Reins, over 50 runs, and 16.7 s through XCUITest on a simulator, over 5.", {
-              source: [{ evidence: "site/src/apple/evidence/reins-headless-timing.json" }, { evidence: "site/src/apple/evidence/reins-xcuitest-timing.txt" }],
-              verify: [
-                { equals: "site/src/apple/evidence/reins-headless-timing.json#medianMs", is: 18.7 },
-                { equals: "site/src/apple/evidence/reins-headless-timing.json#runs", is: 50 },
-                { equals: "site/src/apple/evidence/reins-headless-timing.json#xcuitest.medianJourneyMs", is: 16677 },
-                { fileLine: "site/src/apple/evidence/reins-xcuitest-timing.txt", pattern: "median journey 16677 ms" },
-              ],
-            })}{" "}
-            Same app, same sample kitchen, same end state. The simulator's lane below runs at real speed, so bring a snack, or skip to the end.
-          </p>
-        }
-      >
-        <ReinsRace />
       </AppleBand>
 
       <AppleBand id="model" eyebrow="The model" title="What an agent sees.">
@@ -131,9 +137,9 @@ export default function AppleReins(): JSX.Element {
           </p>
         }
       >
-        <div className="apple-pair feel-reins-code">
-          <CodeBlock code={DRIVABLE} label="Shell.swift" />
-          <CodeBlock code={JOURNEY} label="A journey, in a test" />
+        <div className="feel-reins-code">
+          <CodeBlock code={DRIVABLE} label="Shell.swift" copy />
+          <CodeBlock code={JOURNEY} label="A journey, in a test" copy />
         </div>
       </AppleBand>
 
@@ -143,7 +149,11 @@ export default function AppleReins(): JSX.Element {
         title="The network is blocked, and checked."
         lede={
           <p>
-            {claim("Every request through URLSession.shared fails while the guard is up, and the test fails afterwards even when the app recovered. Spoonjoy's journeys made no attempts, and a control run that went live first was caught on its very first request.", {
+            {claim("While the guard is up, every request through URLSession.shared fails, and the test fails afterwards even when the app recovered.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-reins/README.md#L122-L126" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-reins/README.md#L122-L126" },
+            })}{" "}
+            {claim("Spoonjoy's journeys made no attempts, and a control run that went live was caught at it.", {
               source: { evidence: "site/src/apple/evidence/reins-headless-timing.json" },
               verify: [
                 { fileLine: "site/src/apple/evidence/reins-headless-timing.json", pattern: "0 network attempts" },
@@ -156,12 +166,12 @@ export default function AppleReins(): JSX.Element {
       >
         <div className="apple-steps">
           <p className="apple-fine">
-            In a running debug build the same lines work over a local socket, so an agent can drive the real app on a simulator. Release builds don't contain it at all;
-            CI checks.{" "}
+            In a running debug build the same lines work over a local socket, so an agent can drive the real app on a simulator. Release builds leave it out
+            entirely, and CI keeps it that way.{" "}
             {kit.feelReinsRelease ? (
               <>Ouro Reins ships in ouro-ui-apple {kit.feelReinsRelease}.</>
             ) : (
-              <>Ouro Reins is on ouro-ui-apple's main branch now, and comes with its next release.</>
+              <>Ouro Reins is on ouro-ui-apple's main branch now, and comes in a later release.</>
             )}{" "}
             Read the{" "}
             <a className="apple-inline-link" href={GUIDE}>
@@ -171,7 +181,7 @@ export default function AppleReins(): JSX.Element {
             <a className="apple-inline-link" href={SKILL}>
               skill
             </a>
-            . And honestly: a node has one child, so a split view shows only the column in focus, as in Reflex.
+            . One honest limit, shared with Reflex: a screen shows one column at a time, so a split view shows only the column in focus.
           </p>
         </div>
       </AppleBand>

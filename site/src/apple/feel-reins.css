@@ -1,91 +1,42 @@
 /*
  * Ouro Feel's and Ouro Reins' pages (/apple/feel/, /apple/reins/), on top of apple.css. Laid out openly like the rest
- * of the section: the only framed things are the Gatefold capture (a screen), the duel's two switches and the Reins
- * terminal (you touch them). Every colour is a theme variable or mixed from one. Under reduced motion the race's
+ * of the section: the only framed things are the Gatefold capture (a screen) and the Reins terminal's log (you
+ * type into it); the duel's switches sit on hairlines. Every colour is a theme variable or mixed from one. Under reduced motion the race's
  * bars step instead of gliding, and nothing else here moves.
  */
 @layer components {
-  /* The three ways of knowing, on every page that names one. */
-  .apple-layers {
-    display: grid;
-    gap: calc(var(--spacing) * 8) var(--apple-gap);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .apple-layer {
-    display: grid;
-    grid-template-columns: 2rem minmax(0, 1fr);
-    align-content: start;
-    gap: calc(var(--spacing) * 1) calc(var(--spacing) * 3);
-    padding-top: calc(var(--spacing) * 4);
-    border-top: 1px solid var(--apple-hairline);
-  }
-  .apple-layer[data-current] {
-    border-top-color: var(--primary);
-    border-top-width: 2px;
-  }
-  .apple-layer > :not(.apple-lane-step) {
-    grid-column: 2;
-    margin: 0;
-  }
-  .apple-layer .apple-lane-step {
-    grid-row: span 4;
-  }
-  .apple-layer-kind {
-    color: var(--muted-foreground);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .apple-layer-name {
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
-  .apple-layer-here {
-    color: var(--muted-foreground);
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-  .apple-layer-asks {
-    font-family: var(--font-heading, inherit);
-    font-size: 1.0625rem;
-    font-style: italic;
-  }
-  .apple-layer-body {
-    color: var(--muted-foreground);
-    font-size: 0.9375rem;
-  }
-
   /* Feel: the duel in the hero. */
   .feel-duel {
     display: grid;
     gap: calc(var(--spacing) * 4);
     align-content: start;
+    align-self: start;
     min-width: 0;
   }
   .feel-duel-pair {
     display: grid;
     gap: calc(var(--spacing) * 3);
   }
+  /* Open, not boxed: a hairline above, and a rule down the side that takes the verdict's colour. */
   .feel-contender {
     display: grid;
     gap: calc(var(--spacing) * 2);
-    padding: calc(var(--spacing) * 4);
-    border-radius: calc(var(--radius) * 2);
-    background: var(--apple-stage);
+    padding-top: calc(var(--spacing) * 3);
+    padding-inline-start: calc(var(--spacing) * 3);
+    border-top: 1px solid var(--apple-hairline);
+    box-shadow: inset 2px 0 0 var(--apple-hairline);
     transition: box-shadow 200ms ease;
   }
   .feel-contender[data-verdict="fail"] {
-    box-shadow: inset 3px 0 0 var(--destructive);
+    box-shadow: inset 2px 0 0 var(--destructive);
   }
   .feel-contender[data-verdict="pass"] {
-    box-shadow: inset 3px 0 0 var(--success, var(--primary));
+    box-shadow: inset 2px 0 0 var(--success, var(--primary));
   }
+  /* Room for the longest verdict, so a result never pushes the page. */
   .feel-report {
     margin: 0;
-    min-height: 2.5em;
+    min-height: 3.75rem;
     font-size: 0.8125rem;
     line-height: 1.25rem;
   }
@@ -127,21 +78,63 @@
     max-width: 22rem;
   }
   .feel-flip-screen {
+    display: grid;
     overflow: hidden;
     border: 1px solid var(--apple-hairline);
     border-radius: var(--apple-screen-radius);
-    background: #fff;
+    background: var(--apple-stage);
   }
-  .feel-flip-screen img {
+  /* Both captures share one cell and crossfade; the hidden one keeps its place, so nothing moves. */
+  .feel-flip-layer {
+    position: relative;
+    grid-area: 1 / 1;
+    opacity: 0;
+    transition: opacity 160ms ease;
+  }
+  .feel-flip-layer[data-shown] {
+    opacity: 1;
+  }
+  .feel-flip-layer img {
     display: block;
     width: 100%;
     height: auto;
   }
+  .feel-flip-ring {
+    position: absolute;
+    border: 2px solid var(--destructive);
+    border-radius: calc(var(--radius) * 1.5);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--destructive) 25%, transparent);
+  }
+  .feel-flip-layer:last-child .feel-flip-ring {
+    border-color: var(--success, var(--primary));
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--success, var(--primary)) 25%, transparent);
+  }
+  .feel-flip-ring-label {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .feel-flip-reports {
+    display: grid;
+    min-width: 0;
+  }
   .feel-flip-report {
     display: grid;
+    grid-area: 1 / 1;
     align-content: start;
     gap: calc(var(--spacing) * 3);
     min-width: 0;
+    visibility: hidden;
+  }
+  .feel-flip-report[data-shown] {
+    visibility: visible;
   }
   .feel-flip-report > * {
     margin: 0;
@@ -197,10 +190,12 @@
     color: var(--muted-foreground);
     font-weight: 400;
   }
+  /* A fixed height: replies scroll inside it, so nothing below the terminal ever moves. */
   .reins-log {
     display: grid;
+    align-content: start;
     gap: calc(var(--spacing) * 4);
-    max-height: 26rem;
+    height: 22rem;
     margin: 0;
     padding: calc(var(--spacing) * 4);
     overflow-y: auto;
@@ -291,10 +286,13 @@
     display: grid;
     gap: calc(var(--spacing) * 2);
   }
+  /* Room reserved for the most rows any screen's actions take, so running one never changes the page's height. */
   .reins-chips {
     display: flex;
     flex-wrap: wrap;
+    align-content: start;
     gap: calc(var(--spacing) * 2);
+    min-height: calc(2.75rem * 4 + var(--spacing) * 6);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -309,7 +307,7 @@
     color: var(--foreground);
     font-size: 0.8125rem;
     text-align: start;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
     cursor: pointer;
     transition:
       background-color 160ms ease,
@@ -386,8 +384,26 @@
     font-size: 1.0625rem;
   }
 
+  /* Code gets the wide column: one block above the other, or code beside a narrow note. */
   .feel-reins-code {
-    align-items: start;
+    display: grid;
+    gap: var(--apple-gap);
+  }
+  .reins-hero-race {
+    display: grid;
+    gap: calc(var(--spacing) * 5);
+    align-self: start;
+    min-width: 0;
+  }
+  .reins-hero-race-title {
+    margin: 0;
+    font-size: 1.375rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  .reins-hero-race .reins-race {
+    gap: calc(var(--spacing) * 4);
   }
 
   @media (min-width: 40rem) {
@@ -396,14 +412,14 @@
     }
   }
   @media (min-width: 56rem) {
-    .apple-layers {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
     .feel-flip-pair {
       grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
     }
-    .feel-reins-code {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .reins-chips {
+      min-height: calc(2.75rem * 2 + var(--spacing) * 2);
+    }
+    .apple-pair.feel-reins-wide {
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
     }
     .feel-duel-pair {
       grid-template-columns: minmax(0, 1fr);
@@ -411,7 +427,8 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .reins-fill,
-    .feel-contender {
+    .feel-contender,
+    .feel-flip-layer {
       transition: none;
     }
   }
