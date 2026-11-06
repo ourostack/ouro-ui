@@ -1218,11 +1218,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           scroller.scrollTop += moved;
           const applied = scroller.scrollTop - before;
           springsRef.current?.moved(applied);
-          // What rounding left over, carried; not a move the list's end stopped, which no later scroll can make.
-          const atStart = scroller.scrollTop <= 0;
-          // Stryker disable next-line all: a list stopped at its end is at its bottom, which the next correction follows, owing nothing; this only spares the one before the scroll event says so.
-          const atEnd = scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight;
-          owed = atStart || atEnd ? 0 : moved - applied;
+          // What rounding left over, carried: under a pixel. A move the browser did not apply in full (the list's end or start stopped it, smooth scrolling or snapping took it) is not a debt a later write can pay.
+          owed = Math.abs(moved - applied) < 1 ? moved - applied : 0;
         }
       } else owed = 0;
       keepAnchor();
