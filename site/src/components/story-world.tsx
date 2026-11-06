@@ -30,6 +30,10 @@ function ScenePicture({ scene, priority, sizes }: { scene: SceneName; priority: 
         height={height}
         className="story-world-img"
         draggable={false}
+        // The canonical brand files, served byte for byte: the widest published is 1536px (768px for the phone crop),
+        // so on a dense screen a painted scene is drawn up to twice its pixels, its edges already feathered soft.
+        data-ouro-allow="blurry-image"
+        data-ouro-allow-why="The storybook brand's canonical scene files, served unchanged: the widest published is 1536px, 768px for the phone crop."
         {...(priority ? { fetchPriority: "high" as const } : { loading: "lazy" as const, decoding: "async" as const })}
       />
     </picture>
