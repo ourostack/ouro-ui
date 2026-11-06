@@ -2,7 +2,7 @@
 
 # ShowMore
 
-"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height under a fade, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The button names what it folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`). Folded text and content have their button in the first frame and in server HTML: ShowMore guesses whether they are longer than the fold from their text and the sizes their elements give, reading no layout, and corrects a wrong guess from the browser's own layout a frame later, so a long list of folded messages lays the page out no more often than one without them. The guess leans folded: content shows whole from the start only when it is clearly short and the guess saw all of it (no component and no picture without a height), so a wrong guess costs a button that goes a frame later, never a box that shrinks. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
+"Show more" for a long list or a long text. It cuts a list to its first items, clamps text to a number of lines, folds content of any kind (a long post with pictures) to a height under a fade, or grows a list a page at a time from the server, and moves focus to the first newly shown item, so keyboard and screen reader users land on what they asked for. A list that loads more also says how many items now show. The button names what it folds (`aria-controls`) and, unless it loads more, says whether it is open (`aria-expanded`). Folded text and content are folded by CSS in the first commit and in server HTML, and the button comes after the browser has laid them out: ShowMore does not guess whether they are longer than the fold. One ResizeObserver reads the layout and adds the button to what overflows. The visible items are in the server HTML. ShowMore draws the list itself: put a border around the list on a wrapping element, and borders between rows on each item.
 
 ```tsx
 import { ShowMore } from "@/registry/ouro/components/ouro/collapsible/show-more";
@@ -44,7 +44,7 @@ Long content of any kind folded to `maxHeight` pixels under a fade, with "Show m
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The content: rich text, pictures, cards. Screen readers always read all of it, and moving keyboard focus into the folded part unfolds it, so nothing focusable is out of sight. |
-| `estimate` | `ShowMoreEstimate` |  | What the content holds, when its elements cannot say (your own components, pictures that size themselves): its plain text and the pixels its pictures and cards take. ShowMore decides whether to start folded from it, before anything is laid out, as it does from text and sized elements it can see: content clearly short shows whole from the first frame, and long content starts folded. Without it, content holding a component or a picture with no height starts folded, and shows whole a frame later if it fits. |
+| `estimate` | `ShowMoreEstimate` |  | Not read: ShowMore does not guess whether content is longer than its fold, so this changes nothing. Kept so an app that passes it still compiles. |
 | `maxHeight` (required) | `number` |  | How tall the content shows while folded, in CSS pixels, with its last part fading out. Content at most a fifth taller shows whole, since a button that reveals a line or two helps nobody. The button appears only when the content is folded. |
 | `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the button is pressed, or when keyboard focus moving below a `maxHeight` fold unfolds it, whether or not `open` is set. |
 | `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
@@ -98,7 +98,7 @@ Long text clamped to `lines` lines, with "Show more" and "Show less".
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The text. Screen readers always read all of it. |
-| `estimate` | `ShowMoreEstimate` |  | What the content holds, when its elements cannot say (your own components, pictures that size themselves): its plain text and the pixels its pictures and cards take. ShowMore decides whether to start folded from it, before anything is laid out, as it does from text and sized elements it can see: content clearly short shows whole from the first frame, and long content starts folded. Without it, content holding a component or a picture with no height starts folded, and shows whole a frame later if it fits. |
+| `estimate` | `ShowMoreEstimate` |  | Not read: ShowMore does not guess whether content is longer than its fold, so this changes nothing. Kept so an app that passes it still compiles. |
 | `lines` (required) | `number` |  | How many lines show while collapsed. The button appears only when the text is longer. |
 | `onOpenChange` | `((open: boolean) => void)` |  | Called with the new state when the button is pressed, or when keyboard focus moving below a `maxHeight` fold unfolds it, whether or not `open` is set. |
 | `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
@@ -164,15 +164,13 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ### `ShowMoreEstimate`
 
-What folded content holds, for ShowMore's first guess at whether it is longer than its fold, when its elements cannot say: a message's own components, or pictures that size themselves.
+What folded content holds. Not read: ShowMore decides from the browser's layout, and this leaves the first frame as it is. Kept so an app that passes it still compiles.
 
 ```ts
 interface ShowMoreEstimate {
-  /**
-   * Its plain text, as a reader would read it, with its line breaks, each of which starts a line as it shows.
-   */
+  /** Its plain text. Not read. */
   text?: string | undefined;
-  /** The CSS pixels its pictures, cards and other blocks of known size take, besides the text. @default 0 */
+  /** The CSS pixels its pictures and cards take. Not read. */
   height?: number | undefined;
 }
 ```

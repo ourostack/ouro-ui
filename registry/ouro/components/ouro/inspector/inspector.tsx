@@ -496,6 +496,8 @@ function InspectorLayer({
   useEffect(() => {
     const own = layer.current!;
     let frame = 0;
+    // Whether anything moved at the last measure.
+    let moved: boolean | undefined;
     const observed = new Set<Element>();
     const resizes = new ResizeObserver(() => schedule());
     const update = () => {
@@ -518,7 +520,12 @@ function InspectorLayer({
       setFound((current) => (sameComponents(current, next) ? current : next));
       setMeasured(true);
       place(next);
-      if (moving(own)) schedule();
+      // While anything moves, and once more the frame after: in the frame a transition ends, WebKit
+      // can still read the element's style from before it ended, with no animation left running,
+      // and nothing tells X-ray when the style catches up.
+      const now = moving(own);
+      if (now || moved) schedule();
+      moved = now;
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(update);

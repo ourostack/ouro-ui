@@ -36,6 +36,7 @@ An action an agent may take; the app binds its CLI twin.
 interface AxAgentAction extends AxActionBase {
   agent: true;
   personOnly?: never;
+  scope?: AxScope;
 }
 ```
 
@@ -59,6 +60,7 @@ An action only the person takes, with the reason in one line, said to you, the a
 interface AxPersonOnlyAction extends AxActionBase {
   personOnly: string;
   agent?: never;
+  scope?: never;
 }
 ```
 
@@ -76,9 +78,17 @@ interface AxRead {
 }
 ```
 
+### `AxScope`
+
+Whose item an agent action may act on: `self`, only the calling agent's own, such as its own row in AgentPresence. An action without a scope acts on any item.
+
+```ts
+type AxScope = "self";
+```
+
 ### `bindAx`
 
-Binds a component's twins to the app's commands and returns its entries for the X-ray inventory (`ui`). It throws when a read or an agent action has no twin, a read with `push: "filtered"` has no stream, a person-only action is given a twin or has no `refuseAs` words, `refuseAs` names an action that is not person-only, or a binding names nothing the component declares.
+Binds a component's twins to the app's commands and returns its entries for the X-ray inventory (`ui`). It throws when a read or an agent action has no twin, a read with `push: "filtered"` has no stream, a person-only action is given a twin or has no `refuseAs` words, `refuseAs` names an action that is not person-only, a `scope: "self"` action's twin does not say who is calling (`--agent <me>`), or a binding names nothing the component declares. A scoped action's entry carries its scope.
 
 ```ts
 function bindAx(ax: ComponentAx, bindings: AxBindings): UiEntry[]
@@ -109,7 +119,7 @@ interface ComponentAx {
 
 ### `defineComponentAx`
 
-Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither, and a reserved id (`isReservedPersonOnly`) never `agent: true`. A problem throws one line with its fix.
+Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither, a reserved id (`isReservedPersonOnly`) never `agent: true`, and a scope only `"self"`, only on an agent action. A problem throws one line with its fix.
 
 ```ts
 function defineComponentAx(def: { component: string; reads: readonly AxRead[]; actions: readonly AxAction[]; }): ComponentAx
@@ -222,5 +232,6 @@ interface UiEntry {
   push?: string;
   trigger?: string;
   refuseAs?: string;
+  scope?: AxScope;
 }
 ```

@@ -41,6 +41,8 @@ While older history may load, set `hasOlder`, and `loadingOlder` while it loads:
 
 Give it a height (`className="h-96"`, or `flex-1` in a column), since it scrolls inside it. Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view scrolls the list, not the page around it.
 
+A conversation of more than 60 children draws only the messages near its view (`windowing`), each measured as it draws, with space kept for the rest, so a long conversation opens and redraws in about the time a screenful does. The reader's place holds as the messages above them are measured and as older ones load above, in one frame. The newest message, the one with focus and any still streaming stay drawn, and the arrow keys, Home and End reach every message, drawing the one they reach. The browser's find in page sees only what is drawn: search your own messages and call `actionsRef.current.reveal(id)` to show a match, as a quote does. Each child sits in an element of its own that draws no box (`display: contents`, marked `data-ouro-message-list-slot`), so CSS that selects the list's direct children selects those elements, in a list of any length.
+
 The messages spring as the reader scrolls, as in a phone's messages app: each trails the scroll a little and catches up, the farther from the pointer, finger or focused message the more, and a fling or a push past either end spreads them apart for a moment. The scroll position never moves for it, and at rest no message has a transform. `springy={false}` turns it off, and it is off with reduced motion.
 
 The messages are one Tab stop. Tab lands on the newest message in view (or the one focused last, while it shows), and the arrow keys, Home, End, Page Up and Page Down move between messages, with a focus ring; a message taller than the list scrolls through first. The right arrow (the left one, right to left) goes into the focused message's toolbar, such as its action bar, else its first control, and Tab goes through its controls. Tab never stops on the other messages' controls, so the next Tab after a message's own controls leaves the list. Nor does it stop on the focus guards an open menu puts around its button, so Tab from a message whose menu is open goes on through its controls rather than back to the message. A new message never takes focus, and when the focused message goes, focus goes to the one now in its place. Each message that is an article carries its place among them for screen readers (`aria-posinset`, `aria-setsize`). `onMessageKeyDown` adds keys of your own on the focused message, such as 1 to 6 for quick reactions.
@@ -59,10 +61,11 @@ Type: `MessageListProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `actionsRef` | `Ref<MessageListActions>` |  | Gets the list's actions: `reveal(id)` brings a message into view, drawing it first if it is not drawn, for a quote, a link to a message, or find in chat; `jumpToNewest()` goes to the end and follows new messages again. See `MessageListActions`. |
 | `children` (required) | `ReactNode` |  | The `Message`s, oldest first, or your own message components marked `data-ouro-message-list-item` (see `MessageList`). |
 | `className` | `string` |  | Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that height, so give it one. Appearance classes warn in development. |
 | `hasOlder` | `boolean` | `false` | Whether older messages may still load above, until the reader reaches the start of the conversation. While it is true the list keeps room above the first message, where "Loading older messages" shows, so at the top it covers no message or focus ring, and nothing moves as loading starts. Set it to `false` once there is nothing older: the room stays until it has left the view, or the list is at its end, and then goes without moving a message. |
-| `initialAnchor` | `string` |  | The `id` of the message to open at, such as one found by search or a link to it. The list opens with that message in the middle of its view, before it first draws, so the newest is never shown first, and it follows new messages only once the reader reaches the end. The list reads it when it first has messages, so it can come with them; a message it does not hold, or the newest, opens at the end, and a later change moves nothing. |
+| `initialAnchor` | `string` |  | The `id` of the message to open at, such as one found by search or a link to it, or the `key` of the child that holds it (the message's own id, where a row component of yours takes no `id`). The list opens with that message in the middle of its view, before it first draws, so the newest is never shown first, and it follows new messages only once the reader reaches the end. The list reads it when it first has messages, so it can come with them; a message it does not hold, or the newest, opens at the end, and a later change moves nothing. |
 | `jumpLabel` | `string` | `"Jump to latest"` | The button that appears once the reader scrolls up, for other languages. |
 | `label` (required) | `string` |  | What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. |
 | `loadingOlder` | `boolean` |  | Whether older messages are loading above: a small "Loading older messages" shows over the top of the list, and screen readers hear it once. It sits over the messages, not among them, so starting and ending it moves no message. At the very top it covers the first message unless `hasOlder` keeps room for it. Fetch older pages ahead of the reader, not when they reach the top: the next older page as soon as the one before it has arrived, while they are still screens away. Then this shows only when they get to the top first. |
@@ -73,6 +76,7 @@ Type: `MessageListProps`.
 | `pageKeys` | `boolean` | `true` | Whether Page Up and Page Down on a focused message move a page through the messages, as ⌥↑ and ⌥↓ do on a Mac. With `false` the list leaves those keys alone: it neither acts on them nor calls `preventDefault()`, so an app's own shortcut on them, such as ⌥↓ for the next conversation, gets them as pressed, and the browser scrolls the list. The other keys still move between messages. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `springy` | `boolean` | `true` | Whether the messages spring as the reader scrolls, as in a phone's messages app: each one trails the scroll a little, the farther from where the reader scrolls (the finger, the pointer, the focused message) the more, and catches up on a spring. A fling, or a push past either end, spreads the messages apart and they settle back. It draws with `transform` alone: the list's scroll position never moves for it, and at rest no message has a transform. Only the messages in or near view move, so a long conversation costs what a short one does. It runs for the reader's own wheel, trackpad, touch and keys, never for scrolling the list or your code does (following new messages, setting `scrollTop`), and never with reduced motion (`prefers-reduced-motion: reduce`, or `OuroProvider`'s `motion`). |
+| `windowing` | `boolean` | `true` | Whether a long conversation draws only the messages near its view. Above 60 children the list draws those within a screen or 800 pixels of the view, whichever is more, the newest, the one with focus, and any still streaming, each measured as it draws, with space for the rest kept above and below, so a long conversation opens and redraws in about the time a screenful does. The browser's find in page, and code that reads messages from the page, see only the messages drawn: search your own messages and call `actionsRef.current.reveal(id)` to show a match. Set `false` to keep every message in the page. |
 
 ## Native attributes
 
@@ -92,5 +96,51 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `MessageListActions`
+
+What a MessageList does on request, through its `actionsRef`.
+
+```ts
+interface MessageListActions {
+  /**
+   * Brings the message whose `id` is given into view, drawing it first if the list has not, and
+   * stops following new messages. A child is found by its `id` prop, or by its `key` (the message's
+   * own id, where a row component of yours takes no `id`), and once drawn by the `id` of any element
+   * in it. Resolves true once the message is in place (and focused, with `focus`), and false at once
+   * when no child has that `id` or `key`, or when another reveal or a key press takes its place. Find
+   * in chat searches your own messages, then reveals each match: the browser's find in page sees only
+   * what is drawn.
+   */
+  reveal(id: string, options?: MessageListRevealOptions): Promise<boolean>;
+  /**
+   * Goes to the newest message and follows new messages again, as "Jump to latest" does, leaving focus where it is.
+   */
+  jumpToNewest(): void;
+}
+```
+
+### `MessageListRevealBlock`
+
+Where `reveal` puts a message: in the middle of the view, at its top, or scrolled only as far as it needs.
+
+```ts
+type MessageListRevealBlock = "center" | "start" | "nearest";
+```
+
+### `MessageListRevealOptions`
+
+How `reveal` shows a message.
+
+```ts
+interface MessageListRevealOptions {
+  /** Whether the message takes focus, as for a quote the reader pressed. @default false */
+  focus?: boolean | undefined;
+  /** Where in the view it goes. @default "center" */
+  block?: MessageListRevealBlock | undefined;
+}
+```
 
 [^layout-classes]: test:registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > forwards a ref to the root and lets app layout classes win verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > forwards a ref to the root and lets app layout classes win)

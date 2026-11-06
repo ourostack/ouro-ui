@@ -118,3 +118,27 @@ test("a tool's run() reads no stdin over MCP, and an Error it throws is the tool
   assert.equal(await text("read"), '{"stdin":""}');
   assert.equal(await text("boom"), "t: boom: disk full.");
 });
+
+test("a self-scoped tool refuses another agent's item as a tool error, before run()", async () => {
+  const ran: string[] = [];
+  const t = defineCli({
+    name: "call",
+    about: ["call: the person's call."],
+    commands: [
+      defineCommand({
+        name: "unfollow", summary: "Stop your own listening.", effect: "private", args: [{ name: "listener", description: "The listening agent: you.", required: true }],
+        self: { owner: (i) => String(i["listener"]), instead: "unfollow <agent> --agent <agent>" },
+        run: (i) => (ran.push(String(i["listener"])), "Stopped."),
+      }),
+    ],
+  });
+  for (const h of [createMcpHandler({ cli: t }), createMcpHandler({ cli: t, call: async (cmd, input) => ({ ok: true, data: await cmd.run!(input, { stdin: async () => "", json: true }) }) })]) {
+    const answer = async (args: unknown) => ((await h({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "unfollow", arguments: args } })) as { result: { content: { text: string }[]; isError: boolean } }).result;
+    const refused = await answer({ listener: "research-agent", agent: "inbox-agent" });
+    assert.deepEqual(refused.isError, true);
+    assert.equal(refused.content[0]!.text, "call: unfollow: that one is research-agent's, and you are inbox-agent; only research-agent or the person may do it. Do it on your own instead. Fix: call unfollow inbox-agent --agent inbox-agent.");
+    assert.equal((await answer({ listener: "inbox-agent", agent: "inbox-agent" })).isError, false);
+  }
+  assert.deepEqual(mcpTools({ cli: t })[0]!.inputSchema.required, ["listener", "agent"]);
+  assert.deepEqual(ran, ["inbox-agent", "inbox-agent"]);
+});
