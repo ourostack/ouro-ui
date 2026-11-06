@@ -1,1 +1,0 @@
-- Emoji: an animated emoji fetches its animation once its still image has loaded, at low priority, so the first play under the mouse or in focus starts at once; not for an emoji given `fetchPriority="low"` (EmojiPicker's emoji further down its grid), while the browser asks to save data, or with reduced motion, which plays nothing.

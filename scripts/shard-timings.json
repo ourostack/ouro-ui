@@ -481,6 +481,7 @@
     "registry/ouro/e2e/ouro/live-captions.spec.ts": 5000,
     "registry/ouro/e2e/ouro/link.spec.ts": 10421,
     "registry/ouro/e2e/ouro/local-date.spec.ts": 6543,
+    "registry/ouro/e2e/ouro/media-tile.spec.ts": 4000,
     "registry/ouro/e2e/ouro/menu.spec.ts": 19099,
     "registry/ouro/e2e/ouro/message-list.spec.ts": 41593,
     "registry/ouro/e2e/ouro/message.spec.ts": 13381,
