@@ -1693,6 +1693,8 @@ describe("Message actions", () => {
     expect(tip()!.querySelector('[data-ouro="kbd"]')!.getAttribute("aria-hidden")).toBe("true");
     await userEvent.hover(plain!);
     await expect.poll(() => tip()?.textContent).toBe("Plain");
+    // An action with no shortcut has its label alone: no empty key beside it.
+    expect(tip()!.querySelector('[data-ouro="kbd"]')).toBeNull();
     await userEvent.click(barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!);
     const row = page.getByRole("group", { name: "Reactions" });
     const item = row.getByRole("menuitem", { name: "Like" });
