@@ -51,8 +51,10 @@ export interface MessageListOwnProps {
    * conversation. While it is true the list keeps room above the first message, where "Loading
    * older messages" shows, so at the top it covers no message or focus ring, and nothing moves as
    * loading starts. Set it to `false` once there is nothing older: the room stays until it has left
-   * the view, or the list is at its end, and then goes without moving a message.
+   * the view, or the list is at its end, and then goes without moving a message, not even for
+   * the one frame the browser draws as it goes.
    * @default false
+   * @claim "not even for the one frame the browser draws as it goes" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > holds the reader's message still in every frame as the last older page comes and the room above it goes)
    * @claim "so at the top it covers" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps room above the first message while hasOlder, so loading older messages covers no message or focus ring and moves nothing)
    * @claim "the room stays until it has" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view)
    * @claim "the room stays until it has" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > drops the room at once when hasOlder ends at the list's end or with the room out of view, and adds it without moving a message)
@@ -228,6 +230,19 @@ function tabbables(root: Element): HTMLElement[] {
 /** Whether a change added or removed a message. */
 function touchesItems(record: MutationRecord): boolean {
   return [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches(items) || node.querySelector(items) !== null));
+}
+
+/**
+ * Whether a change put in or took out a message, or the room kept above the first one: either moves the messages
+ * after it. Read as the change happens, so the reader's place is held before the browser draws it.
+ */
+function movesItems(record: MutationRecord): boolean {
+  return (
+    // Stryker disable next-line ConditionalExpression: holding for a change that moved nothing finds nothing moved, as the observer below says of its own check.
+    touchesItems(record) ||
+    // Stryker disable next-line MethodExpression,ConditionalExpression: the room goes in or out as a node of its own, never beside another in one record; and holding for a change that moved nothing finds nothing moved.
+    [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && node.hasAttribute("data-ouro-message-list-older-room"))
+  );
 }
 
 /** Sets an attribute only when its value differs, so marking the messages again changes nothing in the page. */
@@ -1302,7 +1317,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // went: something put in a message that reaches past the end (a reply's action bar, which loads after the message,
     // beside its last line) moves the end without resizing anything, so the resize observer would not see it.
     const moves = new MutationObserver((records) => {
-      const touched = records.some(touchesItems);
+      const touched = records.some(movesItems);
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
