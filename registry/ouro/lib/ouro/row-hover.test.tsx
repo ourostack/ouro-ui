@@ -76,7 +76,8 @@ const row = (id: string) => document.getElementById(id)!;
 const layers = () => [...document.querySelectorAll('[role="toolbar"]')];
 const layerIn = (id: string) => row(id).querySelector('[role="toolbar"]');
 const list = () => document.querySelector<HTMLElement>("[data-testid=list]")!;
-const pointer = (target: Element, type: string, pointerType = "mouse") => target.dispatchEvent(new PointerEvent(type, { bubbles: type !== "pointerleave", pointerType }));
+const pointer = (target: Element, type: string, pointerType = "mouse", at?: { x: number; y: number }) =>
+  target.dispatchEvent(new PointerEvent(type, { bubbles: type !== "pointerleave", pointerType, ...(at && { clientX: at.x, clientY: at.y }) }));
 const key = (target: Element, init: KeyboardEventInit) => act(async () => void target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init })));
 
 describe("createRowLayer", () => {
@@ -368,6 +369,47 @@ describe("useRowHover", () => {
     await userEvent.hover(row("r1"), { position: { x: box.width - 8, y: 20 } });
     expect(layerIn("r1")).not.toBeNull();
     expect(probe.hover.via).toBe("pointer");
+  });
+
+  it("takes an armed, resting listener out with the layer whose effect armed it: a later layer never hears it", async () => {
+    // A layer of its own per render, kept (not swapped out) on the row, so a stale listener from the first layer's
+    // effect, were the cleanup not to remove it, would still find the row and could still show it.
+    function Harness({ layer }: { layer: RowLayer<string> }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        layer.set(rowRef.current!, "r0");
+      }, [layer]);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={createRowLayer<string>()} />);
+    const target = row("r0");
+    // Off-screen, so the new effect's own arrival check (what the pointer already rests on) can never find r0 here:
+    // only a stale listener from the torn-down effect could show it from here on.
+    await act(async () => {
+      pointer(target, "pointermove", "mouse", { x: -1000, y: -1000 });
+      // A pointerover at the same spot as the last pointermove is a resting one: it shows nothing, but arms the
+      // effect's `over` to listen for the next pointermove instead.
+      pointer(target, "pointerover", "mouse", { x: -1000, y: -1000 });
+    });
+    expect(layerIn("r0")).toBeNull();
+    // A new layer: the old effect tears down, and its armed pointermove listener should go with it.
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    // No pointerover first this time: only the old effect's stale, still-armed listener would show the row now.
+    await act(async () => void pointer(target, "pointermove", "mouse", { x: 40, y: 60 }));
+    expect(layerIn("r0")).toBeNull();
+    expect(probe.hover.row).toBeNull();
   });
 
   it("shows on a row focused from the keyboard, or the pointer rests on, before the layer arrived", async () => {
