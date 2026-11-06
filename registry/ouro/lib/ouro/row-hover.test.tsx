@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
@@ -468,6 +468,56 @@ describe("useRowHover", () => {
     expect(layerIn("r0")).not.toBeNull();
     await act(async () => probe.hover.hide());
     expect(layers()).toHaveLength(0);
+  });
+
+  it("holds and opens its own menu together: the layer goes and the menu comes in the one commit a menu's own flushSync forces, never a frame with neither", async () => {
+    let renders = 0;
+    const layer = createRowLayer<string>();
+    function Harness() {
+      renders++;
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const [menuOpen, setMenuOpen] = useState(false);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        layer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+          {menuOpen && <span role="menu">Menu</span>}
+          <button
+            type="button"
+            // The real menu's own open path (message-parts.tsx's MessageBarLayer): hold and the
+            // menu's own state both inside one flushSync, so they draw together or not at all.
+            onClick={() =>
+              flushSync(() => {
+                hover.hold(true);
+                setMenuOpen(true);
+              })
+            }
+          >
+            Open menu
+          </button>
+        </div>
+      );
+    }
+    await render(<Harness />);
+    await userEvent.hover(row("r0").querySelector("[data-text]")!);
+    expect(layerIn("r0")).not.toBeNull();
+    const before = renders;
+    await act(async () => (page.getByRole("button", { name: "Open menu" }).element() as HTMLElement).click());
+    expect(layerIn("r0")).toBeNull();
+    expect(page.getByRole("menu").element()).not.toBeNull();
+    // One more render, not two: hold's own update never forced a commit of its own ahead of the
+    // menu's, which would draw a frame with the layer already gone and the menu not yet there.
+    expect(renders).toBe(before + 1);
   });
 
   it("opening a row's menu does not first pull focus back to the row: that refocus is only for a normal hide", async () => {

@@ -280,7 +280,6 @@ export function useRowHover<T>(
       else setShown((previous) => ({ ...previous, version: previous.version + 1 }));
     };
     // Held for a menu that opens: hidden in the same update as the menu, so opening it draws once.
-    // Stryker disable next-line BooleanLiteral: `act()` (and React itself) settles a scheduled update before any test reads the DOM, so sync's flushSync-or-not only changes when the update lands within this tick, never what it ends up as; no assertion can tell the two apart.
     api.current = { hide, hold: (on) => ((held = on), on && show(null, null, false, false)) };
     // Focus already in a row, from the keyboard, as the layer arrives; else the pointer already resting on one (the
     // layer's code came after the pointer did, and a pointer that stays still sends nothing more).
