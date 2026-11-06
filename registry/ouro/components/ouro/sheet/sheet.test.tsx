@@ -416,6 +416,23 @@ describe("feel", () => {
     expect(getComputedStyle(inside).getPropertyValue("--ouro-sheet-transform")).toBe("");
   });
 
+  it("registers its own variables and Base UI's drawer ones, each with its syntax and starting value, none inherited", () => {
+    const register = vi.spyOn(CSS, "registerProperty").mockImplementation(() => undefined);
+    registerSheetProperties();
+    const length = (name: string) => ({ name, syntax: "<length>", inherits: false, initialValue: "0px" });
+    expect(register.mock.calls.map(([definition]) => definition)).toEqual([
+      length("--ouro-sheet-x"),
+      length("--ouro-sheet-y"),
+      length("--ouro-sheet-grab"),
+      { name: "--ouro-sheet-transform", syntax: "*", inherits: false },
+      length("--drawer-swipe-movement-x"),
+      length("--drawer-swipe-movement-y"),
+      length("--drawer-snap-point-offset"),
+      { name: "--drawer-swipe-progress", syntax: "<number>", inherits: false, initialValue: "0" },
+      { name: "--drawer-swipe-strength", syntax: "<number>", inherits: false, initialValue: "1" },
+    ]);
+  });
+
   it("registers its variables once: a second copy of the module finds them registered and does nothing", () => {
     expect(() => registerSheetProperties()).not.toThrow();
   });
