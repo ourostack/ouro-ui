@@ -947,6 +947,20 @@ describe("MessageList", () => {
     expect(tops()).toEqual(before);
   });
 
+  it("takes a text node put in a message for no move of the messages, and throws nothing", async () => {
+    const { scroller } = await render(<Chat items={history(20, 10)} />);
+    // Scrolled up, where the list holds the reader's place for a change that moves messages.
+    await act(async () => void (scroller.scrollTop = 0));
+    await settle(scroller);
+    const errors: unknown[] = [];
+    const report = (event: ErrorEvent) => errors.push(event.error);
+    window.addEventListener("error", report);
+    await act(async () => void scroller.querySelector('[data-ouro="message"]')!.append(document.createTextNode(" more")));
+    await settle(scroller);
+    window.removeEventListener("error", report);
+    expect(errors).toEqual([]);
+  });
+
   it("keeps the room once hasOlder ends while it shows, and drops it without moving a message once it leaves the view", async () => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} hasOlder />);

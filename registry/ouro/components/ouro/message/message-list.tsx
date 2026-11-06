@@ -236,7 +236,12 @@ function touchesItems(record: MutationRecord): boolean {
  * after it. Read as the change happens, so the reader's place is held before the browser draws it.
  */
 function movesItems(record: MutationRecord): boolean {
-  return touchesItems(record) || [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && node.hasAttribute("data-ouro-message-list-older-room"));
+  return (
+    // Stryker disable next-line ConditionalExpression: holding for a change that moved nothing finds nothing moved, as the observer below says of its own check.
+    touchesItems(record) ||
+    // Stryker disable next-line MethodExpression: the room goes in or out as a node of its own, never beside another in one record.
+    [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && node.hasAttribute("data-ouro-message-list-older-room"))
+  );
 }
 
 /** Sets an attribute only when its value differs, so marking the messages again changes nothing in the page. */
