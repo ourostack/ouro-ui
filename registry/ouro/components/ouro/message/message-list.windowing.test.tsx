@@ -1,4 +1,4 @@
-import { Fragment, createRef, type ReactNode, type Ref } from "react";
+import { Fragment, createRef, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -429,6 +429,182 @@ describe("MessageList windowing", () => {
     expect(document.getElementById("m-300")).toBeNull();
   });
 
+  it("moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px", async () => {
+    // Heights from 60 to 140px: the estimate, the average of those first drawn, is wrong by up to 40px for each row.
+    const heightOf = (id: number) => 60 + ((id * 37) % 81);
+    const rows = Array.from({ length: 600 }, (_, id) => (
+      <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(id), boxSizing: "border-box" }}>
+        {`Message ${id}`}
+      </Message>
+    ));
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+        {rows}
+      </MessageList>,
+    );
+    const middle = () => {
+      const view = scroller.getBoundingClientRect();
+      const centre = (view.top + view.bottom) / 2;
+      return messages(scroller).find((node) => node.getBoundingClientRect().bottom > centre)!;
+    };
+    let worst = 0;
+    let jumps = 0;
+    const seen = new Set<number>();
+    for (let step = 0; step < 450; step++) {
+      const row = middle();
+      const before = row.getBoundingClientRect().top;
+      const scrolled = scroller.scrollTop;
+      scroller.scrollTop = scrolled - 24;
+      const reader = scrolled - scroller.scrollTop;
+      await frame();
+      const moved = row.isConnected ? Math.abs(row.getBoundingClientRect().top - (before + reader)) : 0;
+      worst = Math.max(worst, moved);
+      if (moved >= 1) jumps++;
+      for (const id of ids(scroller)) seen.add(id);
+    }
+    await settle(scroller);
+    // About 100 rows, none of which was drawn when the reader began.
+    expect(seen.size).toBeGreaterThan(100);
+    expect(jumps).toBe(0);
+    expect(worst).toBeLessThan(1);
+  }, 60_000);
+
+  it("opens a conversation of 300 rows of varied heights at its end, moving the view and the row at its top by no more than a pixel in any frame", async () => {
+    const rows = Array.from({ length: 300 }, (_, id) => (
+      <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 60 + ((id * 37) % 81), boxSizing: "border-box" }}>
+        {`Message ${id}`}
+      </Message>
+    ));
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let worst = 0;
+    let last: { top: number; row: number } | null = null;
+    const watch = () => {
+      const list = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]");
+      const view = list?.getBoundingClientRect();
+      const first = list === null ? undefined : messages(list).find((node) => node.getBoundingClientRect().bottom > view!.top);
+      if (list !== null && first !== undefined) {
+        const now = { top: list.scrollTop, row: first.getBoundingClientRect().top - view!.top };
+        if (last !== null) worst = Math.max(worst, Math.abs(now.top - last.top), Math.abs(now.row - last.row));
+        last = now;
+      }
+    };
+    let watching = true;
+    const tick = () => {
+      watch();
+      if (watching) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    await act(async () => root.render(<MessageList label="Conversation" style={{ height: 400, width: 360 }}>{rows}</MessageList>));
+    const start = performance.now();
+    while (performance.now() - start < 1000) await frame();
+    watching = false;
+    const list = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    expect(distanceFromBottom(list)).toBeLessThanOrEqual(1);
+    expect(last).not.toBeNull();
+    expect(worst).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was", async () => {
+    const heightOf = (id: number) => 60 + ((id * 37) % 81);
+    // The scroll height as the newest row's layout effect finds it: in the commit that draws it, before the list's own effects run.
+    const firstCommit: number[] = [];
+    function Newest() {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        firstCommit.push(ref.current!.closest<HTMLElement>("[data-ouro-message-list-scroller]")!.scrollHeight);
+      }, []);
+      return <div ref={ref} style={{ height: 80 }} />;
+    }
+    const list = (cache: Map<string, number>, width = 360) => (
+      <MessageList label="Conversation" style={{ height: 400, width }} heightCache={cache}>
+        {Array.from({ length: 400 }, (_, id) => (
+          <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: heightOf(id), boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+        <Newest key="newest" />
+      </MessageList>
+    );
+    const cache = new Map<string, number>();
+    const first = await render(list(cache));
+    // Scrolled through, so every row has been drawn and measured once.
+    for (let top = first.scroller.scrollHeight; top > 0; top -= 1200) await scrollTo(first.scroller, top);
+    await scrollTo(first.scroller, 0);
+    const known = first.scroller.scrollHeight;
+    expect(cache.size).toBeGreaterThan(300);
+    // Handed another map, the list writes to it from then on.
+    const other = new Map<string, number>();
+    await first.rerender(list(other));
+    await scrollTo(first.scroller, 1200);
+    expect(other.size).toBeGreaterThan(0);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    for (const node of mounted) node.remove();
+    mounted = [];
+    firstCommit.length = 0;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // A few pixels wider: the same width to the nearest 8, so the same heights.
+    await act(async () => root.render(list(cache, 363)));
+    expect(firstCommit).toHaveLength(1);
+    expect(Math.abs(firstCommit[0]! - known)).toBeLessThanOrEqual(1);
+  }, 60_000);
+
+  it("estimates the rows not drawn from the heightCache at the width the list has now, once it is resized", async () => {
+    const cache = new Map<string, number>();
+    for (let id = 0; id < 400; id++) cache.set(`.$${id}\0${440}`, 50);
+    const rows = Array.from({ length: 400 }, (_, id) => (
+      <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 100, boxSizing: "border-box" }}>
+        {`Message ${id}`}
+      </Message>
+    ));
+    const { scroller, rerender } = await render(
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }} heightCache={cache}>
+        {rows}
+      </MessageList>,
+    );
+    const narrow = scroller.scrollHeight;
+    await rerender(
+      <MessageList label="Conversation" style={{ height: 400, width: 440 }} heightCache={cache}>
+        {rows}
+      </MessageList>,
+    );
+    // The rows not drawn, nearly all of them, are 50px at this width and were 100px at the other.
+    expect(narrow - scroller.scrollHeight).toBeGreaterThan(10_000);
+  });
+
+  it("draws, in the commit a short list the reader scrolled up in takes 200 older rows and 360 newer, no more rows than the 60 it drew and the 20 newest", async () => {
+    const renders = new Set<number>();
+    function Counted({ id }: { id: number }) {
+      renders.add(id);
+      return (
+        <Message id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"}>
+          {`Message ${id}`}
+        </Message>
+      );
+    }
+    const list = (from: number, count: number) => (
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+        {Array.from({ length: count }, (_, offset) => (
+          <Counted key={from + offset} id={from + offset} />
+        ))}
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(0, 40));
+    await scrollTo(scroller, 200);
+    renders.clear();
+    await rerender(list(-200, 600));
+    // Those, and the band the window then finds for the view.
+    expect(renders.size).toBeLessThanOrEqual(120);
+    expect(renders.size).toBeGreaterThan(20);
+  });
+
   it("follows new messages and streaming text at the bottom, and shows Jump to latest once the reader scrolls up", async () => {
     let items = conversation(300, 0, true);
     const { scroller, rerender } = await render(<Chat items={items} />);
@@ -563,6 +739,53 @@ describe("MessageList windowing", () => {
     await act(async () => void actions.current!.reveal("day-400"));
     await settle(scroller);
     expect(Math.abs(offCentre(scroller, "day-400"))).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("holds the reader's place by the messages when a heading that stays put in the view comes with them, as one fixed there would", async () => {
+    // One message taller than the view fills it, with the next just below. A heading that does not move with the content shows too.
+    const tall = "A long message. ".repeat(60);
+    const items = (above: string): Item[] => conversation(600).map((item) => (item.id === 300 ? { ...item, text: tall } : item.id === 299 ? { ...item, text: above } : item));
+    const actions = createRef<MessageListActions>();
+    const chat = (above: string, headingTop: number) => (
+      <Chat items={items(above)} actionsRef={actions} before={(id) => (id === 300 ? <p key="day" id="day-300" style={{ position: "fixed", top: headingTop }}>Tuesday</p> : null)} />
+    );
+    const { scroller, rerender } = await render(chat("Short.", 0));
+    const view = scroller.getBoundingClientRect();
+    await rerender(chat("Short.", view.top + 20));
+    await act(async () => void actions.current!.reveal("m300"));
+    await settle(scroller);
+    const filler = () => document.getElementById("m300")!.getBoundingClientRect();
+    await scrollTo(scroller, scroller.scrollTop + (filler().top - view.top) + 100);
+    expect(filler().top).toBeLessThan(view.top);
+    expect(filler().bottom).toBeGreaterThan(view.bottom);
+    expect(document.getElementById("day-300")!.getBoundingClientRect().top).toBeGreaterThan(view.top);
+    const top = filler().top;
+    const height = scroller.scrollHeight;
+    // The message above grows: the filler goes down with everything below it, and the list scrolls to hold it where it was.
+    await rerender(chat("A message that grows. ".repeat(40), view.top + 20));
+    expect(scroller.scrollHeight).toBeGreaterThan(height + 100);
+    expect(Math.abs(filler().top - top)).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("holds a heading that shows alone in the view, not the messages below it, when the heading grows", async () => {
+    const actions = createRef<MessageListActions>();
+    const chat = (height: number) => (
+      <Chat items={conversation(600)} actionsRef={actions} before={(id) => (id === 300 ? <p key="day" id="day-300" style={{ margin: 0, height }}>Tuesday</p> : null)} />
+    );
+    const { scroller, rerender } = await render(chat(900));
+    await act(async () => void actions.current!.reveal("m300"));
+    await settle(scroller);
+    const view = scroller.getBoundingClientRect();
+    const heading = () => document.getElementById("day-300")!.getBoundingClientRect();
+    // The view sits inside the heading, with the next message a little below it: the only message drawn near is not in view.
+    await scrollTo(scroller, scroller.scrollTop + (heading().top - view.top) + 200);
+    expect(heading().top).toBeLessThan(view.top);
+    expect(heading().bottom).toBeGreaterThan(view.bottom);
+    const before = scroller.scrollTop;
+    await rerender(chat(1200));
+    await settle(scroller);
+    // The heading is what the reader is reading: its growth below them moves them nowhere.
+    expect(Math.abs(scroller.scrollTop - before)).toBeLessThanOrEqual(ROUNDING);
   });
 
   it("reveals nothing, and says so, for an id no message has", async () => {

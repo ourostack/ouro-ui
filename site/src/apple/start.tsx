@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock, Command } from "../components/code";
+import { href } from "../paths";
 import { Container } from "../voyage/layout";
 import kit from "./kit.json";
 import { Loop } from "./loop";
@@ -93,6 +94,35 @@ export default function AppleStart(): JSX.Element {
             Siri can answer, write a scenario set and run it on a device with the 27.3 beta.
           </p>
         </div>
+      </AppleBand>
+
+      <AppleBand
+        id="feel-reins"
+        eyebrow="Coming next"
+        title="Feel and Reins, for the brave."
+        lede={
+          <p>
+            {kit.feelReinsRelease
+              ? `Ouro Feel and Ouro Reins ship in ${kit.feelReinsRelease}.`
+              : "Ouro Feel and Ouro Reins are on ouro-ui-apple's main branch, and come in a later release."}{" "}
+            Until then the package line above doesn't include them; their pages show what they do.
+          </p>
+        }
+      >
+        <ul className="apple-products">
+          <li className="apple-product">
+            <a className="apple-inline-link" href={href("/apple/feel/")}>
+              Ouro Feel
+            </a>
+            <span className="apple-product-body">Link OuroFeel into your UI test target and walk every screen.</span>
+          </li>
+          <li className="apple-product">
+            <a className="apple-inline-link" href={href("/apple/reins/")}>
+              Ouro Reins
+            </a>
+            <span className="apple-product-body">Link OuroReins into your app's UI-free core and drive it with ls and do.</span>
+          </li>
+        </ul>
       </AppleBand>
 
       <Container className="apple-soon">

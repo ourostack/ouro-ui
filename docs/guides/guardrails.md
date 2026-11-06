@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.4 ourostack/ouro-ui/ouro-source-rules#v1.3.4
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.5 ourostack/ouro-ui/ouro-source-rules#v1.3.5
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -200,7 +200,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.4
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.5
 node lib/ouro/check/check.ts dist
 ```
 
@@ -261,7 +261,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.4
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.5
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -271,7 +271,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.4
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.5
         with:
           merge: "true"
 ```
@@ -281,7 +281,7 @@ jobs:
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.4
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.5
 node lib/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 

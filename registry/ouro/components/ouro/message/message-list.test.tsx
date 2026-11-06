@@ -40,6 +40,8 @@ interface Item {
   role: "user" | "assistant";
   text: string;
   streaming?: boolean;
+  /** Hidden by the app with `display: none`, so it has no box. */
+  hidden?: boolean;
 }
 
 const history = (count: number, from = 0): Item[] =>
@@ -69,11 +71,12 @@ function Chat({
   loadingOlder?: boolean;
   loadingOlderLabel?: string;
   hasOlder?: boolean;
+  windowing?: boolean;
 }) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
       {items.map((item) => (
-        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"} streaming={item.streaming}>
+        <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana" : "Ouro"} streaming={item.streaming} style={item.hidden ? { display: "none" } : undefined}>
           {item.text}
         </Message>
       ))}
@@ -2473,4 +2476,338 @@ describe("MessageList development messages", () => {
     );
     expect(warn).toHaveBeenCalledWith('[ouro-ui] MessageList: "bg-muted" sets appearance, and className is for layout only. Fix: <div className="bg-muted"><MessageList /></div>.');
   });
+});
+
+describe("MessageList through a long conversation", () => {
+  /** The boxes read for one scroll event, on average over `steps` scrolls up of `by` px, each reported as the browser would. */
+  function readsPerScroll(scroller: HTMLElement, steps = 10, by = 40): number {
+    const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    for (let step = 0; step < steps; step++) {
+      scroller.scrollTop -= by;
+      scroller.dispatchEvent(new Event("scroll"));
+    }
+    const reads = measured.mock.calls.length / steps;
+    measured.mockRestore();
+    return reads;
+  }
+  /** Into the middle of the conversation, away from the newest, as a reader scrolling up through it. */
+  async function scrolledUp(scroller: HTMLElement) {
+    scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+  }
+  const inView = (scroller: HTMLElement, element: Element) => {
+    const box = element.getBoundingClientRect();
+    const view = scroller.getBoundingClientRect();
+    return box.top >= view.top && box.bottom <= view.bottom;
+  };
+
+  it("reads as few boxes on a scroll through a thousand messages as through fifty, and keeps the Tab stop on a message in view", async () => {
+    const reads: number[] = [];
+    for (const count of [50, 1000]) {
+      const { scroller } = await render(<Chat items={history(count)} />);
+      await scrolledUp(scroller);
+      reads.push(readsPerScroll(scroller));
+      // The Tab stop follows the scroll: the last message the view shows whole.
+      const messages = [...scroller.querySelectorAll('[data-ouro="message"]')];
+      expect(scroller.querySelector('[data-ouro="message"][tabindex="0"]')).toBe(messages.findLast((message) => inView(scroller, message)));
+      await act(async () => roots.pop()!.unmount());
+    }
+    // Halving finds the messages in view: twenty times the messages takes a handful more reads, not twenty times as many.
+    expect(reads[1]! - reads[0]!).toBeLessThanOrEqual(12);
+  });
+
+  it("keeps the reader's place as older history loads above, reading as few boxes in a thousand messages as in fifty", async () => {
+    const reads: number[] = [];
+    for (const count of [50, 1000]) {
+      const { scroller, rerender } = await render(<Chat items={history(count, 1000)} />);
+      await scrolledUp(scroller);
+      const before = firstVisible(scroller);
+      const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
+      await rerender(<Chat items={[...history(50, 950), ...history(count, 1000)]} />);
+      await settle(scroller);
+      reads.push(measured.mock.calls.length);
+      measured.mockRestore();
+      expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+      await act(async () => roots.pop()!.unmount());
+    }
+    expect(reads[1]! - reads[0]!).toBeLessThanOrEqual(120);
+  });
+
+  // A hidden message (display: none) has an all-zero box, wherever it sits: the halving must not take its top of 0 for its place.
+  const hiding = (items: Item[], hidden: number[]) => items.map((item, at) => (hidden.includes(at) ? { ...item, hidden: true } : item));
+  /** The first message with a box whose top is in the list's view, and where that top is. */
+  const firstShown = (scroller: HTMLElement) => {
+    const view = scroller.getBoundingClientRect();
+    const message = [...scroller.querySelectorAll('[data-ouro="message"]')].find((node) => node.getClientRects().length > 0 && node.getBoundingClientRect().top >= view.top)!;
+    return { message, top: message.getBoundingClientRect().top };
+  };
+
+  it("keeps the reader's place as they scroll and older history loads, under a header, with a hidden message in view and one below it", async () => {
+    // 200 messages: the first halving step lands on the 101st, hidden below the view, and the 63rd, in view, is hidden too.
+    const items = hiding(history(200, 1000), [62, 100]);
+    const { scroller, rerender } = await render(
+      <div style={{ paddingTop: 120 }}>
+        <Chat windowing={false} items={items} />
+      </div>,
+    );
+    const messages = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    scroller.scrollTop += messages[60]!.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    scroller.scrollTop -= 20;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const before = firstShown(scroller);
+    await rerender(
+      <div style={{ paddingTop: 120 }}>
+        <Chat windowing={false} items={[...history(50, 950), ...items]} />
+      </div>,
+    );
+    await settle(scroller);
+    expect(Math.abs(before.message.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("never puts the Tab stop on a hidden message, the newest or one in view, as the view shows the messages around it", async () => {
+    const items = hiding(history(60), [30, 59]);
+    const { scroller } = await render(
+      <div style={{ paddingTop: 120 }}>
+        <Chat windowing={false} items={items} />
+      </div>,
+    );
+    const messages = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const lastWhole = () => messages.findLast((message) => message.getClientRects().length > 0 && inView(scroller, message));
+    // At the newest, the newest is hidden: the Tab stop is the last message the view shows whole.
+    expect(scroller.querySelector('[data-ouro="message"][tabindex="0"]')).toBe(lastWhole());
+    // Up to where the hidden 31st would sit in the view.
+    scroller.scrollTop += messages[29]!.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    scroller.dispatchEvent(new Event("scroll"));
+    expect(scroller.querySelector('[data-ouro="message"][tabindex="0"]')).toBe(lastWhole());
+  });
+
+  it("holds a message that fills the view by it and the few after it, not by every message to the newest", async () => {
+    const items: Item[] = [...history(500), { id: "long", role: "assistant", text: "A long reply that runs on. ".repeat(200) }, ...history(500, 500)];
+    const { scroller, rerender } = await render(<Chat windowing={false} items={items} />);
+    const long = [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')][500]!;
+    // Into the middle of the long reply, whose top is above the view and bottom below it.
+    scroller.scrollTop += long.getBoundingClientRect().top - scroller.getBoundingClientRect().top + 300;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    expect(readsPerScroll(scroller, 5, 10)).toBeLessThanOrEqual(40);
+    // A message above it grows, and the reader's place in the long reply stays.
+    const top = long.getBoundingClientRect().top;
+    await rerender(<Chat windowing={false} items={items.map((item, at) => (at === 499 ? { ...item, text: `${item.text} ${"more ".repeat(60)}` } : item))} />);
+    await settle(scroller);
+    expect(Math.abs(long.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("MessageList when no message starts in view", () => {
+  const long = (id: number | string): Item => ({ id, role: "assistant", text: "A long reply that runs on. ".repeat(80) });
+  const grow = (items: Item[], id: number | string) => items.map((item) => (item.id === id ? { ...item, text: `${item.text} ${"more ".repeat(80)}` } : item));
+  /**
+   * Scrolls into `node` until its bottom is 150px below the view's: it fills the view, and the next message starts
+   * within a view's height below, so the list holds it too.
+   */
+  const into = async (scroller: HTMLElement, node: Element) => {
+    const box = node.getBoundingClientRect();
+    scroller.scrollTop += box.bottom - scroller.getBoundingClientRect().bottom - 150;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+  };
+
+  it("keeps the reader's place in the first message as it grows, when it fills the view", async () => {
+    const items = [long("first"), ...history(5)];
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    const first = scroller.querySelector('[data-ouro="message"]')!;
+    await into(scroller, first);
+    const top = first.getBoundingClientRect().top;
+    await rerender(<Chat items={grow(items, "first")} />);
+    await settle(scroller);
+    expect(Math.abs(first.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place in a message that fills the view as it grows, under a header, with a hidden message after it", async () => {
+    const items = [...history(5), long("long"), { ...history(1, 5)[0]!, hidden: true }, ...history(5, 6)];
+    const list = (shown: Item[]) => (
+      <div style={{ paddingTop: 120 }}>
+        <Chat items={shown} />
+      </div>
+    );
+    const { scroller, rerender } = await render(list(items));
+    const filler = [...scroller.querySelectorAll('[data-ouro="message"]')][5]!;
+    await into(scroller, filler);
+    const top = filler.getBoundingClientRect().top;
+    await rerender(list(grow(items, "long")));
+    await settle(scroller);
+    expect(Math.abs(filler.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps what the reader sees in something of the app's own between messages, when a message above it grows", async () => {
+    const list = (more: string) => (
+      <MessageList label="Conversation" style={{ height: 300 }}>
+        <Message role="user" name="Ana">
+          {`Above the timeline.${more}`}
+        </Message>
+        <div data-timeline="" style={{ height: 1500 }} />
+        <Message role="assistant" name="Ouro">
+          Below the timeline.
+        </Message>
+        <Message role="assistant" name="Ouro">
+          The newest.
+        </Message>
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(""));
+    const timeline = scroller.querySelector("[data-timeline]")!;
+    await into(scroller, timeline);
+    const top = timeline.getBoundingClientRect().top;
+    await rerender(list(` ${"more ".repeat(80)}`));
+    await settle(scroller);
+    expect(Math.abs(timeline.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the reader's place in a post that fills the view as it grows, past a reply inside it above the view", async () => {
+    const list = (more: string) => (
+      <MessageList label="Channel" style={{ height: 300 }}>
+        <Message role="user" name="Ana">
+          Morning.
+        </Message>
+        <article data-ouro-message-list-item="" data-role="user" data-post="">
+          <p data-ouro-message-content="" style={{ margin: 0 }}>
+            {"A post that runs on. ".repeat(20)}
+          </p>
+          <article data-ouro-message-list-item="" data-role="assistant">
+            <span data-ouro-message-content="">A reply, near the top of the post.</span>
+          </article>
+          <p style={{ margin: 0 }}>{`${"The post runs on below its reply. ".repeat(80)}${more}`}</p>
+        </article>
+        <Message role="assistant" name="Ouro">
+          Under the post.
+        </Message>
+        <Message role="assistant" name="Ouro">
+          The newest.
+        </Message>
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(""));
+    const post = scroller.querySelector("[data-post]")!;
+    const reply = post.querySelector("[data-ouro-message-list-item]")!;
+    await into(scroller, post);
+    expect(reply.getBoundingClientRect().bottom).toBeLessThan(scroller.getBoundingClientRect().top);
+    const top = post.getBoundingClientRect().top;
+    await rerender(list(` ${"more ".repeat(80)}`));
+    await settle(scroller);
+    expect(Math.abs(post.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the next message where it was when the message that fills the view goes", async () => {
+    const items = [...history(30), long("long"), ...history(20, 30)];
+    const { scroller, rerender } = await render(<Chat items={items} />);
+    const messages = [...scroller.querySelectorAll('[data-ouro="message"]')];
+    await into(scroller, messages[30]!);
+    const next = messages[31]!;
+    const top = next.getBoundingClientRect().top;
+    await rerender(<Chat items={items.filter((item) => item.id !== "long")} />);
+    await settle(scroller);
+    expect(Math.abs(next.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("MessageList's place, to the pixel", () => {
+  // A row with a fractional height, as text, pictures and zoom make them, and the content the list reads.
+  const row = (id: number) => (
+    <article key={id} data-ouro-message-list-item="" data-role="assistant">
+      <span data-ouro-message-author="">Ouro</span>
+      <p data-ouro-message-content="" style={{ margin: 0, height: "30.3px" }}>{`Post ${id}`}</p>
+    </article>
+  );
+  const page = (from: number, count: number) => Array.from({ length: count }, (_, index) => row(from + index));
+
+  it("keeps the reader's place to a pixel while older posts go in above a row at a time, where the scroll position is in whole pixels", async () => {
+    const posts = page(1000, 80);
+    const { scroller, rerender } = await render(<MessageList label="Channel" style={{ height: 300 }}>{posts}</MessageList>);
+    scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const reader = [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-item]")].find((post) => post.getBoundingClientRect().top >= scroller.getBoundingClientRect().top)!;
+    const top = reader.getBoundingClientRect().top;
+    // Forty rows, one per update, as an app draws an older page over later frames.
+    for (let drawn = 1; drawn <= 40; drawn++) {
+      await rerender(
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {[...page(1000 - drawn, drawn), ...posts]}
+        </MessageList>,
+      );
+    }
+    await settle(scroller);
+    expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  it("does not carry a move the browser took later, as smooth scrolling does, so the list does not overshoot", async () => {
+    const posts = page(1000, 80);
+    const { scroller, rerender } = await render(<MessageList label="Channel" style={{ height: 300 }}>{posts}</MessageList>);
+    scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const reader = [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-item]")].find((post) => post.getBoundingClientRect().top >= scroller.getBoundingClientRect().top)!;
+    const top = reader.getBoundingClientRect().top;
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    // A write that reads back unchanged and lands a moment later, as an animated scroll does.
+    Object.defineProperty(scroller, "scrollTop", {
+      configurable: true,
+      get: () => own.get!.call(scroller),
+      set: (value: number) => {
+        setTimeout(() => own.set!.call(scroller, value), 60);
+      },
+    });
+    for (let drawn = 1; drawn <= 3; drawn++) {
+      await rerender(
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {[...page(1000 - drawn, drawn), ...posts]}
+        </MessageList>,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      scroller.dispatchEvent(new Event("scroll"));
+    }
+    delete (scroller as { scrollTop?: number }).scrollTop;
+    await settle(scroller);
+    expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+  });
+
+  // What a correction the list's start stopped could not make is no debt: the next correction starts from the place the reader is at.
+  // The scroll position it is at, from the height of the first post that goes.
+  for (const [at, title] of [
+    [() => 3, "well short of the move"],
+    [(first: number) => first - 1, "a pixel short of the move"],
+  ] as const) {
+    it(`does not carry a move the start of the list stopped, ${title}, into the next correction`, async () => {
+      const first = (
+        <article key="first" data-ouro-message-list-item="" data-role="assistant">
+          <p data-ouro-message-content="" style={{ margin: 0, height: 2 }}>First</p>
+        </article>
+      );
+      const rest = page(1, 40);
+      const list = (posts: ReactNode[]) => (
+        <MessageList label="Channel" style={{ height: 300 }}>
+          {posts}
+        </MessageList>
+      );
+      const { scroller, rerender } = await render(list([first, ...rest]));
+      const [before, reader] = scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-item]") as unknown as [HTMLElement, HTMLElement];
+      // How far the reader's post moves up when the first goes.
+      const moves = reader.getBoundingClientRect().top - before.getBoundingClientRect().top;
+      scroller.scrollTop = at(moves);
+      scroller.dispatchEvent(new Event("scroll"));
+      await settle(scroller);
+      // The first goes: the reader's post moves up by its height, and the scroll position can go up only by what it is at.
+      await rerender(list(rest));
+      await expect.poll(() => scroller.scrollTop).toBe(0);
+      const top = reader.getBoundingClientRect().top;
+      await rerender(list([first, ...rest]));
+      await settle(scroller);
+      // It comes back as the first does, so the reader's post is where it was, not short of it by what the first move missed.
+      expect(Math.abs(reader.getBoundingClientRect().top - top)).toBeLessThan(0.5);
+    });
+  }
 });

@@ -13,7 +13,9 @@ import "./apple.css";
 export const APPLE_PAGES = [
   { path: "/apple/", label: "Overview", short: "Overview" },
   { path: "/apple/hx/", label: "Ouro HX for Apple", short: "HX" },
+  { path: "/apple/feel/", label: "Ouro Feel", short: "Feel" },
   { path: "/apple/ax/", label: "Ouro AX for Apple", short: "AX" },
+  { path: "/apple/reins/", label: "Ouro Reins", short: "Reins" },
   { path: "/apple/start/", label: "Get started", short: "Get started" },
 ] as const;
 
