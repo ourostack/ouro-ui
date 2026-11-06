@@ -57,9 +57,10 @@ async function openMenu(page: Page): Promise<void> {
     // Once the sheet is open its backdrop covers the button, and a second press would close it.
     // A button that says open with no sheet to show for it is pressed again, closing it, and the next try opens it.
     const expanded = (await menuButton(page).getAttribute("aria-expanded")) === "true";
-    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: 1000 });
+    // A busy page (the home page's stage, in WebKit on a slow runner) can take a few seconds to take the press.
+    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: 5000 });
     // real clock: the menu stays open until it is closed; no timer ends it.
-    await expect(sheet(page)).toBeVisible({ timeout: 1000 });
+    await expect(sheet(page)).toBeVisible({ timeout: 5000 });
   }).toPass();
   await settled(page);
 }
@@ -413,7 +414,17 @@ test("on a phone choosing the page you are on closes the menu and stays put", as
   await open(page, "ax/");
   await page.mouse.wheel(0, 600);
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(300);
-  const before = await page.evaluate(() => scrollY);
+  // The wheel's scroll, and the page's islands drawing above it, have come to rest: two reads agree.
+  let last = -1;
+  await expect
+    .poll(async () => {
+      const now = await page.evaluate(() => scrollY);
+      const same = now === last;
+      last = now;
+      return same;
+    })
+    .toBe(true);
+  const before = last;
   await openMenu(page);
   await sheet(page).locator('[aria-current="page"]').click();
   await expect(sheet(page)).toHaveCount(0);
