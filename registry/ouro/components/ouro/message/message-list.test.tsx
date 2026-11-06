@@ -3413,6 +3413,52 @@ describe("MessageList switching conversations", () => {
     expect(firstVisible(list.scroller).message.id).toBe(reading.message.id);
   });
 
+  it("forgets the place it was read at when it switches to a conversation that shares its keys, and opens that one at its newest", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named byIndex />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 30000);
+    const reading = firstVisible(list.scroller).message as HTMLElement;
+    const at = reading.id.slice("mara-".length);
+    expect(Number(at)).toBeLessThan(850);
+    reading.focus({ preventScroll: true });
+    expect(document.activeElement).toBe(reading);
+    await list.commit(<Switcher open="theo" keyed={false} named byIndex count={900} />);
+    const drawn = messagesOf(list.scroller);
+    expect(drawn.length).toBeLessThanOrEqual(40);
+    expect(drawn.map((message) => message.id)).not.toContain(`theo-${at}`);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+    expect(list.scroller.parentElement!.querySelector("button")).toBeNull();
+  });
+
+  it("opens a conversation whole from its first message, though a page of older messages was still coming into the one before it", async () => {
+    const list = mount();
+    const older = (name: string, count: number): Item[] => conversation(name, count);
+    const mara = conversation("mara", 30);
+    await list.commit(<Switcher open="mara" keyed={false} named items={mara} />);
+    // Older messages arrive: the first moves up, and the edge steps toward it a frame at a time.
+    await list.commit(<Switcher open="mara" keyed={false} named items={[...older("old", 30), ...mara]} />);
+    // Another conversation comes, with the first message that was drawn after its own first twenty-five.
+    const theo = [...conversation("theo", 25), mara[0]!, ...conversation("theo-end", 14)];
+    await list.commit(<Switcher open="theo" keyed={false} named items={theo} />);
+    expect(messagesOf(list.scroller)[0]!.id).toBe("theo-0");
+  });
+
+  it("confirms what a change under the same name leaves, so a rename that changes nothing waits for the messages to follow", async () => {
+    const list = mount();
+    const all = conversation("ann", 90);
+    const show = (name: string, items: Item[]) => <Switcher open={name} keyed={false} named items={items} />;
+    await list.commit(show("ann", all.slice(0, 30)));
+    await list.commit(show("ann", all.slice(15, 45)));
+    await list.commit(show("ann", all.slice(30, 60)));
+    // Named for another, its messages unchanged: they are still the one before's until others come.
+    await list.commit(show("bo", all.slice(30, 60)));
+    upBy(list.scroller, 2000);
+    await list.commit(show("bo", conversation("bo", 30)));
+    expect(messagesOf(list.scroller).at(-1)!.id).toBe("bo-29");
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
   it("takes a rename with any one of the first message, the number of newest messages or one of them changed for a switch, and a name given to messages the list holds for none", async () => {
     const opens = async (from: ReactNode, to: ReactNode) => {
       const list = mount();

@@ -1175,9 +1175,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     if (opening) {
       // The other conversation draws from its newest, whatever of the one before was drawn.
       setEdge({ first: top, drawn: top });
+      // Stryker disable next-line CallExpression: the switch's layout effect reopens the list in the same commit, and the window's sync sets the band from where the view is before the browser draws; no test reads the render between.
       setBand(null);
       // The next opens at its newest, with no jump to offer and no focus kept on a message of the one before.
       setFocusKey(null);
+      // Stryker disable next-line CallExpression: the layout effect on the switch count calls reopen, which clears the jump in the same commit before the browser draws.
       setShowJump(false);
     }
     setTrack({
@@ -1189,8 +1191,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Confirmed again by a new name or switch, and by any change under the same name but a wholesale one, which may be the
       // next conversation's messages come ahead of its name.
       confirmed:
+        // Stryker disable next-line ConditionalExpression,EqualityOperator: a new name comes only with no pending name, so the last clause confirms it as well; with no keys held, or none now, every key is a stranger or nothing changes, so the set kept is the one that would be read.
         named !== track.conversation || fresh || (pending === null && all.length > 0 && track.keys.size > 0 && !strangers(track.keys)) ? new Set(all.map(keyOf)) : track.confirmed,
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: a list that holds nothing is empty at its first commit, and its first messages open it either way.
       held: track.held || all.length > 0,
+      // Stryker disable next-line ArithmeticOperator: only a change of the count runs the layout effect, and a count that goes down by one each switch changes as a count that goes up does; it is never compared with another.
       switches: track.switches + (opening ? 1 : 0),
     });
   }
