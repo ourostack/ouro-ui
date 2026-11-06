@@ -2032,7 +2032,7 @@ describe("MessageList keyboard", () => {
     expect(focusedId()).toBe("inner");
   });
 
-  it("leaves focus to a message's menu, whose button is replaced as it first opens", async () => {
+  it("goes into a message's bar with the right arrow, opens the list's menu from its button, and puts focus back on the message", async () => {
     await render(
       <Channel>
         {posts(2)}
@@ -2042,12 +2042,15 @@ describe("MessageList keyboard", () => {
       </Channel>,
     );
     const more = () => document.querySelector<HTMLElement>('#with-menu [data-ouro-part="menu"]');
-    await expect.poll(more).not.toBeNull();
-    await act(async () => more()!.focus());
+    button("Before").focus();
+    await pressTab();
+    expect(focusedId()).toBe("with-menu");
+    // The bar's code loads with the first message that has one, then keyboard focus shows it.
+    await expect.poll(async () => (await userEvent.keyboard("{ArrowRight}"), document.activeElement !== null && document.activeElement === more())).toBe(true);
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => document.activeElement).toBe(more());
+    await expect.poll(() => focusedId()).toBe("with-menu");
   });
 
   it("passes over the focus guards around an open menu's button, so Tab never bounces back to the message", async () => {
@@ -2072,11 +2075,9 @@ describe("MessageList keyboard", () => {
     );
     const message = document.getElementById("with-thread")!;
     const more = () => message.querySelector<HTMLElement>('[data-ouro-part="menu"]');
-    await expect.poll(more).not.toBeNull();
+    await expect.poll(async () => (await userEvent.hover(message.querySelector("[data-ouro-message-content]")!), more())).not.toBeNull();
     await userEvent.click(more()!);
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
-    // The menu's guards stand around its button while it is open, as a screen reader's cursor or a click lands on the message.
-    expect(message.querySelector("[data-base-ui-focus-guard]")).not.toBeNull();
     // The menu takes focus on the frame after it opens. In WebKit, where the click left focus on the page, that frame can
     // come after the menu shows, and would take focus from the message back into the menu: let it pass first.
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -2088,6 +2089,7 @@ describe("MessageList keyboard", () => {
       await pressTab();
       reached.push(document.activeElement!.getAttribute("aria-label") || document.activeElement!.id || document.activeElement!.textContent);
     }
+    // Focus on the message closed the menu; Tab shows the list's bar on it and goes through it and the message's controls, then on.
     expect(reached.slice(0, 2).toSorted()).toEqual(["2 replies", "More actions"]);
     expect(reached[2]).toBe("After");
     await pressTab({ shift: true });

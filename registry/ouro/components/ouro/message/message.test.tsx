@@ -1624,6 +1624,129 @@ describe("Message actions", () => {
     expect(document.activeElement).toBe(reply);
   });
 
+  it("puts the quick reactions at the top of the menu, named, and the arrow keys move along them", async () => {
+    const reacted = vi.fn();
+    const { message } = await render(
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Jonah Vale"
+        quickReactions={[
+          { key: "like", label: "Like", icon: "👍", onClick: () => reacted("like") },
+          { key: "laugh", label: "Laugh", icon: "😄", onClick: () => reacted("laugh") },
+          { key: "more", label: "More reactions", icon: "+", onClick: () => reacted("more"), disabled: true },
+        ]}
+        quickReactionsLabel="Réactions"
+        menu={[{ label: "Copy link", onClick: () => {} }]}
+      >
+        Agenda
+      </Message>,
+    );
+    const more = () => barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!;
+    await expect.poll(() => message.querySelector('[data-ouro-part="menu"]')).not.toBeNull();
+    await act(async () => more().focus());
+    await userEvent.keyboard("{Enter}");
+    const reactions = page.getByRole("group", { name: "Réactions" });
+    await expect.element(reactions.getByRole("menuitem", { name: "Like" })).toBeVisible();
+    // Each reaction is a menu item named by its label; the emoji is not read.
+    expect(reactions.getByRole("menuitem").elements().map((item) => item.textContent)).toEqual(["👍Like", "😄Laugh", "+More reactions"]);
+    await act(async () => (reactions.getByRole("menuitem", { name: "Like" }).element() as HTMLElement).focus());
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(reactions.getByRole("menuitem", { name: "Laugh" }).element());
+    // Past the end (a disabled one is passed over), round to the start; and back.
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(reactions.getByRole("menuitem", { name: "Like" }).element());
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(reactions.getByRole("menuitem", { name: "Laugh" }).element());
+    await userEvent.keyboard("{Enter}");
+    expect(reacted).toHaveBeenCalledWith("laugh");
+    // A line between the reactions and the rest.
+    await expect.poll(() => document.querySelector('[data-ouro="menu"]')).toBeNull();
+    await userEvent.click(more());
+    await expect.poll(() => document.querySelector('[data-ouro-message-menu-reactions]')?.nextElementSibling?.getAttribute("role")).toBe("separator");
+  });
+
+  it("shows each action's shortcut in its tooltip and under its reaction in the menu, and gives it to screen readers", async () => {
+    const { message } = await render(
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Jonah Vale"
+        actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {}, shortcut: ["1"] }, { key: "plain", label: "Plain", icon: "+", onClick: () => {} }]}
+        quickReactions={[
+          { key: "like", label: "Like", icon: "👍", onClick: () => {}, shortcut: ["1"] },
+          { key: "more", label: "More reactions", icon: "+", onClick: () => {} },
+        ]}
+        menu={[{ label: "Copy link", onClick: () => {} }]}
+      >
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => message.querySelector('[data-ouro-part="menu"]')).not.toBeNull();
+    const [like, plain] = [...barOf(message).querySelectorAll<HTMLElement>("[data-ouro-message-action]")];
+    expect(like!.getAttribute("aria-keyshortcuts")).toBe("1");
+    expect(plain!.hasAttribute("aria-keyshortcuts")).toBe(false);
+    const tip = () => document.querySelector<HTMLElement>('[data-ouro="tooltip"]');
+    await userEvent.hover(bubbleOf(message));
+    await userEvent.hover(like!);
+    await expect.poll(() => tip()?.textContent).toBe("Like1");
+    expect(tip()!.querySelector('[data-ouro="kbd"]')!.getAttribute("aria-hidden")).toBe("true");
+    await userEvent.hover(plain!);
+    await expect.poll(() => tip()?.textContent).toBe("Plain");
+    // An action with no shortcut has its label alone: no empty key beside it.
+    expect(tip()!.querySelector('[data-ouro="kbd"]')).toBeNull();
+    await userEvent.click(barOf(message).querySelector<HTMLElement>('[data-ouro-part="menu"]')!);
+    const row = page.getByRole("group", { name: "Reactions" });
+    const item = row.getByRole("menuitem", { name: "Like" });
+    await expect.element(item).toHaveAttribute("aria-keyshortcuts", "1");
+    // Under the emoji, in the item's own column.
+    const box = (selector: string) => item.element().querySelector(selector)!.getBoundingClientRect();
+    expect(box('[data-ouro="kbd"]').top).toBeGreaterThanOrEqual(box("[data-ouro-message-menu-reaction]").bottom);
+    expect(row.getByRole("menuitem", { name: "More reactions" }).element().hasAttribute("aria-keyshortcuts")).toBe(false);
+  });
+
+  it("has a menu button for quick reactions alone, with no menu, and none for an empty list of them", async () => {
+    const reply = { key: "reply", label: "Reply", icon: "↩", onClick: () => {} };
+    const { message, rerender } = await render(
+      <Message variant="chat" role="assistant" name="Jonah Vale" actions={[reply]} quickReactions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => barOf(message).querySelector('[data-ouro-part="menu"]')).not.toBeNull();
+    await rerender(
+      <Message variant="chat" role="assistant" name="Jonah Vale" actions={[reply]} quickReactions={[]}>
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => barOf(message).querySelectorAll("[data-ouro-message-action]").length).toBe(1);
+    expect(barOf(message).querySelector('[data-ouro-part="menu"]')).toBeNull();
+  });
+
+  it("draws no bar for an empty list of quick reactions alone", async () => {
+    const { host } = await render(
+      <>
+        <Message id="empty" variant="chat" role="assistant" name="Jonah Vale" quickReactions={[]}>
+          Agenda
+        </Message>
+        <Message id="one" variant="chat" role="assistant" name="Ana Lind" quickReactions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+          Minutes
+        </Message>
+      </>,
+    );
+    await expect.poll(() => host.querySelector("#one [data-ouro-message-actions]")).not.toBeNull();
+    expect(host.querySelector("#empty [data-ouro-message-actions]")).toBeNull();
+  });
+
+  it("marks no bar of its own as a list's layer", async () => {
+    const { host } = await render(
+      <Message variant="chat" role="assistant" name="Jonah Vale" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => host.querySelector("[data-ouro-message-actions]")).not.toBeNull();
+    expect(host.querySelector("[data-ouro-row-layer]")).toBeNull();
+  });
+
   it("opens the menu from the last button, and keeps the bar while it is open", async () => {
     const copied = vi.fn();
     const { message } = await render(
