@@ -281,6 +281,26 @@ describe("MessageList actions", () => {
     expect([post, getComputedStyle(barIn("chat")!).top]).toEqual(["-20px", "-32px"]);
   });
 
+  it("marks the list's bar as its layer, or the room beside a bubble that holds it, and never both", async () => {
+    const like = [{ key: "like", label: "Like", icon: "👍", onClick: () => {} }];
+    await render(
+      <MessageList label="Launch channel" style={{ height: 360 }}>
+        <Message id="corner" variant="chat" role="assistant" name="Ana Lind" actions={like}>
+          A chat message
+        </Message>
+        <Message id="beside" variant="reply" role="assistant" name="Grace Hopper" actions={like}>
+          A reply
+        </Message>
+      </MessageList>,
+    );
+    await ready("corner");
+    expect(barIn("corner")!.getAttribute("data-ouro-row-layer")).toBe("");
+    await ready("beside");
+    const bar = barIn("beside")!;
+    expect(bar.hasAttribute("data-ouro-row-layer")).toBe(false);
+    expect(bar.closest("[data-ouro-message-actions-room]")!.getAttribute("data-ouro-row-layer")).toBe("");
+  });
+
   it("goes on from its bar as from the message's own controls: Tab leaves the list, never into the next message", async () => {
     await render(
       <>

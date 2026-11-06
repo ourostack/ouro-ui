@@ -1722,6 +1722,31 @@ describe("Message actions", () => {
     expect(barOf(message).querySelector('[data-ouro-part="menu"]')).toBeNull();
   });
 
+  it("draws no bar for an empty list of quick reactions alone", async () => {
+    const { host } = await render(
+      <>
+        <Message id="empty" variant="chat" role="assistant" name="Jonah Vale" quickReactions={[]}>
+          Agenda
+        </Message>
+        <Message id="one" variant="chat" role="assistant" name="Ana Lind" quickReactions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+          Minutes
+        </Message>
+      </>,
+    );
+    await expect.poll(() => host.querySelector("#one [data-ouro-message-actions]")).not.toBeNull();
+    expect(host.querySelector("#empty [data-ouro-message-actions]")).toBeNull();
+  });
+
+  it("marks no bar of its own as a list's layer", async () => {
+    const { host } = await render(
+      <Message variant="chat" role="assistant" name="Jonah Vale" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => host.querySelector("[data-ouro-message-actions]")).not.toBeNull();
+    expect(host.querySelector("[data-ouro-row-layer]")).toBeNull();
+  });
+
   it("opens the menu from the last button, and keeps the bar while it is open", async () => {
     const copied = vi.fn();
     const { message } = await render(
