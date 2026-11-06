@@ -6,6 +6,11 @@
  */
 @layer components {
   /* Feel: the duel in the hero. */
+  /* The hero's glow sits behind the live demos, so their quiet text takes a step toward the foreground to stay readable on it. */
+  .feel-duel,
+  .reins-hero-race {
+    --muted-foreground: var(--apple-quiet-on-glow);
+  }
   .feel-duel {
     display: grid;
     gap: calc(var(--spacing) * 4);

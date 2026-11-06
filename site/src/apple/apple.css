@@ -16,6 +16,8 @@
     --apple-screen-radius: calc(var(--radius) * 2.6);
     --apple-hairline: color-mix(in oklab, var(--border) 70%, transparent);
     --apple-stage: color-mix(in oklab, var(--muted) 70%, var(--background));
+    /* Quiet text a step toward the foreground, for quiet text that sits on the hero's glow. */
+    --apple-quiet-on-glow: color-mix(in oklab, var(--muted-foreground) 70%, var(--foreground));
   }
 
   /* The section's own menu, under the site's header. */
