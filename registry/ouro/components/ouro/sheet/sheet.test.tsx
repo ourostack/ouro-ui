@@ -419,7 +419,7 @@ describe("feel", () => {
   it("SheetFrame tells onOpenChangeComplete once an open and a close have finished", async () => {
     const complete = vi.fn();
     const frame = (open: boolean) => (
-      <SheetFrame title="Filters" side="left" open={open} onOpenChange={() => {}} onOpenChangeComplete={complete}>
+      <SheetFrame title="Filters" closeLabel="Close" side="left" open={open} onOpenChange={() => {}} onOpenChangeComplete={complete}>
         <p>Body</p>
       </SheetFrame>
     );
