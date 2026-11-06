@@ -41,12 +41,6 @@ function ChevronIcon(): JSX.Element {
   );
 }
 
-/**
- * Live and the six presets, and Auto, Light or Dark, in a Popover from the header. Built from the
- * Popover parts to focus the panel itself when it opens: the panel is not yet positioned on the
- * frame Base UI moves focus in, so focusing its first button scrolled the page to the popup's
- * unplaced position. Tab reaches the choices from there.
- */
 /** A phone, or any touch screen: where a tap that closes a popover should press nothing else. */
 const TOUCH = "(pointer: coarse), (width < 40rem)";
 const touchScreen = (changed: () => void) => {
@@ -55,6 +49,12 @@ const touchScreen = (changed: () => void) => {
   return () => media.removeEventListener("change", changed);
 };
 
+/**
+ * Live and the six presets, and Auto, Light or Dark, in a Popover from the header. Built from the
+ * Popover parts to focus the panel itself when it opens: the panel is not yet positioned on the
+ * frame Base UI moves focus in, so focusing its first button scrolled the page to the popup's
+ * unplaced position. Tab reaches the choices from there.
+ */
 export function ThemePicker(): JSX.Element {
   const { preset, scheme, setMode } = useSiteTheme();
   useLiveClock(preset === "live");
@@ -172,6 +172,16 @@ function XraySwitch(): JSX.Element {
   return <Switch label="X-ray" checked={useXray()} onCheckedChange={setXray} />;
 }
 
+/** Puts focus in the search palette's field, over the next frames while its code loads. */
+function focusPaletteField(): void {
+  let frames = 0;
+  requestAnimationFrame(function again() {
+    const field = document.querySelector<HTMLInputElement>('[data-ouro="command"] input[data-ouro-part="input"]');
+    if (field) field.focus();
+    else if (++frames < 120) requestAnimationFrame(again);
+  });
+}
+
 /** A pill in the menu, beside its close button, for what a phone's bar has no room for. Choosing it closes the menu. */
 function MenuPill({ children, label, lit = false, onClick }: { children: ReactNode; label: string; lit?: boolean; onClick: () => void }): JSX.Element {
   return (
@@ -257,8 +267,12 @@ export function VoyageHeader({
               {menu === undefined && (
                 <MenuPill
                   label="Search"
-                  // Once the menu has closed and handed focus back to its button, so the palette keeps the focus it takes.
-                  onClick={() => document.querySelector("[data-ouro-navbar-menu]")?.addEventListener("focus", () => setSearching(true), { once: true })}
+                  // The palette rises as the menu slides away, and once the menu has handed focus back to its button,
+                  // the palette's field takes it: Search was pressed, so the next thing is typing.
+                  onClick={() => {
+                    setSearching(true);
+                    document.querySelector("[data-ouro-navbar-menu]")?.addEventListener("focus", focusPaletteField, { once: true });
+                  }}
                 >
                   <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="size-3.5">
                     <circle cx="7" cy="7" r="4.25" />

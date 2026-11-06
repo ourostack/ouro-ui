@@ -14,6 +14,7 @@ export const startPages = [
   { href: "/docs/updating/", label: "Updating installed components" },
 ];
 
+const exportPages = pageIndex.filter((page) => page.kind === "export");
 const guidePages = pageIndex.filter((page) => page.kind === "guide" && page.name !== "installing");
 /** The skill comparisons fold under one item, so the guides stay short. */
 const isComparison = (name: string) => name.startsWith("why-no-skill-");
@@ -27,15 +28,20 @@ export interface DocsLink {
   label: string;
 }
 
-/** Each catalog group's components, by name. With a filter, only the components whose name matches remain. */
-export function componentGroups(filter = ""): Array<{ label: string; links: DocsLink[] }> {
+/**
+ * Each catalog group's components, by name. With a filter, only the components whose name matches remain. With
+ * `exports`, each group's helpers, hooks and parts follow its components (`Radio` after the forms, `useTimer` in Feedback).
+ */
+export function componentGroups(filter = "", exports = false): Array<{ label: string; links: DocsLink[] }> {
   const wanted = searchable(filter);
+  const matches = (...texts: string[]) => wanted === "" || searchable(texts.join(" ")).includes(wanted);
   return siteGroups
     .map((group) => ({
       label: group,
-      links: docsItems
-        .filter((item) => item.group === group && (wanted === "" || searchable(`${item.title} ${item.name}`).includes(wanted)))
-        .map((item) => ({ path: `/docs/${item.name}/`, label: item.title })),
+      links: [
+        ...docsItems.filter((item) => item.group === group && matches(item.title, item.name)).map((item) => ({ path: `/docs/${item.name}/`, label: item.title })),
+        ...(exports ? exportPages.filter((page) => page.group === group && matches(page.title, page.name)).map((page) => ({ path: `/docs/${page.name}/`, label: page.title })) : []),
+      ],
     }))
     .filter((group) => group.links.length > 0);
 }

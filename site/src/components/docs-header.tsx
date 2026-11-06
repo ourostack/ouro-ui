@@ -54,7 +54,7 @@ function Folds({ groups, current }: { groups: ReadonlyArray<{ label: string; lin
                 {group.label}{" "}
                 <span className="ms-1 font-normal text-muted-foreground">
                   {group.links.length}
-                  <span className="sr-only"> pages</span>
+                  <span className="sr-only">{group.links.length === 1 ? " page" : " pages"}</span>
                 </span>
               </span>
             }
@@ -76,7 +76,8 @@ function Folds({ groups, current }: { groups: ReadonlyArray<{ label: string; lin
  * list the arrows walk the pages, and up from the first goes back to the search. Not while a word is being composed.
  */
 function walk(event: KeyboardEvent, results: HTMLElement | null, field: HTMLElement | null): boolean {
-  if (event.nativeEvent.isComposing || !results) return false;
+  // Safari sends the Enter that ends a composition as keyCode 229, without isComposing.
+  if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 || !results) return false;
   const links = [...results.querySelectorAll<HTMLAnchorElement>("a[href]")];
   if (links.length === 0) return false;
   const at = links.indexOf(event.target as HTMLAnchorElement);
@@ -151,7 +152,7 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
                 current={current}
               />
             ),
-            Components: <Folds groups={[...componentGroups(), { label: "Helpers and hooks", links: helpers }]} current={current} />,
+            Components: <Folds groups={componentGroups("", true)} current={current} />,
           }}
         />
       )}
@@ -182,8 +183,7 @@ function findDocs(query: string): Array<{ label: string; links: Array<{ label: s
     .map(({ label, href }) => ({ label, href }));
   return [
     { label: "Around the site", links: site },
-    { label: "Components", links: componentGroups(query).flatMap((group) => group.links).map(asPage) },
-    { label: "Helpers and hooks", links: helpers.filter((link) => holds(link.label, slug(link.path))).map(asPage) },
+    { label: "Components", links: componentGroups(query, true).flatMap((group) => group.links).map(asPage) },
     { label: "Guides", links: [...guides, ...comparisons].filter((link) => holds(link.label, slug(link.path))).map(asPage) },
   ].filter((group) => group.links.length > 0);
 }

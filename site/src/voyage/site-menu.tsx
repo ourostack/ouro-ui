@@ -139,10 +139,10 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
       // What stays pinned at the top of the sheet (the docs' search) covers the rows under it.
       const top = box.top + (scroller.querySelector<HTMLElement>("[data-site-menu-pinned]")?.offsetHeight ?? 0);
       if (spot.bottom > box.bottom - 16) {
-        // The page a third of the way down, or, nearer, the page's group from its heading, while the page stays in the top 60%.
+        // The page's group from its heading at the top, when that leaves the page in the top 60%; otherwise the page a third of the way down.
         const third = spot.top - top - (box.bottom - top) / 3;
-        const group = link.closest("[data-site-menu-group]")?.getBoundingClientRect();
-        scroller.scrollTop += group ? Math.min(Math.max(group.top - top - 8, third), spot.top - top - (box.bottom - top) * 0.6) : third;
+        const heading = (link.closest("[data-site-menu-group]")?.getBoundingClientRect().top ?? -Infinity) - top - 8;
+        scroller.scrollTop += heading >= spot.top - top - (box.bottom - top) * 0.6 ? heading : third;
       }
       return true;
     };

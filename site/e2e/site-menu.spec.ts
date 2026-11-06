@@ -116,7 +116,11 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await expect(sheet(page).getByRole("link", { name: "Button", exact: true })).toHaveAttribute("aria-current", "page");
   // It opens on the heading of the page's list, which is open, the others folded.
   await expect(sheet(page).getByRole("button", { name: /^Actions \d+ pages$/ })).toHaveAttribute("aria-expanded", "true");
-  await expect(sheet(page).getByRole("button", { name: /^Actions \d+ pages$/ })).toBeInViewport();
+  // Its heading sits just under the search, not wherever the page's row happened to land.
+  const under = (await sheet(page).locator("[data-site-menu-pinned]").boundingBox())!;
+  const actions = (await sheet(page).getByRole("button", { name: /^Actions \d+ pages$/ }).boundingBox())!;
+  expect(actions.y - (under.y + under.height)).toBeGreaterThanOrEqual(-4);
+  expect(actions.y - (under.y + under.height)).toBeLessThanOrEqual(24);
   await expect(sheet(page).getByRole("button", { name: /^Forms \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
   const search = sheet(page).getByRole("searchbox", { name: "Find a docs page" });
   await search.fill("segmented");
@@ -161,12 +165,13 @@ test("on any docs page the menu lists the guides and the components, as the side
   await expect(sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
   await sheet(page).getByRole("button", { name: /^Ouro AX, part by part \d+ pages$/ }).click();
   await expect(sheet(page).getByRole("link", { name: "ax-cli", exact: true })).toBeVisible();
-  // A helper's page opens the helpers' list, every helper in it.
+  // A helper's page is in its component's group, after the components.
   await page.goto("docs/use-timer/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await openMenu(page);
-  await expect(sheet(page).getByRole("button", { name: /^Helpers and hooks \d+ pages$/ })).toHaveAttribute("aria-expanded", "true");
-  await expect(sheet(page).getByRole("link", { name: "canShare", exact: true })).toBeAttached();
+  await expect(sheet(page).getByRole("button", { name: /^Feedback \d+ pages$/ })).toHaveAttribute("aria-expanded", "true");
+  await expect(sheet(page).getByRole("link", { name: "useTimer", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(sheet(page).getByRole("link", { name: "Timer", exact: true })).toBeVisible();
 });
 
 test("on a phone Enter in the docs search opens the first page it found", async ({ page }) => {
@@ -200,6 +205,8 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   await sheet(page).getByRole("button", { name: "Search", exact: true }).click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+  // Search was pressed, so the field has focus, ready to type.
+  await expect(page.getByRole("dialog", { name: "Command palette" }).locator("input[data-ouro-part='input']")).toBeFocused();
 });
 
 /** Opens the theme picker. The docs' header is an island, so its button works once it has hydrated. */
