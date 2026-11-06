@@ -3090,6 +3090,23 @@ describe("MessageList switching conversations", () => {
     expect(document.activeElement?.textContent).toContain("theo");
   });
 
+  it("does not take focus into the next conversation's messages once the reader has moved focus elsewhere and let go of it", async () => {
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} count={5} />);
+    await settle(list.scroller);
+    list.host.querySelector<HTMLElement>("[role=article], article")!.focus();
+    await list.commit(<Switcher open="theo" keyed={false} count={5} items={[]} />);
+    await settle(list.scroller);
+    const outside = document.body.appendChild(document.createElement("button"));
+    outside.focus();
+    outside.blur();
+    expect(document.activeElement).toBe(document.body);
+    await list.commit(<Switcher open="theo" keyed={false} count={5} />);
+    await settle(list.scroller);
+    outside.remove();
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it("switches at the newest, drawing only the newest, when what starts every conversation keeps its key and conversation says which", async () => {
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} welcome named />);
