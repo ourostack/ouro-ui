@@ -3134,6 +3134,18 @@ describe("MessageList switching conversations", () => {
     expect(list.host.querySelector("[data-ouro-message-list-jump]")).not.toBeNull();
   });
 
+  it("keeps no floor under content that only fills the view, as a short conversation does, when it opens a conversation", async () => {
+    const list = mount();
+    const mark = () => list.host.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
+    const content = () => list.scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    await list.commit(<Switcher open="mara" keyed={false} count={3} />);
+    await settle(list.scroller);
+    await list.commit(<Switcher open="mari" keyed={false} count={3} />);
+    // The content is as tall as the view, no taller: nothing to keep from shrinking.
+    expect(content().offsetHeight).toBe(list.scroller.clientHeight);
+    expect(mark().style.display).toBe("");
+  });
+
   /** Scrolls the list up from its end by `by`, as a reader does, and waits for it to settle. */
   async function upBy(scroller: HTMLElement, by: number) {
     scroller.scrollTop -= by;
