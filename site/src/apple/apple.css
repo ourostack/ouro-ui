@@ -16,6 +16,8 @@
     --apple-screen-radius: calc(var(--radius) * 2.6);
     --apple-hairline: color-mix(in oklab, var(--border) 70%, transparent);
     --apple-stage: color-mix(in oklab, var(--muted) 70%, var(--background));
+    /* Quiet text a step toward the foreground, for quiet text that sits on the hero's glow. */
+    --apple-quiet-on-glow: color-mix(in oklab, var(--muted-foreground) 70%, var(--foreground));
   }
 
   /* The section's own menu, under the site's header. */
@@ -26,9 +28,11 @@
     display: flex;
     gap: calc(var(--spacing) * 1);
     margin: 0;
-    padding: calc(var(--spacing) * 2) 0;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 1);
     list-style: none;
     overflow-x: auto;
+    /* A link that gets focus scrolls fully in, focus ring and all. */
+    scroll-padding-inline: calc(var(--spacing) * 4);
     scrollbar-width: none;
   }
   .apple-menu-short {
@@ -284,8 +288,9 @@
   .apple-inline-link:hover {
     text-decoration-color: currentColor;
   }
-  #xray {
-    scroll-margin-top: 6rem;
+  /* Every jump target in the section clears the site header and the Apple subnav, which both stick. */
+  .apple [id] {
+    scroll-margin-top: 7.5rem;
   }
 
   /* Doors to the section's pages. */

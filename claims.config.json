@@ -37,6 +37,11 @@
       "reason": "a latency run's record: the lines the latency spec printed on CI's runners, kept as a pull request's evidence"
     },
     {
+      "match": "^site/src/apple/evidence/",
+      "mode": "evidence",
+      "reason": "the Apple pages' evidence: reports Ouro Feel and Ouro Reins printed, copied unchanged, so the pages' claims about them can be checked"
+    },
+    {
       "match": "^docs/guides/evidence/",
       "mode": "evidence",
       "reason": "a guide's evidence: records copied as GitHub's API returned them, so a guide's claim about GitHub's behaviour can be checked"
@@ -70,6 +75,11 @@
       "match": "^docs/decisions/2026-11-02-cli-kit-and-platform-targets/evidence/",
       "mode": "evidence",
       "reason": "the CLI kit decision's records: a reference doctor's output and source notes, the first adopter's selfcheck output on made-up data, and this repository's measured size, copied as they were captured"
+    },
+    {
+      "match": "^docs/decisions/2026-11-03-platforms-and-repositories/evidence/",
+      "mode": "evidence",
+      "reason": "the platforms decision's records: the native inventory, Apple's agent platform and prior-art research, the naming and repository notes, and the maintainer's rulings, copied as they were written"
     },
     {
       "match": "^registry/ouro/ax/fixtures/",

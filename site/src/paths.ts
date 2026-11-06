@@ -4,7 +4,7 @@
  */
 
 /** The Ouro UI for Apple pages, in the order their own menu lists them (apple/pages.ts has their words). */
-export const APPLE_PATHS = ["/apple/", "/apple/hx/", "/apple/ax/", "/apple/start/"] as const;
+export const APPLE_PATHS = ["/apple/", "/apple/hx/", "/apple/feel/", "/apple/ax/", "/apple/reins/", "/apple/start/"] as const;
 
 /**
  * The page module that renders a path: each has its own JavaScript closure (app.tsx). The voyage
