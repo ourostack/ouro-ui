@@ -149,6 +149,11 @@ describe("Ouro UI for Apple", () => {
     // ReinsWire parses the input before it looks the action up, and ReinsSchema words each problem.
     expect(problem("do teleport {bad")).toMatchObject({ code: "bad-request", problem: "the input after `do teleport` isn't JSON: {bad" });
     expect(problem("dance")?.problem).toBe("unknown request `dance`");
+    // The JSON form works too, as ReinsWire reads it.
+    expect(run(START, '{"op":"ls"}').reply.ok).toBe(true);
+    expect(run(START, '{"op":"do","action":"openRecipe","input":{"id":"recipe_tomato_toast"}}').state.stack).toEqual(["recipe:recipe_tomato_toast"]);
+    expect(problem('{"op":"dance"}')?.problem).toBe('"op" must be "ls", "do" or "help"');
+    expect(problem("{oops")?.problem).toBe("the line starts with { but isn't JSON");
     expect(problem('do selectTab {"tab":5}')?.problem).toBe("$.tab: expected a string, got integer");
     expect(problem('do openRecipe {"id":"recipe_tomato_toast","x":1}')?.problem).toBe("$.x: not a property of this input (expected id)");
     expect(problem("do openRecipe null")?.problem).toBe("$: expected an object, got null");
@@ -227,17 +232,17 @@ describe("Ouro UI for Apple", () => {
     await expect.poll(last).toContain("focus recipe");
     await userEvent.click(page.getByRole("button", { name: "do startCooking", exact: true }));
     await expect.poll(last).toContain("focus cook");
-    // The click itself may scroll its chip into view; the reply must not move the page after that.
-    const teleport = page.getByRole("button", { name: /do teleport/ });
-    teleport.element().scrollIntoView({ block: "center" });
-    const scrolled = window.scrollY;
-    await userEvent.click(teleport);
+    // A reply never changes the terminal's height or the page's: replies scroll inside the log, chips have their room.
+    const terminal = document.querySelector<HTMLElement>("[data-reins-terminal]")!;
+    const size = () => [terminal.getBoundingClientRect().height, document.documentElement.scrollHeight];
+    const before = size();
+    await userEvent.click(page.getByRole("button", { name: /do teleport/ }));
     await expect.poll(last).toContain("teleport isn't available on cook");
     // A chip hands focus to the log, and the log scrolled itself while the page stayed put.
     const log = document.querySelector<HTMLElement>(".reins-log")!;
     expect(document.activeElement).toBe(log);
     expect(log.scrollTop).toBeGreaterThan(0);
-    expect(window.scrollY).toBe(scrolled);
+    expect(size()).toEqual(before);
   });
 
   it("control: race skips to the finish line with the real numbers", async () => {

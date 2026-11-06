@@ -208,19 +208,37 @@ export function run(state: KitchenState, line: string): { state: KitchenState; r
   const text = line.trim();
   const screen = () => ls(state);
   const bad = (problem: string) => ({ state, reply: { ok: false as const, error: refuse("bad-request", "request", problem, words.badRequestFix), screen: screen() } });
-  // Split as ReinsWire does: at most three parts, the third the rest of the line.
-  const parts = /^(\S+)(?:\s+(\S+)(?:\s+(.+))?)?$/.exec(text)?.slice(1).filter((part) => part !== undefined) ?? [];
-  if (parts[0] === "ls" && parts.length === 1) return { state, reply: { ok: true, screen: screen() } };
-  if (parts[0] === "help" && parts.length === 1) return { state, reply: { ok: true, help: HELP, screen: screen() } };
-  if (parts[0] !== "do" || parts.length < 2) return bad(fill(words.unknown, { text }));
-  const name = parts[1]!;
-  // The input is parsed before the action is looked up, so bad JSON is a bad request on any screen.
+  let name: string;
   let input: Json | undefined;
-  if (parts[2] !== undefined) {
+  if (text.startsWith("{")) {
+    // The JSON form, as ReinsWire reads it: {"op":"ls"}, {"op":"help"} or {"op":"do","action":…,"input":…}.
+    let request: Json;
     try {
-      input = JSON.parse(parts[2]) as Json;
+      request = JSON.parse(text) as Json;
     } catch {
-      return bad(fill(words.notJson, { action: name, rest: parts[2] }));
+      return bad(words.notJsonLine);
+    }
+    const fields = request && typeof request === "object" && !Array.isArray(request) ? request : {};
+    if (fields.op === "ls") return { state, reply: { ok: true, screen: screen() } };
+    if (fields.op === "help") return { state, reply: { ok: true, help: HELP, screen: screen() } };
+    if (fields.op !== "do") return bad(words.badOp);
+    if (typeof fields.action !== "string" || !fields.action) return bad(words.doNeedsAction);
+    name = fields.action;
+    input = fields.input;
+  } else {
+    // Split as ReinsWire does: at most three parts, the third the rest of the line.
+    const parts = /^(\S+)(?:\s+(\S+)(?:\s+(.+))?)?$/.exec(text)?.slice(1).filter((part) => part !== undefined) ?? [];
+    if (parts[0] === "ls" && parts.length === 1) return { state, reply: { ok: true, screen: screen() } };
+    if (parts[0] === "help" && parts.length === 1) return { state, reply: { ok: true, help: HELP, screen: screen() } };
+    if (parts[0] !== "do" || parts.length < 2) return bad(fill(words.unknown, { text }));
+    name = parts[1]!;
+    // The input is parsed before the action is looked up, so bad JSON is a bad request on any screen.
+    if (parts[2] !== undefined) {
+      try {
+        input = JSON.parse(parts[2]) as Json;
+      } catch {
+        return bad(fill(words.notJson, { action: name, rest: parts[2] }));
+      }
     }
   }
   const { actions } = live(state);

@@ -97,7 +97,10 @@
     "requiredMissing": "{path}: required, missing",
     "notAProperty": "{path}: not a property of this input (expected {keys})",
     "notOneOf": "{path}: \"{value}\" isn't one of {allowed}",
-    "expected": "{path}: expected {expected}, got {got}"
+    "expected": "{path}: expected {expected}, got {got}",
+    "notJsonLine": "the line starts with { but isn't JSON",
+    "doNeedsAction": "a do request needs an \"action\" string",
+    "badOp": "\"op\" must be \"ls\", \"do\" or \"help\""
   },
   "counts": {
     "recipes": 2,

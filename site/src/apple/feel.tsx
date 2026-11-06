@@ -143,8 +143,8 @@ export default function AppleFeel(): JSX.Element {
           <CodeBlock code={RAPID_CODE} label="Rapid double taps" copy />
           <div className="apple-pair-side">
             <p className="apple-fine">
-              Tried the duel up top? The locked switch is what a quick thumb meets on a control that's busy animating. Feel's report puts it in the same words, plus
-              where it ran and which clock timed it.
+              Tried the duel up top? The locked switch is what a quick thumb meets on a control that's busy animating. Feel's report carries the same rapid line,
+              after its single-tap count, plus where it ran and which clock timed it.
             </p>
           </div>
         </div>

@@ -30,7 +30,7 @@ final class Shell: ReinsDrivable {
     var page: ReinsNode { path.last.map(\.node) ?? .kitchen(store) }
     func select(_ tab: String) { path = []; store.tab = tab }
     var reinsNode: ReinsNode {
-        .tabs(selected: "kitchen", tabs: ["kitchen", "shopping"],
+        .tabs(selected: store.tab, tabs: ["kitchen", "shopping"],
               select: { self.select($0) }, child:
             .stack(depth: path.count,
                    goBack: { self.path.removeLast() }, child: page))
