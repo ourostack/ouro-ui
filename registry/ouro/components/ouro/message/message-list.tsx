@@ -1175,9 +1175,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The other conversation draws from its newest, whatever of the one before was drawn.
       setEdge({ first: top, drawn: top });
       setBand(null);
-      // A reveal on its way finds nothing in the conversation before; the next opens at its newest, with no jump to offer and
-      // no focus kept on a message of the one before.
-      settleRef.current(false);
+      // The next opens at its newest, with no jump to offer and no focus kept on a message of the one before.
       setFocusKey(null);
       setShowJump(false);
     }
@@ -1219,6 +1217,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   useLayoutEffect(() => {
     if (track.switches === 0) return;
     switched.current = true;
+    // A reveal on its way finds nothing in the conversation before.
+    settleRef.current(false);
     reopen.current!();
   }, [track.switches]);
 
