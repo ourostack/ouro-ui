@@ -51,9 +51,17 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://design-system.service.gov.uk/components/error-message/": {
+    "status": 200,
+    "checked": "2026-11-03"
+  },
   "https://design-system.service.gov.uk/components/task-list/": {
     "status": 200,
     "checked": "2026-11-06"
+  },
+  "https://developer.apple.com/design/human-interface-guidelines/alerts": {
+    "status": 200,
+    "checked": "2026-11-03"
   },
   "https://developer.apple.com/documentation/appintents/orchestrating-complex-actions-with-app-skills": {
     "status": 200,
@@ -390,6 +398,10 @@
   "https://www.nngroup.com/articles/data-tables/": {
     "status": 200,
     "checked": "2026-11-06"
+  },
+  "https://www.nngroup.com/articles/error-message-guidelines/": {
+    "status": 200,
+    "checked": "2026-11-03"
   },
   "https://www.nngroup.com/articles/progressive-disclosure/": {
     "status": 200,
