@@ -10,6 +10,7 @@ import { proofPlugin } from "./site/scripts/proof.mts";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
 import { conformanceCommands } from "./test/conformance/commands.ts";
+import { restyleCommands } from "./test/restyle-commands.ts";
 
 const visual = process.env["CI_VISUAL"] === "1";
 // test/themes/: every story under each third-party theme fixture, heavy enough to run apart
@@ -128,12 +129,8 @@ export default defineConfig({
         test: {
           ...project.test,
           exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests],
-          ...(mutation
-            ? {
-                setupFiles: [...[project.test?.setupFiles ?? []].flat(), "./scripts/mutation/setup.ts"],
-                browser: { ...project.test?.browser, commands: { ...project.test?.browser?.commands, ...mutationCommands } },
-              }
-            : {}),
+          browser: { ...project.test?.browser, commands: { ...project.test?.browser?.commands, ...restyleCommands, ...(mutation ? mutationCommands : {}) } },
+          ...(mutation ? { setupFiles: [...[project.test?.setupFiles ?? []].flat(), "./scripts/mutation/setup.ts"] } : {}),
         },
       })),
       {
