@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, GATED_LOAD_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -28,6 +28,8 @@ describe("findOffendersInSource: each category", () => {
             "third-party-control",
             "content-spinner",
             "render-index",
+            "gated-load",
+            "vague-failure-copy",
             "uses-hand-rolled-control",
         ]);
     });
@@ -526,6 +528,272 @@ describe("layout-animation", () => {
         expect(formatComparison(comparison)).toEqual([`New animation of a layout property: app/x.tsx::Menu::layout-animation::transition-all:: (+1) at app/x.tsx:4. ${LAYOUT_ANIMATION_FIX}`]);
         expect(LAYOUT_ANIMATION_FIX).toContain("Animate transform and opacity instead, which the compositor runs without layout");
         expect(LAYOUT_ANIMATION_FIX).toContain("rather than transition-all");
+    });
+});
+describe("vague-failure-copy", () => {
+    const vague = (source, options) => findOffendersInSource("app/routes/fixture.tsx", source, options)
+        .filter((offender) => offender.category === "vague-failure-copy")
+        .map((offender) => offender.fingerprint.split("::").slice(3).join("::"));
+    it("keeps the detector Ouro AX shares: six phrases and the bare failure pattern", () => {
+        expect(VAGUE_FAILURE_PHRASES.map(([name]) => name)).toEqual(["couldn't", "could not", "something went wrong", "unable to", "failed to load", "an error occurred"]);
+        const samples = {
+            "Couldn’t show this picture": "couldn't",
+            "Couldnt save": "couldn't",
+            "We COULD NOT reach the server": "could not",
+            "Something went wrong.": "something went wrong",
+            "Unable to sync": "unable to",
+            "Photos failed to load": "failed to load",
+            "An error occurred": "an error occurred",
+            "An unexpected error has occurred.": "an error occurred",
+            "A error occurred": "an error occurred",
+            "Sorry, an unknown error": "an error occurred",
+            "Error": "bare error",
+            "Errors": "bare error",
+            "  Error!  ": "bare error",
+            "Error:": "bare error",
+            "Upload failed": "bare failed",
+            "Payment failure": "bare failed",
+            "Terror failed": "bare failed",
+            "Couldn't send.": "couldn't",
+            "Couldn't send:": "couldn't",
+            "Error: something went wrong": "something went wrong",
+            "Sync errors": "bare error",
+            // A cause in the same sentence, of two words or a substitution, that is not a next step or a vague word.
+            "Couldn't send: try again.": "couldn't",
+            "Something went wrong: please try again later.": "something went wrong",
+            "Something went wrong. Error code: E42": "something went wrong",
+            "Unable to save - try again": "unable to",
+            "Couldn't send: error": "couldn't",
+            "Couldn't sync since yesterday": "couldn't",
+            "Couldn't send: you're offline. Could not retry.": "could not",
+            "Error: error": "bare error",
+            "Error: please try again": "bare error",
+            "Upload failed: try again": "bare failed",
+        };
+        for (const [text, phrase] of Object.entries(samples))
+            expect([text, vagueFailurePhrase(text)]).toEqual([text, phrase]);
+        for (const text of ["3 failed", "Sync failed again", "The upload to the photo service failed", "Could nothing be simpler", "unable tomorrow", "Error: the photo service says this picture was deleted", "Couldn't send: you're offline. Try again when you're back online.", "Could not save because the server refused it", "Upload failed - the server answered 413", "Something went wrong — the server answered 500", "Couldn't send: ${…}", "No errors", "Nothing failed", "Zero errors", "None failed", "Show errors", "Hide errors", "Retry failed", "Clear errors"])
+            expect([text, vagueFailurePhrase(text)]).toEqual([text, undefined]);
+        expect(vagueFailurePhrase("Failed", { whole: false })).toBe(undefined);
+        expect(vagueFailurePhrase("Could not save", { whole: false })).toBe("could not");
+        expect(BARE_FAILURE.flags).toBe("iu");
+    });
+    it("reads JSX text with the children after it, so a cause in an expression counts as in its template twin", () => {
+        expect(vague(`export function A({ why }) { return <>
+          <p>Couldn't send: {why}</p>
+          <p>Couldn't send: <b>{why}</b></p>
+          <p>Couldn't send:{/* the reason */} {why}</p>
+          <p>Couldn't send {why}</p>
+          <p>Error: {why}</p>
+          <p>Error: try again {why}</p>
+        </>; }`)).toEqual(["couldn't::Couldn't send ${…}"]);
+    });
+    it("finds a vague phrase in a string, a template literal's static parts and JSX text, counted where it is written", () => {
+        expect(scan(`export function Photo() {\n  return <p>Couldn't show this picture</p>;\n}`)).toEqual([
+            { category: "vague-failure-copy", fingerprint: "app/routes/fixture.tsx::Photo::vague-failure-copy::couldn't::Couldn't show this picture", file: "app/routes/fixture.tsx", line: 2 },
+        ]);
+        expect(vague(`
+      export const message = "Something went wrong";
+      export function Upload({ name, toast }) {
+        toast(\`Could not upload \${name}. Try again later\`);
+        throw new Error(\`Unable to read the file\`);
+        return <Alert title="Photos failed to load" description={'An error occurred'}>
+          We   could not
+          reach the server.
+        </Alert>;
+      }`)).toEqual([
+            "something went wrong::Something went wrong",
+            "could not::Could not upload ${…}. Try again later",
+            "unable to::Unable to read the file",
+            "failed to load::Photos failed to load",
+            "an error occurred::An error occurred",
+            "could not::We could not reach the server.",
+        ]);
+    });
+    it("counts a bare failure only as a whole text: not a count, a template with a substitution or JSX text beside other children", () => {
+        expect(vague(`export function Status({ n, ok }) { return <>
+          <Badge>Error</Badge>
+          <Badge>{ok ? "Done" : "Upload failed"}</Badge>
+          <Badge label="Error:" />
+          <Badge>
+            {/* the state */}
+            Failed
+          </Badge>
+          <Badge>Error <b>{n}</b> again</Badge>
+          <Badge>{n} failed</Badge>
+          <Badge>{\`\${n} failed\`}</Badge>
+          <Badge>Error <b>{n}</b></Badge>
+          <Badge>{"3 failed"}</Badge>
+        </>; }`)).toEqual(["bare error::Error", "bare failed::Upload failed", "bare error::Error:", "bare failed::Failed"]);
+    });
+    it("reads apostrophe entities and curly apostrophes as an apostrophe", () => {
+        expect(vague(`export function A() { return <>
+          <p>Couldn&apos;t sync</p>
+          <p title="Couldn&#39;t sync">Couldn&rsquo;t sync</p>
+          <p>{"Couldn’t sync"}</p>
+        </>; }`)).toEqual(["couldn't::Couldn't sync", "couldn't::Couldn't sync", "couldn't::Couldn't sync", "couldn't::Couldn’t sync"]);
+    });
+    it("skips strings that are not copy: specifiers, types, keys, tagged templates, compared values, non-copy attributes and properties, and one lowercase token", () => {
+        expect(vague(`
+      import "./could not.css";
+      import messages from "./unable to";
+      export { failed } from "./failed to load";
+      import fs = require("could not");
+      type Failure = "Something went wrong" | import("unable to").T;
+      declare module "could not" {}
+      const lazy = () => import("./couldn't");
+      const config = require("./could not");
+      const keys = { "Could not": 1, ["Unable to"]: 2, className: "Error", id: "Upload failed", type: "Failed to load" };
+      enum Status { "Error" = 1 }
+      interface Strings { "Something went wrong": string }
+      export function A({ status, styles, m }) {
+        if (status === "Error" || status !== "Failed") return m["Could not"];
+        switch (status) { case "Something went wrong": break; }
+        const sheet = css\`could not\`;
+        setStatus("error");
+        setStatus("load-failed");
+        return <div className={status ? "Error" : "x"} itemClassName="Failed" data-state="Upload failed" id="Error" key="Failed" type="Error"
+          href="/could not" src="unable to" to="Error" name="Error" role="Error" htmlFor="Error" as="Error" />;
+      }`)).toEqual([]);
+    });
+    it("counts copy in a handler, under an element, at the top level and in a computed property's value", () => {
+        expect(vague(`
+      const title = { [key]: "Could not save" };
+      export function A({ toast }) {
+        return <div className={() => "Unable to save"}><Button onPress={() => toast("Couldn't save")}>{"Error"}</Button></div>;
+      }`)).toEqual(["could not::Could not save", "unable to::Unable to save", "couldn't::Couldn't save", "bare error::Error"]);
+    });
+    it("never makes the component around failure copy a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/oops.tsx": `export function Oops() { return <p>Something went wrong</p>; }`,
+            "app/routes/home.tsx": `import { Oops } from "~/components/oops"; export function Home() { return <Oops />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["vague-failure-copy"]);
+    });
+    it("lets a text through that holds a failureCopyAllow match, case-sensitive", () => {
+        const source = `export function A() { return <>
+          <p>The card service says your card could not be charged. Use another card.</p>
+          <p>The Card Service says your card could not be charged.</p>
+          <p>Could not save</p>
+        </>; }`;
+        const failureCopyAllow = [{ match: "card service says your card could not be charged", reason: "names the service and its answer" }];
+        expect(vague(source, { failureCopyAllow })).toEqual(["could not::The Card Service says your card could not be charged.", "could not::Could not save"]);
+        expect(vague(source)).toHaveLength(3);
+        const files = { "app/a.tsx": source };
+        const found = findOffenders(["app/a.tsx"], { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: {}, failureCopyAllow });
+        expect(found).toHaveLength(2);
+    });
+    it("names the phrase and what to say instead in its message", () => {
+        const fingerprint = "app/x.tsx::Photo::vague-failure-copy::couldn't::Couldn't show this picture";
+        const comparison = compareWithBaseline([{ fingerprint, file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([
+            `New vague failure copy ("couldn't"): ${fingerprint} (+1) at app/x.tsx:4. "couldn't" doesn't say what failed or why. ${VAGUE_FAILURE_COPY_FIX}`,
+        ]);
+        expect(VAGUE_FAILURE_COPY_FIX).toContain('"The photo service says this picture was deleted by its owner."');
+        expect(VAGUE_FAILURE_COPY_FIX).toContain("who or what caused it");
+        expect(VAGUE_FAILURE_COPY_FIX).toContain("the next step as a working action or command");
+        expect(VAGUE_FAILURE_COPY_FIX).toContain("failureCopyAllow in ouro-source-rules.json with a reason");
+    });
+    it("stops on a failureCopyAllow that is not a list, or an entry with an empty match or no reason, naming the entry and the fix", () => {
+        const load = (failureCopyAllow) => loadConfig("/repo", { readFile: () => JSON.stringify({ failureCopyAllow }), readdir: () => [] });
+        const entry = { match: "could not be charged", reason: "names the service and its answer" };
+        expect(load([entry]).failureCopyAllow).toEqual([entry]);
+        expect(loadConfig("/repo", { readFile: () => "{}", readdir: () => [] }).failureCopyAllow).toEqual([]);
+        expect(() => load({ match: "x" })).toThrow(`${CONFIG_PATH}: failureCopyAllow must be a list. Fix: "failureCopyAllow": [{ "match": "<part of the text>", "reason": "<why this wording is precise>" }].`);
+        expect(() => load([entry, { match: "could not" }])).toThrow(`${CONFIG_PATH}: failureCopyAllow[1] {"match":"could not"} needs a non-empty "match" (part of the text) and a "reason" (why this wording is precise). Fix: { "match": "<part of the text>", "reason": "<why this wording is precise>" }.`);
+        for (const bad of [{ match: "could not", reason: " " }, { match: "", reason: "precise" }, { reason: "precise" }, "could not", null])
+            expect(() => load([bad])).toThrow(`${CONFIG_PATH}: failureCopyAllow[0] ${JSON.stringify(bad)} needs a non-empty "match"`);
+    });
+    it("counts a new failureCopyAllow match as a narrowing, once, unless a match at the base is part of it", () => {
+        const config = (...matches) => ({ src: "app", ouroDirs: [], exclude: [], hookPrefix: "", baseline: BASELINE_PATH, failureCopyAllow: matches.map((match) => ({ match, reason: "precise" })) });
+        expect(narrowedSettings(config(), config("could not be charged", "could not be charged"))).toEqual([
+            { fingerprint: `${CONFIG_PATH}::failureCopyAllow::could not be charged`, change: 'lets failure copy holding "could not be charged" through (failureCopyAllow)' },
+        ]);
+        expect(narrowedSettings(config("could not"), config("card could not be charged"))).toEqual([]);
+        expect(narrowedSettings(config("could not be charged"), config())).toEqual([]);
+    });
+});
+describe("gated-load", () => {
+    const gated = (source) => scan(source).filter((offender) => offender.category === "gated-load").map((offender) => offender.fingerprint.split("::").slice(1, 4).join("::"));
+    it("finds a fetch in a visibilitychange listener, counted where the load is written", () => {
+        expect(scan(`export function Feed() {\n  useEffect(() => {\n    document.addEventListener("visibilitychange", () => {\n      if (!document.hidden) fetch("/api/feed");\n    });\n  }, []);\n  return null;\n}`)).toEqual([
+            { category: "gated-load", fingerprint: "app/routes/fixture.tsx::Feed::gated-load::visibilitychange>fetch::", file: "app/routes/fixture.tsx", line: 4 },
+        ]);
+    });
+    it("finds a load on the window's focus or blur, on return to the page, and in their on… handlers", () => {
+        expect(gated(`export function Feed({ refetch }) { useEffect(() => { window.addEventListener("focus", refetch); }, []); return null; }`)).toEqual(["Feed::gated-load::focus>refetch"]);
+        expect(gated(`export function A() { globalThis.addEventListener("blur", () => loadDrafts()); addEventListener("pageshow", () => import("./x")); }`)).toEqual(["A::gated-load::blur>loadDrafts", "A::gated-load::pageshow>import()"]);
+        expect(gated(`const sync = () => fetch("/api"); export function A() { window.onfocus = () => sync(); document.onvisibilitychange = sync; }`)).toEqual(["A::gated-load::onfocus>sync", "A::gated-load::onvisibilitychange>sync"]);
+        expect(gated(`const warm = useCallback(() => { const image = new Image(); image.src = url; }, [url]); export function A() { window.addEventListener("focus", warm); }`)).toEqual(["A::gated-load::focus>warm"]);
+    });
+    it("finds a load under a document.hidden, visibilityState or hasFocus condition, after an early return too", () => {
+        expect(gated(`export function poll() { if (document.hidden) return; loadMessages(); }`)).toEqual(["poll::gated-load::document.hidden>loadMessages"]);
+        expect(gated(`export function poll() { if (window.document.visibilityState === "visible") { revalidate(); } else { prefetchQuery(key); } }`)).toEqual(["poll::gated-load::document.visibilityState>revalidate", "poll::gated-load::document.visibilityState>prefetchQuery"]);
+        expect(gated(`export function poll() { return document.hasFocus() ? refresh() : null; }`)).toEqual(["poll::gated-load::document.hasFocus>refresh"]);
+        expect(gated(`export function poll() { document.hidden || fetch("/api"); }`)).toEqual(["poll::gated-load::document.hidden>fetch"]);
+        expect(gated(`export function poll() { switch (x) { case 1: if (!document.hidden) { break; } img.setAttribute("src", url); } }`)).toEqual(["poll::gated-load::document.hidden>src"]);
+    });
+    it("finds a load an idle wait or an observer decides, and one that waits on an in-view or idle hook", () => {
+        expect(gated(`export function warm() { requestIdleCallback(() => import("./chart")); }`)).toEqual(["warm::gated-load::requestIdleCallback>import()"]);
+        expect(gated(`export function Lazy() { useEffect(() => { new IntersectionObserver(([entry]) => { if (entry.isIntersecting) fetchNextPage(); }); }, []); return null; }`)).toEqual(["Lazy::gated-load::IntersectionObserver>fetchNextPage"]);
+        expect(gated(`export function More() { const { ref, inView } = useInView(); useEffect(() => { if (inView) fetchNextPage(); }, [inView]); return <div ref={ref} />; }`)).toEqual(["More::gated-load::useInView>fetchNextPage"]);
+        expect(gated(`export function Q() { const [ref, inView] = useInView(); const q = useQuery({ queryKey: ["x"], queryFn, enabled: inView }); return null; }`)).toEqual(["Q::gated-load::useInView>useQuery"]);
+        expect(gated(`export function Q() { const visible = await usePageVisibility(); const r = useSWR(visible ? "/api" : null); return null; }`)).toEqual(["Q::gated-load::usePageVisibility>useSWR"]);
+        expect(gated(`export function Q() { const idle = useIdle(60000); const options = { enabled: !idle }; return null; }`)).toEqual(["Q::gated-load::useIdle>enabled"]);
+        expect(gated(`export function Q() { useIdleTimer({ onIdle: () => {}, onActive: () => refetch(), timeout: 1000 }); useIntersectionObserver(ref, () => new Image()); return null; }`)).toEqual(["Q::gated-load::useIdleTimer>refetch", "Q::gated-load::useIntersectionObserver>new Image"]);
+        expect(gated(`export function A() { return <><InView onChange={(seen) => seen && load()} as="div" /><Row onEnterViewport={loadRow} /><Waypoint onEnter={() => {}} /></>; }`)).toEqual(["A::gated-load::InView>load", "A::gated-load::onEnterViewport>loadRow"]);
+    });
+    it("finds an element that fetches only as it nears the screen, and an address that waits on a gate", () => {
+        expect(gated(`export function Card({ photo }) { return <><img src={photo} loading="lazy" alt="" /><iframe loading="lazy" src="/map" /><Image loading="eager" src={photo} /><img loading={mode} /></>; }`)).toEqual(["Card::gated-load::loading=lazy>img", "Card::gated-load::loading=lazy>iframe"]);
+        expect(gated(`export function Card({ photo }) { const { ref, inView } = useInView(); return <><img ref={ref} src={inView ? photo : undefined} alt="" /><video poster={inView && photo} /><img src={photo} srcSet={undefined} title={inView ? "a" : "b"} /><img src /></>; }`)).toEqual(["Card::gated-load::useInView>img.src", "Card::gated-load::useInView>video.poster"]);
+    });
+    it("follows state that a gate's callback sets, and a same-file function that loads", () => {
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); useEffect(() => { new IntersectionObserver(([e]) => setShown(e.isIntersecting)); }, []); useEffect(() => { shown && load(); }, [shown]); return null; }`)).toEqual(["Q::gated-load::IntersectionObserver>load"]);
+        expect(gated(`function sync() { again(); } function again() { sync(); fetch("/api"); } export function A() { requestIdleCallback(() => sync()); }`)).toEqual(["A::gated-load::requestIdleCallback>sync"]);
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); useInView({ onChange: (seen, { target }) => setShown(seen) }); if (shown) loadMore(); }`)).toEqual(["Q::gated-load::useInView>loadMore"]);
+        expect(gated(`export function Q() { const [shown, setShown] = useState(false); document.addEventListener("visibilitychange", () => setShown((was) => was || !document.hidden)); if (shown) loadMore(); }`)).toEqual(["Q::gated-load::visibilitychange>loadMore"]);
+    });
+    it("leaves state a gate's callback sets to something else ordinary: a popover that closes on blur", () => {
+        expect(gated(`export function Popover() {
+          const [open, setOpen] = useState(false);
+          useEffect(() => { window.addEventListener("blur", () => setOpen(false)); window.addEventListener("focus", (event) => setOpen()); }, []);
+          const q = useQuery({ queryKey: ["items"], queryFn, enabled: open });
+          return <Button onClick={() => { if (!open) loadItems(); }} />;
+        }`)).toEqual([]);
+    });
+    it("lets rendering-only gates through: an animation or caret paused, what is drawn windowed, a media stream", () => {
+        expect(gated(`export function A() { useEffect(() => { document.addEventListener("visibilitychange", () => { if (document.hidden) cancelAnimationFrame(frame); else start(); }); }, []); return null; }`)).toEqual([]);
+        expect(gated(`export function Caret() { const [paused, setPaused] = useState(false); useEffect(() => { window.addEventListener("blur", () => setPaused(true)); }, []); return paused ? null : <span className="caret" />; }`)).toEqual([]);
+        expect(gated(`export function A({ rows }) { const [shown, setShown] = useState(false); useEffect(() => { new IntersectionObserver(([e]) => setShown(e.isIntersecting)); }, []); return shown ? <List rows={rows} /> : null; }`)).toEqual([]);
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => { if (!document.hidden) video.srcObject = stream; else video.pause(); }); }`)).toEqual([]);
+        expect(gated(`const draw = () => paint(); export function A() { const [, setX] = useState(); window.onfocus = draw; window.addEventListener("focus", () => {}); requestIdleCallback(); }`)).toEqual([]);
+    });
+    it("lets saving on hide through: sendBeacon, and a fetch with keepalive or another method", () => {
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") fetch("/save", { method: "POST", keepalive: true }); }); }`)).toEqual([]);
+        expect(gated(`export function A() { document.addEventListener("visibilitychange", () => navigator.sendBeacon("/log", data)); }`)).toEqual([]);
+        expect(gated(`export function A() { window.addEventListener("blur", () => fetch("/draft", { ...rest, method: "PUT" })); }`)).toEqual([]);
+        expect(gated(`export function A() { window.addEventListener("blur", () => fetch("/draft", { method: "GET", keepalive: false })); window.addEventListener("blur", () => fetch("/draft", init)); }`)).toEqual(["A::gated-load::blur>fetch", "A::gated-load::blur>fetch"]);
+    });
+    it("does not take an element's focus, another object's hidden or a plain condition for a gate", () => {
+        expect(gated(`export function A() { input.addEventListener("focus", () => fetch("/suggest")); panel.hidden && load(); if (open) refresh(); window.addEventListener(name, () => fetch("/x")); }`)).toEqual([]);
+        expect(gated(`export function A() { window.onclick = () => fetch("/x"); el.onfocus = () => fetch("/x"); return <Row onActive={undefined} data={{ [key]: 1 }} />; }`)).toEqual([]);
+        expect(gated(`export function A() { const { inViewRef } = useInView(); if (state.inView) load(); if (inViewRef) load(); }`)).toEqual([]);
+        expect(gated(`export function A() { if (!document.hidden) img.setAttribute(attribute(), url); if (open) {} else if (document.hidden) return; }`)).toEqual([]);
+    });
+    it("never makes the component around it a hand-rolled control at its call sites", () => {
+        const offenders = scanFiles({
+            "app/components/feed.tsx": `export function Feed() { useEffect(() => { window.addEventListener("focus", () => fetch("/api")); }, []); return null; }`,
+            "app/routes/home.tsx": `import { Feed } from "~/components/feed"; export function Home() { return <Feed />; }`,
+        });
+        expect(offenders.map((offender) => offender.category)).toEqual(["gated-load"]);
+    });
+    it("tells an app to load eagerly, newest first, and names what passes", () => {
+        const comparison = compareWithBaseline([{ fingerprint: "app/x.tsx::A::gated-load::focus>fetch::", file: "app/x.tsx", line: 4 }], {});
+        expect(formatComparison(comparison)).toEqual([`New load that waits for focus, visibility, idle or scrolling: app/x.tsx::A::gated-load::focus>fetch:: (+1) at app/x.tsx:4. ${GATED_LOAD_FIX}`]);
+        expect(GATED_LOAD_FIX).toContain("Load it eagerly");
+        expect(GATED_LOAD_FIX).toContain('(loading="lazy" included)');
+        expect(GATED_LOAD_FIX).toContain("newest first, within the performance budgets");
+        expect(GATED_LOAD_FIX).toContain("Rendering-only gates pass");
     });
 });
 describe("third-party-control", () => {
@@ -1740,6 +2008,30 @@ describe("main", () => {
             expect(line).not.toContain("Use an Ouro component instead");
             expect(exit).toHaveBeenCalledWith(1);
         });
+        it("gives failure copy's rise what to say instead, naming the phrase", () => {
+            const V = "app/routes/v.tsx::V::vague-failure-copy::something went wrong::Something went wrong";
+            const copy = { "/repo/app/routes/v.tsx": `export function V() {\n  return <p>Something went wrong</p>;\n}` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [V]: 1 }), copy);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            expect(io.error).toHaveBeenCalledWith(`Regression against abc123: ${V} (+1) at app/routes/v.tsx:2. "something went wrong" doesn't say what failed or why. ${VAGUE_FAILURE_COPY_FIX.replace(/\.$/, ";")} or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"`);
+            expect(exit).toHaveBeenCalledWith(1);
+        });
+        it("gives a gated load's rise the eager-loading advice, and lets it through once a reason is recorded", () => {
+            const G = "app/routes/g.tsx::G::gated-load::focus>fetch::";
+            const feed = { "/repo/app/routes/g.tsx": `const G = () => { window.addEventListener("focus", () => fetch("/api")); return null; };` };
+            const { deps, io, exit, gitShow } = setup(baselineOf({ [A]: 1, [G]: 1 }), feed);
+            gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], deps);
+            const line = io.error.mock.calls.map((call) => String(call[0])).find((text) => text.startsWith("Regression against abc123: " + G));
+            expect(line).toContain("Load it eagerly");
+            expect(line).toContain('or record why: node scripts/ouro-source-rules.mjs --write-baseline --base abc123 --allow-regression "<reason>"');
+            expect(exit).toHaveBeenCalledWith(1);
+            const allowed = setup(baselineOf({ [A]: 1, [G]: 1 }, [{ fingerprint: G, count: 1, reason: "the server pushes this feed; focus only reconnects" }]), feed);
+            allowed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], allowed.deps);
+            expect(allowed.exit).not.toHaveBeenCalled();
+        });
         it("passes a rise the new baseline allows with a reason and count, and not an empty reason or a smaller count", () => {
             const allowed = setup(baselineOf({ [A]: 1, [B]: 1 }, [{ fingerprint: B, count: 1, reason: "measured" }]), extra);
             allowed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
@@ -1876,6 +2168,25 @@ describe("main", () => {
             main(["--base", "abc123"], spent.deps);
             expect(spent.io.error).toHaveBeenCalledWith(change("stops reading app/generated/ (exclude)"));
             expect(spent.exit).toHaveBeenCalledWith(1);
+        });
+        it("fails a new failureCopyAllow match like a new exclude, unless a match at the base is part of it, and records it with a reason", () => {
+            const copy = { "/repo/app/routes/v.tsx": `export const V = () => <p>The card service says your card could not be charged.</p>;` };
+            const allow = (...matches) => ({ failureCopyAllow: matches.map((match) => ({ match, reason: "names the service and its answer" })) });
+            const fingerprint = `${CONFIG_PATH}::failureCopyAllow::could not be charged`;
+            const narrowed = setup(matching, { ...copy, ...settings(allow("could not be charged")) });
+            narrowed.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--base", "abc123"], narrowed.deps);
+            expect(narrowed.io.error).toHaveBeenCalledWith(change('lets failure copy holding "could not be charged" through (failureCopyAllow)'));
+            expect(narrowed.exit).toHaveBeenCalledWith(1);
+            const written = setup(matching, { ...copy, ...settings(allow("could not be charged")) });
+            written.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching }));
+            main(["--write-baseline", "--base", "abc123", "--allow-regression", "the card service's own answer"], written.deps);
+            expect(written.writeFile).toHaveBeenCalledWith(baselineFile, baselineOf({ [A]: 1 }, [{ fingerprint, count: 1, reason: "the card service's own answer" }]));
+            const covered = setup(matching, { ...copy, ...settings(allow("could not be charged")) });
+            covered.gitShow.mockImplementation(atBase({ [BASELINE_PATH]: matching, [CONFIG_PATH]: JSON.stringify(allow("could not")) }));
+            main(["--base", "abc123"], covered.deps);
+            expect(covered.io.error).not.toHaveBeenCalled();
+            expect(covered.exit).not.toHaveBeenCalled();
         });
         it("does not let a deleted and moved baseline start over", () => {
             const moved = settings({ baseline: "test/rules.json" });

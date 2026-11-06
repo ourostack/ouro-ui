@@ -75,11 +75,11 @@ describe("Finding fields in tests, as the Testing page says", () => {
     );
     expect(count(page.getByRole("alert"))).toBe(0);
     await act(async () => roots[0]!.render(
-      <Form errors={{ form: "We could not save your changes." }}>
+      <Form errors={{ form: "The server is down, so your changes were not saved. Try again in a few minutes." }}>
         <TextField label="Email" name="email" />
       </Form>,
     ));
-    expect(host.querySelector('[role="alert"]')!.textContent).toBe("We could not save your changes.");
-    expect(count(page.getByRole("alert").filter({ hasText: "We could not save your changes." }))).toBe(1);
+    expect(host.querySelector('[role="alert"]')!.textContent).toBe("The server is down, so your changes were not saved. Try again in a few minutes.");
+    expect(count(page.getByRole("alert").filter({ hasText: "The server is down, so your changes were not saved. Try again in a few minutes." }))).toBe(1);
   });
 });

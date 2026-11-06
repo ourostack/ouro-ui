@@ -103,7 +103,7 @@
       animation: ax-arrive var(--ouro-duration-fast, 150ms) ease;
     }
     /* The end of the three asks: both hearts beat, and the agent blinks. */
-    .ax-reward circle[cx="356"][cy="258"],
+    .ax-reward circle[cx="356"][cy="254"],
     .ax-reward circle[cx="846"][cy="288"] {
       transform-box: fill-box;
       transform-origin: center;

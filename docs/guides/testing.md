@@ -18,7 +18,7 @@ The tests do not run in jsdom or happy-dom. They drag, flick and measure, so the
 ## Install and run
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.4 ourostack/ouro-ui/dialog-tests#v1.3.4
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.5 ourostack/ouro-ui/dialog-tests#v1.3.5
 ```
 
 A `<name>-tests` item installs the component's tests, type tests, stories and spec, the tests of every component and helper that came with it, and `ouro-testing`, the test kit.[^tests-closure] CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union.[^subsets] The forms set is `field`, `fieldset`, `text-field`, `text-area`, `checkbox`, `checkbox-group`, `radio-group`, `switch`, `form`, `select`, `native-select` and `combobox`. Other items receive their full test dependency closure but are not measured individually. This closure guarantee does not establish execution coverage for every item alone.[^subsets] `ouro-tests` adds every component with all of its tests.[^ouro-tests]
@@ -87,7 +87,7 @@ These lookups are the same in Playwright (`page.getByRole`) and in Vitest browse
 | A required field | The same: `getByRole("textbox", { name: "Email", exact: true })`, or `getByLabel("Email", { exact: true })` | The required marker is drawn with CSS beside the label, not in its text. Both lookups use "Email" without `*`. |
 | A password field | `getByRole("textbox", { name: "Password", exact: true })`, or `getByLabel("Password", { exact: true })` | Playwright and Vitest give a password input the `textbox` role. The "Show password" button is named by hidden text, not `aria-label`, so a loose label lookup also finds the input alone. Find the button by its role and name. In Testing Library a password input has no role: use `getByLabelText("Password", { exact: true })`, required or not.[^password-role] |
 | A field's error | `getByText("Enter an email address.")`, or assert on the field: `toHaveAccessibleDescription("Enter an email address.")` and `toHaveAttribute("aria-invalid", "true")` | The error is the field's description. It is not an alert, so `getByRole("alert")` does not find it. |
-| The form's message | `getByRole("alert").filter({ hasText: "We could not save your changes." })` | A `Form` renders an alert only while there is a message. An accepted new answer inserts a new alert with its text already present; a form without a message has no alert.[^form-alert] Filtering by text checks the actual message rather than another alert on the page. |
+| The form's message | `getByRole("alert").filter({ hasText: "The server is down, so your changes were not saved. Try again in a few minutes." })` | A `Form` renders an alert only while there is a message. An accepted new answer inserts a new alert with its text already present; a form without a message has no alert.[^form-alert] Filtering by text checks the actual message rather than another alert on the page. |
 
 Other controls: a `Select` and a `Combobox` are `getByRole("combobox", { name })`; a `Checkbox` is `getByRole("checkbox", { name })`; a `Switch` is `getByRole("switch", { name })`; a `RadioGroup` is `getByRole("radiogroup", { name })` with `getByRole("radio", { name })` inside.
 

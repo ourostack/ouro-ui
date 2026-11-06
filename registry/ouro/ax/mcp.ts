@@ -4,7 +4,7 @@ export type { McpCall, McpCallResult, McpOptions, McpTool };
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
-import { checkInput, type Cli, type CommandDef, type Input } from "./command.ts";
+import { checkInput, checkOwner, type Cli, type CommandDef, type Input } from "./command.ts";
 import { DRY_RUN_FLAG, WHY_FLAG, WHY_PLACEHOLDER, effectAnnotations } from "./effects.ts";
 import { didYouMean, errorJson, errorLine, isAxError, type AxError, type AxErrorShape } from "./problem.ts";
 import { commandManifest } from "./help.ts";
@@ -73,8 +73,11 @@ function mcpTools(options: McpOptions): McpTool[] {
   });
 }
 
+// A tool call's context: no stdin, and the answer is data.
+const callContext = () => ({ stdin: async () => "", json: true });
+
 const defaultCall: McpCall = async (cmd, input) => {
-  const ctx = { stdin: async () => "", json: true };
+  const ctx = callContext();
   if (input[DRY_RUN_FLAG] === true) {
     if (!cmd.plan) return { ok: false, error: { code: "no-preview", exit: 2, thing: `${toolName(cmd)} ${DRY_RUN_FLAG}`, problem: "this tool has no preview, so nothing was done", fix: null } };
     return { ok: true, data: await cmd.plan(input, ctx) };
@@ -151,7 +154,10 @@ function createMcpHandler(options: McpOptions): (message: unknown) => Promise<Re
         }
         let result: McpCallResult;
         try {
-          result = await inTurn(() => call(cmd, input));
+          result = await inTurn(async () => {
+            await checkOwner(cli, cmd, input, callContext());
+            return call(cmd, input);
+          });
         } catch (e) {
           const shape: AxErrorShape = isAxError(e) ? e.shape : { code: "error", exit: cli.exits.code("error"), thing: name, problem: e instanceof Error ? e.message : String(e), fix: null };
           return ok(toolError(shape));

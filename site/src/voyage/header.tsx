@@ -131,6 +131,7 @@ function SiteCommand(): JSX.Element {
                   { label: "Home", onSelect: go(href("/")), keywords: ["start", "porthole"] },
                   { label: "The Nautilus", onSelect: go(href("/nautilus/")), keywords: ["story", "chapters", "ship"] },
                   { label: "Ouro AX", onSelect: go(href("/ax/")), keywords: ["agents", "agent experience", "cli", "x-ray"] },
+                  { label: "Ouro UI for Apple", onSelect: go(href("/apple/")), keywords: ["swift", "swiftui", "iphone", "mac", "siri", "app intents"] },
                   { label: "Docs", onSelect: go(href("/docs/installing/")), keywords: ["install", "guide"] },
                   { label: "Components", onSelect: go(href("/docs/")), keywords: ["catalog"] },
                   { label: "GitHub", onSelect: go(GITHUB), keywords: ["source", "repository"] },
@@ -188,6 +189,7 @@ export function VoyageHeader({ path, gutters = "voyage" }: { path: string; gutte
       items={[
         { label: "The Nautilus", href: href("/nautilus/") },
         { label: "Ouro AX", href: href("/ax/") },
+        { label: "For Apple", href: href("/apple/") },
         { label: "Docs", href: href("/docs/installing/") },
         { label: "Components", href: href("/docs/") },
         { label: "GitHub", href: GITHUB },

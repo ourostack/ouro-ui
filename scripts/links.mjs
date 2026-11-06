@@ -82,6 +82,10 @@ export function publishedPaths(root = repo) {
   const catalog = JSON.parse(readFileSync(join(root, "site/src/docs/catalog.json"), "utf8"));
   const pages = existsSync(join(root, "site/src/docs/pages.json")) ? JSON.parse(readFileSync(join(root, "site/src/docs/pages.json"), "utf8")) : [];
   const out = new Set(fixedPages);
+  // The Apple section's pages, from the list the site routes and prerenders them by.
+  const paths = join(root, "site/src/paths.ts");
+  const apple = existsSync(paths) ? /APPLE_PATHS = \[([^\]]*)\]/.exec(readFileSync(paths, "utf8"))?.[1] : undefined;
+  for (const match of apple?.matchAll(/"\/([^"]*)"/g) ?? []) out.add(match[1]);
   for (const { name } of [...catalog, ...pages]) for (const path of [`docs/${name}/`, `docs/${name}`, `docs/${name}.md`]) out.add(path);
   return out;
 }

@@ -30,7 +30,7 @@ import { checkWorkEvent } from "./work-event.ts";
  * @claim "never by importing the interface's code" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing)
  * @claim "only against a target that proves it is a mock" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::without proof of a mock, nothing other people see is called, and it does not conform)
  */
-const XRAY_VERSION = "1.4.0";
+const XRAY_VERSION = "1.5.0";
 
 type Verdict = "pass" | "fail" | "skip";
 
@@ -96,6 +96,8 @@ const CLAIM = new Map(CLAIMS.map((c) => [c.id, c]));
 const BOGUS = "axxraynoref";
 const NO_SUCH_COMMAND = "ax-xray-no-such-command";
 const NO_SUCH_FLAG = "--ax-xray-no-such-flag";
+/** The agent a self-scoped twin runs as: a made-up name that owns nothing, so the item the twin names is another's. */
+const STRANGER = "stranger-agent";
 const WHY = "ax-xray conformance probe: nobody asked, so this must not reach anyone";
 const READ_WORDS = new Set(["show", "list", "status", "profile", "catalog", "get"]);
 const AMBIGUOUS = ["edit", "delete", "remove"];
@@ -474,6 +476,8 @@ interface CliCommand {
   effect: string | null;
   readOnly: boolean | null;
   usage: string[];
+  /** `"self"` when the command runs only on the calling agent's own item. */
+  scope: string | null;
 }
 
 interface Context {
@@ -492,7 +496,7 @@ function commandsOf(help: Record<string, unknown>, name: string): CliCommand[] {
     const cmd = String(c["name"]);
     const raw = Array.isArray(c["usage"]) ? c["usage"].map(String) : typeof c["usage"] === "string" ? [c["usage"]] : [cmd];
     const usage = raw.map((u) => (u.startsWith(`${name} `) ? u.slice(name.length + 1) : u));
-    return { name: cmd, effect: typeof c["effect"] === "string" ? c["effect"] : null, readOnly: typeof c["readOnly"] === "boolean" ? c["readOnly"] : null, usage };
+    return { name: cmd, effect: typeof c["effect"] === "string" ? c["effect"] : null, readOnly: typeof c["readOnly"] === "boolean" ? c["readOnly"] : null, usage, scope: typeof c["scope"] === "string" ? c["scope"] : null };
   });
 }
 
@@ -553,7 +557,7 @@ async function checkCli(ctx: Context) {
     // Without help JSON, commands come from the text: an indented word, two spaces, then words.
     for (const l of overviewLines) {
       const m = /^ {2,4}([a-z][\w-]*):? {2,}\S/.exec(l);
-      if (m?.[1]) commands.push({ name: m[1], effect: null, readOnly: null, usage: [m[1]] });
+      if (m?.[1]) commands.push({ name: m[1], effect: null, readOnly: null, usage: [m[1]], scope: null });
     }
   }
   const names = commands.map((c) => c.name);
@@ -943,6 +947,38 @@ async function checkCli(ctx: Context) {
         rec.add("ui.person-only-refuses", label(e), bad.length ? "fail" : "pass", bad.length ? bad.join("; ") : clip(firstLine(text.stderr)));
         if (d && !d.same) ctx.effects.push({ surface: `${e.refuseAs} (refused)`, note: verdict.note });
         if (refuses(text)) errorChecks(e.refuseAs, text);
+      }
+    }
+    if (e.kind === "action" && e.scope === "self" && typeof e.twin === "string") {
+      // Who is calling, and a call on an item that is not theirs: run as an agent that owns nothing, on a mock.
+      const ws = wordsOf(e.twin);
+      const flagAt = ws.indexOf("--agent");
+      const cmd = commandOf(ws);
+      const bad: string[] = problemsOf([
+        [flagAt < 0 || !/^<[^<>]+>$/.test(String(ws[flagAt + 1])), "its twin does not say who is calling (--agent <me>), so it cannot tell the caller's own item from another's"],
+        [cmd !== null && cmd.scope !== "self", `\`${name} ${cmd?.name}\` does not check the owner: help --json gives it no scope: "self"`],
+      ]);
+      const probe = filled(ws.map((w, i) => (i === flagAt + 1 && flagAt >= 0 ? STRANGER : w)));
+      if (cmd === null || !ctx.safety.ok || "missing" in probe) {
+        const why = cmd === null ? "the twin is no command (ui.twin-exists)" : !ctx.safety.ok ? refusedNote(ctx.safety) : noSample((probe as { missing: string }).missing);
+        rec.add("ui.self-scope-refuses", label(e), bad.length ? "fail" : "skip", bad.length ? bad.join("; ") : why);
+      } else {
+        const pre = stateBefore ? await snapshot() : null;
+        const text = await call(probe.args);
+        const json = await call([...probe.args, "--json"]);
+        const d = pre ? stateDelta(pre, await snapshot()) : null;
+        const verdict = d ? refusalVerdict(d) : { ok: true, note: "" };
+        bad.push(
+          ...problemsOf([
+            [!refuses(text), `\`${clip(text.shown, 100)}\`, as ${STRANGER}, who owns nothing → exit ${text.code}: it did not refuse`],
+            [usageCode !== null && refuses(text) && text.code !== usageCode, `exit ${text.code}, not the usage code ${usageCode}`],
+            [!refuses(json) || !isRefusal(jsonValue(json.stdout)), `${brief(json)}: no refused outcome or error`],
+            [!verdict.ok, `the state changed: ${verdict.note}`],
+          ]),
+        );
+        rec.add("ui.self-scope-refuses", label(e), bad.length ? "fail" : "pass", bad.length ? bad.join("; ") : clip(firstLine(text.stderr)));
+        if (d && !d.same) ctx.effects.push({ surface: `${text.shown} (as ${STRANGER})`, note: verdict.note });
+        if (refuses(text)) errorChecks(`${e.twin} (as ${STRANGER})`, text);
       }
     }
     if (e.kind !== "read" || typeof e.twin !== "string") continue;

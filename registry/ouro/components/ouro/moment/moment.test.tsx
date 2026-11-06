@@ -229,8 +229,8 @@ describe("Moment", () => {
     // moment gets time to be heard before the next render.
     const heardIfSpoken = () => new Promise((resolve) => setTimeout(resolve, 400));
     try {
-      await render(<Moment kind="error" announce title="Couldn't send" description="Check your connection." />);
-      await expect.poll(() => announced.count("Couldn't send. Check your connection.")).toBe(1);
+      await render(<Moment kind="error" announce title="Not sent: you're offline" description="Check your connection." />);
+      await expect.poll(() => announced.count("Not sent: you're offline. Check your connection.")).toBe(1);
       await render(<Moment kind="success" title="Saved quietly" />);
       await heardIfSpoken();
       await render(<Moment kind="empty" announce title="Nothing to say" />);
@@ -246,7 +246,7 @@ describe("Moment", () => {
       expect(announced.count("Saved quietly")).toBe(0);
       expect(announced.count("Nothing to say")).toBe(0);
       expect(announced.count("[object")).toBe(0);
-      expect(announced.count("Couldn't send")).toBe(1);
+      expect(announced.count("Not sent: you're offline")).toBe(1);
     } finally {
       announced.stop();
     }

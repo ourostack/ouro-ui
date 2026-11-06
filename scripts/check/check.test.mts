@@ -425,7 +425,7 @@ describe("Ouro check's command", () => {
     assert.equal(merged.code, 0, merged.err);
     const regated = await run(["merge", "second", "--out", "merged", "--config", join(cwd, "none.json")], { cwd });
     assert.equal(regated.code, 2);
-    assert.match(regated.err, /^Could not read .*none\.json/);
+    assert.match(regated.err, /^Reading .*none\.json stopped the check: /);
   });
 
   test("exits 2 when Playwright, axe-core, the config, the earlier report, a shard's report or the pages are missing, and 1 when it cannot run", async () => {
@@ -437,7 +437,7 @@ describe("Ouro check's command", () => {
     // The check itself failing is no finding: 1, an error, not 3.
     const crash = await run([folder, ...fast, "--no-axe", "--out", "crash"], { env: { BROWSER_EXECUTABLE: join(scratch, "no-browser") } });
     assert.equal(crash.code, 1);
-    assert.match(crash.err, /^Ouro check could not run: /);
+    assert.match(crash.err, /^Ouro check stopped before it finished: /);
     const noPlaywright = await run([folder], { from: ["/"] });
     assert.equal(noPlaywright.code, 2);
     assert.match(noPlaywright.err, /needs Playwright/);
@@ -446,7 +446,7 @@ describe("Ouro check's command", () => {
     assert.match(noAxe.err, /runs axe-core/);
     const withAxe = await run([folder, ...fast, "--out", "axe", "--before", "missing.json"], { from: ["/", root], env: { AXE_CORE: require.resolve("axe-core/axe.min.js") } });
     assert.equal(withAxe.code, 2);
-    assert.match(withAxe.err, /^Could not read .*missing\.json/);
+    assert.match(withAxe.err, /^Reading .*missing\.json stopped the check: /);
     writeFileSync(join(scratch, "wide.json"), JSON.stringify({ measure: { "**": "wide" } }));
     const badMeasure = await run([folder, "--config", "wide.json"]);
     assert.equal(badMeasure.code, 2);

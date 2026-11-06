@@ -26,7 +26,7 @@ afterEach(async () => {
 const email = () => host!.querySelector<HTMLInputElement>('input[name="email"]')!;
 const name = () => host!.querySelector<HTMLInputElement>('input[name="name"]')!;
 const alert = () => host!.querySelector<HTMLElement>('[role="alert"]');
-const messages = () => ({ email: "That email is taken.", form: "Could not save." });
+const messages = () => ({ email: "That email is taken.", form: "The server is down." });
 const fields = <>
   <TextField label="Email" name="email" defaultValue="a@example.com" />
   <TextField label="Name" name="name" defaultValue="Ari" />
@@ -47,7 +47,7 @@ async function render(node: ReactNode) {
 async function route({ immediate = false, mapped = false, raw = false, cached = false, keyed = false, formOnly = false } = {}) {
   let release: (() => void) | undefined;
   let accepted = 0;
-  const cachedAnswer: Answer = { errors: formOnly ? { form: "Could not save." } : messages() };
+  const cachedAnswer: Answer = { errors: formOnly ? { form: "The server is down." } : messages() };
   function Page() {
     const data = useActionData() as Answer | undefined;
     const navigation = useNavigation();
@@ -160,7 +160,7 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     function Page() {
       const [blocked, setBlocked] = useState(false);
       return <Form method="post" render={<RouterForm />}
-        errors={formErrors(answer, { ...messages(), form: blocked ? "Client message." : "Could not save." })}
+        errors={formErrors(answer, { ...messages(), form: blocked ? "Client message." : "The server is down." })}
         onSubmit={(event) => { event.preventDefault(); setBlocked(true); }}>{fields}</Form>;
     }
     const action = vi.fn(() => { throw new Error("prevented submit reached the action"); });
@@ -199,7 +199,7 @@ describe("Form answer value: projection, privacy and hydration boundaries", () =
   it("keeps a masked key cleared through omission, empty maps, absence and re-addition until a real new answer", async () => {
     const answer = {};
     await render(value(answer, messages())); await edit();
-    for (const node of [value(answer, { form: "Could not save." }), value(answer, {}), value(undefined, {}), value(answer, messages())]) {
+    for (const node of [value(answer, { form: "The server is down." }), value(answer, {}), value(undefined, {}), value(answer, messages())]) {
       await rerender(node);
       expect(email().getAttribute("aria-invalid")).toBeNull();
     }

@@ -31,7 +31,7 @@ async function copyText(text: string | Promise<string>, done: string, how: strin
     }
     toast(done, { tone: "success", description: how });
   } catch {
-    toast("Couldn't copy", { tone: "destructive", description: "Your browser kept the clipboard closed. Select the CSS on GitHub instead." });
+    toast("The browser blocked the clipboard", { tone: "destructive", description: "Select the CSS on GitHub and copy it from there." });
   }
 }
 
