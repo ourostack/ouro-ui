@@ -110,6 +110,14 @@ const items = [
 ];
 
 /** Waits until the sheet has finished opening or closing. */
+/**
+ * The menu button as a locator by its role. Built ahead of the press, the hidden sheet carries the button's label too, so
+ * the element's own locator (by label) would find both.
+ */
+function press(menuButton: HTMLElement) {
+  return page.getByRole("button", { name: menuButton.getAttribute("aria-label")!, exact: true });
+}
+
 async function sheetSettled() {
   await expect.poll(() => document.getAnimations().length).toBe(0);
 }
@@ -172,7 +180,7 @@ describe("Navbar", () => {
     expect(menuButton.getAttribute("aria-haspopup")).toBe("dialog");
     expect(menuButton.getAttribute("aria-expanded")).toBe("false");
     expect(bar.scrollWidth).toBeLessThanOrEqual(bar.clientWidth);
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     const sheet = page.getByRole("dialog", { name: "Menu" });
     await expect.element(sheet).toBeVisible();
     expect(menuButton.getAttribute("aria-expanded")).toBe("true");
@@ -182,10 +190,36 @@ describe("Navbar", () => {
     await expect.poll(() => Math.round(sheet.element().getBoundingClientRect().left)).toBe(0);
   });
 
+  it("builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens", async () => {
+    await page.viewport(390, 844);
+    const { menuButton } = await render(<Navbar label="Main" items={items} />);
+    const popup = () => document.querySelector<HTMLElement>('[data-ouro="sheet"]');
+    // Built ahead of the press, hidden: nothing in it is seen, heard or reached.
+    await expect.poll(popup).not.toBeNull();
+    expect(popup()!.hidden).toBe(true);
+    expect(page.getByRole("dialog").elements()).toHaveLength(0);
+    const built = popup();
+    await userEvent.click(press(menuButton));
+    await expect.element(page.getByRole("dialog", { name: "Menu" })).toBeVisible();
+    // The press showed the sheet it had: the same element.
+    expect(popup()).toBe(built);
+    await sheetSettled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup()?.hidden).toBe(true);
+    expect(popup()).toBe(built);
+  });
+
+  it("builds no sheet where the links fit the bar", async () => {
+    await page.viewport(1024, 768);
+    await render(<Navbar label="Main" items={items} />);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(document.querySelector('[data-ouro="sheet"]')).toBeNull();
+  });
+
   it("closes the sheet when a link is chosen", async () => {
     await page.viewport(390, 844);
     const { menuButton } = await render(<Navbar label="Main" items={items} />);
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     await sheetSettled();
     await userEvent.click(page.getByRole("dialog").getByRole("link", { name: "Cookbooks" }));
     await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
@@ -204,7 +238,7 @@ describe("Navbar", () => {
         }
       />,
     );
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     await sheetSettled();
     const nav = page.getByRole("dialog").getByRole("navigation", { name: "Main" });
     // The browser's own default (a new tab) is held back after the menu has seen the click, so the test page stays.
@@ -235,7 +269,7 @@ describe("Navbar", () => {
         }
       />,
     );
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     await sheetSettled();
     const nav = page.getByRole("dialog").getByRole("navigation", { name: "Main" });
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["New recipe"]);
@@ -250,7 +284,7 @@ describe("Navbar", () => {
   it("returns focus to the menu button when the sheet closes with Escape", async () => {
     await page.viewport(390, 844);
     const { menuButton } = await render(<Navbar label="Main" items={items} />);
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     await sheetSettled();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
@@ -260,7 +294,7 @@ describe("Navbar", () => {
   it("closes the sheet when the screen grows past 640px", async () => {
     await page.viewport(390, 844);
     const { menuButton } = await render(<Navbar label="Main" items={items} />);
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     await expect.element(page.getByRole("dialog")).toBeVisible();
     await page.viewport(1024, 768);
     await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
@@ -273,7 +307,7 @@ describe("Navbar", () => {
     await page.viewport(390, 844);
     const { menuButton } = await render(<Navbar label="Main" items={items} menuLabel="Menü" closeLabel="Schließen" />);
     expect(menuButton.getAttribute("aria-label")).toBe("Menü");
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     await expect.element(page.getByRole("dialog", { name: "Menü" })).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Schließen" })).toBeInTheDocument();
   });
@@ -335,7 +369,7 @@ describe("Navbar at tablet widths and with groups", () => {
     expect(bar.scrollWidth).toBeLessThanOrEqual(bar.clientWidth);
     // The bar's links are out of the way and out of the tab order.
     expect(page.getByRole("navigation", { name: "Main" }).query()).toBeNull();
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     const sheet = page.getByRole("dialog", { name: "Menu" });
     await expect.element(sheet.getByRole("link", { name: "Kitchen Search" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
@@ -350,7 +384,7 @@ describe("Navbar at tablet widths and with groups", () => {
     await page.viewport(768, 800);
     const { menuButton } = await render(<Navbar label="Main" items={eight} />);
     await expect.poll(() => getComputedStyle(menuButton).display).not.toBe("none");
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     await expect.element(page.getByRole("dialog", { name: "Menu" })).toBeVisible();
     await page.viewport(1600, 800);
     await expect.poll(() => page.getByRole("dialog").elements().length).toBe(0);
@@ -376,7 +410,7 @@ describe("Navbar at tablet widths and with groups", () => {
   it("lists a group of links under its name in the sheet", async () => {
     await page.viewport(390, 844);
     const { menuButton } = await render(<Navbar label="Main" items={grouped} currentPath="/recipes/drafts" />);
-    await userEvent.click(menuButton);
+    await userEvent.click(press(menuButton));
     const sheet = page.getByRole("dialog", { name: "Menu" });
     const group = sheet.getByRole("list", { name: "Recipes" });
     await expect.element(group).toBeVisible();

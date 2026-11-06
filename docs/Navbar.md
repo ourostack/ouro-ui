@@ -25,7 +25,7 @@ import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 
 ## Usage
 
-The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up.
+The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up. Once the menu button shows, the sheet is built while the page is idle and kept, hidden, between opens, so a press only shows it.
 
 Use `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one page. `StackedLayout` puts a Navbar above the page.
 

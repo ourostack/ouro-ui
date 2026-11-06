@@ -269,6 +269,8 @@ export interface SheetFrameProps {
   finalFocus?: SheetPopupProps["finalFocus"];
   /** Disables the close button, as `EditSheet` does while a save is pending. */
   closeDisabled?: boolean | undefined;
+  /** Keeps the closed sheet's content in the page, hidden, so an open only shows it (`Navbar` builds its sheet ahead of the press). */
+  keepMounted?: boolean | undefined;
 }
 
 /**
@@ -297,6 +299,7 @@ export function SheetFrame({
   presentation,
   finalFocus,
   closeDisabled,
+  keepMounted,
 }: SheetFrameProps): JSX.Element {
   // A non-modal sheet keeps its header row, which its close button sits in, even with the title hidden.
   const showHeader = !hideTitle || description !== undefined || !modal;
@@ -310,7 +313,7 @@ export function SheetFrame({
       {...(open !== undefined ? { open, onOpenChange: (next: boolean) => onOpenChange!(next) } : {})}
     >
       {trigger !== undefined && <SheetTrigger render={trigger} />}
-      <SheetPortal>
+      <SheetPortal keepMounted={keepMounted}>
         {modal && <SheetBackdrop />}
         <SheetViewport>
           <SheetPopupUnchecked

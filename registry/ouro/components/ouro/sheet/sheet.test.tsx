@@ -833,10 +833,41 @@ describe("Sheet iOS backdrop rule", () => {
     expect(withIosRules(pageCss())).not.toBe(pageCss());
   });
 
+  it("reads no layout as the backdrop mounts, where the backdrop is fixed", async () => {
+    const reads: Element[] = [];
+    const rect = Element.prototype.getBoundingClientRect;
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      reads.push(this);
+      return rect.call(this);
+    });
+    await render(
+      <SheetRoot defaultOpen>
+        <SheetPortal>
+          <SheetBackdrop />
+          <SheetViewport>
+            <SheetPopup>
+              <SheetTitle>Fixed</SheetTitle>
+            </SheetPopup>
+          </SheetViewport>
+        </SheetPortal>
+      </SheetRoot>,
+    );
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const layer = backdrop()!;
+    expect(getComputedStyle(layer).position).toBe("fixed");
+    expect(reads).not.toContain(layer);
+    expect(layer.style.getPropertyValue("--ouro-backdrop-top")).toBe("");
+  });
+
   // The rule applies under @supports (-webkit-touch-callout: none), which only iOS
   // matches, so the test switches the shipped rule on (withIosRules).
   it("covers the visible screen on a page scrolled 2000px", async () => {
+    // The anchor follows the same query, so it is switched on with the rules.
+    const supports = CSS.supports.bind(CSS);
     const ios = document.createElement("style");
+    vi.spyOn(CSS, "supports").mockImplementation((...query: [string, string?]) =>
+      query[0] === "-webkit-touch-callout" && query[1] === "none" ? true : supports(...(query as [string, string])),
+    );
     ios.textContent = withIosRules(pageCss());
     document.head.append(ios);
     mounted.push(ios);

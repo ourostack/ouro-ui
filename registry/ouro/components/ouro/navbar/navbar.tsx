@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
@@ -135,7 +135,8 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * render through `OuroProvider`'s `linkComponent`, so your router navigates.
  *
  * The phone menu opens once JavaScript has loaded (after hydration); the links are in the
- * server HTML from 640px up.
+ * server HTML from 640px up. Once the menu button shows, the sheet is built while the page is
+ * idle and kept, hidden, between opens, so a press only shows it.
  *
  * Use `Sidebar` instead for more than a handful of destinations, or sections of them. Use
  * `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one
@@ -160,6 +161,7 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
  * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
  * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
+ * @claim "the sheet is built while the page is" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens)
  */
 export function Navbar(props: NavbarProps): JSX.Element {
   const {
@@ -210,6 +212,20 @@ export function Navbar(props: NavbarProps): JSX.Element {
   const slot = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   if (!collapsed && open) setOpen(false);
+  // Once the menu button shows, the sheet is built while the page is idle, so a press only shows it: building it then
+  // (a long menu is hundreds of elements) would hold up the press's first frame. Kept from then on, hidden while closed.
+  const [built, setBuilt] = useState(false);
+  useEffect(() => {
+    if (!collapsed || built) return;
+    const build = () => setBuilt(true);
+    // Where the browser has no idle callback (Safari), after the page's other start-up work.
+    if (typeof requestIdleCallback !== "function") {
+      const timer = setTimeout(build, 500);
+      return () => clearTimeout(timer);
+    }
+    const idle = requestIdleCallback(build, { timeout: 2000 });
+    return () => cancelIdleCallback(idle);
+  }, [collapsed, built]);
 
   // Before paint, so a client mount never shows a row that does not fit.
   useLayoutEffect(() => {
@@ -274,7 +290,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
         <NavigationMenuView label={label} items={items} currentPath={currentPath} oneLine listRef={list} />
       </div>
       {actions !== undefined && <div className="ms-auto flex shrink-0 items-center gap-2">{actions}</div>}
-      <SheetFrame title={menuLabel} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
+      <SheetFrame keepMounted={built} title={menuLabel} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
         <nav
           aria-label={label}
           // A link chosen in the sheet closes it: the items' links, and any in the menu prop. Not one opened elsewhere (a new

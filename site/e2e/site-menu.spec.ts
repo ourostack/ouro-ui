@@ -374,6 +374,32 @@ test("on a phone the home page takes the menu's press as soon as it is ready, be
   await expect(sheet(page)).toBeVisible({ timeout: 3000 });
 });
 
+test("on a phone the menu's first open registers no CSS property, on the home page or a docs page, so it restyles no more of the page than the sheet", async ({ page }) => {
+  // Each property registered restyles the whole page; the sheet's are registered as its code loads, not on its press.
+  await page.addInitScript(() => {
+    const registered: string[] = [];
+    (window as unknown as { __registered: string[] }).__registered = registered;
+    const register = CSS.registerProperty.bind(CSS);
+    CSS.registerProperty = (definition: PropertyDefinition) => {
+      register(definition);
+      registered.push(definition.name);
+    };
+  });
+  await page.setViewportSize(PHONE);
+  const registered = () => page.evaluate(() => (window as unknown as { __registered: string[] }).__registered);
+  for (const path of ["./", "docs/button/"]) {
+    await page.goto(path);
+    await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    // The docs' header is an island: wait for its code, which registers the sheet's properties as it loads.
+    await expect.poll(registered).toContain("--drawer-swipe-strength");
+    const before = (await registered()).length;
+    await menuButton(page).click();
+    // real clock: the menu stays open until it is closed; no timer ends it.
+    await expect(sheet(page)).toBeVisible();
+    expect((await registered()).slice(before), path).toEqual([]);
+  }
+});
+
 test("on a phone the menu closes on a tap outside it, and on Escape, with focus back on its button", async ({ page }) => {
   await open(page, "docs/button/");
   await openMenu(page);
@@ -447,6 +473,26 @@ test("on a phone the menu opens scrolled to a page far down it", async ({ page }
   await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
 });
 
+test("on a phone the menu, kept between opens, opens afresh each time: the search empty, at the page you are on", async ({ page }) => {
+  await open(page, "docs/tooltip/");
+  // Built while the page is idle, before the first press, and kept from then on.
+  // real clock: the sheet is built when the browser says the page is idle, which no page clock drives.
+  await expect(page.locator('[data-ouro="sheet"][hidden]')).toBeAttached();
+  await openMenu(page);
+  const body = sheet(page).locator("[data-ouro-sheet-content]");
+  const at = await body.evaluate((element) => element.scrollTop);
+  await sheet(page).getByRole("searchbox", { name: "Find a page or component" }).fill("but");
+  await body.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+  await page.locator("[data-site-menu-close]").click();
+  // real clock: the sheet's slide out is a CSS transition, which the page's clock does not drive.
+  await expect(sheet(page)).toHaveCount(0);
+  await expect(page.locator('[data-ouro="sheet"][hidden]')).toBeAttached();
+  await openMenu(page);
+  await expect(sheet(page).getByRole("searchbox", { name: "Find a page or component" })).toHaveValue("");
+  await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
+  expect(await body.evaluate((element) => element.scrollTop)).toBe(at);
+});
+
 test("on a phone the keyboard's Close takes the corner from the pointer's, never both at once", async ({ page }) => {
   await open(page, "ax/");
   await openMenu(page);
@@ -485,6 +531,15 @@ test("on a phone choosing the page you are on closes the menu and stays put", as
   await sheet(page).locator('[aria-current="page"]').click();
   await expect(sheet(page)).toHaveCount(0);
   expect(await page.evaluate(() => scrollY)).toBe(before);
+});
+
+test("on a phone the page you are on, chosen with a modifier key held, opens in a new tab and the menu stays", async ({ page, context }) => {
+  await open(page, "ax/");
+  await openMenu(page);
+  const tab = context.waitForEvent("page");
+  await sheet(page).locator('[aria-current="page"]').click({ modifiers: ["ControlOrMeta"] });
+  expect((await tab).url()).toMatch(/\/ax\/$/);
+  await expect(sheet(page)).toBeVisible();
 });
 
 test("on a phone a docs page keeps its header, and the menu, in reach as you scroll", async ({ page }) => {

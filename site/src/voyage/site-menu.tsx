@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, type JSX, type ReactNode } from "react";
+import { useEffectEvent, useId, useLayoutEffect, useRef, type JSX, type ReactNode, type RefObject } from "react";
 import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { APPLE_PAGES, GITHUB, href, normalizePath } from "../paths";
@@ -70,8 +70,13 @@ function Here(): JSX.Element {
   );
 }
 
-/** Choosing the page you are on: the menu closes (the sheet sees the click) and the page stays where it is. */
-const stay = (event: { preventDefault(): void }) => event.preventDefault();
+/**
+ * Choosing the page you are on: the menu closes (the sheet sees the click) and the page stays where it is. With a modifier
+ * key held it opens in a new tab or window, as any link does, and the menu stays.
+ */
+const stay = (event: { preventDefault(): void; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean }) => {
+  if (!(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) event.preventDefault();
+};
 
 export function PageLink({ label, to, current }: { label: string; to: string; current: string }): JSX.Element {
   const here = to === current;
@@ -121,6 +126,32 @@ export function MenuPages({ pages, current }: { pages: readonly MenuPage[]; curr
 }
 
 /**
+ * Calls `shown(true)` each time the sheet around `ref` shows and `shown(false)` as it hides. The Navbar builds its sheet
+ * while the page is idle and keeps it, hidden, between opens, so the menu inside mounts once, not on each open: this is
+ * when it opens. A sheet already showing as the menu mounts (one pressed open before it was built) counts as shown.
+ */
+export function useSheetShown(ref: RefObject<HTMLElement | null>, shown: (on: boolean) => void): void {
+  const latest = useEffectEvent(shown);
+  useLayoutEffect(() => {
+    const popup = ref.current?.closest<HTMLElement>('[data-ouro="sheet"]');
+    if (!popup) return;
+    let on = !popup.hidden;
+    if (on) latest(true);
+    // Before the frame that draws the change: the observer's callback runs as the press's own work ends.
+    const observer = new MutationObserver(() => {
+      if (on === !popup.hidden) return;
+      on = !popup.hidden;
+      latest(on);
+    });
+    observer.observe(popup, { attributes: true, attributeFilter: ["hidden"] });
+    return () => {
+      observer.disconnect();
+      if (on) latest(false);
+    };
+  }, [ref]);
+}
+
+/**
  * The menu: each section with its line, then its pages. `more` adds to a section by its label (the docs pages add
  * their guides under Docs and every component under Components). It opens scrolled to the page you are on.
  */
@@ -128,8 +159,12 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
   const current = normalizePath(page);
   const list = useRef<HTMLOListElement>(null);
   const id = useId();
-  // Below the sheet's fold, the page you are on scrolls up into view as the sheet opens, without moving the page behind.
-  useLayoutEffect(() => {
+  // Below the sheet's fold, the page you are on scrolls up into view each time the sheet opens, without moving the page
+  // behind. Hidden between opens, the sheet keeps no scroll position, so each opens at its top first.
+  const frame = useRef(0);
+  useSheetShown(list, (on) => {
+    cancelAnimationFrame(frame.current);
+    if (!on) return;
     // True once there is nothing to do: no mark, or the mark in view. Until the sheet has its height nothing in it
     // scrolls, so it tries again on the next frames.
     const reveal = (): boolean => {
@@ -158,11 +193,10 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
     };
     if (reveal()) return;
     let tries = 0;
-    let frame = requestAnimationFrame(function again() {
-      if (!reveal() && ++tries < 30) frame = requestAnimationFrame(again);
+    frame.current = requestAnimationFrame(function again() {
+      if (!reveal() && ++tries < 30) frame.current = requestAnimationFrame(again);
     });
-    return () => cancelAnimationFrame(frame);
-  }, []);
+  });
   return (
     <ol ref={list} className="m-0 grid list-none gap-2 p-0">
       {SITE_SECTIONS.map((section, index) => {
@@ -213,17 +247,20 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
  */
 export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
   // While the menu is up, the root says so, and the Nautilus's fish wait under it (stage.css). From the frame after the
-  // sheet first draws, so the press's own frame does not also restyle the fish.
-  useEffect(() => {
+  // sheet draws, so the press's own frame does not also restyle the fish.
+  const fade = useRef<HTMLDivElement>(null);
+  const frame = useRef(0);
+  useSheetShown(fade, (on) => {
     const root = document.documentElement;
-    let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => root.setAttribute("data-site-menu-open", ""));
-    });
-    return () => {
-      cancelAnimationFrame(frame);
+    cancelAnimationFrame(frame.current);
+    if (!on) {
       root.removeAttribute("data-site-menu-open");
-    };
-  }, []);
+      return;
+    }
+    frame.current = requestAnimationFrame(() => {
+      frame.current = requestAnimationFrame(() => root.setAttribute("data-site-menu-open", ""));
+    });
+  });
   return (
     <>
       <SheetClose
@@ -242,7 +279,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
           <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </SheetClose>
-      <div aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
+      <div ref={fade} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
       {tools && <div className="[:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-2 z-3 flex gap-1 sm:hidden">{tools}</div>}
       {children}
     </>

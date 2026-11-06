@@ -34,6 +34,12 @@ async function firstPress(page: Page, press: () => Promise<unknown>): Promise<nu
   return durations.length > 0 ? Math.max(...durations) : 16;
 }
 
+/**
+ * The most a page's first open may take, in ms: a loose guard for CI's slower runner, so a first open that gets much
+ * slower fails. The warm presses' budget does not hold it: the first runs the sheet's code for the first time.
+ */
+const FIRST_OPEN_CEILING = 320;
+
 test.describe("interaction latency", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
 
@@ -49,31 +55,26 @@ test.describe("interaction latency", () => {
         await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
         await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", "half");
       }
-      // The first open, which also loads and lays out the sheet for the first time, measured on its own: the presses below
-      // are warm. It is reported, so a change that slows only the first open shows.
-      if (path === "./") {
-        const first = await firstPress(page, () => menuButton(page).click());
-        // real clock: the menu stays open until it is closed; no timer ends it.
-        await expect(sheet(page)).toBeVisible();
-        test.info().annotations.push({ type: "latency", description: `${label}, first open: ${first} ms` });
-        console.log(`latency ${label}, first open: ${first} ms`);
-      }
+      // The first open, measured on its own: the presses below are warm. The Navbar builds its sheet while the page is
+      // idle and keeps it, hidden, between opens, so the first press, too, only shows it; on the docs, whose header is
+      // an island, the built sheet also says the header has hydrated. It is reported, so a change that slows only the
+      // first open shows.
+      // real clock: the sheet is built when the browser says the page is idle, which no page clock drives.
+      await expect(page.locator('[data-ouro="sheet"][hidden]')).toBeAttached();
+      const first = await firstPress(page, () => menuButton(page).click());
+      // real clock: the menu stays open until it is closed; no timer ends it.
+      await expect(sheet(page)).toBeVisible();
+      test.info().annotations.push({ type: "latency", description: `${label}, first open: ${first} ms` });
+      console.log(`latency ${label}, first open: ${first} ms`);
+      expect(first, `${label}, first open, in ms`).toBeLessThanOrEqual(FIRST_OPEN_CEILING);
       // Escape closes the menu, and the sheet slides away before the next press.
       const close = async () => {
         await page.keyboard.press("Escape");
         // real clock: the sheet's slide out is a CSS transition, which the page's clock does not drive.
         await expect(sheet(page)).toHaveCount(0);
       };
+      await close();
       const samples = await measure(page, label, {
-        // The docs' header is an island: its button works once it has hydrated, so open and close the menu once first.
-        prepare: async () => {
-          await expect(async () => {
-            if ((await sheet(page).count()) === 0) await menuButton(page).click({ timeout: 1000 });
-            // real clock: the menu stays open until it is closed; no timer ends it.
-            await expect(sheet(page)).toBeVisible({ timeout: 1000 });
-          }).toPass();
-          await close();
-        },
         press: () => menuButton(page).click(),
         // Each press opens the menu from closed.
         setUp: async (index) => {

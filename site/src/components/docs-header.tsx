@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type JSX, type KeyboardEve
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
 import { VoyageHeader } from "../voyage/header";
-import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
+import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu, useSheetShown } from "../voyage/site-menu";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { comparisons, componentGroups, guides, helpers, isAxPart, startPages, type DocsLink } from "./docs-sections";
@@ -99,6 +99,10 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
   const results = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLDivElement>(null);
   const input = () => field.current?.querySelector("input") ?? null;
+  // The menu is kept between opens: each opens with the search empty, as the first did.
+  useSheetShown(field, (on) => {
+    if (!on) setQuery("");
+  });
   return (
     <>
       {/* Stays at the top while the long lists scroll under it (-top-2: from the sheet body's edge, not its padding). */}

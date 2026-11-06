@@ -419,7 +419,7 @@ test("a screen too slow to swim the fish gets still water, its speed at Stop, an
 
 /**
  * Times the page to the stage's beat (its 500 ms wait before it reads the frames). `stall` holds the page that long inside
- * the second the stage reads (after its first frame); `delay` puts the beat off. With `starve`, the page draws no frame from
+ * the second the stage reads (after its first frame); `delay` puts the first beat off. With `starve`, the page draws no frame from
  * each beat on (requestAnimationFrame's callbacks wait) until `lift[n]` ms after the nth beat, if that is given; `hideAt`
  * hides the page and shows it again that long after the first beat.
  */
@@ -431,22 +431,32 @@ const onTheBeat = (
     ({ stall, delay, starve, lift, hideAt }) => {
       const original = window.setTimeout;
       const frames = window.requestAnimationFrame.bind(window);
+      const cancel = window.cancelAnimationFrame.bind(window);
       let starving = false;
-      const waiting: FrameRequestCallback[] = [];
+      // Held frames keep ids of their own (negative, apart from the browser's), so cancelling one still works.
+      const waiting = new Map<number, FrameRequestCallback>();
+      let held = 0;
       window.requestAnimationFrame = (callback) => {
         if (!starving) return frames(callback);
-        waiting.push(callback);
-        return 0;
+        waiting.set(--held, callback);
+        return held;
+      };
+      window.cancelAnimationFrame = (id) => {
+        if (id < 0) waiting.delete(id);
+        else cancel(id);
       };
       const feed = () => {
         starving = false;
-        for (const callback of waiting.splice(0)) frames(callback);
+        for (const callback of waiting.values()) frames(callback);
+        waiting.clear();
       };
       let hidden = false;
       Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
       let beats = 0;
+      let scheduled = 0;
       window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
         if (ms !== 500) return original(callback, ms, ...rest);
+        const later = scheduled++ === 0 ? delay : 0;
         return original(
           () => {
             const beat = beats++;
@@ -471,7 +481,7 @@ const onTheBeat = (
                 }),
               );
           },
-          500 + delay,
+          500 + later,
         );
       }) as typeof setTimeout;
     },
@@ -569,7 +579,7 @@ test("the stage judges the screen only once the site menu over it has closed", a
   await page.waitForTimeout(8000);
   await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
   await page.keyboard.press("Escape");
-  // real clock: a beat after the menu closes, put off as before, and then a second of frames.
+  // real clock: a beat after the menu closes, and then a second of frames.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 15_000 });
   await expect(scene(page)).toHaveAttribute("data-speed", "stop");
 });
