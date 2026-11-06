@@ -1700,7 +1700,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const content = contentRef.current!;
     const messages = () => [...content.querySelectorAll<HTMLElement>(items)];
     const busy = (message: Element) => message.getAttribute("aria-busy") === "true";
-    const textOf = (message: Element) => message.querySelector("[data-ouro-message-content]")?.textContent.trim() ?? "";
+    const textOf = (message: Element) => message.querySelector("[data-ouro-message-content]")?.textContent.trim();
     const spokenTextOf = (message: Element) => message.querySelector<HTMLElement>("[data-ouro-message-content]")!.innerText.trim();
     let known = messages();
     // Each known message's text when last checked, to tell a key swap from a new reply.

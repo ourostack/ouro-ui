@@ -1253,6 +1253,15 @@ describe("MessageList", () => {
       expect(spoken).toEqual(["Ouro: Two hours."]);
     });
 
+    it("is not announced when the server's copy under a new key differs only by the space around its text", async () => {
+      const { scroller, live, rerender } = await render(<Chat items={answered} />);
+      const { spoken, stop } = recordAnnouncements(live);
+      await rerender(<Chat items={[...asked, { id: 6, role: "assistant", text: " An hour.\n" }]} />);
+      await settle(scroller);
+      stop();
+      expect(spoken).toEqual([]);
+    });
+
     it("is announced when it replaces the last reply under a new key without streaming", async () => {
       const { live, rerender } = await render(<Chat items={answered} />);
       const { spoken, stop } = recordAnnouncements(live);
