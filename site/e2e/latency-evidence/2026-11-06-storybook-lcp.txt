@@ -1,0 +1,23 @@
+# Largest contentful paint and layout shift, before and after each page opens on its storybook scene
+#
+# Lighthouse 12.8.2, performance only, three runs per page and device, median LCP and largest CLS.
+# Before: https://ui.ouro.bot as deployed on 2026-11-06. After: this branch's site/dist served by
+# site/scripts/serve-pages.mjs. Same Mac, one run at a time.
+#   desktop: --preset=desktop (1350x940, no CPU slowdown, desktop network)
+#   phone:   Lighthouse's mobile default (simulated Slow 4G, 4x CPU) at 390x844, density 3
+# The opening scene, a canonical 60-80 KB AVIF preloaded from the head, is the largest paint
+# after; before, it was the headline or the lede (the Apple overview's: its video, as before).
+#
+# page	device	LCP before (median ms)	LCP after	CLS before (max)	CLS after
+# /	desktop	508	561	0.0001	0.0001
+# /	phone	1966	2312	0.0000	0.0000
+# /nautilus/	desktop	421	582	0.0001	0.0001
+# /nautilus/	phone	1813	2270	0.0012	0.0000
+# /ax/	desktop	443	549	0.0001	0.0001
+# /ax/	phone	2031	2289	0.0000	0.0000
+# /apple/	desktop	580	657	0.0001	0.0001
+# /apple/	phone	2879	3020	0.0000	0.0000
+# /apple/feel/	desktop	367	499	0.0001	0.0001
+# /apple/feel/	phone	1664	1970	0.0000	0.0000
+# /docs/	desktop	429	500	0.0001	0.0001
+# /docs/	phone	1809	2289	0.0000	0.0000
