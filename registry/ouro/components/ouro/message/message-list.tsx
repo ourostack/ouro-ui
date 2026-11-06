@@ -1751,6 +1751,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // The message focus is in, until focus leaves it, and whether it went with nothing in its place, waiting for the next messages.
     let focused: HTMLElement | null = null;
+    // Stryker disable next-line BooleanLiteral: the first sync(true), as this effect mounts, runs with `switched` false and sets it false.
     let waiting = false;
     // A Tab press in progress anywhere in the page (true for Shift+Tab), and where the list was
     // scrolled to before it: the browser scrolls to what it focuses before the list sends focus on.
