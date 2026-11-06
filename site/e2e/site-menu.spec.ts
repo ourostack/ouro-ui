@@ -26,6 +26,10 @@ async function open(page: Page, path: string): Promise<void> {
   await page.setViewportSize(PHONE);
   await page.goto(path);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  // Where the stage is, it has judged the screen first: on one too slow to swim its fish (CI's WebKit, drawing without
+  // the GPU) the fish hold the page between frames until then, and a press sent into that never lands in WebKit.
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+  if (await page.locator("[data-stage]").count()) await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
 }
 
 /** The menu's sheet: the dialog that holds the site's navigation. */
@@ -325,8 +329,6 @@ const FRAME_GAP_BUDGET = 100;
 for (const path of ["./", "docs/button/"]) {
   test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press`, async ({ page }) => {
     await open(page, path);
-    // real clock: the stage judges the screen on its real frames, a beat and then a second of them, which is what this waits for.
-    if (path === "./") await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
     const longestGap = () =>
       page.evaluate(
         () =>
