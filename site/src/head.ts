@@ -2,7 +2,7 @@ import type { Route } from "./routes";
 import { pageKind } from "./paths";
 import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
-import { cardAlt, cardFor, STORYBOOK } from "./storybook";
+import { CARDS, cardAlt, HEROES, sceneSources, STORYBOOK } from "./storybook";
 
 /** Where Pages serves the site. */
 export const SITE = "https://ui.ouro.bot";
@@ -20,9 +20,11 @@ export function headTags(route: Route, canonical: boolean): string[] {
   canonical = canonical && !route.noindex;
   const title = escape(route.title);
   const description = escape(route.description);
-  const card = cardFor(route.path);
-  const image = `${SITE}/og/${card.file}`;
-  const alt = escape(cardAlt(card));
+  // A page with a card of its own shows it; the component pages keep og.png, the site-wide card, until
+  // site.test.tsx's head-tag test moves with them to the docs card (after the phone-menu pull request, #648).
+  const card = CARDS[route.path];
+  const image = card ? `${SITE}/og/${card.file}` : `${SITE}/og.png`;
+  const alt = card ? escape(cardAlt(card)) : "Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it.";
   return [
     // First, so the stored theme and dark mode are on <html> before anything paints.
     `<script>${prepaintScript}</script>`,
@@ -33,6 +35,8 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<link rel="icon" href="${STORYBOOK}icons/ouro-hx.svg" type="image/svg+xml" />`,
     `<link rel="apple-touch-icon" href="${STORYBOOK}icons/ouro-hx-180.png" sizes="180x180" />`,
     `<link rel="manifest" href="/manifest.webmanifest" />`,
+    // The page's opening scene, its largest paint, fetched before the stylesheet that lays it out is read.
+    ...heroPreload(route.path),
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Ouro HX" />`,
     `<meta property="og:title" content="${title}" />`,
@@ -86,4 +90,15 @@ export function redirectPage(to: string): string {
     "</html>",
     "",
   ].join("\n");
+}
+
+/** Preloads for a page's opening scene, as its picture would choose it: the phone crop or the wide scene, in AVIF. */
+function heroPreload(path: string): string[] {
+  const hero = HEROES[path];
+  if (!hero) return [];
+  const { phone, wide } = sceneSources(hero.scene);
+  return [
+    `<link rel="preload" as="image" type="image/avif" media="(max-width: 640px)" imagesrcset="${phone("avif")}" imagesizes="100vw" fetchpriority="high" />`,
+    `<link rel="preload" as="image" type="image/avif" media="(min-width: 641px)" imagesrcset="${wide("avif")}" imagesizes="${hero.sizes}" fetchpriority="high" />`,
+  ];
 }

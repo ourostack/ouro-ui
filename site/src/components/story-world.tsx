@@ -2,7 +2,7 @@ import type { CSSProperties, JSX, ReactNode } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { href } from "../paths";
 import { Container } from "../voyage/layout";
-import { SCENES, STORYBOOK, type SceneName } from "../storybook";
+import { SCENES, STORYBOOK, sceneSources, type SceneName } from "../storybook";
 import "./story-world.css";
 
 const art = (path: string) => href(`${STORYBOOK}${path}`);
@@ -14,9 +14,7 @@ const art = (path: string) => href(`${STORYBOOK}${path}`);
  */
 function ScenePicture({ scene, priority, sizes }: { scene: SceneName; priority: boolean; sizes: string }): JSX.Element {
   const { alt, height } = SCENES[scene];
-  const phone = (type: "avif" | "webp") => `${art(`phone/${scene}-384.${type}`)} 384w, ${art(`phone/${scene}-768.${type}`)} 768w`;
-  const wide = (type: "avif" | "webp") =>
-    `${art(`scenes/${scene}-640.${type}`)} 640w, ${art(`scenes/${scene}-960.${type}`)} 960w, ${type === "avif" ? art(`scenes/${scene}-1536.avif`) : art(`headers/${scene}.webp`)} 1536w`;
+  const { phone, wide } = sceneSources(scene, art);
   return (
     <picture data-brand-scene={scene} className="story-world-picture">
       <source media="(max-width: 640px)" type="image/avif" srcSet={phone("avif")} sizes="100vw" width={768} height={576} />
