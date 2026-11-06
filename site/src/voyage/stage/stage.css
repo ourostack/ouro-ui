@@ -1114,10 +1114,7 @@
   /* The light the porthole throws around itself: a soft pool of the sea's colour behind the glass. */
   content: "";
   position: absolute;
-  /*
-   * Its soft edge is in the gradient, not a blur: a blurred layer under the moving fish is blurred again every frame they
-   * move over it, and on a renderer without the GPU that held the page's frames 300 ms apart (CI's WebKit, PR #648).
-   */
+  /* Its soft edge is in the gradient, not a blur, so it is not blurred again each frame the fish move over it. */
   inset: calc(6% - 22px) calc(4% - 22px) -22px;
   border-radius: 999px;
   /* --porthole-glow is its strength at the centre; a theme sets only that. The stops match the old blur within 2/255. */

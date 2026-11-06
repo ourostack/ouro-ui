@@ -15,6 +15,38 @@ async function open(page: Page): Promise<void> {
 }
 
 const scene = (page: Page) => page.locator(".stage-scene");
+
+/**
+ * The fish swimming at Half, from a page the stage has judged: a screen too slow to swim them (CI's WebKit, drawing without
+ * its GPU) starts in still water, and a press on Half sets them going, as a visitor's would.
+ */
+async function swimming(page: Page): Promise<void> {
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  if ((await scene(page).getAttribute("data-speed")) === "stop") await page.getByRole("radio", { name: "Half" }).click();
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+}
+
+/** Holds the page on each frame for `ms` from when its HTML has loaded, as a screen that draws slowly would. */
+const slowFrames = (page: Page, ms: number) =>
+  page.addInitScript((hold) => {
+    const burn = () => {
+      const end = performance.now() + hold;
+      while (performance.now() < end);
+      requestAnimationFrame(burn);
+    };
+    addEventListener("DOMContentLoaded", () => requestAnimationFrame(burn));
+  }, ms);
+
+/** Opens the stage on a page that draws slowly, which takes longer to be ready. */
+async function openSlow(page: Page): Promise<void> {
+  await page.goto("./");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached({ timeout: 20_000 });
+}
+
+/** The stage's endless animations that are running: the fish's drift and the caustics' sway. */
+const ambient = (page: Page) =>
+  page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === "running" && ["stage-drift", "stage-caustics"].includes((animation as CSSAnimation).animationName)).length);
 const porthole = (page: Page) => page.locator(".stage-porthole");
 /** The crew's newest line, under the porthole. */
 const lastLog = (page: Page) => page.locator("[data-stage-crew]");
@@ -170,6 +202,7 @@ test.describe("each control on the stage", () => {
   test("control: speed sets how fast the fish swim, and Stop holds them", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
+    await swimming(page);
     const drift = () =>
       page.locator(".stage-band-sunlit .stage-drift").first().evaluate((element) => {
         const animation = element.getAnimations()[0];
@@ -201,6 +234,8 @@ test.describe("each control on the stage", () => {
   });
 
   test("control: log unfolds the crew's lines", async ({ page }) => {
+    // Still, so the lines are the presses' own: a slow screen's still water would add the captain's.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
     const fold = page.getByRole("button", { name: /^Ship's log \(/ });
     // At rest the captain's welcome shows under the porthole, and the log holds it.
@@ -367,9 +402,55 @@ test("three full tanks are a small celebration: the hull's lights blink and bubb
   await expect(page.locator("[data-stage-tank-count]")).toHaveText(STAGE_COPY.tankCount(3));
 });
 
+test("a screen too slow to swim the fish gets still water, its speed at Stop, and Half sets them swimming", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await slowFrames(page, 150);
+  await openSlow(page);
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  await expect(scene(page)).toHaveAttribute("data-speed", "stop");
+  await expect(page.getByRole("radio", { name: "Stop" })).toBeChecked();
+  await expect(lastLog(page)).toContainText(LOG.stillWater.text);
+  await expect.poll(() => ambient(page)).toBe(0);
+  await page.getByRole("radio", { name: "Half" }).click();
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+  await expect.poll(() => ambient(page)).toBeGreaterThan(0);
+});
+
+test("one long task is not a slow screen: the fish keep swimming", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // One stall of nearly a second, inside the second the stage reads its frames.
+  await page.addInitScript(() =>
+    addEventListener("load", () =>
+      setTimeout(() => {
+        const end = performance.now() + 900;
+        while (performance.now() < end);
+      }, 900),
+    ),
+  );
+  await open(page);
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+});
+
+test("a speed chosen before the stage has judged the screen stands, however slow it draws", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await slowFrames(page, 150);
+  await openSlow(page);
+  await page.getByRole("radio", { name: "Full" }).click();
+  await expect(scene(page)).toHaveAttribute("data-speed", "full");
+  // real clock: the press itself marks the stage as judged; no timer is involved.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  // real clock: a second and a half, longer than the stage takes to judge, to show it no longer does.
+  await page.waitForTimeout(1500);
+  await expect(scene(page)).toHaveAttribute("data-speed", "full");
+});
+
 test("the fish rest while the stage is off screen", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 600 });
   await open(page);
+  await swimming(page);
   const state = () => page.locator(".stage-band-sunlit .stage-drift").first().evaluate((element) => element.getAnimations()[0]?.playState);
   expect(await state()).toBe("running");
   await page.evaluate(() => window.scrollTo(0, document.querySelector("[data-stage]")!.getBoundingClientRect().bottom + window.scrollY + 40));

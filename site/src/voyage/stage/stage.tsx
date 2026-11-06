@@ -103,39 +103,55 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     return () => observer.disconnect();
   }, []);
 
-  // A screen too slow to swim the fish (under 10 frames in a second, as on a machine drawing without its GPU) gets still
-  // water: the speed goes to Stop, which its control shows, and Half or Full sets them swimming again. Moving fish there
-  // hold the page between frames, so a press anywhere lands late. Judged once a visit, while the stage is in view and the
-  // page is shown; a press on the speed first is the visitor's own choice, and it stands. data-paced says it has been judged.
+  // A screen too slow to swim the fish (frames over 100 ms apart, as on a machine drawing without its GPU) gets still water:
+  // the speed goes to Stop, which its control shows, and Half or Full sets them swimming again. Moving fish there hold the
+  // page between frames, so a press anywhere lands late. Judged once a visit, on the middle gap of a second of frames (so
+  // one long task is not a slow screen), while the stage is in view and the page is shown; a press on the speed first is
+  // the visitor's own choice, and it stands, as does any press on the stage once they are playing. The captain says why the
+  // fish stopped. data-paced says it has been judged.
   const [paced, setPaced] = useState(false);
   useEffect(() => {
     if (paced || offscreen || speed !== "half" || typeof matchMedia === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let frame = 0;
     let wait = 0;
     const judge = () => {
-      cancelAnimationFrame(frame);
-      if (document.hidden) return;
-      let frames = 0;
+      const gaps: number[] = [];
       let start = 0;
+      let last = 0;
       const tick = (now: number) => {
         if (document.hidden) return;
-        if (!start) start = now;
-        else frames++;
-        if (now - start < 1000) frame = requestAnimationFrame(tick);
+        if (last) gaps.push(now - last);
+        else start = now;
+        last = now;
+        if (now - start < 1000 || gaps.length < 3) frame = requestAnimationFrame(tick);
         else {
-          if (frames < 10) setSpeed("stop");
+          if (gaps.toSorted((x, y) => x - y)[Math.floor(gaps.length / 2)]! > 100) {
+            setSpeed("stop");
+            write(LOG.stillWater);
+          }
           setPaced(true);
         }
       };
       frame = requestAnimationFrame(tick);
     };
-    // A beat after the stage comes into view, so the page's own first work is not counted against it.
-    wait = window.setTimeout(judge, 500);
-    document.addEventListener("visibilitychange", judge);
+    // A beat after the stage comes into view, or the page is shown again, so the page's own first work is not counted.
+    const soon = () => {
+      clearTimeout(wait);
+      cancelAnimationFrame(frame);
+      if (!document.hidden) wait = window.setTimeout(judge, 500);
+    };
+    soon();
+    const playing = () => setPaced(true);
+    const element = root.current;
+    document.addEventListener("visibilitychange", soon);
+    element?.addEventListener("pointerdown", playing, true);
+    element?.addEventListener("keydown", playing, true);
     return () => {
       clearTimeout(wait);
       cancelAnimationFrame(frame);
-      document.removeEventListener("visibilitychange", judge);
+      document.removeEventListener("visibilitychange", soon);
+      element?.removeEventListener("pointerdown", playing, true);
+      element?.removeEventListener("keydown", playing, true);
     };
   }, [paced, offscreen, speed]);
 

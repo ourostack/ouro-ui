@@ -124,6 +124,7 @@ export const LOG = {
     full: { name: "Ned Land", text: "Full speed! Now we are sailing!" },
   },
   bell: { name: "Conseil", text: "The bell rang. I counted it. One." },
+  stillWater: { name: "Captain Nemo", text: "Engines idle: this screen draws slowly, so the fish are resting. Press Half to sail on." },
 } as const satisfies Record<string, unknown>;
 
 /** What the crew says when the bell rings, in turn. */
@@ -159,6 +160,7 @@ export function allStageText(): string[] {
     LOG.lightsOff.text,
     ...Object.values(LOG.speed).map((line) => line.text),
     LOG.bell.text,
+    LOG.stillWater.text,
     ...BELL_TOASTS.map((line) => line.text),
   ];
   for (const band of ["sunlit", "twilight", "midnight"] as const) {

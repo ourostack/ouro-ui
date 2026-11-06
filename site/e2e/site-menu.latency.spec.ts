@@ -25,6 +25,12 @@ test.describe("interaction latency", () => {
       await page.setViewportSize(PHONE);
       await page.goto(path);
       await expect(page.locator("html[data-site-ready]")).toBeAttached();
+      // On the home page, measured with the fish swimming: the stage has judged the screen fast enough for them.
+      if (path === "./") {
+        // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+        await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+        await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", "half");
+      }
       // Escape closes the menu, and the sheet slides away before the next press.
       const close = async () => {
         await page.keyboard.press("Escape");
