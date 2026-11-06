@@ -311,6 +311,9 @@ const serverNow = () => 0;
 const mutedClass = "text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 const mutedLineClass = "truncate text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))]";
 
+// The default for backgroundEvents: one array, so the layout is worked out again only when the events change.
+const noEvents: readonly TimeGridEvent[] = [];
+
 /**
  * One drawn piece of an event: a timed event has one per day it covers; an all-day event, one.
  *
@@ -388,7 +391,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     workingHours: workingHoursProp,
     selectedId,
     onEventSelect,
-    backgroundEvents = [],
+    backgroundEvents = noEvents,
     backgroundLabel = "Other calendars",
     stackLabel = (count: number) => `${count} events`,
     expandedId,
@@ -442,98 +445,102 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const nowAt = nowTime > 0 ? formats.clock.at(nowTime) : null;
   const todayIndex = nowAt ? days.indexOf(nowAt.day) : -1;
 
-  // The events cut into what each shown day draws, in the order the arrow keys take them.
   const words = { ...defaultStatusLabels, ...statusLabels };
-  const problems: DevWarning[] = [];
-  const pieces: Piece[] = [];
-  const allDaySpans: Array<{ key: string; first: number; last: number }> = [];
-  const timedItems: Array<Array<{ key: string; start: number; end: number }>> = days.map(() => []);
   // Two times of day. Across midnight Intl would add both dates, so the times are joined instead.
   const rangeText = (format: Intl.DateTimeFormat, start: Date, end: Date) =>
     formats.clock.at(start.getTime()).day === formats.clock.at(end.getTime()).day ? format.formatRange(start, end) : `${format.format(start)} – ${format.format(end)}`;
-  // An all-day event's days: its weekday, or the dates it runs between.
-  const daysText = (first: string, last: string) => (first === last ? formats.weekdayLong.format(utcDate(first)) : formats.fullDay.formatRange(utcDate(first), utcDate(last)));
-  // The shown days from `from` to `to`, as indexes, or null when none of them shows.
-  const spanOf = (from: string, to: string) => {
-    const first = days.findIndex((day) => day >= from);
-    const last = days.findLastIndex((day) => day <= to);
-    return first === -1 || first > last ? null : { first, last };
-  };
-  const backgroundItems: Array<Array<{ key: string; start: number; end: number }>> = days.map(() => []);
-  const place = (list: readonly TimeGridEvent[], background: boolean) => {
-    const seen = new Set<string>();
-    const prefix = background ? "bg:" : "";
-    for (const [index, event] of list.entries()) {
-      // A repeated id still gets keys of its own, so React keeps every event.
-      const id = seen.has(event.id) ? `${event.id}#${index}` : event.id;
-      const status = oneOf(statuses, event.status, "busy");
-      if (process.env.NODE_ENV !== "production" && id !== event.id) problems.push([`two ${background ? "background events" : "events"} have id "${event.id}"`, "give each event its own id"]);
-      seen.add(event.id);
-      if (isIsoDate(event.start)) {
-        if (background) {
-          /* istanbul ignore else @preserve -- the else path exists only in production bundles */
-          if (process.env.NODE_ENV !== "production") problems.push([`background event "${event.id}" is all day, and background events are timed`, "pass it in events, or give it a start and end time"]);
+  // The events cut into what each shown day draws, in the order the arrow keys take them. Laid out once per change
+  // to the events, the days or their formats, not on every render (an arrow key, a clock tick, a measure).
+  const { pieces, problems, allDay, timed, behind, hasBackground } = useMemo(() => {
+    const problems: DevWarning[] = [];
+    const pieces: Piece[] = [];
+    const allDaySpans: Array<{ key: string; first: number; last: number }> = [];
+    const timedItems: Array<Array<{ key: string; start: number; end: number }>> = days.map(() => []);
+    // An all-day event's days: its weekday, or the dates it runs between.
+    const daysText = (first: string, last: string) => (first === last ? formats.weekdayLong.format(utcDate(first)) : formats.fullDay.formatRange(utcDate(first), utcDate(last)));
+    // The shown days from `from` to `to`, as indexes, or null when none of them shows.
+    const spanOf = (from: string, to: string) => {
+      const first = days.findIndex((day) => day >= from);
+      const last = days.findLastIndex((day) => day <= to);
+      return first === -1 || first > last ? null : { first, last };
+    };
+    const backgroundItems: Array<Array<{ key: string; start: number; end: number }>> = days.map(() => []);
+    const place = (list: readonly TimeGridEvent[], background: boolean) => {
+      const seen = new Set<string>();
+      const prefix = background ? "bg:" : "";
+      for (const [index, event] of list.entries()) {
+        // A repeated id still gets keys of its own, so React keeps every event.
+        const id = seen.has(event.id) ? `${event.id}#${index}` : event.id;
+        const status = oneOf(statuses, event.status, "busy");
+        if (process.env.NODE_ENV !== "production" && id !== event.id) problems.push([`two ${background ? "background events" : "events"} have id "${event.id}"`, "give each event its own id"]);
+        seen.add(event.id);
+        if (isIsoDate(event.start)) {
+          if (background) {
+            /* istanbul ignore else @preserve -- the else path exists only in production bundles */
+            if (process.env.NODE_ENV !== "production") problems.push([`background event "${event.id}" is all day, and background events are timed`, "pass it in events, or give it a start and end time"]);
+            continue;
+          }
+          const startsOn = event.start;
+          // Stryker disable next-line EqualityOperator: an end on the start day is the start day either way
+          const endsOn = isIsoDate(event.end) && event.end > startsOn ? event.end : startsOn;
+          const span = spanOf(startsOn, endsOn);
+          if (!span) continue;
+          const key = `all:${id}`;
+          pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, when: [daysText(startsOn, endsOn), allDayLabel] });
+          allDaySpans.push({ key, ...span });
           continue;
         }
-        const startsOn = event.start;
-        // Stryker disable next-line EqualityOperator: an end on the start day is the start day either way
-        const endsOn = isIsoDate(event.end) && event.end > startsOn ? event.end : startsOn;
-        const span = spanOf(startsOn, endsOn);
-        if (!span) continue;
-        const key = `all:${id}`;
-        pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, when: [daysText(startsOn, endsOn), allDayLabel] });
-        allDaySpans.push({ key, ...span });
-        continue;
-      }
-      const start = toInstant(event.start);
-      const end = toInstant(event.end ?? Number.NaN);
-      /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
-      if (process.env.NODE_ENV !== "production") {
-        if (!start) problems.push([`event "${event.id}" has start=${JSON.stringify(event.start)}, which is not a date`, '{ start: "2026-03-12T09:00:00Z" }, or start: "2026-03-12" for all day']);
-        else if (!end) problems.push([`event "${event.id}" has no end`, '{ start, end: "2026-03-12T10:00:00Z" }']);
-        else if (end < start) problems.push([`event "${event.id}" ends before it starts`, "{ start, end } with end after start"]);
-      }
-      if (!start || !end || end < start) continue;
-      const from = formats.clock.at(start.getTime());
-      const to = formats.clock.at(end.getTime());
-      // An event that ends at midnight ends on the day before.
-      const lastDay = to.minutes === 0 && end > start ? addDays(to.day, -1) : to.day;
-      // A day or more of time goes in the all-day row, across the days it covers; whole days from
-      // midnight read as all-day events do.
-      if (end.getTime() - start.getTime() >= dayLength * 60_000) {
-        if (background) {
-          /* istanbul ignore else @preserve -- the else path exists only in production bundles */
-          if (process.env.NODE_ENV !== "production") problems.push([`background event "${event.id}" lasts a day or more, and background events are shorter`, "pass it in events, or give it a start and end time"]);
+        const start = toInstant(event.start);
+        const end = toInstant(event.end ?? Number.NaN);
+        /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+        if (process.env.NODE_ENV !== "production") {
+          if (!start) problems.push([`event "${event.id}" has start=${JSON.stringify(event.start)}, which is not a date`, '{ start: "2026-03-12T09:00:00Z" }, or start: "2026-03-12" for all day']);
+          else if (!end) problems.push([`event "${event.id}" has no end`, '{ start, end: "2026-03-12T10:00:00Z" }']);
+          else if (end < start) problems.push([`event "${event.id}" ends before it starts`, "{ start, end } with end after start"]);
+        }
+        if (!start || !end || end < start) continue;
+        const from = formats.clock.at(start.getTime());
+        const to = formats.clock.at(end.getTime());
+        // An event that ends at midnight ends on the day before.
+        const lastDay = to.minutes === 0 && end > start ? addDays(to.day, -1) : to.day;
+        // A day or more of time goes in the all-day row, across the days it covers; whole days from
+        // midnight read as all-day events do.
+        if (end.getTime() - start.getTime() >= dayLength * 60_000) {
+          if (background) {
+            /* istanbul ignore else @preserve -- the else path exists only in production bundles */
+            if (process.env.NODE_ENV !== "production") problems.push([`background event "${event.id}" lasts a day or more, and background events are shorter`, "pass it in events, or give it a start and end time"]);
+            continue;
+          }
+          const span = spanOf(from.day, lastDay);
+          if (!span) continue;
+          const key = `all:${id}`;
+          const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [formats.acrossDays.formatRange(start, end)];
+          pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, when });
+          allDaySpans.push({ key, ...span });
           continue;
         }
-        const span = spanOf(from.day, lastDay);
-        if (!span) continue;
-        const key = `all:${id}`;
-        const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [formats.acrossDays.formatRange(start, end)];
-        pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, when });
-        allDaySpans.push({ key, ...span });
-        continue;
+        // The time itself is heard as the event shows it, right after its title.
+        const when = from.day === lastDay ? [formats.weekdayLong.format(utcDate(from.day))] : [formats.acrossDays.formatRange(start, end)];
+        days.forEach((day, column) => {
+          if (day < from.day || day > lastDay) return;
+          const key = `${prefix}${column}:${id}`;
+          const top = day === from.day ? from.minutes : 0;
+          const bottom = day === to.day ? to.minutes : dayLength;
+          pieces.push({ key, event, status, background, day: column, start: top, end: bottom, when });
+          (background ? backgroundItems : timedItems)[column]!.push({ key, start: top, end: bottom });
+        });
       }
-      // The time itself is heard as the event shows it, right after its title.
-      const when = from.day === lastDay ? [formats.weekdayLong.format(utcDate(from.day))] : [formats.acrossDays.formatRange(start, end)];
-      days.forEach((day, column) => {
-        if (day < from.day || day > lastDay) return;
-        const key = `${prefix}${column}:${id}`;
-        const top = day === from.day ? from.minutes : 0;
-        const bottom = day === to.day ? to.minutes : dayLength;
-        pieces.push({ key, event, status, background, day: column, start: top, end: bottom, when });
-        (background ? backgroundItems : timedItems)[column]!.push({ key, start: top, end: bottom });
-      });
-    }
-  };
-  place(events, false);
-  place(backgroundEvents, true);
-  // A background event comes after the person's own that start with it.
-  pieces.sort((a, b) => a.day - b.day || a.start - b.start || Number(a.background) - Number(b.background) || b.end - a.end);
-  const allDay = allDayLanes(allDaySpans);
-  const timed = timedItems.map((items) => layoutDay(items));
-  const behind = backgroundItems.map((items) => layoutDay(items));
-  const hasBackground = backgroundItems.some((items) => items.length > 0);
+    };
+    place(events, false);
+    place(backgroundEvents, true);
+    // A background event comes after the person's own that start with it.
+    pieces.sort((a, b) => a.day - b.day || a.start - b.start || Number(a.background) - Number(b.background) || b.end - a.end);
+    const allDay = allDayLanes(allDaySpans);
+    const timed = timedItems.map((items) => layoutDay(items));
+    const behind = backgroundItems.map((items) => layoutDay(items));
+    const hasBackground = backgroundItems.some((items) => items.length > 0);
+    return { pieces, problems, allDay, timed, behind, hasBackground };
+  }, [events, backgroundEvents, days, formats, allDayLabel]);
 
   useAppearanceClassNameCheck(
     "TimeGrid",
@@ -584,15 +591,18 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // opens their list. It needs the lane's width, which only a measure knows; server HTML, and
   // the first render before it, draw each event.
   const [laneWidth, setLaneWidth] = useState(0);
-  const stacks = behind.map((placements) =>
-    // Stryker disable next-line ConditionalExpression,EqualityOperator: an unmeasured lane is measured before the first paint, which decides either way.
-    labelBackground && laneWidth > 0
-      ? // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: a lone event spans the whole lane, at least 7rem, so it is never too narrow; one exactly at the minimum reads either way; an event spread over columns sits beside narrower ones.
-        stacksOf(placements).filter((stack) => stack.length > 1 && stack.some((placed) => (laneWidth * placed.span) / placed.columns < stackMinWidth))
-      : [],
-  );
-  // Each folded event's stack, by its key; the stack goes by its first event's key.
-  const stackOf = new Map(stacks.flat().flatMap((stack) => stack.map((placed) => [placed.key, stack] as const)));
+  // The stacks in each day, and each folded event's stack by its key (the stack goes by its first event's key):
+  // worked out once per layout and lane width.
+  const { stacks, stackOf } = useMemo(() => {
+    const stacks = behind.map((placements) =>
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: an unmeasured lane is measured before the first paint, which decides either way.
+      labelBackground && laneWidth > 0
+        ? // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: a lone event spans the whole lane, at least 7rem, so it is never too narrow; one exactly at the minimum reads either way; an event spread over columns sits beside narrower ones.
+          stacksOf(placements).filter((stack) => stack.length > 1 && stack.some((placed) => (laneWidth * placed.span) / placed.columns < stackMinWidth))
+        : [],
+    );
+    return { stacks, stackOf: new Map(stacks.flat().flatMap((stack) => stack.map((placed) => [placed.key, stack] as const))) };
+  }, [behind, labelBackground, laneWidth]);
   const reachable = pieces.filter((piece) => (stackOf.get(piece.key)?.[0]!.key ?? piece.key) === piece.key);
 
   // The event with the Tab stop: the last one moved to, else the selected one, else the first.
