@@ -1454,7 +1454,7 @@ test("conformance and mutation are each one check over their shards, which passe
   for (const [count, result] of [["0", "failure"], ["0", "cancelled"], ["3", "skipped"], ["", "skipped"]]) assert.notEqual(runStep(mutation, { COUNT: count, RESULT: result }).status, 0, `${count} ${result}`);
 });
 
-test("the mutation plan keys the kept results by pull request and dependency hash, and plans a pull request's shards from its estimated work, at least five without kept results, three with", () => {
+test("the mutation plan keys the kept results by pull request and dependency hash, and plans a pull request's shards from its estimated work, at least three without kept results, two with", () => {
   const block = ciJobs()["mutation-plan"];
   const key = stepScript(block, "The cache key's prefix");
   const pull = runStep(key, { EVENT: "pull_request", PR: "139" });
@@ -1465,13 +1465,13 @@ test("the mutation plan keys the kept results by pull request and dependency has
   const count = stepScript(block, "How many shards");
   // A stand-in for scripts/mutation.mjs --count: prints the larger of its minimum and $PLANNED.
   const planned = (shards) => `node() { printf 'CALL node %s\\n' "$*" >&2; min=\${4%%/*}; echo $(( ${shards} > min ? ${shards} : min )); }\n${count}`;
-  const cold = runStep(planned(5), { KEY: "stryker-139-abc-", MATCHED: "" });
-  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 5\/24$/m);
-  assert.deepEqual(cold.output, { count: "5", shards: "[1,2,3,4,5]" });
+  const cold = runStep(planned(1), { KEY: "stryker-139-abc-", MATCHED: "" });
+  assert.match(cold.calls, /^CALL node scripts\/mutation\.mjs HEAD\^1 --count 3\/24$/m);
+  assert.deepEqual(cold.output, { count: "3", shards: "[1,2,3]" });
   assert.deepEqual(runStep(planned(13), { KEY: "stryker-139-abc-", MATCHED: "" }).output, { count: "13", shards: "[1,2,3,4,5,6,7,8,9,10,11,12,13]" });
-  const warm = runStep(planned(2), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
-  assert.match(warm.calls, /--count 3\/24$/m);
-  assert.deepEqual(warm.output, { count: "3", shards: "[1,2,3]" });
+  const warm = runStep(planned(1), { KEY: "stryker-139-abc-", MATCHED: "stryker-139-abc-f00" });
+  assert.match(warm.calls, /--count 2\/24$/m);
+  assert.deepEqual(warm.output, { count: "2", shards: "[1,2]" });
   // No changed path is runtime source: no shard starts (the matrix still needs a value).
   const none = runStep(`node() { echo 0; }\n${count}`, { KEY: "stryker-139-abc-", MATCHED: "" });
   assert.equal(none.status, 0);

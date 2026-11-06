@@ -813,8 +813,8 @@ jobs:
     # since (pruneChangedFiles). On a pull request, as many shards as plan each at
     # SHARD_TARGET_SECONDS of estimated work or under (scripts/mutation.mjs --count, shardCount in
     # cache.mjs), so a large change's shards each finish in about 10 minutes, at most 24; at least
-    # three with results cached under the same hash, five without, so a cold run's mutants spread
-    # wider; none when no changed path is runtime source (scripts/mutation.mjs `mutates`: tests,
+    # two with results cached under the same hash, three without (shards of recent runs took 1 to 2
+    # minutes, most of it setup, so more only add jobs); none when no changed path is runtime source (scripts/mutation.mjs `mutates`: tests,
     # stories, the test kit, the site, scripts and docs give the shards nothing to mutate), and the
     # mutation check passes without them. On any other run (merge queue, main, dispatch) none
     # either: only a pull request's changed lines are mutated, and three container jobs that
@@ -867,10 +867,10 @@ jobs:
           MATCHED: ${{ steps.cached.outputs.cache-matched-key }}
         run: |
           if [ -n "$KEY" ] && [ -z "$MATCHED" ]; then
-            min=5
+            min=3
             echo "No results cached under $KEY: at least $min shards."
           else
-            min=3
+            min=2
             echo "Results cached under ${MATCHED:-nothing (not a pull request)}: at least $min shards."
           fi
           if [ -n "$KEY" ]; then
