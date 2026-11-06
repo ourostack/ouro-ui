@@ -963,6 +963,10 @@ describe("Composer expanded", () => {
     const { root, textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
     const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
     const settled = () => heights(body).length === 0 && body.style.height === "" && !body.classList.contains("transition-[height]");
+    // Each change the test reads runs for 10 s, then is finished: a busy runner can resume the test after the click later
+    // than the base duration's 200 ms, when a change that long has already ended.
+    const finish = () => act(async () => body.getAnimations().forEach((animation) => animation.finish()));
+    body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.click(expandButton()!);
     // WebKit on Linux can start the change a frame after the click.
     await expect.poll(() => heights(body)).toEqual(["height"]);
@@ -970,7 +974,9 @@ describe("Composer expanded", () => {
     // The text has its new height at once; the row around it shows it as it grows.
     expect(textarea.rows).toBe(6);
     expect(heights(textarea)).toEqual([]);
+    await finish();
     await expect.poll(settled).toBe(true);
+    body.style.removeProperty("--ouro-duration-base");
     const expandedHeight = body.getBoundingClientRect().height;
     // Typing grows the box at once, as before.
     await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f");
@@ -982,20 +988,29 @@ describe("Composer expanded", () => {
     expect(body.getBoundingClientRect().height).toBeGreaterThan(sixLines);
     body.style.removeProperty("--ouro-duration-base");
     await userEvent.clear(textarea);
+    body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.click(expandButton()!);
     await expect.poll(() => heights(body)).toEqual(["height"]);
+    await finish();
     await expect.poll(settled).toBe(true);
     // Collapsed again mid-way: it turns back from the height it shows, not from the full height, and ends at its own.
     const small = body.getBoundingClientRect().height;
-    body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.click(expandButton()!);
-    await userEvent.click(expandButton()!);
-    // From the height it shows, the row is below halfway as the collapse begins; from the full height, it would start above.
-    expect(body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
-    // From the full height, a 10 s change would take 5 s to pass halfway; from the height it shows, it is below at once.
-    await expect.poll(() => body.getBoundingClientRect().height).toBeLessThan(small + (expandedHeight - small) / 2);
+    // Held 200 ms in, below halfway, so the collapse starts from a height the test chose, however long the next click takes.
     await expect.poll(() => heights(body)).toEqual(["height"]);
-    await act(async () => body.getAnimations().forEach((animation) => animation.finish()));
+    for (const animation of body.getAnimations()) {
+      animation.pause();
+      animation.currentTime = 200;
+    }
+    const shown = body.getBoundingClientRect().height;
+    expect(shown).toBeGreaterThan(small);
+    expect(shown).toBeLessThan(small + (expandedHeight - small) / 2);
+    await userEvent.click(expandButton()!);
+    // From the height it shows, the collapse starts there and only goes down; from the full height, it would start far above
+    // it, and a 10 s change takes seconds to come back down that far. A pixel spares the rounding of the height it starts from.
+    expect(body.getBoundingClientRect().height).toBeLessThan(shown + 1);
+    await expect.poll(() => heights(body)).toEqual(["height"]);
+    await finish();
     await expect.poll(settled).toBe(true);
     // A render that is no expand or collapse ends a change at once.
     await userEvent.click(expandButton()!);
