@@ -138,8 +138,8 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
         else verdict(gaps.toSorted((x, y) => x - y)[Math.floor(gaps.length / 2)]! > 100);
       };
       frame = requestAnimationFrame(tick);
-      // A screen that draws under three frames in two seconds, twice running, is slow, though it never gets to say so in
-      // frames; once could be one long task.
+      // No verdict 2 s after judging starts means the frames never came (under three, or a second's worth, in that
+      // time). Twice running, the screen is slow, though it never gets to say so in frames; once could be one long task.
       deadline = window.setTimeout(() => {
         if (document.hidden) return;
         cancelAnimationFrame(frame);
@@ -155,6 +155,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       clearTimeout(wait);
       clearTimeout(deadline);
       cancelAnimationFrame(frame);
+      starved = false;
       if (!document.hidden) wait = window.setTimeout(judge, 500);
     };
     soon();

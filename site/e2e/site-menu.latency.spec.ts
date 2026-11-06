@@ -16,6 +16,24 @@ const sheet = (page: Page) => page.locator("[role='dialog']", { has: page.getByR
  */
 const BASELINE_MEDIAN: Record<string, number> = { "./": 64, "docs/button/": 64 };
 
+/** One press's press-to-paint time in ms on a CPU throttled LATENCY.throttle×, as measure() times each of its presses. */
+async function firstPress(page: Page, press: () => Promise<unknown>): Promise<number> {
+  await page.evaluate(() => {
+    const store: number[] = [];
+    (window as unknown as { __first: number[] }).__first = store;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push(entry.duration);
+    }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
+  });
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: LATENCY.throttle });
+  await press();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+  const durations = await page.evaluate(() => (window as unknown as { __first: number[] }).__first);
+  return durations.length > 0 ? Math.max(...durations) : 16;
+}
+
 test.describe("interaction latency", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
 
@@ -30,6 +48,15 @@ test.describe("interaction latency", () => {
         // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
         await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
         await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", "half");
+      }
+      // The first open, which also loads and lays out the sheet for the first time, measured on its own: the presses below
+      // are warm. It is reported, so a change that slows only the first open shows.
+      if (path === "./") {
+        const first = await firstPress(page, () => menuButton(page).click());
+        // real clock: the menu stays open until it is closed; no timer ends it.
+        await expect(sheet(page)).toBeVisible();
+        test.info().annotations.push({ type: "latency", description: `${label}, first open: ${first} ms` });
+        console.log(`latency ${label}, first open: ${first} ms`);
       }
       // Escape closes the menu, and the sheet slides away before the next press.
       const close = async () => {

@@ -212,6 +212,12 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
  * close button, the header's `tools` its bar has no room for.
  */
 export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
+  // While the menu is up, the root says so, and the Nautilus's fish wait under it (stage.css).
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("data-site-menu-open", "");
+    return () => root.removeAttribute("data-site-menu-open");
+  }, []);
   return (
     <>
       <SheetClose

@@ -39,9 +39,9 @@ const slowFrames = (page: Page, ms: number) =>
   }, ms);
 
 /** Opens the stage on a page that draws slowly, which takes longer to be ready. */
-async function openSlow(page: Page): Promise<void> {
-  await page.goto("./");
-  await expect(page.locator("html[data-site-ready]")).toBeAttached({ timeout: 20_000 });
+async function openSlow(page: Page, timeout = 20_000): Promise<void> {
+  await page.goto("./", { timeout });
+  await expect(page.locator("html[data-site-ready]")).toBeAttached({ timeout });
 }
 
 /** The stage's endless animations that are running: the fish's drift and the caustics' sway. */
@@ -417,16 +417,27 @@ test("a screen too slow to swim the fish gets still water, its speed at Stop, an
   await expect.poll(() => ambient(page)).toBeGreaterThan(0);
 });
 
-/** Runs `then` in the page right after the stage's beat (its 500 ms wait before it reads the frames), or puts the beat off by `delay`. */
-const onTheBeat = (page: Page, { stall = 0, delay = 0 }: { stall?: number; delay?: number }) =>
+/**
+ * Holds the page for `stall` inside the second the stage reads (after its first frame), or holds each frame for a second
+ * for `starve` from when it starts to read, or puts the stage's beat (its 500 ms wait before it reads the frames) off by `delay`.
+ */
+const onTheBeat = (page: Page, { stall = 0, starve = 0, delay = 0 }: { stall?: number; starve?: number; delay?: number }) =>
   page.addInitScript(
-    ({ stall, delay }) => {
+    ({ stall, starve, delay }) => {
       const original = window.setTimeout;
       window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
         if (ms !== 500) return original(callback, ms, ...rest);
         return original(
           () => {
             callback();
+            const until = performance.now() + starve;
+            const burn = () => {
+              if (performance.now() >= until) return;
+              const end = performance.now() + 1000;
+              while (performance.now() < end);
+              requestAnimationFrame(burn);
+            };
+            if (starve) requestAnimationFrame(burn);
             // The stall lands inside the second the stage reads: its first frame has started it.
             if (stall)
               requestAnimationFrame(() =>
@@ -440,7 +451,7 @@ const onTheBeat = (page: Page, { stall = 0, delay = 0 }: { stall?: number; delay
         );
       }) as typeof setTimeout;
     },
-    { stall, delay },
+    { stall, starve, delay },
   );
 
 test("one long task is not a slow screen: the fish keep swimming", async ({ page, browserName }) => {
@@ -452,6 +463,30 @@ test("one long task is not a slow screen: the fish keep swimming", async ({ page
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
   await expect(scene(page)).toHaveAttribute("data-speed", "half");
+});
+
+test("two seconds with hardly a frame, once, is not a slow screen: the stage reads another second", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "CI's WebKit is a slow screen with no stall: it draws without the GPU");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // A second a frame for 2.5 s as the stage starts to read, so its first two seconds pass without a verdict, then frames as usual.
+  await onTheBeat(page, { starve: 2500 });
+  await open(page);
+  // real clock: the stage judges the screen on its real frames, a beat, two seconds and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 10_000 });
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+});
+
+test("a screen that hardly draws at all, a frame a second, gets still water too", async ({ page }) => {
+  // A page drawing this slowly takes a long time to load and to judge.
+  test.setTimeout(150_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await slowFrames(page, 1000);
+  await openSlow(page, 60_000);
+  // real clock: the stage gives up waiting for frames after two seconds, twice running, on a page held a second a frame.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 60_000 });
+  // At a second a frame the page draws the change a few frames later.
+  await expect(scene(page)).toHaveAttribute("data-speed", "stop", { timeout: 30_000 });
+  await expect(lastLog(page)).toContainText(LOG.stillWater.text, { timeout: 30_000 });
 });
 
 for (const { choice, press, speed } of [
