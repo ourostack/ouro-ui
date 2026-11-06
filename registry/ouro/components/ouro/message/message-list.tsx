@@ -1213,6 +1213,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Another conversation opens at its newest message, wherever the reader was in the one before, before the browser draws it.
   const reopen = useRef<() => void>(undefined);
   // Set as the list switches, for the keyboard effect: focus on a message that went goes to the new conversation's Tab stop.
+  // Stryker disable next-line BooleanLiteral: the keyboard effect's first sync(true) sets it false, on mount, before any focus or switch can read it.
   const switched = useRef(false);
   useLayoutEffect(() => {
     if (track.switches === 0) return;
@@ -1480,9 +1481,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const touched = records.some(movesItems);
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
       // The mark holds the scroll height, so a committed change of the content's own height is looked for too.
-      if (pinned.current ? farthest() !== end || (floor > 0 && content.offsetHeight !== floor) : touched) hold();
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: a hold that finds nothing moved changes nothing, so asking more often, with or without a floor, only costs the read.
+      const floorMoved = () => floor !== 0 && content.offsetHeight !== floor;
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
+      if (pinned.current ? farthest() !== end || floorMoved() : touched) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = () => {
