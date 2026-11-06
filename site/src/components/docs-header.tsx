@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type JSX, type KeyboardEve
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
 import { VoyageHeader } from "../voyage/header";
-import { MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
+import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { comparisons, componentGroups, guides, helpers, isAxPart, startPages, type DocsLink } from "./docs-sections";
@@ -146,8 +146,7 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
             Docs: (
               <Folds
                 groups={[
-                  // A guide named as a section is ("Ouro AX") says it is the guide, so two links are never named alike.
-                  { label: "Guides", links: guides.filter((link) => !isAxPart(link)).map((link) => (SITE_SECTIONS.some((section) => section.label === link.label) ? { ...link, label: `${link.label} guide` } : link)) },
+                  { label: "Guides", links: guides.filter((link) => !isAxPart(link)).map((link) => ({ ...link, label: guideLabel(link.label) })) },
                   { label: "Ouro AX, part by part", links: guides.filter(isAxPart) },
                   { label: "Skill comparisons", links: comparisons },
                 ]}
@@ -167,13 +166,13 @@ function findDocs(query: string): Array<{ label: string; links: Array<{ label: s
   const wanted = query.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (wanted === "") return undefined;
   const holds = (...texts: string[]) => texts.join(" ").toLowerCase().replace(/[^a-z0-9]/g, "").includes(wanted);
-  // A docs page by its name and its slug, not "/docs/", which every one of them has.
-  const slug = (path: string) => path.replace(/^\/docs\//, "");
+  // A docs page by its name and its slug, not "/docs/", which every one of them has; a page off the site by its name alone.
+  const slug = (path: string) => (path.startsWith("/") ? path.replace(/^\/docs\//, "") : "");
   // The docs' first pages by their own names (the catalog by the bar's), each with its section's line, then the sections
   // and their pages; a page met twice keeps its first name.
   const hint = (href: string) => SITE_SECTIONS.find((section) => section.href === href)?.hint ?? "";
   const candidates = [
-    ...startPages.map((page) => ({ label: page.href === "/docs/" ? "Components" : page.label, href: page.href, about: hint(page.href) })),
+    ...startPages.map((page) => ({ label: page.href === "/docs/" ? "Components" : page.label, href: page.href, about: `${hint(page.href)} ${page.label}` })),
     ...SITE_SECTIONS.flatMap((section) => [
       { label: section.label, href: section.href, about: section.hint },
       ...(section.pages ?? []).flatMap((page) => ("links" in page ? page.links : [page])).map((page) => ({ ...page, about: "" })),
@@ -186,7 +185,10 @@ function findDocs(query: string): Array<{ label: string; links: Array<{ label: s
   return [
     { label: "Around the site", links: site },
     { label: "Components", links: componentGroups(query, true).flatMap((group) => group.links).map(asPage) },
-    { label: "Guides", links: [...guides, ...comparisons].filter((link) => holds(link.label, slug(link.path))).map(asPage) },
+    {
+      label: "Guides",
+      links: [...guides.map((link) => ({ ...link, label: guideLabel(link.label) })), ...comparisons].filter((link) => holds(link.label, slug(link.path))).map(asPage),
+    },
   ].filter((group) => group.links.length > 0);
 }
 

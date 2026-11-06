@@ -46,6 +46,9 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
   { label: "GitHub", href: GITHUB, hint: "The blueprints, out in the open" },
 ];
 
+/** A guide's name wherever the site lists it: a guide that shares a section's name ("Ouro AX") says it is the guide, so no two links are named alike. */
+export const guideLabel = (label: string): string => (SITE_SECTIONS.some((section) => section.label === label) ? `${label} guide` : label);
+
 /** A section's link as the bar and the menu write it: under the site's base, or as it is when it leaves the site. */
 export const sectionHref = (path: string): string => (path.startsWith("/") ? href(path) : path);
 
@@ -81,6 +84,11 @@ export function PageLink({ label, to, current }: { label: string; to: string; cu
         className={cn(row, "py-2 text-[0.9375rem] leading-5 text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground")}
       >
         {label}
+        {!to.startsWith("/") && (
+          <span aria-hidden="true" className="-ms-1 text-muted-foreground">
+            ↗
+          </span>
+        )}
         {here && <Here />}
       </a>
     </li>

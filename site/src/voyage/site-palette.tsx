@@ -3,7 +3,7 @@ import { Command, type CommandEntry } from "@/registry/ouro/components/ouro/comm
 import { comparisons, componentGroups, guides } from "../components/docs-sections";
 import { href } from "../paths";
 import { choiceList } from "./presets";
-import { sectionHref, SITE_SECTIONS } from "./site-menu";
+import { guideLabel, sectionHref, SITE_SECTIONS } from "./site-menu";
 import { useSiteTheme } from "./theme-store";
 import { openXray } from "./xray-store";
 
@@ -43,8 +43,7 @@ export default function SitePalette({ open, onOpenChange }: { open: boolean; onO
     {
       label: "Guides",
       items: [
-        // A guide named as a section is ("Ouro AX") says it is the guide, as in the menu.
-        ...guides.map((link) => ({ label: SITE_SECTIONS.some((section) => section.label === link.label) ? `${link.label} guide` : link.label, onSelect: go(href(link.path)) })),
+        ...guides.map((link) => ({ label: guideLabel(link.label), onSelect: go(href(link.path)) })),
         ...comparisons.map((link) => ({ label: link.label, description: "Skill comparison", onSelect: go(href(link.path)) })),
       ],
     },

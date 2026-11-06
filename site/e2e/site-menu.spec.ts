@@ -126,10 +126,19 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await search.fill("segmented");
   await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Toggle", exact: true })).toHaveCount(0);
-  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "GitHub"]] as const) {
+  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "GitHub"], ["overview", "Components"], ["ouro ax guide", "Ouro AX guide"]] as const) {
     await search.fill(query);
     await expect(sheet(page).getByRole("link", { name, exact: true })).toBeVisible();
   }
+  // A link off the site keeps its own address, and its address is not a name to find it by.
+  await search.fill("github");
+  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toHaveAttribute("href", "https://github.com/ourostack/ouro-ui");
+  await search.fill("ourostack");
+  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toHaveCount(0);
+  // The guide and the section it shares a name with are told apart, as in the menu.
+  await search.fill("ouro ax");
+  await expect(sheet(page).getByRole("link", { name: "Ouro AX", exact: true })).toHaveCount(1);
+  await expect(sheet(page).getByRole("link", { name: "Ouro AX guide", exact: true })).toHaveCount(1);
   // "/docs/" is in every docs page's address, not in its name.
   await search.fill("docs");
   await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toHaveCount(0);
@@ -163,7 +172,7 @@ test("on any docs page the menu lists the guides and the components, as the side
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await openMenu(page);
   await expect(sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
-  // A guide named as a section is says it is the guide, so no two links share a name.
+  // A guide that shares a section's name says it is the guide, so no two links share a name.
   await sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ }).click();
   await expect(sheet(page).getByRole("link", { name: "Ouro AX guide", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Ouro AX", exact: true })).toHaveCount(1);
@@ -215,10 +224,15 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   // real clock: focus stays in the field until something moves it; no timer does.
   await expect(field).toBeFocused();
   // It finds what the menu lists, and every component and guide.
-  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Docs"], ["ouro ax guide", "Ouro AX guide"]] as const) {
+  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Docs"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Components"]] as const) {
     await field.fill(query);
     await expect(page.getByRole("option", { name: new RegExp(`^${name}\\b`) }).first()).toBeVisible();
   }
+  await field.fill("skill");
+  await expect(page.getByRole("option", { name: /Skill comparison/ }).first()).toBeVisible();
+  await field.fill("no such page at all");
+  // real clock: the empty line stays while the search finds nothing; no timer ends it.
+  await expect(page.getByRole("dialog", { name: "Command palette" }).getByText("Nothing aboard by that name. Try another?")).toBeVisible();
 });
 
 test("on a phone the menu opens on the section you are in, its row just under the top, when its row is far down", async ({ page }) => {

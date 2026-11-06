@@ -200,7 +200,8 @@ describe("docs", () => {
     const groups = siteGroups.filter((group) => docsItems.some((item) => item.group === group));
     for (const group of groups) {
       const list = nav.getByRole("list", { name: group, exact: true });
-      expect(list.getByRole("link").elements().map((link) => link.textContent), group).toEqual(docsItems.filter((item) => item.group === group).map((item) => item.title));
+      // The sidebar draws its lists after the page; read them once they are there.
+      await expect.poll(() => list.getByRole("link").elements().map((link) => link.textContent), { message: group }).toEqual(docsItems.filter((item) => item.group === group).map((item) => item.title));
     }
     const labels = docsSections().map((section) => section.label);
     expect(labels).toEqual(["Start", ...groups, "Guides"]);
