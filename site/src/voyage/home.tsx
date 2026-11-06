@@ -4,9 +4,12 @@ import { TWO_SHIPS } from "./copy";
 import { href } from "../paths";
 import { Container } from "./layout";
 import { art } from "./stage/art";
+import { StoryWorld } from "../components/story-world";
 
 const SPOONJOY_KITCHEN = "https://spoonjoy.app/test-kitchen";
 const SPOONJOY_SOURCE = "https://github.com/spoonjoy/spoonjoy-v2";
+/** Ouro's one public home. */
+const OURO_HOME = "https://ouroboros.bot/";
 
 /** The Nautilus in profile, the stage's own drawing, coloured from the theme (stage.css); its one id renamed so the page has it once. */
 const SHIP = art.nautilus.inner.replaceAll("nautilus-sheen", "ship-card-sheen");
@@ -30,7 +33,7 @@ function Showcase({ id, title, body, children }: { id: string; title: string; bo
 export function TwoShips(): JSX.Element {
   const { nautilus, spoonjoy } = TWO_SHIPS;
   return (
-    <section aria-labelledby="ships-title" id="ships" className="py-20 lg:py-28">
+    <section aria-labelledby="ships-title" id="ships" className="pt-20 lg:pt-28">
       <Container>
         <div className="grid items-center gap-x-12 gap-y-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div>
@@ -60,6 +63,19 @@ export function TwoShips(): JSX.Element {
           </Showcase>
         </div>
       </Container>
+      {/* Past the two showcases, the rest of Ouro's world: HX is one corner of it. */}
+      <StoryWorld scene="ourostack" variant="band" className="mt-16 lg:mt-24">
+        <Container>
+          <p className="story-world-line" data-story-line="">
+            Ouro HX is one corner of Ouro's meadow. There's a desk, a toy factory and a picnic going on just over the hill.
+          </p>
+          <p className="mt-3 mb-0">
+            <a href={OURO_HOME} className="site-quiet-link font-medium">
+              Meet the neighbours
+            </a>
+          </p>
+        </Container>
+      </StoryWorld>
     </section>
   );
 }

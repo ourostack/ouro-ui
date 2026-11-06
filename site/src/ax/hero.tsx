@@ -2,6 +2,7 @@ import type { JSX, ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
+import { StoryOpener } from "../components/story-world";
 import { Container } from "../voyage/layout";
 
 /**
@@ -10,6 +11,8 @@ import { Container } from "../voyage/layout";
  */
 export function AxHero({ exhibit }: { exhibit: ReactNode }): JSX.Element {
   return (
+    <>
+    <StoryOpener scene="playwright-focus-proof" line="Mid-morning in the meadow. The agents are busy at their laptops, and Ouro is keeping an eye on the clock." />
     <section aria-labelledby="ax-title" className="site-hero ax-hero">
       <Container className="ax-hero-grid grid items-center gap-x-12 gap-y-10">
         <div className="grid content-start gap-5">
@@ -37,5 +40,6 @@ export function AxHero({ exhibit }: { exhibit: ReactNode }): JSX.Element {
         {exhibit}
       </Container>
     </section>
+    </>
   );
 }

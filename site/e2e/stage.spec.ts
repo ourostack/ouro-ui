@@ -552,9 +552,16 @@ for (const mode of ["light", "dark"] as const) {
       expect(place.crew.bottom, "the console's first row starts below the crew's line").toBeLessThanOrEqual(place.row.top + 1);
       expect(place.onTop, "nothing lies over Depth's label, readout or lever").toEqual([true, true, true]);
     };
+    // The page opens in Ouro's meadow (the storybook arrival, headline in its sky), and the porthole
+    // follows the words. Brought up under the header, one screen shows the whole porthole, the
+    // captain's cue and a control to use.
+    await porthole(page).evaluate((element) => {
+      const header = document.querySelector("header")!.getBoundingClientRect().bottom;
+      window.scrollBy({ top: element.getBoundingClientRect().top - header, behavior: "instant" });
+    });
+    await scrollAtRest(page);
     const rest = await layout();
     inFlow(rest);
-    // The first screen shows a control to use, under the whole porthole and the captain's cue.
     expect(rest.slider.bottom).toBeLessThanOrEqual(rest.height);
     for (const { name } of TANKS) await tank(page, name).tap();
     await diveButton(page).tap();

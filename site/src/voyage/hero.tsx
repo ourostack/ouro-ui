@@ -10,6 +10,7 @@ import { GITHUB, href } from "../paths";
 import { HydrateInTurn } from "../hydrate";
 import { latestRelease } from "../latest-release";
 import { Container } from "./layout";
+import { StoryWorld } from "../components/story-world";
 import { Stage } from "./stage/stage";
 import { ThemeDots } from "./theme-dots";
 
@@ -134,30 +135,35 @@ function Proof(): JSX.Element {
   );
 }
 
-/** The first viewport: what HX is and how to add it, beside the porthole stage. */
+/** The first viewport: Ouro's meadow with the headline in its sky, then how to add HX, beside the porthole stage. */
 export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
   return (
-    <section aria-labelledby="hero-title" className="site-hero">
+    <section aria-labelledby="hero-title" className="site-hero site-hero-storybook">
+      {/*
+        The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the
+        headline in its sky; the porthole, the showcase, follows. On a phone the header names Ouro HX
+        just above, so the eyebrow stays for screen readers only.
+      */}
+      <StoryWorld scene="ouro-hx">
+        <Container>
+          <p className="site-eyebrow site-hero-eyebrow max-sm:sr-only" data-site-eyebrow="">
+            <span className="site-hero-brand">{EYEBROW}</span>
+          </p>
+          <h1 id="hero-title" className="site-h1 site-hero-title mt-1 sm:mt-3 lg:mt-4">
+            {VOYAGE_HERO.title.map((sentence, index) => (
+              <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
+                {sentence}
+                {index < VOYAGE_HERO.title.length - 1 ? " " : null}
+              </span>
+            ))}
+          </h1>
+        </Container>
+      </StoryWorld>
       <Container className="site-hero-grid">
         <div className="site-hero-copy">
-          {/*
-            On a phone the theme dots open the hero, in the eyebrow's place (the header names Ouro HX just
-            above, and the eyebrow stays for screen readers), so the first screen still reaches the stage's
-            first control.
-          */}
+          {/* On a phone the theme dots open the copy, above the words, so the stage's first control comes sooner. */}
           <div className="max-sm:flex max-sm:flex-col">
-            <p className="site-eyebrow site-hero-eyebrow max-sm:sr-only" data-site-eyebrow="">
-              <span className="site-hero-brand">{EYEBROW}</span>
-            </p>
-            <h1 id="hero-title" className="site-h1 site-hero-title mt-2 sm:mt-3 lg:mt-5">
-              {VOYAGE_HERO.title.map((sentence, index) => (
-                <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
-                  {sentence}
-                  {index < VOYAGE_HERO.title.length - 1 ? " " : null}
-                </span>
-              ))}
-            </h1>
-            <p className="site-lede mt-2 max-w-[44ch] sm:mt-3 lg:mt-5">{VOYAGE_HERO.subline}</p>
+            <p className="site-lede max-w-[44ch] max-sm:mt-2">{VOYAGE_HERO.subline}</p>
             <div className="mt-3 max-w-[36rem] lg:mt-7">
               <Install />
             </div>

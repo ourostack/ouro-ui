@@ -2,6 +2,7 @@ import type { Route } from "./routes";
 import { pageKind } from "./paths";
 import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
+import { cardAlt, cardFor, STORYBOOK } from "./storybook";
 
 /** Where Pages serves the site. */
 export const SITE = "https://ui.ouro.bot";
@@ -9,17 +10,19 @@ export const SITE = "https://ui.ouro.bot";
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 
 /**
- * The `<head>` tags of a prerendered page: its title and description, the canonical URL,
- * the icon, and the Open Graph and Twitter tags link previews read, with og.png
- * (site/scripts/og-image.mts) as the image.
+ * The `<head>` tags of a prerendered page: its title and description, the canonical URL, the
+ * icons (the Ouro HX silhouette, the touch icon and the web manifest, all from the storybook
+ * brand), and the Open Graph and Twitter tags link previews read, with the page's storybook card
+ * (storybook.ts; site/scripts/og-cards.mts draws them into site/public/og/) as the image.
  */
 export function headTags(route: Route, canonical: boolean): string[] {
   // An unindexed route has no canonical address, and a robots tag.
   canonical = canonical && !route.noindex;
   const title = escape(route.title);
   const description = escape(route.description);
-  const image = `${SITE}/og.png`;
-  const alt = "Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it.";
+  const card = cardFor(route.path);
+  const image = `${SITE}/og/${card.file}`;
+  const alt = escape(cardAlt(card));
   return [
     // First, so the stored theme and dark mode are on <html> before anything paints.
     `<script>${prepaintScript}</script>`,
@@ -27,7 +30,9 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<meta name="description" content="${description}" />`,
     route.noindex ? `<meta name="robots" content="noindex, nofollow" />` : "",
     canonical ? `<link rel="canonical" href="${SITE}${route.path}" />` : "",
-    `<link rel="icon" href="/brand/ouro-hx.svg" type="image/svg+xml" />`,
+    `<link rel="icon" href="${STORYBOOK}icons/ouro-hx.svg" type="image/svg+xml" />`,
+    `<link rel="apple-touch-icon" href="${STORYBOOK}icons/ouro-hx-180.png" sizes="180x180" />`,
+    `<link rel="manifest" href="/manifest.webmanifest" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Ouro HX" />`,
     `<meta property="og:title" content="${title}" />`,
@@ -47,6 +52,15 @@ export function headTags(route: Route, canonical: boolean): string[] {
       ? fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`)
       : []),
   ].filter(Boolean);
+}
+
+/**
+ * sitemap.xml: every page the site builds that search engines may index, at its canonical address,
+ * so a crawler (and the brand audit, which checks each page's icons and card) finds them all.
+ */
+export function sitemap(routes: readonly Route[]): string {
+  const urls = routes.filter((route) => !route.noindex).map((route) => `  <url><loc>${escape(SITE + route.path)}</loc></url>`);
+  return ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', ...urls, "</urlset>", ""].join("\n");
 }
 
 /**
