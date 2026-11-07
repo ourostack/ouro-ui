@@ -85,7 +85,7 @@ export interface NavbarProps {
    * long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`;
    * mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the
    * sheet. Once the page has been idle it mounts, hidden, ahead of the first press (a press
-   * before then mounts it as it opens), and it mounts again once each close has finished, so
+   * before then mounts it as it opens), and it mounts afresh the same way after each close, so
    * each open starts with the state it first had.
    *
    * @claim "Choosing a link in it closes the sheet." registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > shows the menu prop in the sheet in place of the links, and closes it when a link there is chosen)
