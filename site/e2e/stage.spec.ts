@@ -927,3 +927,57 @@ test("on a phone, the bell's toast never covers the bell", async ({ browser }) =
   expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
   await context.close();
 });
+
+// TEMPORARY (#667): what each part of the switch to still water costs a frame, each part alone, on a page that swims.
+test("DIAG switch parts", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => {
+    const frames: number[] = [];
+    (window as unknown as { __frames: number[] }).__frames = frames;
+    const count = () => {
+      frames.push(performance.now());
+      requestAnimationFrame(count);
+    };
+    requestAnimationFrame(count);
+  });
+  await open(page);
+  await swimming(page);
+  await page.waitForTimeout(1000);
+  const lines: string[] = [];
+  const step = async (name: string, action: string) => {
+    const from = await page.evaluate((code) => {
+      const at = (window as unknown as { __frames: number[] }).__frames.length;
+      // eslint-disable-next-line no-new-func
+      new Function(code)();
+      return at;
+    }, action);
+    await page.waitForTimeout(900);
+    const gaps = await page.evaluate((at) => {
+      const all = (window as unknown as { __frames: number[] }).__frames;
+      return all.slice(Math.max(1, at - 2)).map((time, index, list) => (index ? Math.round(time - list[index - 1]!) : 0)).slice(1);
+    }, from);
+    lines.push(`${name}: max ${Math.max(...gaps)} | ${gaps.slice(0, 14).join(" ")}`);
+  };
+  const scene = "document.querySelector('.stage-scene')";
+  const drift = "document.getAnimations().filter(a => a.animationName === 'stage-drift')";
+  await step("idle", "");
+  await step("scene stop attr", `${scene}.setAttribute('data-speed','stop')`);
+  await step("scene half attr", `${scene}.setAttribute('data-speed','half')`);
+  await step("drift inline paused", "document.querySelectorAll('.stage-drift').forEach(e => e.style.animationPlayState='paused')");
+  await step("drift inline running", "document.querySelectorAll('.stage-drift').forEach(e => e.style.animationPlayState='')");
+  await step("caustics inline paused", "document.querySelectorAll('.stage-caustics > svg').forEach(e => e.style.animationPlayState='paused')");
+  await step("caustics inline running", "document.querySelectorAll('.stage-caustics > svg').forEach(e => e.style.animationPlayState='')");
+  await step("wake opacity 0", "document.querySelectorAll('.stage-wake').forEach(e => e.style.opacity='0')");
+  await step("wake opacity back", "document.querySelectorAll('.stage-wake').forEach(e => e.style.opacity='')");
+  await step("drift rate 0", `${drift}.forEach(a => a.updatePlaybackRate(0))`);
+  await step("drift rate 1", `${drift}.forEach(a => a.updatePlaybackRate(1))`);
+  await step("drift waapi pause", `${drift}.forEach(a => a.pause())`);
+  await step("drift waapi play", `${drift}.forEach(a => a.play())`);
+  await step("data-paced toggle", "const s = document.querySelector('[data-stage]'); s.removeAttribute('data-paced'); s.setAttribute('data-paced','')");
+  await step("press Stop", "document.querySelector('input[type=radio][value=stop], [role=radio][aria-label=Stop]') ? 0 : 0; [...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='Stop' || e.getAttribute('aria-label')==='Stop')?.click()");
+  await step("press Half", "[...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='Half' || e.getAttribute('aria-label')==='Half')?.click()");
+  await step("press Stop again", "[...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='Stop' || e.getAttribute('aria-label')==='Stop')?.click()");
+  await step("idle stopped", "");
+  console.log(`SWITCHDIAG ${test.info().project.name}\n${lines.join("\n")}`);
+});
