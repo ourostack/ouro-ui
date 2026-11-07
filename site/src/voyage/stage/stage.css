@@ -302,6 +302,12 @@
   .stage-scene:not([data-band="midnight"]) .stage-band-midnight .stage-drift {
     animation-play-state: paused;
   }
+  /* The fish in view keep their layers when they stop, so Stop repaints none of the sea (#667). */
+  .stage-scene[data-band="sunlit"] .stage-band-sunlit .stage-drift,
+  .stage-scene[data-band="twilight"] .stage-band-twilight .stage-drift,
+  .stage-scene[data-band="midnight"] .stage-band-midnight .stage-drift {
+    will-change: transform;
+  }
   .stage-ship-ride,
   .stage-ripples-ride {
     transition: transform var(--ouro-duration-sheet) var(--ouro-ease-in-out);
