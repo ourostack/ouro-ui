@@ -6,7 +6,7 @@ export const agentCases: AgentCase[] = [
   {
     id: "moment02",
     habit: "an info kind on Moment",
-    tsc: [notAssignable('"info"', `"empty" | "loading" | "error" | "welcome" | "success" | (string & { 'Use "empty", "loading", "error", "welcome" or "success"; info is "empty"': never; }) | undefined`)],
+    tsc: [notAssignable('"info"', `"empty" | "loading" | "error" | "first-run" | "welcome" | "success" | "ask" | (string & { 'Use "empty", "loading", "error", "first-run", "success" or "ask"; info is "empty"': never; }) | undefined`)],
     dev: '<Moment kind="empty">',
     names: ["tsc", "dev"],
   },
