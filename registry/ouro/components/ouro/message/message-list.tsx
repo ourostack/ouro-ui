@@ -488,6 +488,11 @@ function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): 
   return isValidElement(child) ? child.key : null;
 }
 
+/** The children's keys as a set. Called from render only when the list's first or newest children change, so it is built once per change. */
+function keySet(children: readonly ReturnType<typeof Children.toArray>[number][]): Set<Key | null> {
+  return new Set(children.map(keyOf));
+}
+
 // Each key's index, rebuilt only when the keys change; the keys are text, so they compare by what they say.
 function useIndexByKey(keys: readonly string[]): Map<string, number> {
   // Joined by NUL, which no key holds.
@@ -1208,14 +1213,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     setTrack({
       first: top,
       recent,
-      keys: new Set(all.map(keyOf)),
+      keys: keySet(all),
       conversation: named,
       pending,
       // Confirmed again by a new name or switch, and by any change under the same name but a wholesale one, which may be the
       // next conversation's messages come ahead of its name.
       confirmed:
         // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: not equivalent for the two LogicalOperator mutants; "confirms nothing for messages that come back to a list emptied under the same name" and "adopts a name that comes after its messages" (message-list.test.tsx) fail on both, but per-test coverage attributes this expression to other tests, so the shard never runs them. A new name comes only with no pending name, so the last clause confirms it as well; with no keys held, or none now, every key is a stranger or nothing changes, so the set kept is the one that would be read.
-        named !== track.conversation || fresh || (pending === null && all.length > 0 && track.keys.size > 0 && !strangers(track.keys)) ? new Set(all.map(keyOf)) : track.confirmed,
+        named !== track.conversation || fresh || (pending === null && all.length > 0 && track.keys.size > 0 && !strangers(track.keys)) ? keySet(all) : track.confirmed,
       // Stryker disable next-line ConditionalExpression,EqualityOperator: a list that holds nothing is empty at its first commit, and its first messages open it either way.
       held: track.held || all.length > 0,
       // Stryker disable next-line ArithmeticOperator: only a change of the count runs the layout effect, and a count that goes down by one each switch changes as a count that goes up does; it is never compared with another.
