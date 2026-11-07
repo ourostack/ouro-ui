@@ -457,8 +457,8 @@ function MenuSurface({
     const observer = new MutationObserver(hide);
     // Base UI mounts a guard without a role and gives it one a render later, so a change of role is all to watch for.
     observer.observe(holder, { subtree: true, attributeFilter: ["role"] });
-    // Stryker disable next-line ArrowFunction: an observer left on a holder that has left the page sees no more changes.
     // `inside` comes from context fixed by where the surface is rendered, so the holder never comes or goes.
+    // Stryker disable next-line ArrowFunction: an observer left on a holder that has left the page sees no more changes.
     return () => observer.disconnect();
   },
   // Stryker disable next-line ArrayDeclaration: the effect reads only the holder, the same element for the surface's life, so it runs once whatever it lists.
