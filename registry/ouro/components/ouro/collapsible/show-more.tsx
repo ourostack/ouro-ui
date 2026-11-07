@@ -29,7 +29,7 @@ export interface ShowMoreBaseProps {
   ref?: Ref<HTMLDivElement> | undefined;
   /**
    * A stable name for what this shows (a message id), for `lines` and `maxHeight`. A row that mounts again with the
-   * same key starts from its last measured fit, so it does not mount folded and then unfold. Without it, every mount measures. The browser still measures and corrects it, so a changed width costs one write.
+   * same key starts from its last measured fit, so it does not mount folded and then unfold. Without it, a mount measures afresh. The browser still measures and corrects it, so a changed width costs one write.
    */
   measureKey?: string | number | undefined;
 
@@ -431,8 +431,8 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
 
 /**
  * What an instance last measured, by its `measureKey`, so a row that mounts again (a list that scrolls, a chat that
- * loads older messages) that has one starts with its last answer instead of folding and then undoing it: no write is made when the
- * resize observer, which still measures and corrects it, agrees. A wrong guess (a new width) costs one correction.
+ * loads older messages) that has one starts with its last answer instead of folding and then undoing it. The resize
+ * observer still measures and corrects it, so a wrong guess (a new width) costs one correction.
  */
 const fitCache = new Map<string, boolean>();
 const FIT_CACHE_SIZE = 1000;

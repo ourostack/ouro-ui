@@ -30,7 +30,7 @@ The props the modes share. Type: `ShowMoreProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-6`). Text classes go on a parent so the items inherit them. |
-| `measureKey` | `string \| number` |  | A stable name for what this shows (a message id), for `lines` and `maxHeight`. A row that mounts again with the same key starts from its last measured fit, so it does not mount folded and then unfold. Without it, every mount measures. The browser still measures and corrects it, so a changed width costs one write. |
+| `measureKey` | `string \| number` |  | A stable name for what this shows (a message id), for `lines` and `maxHeight`. A row that mounts again with the same key starts from its last measured fit, so it does not mount folded and then unfold. Without it, a mount measures afresh. The browser still measures and corrects it, so a changed width costs one write. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `showMoreLabel` | `string` | `"Show more"` | The button's text while there is more to show. Translate it here. |
 
