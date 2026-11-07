@@ -122,9 +122,8 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     const verdict = (slow: boolean) => {
       cancelAnimationFrame(frame);
       clearTimeout(deadline);
-      // Committed in the frame that decides it. Left to React's scheduler, the commit waits for a task, and a screen this
-      // slow can keep WebKit drawing late frames ahead of every task while its timers still fire: the verdict was reached
-      // and never shown (ourostack/ouro-ui#648).
+      // Committed in the frame that decides it, not left to React's scheduler: on CI's WebKit, after the site menu had opened
+      // and closed over a slow screen, the verdict was reached and its scheduled commit never came (ourostack/ouro-ui#648).
       flushSync(() => {
         if (slow) setSpeed("stop");
         setPaced(true);

@@ -647,6 +647,8 @@ test("the stage judges the screen only once the site menu over it has closed", a
     )
     .toBe("judged");
   await expect(scene(page)).toHaveAttribute("data-speed", "stop");
+  // The crew says why, through React's scheduler: if that were held up after the menu closes, this line would not come.
+  await expect(lastLog(page)).toContainText(LOG.stillWater.text);
 });
 
 test("the fish rest while the stage is off screen", async ({ page }) => {
