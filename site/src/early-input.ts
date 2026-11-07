@@ -196,6 +196,8 @@ export function keepEarlyInput(
       const target = event.target as Element | null;
       const control = target && target.closest ? target.closest(points) : null;
       if (!control || fiber(control) || !control.closest(scope) || control.closest('[disabled], [data-disabled], [aria-disabled="true"]')) return;
+      // Kept, not also taken by React, should it hydrate the control within this press: the replay is the press.
+      event.stopPropagation();
       hold(control as HTMLElement);
       // A whole track shrinking would read as the slider moving: it only dims.
       (control as HTMLElement).style.scale = before[0];
