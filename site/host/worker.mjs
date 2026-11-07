@@ -3,7 +3,7 @@
 // to ouroboros.bot"). GitHub Pages builds and holds the site (pages.yml) at
 // https://ourostack.github.io/ouro-ui/; this Worker, on the route ui.ouroboros.bot/*, fetches each
 // request from there and keeps every address on ui.ouroboros.bot. The old host, ui.ouro.bot, 301s
-// here from ourostack/ouro-apps-site's ouro-apex Worker. site/host/worker.test.mjs is the contract.
+// here from ourostack/ouro-apps-site's ouro-apex Worker. site/scripts/host-worker.test.mjs is the contract.
 
 export const host = "https://ui.ouroboros.bot";
 export const pages = "https://ourostack.github.io/ouro-ui";

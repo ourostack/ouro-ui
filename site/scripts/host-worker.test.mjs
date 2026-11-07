@@ -1,7 +1,7 @@
 /* global URL, Request, Response */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import worker, { host, pages, rehome, upstream } from "./worker.mjs";
+import worker, { host, pages, rehome, upstream } from "../host/worker.mjs";
 
 test("every path and query is fetched from the same place on Pages", () => {
   assert.equal(upstream(new URL("https://ui.ouroboros.bot/")), `${pages}/`);
