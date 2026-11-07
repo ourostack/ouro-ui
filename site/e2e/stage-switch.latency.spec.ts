@@ -13,13 +13,16 @@ import { LATENCY } from "./latency";
 //
 // - Chromium, at the latency budget's 4x slower CPU: no frame of 50 ms or more.
 // - WebKit, which on CI draws without the GPU at 50 to 300 ms a frame from one runner to the next: no frame over 100 ms,
-//   or over twice the page's own median frame in the 1.5 s before the verdict when that is more. The switch's old costs
-//   there were three to eight times the page's own frame.
+//   or over two and a half times the page's own median frame in the 1.5 s before the verdict when that is more. The
+//   switch's old costs there were three to eight times the page's own frame; its frame now is at most about twice it
+//   (ten verdicts on CI, 1.3 to 2.1 times: ourostack/ouro-ui#676), which twice exactly failed at random.
 //
 // A verdict counts only when the page drew at least `PACED` frames in the 1.5 s before it: CI's WebKit once drew none for
 // 6.7 s while its first page loaded, which says nothing of the switch. Such a page is judged again, afresh.
 const CHROMIUM_BUDGET = 50;
 const WEBKIT_BUDGET = 100;
+/** In WebKit, the switch's frame may take this many of the page's own median frames. */
+const WEBKIT_PACES = 2.5;
 /** Fresh pages, each judged once. */
 const VERDICTS = 5;
 /** Frames the page must have drawn in the 1.5 s before the verdict for it to count, and the pages tried for each. */
@@ -107,7 +110,7 @@ test("the switch to still water draws no long frame", async ({ browser, browserN
       }
       unpaced.push(result);
     }
-  const budget = (result: Switch) => (browserName === "chromium" ? CHROMIUM_BUDGET : Math.max(WEBKIT_BUDGET, 2 * result.pace));
+  const budget = (result: Switch) => (browserName === "chromium" ? CHROMIUM_BUDGET : Math.max(WEBKIT_BUDGET, Math.round(WEBKIT_PACES * result.pace)));
   // Printed every run, so CI's log keeps the switch's cost.
   console.log(`switch to still water, ${browserName}: ${results.map((result) => `${result.worst} ms at ${result.at} (pace ${result.pace}, budget ${budget(result)})`).join("; ")}${unpaced.length ? `; judged again, with too few frames before the verdict: ${unpaced.map((result) => `${result.paced} frames, ${result.worst} ms at ${result.at}`).join("; ")}` : ""}`);
   expect(results, `every verdict, with ${PACED} frames or more in the 1.5 s before it`).toHaveLength(VERDICTS);
