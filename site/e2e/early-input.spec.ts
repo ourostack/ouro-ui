@@ -37,17 +37,56 @@ async function hydrated(control: Locator): Promise<void> {
   }));
 }
 
+/**
+ * Records, from the page's first script, the frames and what the head script keeps, so a test that times out can say
+ * where the time went (`timeline`).
+ */
+async function recordTimeline(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const log: string[] = [];
+    (window as unknown as { __timeline: string[] }).__timeline = log;
+    const at = () => Math.round(performance.now());
+    let last = 0;
+    let kept = -1;
+    const frame = () => {
+      const now = at();
+      const held = (window as unknown as { __ouroEarlyInput?: number }).__ouroEarlyInput ?? 0;
+      if (now - last > 50 || held !== kept) log.push(`${now}: frame +${now - last}, kept ${held}`);
+      [last, kept] = [now, held];
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    for (const type of ["pointerdown", "click"]) document.addEventListener(type, (event) => log.push(`${at()}: ${type} ${event.isTrusted ? "by the reader" : "replayed"}`), true);
+    new MutationObserver(() => {
+      if (document.documentElement.hasAttribute("data-site-ready") && !log.some((line) => line.endsWith("ready"))) log.push(`${at()}: ready`);
+    }).observe(document.documentElement, { attributes: true });
+  });
+}
+
+/** Runs `check`, and on a failure adds the page's timeline (`recordTimeline`) to its message. */
+async function explained(page: Page, check: () => Promise<void>): Promise<void> {
+  try {
+    await check();
+  } catch (error) {
+    const timeline = await page.evaluate(() => (window as unknown as { __timeline?: string[] }).__timeline ?? []).catch(() => []);
+    (error as Error).message += `\n\nThe page's timeline, in ms since it began:\n${timeline.slice(-60).join("\n")}`;
+    throw error;
+  }
+}
+
 for (const path of ["./", "docs/tooltip/", "ax/"]) {
   test(`a tap on the menu button before the page's script has run opens the menu, on ${path}`, async ({ page }) => {
     await page.setViewportSize(PHONE);
+    await recordTimeline(page);
     const { release } = await hold(page, ENTRY);
     await page.goto(path, { waitUntil: "commit" });
     const button = page.getByRole("banner").getByRole("button", { name: "Menu", exact: true });
     await button.click();
     release();
     await hydrated(button);
+    await page.evaluate(() => (window as unknown as { __timeline: string[] }).__timeline.push(`${Math.round(performance.now())}: the button has hydrated`));
     // real clock: the menu stays open until it is closed; no timer ends it.
-    await expect(page.getByRole("dialog", { name: "Menu" })).toBeVisible({ timeout: ANSWERED });
+    await explained(page, () => expect(page.getByRole("dialog", { name: "Menu" })).toBeVisible({ timeout: ANSWERED }));
     // real clock: the menu stays open until it is closed; no timer ends it.
     await expect(page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Site" })).toBeVisible();
   });
@@ -103,6 +142,7 @@ test("a tap on the stage before the page's script has run is answered once the p
   await page.addInitScript(() => {
     window.requestIdleCallback = (callback: IdleRequestCallback) => window.setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 10 }), 4000);
   });
+  await recordTimeline(page);
   const { release } = await hold(page, ENTRY);
   await page.goto("./", { waitUntil: "commit" });
   const speed = page.locator(".site-hero-stage").getByRole("radio").first();
@@ -110,7 +150,7 @@ test("a tap on the stage before the page's script has run is answered once the p
   await speed.click();
   release();
   await page.waitForFunction(() => Object.keys(document.getElementById("root")!).some((key) => key.startsWith("__reactContainer$")));
-  await expect(speed).toHaveAttribute("aria-checked", "true", { timeout: ANSWERED });
+  await explained(page, () => expect(speed).toHaveAttribute("aria-checked", "true", { timeout: ANSWERED }));
 });
 
 test("a tap on a live slider before its own script arrived moves it there once it does", async ({ page }) => {
