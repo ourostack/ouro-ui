@@ -51,6 +51,14 @@ jobs:
     # below). Its required checks still report on the pull request, passing with a notice; every
     # merge-queue entry, push to main, dispatched run and release branch runs it in full.
     #
+    # The heavy tier (themes, visual, theme-install, latency, lighthouse) runs in the merge queue
+    # too, not on a pull request into main: `heavy=queue`, unless the pull request changes one of
+    # those checks' own files (`heavyPaths` below). On a pull request their required checks still
+    # report: skipped, which a required check accepts, or for the themes shards, whose skipped matrix
+    # reports only its unexpanded name, through heavy-queued, which only posts a notice; every merge-queue
+    # entry, push to main, dispatched run and release branch runs them in full, so each still gates
+    # what reaches main. A heavy check red in the merge queue is that pull request's author's to fix.
+    #
     # On a pull request, the plan first yields to the merge queue (scripts/ci-yield.mjs): while a
     # merge group's run has a job waiting for a runner, it waits, up to 20 minutes, before any of
     # this run's jobs queue, so the queue's jobs take the organisation's shared runners first. It
@@ -66,6 +74,7 @@ jobs:
       components: ${{ steps.plan.outputs.components }}
       tested: ${{ steps.tested.outputs.tested }}
       installs: ${{ steps.plan.outputs.installs }}
+      heavy: ${{ steps.plan.outputs.heavy }}
       browser: ${{ steps.browser.outputs.run }}
     steps:
       # How many of the repository's runs wait for a runner as this one starts, in the run's
@@ -137,6 +146,21 @@ jobs:
             else
               echo "The install test runs in the merge queue: its checks pass here with a notice."
               echo "installs=queue" >> "$GITHUB_OUTPUT"
+            fi
+            # The heavy tier's own files: its jobs here, the lockfile and package.json, the Vitest
+            # config, what it imports and the app stylesheet it loads, the TypeScript paths, the theme scans and their helpers, the visual tests and
+            # screenshots, the theme and its fixtures, and the whole site, which theme-install,
+            # latency and lighthouse build and measure. A diff it cannot read runs the tier here.
+            heavyPaths='^(\.github/workflows/ci\.yml|package\.json|pnpm-lock\.yaml|vitest\.config\.[mc]?ts|app\.css|tsconfig\.json|playwright\.latency\.config\.ts|scripts/(vitest-shards|control-matrix|motion-reporter|components|motion-states)\.mts|scripts/(shard|tree|generated-files|test-impact)\.mjs|site/.+|registry/ouro/theme/.+|registry/ouro/lib/ouro/testing/.+|test/(theme-fixtures|story-axe|stories|story-selection|slice|slice-core)\.tsx?|test/conformance/commands\.ts|test/themes/.+|test/theme-fixtures/.+|test/install-fixture/.+|test/install-fixture-themes/.+|test/__screenshots__/.+|test/.+\.visual\.test\.tsx?)$'
+            if ! changed=$(git diff --name-only HEAD^1 HEAD); then
+              echo "::warning::Could not read the pull request's changes, so the heavy tier runs here."
+              echo "heavy=here" >> "$GITHUB_OUTPUT"
+            elif grep -qE "$heavyPaths" <<< "$changed"; then
+              echo "This pull request changes a heavy check's files, so the heavy tier runs here too."
+              echo "heavy=here" >> "$GITHUB_OUTPUT"
+            else
+              echo "The heavy tier (themes, visual, theme-install, latency, lighthouse) runs in the merge queue: its checks pass here, themes' through heavy-queued's notices, the others skipped."
+              echo "heavy=queue" >> "$GITHUB_OUTPUT"
             fi
           else
             echo "Everything runs: $EVENT on $REF${BASE_REF:+ into $BASE_REF}. Only a pull request into main runs what it can affect."
@@ -672,7 +696,7 @@ jobs:
     # shard (test/themes/), in Chromium, beside the ci job. On a reduced pull request, only the
     # selected components' stories, and nothing when it selected none.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
@@ -1017,7 +1041,7 @@ jobs:
     # Compares screenshots with the committed baselines, on the image that produced them
     # (visual-baselines.yml). Kept apart from `ci` so that job can follow ubuntu-latest.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -1171,7 +1195,7 @@ jobs:
     # added, renders the same computed colours, radii, fonts and shadows as the site, light and
     # dark, and its fonts load.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
@@ -1208,7 +1232,7 @@ jobs:
     # test shares the CPU. The stage's switch to still water draws no long frame, in Chromium and
     # WebKit (site/e2e/stage-switch.latency.spec.ts).
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     # In Playwright's image (see the note above jobs:).
@@ -1241,7 +1265,7 @@ jobs:
     # TBT 150 ms), with the build served as Pages serves it: HTTP/2 over TLS, gzipped
     # (site/scripts/serve-pages.mjs).
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -1509,6 +1533,25 @@ jobs:
           cache: pnpm
       - run: pnpm i --frozen-lockfile
       - run: scripts/install-test.sh github "$RUNNER_TEMP/app"
+  heavy-queued:
+    # The heavy tier's required checks on a pull request whose plan left them to the merge queue
+    # (heavy=queue): one job per themes shard, under that shard's check name, that posts a notice and
+    # passes. A skipped matrix job reports once, under its unexpanded name, so without these the
+    # themes (n/3) checks would never report; the heavy jobs without a matrix report skipped under
+    # their own names, which a required check accepts (scripts/workflows.test.mjs).
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.heavy == 'queue' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        check: [themes (1/3), themes (2/3), themes (3/3)]
+    name: ${{ matrix.check }}
+    steps:
+      - name: The heavy tier runs in the merge queue
+        env:
+          CHECK: ${{ matrix.check }}
+        run: echo "::notice::$CHECK runs in the merge queue, not on this pull request (the plan's heavy=queue)."
   ci-budget:
     # Records this run's critical path, the longest chain of jobs that wait on one another, each
     # counted from its start to its end so a queue for a free runner does not count, and its wall
@@ -1524,7 +1567,7 @@ jobs:
     # runs, and the runner time the run took from the shared pool. A required check (ruleset
     # 24881709) that fails only a pull request: on a merge group or a push it only warns, so it
     # never bounces a queue entry.
-    needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
+    needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github, heavy-queued]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10

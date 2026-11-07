@@ -1092,9 +1092,10 @@ for (const [event, ref, baseRef, headRef, expected] of [
       assert.doesNotMatch(calls, /CALL node/);
     } else {
       assert.match(calls, /^CALL node scripts\/test-impact\.mjs plan HEAD\^1 HEAD$/m);
-      const { installs, ...planned } = output;
+      const { installs, heavy, ...planned } = output;
       assert.deepEqual(planned, { full: "false", components: "checkbox" });
       assert.ok(["queue", "here"].includes(installs), installs);
+      assert.ok(["queue", "here"].includes(heavy), heavy);
     }
   });
 }
@@ -1141,6 +1142,46 @@ test("a pull request into main leaves the install test to the merge queue, unles
   }
 });
 
+test("a pull request into main leaves the heavy tier to the merge queue, unless it changes the heavy tier's own files", () => {
+  const plan = stepScript(ciJobs().plan, "Plan the tests");
+  const changed = (files) => `git() { printf '%s\\n' ${files.map((file) => `'${file}'`).join(" ")}; }\n${plan}`;
+  const pr = { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" };
+  assert.equal(runStep(changed(["registry/ouro/components/ouro/dialog/dialog.tsx", "registry.json", "README.md"]), pr).output.heavy, "queue");
+  // The workflow, the lockfile and shared config, and each heavy job's own inputs, each one alone.
+  for (const file of [".github/workflows/ci.yml", "package.json", "pnpm-lock.yaml", "vitest.config.ts", "playwright.latency.config.ts", "site/e2e/latency.spec.ts", "site/lighthouserc.json", "site/scripts/serve-pages.mjs", "site/scripts/theme-install-test.sh", "site/theme-install/package.json", "test/themes/contrast.test.ts", "test/theme-fixtures/nova.css", "test/__screenshots__/button.png", "test/button.visual.test.tsx", "registry/ouro/lib/ouro/testing/setup.ts", "registry/ouro/lib/ouro/testing/vitest.ts", "scripts/vitest-shards.mts", "test/theme-fixtures.ts", "test/story-axe.ts", "test/stories.tsx", "test/slice.ts", "test/conformance/commands.ts", "test/install-fixture/package.json", "test/install-fixture-themes/app.css", "site/src/themes/themes.json", "site/src/voyage/stage/copy.ts", "registry/ouro/theme/ouro.css"]) {
+    assert.equal(runStep(changed([file]), pr).output.heavy, "here", file);
+  }
+  // Every file those checks load is in the list: the theme scans, the visual tests and the Vitest
+  // config, the stylesheet it loads, and everything they import, relative or through "@/", all the way down.
+  const resolve = (from, spec) => {
+    const base = spec.startsWith("@/") ? spec.slice(2) : join(dirname(from), spec);
+    return [base, ...["ts", "tsx", "mts", "mjs", "js"].map((ext) => `${base}.${ext}`), `${base}/index.ts`, `${base}/index.tsx`].find((file) => existsSync(join(root, file)) && !file.endsWith("/"));
+  };
+  const seen = new Set();
+  const visit = (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    if (!/\.(m?[jt]sx?)$/.test(file)) return;
+    for (const [, spec] of readFileSync(join(root, file), "utf8").matchAll(/(?:from |import\(?\s*)"((?:\.{1,2}|@)\/[^"]+)"/g)) {
+      const found = resolve(file, spec);
+      if (found) visit(found.replace(/\\/g, "/"));
+    }
+  };
+  for (const file of ["vitest.config.ts", "app.css", "tsconfig.json", "test/screenshots.visual.test.tsx", ...readdirSync(join(root, "test/themes")).map((file) => `test/themes/${file}`)]) visit(file);
+  // The registry's runtime source is what the merge queue tests (a component, a block, lib/): only its testing library and theme are the tier's own.
+  const outside = [...seen].filter((file) => !file.startsWith("registry/") || /^registry\/ouro\/(lib\/ouro\/testing|theme)\//.test(file));
+  assert.ok(outside.length > 20, outside.join(", "));
+  for (const file of outside) assert.equal(runStep(changed([file]), pr).output.heavy, "here", file);
+  // A diff it cannot read runs the tier here.
+  const unread = runStep(`git() { return 1; }\n${plan}`, pr);
+  assert.equal(unread.output.heavy, "here");
+  assert.match(unread.stdout, /::warning::Could not read the pull request's changes, so the heavy tier runs here/);
+  // The merge queue, main, dispatched runs and release branches run the heavy tier in full (no heavy output).
+  for (const env of [{ EVENT: "merge_group", REF: "refs/heads/gh-readonly-queue/main/pr-9-abc" }, { EVENT: "push", REF: "refs/heads/main" }, { EVENT: "workflow_dispatch", REF: "refs/heads/main" }, { ...pr, HEAD_REF: "release/v1.1.0" }]) {
+    assert.equal(runStep(changed(["registry/ouro/components/ouro/dialog/dialog.tsx"]), env).output.heavy, undefined, env.EVENT);
+  }
+});
+
 test("CI's plan runs everything when planning fails", () => {
   const { status, stdout, output } = runStep(stepScript(ciJobs().plan, "Plan the tests"), { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" }, { nodeStatus: 1 });
   assert.equal(status, 0);
@@ -1182,7 +1223,9 @@ test("a push to main whose commit the merge queue already tested runs only insta
   // requests only) skips on it, gates included; motion-coverage waits on ci and browser-fallback on
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
-  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns].includes(condition(jobs[id])));
+  // heavy-queued, the heavy tier's notices, runs only on a pull request whose plan said heavy=queue,
+  // which a push to main never does.
+  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, heavyQueued].includes(condition(jobs[id])));
   assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
@@ -1200,7 +1243,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : heavyJobs.includes(name) ? heavyRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1235,6 +1278,13 @@ const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' 
 /** The browser shards': they also skip on a pull request that changes nothing they read (the plan's `browser`). */
 const browserRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}";
 
+/** The heavy tier's jobs: on a pull request that changes nothing they read (the plan's heavy=queue) they skip and heavy-queued reports their checks; they run everywhere else. */
+const heavyJobs = ["themes", "visual", "theme-install", "latency", "lighthouse"];
+const heavyRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}";
+
+/** heavy-queued's: only on a pull request whose plan left the heavy tier to the merge queue. */
+const heavyQueued = "${{ !cancelled() && needs.plan.outputs.heavy == 'queue' }}";
+
 /** The mutation shards': they also skip when the plan counts none (no changed path is runtime source). */
 const mutationRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}";
 
@@ -1245,6 +1295,8 @@ test("every required check is still a job that reports, under the name the rules
   const jobs = ciJobs();
   const names = new Map();
   for (const [id, block] of Object.entries(jobs)) {
+    // heavy-queued reports the heavy tier's checks under their own names, on the pull requests where those skip.
+    if (id === "heavy-queued") continue;
     for (const name of checkNames(block, id)) {
       assert.ok(!names.has(name), `${name} is reported by both ${names.get(name)} and ${id}`);
       names.set(name, id);
@@ -1256,8 +1308,18 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : heavyJobs.includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
+  // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
+  // the merge queue, a job without a matrix reports skipped under its own name, which a required
+  // check accepts, but the themes matrix only under its unexpanded name, so heavy-queued reports
+  // exactly the themes shards' checks, under a condition exclusive with theirs, and nothing else.
+  for (const id of heavyJobs) for (const name of checkNames(jobs[id], id)) assert.ok(requiredChecks.includes(name), `${name} is required`);
+  for (const id of heavyJobs.filter((id) => id !== "themes")) assert.doesNotMatch(jobs[id].match(/^ {4}name: (.+)$/m)?.[1] ?? "", /matrix/, id);
+  assert.equal(jobs["heavy-queued"].match(/^ {4}if: (.+)$/m)?.[1], heavyQueued);
+  assert.match(jobs["heavy-queued"], /^ {4}needs: \[plan\]$/m);
+  assert.deepEqual(checkNames(jobs["heavy-queued"], "heavy-queued"), checkNames(jobs.themes, "themes"));
+  assert.match(jobs.plan, /^ {6}heavy: \$\{\{ steps\.plan\.outputs\.heavy \}\}$/m);
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
     for (const [, name] of text.matchAll(/^ {4}name: (.+)$/gm)) names.set(name, file);
@@ -1809,7 +1871,8 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
   for (const [id, block] of Object.entries(jobs)) {
-    for (const name of checkNames(block, id)) assert.deepEqual(graph.filter((node) => node.pattern.test(name)).map((node) => node.id), [id], name);
+    // A themes shard's check matches its job and heavy-queued, its twin; the two never both run (the required checks' test).
+    for (const name of checkNames(block, id)) assert.deepEqual(graph.filter((node) => node.pattern.test(name)).map((node) => node.id), id === "themes" || id === "heavy-queued" ? ["themes", "heavy-queued"] : [id], name);
   }
 });
 
