@@ -53,7 +53,7 @@ describe("home page", () => {
     expect(heading.element().textContent).toBe(VOYAGE_HERO.title.join(" "));
     expect(page.getByRole("link", { name: "Come aboard", exact: true }).first().element().getAttribute("href")).toBe("/nautilus/");
     expect(document.body.innerText).not.toContain("compliant");
-    expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
+    expect(page.getByRole("navigation", { name: "Footer" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
   it("shows two ships, the Nautilus and Spoonjoy, as showcases, each with its way in and its X-ray", async () => {
@@ -82,11 +82,12 @@ describe("home page", () => {
       ["Source", "https://github.com/spoonjoy/spoonjoy-v2"],
     ]);
     expect(spoonjoy.element().textContent).toContain(TWO_SHIPS.spoonjoy.body);
-    // Side by side on a wide screen.
+    // One showcase a row on a wide screen, each with its art: the Nautilus beside its words, Spoonjoy's shot across the row under them, wide enough to read its name tags.
     await page.viewport(1280, 800);
     const [a, b] = [nautilus.element().getBoundingClientRect(), spoonjoy.element().getBoundingClientRect()];
-    expect(a.top).toBe(b.top);
-    expect(a.right).toBeLessThan(b.left);
+    expect(a.bottom).toBeLessThanOrEqual(b.top);
+    const shot = spoonjoy.element().querySelector("picture:not([hidden]) img, img")!.getBoundingClientRect();
+    expect(shot.width).toBeGreaterThan(b.width * 0.9);
   });
 
   it("has no live catalog of examples behind Show buttons", async () => {
@@ -168,7 +169,7 @@ describe("home page", () => {
     expect(page.getByRole("link", { name: "Switching from shadcn" }).element().getAttribute("href")).toBe("/docs/switching-from-shadcn/");
   });
 
-  it("shows Spoonjoy's X-ray shot beside its showcase, AVIF first at each width, linked to the Test Kitchen with X-ray on", async () => {
+  it("shows Spoonjoy's X-ray shot across its showcase row, AVIF first at each width", async () => {
     await renderPage("/");
     const showcase = document.querySelector("[data-site-ship='ship-spoonjoy']")!;
     const pictures = [...showcase.querySelectorAll("picture")];
@@ -180,7 +181,8 @@ describe("home page", () => {
       expect([image.getAttribute("width"), image.getAttribute("height"), image.loading]).toEqual(["1600", "863", "lazy"]);
       expect(image.alt).toMatch(/^Spoonjoy's Crispy Lemon Chickpeas recipe/);
     }
-    expect(pictures[0]!.closest("a")!.getAttribute("href")).toBe("https://spoonjoy.app/test-kitchen?xray");
+    // Not a link of its own: the row's "X-ray it" already opens the Test Kitchen with X-ray on.
+    expect(pictures[0]!.closest("a")).toBeNull();
     await expect.element(page.getByText(/Real app, real recipe, real chickpeas\.$/)).toBeVisible();
   });
 

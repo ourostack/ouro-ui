@@ -16,7 +16,8 @@ const OURO_HOME = "https://ouroboros.bot/";
 const SHIP = art.nautilus.inner.replaceAll("nautilus-sheen", "ship-card-sheen");
 
 /** One showcase: open text on the page under a hairline, no card around it, and its picture beside it. */
-function Showcase({ id, title, body, art, children }: { id: string; title: string; body: string; art: ReactNode; children: ReactNode }): JSX.Element {
+/** A showcase row: its words, then its art beside them, or, when `wide`, under them across the row. */
+function Showcase({ id, title, body, art, wide = false, children }: { id: string; title: string; body: string; art: ReactNode; wide?: boolean; children: ReactNode }): JSX.Element {
   return (
     <article
       aria-labelledby={`${id}-title`}
@@ -32,7 +33,7 @@ function Showcase({ id, title, body, art, children }: { id: string; title: strin
         </p>
         <div className="flex flex-wrap items-center gap-3">{children}</div>
       </div>
-      {art}
+      {wide ? <div className="md:col-span-2">{art}</div> : art}
     </article>
   );
 }
@@ -43,7 +44,7 @@ const shots = images as Record<string, { width: number; height: number; src: str
 function Shot({ theme, className }: { theme: "light" | "dark"; className: string }): JSX.Element {
   const shot = shots[`spoonjoy-xray-${theme}.webp`]!;
   const url = (path: string) => href(path);
-  const sizes = "(min-width: 48rem) 56vw, 100vw";
+  const sizes = "(min-width: 72rem) 72rem, 100vw";
   return (
     <picture className={className}>
       {shot.sources.map((source) => (
@@ -89,12 +90,11 @@ export function TwoShips(): JSX.Element {
             id="ship-spoonjoy"
             title={spoonjoy.title}
             body={spoonjoy.body}
+            wide
             art={
               <figure className="site-ship-shot m-0 grid gap-3">
-                <a href={`${SPOONJOY_KITCHEN}?xray`} className="site-ship-shot-link" aria-describedby="ship-spoonjoy-caption">
-                  <Shot theme="light" className="site-ship-shot-light" />
-                  <Shot theme="dark" className="site-ship-shot-dark" />
-                </a>
+                <Shot theme="light" className="site-ship-shot-light" />
+                <Shot theme="dark" className="site-ship-shot-dark" />
                 <figcaption id="ship-spoonjoy-caption" className="text-sm text-muted-foreground">
                   {spoonjoy.shot.caption}
                 </figcaption>

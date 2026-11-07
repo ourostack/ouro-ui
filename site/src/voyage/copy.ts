@@ -12,7 +12,7 @@
 export const TWO_SHIPS = {
   eyebrow: "Showcases",
   title: "Two ships, same parts.",
-  intro: "One is a story we made up to show the parts off. The other is a real recipe app you can open and X-ray.",
+  intro: "Two of the many in the harbour. One is a story we made up to show the parts off; the other is a real recipe app you can open and X-ray.",
   nautilus: {
     title: "The Nautilus: built for the story.",
     body: "Captain Nemo is building a submarine in secret. Help him get her ready to dive, with controls built from Ouro HX.",

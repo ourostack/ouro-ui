@@ -484,15 +484,7 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
 [data-theme="brass"] .site-ship-nautilus {
   --sea-ink: color-mix(in oklab, var(--chart-2) 55%, var(--primary));
 }
-/* Spoonjoy's X-ray screenshot beside its showcase: the theme's own shot, edges softly rounded, no frame or shadow. */
-.site-ship-shot-link {
-  display: block;
-  border-radius: calc(var(--radius) * 1.4);
-}
-.site-ship-shot-link:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 4px;
-}
+/* Spoonjoy's X-ray screenshot across its showcase row: the theme's own shot, edges softly rounded, no frame or shadow. */
 .site-ship-shot-img {
   display: block;
   width: 100%;
