@@ -694,7 +694,7 @@ for (const page of sitePages) {
   taken.set(page.name, page.markdown);
 }
 outputs.set("site/src/docs/pages.json", `${JSON.stringify(sitePages, null, 2)}\n`);
-outputs.set("site/src/docs/page-index.json", `${JSON.stringify(sitePages.map(({ name, title, kind, summary }) => ({ name, title, kind, summary })), null, 2)}\n`);
+outputs.set("site/src/docs/page-index.json", `${JSON.stringify(sitePages.map(({ name, title, kind, group, summary }) => ({ name, title, kind, group, summary })), null, 2)}\n`);
 
 const catalogLines = () =>
   catalogGroups

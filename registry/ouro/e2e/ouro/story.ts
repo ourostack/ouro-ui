@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 
 /**
  * Opens one Storybook story on its own, by story id (for example
- * `"overlays-sheet--playground"`), and waits for it to render and for the app's web fonts
+ * `"overlays-sheet--playground"`), and waits for it to render, its play function to finish, and for the app's web fonts
  * to load, so text no longer changes width under a spec that measures. A font first used by
  * content that appears later (an opened menu, a heavier weight) loads later: before measuring
  * such content, wait again with `await page.evaluate(() => document.fonts.ready.then(() => {}))`.
@@ -16,6 +16,14 @@ export async function openStory(page: Page, id: string): Promise<void> {
   const url = new URL(`iframe.html?id=${id}&viewMode=story`, base.endsWith("/") ? base : `${base}/`);
   await page.goto(url.href);
   await page.locator("#storybook-root > *").first().waitFor();
+  // The story's play function, done: it brings the story to the state it shows (a bar on a post, an open menu), and a
+  // spec that acts while it still runs races it.
+  const phase = await page.waitForFunction(() => {
+    const render = (window as { __STORYBOOK_PREVIEW__?: { currentRender?: { phase?: string } } }).__STORYBOOK_PREVIEW__?.currentRender;
+    return render === undefined || ["completed", "finished", "errored", "aborted"].includes(render.phase ?? "") ? (render?.phase ?? "finished") : null;
+  });
+  const ended = await phase.jsonValue();
+  if (ended === "errored" || ended === "aborted") throw new Error(`openStory: ${id} did not finish rendering (${ended})`);
   // A font starts loading when a layout first uses it, so lay the story out before asking.
   await page.evaluate(() => {
     document.body.getBoundingClientRect();
