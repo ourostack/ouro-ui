@@ -528,6 +528,7 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
       stale.disconnect();
       fonts.removeEventListener("loading", loading);
     };
+    // Stryker disable next-line ArrayDeclaration: equivalent; a constant dependency list runs the effect once on mount and cleans up on unmount, exactly as an empty one does.
   }, []);
   useLayoutEffect(() => {
     for (const element of rootRef.current!.querySelectorAll(":scope > [data-ouro-toolbar-entry]")) entries.current!.observe(element);
