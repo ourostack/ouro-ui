@@ -85,6 +85,7 @@ let pointerAt: { x: number; y: number } | null = null;
 // and sends pointerover (WebKit, a moment later, pointermove too) where it already was. The page moved, not the person.
 const resting = new WeakSet<Event>();
 const still = (event: PointerEvent) => event.clientX === pointerAt?.x && event.clientY === pointerAt.y;
+/* istanbul ignore else @preserve -- the else path is server rendering, which has no document */
 // Stryker disable next-line ConditionalExpression,StringLiteral: on a server there is no page to listen to, and every browser the tests run in has a document, so the server branch cannot be reached.
 if (typeof document !== "undefined") {
   // Captured, so the list's own listeners, which run later, know.

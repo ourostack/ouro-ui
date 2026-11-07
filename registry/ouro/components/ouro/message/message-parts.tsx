@@ -352,7 +352,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   const [host] = useState(() =>
     // Stryker disable next-line ConditionalExpression,StringLiteral: no browser has an undefined document, so the test browsers cannot reach the server-render branch (null); the host's className is on the next line, where its mutants are tested.
     typeof document === "undefined"
-      ? null
+      ? /* istanbul ignore next @preserve -- server only */ null
       : Object.assign(document.createElement("span"), { className: "contents" }),
   );
   const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
@@ -361,6 +361,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   // Each message gives the layer a new data object on every render, so new data comes with a move to another message too.
   if (on !== null && (shown === null || shown.data !== on.data)) setShown(on);
   useLayoutEffect(() => {
+    /* istanbul ignore if @preserve -- server only */
     // Stryker disable next-line ConditionalExpression: the host is null only where there is no document (a server's render), and layout effects run only in a browser.
     if (host === null) return;
     if (slot === null) host.parentNode?.removeChild(host);
@@ -376,6 +377,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     if (showing) void loadMenu();
   }, [showing]);
   const close = (open: boolean) => {
+    /* istanbul ignore if @preserve -- Base UI asks this only to close: show() opens the menu */
     // Stryker disable next-line ConditionalExpression: the menu is opened by show() and asks only to close.
     if (open) return;
     hover.hold(false);
