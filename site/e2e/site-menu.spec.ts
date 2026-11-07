@@ -739,6 +739,8 @@ test("on a phone the Nautilus's first chapter marker is styled before any script
   await page.setViewportSize(PHONE);
   await page.goto("nautilus/");
   const marker = page.locator("[data-chapter-marker]").first();
+  // The page opens in Ouro's meadow, the chapters below it: scroll to the first.
+  await marker.scrollIntoViewIfNeeded();
   await expect(marker).toBeInViewport();
   expect(await marker.evaluate((element) => getComputedStyle(element).position)).toBe("sticky");
 });
