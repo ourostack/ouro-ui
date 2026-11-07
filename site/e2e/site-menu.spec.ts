@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { APPLE_PATHS } from "../src/paths";
+import { heightsUntilStill, quietFrames } from "./frames";
 
 // The site's one menu on a phone (src/voyage/site-menu.tsx): the header's menu button is the only control that opens
 // navigation, on every kind of page, and nothing inside the open menu opens another. It closes on a choice, a tap
@@ -388,6 +389,8 @@ for (const path of ["./", "docs/button/"]) {
       const stop = await page.getByRole("radio", { name: "Stop" }).isChecked();
       await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", stop ? "stop" : "half");
     }
+    // Hydration and first paint have come to rest: the read below is of a page that is done loading, not of its load.
+    await quietFrames(page);
     // The longest gap, when in the read it fell, and whether the stage's verdict landed during the read.
     const read = () =>
       page.evaluate(
@@ -593,19 +596,7 @@ test("on a phone the docs menu's folded lists hold no pages until they unfold, t
   // Folded, the list is not in the page at all: nothing in it to style with the sheet.
   await expect(panel.locator("a")).toHaveCount(0);
   // Each frame of the unfold, the panel's height: it grows through the frames between, not in one step.
-  const heights = panel.evaluate(
-    (element) =>
-      new Promise<number[]>((resolve) => {
-        const seen: number[] = [];
-        const start = performance.now();
-        const tick = () => {
-          seen.push(Math.round(element.getBoundingClientRect().height));
-          if (performance.now() - start < 900) requestAnimationFrame(tick);
-          else resolve(seen);
-        };
-        requestAnimationFrame(tick);
-      }),
-  );
+  const heights = heightsUntilStill(panel);
   await group.locator('[aria-expanded="false"]').click();
   const grown = await heights;
   const full = grown.at(-1)!;
