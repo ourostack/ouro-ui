@@ -72,7 +72,11 @@ export async function settledBox(element: Locator): Promise<{ x: number; y: numb
       if (!running.length) return null;
       await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
     }
-    return moving().map((animation) => {
+    // Past the deadline, what has finished in the meantime counts as settled: only what still moves fails it.
+    await new Promise((frame) => requestAnimationFrame(() => requestAnimationFrame(frame)));
+    const still = moving();
+    if (!still.length) return null;
+    return still.map((animation) => {
       const target = (animation.effect as KeyframeEffect).target!;
       return `${target.tagName.toLowerCase()}${target.getAttribute("data-ouro") ? `[data-ouro="${target.getAttribute("data-ouro")}"]` : ""}`;
     });
