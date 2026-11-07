@@ -474,6 +474,7 @@ function countFits(root: HTMLElement, widths: readonly number[], moreWidth: numb
  * @claim "Handlers, pressed states and shortcuts change none" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > lays nothing out when it renders again with new items that look the same, and measures again when a label changes)
  */
 function widthInputs(items: readonly ToolbarEntry[]): string {
+  // Stryker disable next-line StringLiteral: equivalent; the separator's name only has to differ from the other shapes, which are arrays, so "" tells the same entries apart.
   const shape = (entry: ToolbarEntry): unknown =>
     entry.type === "separator" ? "separator" : entry.type === "group" ? [entry.label, entry.items.map(shape)] : [entry.type, entry.label, entry.hideLabel === true, entry.icon !== undefined];
   return JSON.stringify(items.map(shape));

@@ -1,4 +1,5 @@
 import { createRef, useState, type ReactNode, type SVGProps } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,6 +25,8 @@ async function render(node: ReactNode, width?: number) {
   return {
     host,
     rerender: (next: ReactNode) => act(async () => root.render(next)),
+    // Commits at once and returns before any observer reports, so only the commit's own reads show.
+    commit: (next: ReactNode) => flushSync(() => root.render(next)),
     get toolbar() {
       return host.querySelector<HTMLElement>('[data-ouro="toolbar"]')!;
     },
@@ -385,12 +388,14 @@ describe("Toolbar overflow", () => {
       "a group's control's icon": (items) => [...items.slice(0, 4), { type: "group", label: "Lists", items: [{ label: "Bulleted", hideLabel: true }, { label: "Numbered" }] }],
     };
     for (const [name, edit] of Object.entries(edits)) {
-      const { rerender } = await render(<Toolbar label="Formatting" size="sm" items={base()} />, 400);
+      const { commit } = await render(<Toolbar label="Formatting" size="sm" items={base()} />, 400);
       await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-      const reads = watchLayoutReads();
-      await rerender(<Toolbar label="Formatting" size="sm" items={edit(base())} />);
-      reads.stop();
-      expect(reads.names().length, name).toBeGreaterThan(0);
+      // Only the measuring reads the More button's width inside a commit; entries that mount read for other reasons.
+      const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
+      commit(<Toolbar label="Formatting" size="sm" items={edit(base())} />);
+      const more = measured.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
+      measured.mockRestore();
+      expect(more, name).toBeGreaterThan(0);
     }
   });
 
