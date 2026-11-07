@@ -106,27 +106,22 @@ describe("hydration in turns", () => {
     expect(button("safari-b").textContent).toBe("safari-b 1");
   });
 
-  it("hydrates every boundary waiting its turn at once when hurried, as for a tap kept from before (early-input.ts)", async () => {
-    await hydrate(["hurried-a", "hurried-b"]);
-    expect(committed).toEqual([]);
-    await act(() => hurryHydration());
-    await expect.poll(() => committed).toEqual(["hurried-a", "hurried-b"]);
-    // The queue then passes its released turns as it reaches them, and reports the page hydrated.
-    let done = false;
-    void hydratedInTurn().then(() => (done = true));
-    await expect
-      .poll(async () => {
-        await goIdle();
-        return done;
-      })
-      .toBe(true);
-  });
-
   it("answers a press on a boundary still waiting its turn, by hydrating it inside the press", async () => {
     await hydrate(["waiting", "later"]);
     expect(committed).toEqual([]);
     await act(() => button("later").click());
     expect(button("later").textContent).toBe("later 1");
     await expect.poll(() => committed).toContain("waiting");
+  });
+
+  // Last: the hurry lasts for the page's life, so it stays on for any test after it.
+  it("once hurried, hydrates each boundary as it joins the queue, without waiting its turn (early-input.ts)", async () => {
+    // As on the page: the hurry comes from the app's effect, before React has rendered any boundary's children.
+    hurryHydration();
+    await hydrate(["hurried-a", "hurried-b"], false);
+    // Never gone idle: committed on the hurry alone.
+    await expect.poll(() => committed).toEqual(["hurried-a", "hurried-b"]);
+    await act(() => button("hurried-b").click());
+    expect(button("hurried-b").textContent).toBe("hurried-b 1");
   });
 });

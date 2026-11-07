@@ -31,7 +31,8 @@ const noClientUpdates = () => () => undefined;
 
 function SelectedDemo({ name, title }: { name: string; title: string }): JSX.Element {
   // Hydrated a render after the example's own chunk arrives. Until then a tap or text there is kept and answered then
-  // (early-input.ts), so the example is never shown disabled.
+  // (early-input.ts), so the example is never shown disabled. Other keys in that moment (arrows on a slider or tabs,
+  // Escape) do nothing: shown greyed out, the whole example would read as broken for the many who only tap.
   const hydrated = useSyncExternalStore(noClientUpdates, () => true, () => false);
   const root = useRef<HTMLDivElement>(null);
   // Live: the controls are enabled and, since a parent's effects run after its children's, every

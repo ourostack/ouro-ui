@@ -106,8 +106,11 @@ export function ThemePicker(): JSX.Element {
   );
 }
 
-// The palette's code loads the first time it opens, so the page's first load does not carry it.
-const SitePalette = lazy(() => import("./site-palette"));
+// The palette's code loads the first time it is wanted, so the page's first load does not carry it: as the reader
+// points at Search, focuses it or presses it, so it is mostly here by the click.
+const loadPalette = () => import("./site-palette");
+const SitePalette = lazy(loadPalette);
+const wantPalette = () => void loadPalette();
 
 /** ⌘K: every page, the presets, light and dark, and X-ray (site-palette.tsx). */
 function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>> }): JSX.Element {
@@ -120,8 +123,13 @@ function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetSt
         tone="secondary"
         size="sm"
         onClick={() => setOpen(true)}
+        onPointerEnter={wantPalette}
+        onPointerDown={wantPalette}
+        onFocus={wantPalette}
         aria-haspopup="dialog"
-        className="max-sm:hidden"
+        // As wide as Ctrl+K needs, with the hint at its end, as a search field: the server can't know the platform, so
+        // a Mac's ⌘K, narrower, arrives as the page hydrates, and would otherwise pull the controls beside it along.
+        className="max-sm:hidden min-w-[8.25rem] justify-between"
         aria-keyshortcuts="Meta+K Control+K"
       >
         Search
