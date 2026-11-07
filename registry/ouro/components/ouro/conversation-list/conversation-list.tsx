@@ -485,14 +485,11 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [reach, setReach] = useState<string | null>(null);
   // A short list's first render holds only the rows the first view reaches; the rest render once it has painted.
   const [settled, setSettled] = useState(false);
-  useEffect(() => {
-    let live = true;
-    queueMicrotask(() => live && setSettled(true));
-    return () => {
-      live = false;
-    };
+  useEffect(
+    () => queueMicrotask(() => setSettled(true)),
     // Stryker disable next-line ArrayDeclaration: the effect reads nothing, so rerunning it only sets the state again.
-  }, []);
+    [],
+  );
   const controls = useRef(new Map<string, HTMLButtonElement>());
   const latest = useRef<Laid | null>(null);
   const clips = useRef<HTMLElement[] | null>(null);
@@ -570,8 +567,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const register = useCallback((key: string, node: HTMLButtonElement | null) => {
     if (node) controls.current.set(key, node);
     else controls.current.delete(key);
+  },
   // Stryker disable next-line ArrayDeclaration: the callback reads only a ref, so any constant list keeps it stable.
-  }, []);
+  []);
   const controlRef = (key: string) => (node: HTMLButtonElement | null) => register(key, node);
 
   // The list's view, from its top: the part no scrolling box around it, or the window, clips.
@@ -704,8 +702,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const { onSelect: select } = handlers.current;
     if (select.length > 1) select(id, event);
     else (select as (id: string) => void)(id);
+  },
   // Stryker disable next-line ArrayDeclaration: the callback reads only a ref, so any constant list keeps it stable.
-  }, []);
+  []);
   // Stryker disable next-line ArrayDeclaration: the callback reads only a ref, so any constant list keeps it stable.
   const onKey = useCallback((event: KeyboardEvent<HTMLButtonElement>, key: string) => handlers.current.move(event, key), []);
 
