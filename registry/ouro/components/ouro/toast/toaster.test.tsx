@@ -1,5 +1,6 @@
 import { StrictMode, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
@@ -120,9 +121,11 @@ describe("Toaster", () => {
     const root = createRoot(host);
     roots.push(root);
     const reads = watchLayoutReads();
-    await act(async () => root.render(<Toaster />));
+    // Synchronously: a slow runner can reach a frame, where the observer's first read is allowed, before an awaited act returns.
+    flushSync(() => root.render(<Toaster />));
     reads.stop();
     expect(reads.names()).toEqual([]);
+    await act(async () => {});
     expect(viewport()).not.toBeNull();
     await until(() => viewport()!.getAttribute("data-edge"), "bottom");
   });
