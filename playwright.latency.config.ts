@@ -2,7 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 // The voyage stage's interaction latency (`pnpm test:latency`, CI's latency job):
 // site/e2e/*.latency.spec.ts against the production build, in Chromium (CPU throttling is a DevTools
-// feature), one test at a time, so no other worker shares the CPU being measured.
+// feature), one test at a time, so no other worker shares the CPU being measured. The stage's switch
+// to still water is also measured in WebKit (site/e2e/stage-switch.latency.spec.ts).
 export default defineConfig({
   testDir: "site/e2e",
   testMatch: /\.latency\.spec\.ts$/,
