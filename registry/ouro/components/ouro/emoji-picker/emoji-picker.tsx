@@ -32,6 +32,7 @@ import { catalogueIndex, emojiToken } from "@/registry/ouro/components/ouro/emoj
 import {
   barButtonClass,
   barClass,
+  bodyClass,
   cellClass,
   COLUMNS,
   emojiSkinTones,
@@ -1125,6 +1126,10 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
   useAnnouncement(searching ? (total ? fillCount(labels.resultsLabel, total) : labels.noResultsLabel) : "");
 
   const tonesShown = offersTones(frequent) || offersTones(quick) || categories.some((category) => offersTones(category.emoji));
+  // Whether there is a category bar, searching or not: while there is a search its row stays, unseen, and the results
+  // take it, so the panel keeps its height and the search field stays where it is (a sheet is held at its foot, and lost
+  // the bar's height on the first letter typed: ourostack/ouro-ui#696).
+  const barShown = (frequent?.length ? 1 : 0) + categories.filter((category) => category.emoji.length).length > 1;
 
   // The grid's focus handler makes the cell that gains focus the Tab stop.
   const focusCell = (index: number) => scrollerRef.current!.querySelector<HTMLElement>(`[data-cell="${index}"]`)!.focus();
@@ -1171,37 +1176,44 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
         )}
       </div>
       {quick?.length ? <QuickRow quick={quick} tone={tone} render={render} label={labels.quickLabel} onChoose={onChoose} /> : null}
-      {!searching && sections.length > 1 && (
-        <CategoryBar sections={sections} label={labels.categoriesLabel} active={categoryActive} inView={inView} setActive={setCategoryActive} onJump={jumpTo} />
-      )}
-      <div
-        ref={scrollerRef}
-        className={scrollerClass}
-        onScroll={onScroll}
-        onKeyDown={onGridKey}
-        onClick={(event) => {
-          const cell = cellOf(event);
-          if (cell) onChoose(itemAt(Number(cell.dataset.cell)), event);
-        }}
-        onPointerOver={(event) => {
-          const cell = cellOf(event);
-          if (cell && event.pointerType === "mouse") setHovered(itemAt(Number(cell.dataset.cell)));
-        }}
-        onPointerLeave={() => setHovered(undefined)}
-        onFocus={(event) => {
-          const cell = cellOf(event);
-          if (cell) setActive(Number(cell.dataset.cell));
-          setGridFocus(Boolean(cell));
-        }}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setGridFocus(false);
-        }}
-      >
-        {total === 0 ? (
-          <p className="m-0 px-1 py-6 text-sm leading-5 text-muted-foreground">{searching ? labels.noResultsLabel : null}</p>
-        ) : (
-          <Grids id={id} sections={sections} rows={rows} tone={tone} render={render} active={active} sectionRefs={sectionRefs} saving={saving} />
-        )}
+      <div className={cn(bodyClass, barShown ? "grid-rows-[auto_18rem]" : "grid-rows-[18rem]")}>
+        {barShown &&
+          (searching ? (
+            <div aria-hidden="true" inert className={cn(barClass, "invisible")}>
+              <span className={barButtonClass} />
+            </div>
+          ) : (
+            <CategoryBar sections={sections} label={labels.categoriesLabel} active={categoryActive} inView={inView} setActive={setCategoryActive} onJump={jumpTo} />
+          ))}
+        <div
+          ref={scrollerRef}
+          className={cn(scrollerClass, searching && barShown && "absolute inset-0")}
+          onScroll={onScroll}
+          onKeyDown={onGridKey}
+          onClick={(event) => {
+            const cell = cellOf(event);
+            if (cell) onChoose(itemAt(Number(cell.dataset.cell)), event);
+          }}
+          onPointerOver={(event) => {
+            const cell = cellOf(event);
+            if (cell && event.pointerType === "mouse") setHovered(itemAt(Number(cell.dataset.cell)));
+          }}
+          onPointerLeave={() => setHovered(undefined)}
+          onFocus={(event) => {
+            const cell = cellOf(event);
+            if (cell) setActive(Number(cell.dataset.cell));
+            setGridFocus(Boolean(cell));
+          }}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setGridFocus(false);
+          }}
+        >
+          {total === 0 ? (
+            <p className="m-0 px-1 py-6 text-sm leading-5 text-muted-foreground">{searching ? labels.noResultsLabel : null}</p>
+          ) : (
+            <Grids id={id} sections={sections} rows={rows} tone={tone} render={render} active={active} sectionRefs={sectionRefs} saving={saving} />
+          )}
+        </div>
       </div>
       <Preview item={preview} tone={tone} render={render} play={hovered !== undefined || gridFocus} />
     </div>

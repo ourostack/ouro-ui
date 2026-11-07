@@ -273,8 +273,11 @@ describe("EmojiPicker categories", () => {
     await open({ categories: many });
     await type("sample");
     const scroller = panel()!.querySelector<HTMLElement>('[role="grid"]')!.parentElement!.parentElement!;
-    scroller.scrollTop = 200;
-    await expect.poll(() => scroller.scrollTop).toBe(200);
+    // To the results' end: they have the category bar's row too while there is a search.
+    const end = scroller.scrollHeight - scroller.clientHeight;
+    expect(end).toBeGreaterThan(100);
+    scroller.scrollTop = end;
+    await expect.poll(() => scroller.scrollTop).toBe(end);
     await userEvent.clear(search());
     await expect.poll(() => categoryButtons()[0]?.getAttribute("aria-current")).toBe("true");
   });
@@ -842,6 +845,21 @@ describe("EmojiPicker search", () => {
     });
     await userEvent.keyboard("thumb");
     expect(preview()).toBe("👍thumbs up");
+  });
+
+  it("keeps its height, and the search field where it is, while a search starts, finds nothing and ends", async () => {
+    await open({ frequent });
+    // The results take the category bar's row while there is a search (ourostack/ouro-ui#696).
+    const place = () => ({ height: panel()!.getBoundingClientRect().height, search: search().getBoundingClientRect().y });
+    const before = place();
+    await type("face");
+    expect(categoryButtons()).toHaveLength(0);
+    expect(place()).toEqual(before);
+    await type("zzz");
+    expect(place()).toEqual(before);
+    await userEvent.clear(search());
+    expect(categoryButtons()).toHaveLength(4);
+    expect(place()).toEqual(before);
   });
 
   it("puts back the categories, from the top, when the search is cleared", async () => {

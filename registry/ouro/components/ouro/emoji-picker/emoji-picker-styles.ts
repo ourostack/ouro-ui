@@ -3,6 +3,7 @@ import { emojiSkinTones, matchWords, type EmojiSkinTone } from "@/registry/ouro/
 export {
   barButtonClass,
   barClass,
+  bodyClass,
   cellClass,
   COLUMNS,
   FIRST_CELLS,
@@ -170,8 +171,14 @@ const toneOptionClass =
   "aria-checked:border-primary forced-colors:aria-checked:border-[Highlight] " +
   "outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid";
 
-/** The grid's scrolling area: a fixed height, so the panel keeps its size while searching. @internal */
-const scrollerClass = "relative box-border h-72 min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]";
+/**
+ * The category bar over the grid, in rows of a fixed height together: while there is a search the grid lies over the
+ * bar's row too, which keeps its height unseen, so the panel keeps its size and the search field stays put. @internal
+ */
+const bodyClass = "relative grid min-h-0 grid-cols-[minmax(0,1fr)] gap-2";
+
+/** The grid's scrolling area, as tall as its rows. @internal */
+const scrollerClass = "relative box-border h-full min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]";
 
 /** A category's heading, which stays at the top while its emoji scroll under it. @internal */
 const headingClass = "sticky top-0 z-1 m-0 bg-popover px-1 py-1 text-xs leading-4 font-medium text-muted-foreground";
