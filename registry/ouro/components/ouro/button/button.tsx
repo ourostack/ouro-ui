@@ -364,7 +364,7 @@ function returnPresses(event: globalThis.KeyboardEvent, root: Element): boolean 
  * the release lands on the button and the dialog opens.
  *
  * @group Actions
- * @see https://ui.ouro.bot/docs/button
+ * @see https://ui.ouroboros.bot/docs/button
  *
  * @example
  * <Button onClick={save} loading={saving}>Save</Button>

@@ -284,7 +284,7 @@ function Chevron({ open }: { open: boolean }): JSX.Element {
  * views that switch in place.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/conversation-list
+ * @see https://ui.ouroboros.bot/docs/conversation-list
  *
  * @example
  * <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />

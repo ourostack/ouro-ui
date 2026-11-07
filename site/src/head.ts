@@ -4,7 +4,7 @@ import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
 
 /** Where Pages serves the site. */
-export const SITE = "https://ui.ouro.bot";
+export const SITE = "https://ui.ouroboros.bot";
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 

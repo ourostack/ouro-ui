@@ -370,7 +370,7 @@ function insertTokens(control: HTMLTextAreaElement, event: { preventDefault(): v
  * a message once it is sent.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/composer
+ * @see https://ui.ouroboros.bot/docs/composer
  *
  * @example
  * <Composer label="Message Mia" placeholder="Write a message" onSend={(text) => send(text)} />

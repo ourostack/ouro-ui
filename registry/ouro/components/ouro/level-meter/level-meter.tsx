@@ -236,7 +236,7 @@ const Bar = memo(function Bar({ lit, className }: BarProps): JSX.Element {
  * @claim "Between values it re-renders only when a" registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > re-renders between values only when a bar lights or goes out or the word changes, and changes the page only there)
  * @claim "Its agent side, `levelMeterAx` in `level-meter-styles.ts`," registry/ouro/components/ouro/level-meter/level-meter.test.tsx verify:testExists(registry/ouro/components/ouro/level-meter/level-meter.test.tsx::LevelMeter > declares no agent reads and no actions)
  * @group Feedback
- * @see https://ui.ouro.bot/docs/level-meter
+ * @see https://ui.ouroboros.bot/docs/level-meter
  *
  * @example
  * <LevelMeter label="Microphone level" value={rms} />

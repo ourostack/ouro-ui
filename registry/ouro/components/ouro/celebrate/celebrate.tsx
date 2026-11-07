@@ -63,7 +63,7 @@ const pieces = Array.from({ length: PIECES }, (_, index) => {
  * @claim "While the moment lasts, the root" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > carries data-celebrate while the moment lasts, and not before or after)
  * @claim "The message waits about 1.5 s" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate > says the message once after a delay when the moment starts, and again for the next one)
  * @group Feedback
- * @see https://ui.ouro.bot/docs/celebrate
+ * @see https://ui.ouroboros.bot/docs/celebrate
  *
  * @example
  * <Celebrate show={items.every((item) => item.checked)} message="List cleared" />

@@ -105,7 +105,7 @@ describe("the theme before first paint", () => {
     for (const path of ["/", "/nautilus/"]) {
       const tags = headTags(routeFor(path)!, true);
       expect(tags.some((tag) => tag.includes("robots"))).toBe(false);
-      expect(tags).toContain(`<link rel="canonical" href="https://ui.ouro.bot${path}" />`);
+      expect(tags).toContain(`<link rel="canonical" href="https://ui.ouroboros.bot${path}" />`);
       const preloads = tags.filter((tag) => tag.includes('rel="preload"'));
       expect(preloads).toEqual(
         fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`),
@@ -122,7 +122,7 @@ describe("the old /voyage/ address", () => {
     expect(redirects).toEqual([{ from: "/voyage/", to: "/" }]);
     const html = redirectPage("/");
     expect(html).toContain('<meta http-equiv="refresh" content="0; url=/" />');
-    expect(html).toContain('<link rel="canonical" href="https://ui.ouro.bot/" />');
+    expect(html).toContain('<link rel="canonical" href="https://ui.ouroboros.bot/" />');
     expect(html).toContain('<meta name="robots" content="noindex" />');
     expect(html).toMatch(/<a href="\/">[^<]+<\/a>/);
     expect(html.startsWith("<!doctype html>")).toBe(true);
@@ -206,7 +206,7 @@ describe("the header and the theme section", () => {
       await userEvent.click(page.getByRole("button", { name: "Copy tokens only", exact: true }));
       await expect.poll(() => announced.count("Copied the Brass tokens")).toBe(1);
       expect(writes).toEqual([brass.css.theme, brass.css.tokens]);
-      expect(writes[0]).toContain("https://ui.ouro.bot/fonts/cormorant-garamond-5.3.0.woff2");
+      expect(writes[0]).toContain("https://ui.ouroboros.bot/fonts/cormorant-garamond-5.3.0.woff2");
       expect(writes[1]).not.toContain("@font-face");
     } finally {
       announced.stop();

@@ -196,7 +196,7 @@ const MomentContext = createContext(false);
  * @claim "Sets `quiet` for every `Moment` inside" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > renders a compact row from the prop or from MomentProvider, and the prop wins)
  *
  * @group Feedback
- * @see https://ui.ouro.bot/docs/moment
+ * @see https://ui.ouroboros.bot/docs/moment
  *
  * @example
  * <MomentProvider quiet={settings.quietMoments}>
@@ -247,7 +247,7 @@ function CloseIcon(): JSX.Element {
  * @claim "Moments behave so they never get" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > renders a compact row from the prop or from MomentProvider, and the prop wins)
  * @claim "It renders in the page's flow" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > stays in the page's flow, and its celebration stays inside the art's frame)
  * @group Feedback
- * @see https://ui.ouro.bot/docs/moment
+ * @see https://ui.ouroboros.bot/docs/moment
  *
  * @example
  * <Moment
