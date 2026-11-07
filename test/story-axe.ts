@@ -131,7 +131,8 @@ function passingOpeners(host: HTMLElement): (PassingOpener & { key: string })[] 
           }
         },
         close: async () => {
-          if (opensOn === "hover") await userEvent.unhover(element);
+          // A trigger that mounts only while its row is hovered (MessageList's one bar) may be gone by now: park instead.
+          if (opensOn === "hover") await (element.isConnected ? userEvent.unhover(element) : parkPointer());
           if (opensOn === "keyboard focus") element.blur();
           await userEvent.keyboard("{Escape}");
         },
