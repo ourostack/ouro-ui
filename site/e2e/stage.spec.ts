@@ -434,9 +434,15 @@ test("the switch to still water draws no long frame", async ({ page }) => {
   await expect(scene(page)).toHaveAttribute("data-speed", "stop");
   // real clock: half a second of frames with the scene still.
   await page.waitForTimeout(500);
-  const { worst, at } = await page.evaluate(() => {
+  const { worst, at, series } = await page.evaluate(() => {
     const from = (window as unknown as { __paced: number }).__paced;
-    const frames = (window as unknown as { __frames: number[] }).__frames.filter((time) => time >= from - 50);
+    const all = (window as unknown as { __frames: number[] }).__frames;
+    // Every frame's gap from 1.5 s before the verdict, as "ms from the verdict:gap", for the failure's record.
+    const series = all
+      .map((time, index) => (index ? `${Math.round(all[index - 1]! - from)}:${Math.round(time - all[index - 1]!)}` : ""))
+      .filter((entry, index) => index && all[index - 1]! >= from - 1500)
+      .join(" ");
+    const frames = all.filter((time) => time >= from - 50);
     let worst = 0;
     let at = 0;
     for (let index = 1; index < frames.length; index += 1)
@@ -444,9 +450,9 @@ test("the switch to still water draws no long frame", async ({ page }) => {
         worst = frames[index]! - frames[index - 1]!;
         at = frames[index - 1]! - from;
       }
-    return { worst: Math.round(worst), at: Math.round(at) };
+    return { worst: Math.round(worst), at: Math.round(at), series };
   });
-  expect(worst, `the longest frame around the switch, ${at} ms from the verdict`).toBeLessThan(SWITCH_FRAME_BUDGET);
+  expect(worst, `the longest frame around the switch, ${at} ms from the verdict; each frame from 1.5 s before it: ${series}`).toBeLessThan(SWITCH_FRAME_BUDGET);
 });
 
 test("a screen too slow to swim the fish gets still water, its speed at Stop, and Half sets them swimming", async ({ page }) => {
