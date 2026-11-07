@@ -15,6 +15,7 @@ import { useStable } from "../use-stable";
 import { GITHUB } from "../../paths";
 import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEAKER, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
+import { flushSync } from "react-dom";
 import "./stage.css";
 
 interface Entry extends LogLine {
@@ -121,11 +122,14 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     const verdict = (slow: boolean) => {
       cancelAnimationFrame(frame);
       clearTimeout(deadline);
-      if (slow) {
-        setSpeed("stop");
-        write(LOG.stillWater);
-      }
-      setPaced(true);
+      // Committed in the frame that decides it. Left to React's scheduler, the commit waits for a task, and a screen this
+      // slow can keep WebKit drawing late frames ahead of every task while its timers still fire: the verdict was reached
+      // and never shown (ourostack/ouro-ui#648).
+      flushSync(() => {
+        if (slow) setSpeed("stop");
+        setPaced(true);
+      });
+      if (slow) write(LOG.stillWater);
     };
     const judge = () => {
       const gaps: number[] = [];
