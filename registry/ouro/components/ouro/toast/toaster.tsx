@@ -161,6 +161,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
     // Stryker disable next-line ConditionalExpression: equivalent; the effect runs only when className changes, and on mount the viewport is not yet mounted, so viewportElement.current is null and nothing is read.
     if (classed.current === className) return;
     classed.current = className;
+    /* istanbul ignore else @preserve -- the viewport mounts once Connect reports active, in the first commit's passive effects, before any later className change */
     if (viewportElement.current) markEdge(viewportElement.current);
   }, [className]);
   const [active, setActive] = useState(false);
