@@ -44,7 +44,7 @@ async function hydrated(control: Locator): Promise<void> {
 async function recordTimeline(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const log: string[] = [];
-    const frames: number[] = [];
+    const frames: Array<[number, number]> = [];
     Object.assign(window, { __timeline: log, __frames: frames });
     const at = () => Math.round(performance.now());
     let last = 0;
@@ -52,7 +52,7 @@ async function recordTimeline(page: Page): Promise<void> {
     const frame = () => {
       const now = at();
       const held = (window as unknown as { __ouroEarlyInput?: number }).__ouroEarlyInput ?? 0;
-      if (last) frames.push(now - last);
+      if (last) frames.push([now, now - last]);
       if (now - last > 50 || held !== kept) log.push(`${now}: frame +${now - last}, kept ${held}`);
       [last, kept] = [now, held];
       requestAnimationFrame(frame);
@@ -65,15 +65,32 @@ async function recordTimeline(page: Page): Promise<void> {
   });
 }
 
+/** The most a slow runner may stretch ANSWERED to (`answerWithin`): past it, a kept tap counts as left waiting. */
+const ANSWERED_AT_MOST = 5000;
+
 /**
- * How long a kept tap may take to be answered on this page: ANSWERED, or three of the page's own recent frames where they
- * are slower (`recordTimeline`). The page answers a frame after the control hydrates and shows the answer on the next; CI's
- * WebKit draws the home page's first seconds at 0.4 to 1.8 s a frame (#683, #676), where no page answers within 1 s.
+ * Lets the held script go, first noting the time, so `answerWithin` can tell the runner's own frames from the page's.
+ */
+async function releaseNoted(page: Page, release: () => void): Promise<void> {
+  await page.evaluate(() => Object.assign(window, { __released: performance.now() }));
+  release();
+}
+
+/**
+ * How long a kept tap may take to be answered on this page: ANSWERED, or three of the slowest frame the page drew before
+ * its script was let go, where that is slower, up to ANSWERED_AT_MOST. Only the runner sets those frames, with none of our
+ * script running yet, so a slow hydration cannot widen its own limit. The page answers a frame after the control hydrates
+ * and shows the answer on the next; CI's WebKit draws the home page's first seconds at 0.4 to 1.8 s a frame (#683, #676),
+ * where no page answers within 1 s.
  */
 async function answerWithin(page: Page): Promise<number> {
-  const frames = await page.evaluate(() => (window as unknown as { __frames: number[] }).__frames.slice(-8));
-  const pace = [...frames].sort((a, b) => a - b)[Math.floor(frames.length / 2)] ?? 0;
-  return Math.max(ANSWERED, 3 * pace);
+  const slowest = await page.evaluate(() => {
+    const { __frames: frames, __released: released } = window as unknown as { __frames: Array<[number, number]>; __released: number };
+    return Math.max(0, ...frames.filter(([at]) => at <= released).map(([, gap]) => gap));
+  });
+  const within = Math.min(ANSWERED_AT_MOST, Math.max(ANSWERED, 3 * slowest));
+  await page.evaluate((line) => (window as unknown as { __timeline: string[] }).__timeline.push(line), `${Math.round(slowest)} ms: the slowest frame before the script was let go; answered within ${within} ms`);
+  return within;
 }
 
 /** Runs `check`, and on a failure adds the page's timeline (`recordTimeline`) to its message. */
@@ -95,7 +112,7 @@ for (const path of ["./", "docs/tooltip/", "ax/"]) {
     await page.goto(path, { waitUntil: "commit" });
     const button = page.getByRole("banner").getByRole("button", { name: "Menu", exact: true });
     await button.click();
-    release();
+    await releaseNoted(page, release);
     await hydrated(button);
     await page.evaluate(() => (window as unknown as { __timeline: string[] }).__timeline.push(`${Math.round(performance.now())}: the button has hydrated`));
     const within = await answerWithin(page);
@@ -162,7 +179,7 @@ test("a tap on the stage before the page's script has run is answered once the p
   const speed = page.locator(".site-hero-stage").getByRole("radio").first();
   await expect(speed).toHaveAttribute("aria-checked", "false");
   await speed.click();
-  release();
+  await releaseNoted(page, release);
   await page.waitForFunction(() => Object.keys(document.getElementById("root")!).some((key) => key.startsWith("__reactContainer$")));
   const within = await answerWithin(page);
   await explained(page, () => expect(speed).toHaveAttribute("aria-checked", "true", { timeout: within }));
