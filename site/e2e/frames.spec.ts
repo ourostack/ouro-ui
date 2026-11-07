@@ -31,3 +31,30 @@ test("a page that keeps stalling is not called settled until its frames come qui
   await quietFrames(page, 10, 50);
   expect(Date.now() - start).toBeGreaterThan(300);
 });
+
+test("a page that never settles is rejected at the cap, naming its frames and longest gap", async ({ page }) => {
+  await page.setContent(`<div id="n"></div>`);
+  await page.evaluate(() => {
+    const stall = () => {
+      const start = performance.now();
+      while (performance.now() - start < 80);
+      setTimeout(stall, 0);
+    };
+    stall();
+  });
+  await expect(quietFrames(page, 10, 50, 5)).rejects.toThrow(/never settled: 5 frames, longest gap \d+ ms/);
+});
+
+test("a panel that never appears, or never stops moving, is rejected at the cap with the heights seen", async ({ page }) => {
+  await page.setContent(`<div id="p" style="height:0"></div><div id="m" style="height:10px"></div>`);
+  await expect(heightsUntilStill(page.locator("#p"), 8, 5)).rejects.toThrow(/5 frames, heights seen \[\]/);
+  await page.evaluate(() => {
+    const move = () => {
+      const m = document.getElementById("m")!;
+      m.style.height = `${10 + (parseInt(m.style.height) % 7) + 1}px`;
+      requestAnimationFrame(move);
+    };
+    move();
+  });
+  await expect(heightsUntilStill(page.locator("#m"), 8, 6)).rejects.toThrow(/6 frames, heights seen \[\d+/);
+});

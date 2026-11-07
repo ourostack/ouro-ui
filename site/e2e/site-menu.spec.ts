@@ -380,7 +380,7 @@ test("on a phone the menu closes on a choice, and Back returns to the page with 
 // job's (site-menu.latency.spec.ts): there no other worker shares the CPU.
 const FRAME_GAP_BUDGET = 100;
 for (const path of ["./", "docs/button/"]) {
-  test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press`, async ({ page }) => {
+  test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press`, async ({ page }, testInfo) => {
     await open(page, path);
     if (path === "./") {
       // The frames after the stage has judged the screen, and once its scene shows the speed the control chose: on a screen
@@ -418,11 +418,15 @@ for (const path of ["./", "docs/button/"]) {
     // A stall of the page's own comes back in every read; one that a neighbouring worker's burst put in a single read does not.
     // So a read over the budget is taken again, and the page is held to the calmer of the two, under the same budget.
     let first = await read();
+    const firstGap = first.longest;
+    let retaken: number | undefined;
     if (first.longest >= FRAME_GAP_BUDGET) {
       const again = await read();
+      retaken = again.longest;
       if (again.longest < first.longest) first = again;
     }
     const gap = first.longest;
+    testInfo.annotations.push({ type: "frame gaps", description: `first read ${Math.round(firstGap)} ms, retaken ${retaken === undefined ? "not needed" : `${Math.round(retaken)} ms`}` });
     // Over budget: say whether the page's running animations are what holds the frames, by pausing them and reading again.
     let paused = "";
     if (gap >= FRAME_GAP_BUDGET) {
