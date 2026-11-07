@@ -86,7 +86,7 @@ function MessageMenuItems({ M, reactions, entries, label }: { M: MenuModule; rea
           data-ouro-message-menu-reactions=""
           onKeyDown={keyDown}
           // Each reaction's shortcut sits under its emoji, small, so the row keeps its width; the emoji share one line.
-          className="flex items-center gap-0.5 pb-1 [&>[role=menuitem]]:w-auto [&>[role=menuitem]]:flex-1 [&>[role=menuitem]]:flex-col [&>[role=menuitem]]:justify-start [&>[role=menuitem]]:gap-0.5 [&>[role=menuitem]]:px-1.5 [&>[role=menuitem]>kbd]:ms-0 [&>[role=menuitem]>kbd]:text-[0.625rem] [&>[role=menuitem]>kbd]:text-foreground"
+          className="flex items-center gap-0.5 pb-1 [&>[role=menuitem]]:flex-1 [&>[role=menuitem]]:flex-col [&>[role=menuitem]]:gap-0.5 [&>[role=menuitem]]:px-1.5 [&>[role=menuitem]>kbd]:ms-0 [&>[role=menuitem]>kbd]:text-[0.625rem] [&>[role=menuitem]>kbd]:text-foreground"
         >
           {shown.map((reaction) => (
             <M.MenuItem key={reaction.key} onClick={reaction.onClick} disabled={reaction.disabled} shortcut={reaction.shortcut}>
