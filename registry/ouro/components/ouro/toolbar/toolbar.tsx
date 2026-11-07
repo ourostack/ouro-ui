@@ -510,7 +510,7 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
       const measured = widths.current;
       if (measured === null) return;
       const changed = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].some(
-        (element) => Math.abs(element.getBoundingClientRect().width - measured[Number(element.getAttribute("data-ouro-toolbar-entry"))]) > 0.5,
+        (element) => !(Math.abs(element.getBoundingClientRect().width - measured[Number(element.getAttribute("data-ouro-toolbar-entry"))]!) <= 0.5),
       );
       if (changed) setEpoch((count) => count + 1);
     });
