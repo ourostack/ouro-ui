@@ -210,7 +210,12 @@ describe("EmojiPicker content", () => {
     await open({ categories: [{ label: "Smileys", emoji: smileys }, { label: "Nothing", emoji: [] }] });
     expect(panel()!.querySelector('[role="toolbar"]')).toBeNull();
     await userEvent.fill(search(), "grin");
+    await expect.poll(() => cells().map((cell) => cell.textContent)).toContain("😀");
+    expect(panel()!.querySelector('[role="toolbar"]')).toBeNull();
     expect(panel()!.querySelector('[aria-hidden="true"][inert]')).toBeNull();
+    const scroller = cells()[0]!.closest(".overflow-y-auto")!;
+    expect(scroller.parentElement!.className).toContain("grid-rows-[18rem]");
+    expect(getComputedStyle(scroller).position).not.toBe("absolute");
   });
 
   it("names each category's button, shows its icon or else its first emoji, and leaves out empty categories", async () => {
