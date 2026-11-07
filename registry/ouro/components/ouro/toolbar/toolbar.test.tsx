@@ -365,6 +365,35 @@ describe("Toolbar overflow", () => {
     expect(names(buttons)).not.toEqual(before);
   });
 
+  it("measures again for each thing that decides an entry's width: its type, label, label shown, icon, and a group's label and controls", async () => {
+    const base = (): ToolbarEntry[] => [
+      { type: "toggle", label: "Bold", icon: Icon, hideLabel: true },
+      { label: "Link", icon: Icon, hideLabel: true },
+      { type: "separator" },
+      { label: "Quote" },
+      { type: "group", label: "Lists", items: [{ label: "Bulleted", icon: Icon, hideLabel: true }, { label: "Numbered" }] },
+    ];
+    const edits: Record<string, (items: ToolbarEntry[]) => ToolbarEntry[]> = {
+      "a type": (items) => [{ label: "Bold", icon: Icon, hideLabel: true }, ...items.slice(1)],
+      "a label": (items) => [items[0]!, { label: "Hyperlink", icon: Icon, hideLabel: true }, ...items.slice(2)],
+      "a label shown": (items) => [items[0]!, { label: "Link", icon: Icon }, ...items.slice(2)],
+      "an icon": (items) => [items[0]!, { label: "Link", hideLabel: true }, ...items.slice(2)],
+      "a separator for a control": (items) => [items[0]!, items[1]!, { label: "Divide" }, ...items.slice(3)],
+      "a control for a separator": (items) => [...items.slice(0, 3), { type: "separator" }, items[4]!],
+      "a group's label": (items) => [...items.slice(0, 4), { type: "group", label: "Items", items: (items[4] as unknown as { items: Extract<ToolbarEntry, { type: "group" }>["items"] }).items }],
+      "a group's control": (items) => [...items.slice(0, 4), { type: "group", label: "Lists", items: [{ label: "Bulleted", icon: Icon, hideLabel: true }, { label: "Ordered" }] }],
+      "a group's control's icon": (items) => [...items.slice(0, 4), { type: "group", label: "Lists", items: [{ label: "Bulleted", hideLabel: true }, { label: "Numbered" }] }],
+    };
+    for (const [name, edit] of Object.entries(edits)) {
+      const { rerender } = await render(<Toolbar label="Formatting" size="sm" items={base()} />, 400);
+      await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      const reads = watchLayoutReads();
+      await rerender(<Toolbar label="Formatting" size="sm" items={edit(base())} />);
+      reads.stop();
+      expect(reads.names().length, name).toBeGreaterThan(0);
+    }
+  });
+
   const fontFace = (name: string, adjust: string) =>
     new FontFace(name, 'local("DejaVu Sans"), local("Helvetica"), local("Arial"), local("Liberation Sans")', { sizeAdjust: adjust } as FontFaceDescriptors);
 
@@ -422,6 +451,23 @@ describe("Toolbar overflow", () => {
     document.documentElement.style.fontSize = "48px";
     try {
       await expect.poll(() => view.more).not.toBeNull();
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
+  it("measures its entries again when the text shrinks without the row resizing, and shows the entries that fit again", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    document.documentElement.style.fontSize = "48px";
+    try {
+      const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+      await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      expect(view.more).not.toBeNull();
+      const shown = names(view.buttons.filter((button) => button !== view.more)).length;
+      document.documentElement.style.fontSize = "";
+      await expect.poll(() => view.more).toBeNull();
+      expect(view.buttons).toHaveLength(4);
+      expect(shown).toBeLessThan(4);
     } finally {
       document.documentElement.style.fontSize = "";
     }
