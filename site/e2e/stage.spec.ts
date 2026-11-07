@@ -960,33 +960,37 @@ test("DIAG switch parts", async ({ page }) => {
     lines.push(`${name}: max ${Math.max(...gaps)} | ${gaps.slice(0, 8).join(" ")}`);
   };
   const press = (name: string) => `[...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='${name}' || e.getAttribute('aria-label')==='${name}')?.click()`;
-  const hide = (selector: string) => `document.querySelectorAll('${selector}').forEach(e => e.style.display='none')`;
-  const show = (selector: string) => `document.querySelectorAll('${selector}').forEach(e => e.style.display='')`;
-  const pair = async (label: string) => {
-    await step(`${label} Stop`, press("Stop"));
-    await step(`${label} Half`, press("Half"));
-  };
+  const text = "const w = document.querySelector('.stage-crew-words'); w.lastChild.textContent = ' Slow screen, so the fish rest. Press Half to sail on! ' + (performance.now() % 7 > 3.5 ? 'a' : 'b')";
+  const css = (rule: string) => `let s = document.getElementById('diag'); if (!s) { s = document.createElement('style'); s.id = 'diag'; document.head.append(s); } s.textContent = ${JSON.stringify(rule)}`;
+  lines.push(
+    await page.evaluate(() => {
+      const out: string[] = [];
+      for (let e: Element | null = document.querySelector(".stage-crew"); e; e = e.parentElement) {
+        const c = getComputedStyle(e);
+        out.push(`${e.tagName.toLowerCase()}.${[...e.classList].slice(0, 2).join(".")} ${c.display} ${c.contain} ${c.containerType} ${c.position} ${c.overflow} h${Math.round(e.getBoundingClientRect().height)}`);
+      }
+      return `chain: ${out.join(" < ")} | elements ${document.querySelectorAll("*").length} | composited? ${document.querySelectorAll(".stage *").length}`;
+    }),
+  );
   await step("idle", "");
-  await pair("plain");
-  await pair("plain again");
-  for (const [label, selector] of [
-    ["no crew line", ".stage-crew"],
-    ["no log fold", ".stage-log-fold"],
-    ["no thumb", "[data-ouro-segment-thumb]"],
-    ["no porthole", ".stage-porthole"],
-    ["no crew words", ".stage-crew-words"],
+  await step("text a", text);
+  await step("text b", text);
+  for (const [label, rule] of [
+    ["crew contain layout paint", ".stage-crew { contain: layout paint; }"],
+    ["crew contain strict 80px", ".stage-crew { contain: strict; height: 80px; }"],
+    ["stage contain layout paint", ".stage { contain: layout paint; }"],
+    ["stage contain strict", ".stage { contain: strict; height: 900px; }"],
+    ["main siblings cv auto", "main > * > *:not(:has(.stage)), main > *:not(:has(.stage)) { content-visibility: auto; contain-intrinsic-size: auto 600px; }"],
+    ["header hidden", "header, [role=banner] { display: none !important; }"],
+    ["all filters off", "* { filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; mask: none !important; -webkit-mask: none !important; box-shadow: none !important; }"],
   ] as const) {
-    await step(`hide ${label}`, hide(selector));
-    await pair(label);
-    await step(`show ${label}`, show(selector));
+    await step(`${label} on`, css(rule));
+    await step(`${label} text a`, text);
+    await step(`${label} text b`, text);
+    await step(`${label} press Stop`, press("Stop"));
+    await step(`${label} press Half`, press("Half"));
+    await step(`${label} off`, css(""));
   }
-  await step("crew text only", "const w = document.querySelector('.stage-crew-words'); w.lastChild.textContent = ' Slow screen, so the fish rest. Press Half to sail on! ' + Date.now()");
-  await step("crew pretty off", "document.querySelector('.stage-crew').style.textWrap='wrap'");
-  await pair("pretty off");
-  await step("scene label only", "document.querySelector('.stage-scene').setAttribute('aria-label', 'x ' + Date.now())");
-  await step("log title only", "const t = document.querySelector('.stage-log-fold button, .stage-log-fold summary'); if (t) t.lastChild.textContent += ' '");
-  await step("lights", "document.querySelector('[data-stage-control=lights] [role=switch], [data-stage-control=lights] button')?.click()");
-  await step("lights back", "document.querySelector('[data-stage-control=lights] [role=switch], [data-stage-control=lights] button')?.click()");
   await step("idle end", "");
   console.log(`SWITCHDIAG ${test.info().project.name}\n${lines.join("\n")}`);
 });
