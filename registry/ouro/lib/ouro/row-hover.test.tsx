@@ -729,6 +729,70 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("takes the pointerover listener out with the layer whose effect added it: the pointer coming onto a row after a layer swap never shows it from the old one", async () => {
+    // Only the old layer ever gets the row, so the new effect's own pointerover finds no row to show.
+    const oldLayer = createRowLayer<string>();
+    function Harness({ layer, menu }: { layer: RowLayer<string>; menu?: (row: HTMLElement, at: RowMenuAt) => boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer, { menu });
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        oldLayer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={oldLayer} />);
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    const target = row("r0");
+    await act(async () => {
+      pointer(target, "pointermove", "mouse", { x: -500, y: -500 });
+      pointer(target, "pointerover", "mouse", { x: 10, y: 10 });
+    });
+    expect(layerIn("r0")).toBeNull();
+    expect(probe.hover.row).toBeNull();
+  });
+
+  it("takes the contextmenu listener out with the layer whose effect added it: a right-click after a layer swap never opens the old one's menu", async () => {
+    const oldLayer = createRowLayer<string>();
+    function Harness({ layer, menu }: { layer: RowLayer<string>; menu?: (row: HTMLElement, at: RowMenuAt) => boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer, { menu });
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        oldLayer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const opened: HTMLElement[] = [];
+    const menu = (at: HTMLElement) => (opened.push(at), true);
+    const { rerender } = await render(<Harness layer={oldLayer} menu={menu} />);
+    await rerender(<Harness layer={createRowLayer<string>()} menu={menu} />);
+    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 12, clientY: 12 });
+    await act(async () => void row("r0").querySelector("[data-text]")!.dispatchEvent(event));
+    expect(opened).toEqual([]);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it("takes the focusin listener out with the layer whose effect added it: keyboard focus coming into a row after a layer swap never shows it from the old one", async () => {
     // Only the old layer ever gets the row, so the new effect's own focusin finds no row to show;
     // only a stale listener from the torn-down effect could still show it.
