@@ -28,6 +28,25 @@ export async function renderPage(path: string): Promise<HTMLElement> {
   return host;
 }
 
+/** The chunks each voyage page's islands load as they near the screen (voyage/chapters/island.tsx). */
+const islandChunks: Record<string, () => Promise<unknown>[]> = {
+  "/": () => [import("../src/voyage/home-reference"), import("../src/voyage/repaint")],
+  "/ax/": () => [import("../src/ax/ax-page"), import("../src/ax/exhibit")],
+  "/nautilus/": () => [import("../src/voyage/chapters/chapter-one"), import("../src/voyage/chapters/chapter-two"), import("../src/voyage/chapters/chapter-three")],
+};
+
+/**
+ * Loads a page's code, its page module and its islands' chunks, as a test file loads its imports.
+ * Await it at the top of a file whose tests render the page: the first render then pays for
+ * rendering only. Loaded inside the first test that rendered the page, it took most of that test's
+ * 6–13 s in CI, too little headroom under the 15 s limit at busy hours.
+ *
+ * @claim "most of that test's 6–13 s in CI" https://github.com/ourostack/ouro-ui/issues/545 verify:fileLine(site/test/render.tsx, /export async function loadPageCode/)
+ */
+export async function loadPageCode(path: string): Promise<void> {
+  await Promise.all([loadPage(path), ...(islandChunks[path]?.() ?? [])]);
+}
+
 /** A client-rendered fixture; caught-error callbacks belong only to explicit negative cases. */
 export async function renderFixture(node: ReactNode, options?: RootOptions): Promise<HTMLElement> {
   await cleanupPage();
@@ -67,6 +86,16 @@ export function setScheme(scheme: "light" | "dark"): void {
  * scan's time limit on that page before the scan began.
  */
 export async function settle(): Promise<void> {
+  // Where the phone menu button shows, the Navbar builds its sheet once the page is idle: wait for it, so a scan that
+  // follows does not see the page change under it (axe cannot place the headings of a part added mid-scan).
+  const menuButton = document.querySelector<HTMLElement>("[data-ouro-navbar-menu]");
+  if (menuButton && menuButton.getClientRects().length > 0) {
+    const start = performance.now();
+    while (!document.querySelector('[data-ouro="sheet"]')) {
+      if (performance.now() - start > 5000) throw new Error("the Navbar's sheet was not built");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
   for (let round = 0; round < 50; round++) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const running = document

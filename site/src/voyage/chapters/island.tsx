@@ -108,7 +108,9 @@ export function island(id: string, load: () => Promise<{ default: ComponentType 
     useEffect(() => {
       const element = document.getElementById(id);
       if (!element || hydrated.current) return;
-      // On the window, ahead of React's own listener, which stops a press on HTML it has not hydrated.
+      // On the window, ahead of React's own listener, which stops a press on HTML it has not hydrated, and ahead of the
+      // head script's on the document (src/early-input.ts), which keeps a tap anywhere else: a press in an island is
+      // held here, under this rule that a later press elsewhere drops it, and the head script never sees it.
       const hold = (event: MouseEvent) => {
         if (hydrated.current || !(event.target instanceof Element) || !element.contains(event.target)) return;
         const target = event.target.closest<HTMLElement>("*:not(svg *)");
@@ -175,5 +177,7 @@ export const RepaintIsland = island("themes", () => import("../repaint").then((m
 /** The Ouro UI for Apple pages (apple/): each page's body is an island, so its clips, twins and X-ray load only on it. */
 export const AppleHomeIsland = island("apple-home", () => import("../../apple/home"));
 export const AppleHxIsland = island("apple-hx", () => import("../../apple/hx"));
+export const AppleFeelIsland = island("apple-feel", () => import("../../apple/feel"));
 export const AppleAxIsland = island("apple-ax", () => import("../../apple/ax"));
+export const AppleReinsIsland = island("apple-reins", () => import("../../apple/reins"));
 export const AppleStartIsland = island("apple-start", () => import("../../apple/start"));

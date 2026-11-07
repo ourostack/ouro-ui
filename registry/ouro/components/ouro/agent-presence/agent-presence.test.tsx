@@ -4,7 +4,8 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { runCli } from "@/registry/ouro/ax/cli";
-import { defineCli, defineCommand } from "@/registry/ouro/ax/command";
+// With its extension: Command's command.tsx shares the name, and shadcn, resolving an import by its file name, takes a .tsx over a .ts.
+import { defineCli, defineCommand } from "@/registry/ouro/ax/command.ts";
 import { AX_ACTION_ATTRIBUTE, bindAx, expectAxRendered, isReservedPersonOnly } from "@/registry/ouro/ax/component";
 import { outcome } from "@/registry/ouro/ax/outcome";
 import { AgentPresence, type AgentPresenceProps, type ListeningAgent } from "@/registry/ouro/components/ouro/agent-presence/agent-presence";

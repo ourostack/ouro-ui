@@ -485,7 +485,7 @@ describe("toast()", () => {
     fakeClock();
     expect((await show("Plain")).getAttribute("data-tone")).toBe("secondary");
     const options = { tone: "error" } as unknown as ToastOptions;
-    expect((await show("Failed", options)).getAttribute("data-tone")).toBe("secondary");
+    expect((await show("Upload paused", options)).getAttribute("data-tone")).toBe("secondary");
     const odd = { tone: "loud" } as unknown as ToastOptions;
     await show("Odd", odd);
     expect(warnings()).toEqual([
@@ -514,7 +514,7 @@ describe("toast()", () => {
     let saved = "";
     await act(async () => {
       saved = shortcuts.success("Saved");
-      shortcuts.error("Failed");
+      shortcuts.error("Not saved: you are offline");
       shortcuts.warning("Careful");
       shortcuts.info("Heads up", { description: "More" });
     });
@@ -526,7 +526,7 @@ describe("toast()", () => {
       '[ouro-ui] toast: timeout is not an option. Fix: toast("…", { duration: 8000 }).',
       '[ouro-ui] toast: title is not an option; the message is the first argument. Fix: toast("Saved").',
       '[ouro-ui] toast: toast.success is not a function. Fix: toast("Saved", { tone: "success" }).',
-      '[ouro-ui] toast: toast.error is not a function. Fix: toast("Failed", { tone: "destructive" }).',
+      '[ouro-ui] toast: toast.error is not a function. Fix: toast("Not saved: you are offline", { tone: "destructive" }).',
       '[ouro-ui] toast: toast.warning is not a function. Fix: toast("Careful", { tone: "warning" }).',
       '[ouro-ui] toast: toast.info is not a function. Fix: toast("Heads up", { tone: "primary" }).',
     ]);
@@ -776,16 +776,16 @@ describe("toast()", () => {
     await act(async () => {
       for (const n of [1, 2, 3]) ids.push(toast(`Undo ${n}`, { action: { label: "Undo", onClick: () => {} } }));
       toast("Synced", { tone: "primary", duration: 0 });
-      toast("Couldn't save", { tone: "destructive", duration: 0 });
-      toast("Also failed", { tone: "destructive", duration: 0 });
+      toast("Not saved: you're offline", { tone: "destructive", duration: 0 });
+      toast("Upload stopped: the disk is full", { tone: "destructive", duration: 0 });
     });
     await expect.poll(() => titles()).toEqual(["Undo 3", "Undo 2", "Undo 1"]);
     await act(async () => toast.dismiss(ids[0]));
-    await expect.poll(() => titles()).toEqual(["Couldn't save", "Undo 3", "Undo 2"]);
+    await expect.poll(() => titles()).toEqual(["Not saved: you're offline", "Undo 3", "Undo 2"]);
     await act(async () => toast.dismiss(ids[1]));
-    await expect.poll(() => titles()).toEqual(["Also failed", "Couldn't save", "Undo 3"]);
+    await expect.poll(() => titles()).toEqual(["Upload stopped: the disk is full", "Not saved: you're offline", "Undo 3"]);
     await act(async () => toast.dismiss(ids[2]));
-    await expect.poll(() => titles()).toEqual(["Synced", "Also failed", "Couldn't save"]);
+    await expect.poll(() => titles()).toEqual(["Synced", "Upload stopped: the disk is full", "Not saved: you're offline"]);
   });
 
   /** Shows three kept toasts, runs `queue` while they show, then frees all three slots and returns what showed next. */
@@ -873,7 +873,7 @@ describe("toast()", () => {
   it("keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed", async () => {
     await render(<Toaster />);
     await show("Recipe saved", { tone: "success", duration: Infinity });
-    await show("Couldn't sync", { tone: "destructive", action: { label: "Retry", onClick: () => {} } });
+    await show("Not synced: the server didn't answer", { tone: "destructive", action: { label: "Retry", onClick: () => {} } });
     // At rest: nothing has focus in the toasts and no pointer is over them, so the stack is collapsed.
     expect(viewport()!.hasAttribute("data-expanded")).toBe(false);
     // A touch screen reader (VoiceOver on iPhone) moves only through what is exposed, and a
@@ -884,7 +884,7 @@ describe("toast()", () => {
     expect(buttons.map((button) => button.textContent || button.getAttribute("aria-label"))).toEqual(["Retry", "Dismiss", "Dismiss"]);
     for (const button of buttons) expect(hidden(button), button.outerHTML).toBe(false);
     // The destructive toast is still told apart: an alertdialog, named by its message.
-    expect(toastNamed("Couldn't sync")!.getAttribute("role")).toBe("alertdialog");
+    expect(toastNamed("Not synced: the server didn't answer")!.getAttribute("role")).toBe("alertdialog");
     expect(toastNamed("Recipe saved")!.getAttribute("role")).toBe("dialog");
     expect(toasts().map((item) => item.getAttribute("data-ouro-part"))).toEqual(["alert", "toast"]);
   });
@@ -1077,7 +1077,7 @@ describe("toast()", () => {
       toast("Photo added", { tone: "primary" });
     });
     await act(async () => {
-      toast("Couldn't sync", { tone: "destructive", description: "Check your connection.", action: { label: "Retry", onClick: () => {} } });
+      toast("Not synced: the server didn't answer", { tone: "destructive", description: "Check your connection.", action: { label: "Retry", onClick: () => {} } });
     });
     await until(() => toasts().length, 3);
     // Let height measurement and the enter transition run, which must not repeat the text.
@@ -1087,13 +1087,13 @@ describe("toast()", () => {
     expect(announced.count("Recipe saved")).toBe(1);
     expect(announced.count("In your cookbook.")).toBe(1);
     expect(announced.count("Photo added")).toBe(1);
-    expect(announced.count("Couldn't sync")).toBe(1);
+    expect(announced.count("Not synced: the server didn't answer")).toBe(1);
     expect(announced.count("Check your connection.")).toBe(1);
     // The toasts' buttons are reachable, but nobody hears them read out as a toast arrives.
     expect(announced.count("Dismiss")).toBe(0);
     expect(announced.count("Retry")).toBe(0);
     const politely = announced.matching("Recipe saved")[0]!.region;
-    const assertively = announced.matching("Couldn't sync")[0]!.region;
+    const assertively = announced.matching("Not synced: the server didn't answer")[0]!.region;
     expect(politely.getAttribute("aria-live")).toBe("polite");
     expect(announced.matching("Photo added")[0]!.region).toBe(politely);
     expect(assertively.getAttribute("aria-live")).toBe("assertive");
@@ -1317,10 +1317,32 @@ describe("swiping", () => {
       target.dispatchEvent(event);
     };
   }
+  /**
+   * A mouse on the toast's message, as `pointerOn`, along both axes: `send(type, dx, dy, at)`. Its moves reach the page at
+   * once and carry their own times, so a test of many drags runs in the same time on a busy machine; real drags
+   * (`commands.drag`) wait on the browser for every move, and on a loaded runner one 200ms drag has taken over 8 s.
+   */
+  function mouseOn(item: HTMLElement) {
+    const rect = item.getBoundingClientRect();
+    const y = rect.top + rect.height / 2;
+    const send = pointerOn(item);
+    // The button is down from the press to the release, as a real drag's moves say.
+    return (type: string, dx: number, dy: number, at: number) => send(type, dx, at, { pointerType: "mouse", clientY: y + dy, buttons: type === "pointerup" ? 0 : 1 });
+  }
+  /** A mouse drag of `steps` moves over `durationMs`, let go where it stops at once, unless `hold`: then the button stays down. */
+  function mouseDrag(item: HTMLElement, dx: number, dy: number, { steps, durationMs, hold = false }: { steps: number; durationMs: number; hold?: boolean }) {
+    const send = mouseOn(item);
+    send("pointerdown", 0, 0, 0);
+    for (let step = 1; step <= steps; step++) send("pointermove", (dx * step) / steps, (dy * step) / steps, (durationMs * step) / steps);
+    // A mouse held still before it is let go has no velocity: the distance decides.
+    const release = (at = durationMs) => send("pointerup", dx, dy, at);
+    if (!hold) release();
+    return release;
+  }
   const offsetOf = (item: HTMLElement) => parseFloat(getComputedStyle(item).translate.replace("none", "0"));
   const atRest = (item: HTMLElement) => expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
 
-  chromiumOnly("dismisses with a swipe down, right or left", async () => {
+  it("dismisses with a swipe down, right or left", async () => {
     await render(<Toaster />);
     for (const [message, dx, dy] of [
       ["Down", 0, 120],
@@ -1328,7 +1350,7 @@ describe("swiping", () => {
       ["Left", -200, 0],
     ] as const) {
       const item = await show(message, { duration: 0 });
-      await swipe(item, dx, dy);
+      await act(async () => void mouseDrag(item, dx, dy, { steps: 12, durationMs: 200 }));
       await gone(message);
     }
   });
@@ -1360,16 +1382,15 @@ describe("swiping", () => {
     expect(showing("Follows")).toBe(true);
   });
 
-  chromiumOnly("holds a mouse drag back toward the screen's edge it cannot leave by, and follows it 1:1 the way it can, at either edge", async () => {
+  it("holds a mouse drag back toward the screen's edge it cannot leave by, and follows it 1:1 the way it can, at either edge", async () => {
     const dragY = async (item: HTMLElement, dy: number, dx = 0) => {
-      const rect = item.getBoundingClientRect();
-      const [x, y] = [rect.left + 60, rect.top + rect.height / 2];
+      let release: (at?: number) => void = () => {};
       try {
-        await commands.drag({ from: [x, y], to: [x + dx, y + dy], steps: 8, durationMs: 200, hold: true });
+        await act(async () => void (release = mouseDrag(item, dx, dy, { steps: 8, durationMs: 200, hold: true })));
         const [shiftX = "0", shiftY = "0"] = getComputedStyle(item).translate.replace("none", "0").split(" ");
         return dx ? parseFloat(shiftX) : parseFloat(shiftY);
       } finally {
-        await commands.pointerPress({ action: "up" });
+        await act(async () => release(400));
         await expect.poll(() => !item.hasAttribute("data-ouro-settling") && item.style.translate === "").toBe(true);
       }
     };
@@ -1382,9 +1403,8 @@ describe("swiping", () => {
     // Sideways follows 1:1 both ways: the band is only along the edge's axis.
     expect(await dragY(item, 0, -30)).toBe(-30);
     // Let go far up, where even the held-back offset is past the 40px a slow release needs: it comes back rather than leaving.
-    const below = item.getBoundingClientRect();
     expect(Math.abs(rubberband(-300, height))).toBeGreaterThan(40);
-    await commands.drag({ from: [below.left + 60, below.top + below.height / 2], to: [below.left + 60, below.top + below.height / 2 - 300], steps: 12, durationMs: 400 });
+    await act(async () => void mouseDrag(item, 0, -300, { steps: 12, durationMs: 400 }));
     await atRest(item);
     expect(item.hasAttribute("data-ouro-swiped")).toBe(false);
     expect(showing("Bottom")).toBe(true);
@@ -1397,8 +1417,7 @@ describe("swiping", () => {
     expect(await dragY(item, 60)).toBeCloseTo(rubberband(60, height), 0);
     expect(await dragY(item, -30)).toBe(-30);
     // Let go 60px up, past the 40px a slow release needs: it leaves.
-    const rect = item.getBoundingClientRect();
-    await commands.drag({ from: [rect.left + 60, rect.top + rect.height / 2], to: [rect.left + 60, rect.top + rect.height / 2 - 60], steps: 8, durationMs: 300 });
+    await act(async () => void mouseDrag(item, 0, -60, { steps: 8, durationMs: 300 }));
     await gone("Top");
   });
 

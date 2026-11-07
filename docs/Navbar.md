@@ -25,7 +25,7 @@ import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 
 ## Usage
 
-The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up.
+The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up. A tap on the menu button before then does nothing unless your app keeps it: this site's head script keeps a tap on any control React has not yet hydrated, shows the control pressed, and presses it again once it has (`site/src/early-input.ts` in the repository). Once the menu button shows, the sheet is built while the page is idle and kept, hidden, between opens, so a press only shows it.
 
 Use `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one page. `StackedLayout` puts a Navbar above the page.
 
@@ -46,6 +46,7 @@ Type: `NavbarProps`.
 | `currentPath` | `string` |  | The path of the page being shown, from your router (`useLocation().pathname`, or `usePathname()` in Next.js). The link to that path, or else the longest link above it (`/recipes` for `/recipes/12`), gets `aria-current="page"` and the current look. |
 | `items` (required) | `readonly NavbarItem[]` |  | The links, in order, and groups of links (`{ label, links }`), which open a panel in the bar. When they do not fit, as on a phone, they move into a sheet. |
 | `label` (required) | `string` |  | Names the navigation for screen readers ("Main"). It is not shown. |
+| `menu` | `ReactNode` |  | What the sheet behind the menu button holds in place of the `items` links, when a phone needs more than the bar, such as a section's own pages under its name, or a filter over a long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`; mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the sheet. Once the page has been idle it mounts, hidden, ahead of the first press (a press before then mounts it as it opens), and it mounts afresh the same way after each close, so each open starts with the state it first had. |
 | `menuLabel` | `string` | `"Menu"` | The name of the button that opens the links below 640px, and the title of the sheet it opens. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 

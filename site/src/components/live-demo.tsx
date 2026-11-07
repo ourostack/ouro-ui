@@ -2,11 +2,11 @@ import { Component, Suspense, useEffect, useLayoutEffect, useRef, useSyncExterna
 import { demos } from "../docs/demos";
 import { href } from "../routes";
 
-class DemoBoundary extends Component<{ name: string; title: string; children: ReactNode }, { failed: boolean }> {
-  override state = { failed: false };
+class DemoBoundary extends Component<{ name: string; title: string; children: ReactNode }, { failed: boolean; reason: string }> {
+  override state = { failed: false, reason: "" };
 
-  static getDerivedStateFromError(): { failed: boolean } {
-    return { failed: true };
+  static getDerivedStateFromError(error: unknown): { failed: boolean; reason: string } {
+    return { failed: true, reason: (error instanceof Error ? error.message : String(error)).replace(/\.$/, "") };
   }
 
   override render(): ReactNode {
@@ -14,7 +14,9 @@ class DemoBoundary extends Component<{ name: string; title: string; children: Re
       const known = Object.hasOwn(demos, this.props.name);
       return (
         <div role="alert">
-          <p>Could not load the {this.props.title} example.</p>
+          <p>
+            The {this.props.title} example stopped with this error: {this.state.reason}. Reload the page to try again, or read the docs.
+          </p>
           <a href={href(known ? `/docs/${this.props.name}/` : "/docs/")} className="text-primary underline underline-offset-4">
             {known ? `Read the ${this.props.title} docs` : "Browse component docs"}
           </a>
@@ -28,7 +30,9 @@ class DemoBoundary extends Component<{ name: string; title: string; children: Re
 const noClientUpdates = () => () => undefined;
 
 function SelectedDemo({ name, title }: { name: string; title: string }): JSX.Element {
-  // The server snapshot also keeps the first hydration render disabled.
+  // Hydrated a render after the example's own chunk arrives. Until then a tap or text there is kept and answered then
+  // (early-input.ts), so the example is never shown disabled. Other keys in that moment (arrows on a slider or tabs,
+  // Escape) do nothing: shown greyed out, the whole example would read as broken for the many who only tap.
   const hydrated = useSyncExternalStore(noClientUpdates, () => true, () => false);
   const root = useRef<HTMLDivElement>(null);
   // Live: the controls are enabled and, since a parent's effects run after its children's, every
@@ -40,7 +44,7 @@ function SelectedDemo({ name, title }: { name: string; title: string }): JSX.Ele
   if (!Demo) throw new Error(`Unknown live example "${name}"`);
   return (
     <div ref={root} data-site-demo={name} className="flex w-full justify-center">
-      <fieldset disabled={!hydrated} aria-label={`${title} example`} className="m-0 flex w-full min-w-0 [min-inline-size:0] justify-center border-0 p-0">
+      <fieldset aria-label={`${title} example`} className="m-0 flex w-full min-w-0 [min-inline-size:0] justify-center border-0 p-0">
         <Demo />
       </fieldset>
     </div>

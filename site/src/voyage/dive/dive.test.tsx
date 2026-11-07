@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, renderPage, setScheme } from "../../../test/render";
+import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { PRESET_NAMES } from "../../themes/prepaint";
 import { DIVE_DEPTH, length, moment, MOTION, planDive, STILL } from "./plan";
+
+await loadPageCode("/");
 
 const root = document.documentElement;
 const scene = () => document.querySelector<HTMLElement>("[data-site-dive]");

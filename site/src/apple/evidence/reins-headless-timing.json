@@ -1,0 +1,15 @@
+{
+  "journey": "Kitchen → recipe → cook → next → previous → close → back",
+  "runs": 50,
+  "medianMs": 18.7,
+  "maxMs": 19.8,
+  "includes": "copy fixtures, build store, bootstrap from cache, 7 journey steps with polling assertions",
+  "source": "spoonjoy-apple spike/w13-reins, swift test --filter SpoonjoyReinsTests, under ReinsNetworkGuard (0 network attempts)",
+  "xcuitest": {
+    "runs": 5,
+    "medianJourneyMs": 16677,
+    "medianLaunchMs": 14288,
+    "source": "reins-xcuitest-timing.txt"
+  },
+  "liveFirstControlCaught": "GET https://spoonjoy.app/api/v1/me/sync?limit=20"
+}

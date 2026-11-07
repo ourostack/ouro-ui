@@ -13,7 +13,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 ```tsx
 toast("Recipe saved", { tone: "success" });
 toast("Recipe deleted", { action: { label: "Undo", onClick: restore } });
-toast("Couldn't save", { tone: "destructive", description: "Check your connection." });
+toast("Not saved: you're offline", { tone: "destructive", description: "Check your connection." });
 ```
 
 ## Usage

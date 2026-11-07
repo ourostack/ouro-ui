@@ -294,10 +294,19 @@
   /* Stopped, off screen, or in water we are not looking at: the fish wait where they are. */
   .stage-scene[data-speed="stop"] .stage-drift,
   .stage[data-offscreen] .stage-drift,
+  /* Under the open site menu too: there the fish only cost the sheet its frames. The menu marks the root itself, as a
+     :has() over the page would restyle it on every change (see eggs.css). */
+  [data-site-menu-open] .stage-drift,
   .stage-scene:not([data-band="sunlit"]) .stage-band-sunlit .stage-drift,
   .stage-scene:not([data-band="twilight"]) .stage-band-twilight .stage-drift,
   .stage-scene:not([data-band="midnight"]) .stage-band-midnight .stage-drift {
     animation-play-state: paused;
+  }
+  /* The fish in view keep their layers when they stop, so Stop repaints none of the sea (#667). */
+  .stage-scene[data-band="sunlit"] .stage-band-sunlit .stage-drift,
+  .stage-scene[data-band="twilight"] .stage-band-twilight .stage-drift,
+  .stage-scene[data-band="midnight"] .stage-band-midnight .stage-drift {
+    will-change: transform;
   }
   .stage-ship-ride,
   .stage-ripples-ride {
@@ -964,6 +973,8 @@
     animation-delay: -4.8s;
   }
   .stage[data-offscreen] .stage-caustics > svg,
+  [data-site-menu-open] .stage-caustics > svg,
+  .stage-scene[data-speed="stop"] .stage-caustics > svg,
   .stage-scene:not([data-band="sunlit"]) .stage-caustics > svg {
     animation-play-state: paused;
   }
@@ -1076,7 +1087,20 @@
   --numeral-glow: none;
   --row-gap: 0.875rem;
   --control-h: 2.25rem;
+  --frame-radius: calc(var(--radius) * 2.2);
+  --frame-shadow: var(--shadow-md);
+  position: relative;
   container-type: inline-size;
+}
+/* The frame's shadow, on a layer of its own: drawn on the frame, its blur was redrawn with every word that changed on the
+   console, 250 ms a time on CI's WebKit phone (ourostack/ouro-ui#667). */
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--frame-radius);
+  box-shadow: var(--frame-shadow);
+  will-change: transform;
 }
 @media (pointer: coarse) {
   .stage {
@@ -1086,10 +1110,9 @@
 .stage-frame {
   position: relative;
   border: 1px solid var(--panel-line);
-  border-radius: calc(var(--radius) * 2.2);
+  border-radius: var(--frame-radius);
   background: var(--panel);
   color: var(--card-foreground);
-  box-shadow: var(--shadow-md);
   /* Clip, not a scroll container, so the porthole can stick on a phone. */
   overflow: clip;
 }
@@ -1113,10 +1136,18 @@
   /* The light the porthole throws around itself: a soft pool of the sea's colour behind the glass. */
   content: "";
   position: absolute;
-  inset: 6% 4% 0;
+  /* Its soft edge is in the gradient, not a blur, so it is not blurred again each frame the fish move over it. */
+  inset: calc(6% - 22px) calc(4% - 22px) -22px;
   border-radius: 999px;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 22%, transparent), transparent);
-  filter: blur(22px);
+  /* --porthole-glow is its strength at the centre; a theme sets only that. The stops match the old blur within 2/255. */
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--primary) calc(var(--porthole-glow, 22%) * 0.7), transparent),
+    color-mix(in oklab, var(--primary) calc(var(--porthole-glow, 22%) * 0.55), transparent) 30%,
+    color-mix(in oklab, var(--primary) calc(var(--porthole-glow, 22%) * 0.3), transparent) 55%,
+    color-mix(in oklab, var(--primary) calc(var(--porthole-glow, 22%) * 0.1), transparent) 78%,
+    transparent
+  );
   z-index: -1;
 }
 .stage-frame > * {
@@ -1125,17 +1156,24 @@
 
 /*
  * The crew's newest line: a face and a sentence on a strip of its own between the porthole and the
- * console, in the page's flow. Two lines are kept for it, so nothing under it moves when it
- * changes, and it never lies over a control.
+ * console, in the page's flow. The strip is as tall as the longest crew line needs at its width
+ * (--crew-lines), set rather than grown, so nothing under it moves when the line changes, and it
+ * never lies over a control. Its size and layout are its own (contain: strict), so a new line lays
+ * out and repaints the strip alone: grown, it laid out the stage around it, and on a screen drawing
+ * without its GPU each new line cost a frame of about a fifth of a second (ourostack/ouro-ui#667).
+ * Every crew line fits it at every width (stage.spec.ts).
  */
 .stage-crew {
+  --crew-lines: 2;
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  box-sizing: border-box;
-  min-height: calc(2lh + 1.5rem);
+  /* The lines; the padding and the top border go round them. */
+  box-sizing: content-box;
+  height: calc(var(--crew-lines) * 1lh);
   margin: 0.75rem 0 0;
   padding: 0.75rem 1.5rem;
+  contain: strict;
   border-top: 1px solid var(--panel-line);
   background: color-mix(in oklab, var(--muted) 40%, var(--panel));
   font-size: 0.9375rem;
@@ -1143,11 +1181,15 @@
   color: var(--foreground);
   text-wrap: pretty;
 }
-/* On a wide stage every crew line fits on one line, so one is kept. */
 @container (min-width: 32rem) {
   .stage-crew {
-    min-height: calc(1lh + 1.25rem);
     padding-block: 0.625rem;
+  }
+}
+/* On the narrowest stage the longest lines take three. */
+@container (max-width: 22rem) {
+  .stage-crew {
+    --crew-lines: 3;
   }
 }
 .stage-crew > :first-child {
@@ -1264,6 +1306,10 @@
   grid-area: speed;
   align-self: center;
   justify-self: end;
+}
+/* The speed's thumb slides on a layer of its own, so its slide repaints none of the console under it (ourostack/ouro-ui#667). */
+.stage-speed [data-ouro-segment-thumb] {
+  will-change: translate;
 }
 
 /* Row two, the ballast manifold: three sight glasses on one pipe that runs to Dive, each tank's name and switch under its glass. */
@@ -1492,6 +1538,8 @@
 .stage-log-fold {
   flex: 1 1 10rem;
   min-width: 0;
+  /* Its own layer, so its count changing repaints none of the console (#667). */
+  will-change: transform;
 }
 .stage-bell {
   margin-inline-start: auto;
@@ -1676,14 +1724,13 @@
 }
 
 @media (max-width: 40rem) {
-  .stage-frame {
-    border-radius: calc(var(--radius) * 1.6);
+  .stage {
+    --frame-radius: calc(var(--radius) * 1.6);
   }
   .stage-porthole {
     padding: 0.375rem 0.5rem 0;
   }
   .stage-crew {
-    min-height: calc(2lh + 0.75rem);
     margin-top: 0.375rem;
     padding: 0.375rem 1rem;
   }
@@ -1754,11 +1801,15 @@
  */
 [data-theme="pearl"] .stage {
   --panel-line: color-mix(in oklab, var(--border) 90%, transparent);
+  --frame-shadow: var(--shadow-sm);
 }
 [data-theme="pearl"] .stage-frame {
-  box-shadow: 0 1px 0 color-mix(in oklab, white 50%, transparent) inset, var(--shadow-sm);
+  box-shadow: 0 1px 0 color-mix(in oklab, white 50%, transparent) inset;
 }
 @media (min-width: 64rem) {
+  [data-theme="pearl"] .stage {
+    --frame-shadow: none;
+  }
   [data-theme="pearl"] .stage-frame {
     border-color: transparent;
     background: none;
@@ -1819,13 +1870,11 @@
   --panel: color-mix(in oklab, var(--card) 85%, black);
   --dial: color-mix(in oklab, var(--primary) 6%, black);
 }
-[data-theme="abyss"] .stage-frame {
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--primary) 14%, transparent),
-    0 24px 80px -24px color-mix(in oklab, var(--primary) 35%, transparent);
+[data-theme="abyss"] .stage {
+  --frame-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 14%, transparent), 0 24px 80px -24px color-mix(in oklab, var(--primary) 35%, transparent);
 }
 [data-theme="abyss"] .stage-porthole::before {
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 40%, transparent), transparent);
+  --porthole-glow: 40%;
 }
 [data-theme="abyss"] .stage-numeral {
   font-size: 1.75rem;

@@ -215,7 +215,7 @@ async function main(argv: string[], { cwd, log, error }: Env): Promise<number> {
   const out = resolve(cwd, args.out);
   const { written, kept, failed, skipped } = await makeImages({ source, out, widths: args.widths, formats: args.formats, base: args.base, quality: args.quality, log });
   for (const line of skipped) log(`Left out ${line}`);
-  for (const line of failed) error(`Could not write ${line}`);
+  for (const line of failed) error(`Not written: ${line}`);
   log(`\n${written} written, ${kept} up to date, ${skipped.length} left out, ${failed.length} failed. Manifest: ${relative(cwd, join(out, "images.json"))}`);
   return failed.length ? 1 : 0;
 }

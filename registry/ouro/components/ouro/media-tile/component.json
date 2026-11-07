@@ -1,0 +1,22 @@
+{
+  "order": 2650,
+  "components": ["media-tile"],
+  "controls": {
+    "media-tile": [
+      {"part": "pin", "role": "button", "portal": false}
+    ]
+  },
+  "motion": {
+    "media-tile": {
+      "states": {
+        "data-highlighted": {
+          "kind": "motion",
+          "parts": {
+            "ring": {"properties": ["opacity"], "reduced": []}
+          },
+          "tests": ["registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile motion > fades the ring in over the fast duration, and turns it on at once with reduced motion"]
+        }
+      }
+    }
+  }
+}

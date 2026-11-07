@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Message } from "@/registry/ouro/components/ouro/message/message";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
+import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
+import { Message, type MessageAction } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
+import { ReactionBar, type Reaction } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
 
 /** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
 async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
@@ -283,6 +286,76 @@ export const LoadingOlder: Story = {
   },
 };
 
+const channelPosts = Array.from({ length: 40 }, (_, index) => launchPosts[index % launchPosts.length]!);
+
+/** Icons for the stories' actions: drawn here, so the story needs no icon library. */
+function ReplyIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 4 4" />
+    </svg>
+  );
+}
+function ReactIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="7" cy="8" r="5.5" />
+      <path d="M5 9.5c.5.8 1.2 1.2 2 1.2s1.5-.4 2-1.2M5.2 6.5h.01M8.8 6.5h.01M13 2v3M11.5 3.5h3" />
+    </svg>
+  );
+}
+
+/** A busy channel whose every post has the same actions: the list draws one bar and one menu for all of them. */
+function ActionsChannel() {
+  const [reactions, setReactions] = useState<Record<string, string>>({});
+  const [said, setSaid] = useState("");
+  const react = (id: string, emoji: string) => () => setReactions((previous) => ({ ...previous, [id]: emoji }));
+  return (
+    <Surface>
+      <MessageList label="Launch channel" style={{ height: 420 }}>
+        {channelPosts.map((post, index) => {
+          const id = `post-${index}`;
+          return (
+            <Message
+              key={id}
+              id={id}
+              variant="chat"
+              role={post.author === "Ana Lind" ? "user" : "assistant"}
+              name={post.author}
+              time={`9:${String(10 + (index % 50)).padStart(2, "0")} AM`}
+              footer={reactions[id] ? <span aria-label={`You reacted ${reactions[id]}`}>{reactions[id]}</span> : undefined}
+              actions={[
+                { key: "like", label: "Like", icon: "👍", onClick: react(id, "👍"), shortcut: ["1"] },
+                { key: "react", label: "More reactions", icon: <ReactIcon />, onClick: () => setSaid(`Pick a reaction for post ${index + 1}`) },
+                { key: "reply", label: "Reply", icon: <ReplyIcon />, onClick: () => setSaid(`Replying to ${post.author}`) },
+              ]}
+              quickReactions={[
+                { key: "like", label: "Like", icon: "👍", onClick: react(id, "👍"), shortcut: ["1"] },
+                { key: "heart", label: "Heart", icon: "❤️", onClick: react(id, "❤️"), shortcut: ["2"] },
+                { key: "laugh", label: "Laugh", icon: "😄", onClick: react(id, "😄"), shortcut: ["3"] },
+                { key: "party", label: "Party", icon: "🎉", onClick: react(id, "🎉"), shortcut: ["4"] },
+                { key: "more", label: "More reactions", icon: <ReactIcon />, onClick: () => setSaid(`Pick a reaction for post ${index + 1}`) },
+              ]}
+              menu={[
+                { label: "Reply", icon: <ReplyIcon />, shortcut: ["r"], onClick: () => setSaid(`Replying to ${post.author}`) },
+                { label: "Copy link", shortcut: ["mod", "shift", "c"], onClick: () => setSaid("Link copied") },
+                { label: "Mark unread", shortcut: ["u"], onClick: () => setSaid("Marked unread") },
+                { type: "separator" },
+                { label: "Delete", tone: "destructive", onClick: () => setSaid("Deleted") },
+              ]}
+            >
+              {post.text}
+            </Message>
+          );
+        })}
+      </MessageList>
+      <p role="status" style={{ margin: 0, minHeight: "1.5em", fontSize: 14 }}>
+        {said}
+      </p>
+    </Surface>
+  );
+}
+
 const harnessStyle = {
   font: "inherit",
   padding: "8px 14px",
@@ -338,6 +411,137 @@ function LongChat() {
   );
 }
 
+/** Shows the list's one bar on the newest post, as the pointer over it would. */
+async function hoverNewest(canvasElement: HTMLElement) {
+  const newest = await frameUntil(() => canvasElement.querySelector<HTMLElement>("#post-39"));
+  return frameUntil(() => {
+    newest.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+    return newest.querySelector<HTMLElement>('[data-ouro-part="menu"]');
+  });
+}
+
+/**
+ * Every post has actions, and the list draws one bar for all of them: on the post the pointer is
+ * over, or the one keyboard focus is in. It goes as the pointer leaves, so none stays behind.
+ * Right-click a post, press its "…" button, or Shift+F10 on a focused post: one menu, with quick
+ * reactions on top, each with its key under it, and each action's keys at its end.
+ */
+export const Actions: Story = {
+  args: { label: "Launch channel", children: null },
+  parameters: { screenshot: { name: "message-list-actions" } },
+  render: () => <ActionsChannel />,
+  play: async ({ canvasElement }) => {
+    await hoverNewest(canvasElement);
+  },
+};
+
+/** The list's one menu for a post, open from its "…" button: quick reactions on top, then the actions with their keys. */
+export const ActionsMenu: Story = {
+  args: { label: "Launch channel", children: null },
+  parameters: { screenshot: { name: "message-list-menu" } },
+  render: () => <ActionsChannel />,
+  play: async ({ canvasElement }) => {
+    (await hoverNewest(canvasElement)).click();
+    await frameUntil(() => document.querySelector('[data-ouro="menu"][data-open]'));
+  },
+};
+
+/** A small picture, drawn inline so the story needs no network: a sky over a hill, in the given hue. */
+const picture = (hue: number) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect width="120" height="80" fill="hsl(${hue} 60% 75%)"/><circle cx="92" cy="22" r="10" fill="hsl(${(hue + 40) % 360} 90% 85%)"/><path d="M0 80 50 36l70 44Z" fill="hsl(${(hue + 160) % 360} 35% 40%)"/></svg>`)}`;
+
+const chatPeople = [
+  { id: "mara", name: "Mara Quill", hue: 200 },
+  { id: "theo", name: "Theo Brandt", hue: 20 },
+];
+
+interface ChatItem {
+  id: string;
+  mine: boolean;
+  text: string;
+  picture?: number;
+  file?: boolean;
+  reactions?: Reaction[];
+}
+
+/** One long conversation with someone: text, with a picture every 7th message, a file every 11th and reactions every 4th. */
+function chatWith(person: (typeof chatPeople)[number], count: number): ChatItem[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `${person.id}-${index}`,
+    mine: index % 3 === 1,
+    text: index % 3 === 1 ? questions[index % questions.length]! : answers[index % answers.length]!,
+    ...(index % 7 === 3 && { picture: person.hue + index }),
+    ...(index % 11 === 5 && { file: true }),
+    ...(index % 4 === 2 && { reactions: [{ key: "like", label: "Like", emoji: "👍", count: 1 + (index % 3), mine: index % 8 === 2 }] }),
+  }));
+}
+
+const switchActions: readonly MessageAction[] = [{ key: "like", label: "Like", icon: "👍", onClick: () => {} }];
+
+/** How many messages each conversation holds: 8, or the number in the frame's `?messages=`, for a long one (`?messages=1200`). */
+function messagesPerChat(): number {
+  return (typeof window === "undefined" ? 0 : Number(new URLSearchParams(window.location.search).get("messages"))) || 8;
+}
+
+function SwitchingChats() {
+  const [count] = useState(messagesPerChat);
+  const chats = useMemo(() => Object.fromEntries(chatPeople.map((person) => [person.id, chatWith(person, count)])), [count]);
+  const [open, setOpen] = useState(chatPeople[0]!.id);
+  const person = chatPeople.find((each) => each.id === open)!;
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: 12, maxWidth: 760 }}>
+      <div style={{ display: "grid", alignContent: "start", gap: 8 }}>
+        {chatPeople.map((each) => (
+          <button
+            key={each.id}
+            type="button"
+            data-test-harness=""
+            aria-pressed={each.id === open}
+            onClick={() => setOpen(each.id)}
+            style={{
+              font: "inherit",
+              padding: "8px 14px",
+              textAlign: "start",
+              borderRadius: "var(--radius)",
+              border: "1px solid var(--border)",
+              background: each.id === open ? "var(--accent)" : "var(--background)",
+              color: each.id === open ? "var(--accent-foreground)" : "var(--foreground)",
+              cursor: "pointer",
+            }}
+          >
+            {each.name}
+          </button>
+        ))}
+      </div>
+      <Surface>
+        <MessageList key={open} label={`Chat with ${person.name}`} style={{ height: 460, minWidth: 0 }}>
+          {chats[open]!.map((item, at, all) => (
+            <Message
+              key={item.id}
+              id={item.id}
+              variant="chat"
+              role={item.mine ? "user" : "assistant"}
+              name={item.mine ? "Priya Okafor" : person.name}
+              actions={at === all.length - 1 ? switchActions : undefined}
+              attachments={
+                item.picture !== undefined ? (
+                  <Lightbox label={`Photo from ${person.name}`} layout="mosaic" images={[{ src: picture(item.picture), alt: "A hill under the sky", width: 1200, height: 800 }]} />
+                ) : item.file ? (
+                  <Attachment name="seating-plan.pdf" size={48_200} contentType="application/pdf" href={`#${item.id}`} />
+                ) : undefined
+              }
+              footer={item.reactions && <ReactionBar reactions={item.reactions} onReact={() => {}} />}
+            >
+              {item.text}
+            </Message>
+          ))}
+        </MessageList>
+      </Surface>
+    </div>
+  );
+}
+
 /**
  * A conversation of 2,000 messages: only those near the view are drawn, so it opens and scrolls as a short one does.
  * Press the newest message's quote to go to the first question, or find a message by its words: the page holds only
@@ -346,4 +550,13 @@ function LongChat() {
 export const LongConversation: Story = {
   args: { label: "Conversation with Ouro", children: null },
   render: () => <LongChat />,
+};
+
+/**
+ * Two conversations to switch between, with pictures, files, reactions and an action bar on the
+ * newest message. Each opens at its newest message in its first frame. Add `&messages=1200` to the frame's address for long ones.
+ */
+export const Switching: Story = {
+  args: { label: "Chat", children: null },
+  render: () => <SwitchingChats />,
 };
