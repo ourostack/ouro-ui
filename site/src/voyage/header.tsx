@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -112,16 +112,26 @@ export function ThemePicker(): JSX.Element {
 // quick click).
 type Palette = typeof import("./site-palette").default;
 let loading: Promise<Palette> | undefined;
-const loadPalette = (): Promise<Palette> => (loading ??= import("./site-palette").then((module) => module.default));
+// A load that failed (the network dropped) is let go, so the next reach asks again; a browser that remembers the failed
+// module (Chromium does) fails it again, quietly.
+const loadPalette = (): Promise<Palette> =>
+  (loading ??= import("./site-palette").then(
+    (module) => module.default,
+    (error: unknown) => {
+      loading = undefined;
+      throw error;
+    },
+  ));
 
 /** ⌘K: every page, the presets, light and dark, and X-ray (site-palette.tsx). */
 function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>> }): JSX.Element {
   const [SitePalette, setSitePalette] = useState<Palette | null>(null);
-  const want = () => void loadPalette().then((palette) => setSitePalette(() => palette));
+  // Search pressed while its code failed to load does not stay open with nothing to show.
+  const want = useCallback(() => void loadPalette().then((palette) => setSitePalette(() => palette), () => setOpen(false)), [setOpen]);
   // ⌘K opens it with no press on the button.
   useEffect(() => {
     if (open) want();
-  }, [open]);
+  }, [open, want]);
   return (
     <>
       <Button
