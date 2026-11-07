@@ -68,9 +68,18 @@ async function openMenu(page: Page): Promise<void> {
   await settled(page);
 }
 
-/** The sheet has finished moving: nothing animates on it (the "you're here" ping inside may go on), and two reads of its place agree. */
+/**
+ * The sheet has finished moving: nothing animates on it (the "you're here" ping inside may go on), and two reads of its
+ * place, and of its list's scroll to the page you are on, agree. A press while the list still scrolls can land its
+ * pointerdown and pointerup on different links, which raises no click (ourostack/ouro-ui#664).
+ */
 async function settled(page: Page): Promise<void> {
-  const place = () => sheet(page).evaluate((element) => (element.getAnimations().length > 0 ? "moving" : `${element.getBoundingClientRect().x}`));
+  const place = () =>
+    sheet(page).evaluate((element) => {
+      if (element.getAnimations().length > 0) return "moving";
+      const scrolls = [element, ...element.querySelectorAll<HTMLElement>("*")].map((part) => part.scrollTop).join(",");
+      return `${element.getBoundingClientRect().x}:${scrolls}`;
+    });
   let last = "";
   await expect
     .poll(async () => {
