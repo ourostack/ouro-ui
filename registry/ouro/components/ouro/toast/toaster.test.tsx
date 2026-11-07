@@ -140,9 +140,12 @@ describe("Toaster", () => {
     await gone("Older");
     await gone("Newer");
     const removed = vi.spyOn(window, "removeEventListener");
+    const disconnected = vi.spyOn(ResizeObserver.prototype, "disconnect");
     await unmount();
     expect(removed).toHaveBeenCalledWith("resize", expect.any(Function));
+    expect(disconnected).toHaveBeenCalledTimes(1);
     removed.mockRestore();
+    disconnected.mockRestore();
     // At the top: the newest at the top, the older one peeking out below it.
     await render(<Toaster className="top-4 bottom-auto" />);
     await new Promise((resolve) => requestAnimationFrame(resolve));
