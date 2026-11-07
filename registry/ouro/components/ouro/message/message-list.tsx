@@ -1405,6 +1405,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const height = content.offsetHeight;
       setFloor(height > scroller.clientHeight ? height : 0);
       toBottom();
+      // Content that settles at another height in a later render of the same task (long messages folding behind "See more"
+      // as a conversation opens) moves no node the mutation observer hears of, and the resize observer runs only after the
+      // frame's animation callbacks: until then the mark would hold the view past the messages. Once the task's work is
+      // done, the end is followed to where it settled.
+      if (floor !== 0) queueMicrotask(() => content.offsetHeight !== floor && hold());
     };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
