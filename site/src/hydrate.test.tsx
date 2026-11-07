@@ -3,7 +3,7 @@ import { hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { HydrateInTurn, hydratedInTurn, hydratingServerHtml } from "./hydrate";
+import { HydrateInTurn, hurryHydration, hydratedInTurn, hydratingServerHtml } from "./hydrate";
 
 // Hydration in turns (hydrate.tsx): each boundary hydrates after the one before it, once the
 // browser is idle, and a press hydrates the boundary it lands in at once. The test holds the idle
@@ -37,7 +37,7 @@ function Page({ names }: { names: string[] }): JSX.Element {
 }
 
 // The server's HTML, rendered before any test marks the page as hydrating.
-const serverHtml = new Map([["first", "second"], ["waiting", "later"], ["safari-a", "safari-b"]].map((names) => [names.join(), renderToString(<Page names={names} />)]));
+const serverHtml = new Map([["first", "second"], ["waiting", "later"], ["safari-a", "safari-b"], ["hurried-a", "hurried-b"]].map((names) => [names.join(), renderToString(<Page names={names} />)]));
 
 async function hydrate(names: string[], waits = true): Promise<void> {
   host.innerHTML = serverHtml.get(names.join())!;
@@ -112,5 +112,16 @@ describe("hydration in turns", () => {
     await act(() => button("later").click());
     expect(button("later").textContent).toBe("later 1");
     await expect.poll(() => committed).toContain("waiting");
+  });
+
+  // Last: the hurry lasts for the page's life, so it stays on for any test after it.
+  it("once hurried, hydrates each boundary as it joins the queue, without waiting its turn (early-input.ts)", async () => {
+    // As on the page: the hurry comes from the app's effect, before React has rendered any boundary's children.
+    hurryHydration();
+    await hydrate(["hurried-a", "hurried-b"], false);
+    // Never gone idle: committed on the hurry alone.
+    await expect.poll(() => committed).toEqual(["hurried-a", "hurried-b"]);
+    await act(() => button("hurried-b").click());
+    expect(button("hurried-b").textContent).toBe("hurried-b 1");
   });
 });

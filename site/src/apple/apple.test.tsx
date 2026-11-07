@@ -35,7 +35,8 @@ describe("Ouro UI for Apple", () => {
   it.each(APPLE_PATHS)("renders %s with its title, its section menu and a route", async (path) => {
     await renderPage(path);
     await expect.element(page.getByRole("heading", { level: 1, name: TITLES[path] })).toBeInTheDocument();
-    const menu = page.getByRole("navigation", { name: "Ouro UI for Apple" });
+    // On a phone the row steps aside for the header's menu (voyage/site-menu.tsx), so it may be hidden here.
+    const menu = page.getByRole("navigation", { name: "Ouro UI for Apple", includeHidden: true });
     expect(menu.element().querySelector('[aria-current="page"]')?.getAttribute("href")).toMatch(new RegExp(`${path}$`));
     expect(routes.some((route) => route.path === path)).toBe(true);
   });

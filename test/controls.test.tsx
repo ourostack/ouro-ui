@@ -3,6 +3,7 @@ import { commands } from "vitest/browser";
 import { describeRows, describeStories, rows } from "./control-suite.tsx";
 import { censusExclusions, collectControls, controlRole, interactiveSelector } from "./controls.ts";
 import { cleanupStories, renderStory } from "./stories.tsx";
+import { parkPointer } from "./story-axe.ts";
 
 // The control marker checks (test/control-suite.tsx) at a desktop width and a phone width, where
 // some controls move into sheets; test/controls.touch.test.tsx runs them on a touch phone.
@@ -12,6 +13,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await cleanupStories();
+  await parkPointer();
 });
 
 const sizes = [

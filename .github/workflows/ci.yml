@@ -745,8 +745,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: conformance (${{ matrix.shard }}/3)
+        # Three shards for every run that checks every story; one for a reduced pull request, whose
+        # few selected stories (or only the checks' proofs) the other two shards would idle through.
+        shard: ${{ fromJSON(needs.plan.outputs.full != 'false' && '[1,2,3]' || '[1]') }}
+    name: conformance (${{ matrix.shard }}/${{ strategy.job-total }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -816,8 +818,9 @@ jobs:
     # three with results cached under the same hash, five without, so a cold run's mutants spread
     # wider; none when no changed path is runtime source (scripts/mutation.mjs `mutates`: tests,
     # stories, the test kit, the site, scripts and docs give the shards nothing to mutate), and the
-    # mutation check passes without them. On any other run, three shards that each report nothing
-    # to mutate.
+    # mutation check passes without them. On any other run (merge queue, main, dispatch) none
+    # either: only a pull request's changed lines are mutated, and three container jobs that
+    # reported nothing to mutate held runners for nothing.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -877,7 +880,8 @@ jobs:
             [[ "$count" =~ ^[0-9]+$ ]] || { echo "::error::Could not plan the mutation shards (got '$count')."; exit 1; }
             echo "The changed lines' estimated work plans into $count shards."
           else
-            count=$min
+            echo "Not a pull request: only a pull request's changed lines are mutated, so no shard starts."
+            count=0
           fi
           echo "count=$count" >> "$GITHUB_OUTPUT"
           if [ "$count" = 0 ]; then
@@ -1201,7 +1205,8 @@ jobs:
     # Each voyage stage control answers within budget on a 4x slower CPU: of 20 presses after two
     # warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the control's CI
     # baseline (site/e2e/latency.ts, site/e2e/stage.latency.spec.ts), measured alone so no other
-    # test shares the CPU.
+    # test shares the CPU. The stage's switch to still water draws no long frame, in Chromium and
+    # WebKit (site/e2e/stage-switch.latency.spec.ts).
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
@@ -1554,33 +1559,3 @@ jobs:
           path: ${{ runner.temp }}/ci-timings.json
           if-no-files-found: ignore
           retention-days: 90
-  fail-fast:
-    # Fail fast on a pull request (scripts/ci-fail-fast.mjs): beside every job after the plan, it reads this
-    # run attempt's jobs and, once one has failed and finished, cancels the run, so a red job frees
-    # the runners the run still holds rather than when its slowest job ends. The failed job keeps
-    # its failure conclusion, log and artifacts; the jobs the run had not finished report cancelled,
-    # and ci-budget does not run, so the pull request stays blocked. No job needs it, so where it is
-    # skipped (a merge-queue entry, a push to main, a dispatched run) every job runs as before. Its
-    # own failure never fails the run (continue-on-error), and it is the only job that may write to
-    # Actions. It starts once the plan has finished, so while the plan yields to the merge queue it
-    # holds no runner.
-    needs: [plan]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    continue-on-error: true
-    permissions:
-      actions: write
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          sparse-checkout: scripts/ci-fail-fast.mjs
-          sparse-checkout-cone-mode: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-      - run: node scripts/ci-fail-fast.mjs
-        env:
-          GH_TOKEN: ${{ github.token }}

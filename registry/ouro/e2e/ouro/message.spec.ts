@@ -26,7 +26,8 @@ test("a chat message's action bar shows on hover and from the keyboard, and its 
   await openStory(page, "chat-message--chat");
   const message = page.getByRole("article").filter({ hasText: "I have one." });
   const bar = message.getByRole("toolbar", { name: "Message actions" });
-  await expect(bar).toHaveCSS("opacity", "0");
+  // The channel is a MessageList: one bar for all its messages, drawn on the one the pointer is over, so none at rest.
+  await expect(bar).toHaveCount(0);
   await message.getByText("I have one.").hover();
   await expect(bar).toHaveCSS("opacity", "1");
   await bar.getByRole("button", { name: "Reply" }).click();
@@ -35,8 +36,9 @@ test("a chat message's action bar shows on hover and from the keyboard, and its 
   await expect(bar.getByRole("button", { name: "More actions" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
+  // The bar goes as the menu opens, and Escape puts focus back on the message.
   await page.keyboard.press("Escape");
-  await expect(bar.getByRole("button", { name: "More actions" })).toBeFocused();
+  await expect(message).toBeFocused();
 });
 
 test("posts sit unboxed under their author, with reactions and the thread under them, and Reply on an unanswered post's name line", async ({ page }) => {

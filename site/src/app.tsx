@@ -1,5 +1,6 @@
 import { useEffect, type JSX } from "react";
-import { hydratedInTurn } from "./hydrate";
+import type { EarlyInputWindow } from "./early-input";
+import { hurryHydration, hydratedInTurn } from "./hydrate";
 import { pageKind, type PageKind } from "./paths";
 
 /** A page module's component: it renders the whole page for a site path. */
@@ -32,6 +33,11 @@ export async function loadPage(path: string): Promise<PageComponent> {
 export function App({ path, Page }: { path: string; Page: PageComponent }): JSX.Element {
   // Hydrated, every boundary that waits its turn too (hydrate.tsx): the page answers from here on
   // (the end-to-end specs wait for html[data-site-ready]).
+  // A tap or text kept from before the page could answer waits on its control's hydration (early-input.ts): every
+  // boundary waiting its turn hydrates now, as a later press would have it.
+  useEffect(() => {
+    if ((window as EarlyInputWindow).__ouroEarlyInput) hurryHydration();
+  }, []);
   useEffect(() => {
     let live = true;
     void hydratedInTurn().then(() => live && document.documentElement.setAttribute("data-site-ready", ""));

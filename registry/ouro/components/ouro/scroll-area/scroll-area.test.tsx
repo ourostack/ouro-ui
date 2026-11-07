@@ -160,8 +160,17 @@ describe("ScrollArea", () => {
     await expect.element(region).toBeVisible();
     expect(region.element()).toBe(viewport);
     await expect.poll(() => viewport.tabIndex).toBe(0);
+    const scrollbar = area.querySelector<HTMLElement>('[data-orientation="vertical"]')!;
+    const away = document.createElement("div");
+    away.style.cssText = "position:fixed;right:0;bottom:0;width:20px;height:20px";
+    document.body.append(away);
+    mounted.push(away);
+    await userEvent.hover(away);
+    await expect.poll(() => getComputedStyle(scrollbar).opacity).toBe("0");
     viewport.focus();
     expect(getComputedStyle(area).outlineStyle).toBe("solid");
+    // Keyboard focus on the viewport shows the scrollbar, with no pointer over it.
+    await expect.poll(() => getComputedStyle(scrollbar).opacity).toBe("1");
     await userEvent.keyboard("{PageDown}");
     await expect.poll(() => viewport.scrollTop).toBeGreaterThan(0);
   });

@@ -4,8 +4,10 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Composer, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
+import { Composer, type ComposerEditor, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
+import { composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -201,6 +203,23 @@ describe("Composer", () => {
     expect(onSend).toHaveBeenCalledWith("Hello", expect.objectContaining({ type: "click" }));
     expect(textarea.value).toBe("");
     expect(document.activeElement).toBe(textarea);
+  });
+
+  it("puts focus back in the box without scrolling a box around it, after a press of Send or the expand button", async () => {
+    const { host, textarea } = await render(
+      <div data-frame="" style={{ height: 80, overflow: "hidden" }}>
+        <div style={{ height: 400 }} />
+        <Composer label="Reply" defaultExpanded={false} defaultValue="See you" onSend={() => {}} />
+      </div>,
+    );
+    const frame = host.querySelector<HTMLElement>("[data-frame]")!;
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-ouro-part="send"]')!.click());
+    expect(document.activeElement).toBe(textarea);
+    expect(frame.scrollTop).toBe(0);
+    textarea.blur();
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-ouro-part="expand"]')!.click());
+    expect(document.activeElement).toBe(textarea);
+    expect(frame.scrollTop).toBe(0);
   });
 
   it("names the send button with sendLabel, which its tooltip shows on keyboard focus", async () => {
@@ -743,6 +762,546 @@ describe("Composer quote", () => {
   });
 });
 
+const expandButton = () => document.querySelector<HTMLButtonElement>('[data-ouro-control="composer"][data-ouro-part="expand"]');
+const formatting = <Button variant="plain" aria-label="Bold">B</Button>;
+
+describe("Composer expanded", () => {
+  it("shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, textarea } = await render(
+      <Composer label="Reply" defaultExpanded={false} onExpandedChange={onExpandedChange} toolbar={formatting} actions={<Button variant="plain" aria-label="Emoji">:)</Button>} onSend={() => {}} />,
+    );
+    const button = expandButton()!;
+    expect(button.parentElement!.firstElementChild).toBe(button);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    await expect.element(page.getByRole("button", { name: "Expand", pressed: false })).toBeVisible();
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    expect(textarea.rows).toBe(1);
+    const iconPath = () => button.querySelector("svg[aria-hidden='true'] path")!.getAttribute("d");
+    const collapsedIcon = iconPath();
+    await userEvent.click(button);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(root.getAttribute("data-expanded")).toBe("");
+    expect(iconPath()).toMatch(/^M\d/);
+    expect(collapsedIcon).toMatch(/^M\d/);
+    expect(iconPath()).not.toBe(collapsedIcon);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")!.textContent).toBe("B");
+    expect(textarea.rows).toBe(6);
+    await expect.poll(() => textarea.getBoundingClientRect().height).toBeGreaterThanOrEqual(6 * parseFloat(getComputedStyle(textarea).lineHeight));
+    await userEvent.click(button);
+    expect(onExpandedChange).toHaveBeenLastCalledWith(false);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    expect(iconPath()).toBe(collapsedIcon);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("draws the pressed expand button as an outlined primary Button, and the other as a plain one, and keeps focus in the text on a press", async () => {
+    const { host } = await render(
+      <>
+        <Composer label="Reply" defaultExpanded={false} onSend={() => {}} />
+        <Button variant="outline" tone="primary" aria-label="Outlined" data-test-harness="">o</Button>
+        <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="">p</Button>
+      </>,
+    );
+    const look = (element: Element) => ["border-top-color", "color", "background-color"].map((property) => getComputedStyle(element).getPropertyValue(property));
+    const [outlined, plain] = [...host.querySelectorAll("[data-test-harness]")];
+    expect(look(expandButton()!)).toEqual(look(plain!));
+    await userEvent.click(expandButton()!);
+    await expect.poll(() => look(expandButton()!)).toEqual(look(outlined!));
+    const down = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    expandButton()!.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("can expand with onExpandedChange alone, and hides the toolbar of a collapsed composer the app controls without listening", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, rerender } = await render(<Composer label="Reply" onExpandedChange={onExpandedChange} toolbar={formatting} onSend={() => {}} />);
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    await userEvent.click(expandButton()!);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    await rerender(<Composer label="Reply" expanded={false} toolbar={formatting} onSend={() => {}} />);
+    expect(expandButton()).toBeNull();
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+  });
+
+  it("gives the expanded text the whole width, with the buttons on a row under it", async () => {
+    const { textarea, send, frame, rerender } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />, 600);
+    expect(textarea.getBoundingClientRect().right).toBeGreaterThan(send.getBoundingClientRect().left);
+    expect(textarea.getBoundingClientRect().width).toBeGreaterThan(frame.getBoundingClientRect().width * 0.9);
+    expect(send.getBoundingClientRect().top).toBeGreaterThanOrEqual(textarea.getBoundingClientRect().bottom);
+    await rerender(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
+    await userEvent.click(expandButton()!);
+    expect(send.getBoundingClientRect().top).toBeLessThan(textarea.getBoundingClientRect().bottom);
+  });
+
+  it("shows no expand button, and the toolbar as passed, in a composer that does not expand", async () => {
+    const { root } = await render(<Composer label="Reply" toolbar={formatting} onSend={() => {}} />);
+    expect(expandButton()).toBeNull();
+    expect(root.querySelector("[data-ouro-composer-toolbar]")).not.toBeNull();
+  });
+
+  it("names the expand button with expandLabel, grows to expandedRows and expandedMaxRows, and turns the button off with the composer", async () => {
+    const { textarea, rerender } = await render(<Composer label="Reply" defaultExpanded expandLabel="Long message" expandedRows={4} expandedMaxRows={5} onSend={() => {}} />);
+    await expect.element(page.getByRole("button", { name: "Long message", pressed: true })).toBeVisible();
+    expect(textarea.rows).toBe(4);
+    const line = parseFloat(getComputedStyle(textarea).lineHeight);
+    textarea.focus();
+    await userEvent.keyboard("1{Enter}2{Enter}3{Enter}4{Enter}5{Enter}6{Enter}7");
+    expect(textarea.getBoundingClientRect().height).toBeCloseTo(5 * line + parseFloat(getComputedStyle(textarea).paddingTop) * 2, 0);
+    await rerender(<Composer label="Reply" defaultExpanded disabled onSend={() => {}} />);
+    expect(expandButton()!.disabled).toBe(true);
+  });
+
+  it("starts a new line on Enter and sends on Ctrl+Enter or Command+Enter, whatever sendOn says", async () => {
+    const onSend = vi.fn();
+    const { textarea } = await render(<Composer label="Reply" sendOn="enter" defaultExpanded onSend={onSend} />);
+    textarea.focus();
+    await userEvent.keyboard("one{Enter}two");
+    expect(onSend).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("one\ntwo");
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).toHaveBeenCalledWith("one\ntwo", expect.anything());
+    await userEvent.keyboard("three{Meta>}{Enter}{/Meta}");
+    expect(onSend).toHaveBeenLastCalledWith("three", expect.anything());
+  });
+
+  it("never sends while a suggestion list is open, Ctrl+Enter included", async () => {
+    const onSend = vi.fn();
+    const { textarea } = await render(
+      <Autocomplete triggers={[{ char: "@", label: "People", items: [{ value: "mara", label: "Mara Quill" }] }]}>
+        <Composer label="Reply" defaultExpanded onSend={onSend} />
+      </Autocomplete>,
+    );
+    textarea.focus();
+    await userEvent.keyboard("Hi @ma");
+    await expect.poll(() => textarea.hasAttribute("aria-activedescendant")).toBe(true);
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => textarea.hasAttribute("aria-activedescendant")).toBe(false);
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSend).toHaveBeenCalledWith("Hi @ma", expect.anything());
+  });
+
+  it("keeps the text, focus and the caret when it expands and collapses", async () => {
+    const { textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    textarea.focus();
+    await userEvent.keyboard("Hello world");
+    textarea.setSelectionRange(5, 5);
+    await userEvent.click(expandButton()!);
+    expect(document.activeElement).toBe(textarea);
+    expect([textarea.value, textarea.selectionStart, textarea.selectionEnd]).toEqual(["Hello world", 5, 5]);
+    await pressTab();
+    expect(document.activeElement).toBe(expandButton());
+    await userEvent.keyboard("{Enter}");
+    expect(expandButton()!.getAttribute("aria-pressed")).toBe("false");
+    expect(document.activeElement).toBe(textarea);
+    expect([textarea.value, textarea.selectionStart, textarea.selectionEnd]).toEqual(["Hello world", 5, 5]);
+  });
+
+  it("collapses on Escape, and that Escape goes no further", async () => {
+    const outer = vi.fn();
+    const onExpandedChange = vi.fn();
+    const { textarea, root } = await render(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" defaultExpanded onExpandedChange={onExpandedChange} defaultValue="Draft" onSend={() => {}} />
+      </div>,
+    );
+    textarea.focus();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    await act(async () => void textarea.dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(true);
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    expect(outer).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("Draft");
+    // Collapsed, Escape is the app's again.
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves Escape to an input method, to the app's onKeyDown, and to an app that controls it without listening", async () => {
+    const outer = vi.fn();
+    const { textarea, rerender } = await render(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" expanded onSend={() => {}} />
+      </div>,
+    );
+    expect(expandButton()).toBeNull();
+    textarea.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(outer).toHaveBeenCalledTimes(1);
+    const onExpandedChange = vi.fn();
+    await rerender(
+      <div onKeyDown={outer}>
+        <Composer label="Reply" expanded onExpandedChange={onExpandedChange} onKeyDown={(event) => event.key === "Escape" && event.preventDefault()} onSend={() => {}} />
+      </div>,
+    );
+    await userEvent.keyboard("{Escape}");
+    for (const init of [{ isComposing: true }, { keyCode: 229 }]) {
+      await act(async () => void textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true, ...init })));
+    }
+    expect(onExpandedChange).not.toHaveBeenCalled();
+  });
+
+  it("is controlled with expanded and onExpandedChange", async () => {
+    const onExpandedChange = vi.fn();
+    const { root, rerender } = await render(<Composer label="Reply" expanded={false} onExpandedChange={onExpandedChange} onSend={() => {}} />);
+    await userEvent.click(expandButton()!);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    await rerender(<Composer label="Reply" expanded onExpandedChange={onExpandedChange} onSend={() => {}} />);
+    expect(root.hasAttribute("data-expanded")).toBe(true);
+    expect(expandButton()!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("grows and shrinks in height over a moment, and at once with reduced motion", async () => {
+    const heights = (element: Element) => element.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty);
+    const { root, textarea } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
+    const settled = () => heights(body).length === 0 && body.style.height === "" && !body.classList.contains("transition-[height]");
+    // Each change the test reads runs for 10 s, then is finished: a busy runner can resume the test after the click later
+    // than the base duration's 200 ms, when a change that long has already ended.
+    const finish = () => act(async () => body.getAnimations().forEach((animation) => animation.finish()));
+    body.style.setProperty("--ouro-duration-base", "10s");
+    await userEvent.click(expandButton()!);
+    // WebKit on Linux can start the change a frame after the click.
+    await expect.poll(() => heights(body)).toEqual(["height"]);
+    expect(getComputedStyle(body).overflow).toBe("hidden");
+    // The text has its new height at once; the row around it shows it as it grows.
+    expect(textarea.rows).toBe(6);
+    expect(heights(textarea)).toEqual([]);
+    await finish();
+    await expect.poll(settled).toBe(true);
+    body.style.removeProperty("--ouro-duration-base");
+    const expandedHeight = body.getBoundingClientRect().height;
+    // Typing grows the box at once, as before.
+    await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f");
+    const sixLines = body.getBoundingClientRect().height;
+    // The seventh line grows the box past its six rows, at once; a long duration would hold a change still running.
+    body.style.setProperty("--ouro-duration-base", "10s");
+    await userEvent.keyboard("{Enter}");
+    expect(heights(body)).toEqual([]);
+    expect(body.getBoundingClientRect().height).toBeGreaterThan(sixLines);
+    body.style.removeProperty("--ouro-duration-base");
+    await userEvent.clear(textarea);
+    body.style.setProperty("--ouro-duration-base", "10s");
+    await userEvent.click(expandButton()!);
+    await expect.poll(() => heights(body)).toEqual(["height"]);
+    await finish();
+    await expect.poll(settled).toBe(true);
+    // Collapsed again mid-way: it turns back from the height it shows, not from the full height, and ends at its own.
+    const small = body.getBoundingClientRect().height;
+    await userEvent.click(expandButton()!);
+    // Held 200 ms in, below halfway, so the collapse starts from a height the test chose, however long the next click takes.
+    await expect.poll(() => heights(body)).toEqual(["height"]);
+    for (const animation of body.getAnimations()) {
+      animation.pause();
+      animation.currentTime = 200;
+    }
+    const shown = body.getBoundingClientRect().height;
+    expect(shown).toBeGreaterThan(small);
+    expect(shown).toBeLessThan(small + (expandedHeight - small) / 2);
+    await userEvent.click(expandButton()!);
+    // From the height it shows, the collapse starts there and only goes down; from the full height, it would start far above
+    // it, and a 10 s change takes seconds to come back down that far. A pixel spares the rounding of the height it starts from.
+    expect(body.getBoundingClientRect().height).toBeLessThan(shown + 1);
+    await expect.poll(() => heights(body)).toEqual(["height"]);
+    await finish();
+    await expect.poll(settled).toBe(true);
+    // A render that is no expand or collapse ends a change at once.
+    await userEvent.click(expandButton()!);
+    await expect.poll(() => heights(body)).toEqual(["height"]);
+    await userEvent.keyboard("b");
+    expect(settled()).toBe(true);
+    body.style.removeProperty("--ouro-duration-base");
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      await userEvent.click(expandButton()!);
+      expect(heights(body)).toEqual([]);
+      expect(settled()).toBe(true);
+      expect(textarea.rows).toBe(1);
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  });
+
+  it("does not animate when expanding leaves the box its height", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded={false} expandedRows={1} onSend={() => {}} />, 200);
+    const body = root.querySelector<HTMLElement>("[data-ouro-composer-body]")!;
+    await userEvent.click(expandButton()!);
+    expect(body.getAnimations()).toEqual([]);
+    expect(body.style.height).toBe("");
+  });
+});
+
+/** The platform's command key, as userEvent names it. */
+const mod = () => (isApple() ? "Meta" : "Control");
+/** Presses a shortcut, `mod` and the other modifiers held: `press("shift", "x")`. */
+async function press(...keys: string[]) {
+  const held = [mod(), ...keys.slice(0, -1).map((key) => ({ shift: "Shift", alt: "Alt" })[key]!)];
+  await userEvent.keyboard(`${held.map((key) => `{${key}>}`).join("")}${keys.at(-1)}${held.reverse().map((key) => `{/${key}}`).join("")}`);
+}
+const undo = () => act(async () => void document.execCommand("undo"));
+/** WebKit (Safari) can join edits made in a row into one Undo step, as it joins typing (on macOS it does, on Linux not always); Chromium keeps each its own. */
+const webkit = () => !/Chrome\//.test(navigator.userAgent);
+const redo = () => act(async () => void document.execCommand("redo"));
+/** The text with the selection drawn in brackets. */
+const marked = (textarea: HTMLTextAreaElement) => {
+  const { value, selectionStart: start, selectionEnd: end } = textarea;
+  return `${value.slice(0, start)}[${value.slice(start, end)}]${value.slice(end)}`;
+};
+/** A change from formatEdit, applied, with the selection in brackets. */
+const edited = (value: string, start: number, end: number, kind: Parameters<typeof formatEdit>[3]) => {
+  const change = formatEdit(value, start, end, kind);
+  const next = value.slice(0, change.from) + change.text + value.slice(change.to);
+  return `${next.slice(0, change.start)}[${next.slice(change.start, change.end)}]${next.slice(change.end)}`;
+};
+
+describe("Composer formatting", () => {
+  it("applies Teams' formatting keys, and takes each back with Undo and gives it again with Redo", async () => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<Composer label="Reply" formatting defaultValue="Ship it today" onValueChange={onValueChange} onSend={() => {}} />);
+    textarea.focus();
+    // Selects two characters from `at` as a person does, with Shift and the arrow keys.
+    const select = async (at: number) => {
+      textarea.setSelectionRange(at, at);
+      await userEvent.keyboard("{Shift>}{ArrowRight}{ArrowRight}{/Shift}");
+    };
+    let before = "";
+    for (const [keys, mark] of [
+      [["b"], "**"],
+      [["i"], "_"],
+      [["u"], "++"],
+      [["alt", "x"], "~~"],
+      [["shift", "c"], "`"],
+    ] as const) {
+      await select(5);
+      await press(...keys);
+      expect(marked(textarea), mark).toBe(`Ship ${mark}[it]${mark} today`);
+      expect(onValueChange).toHaveBeenLastCalledWith(`Ship ${mark}it${mark} today`);
+      await undo();
+      // WebKit may take back the last key's change with the one before it, which put the text back to plain.
+      expect(webkit() && before ? ["Ship it today", `Ship ${before}it${before} today`] : ["Ship it today"], mark).toContain(textarea.value);
+      await redo();
+      expect(textarea.value, mark).toBe(`Ship ${mark}it${mark} today`);
+      // The same key again takes the mark away.
+      await select(5 + mark.length);
+      await press(...keys);
+      expect(marked(textarea), mark).toBe("Ship [it] today");
+      before = mark;
+    }
+  });
+
+  it("leaves the keys to the browser without formatting, and leaves other modifiers alone", async () => {
+    const { textarea, rerender } = await render(<Composer label="Reply" defaultValue="Ship it" onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(0, 4);
+    await press("b");
+    expect(textarea.value).toBe("Ship it");
+    await rerender(<Composer label="Reply" formatting defaultValue="Ship it" onSend={() => {}} />);
+    await press("shift", "b");
+    await press("alt", "b");
+    expect(textarea.value).toBe("Ship it");
+  });
+
+  it("formats and inserts from editorRef, each a step that Undo takes back", async () => {
+    const editor = createRef<ComposerEditor>();
+    const { textarea, host } = await render(
+      <>
+        <button type="button" data-test-harness="">
+          Format
+        </button>
+        <Composer label="Reply" editorRef={editor} defaultValue={"eggs\nflour"} onSend={() => {}} />
+      </>,
+    );
+    // As from a formatting bar: focus is on its button when the format is applied.
+    const fromBar = async (change: () => void) => {
+      host.querySelector("button")!.focus();
+      await act(async () => change());
+    };
+    textarea.setSelectionRange(0, 10);
+    await fromBar(() => editor.current!.format("bullets"));
+    expect(marked(textarea)).toBe("[- eggs\n- flour]");
+    expect(document.activeElement).toBe(textarea);
+    await fromBar(() => editor.current!.format("numbers"));
+    expect(marked(textarea)).toBe("[1. eggs\n2. flour]");
+    await undo();
+    // WebKit may take back both formats in one step.
+    expect(webkit() ? ["- eggs\n- flour", "eggs\nflour"] : ["- eggs\n- flour"]).toContain(textarea.value);
+    if (textarea.value !== "eggs\nflour") await undo();
+    expect(textarea.value).toBe("eggs\nflour");
+    textarea.setSelectionRange(4, 4);
+    await fromBar(() => editor.current!.insert(" 🎉"));
+    expect(marked(textarea)).toBe("eggs 🎉[]\nflour");
+    await undo();
+    expect(textarea.value).toBe("eggs\nflour");
+  });
+
+  it("puts a paste through pasteText, as one step that Undo takes back", async () => {
+    const pasteText = vi.fn((data: DataTransfer) => (data.getData("text/html") ? "**Saturday**" : undefined));
+    const { textarea, rerender } = await render(<Composer label="Reply" defaultValue="See you " pasteText={pasteText} onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(8, 8);
+    const paste = (type: string) => {
+      const data = new DataTransfer();
+      data.setData(type, "Saturday");
+      const event = new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true });
+      textarea.dispatchEvent(event);
+      return event;
+    };
+    let event!: ClipboardEvent;
+    await act(async () => void (event = paste("text/html")));
+    expect(event.defaultPrevented).toBe(true);
+    expect(textarea.value).toBe("See you **Saturday**");
+    await undo();
+    expect(textarea.value).toBe("See you ");
+    // Plain text is the browser's own paste.
+    await act(async () => void (event = paste("text/plain")));
+    expect(event.defaultPrevented).toBe(false);
+    // An app's onPaste that takes the paste comes first.
+    await rerender(<Composer label="Reply" defaultValue="See you " pasteText={pasteText} onPaste={(paste) => paste.preventDefault()} onSend={() => {}} />);
+    pasteText.mockClear();
+    await act(async () => void paste("text/html"));
+    expect(pasteText).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("See you ");
+    // Without pasteText, every paste is the browser's own.
+    await rerender(<Composer label="Reply" defaultValue="See you " onSend={() => {}} />);
+    await act(async () => void (event = paste("text/html")));
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("changes nothing in a read-only box", async () => {
+    const editor = createRef<ComposerEditor>();
+    const { textarea } = await render(<Composer label="Reply" formatting readOnly editorRef={editor} defaultValue="Ship it" onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(0, 4);
+    await press("b");
+    await act(async () => editor.current!.insert("x"));
+    expect(textarea.value).toBe("Ship it");
+  });
+
+  it("expands and collapses on Command+Shift+X, and shows the key in the expand button's tooltip", async () => {
+    const prevented: boolean[] = [];
+    const { root, textarea } = await render(
+      <div onKeyDown={(event) => event.code === "KeyX" && prevented.push(event.defaultPrevented)}>
+        <Composer label="Reply" defaultExpanded={false} formatting onSend={() => {}} />
+      </div>,
+    );
+    textarea.focus();
+    await press("shift", "x");
+    expect(prevented).toEqual([true]);
+    expect(root.hasAttribute("data-expanded")).toBe(true);
+    await press("shift", "x");
+    expect(root.hasAttribute("data-expanded")).toBe(false);
+    // A format's key is the composer's too.
+    await press("alt", "x");
+    expect(prevented).toEqual([true, true, true]);
+    const button = expandButton()!;
+    expect(button.getAttribute("aria-keyshortcuts")).toContain("Shift+X");
+    await pressTab();
+    expect(document.activeElement).toBe(button);
+    const tooltip = () => document.querySelector('[data-ouro="tooltip"]');
+    await expect.poll(() => tooltip()?.textContent?.startsWith("Expand")).toBe(true);
+    expect(tooltip()!.querySelector('[data-ouro="kbd"]')).not.toBeNull();
+    // A composer that does not expand leaves the key alone.
+    const plain = await render(<Composer label="Note" defaultValue="x" onSend={() => {}} />);
+    plain.textarea.focus();
+    await press("shift", "x");
+    expect(plain.root.hasAttribute("data-expanded")).toBe(false);
+    expect(plain.textarea.value).toBe("x");
+  });
+
+  it("lists the keys for a toolbar's tooltips, and reads a press only with exactly its modifiers", () => {
+    expect(composerShortcuts).toEqual({ bold: ["mod", "b"], italic: ["mod", "i"], underline: ["mod", "u"], strike: ["mod", "alt", "x"], code: ["mod", "shift", "c"], expand: ["mod", "shift", "x"] });
+    const key = (code: string, held: Partial<Record<"metaKey" | "ctrlKey" | "altKey" | "shiftKey", boolean>>) => ({ code, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...held });
+    expect(pressed(key("KeyB", { metaKey: true }), ["mod", "b"], true)).toBe(true);
+    expect(pressed(key("KeyB", { ctrlKey: true }), ["mod", "b"], true)).toBe(false);
+    expect(pressed(key("KeyB", { ctrlKey: true }), ["mod", "b"], false)).toBe(true);
+    expect(pressed(key("KeyB", { metaKey: true }), ["mod", "b"], false)).toBe(false);
+    expect(pressed(key("KeyX", { metaKey: true, altKey: true }), ["mod", "alt", "x"], true)).toBe(true);
+    expect(pressed(key("KeyX", { metaKey: true }), ["mod", "alt", "x"], true)).toBe(false);
+    expect(pressed(key("KeyC", { metaKey: true, shiftKey: true }), ["mod", "shift", "c"], true)).toBe(true);
+    expect(pressed(key("KeyC", { metaKey: true }), ["mod", "shift", "c"], true)).toBe(false);
+    expect(pressed(key("KeyV", { metaKey: true, shiftKey: true }), ["mod", "shift", "c"], true)).toBe(false);
+    // The letter alone, or with both Command and Ctrl, is no shortcut.
+    expect(pressed(key("KeyB", {}), ["mod", "b"], true)).toBe(false);
+    expect(pressed(key("KeyB", { metaKey: true, ctrlKey: true }), ["mod", "b"], true)).toBe(false);
+    expect(pressed(key("KeyB", { metaKey: true, ctrlKey: true }), ["mod", "b"], false)).toBe(false);
+  });
+
+  it("reads the platform from userAgentData where the browser has it, and from navigator.platform where not", () => {
+    // Own properties over the prototype's getters; deleting them brings the browser's back.
+    const set = (name: "userAgentData" | "platform", value: unknown) => Object.defineProperty(navigator, name, { value, configurable: true });
+    try {
+      set("platform", "Linux x86_64");
+      set("userAgentData", { platform: "macOS" });
+      expect(isApple()).toBe(true);
+      set("platform", "MacIntel");
+      set("userAgentData", { platform: "Windows" });
+      expect(isApple()).toBe(false);
+      set("userAgentData", undefined);
+      expect(isApple()).toBe(true);
+      set("platform", "Win32");
+      expect(isApple()).toBe(false);
+    } finally {
+      delete (navigator as { userAgentData?: unknown }).userAgentData;
+      delete (navigator as { platform?: unknown }).platform;
+    }
+  });
+
+  it("wraps the selection in marks, with spaces outside them, or puts a pair at the caret", () => {
+    expect(edited("Ship it today", 4, 8, "bold")).toBe("Ship **[it]** today");
+    expect(edited("Ship it today", 7, 7, "italic")).toBe("Ship it_[]_ today");
+    expect(edited("Ship   today", 4, 7, "strike")).toBe("Ship   ~~[]~~today");
+    expect(edited("it", 0, 2, "code")).toBe("`[it]`");
+  });
+
+  it("takes marks away from around the selection or from inside it", () => {
+    expect(edited("Ship **it** today", 7, 9, "bold")).toBe("Ship [it] today");
+    expect(edited("Ship **it** today", 5, 11, "bold")).toBe("Ship [it] today");
+    // A mark on one side only is no pair: the selection is wrapped.
+    expect(edited("**it", 2, 4, "bold")).toBe("****[it]**");
+    // Marks inside need something between them.
+    expect(edited("Ship **** today", 5, 9, "bold")).toBe("Ship **[****]** today");
+    expect(edited("Ship it** today", 5, 7, "bold")).toBe("Ship **[it]**** today");
+    expect(edited("**its", 0, 5, "bold")).toBe("**[**its]**");
+    expect(edited("its**", 0, 5, "bold")).toBe("**[its**]**");
+  });
+
+  it("marks the selected lines as a list or quote, numbering them, and takes the markers away when every line has one", () => {
+    expect(edited("eggs\n\nflour", 0, 11, "numbers")).toBe("[1. eggs\n\n2. flour]");
+    expect(edited("- eggs\nflour", 3, 9, "numbers")).toBe("[1. eggs\n2. flour]");
+    expect(edited("> eggs\n\n> flour", 0, 15, "quote")).toBe("[eggs\n\nflour]");
+    expect(edited("1. eggs\n2. flour", 0, 16, "numbers")).toBe("[eggs\nflour]");
+    expect(edited("Buy:\neggs\nmilk", 6, 6, "bullets")).toBe("Buy:\n[- eggs]\nmilk");
+    // A selection that ends just after a line break ends on the line before it.
+    expect(edited("eggs\nmilk", 0, 5, "quote")).toBe("[> eggs]\nmilk");
+    expect(edited("", 0, 0, "bullets")).toBe("[- ]");
+    expect(edited("\n", 0, 0, "bullets")).toBe("[- ]\n");
+    // Another kind's marker at the line's start gives way, whatever its number; a dash inside the line stays.
+    expect(edited("1. eggs\n10. flour", 0, 17, "bullets")).toBe("[- eggs\n- flour]");
+    expect(edited("eggs - flour", 0, 12, "bullets")).toBe("[- eggs - flour]");
+    // The caret at a line's start marks that line.
+    expect(edited("eggs\nmilk", 5, 5, "bullets")).toBe("eggs\n[- milk]");
+    // Some lines marked is not every line: all get the marker.
+    expect(edited("> eggs\nflour", 0, 12, "quote")).toBe("[> eggs\n> flour]");
+    // A line of spaces is blank: it gets no marker, and does not stop the others' markers going.
+    expect(edited("eggs\n  \nflour", 0, 13, "bullets")).toBe("[- eggs\n  \n- flour]");
+    expect(edited("- eggs\n  \n- flour", 0, 17, "bullets")).toBe("[eggs\n  \nflour]");
+  });
+
+  it("fences the selection as a code block on lines of its own", () => {
+    expect(edited("Run npm test now", 4, 12, "codeBlock")).toBe("Run \n```\n[npm test]\n```\n now");
+    expect(edited("npm test", 0, 8, "codeBlock")).toBe("```\n[npm test]\n```");
+    expect(edited("a\nb\nc", 2, 3, "codeBlock")).toBe("a\n```\n[b]\n```\nc");
+    expect(edited("a\nbc", 2, 4, "codeBlock")).toBe("a\n```\n[bc]\n```");
+  });
+});
+
 describe("Composer development messages", () => {
   it.each([
     ["sendOn", { sendOn: "shift-enter" }, 'sendOn="shift-enter" is not a key; use "enter" or "mod-enter"', '<Composer sendOn="enter">'],
@@ -752,6 +1311,7 @@ describe("Composer development messages", () => {
     ["loading", { loading: true }, "loading is not a prop", "<Composer sending>"],
     ["sendDisabled", { sendDisabled: true }, "sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
     ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>'],
+    ["expandable", { expandable: true }, "expandable is not a prop; defaultExpanded or onExpandedChange shows the expand button", "<Composer defaultExpanded={false}>"],
   ])("says what to use instead of %s", async (name, extra, problem, fix) => {
     const props = { label: "Message", onSend: () => {}, ...extra } as unknown as ComposerProps;
     const { host } = await render(<Composer {...props} />);
@@ -918,6 +1478,16 @@ describe("Composer with a catalogue", () => {
     // Text with none of its emoji is the browser's to paste.
     expect((await paste(textarea, "plain 🦄 text")).defaultPrevented).toBe(false);
     expect(textarea.value).toBe("Hi there");
+  });
+
+  it("puts the emoji of a pasteText paste in as their tokens, in one step undo takes out", async () => {
+    const { textarea } = await render(<Composer label="Message" catalogue={catalogue} pasteText={(data) => `**${data.getData("text/plain")}**`} defaultValue="Hi " onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(3, 3);
+    expect((await paste(textarea, "🎉 Ana")).defaultPrevented).toBe(true);
+    expect(textarea.value).toBe("Hi **:party: Ana**");
+    await act(async () => void document.execCommand("undo"));
+    expect(textarea.value).toBe("Hi ");
   });
 
   it("leaves a paste the app handled, a word an input method composes, and other edits to the browser", async () => {

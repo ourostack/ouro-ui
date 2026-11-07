@@ -1,0 +1,41 @@
+name: CI fail-fast
+# One watcher for every pull request's CI run (scripts/ci-fail-fast.mjs). It starts when a pull
+# request's CI run is requested, reads the open pull request runs' jobs every two minutes, and
+# cancels a run once a job of it has failed and finished, so a red job frees the runners of the rest.
+# It replaces a watcher job inside each run, which held a runner for as long as its run lasted,
+# queueing included. Runs the watcher is not running for yet are covered by its next read; a watcher
+# that is already running covers any run requested after it started.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [requested]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  watch:
+    # Only a pull request's CI run asks for a watcher; the merge queue, main and dispatched runs
+    # always finish whole. The concurrency group is the job's, not the workflow's, so a skipped job
+    # does not take the place of a waiting watcher: one watcher runs, one waits, and a newer one
+    # replaces the waiting one, since any watcher reads every open run.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'pull_request' }}
+    concurrency:
+      group: ci-fail-fast
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci-fail-fast.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: node scripts/ci-fail-fast.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

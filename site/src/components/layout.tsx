@@ -20,7 +20,7 @@ export function SiteFooter(): JSX.Element {
     { label: "Storybook", url: STORYBOOK },
     { label: "Docs", url: href("/docs/") },
     { label: "llms.txt", url: "https://ui.ouro.bot/llms.txt" },
-    { label: "Ouro", url: "https://ouro.bot" },
+    { label: "Ouro", url: "https://ouroboros.bot/" },
   ];
   return (
     <footer className="mt-24 border-t border-border">
@@ -28,7 +28,7 @@ export function SiteFooter(): JSX.Element {
         <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground">
           <span>
             Ouro HX is part of Ouro UI, the interface family within{" "}
-            <a href="https://ouro.bot" className="text-foreground underline underline-offset-4">Ouro</a>.
+            <a href="https://ouroboros.bot/" className="text-foreground underline underline-offset-4">Ouro</a>.
             {" "}MIT license.
           </span>
         </p>

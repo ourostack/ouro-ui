@@ -30,7 +30,7 @@ export const routes: Route[] = [
   { path: "/", title: "Ouro HX", description: DESCRIPTION },
   { path: "/nautilus/", title: "The Nautilus · Ouro HX", description: NAUTILUS_DESCRIPTION },
   { path: "/ax/", title: "A morning with an agent · Ouro AX", description: AX_DESCRIPTION },
-  // The Ouro UI for Apple pages (apple/pages.ts says the same in each page's hero).
+  // The Ouro UI for Apple pages (paths.ts lists them; each page's hero says the same).
   { path: "/apple/", title: "Ouro UI for Apple", description: "Ouro HX and Ouro AX in Swift: the springs, haptics and colours people feel, and the App Intents Siri reads. One package for iPhone, iPad and Mac." },
   { path: "/apple/hx/", title: "Ouro HX for Apple", description: "The spring, the press, the named haptic moments and the themes, from the same tokens as the web. Watch them in SwiftUI, then poke their web twins." },
   { path: "/apple/feel/", title: "Ouro Feel · Ouro UI for Apple", description: "Jank comes in genres, and Ouro Feel checks them from a UI test: the way back, overlays, inside the window, tap landing and more. Double-tap a switch with a tap lock and see what Feel saw." },
