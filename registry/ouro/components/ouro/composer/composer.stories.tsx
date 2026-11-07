@@ -2,13 +2,15 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState, type ReactNode, type SVGProps } from "react";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
+import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
+import { composerShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { EmojiPicker, type EmojiSkinTone } from "@/registry/ouro/components/ouro/emoji-picker/emoji-picker";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import type { TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
+import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -385,6 +387,37 @@ function QuotedReply() {
   );
 }
 
+function LongMessage() {
+  const [messages, setMessages] = useState<string[]>([]);
+  const editor = useRef<ComposerEditor>(null);
+  return (
+    <Surface>
+      <Sent messages={messages} />
+      <Composer
+        label="New post in Bakers"
+        placeholder="Start a post"
+        defaultExpanded
+        formatting
+        editorRef={editor}
+        defaultValue={"Proofing times for Saturday's class:\nRye, three hours at room temperature.\nWhite, overnight in the fridge."}
+        description="Ctrl+Enter to send"
+        toolbar={
+          <Toolbar
+            label="Formatting"
+            size="sm"
+            items={[
+              { label: "Bold", icon: BoldIcon, hideLabel: true, shortcut: composerShortcuts.bold, onClick: () => editor.current?.format("bold") },
+              { label: "Italic", icon: ItalicIcon, hideLabel: true, shortcut: composerShortcuts.italic, onClick: () => editor.current?.format("italic") },
+              { label: "Bulleted list", icon: ListIcon, hideLabel: true, onClick: () => editor.current?.format("bullets") },
+            ]}
+          />
+        }
+        onSend={(text) => setMessages([...messages, text])}
+      />
+    </Surface>
+  );
+}
+
 /**
  * A reply that quotes a message (`quote`): who wrote it and a line of what they wrote, inside the
  * box above the text, read as the text's description. The cross, or Escape while the box is empty,
@@ -393,6 +426,18 @@ function QuotedReply() {
 export const Quoting: Story = {
   parameters: { screenshot: { name: "composer-quote" } },
   render: () => <QuotedReply />,
+};
+
+/**
+ * A long message (`defaultExpanded`): the expand button, first among the actions, or ⌘⇧X, opens a
+ * taller box with the formatting bar, where Enter starts a new line and Ctrl+Enter (Command+Enter
+ * on a Mac) sends. Escape, or the button again, brings back the one-line box with the same text.
+ * `formatting` takes Teams' keys (⌘B, ⌘I, ⌘U, ⌘⌥X, ⌘⇧C), the bar formats through `editorRef`
+ * and its tooltips show the keys, and Undo takes each change back.
+ */
+export const Expanded: Story = {
+  parameters: { screenshot: { name: "composer-expanded" } },
+  render: () => <LongMessage />,
 };
 
 /** Sending is off and says why; the person can still write. Enter says the reason again. */

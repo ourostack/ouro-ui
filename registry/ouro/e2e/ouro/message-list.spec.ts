@@ -125,3 +125,154 @@ test("with reduced motion, the wheel scrolls the messages and moves none of them
   expect(await scroller.evaluate((el) => (el as HTMLElement & { sprang?: boolean }).sprang === true)).toBe(false);
   expect(await distanceFromBottom(scroller)).toBeGreaterThan(100);
 });
+
+const posted = (page: Page, index: number) => page.locator(`#post-${index} [data-ouro-message-content]`);
+
+test("the list draws one bar, on the post the pointer is over, and one menu, from a right-click or the bar's button", async ({ page }) => {
+  await openStory(page, "chat-messagelist--actions");
+  const bars = page.locator('[role="toolbar"][data-ouro-message-actions]');
+  for (const index of [39, 38, 36]) {
+    await posted(page, index).hover();
+    await expect(bars).toHaveCount(1);
+    await expect(page.locator(`#post-${index} [role="toolbar"]`)).toHaveCount(1);
+  }
+  // Off the list, none stays behind.
+  await page.mouse.move(1, 1);
+  await expect(bars).toHaveCount(0);
+
+  await posted(page, 38).click({ button: "right" });
+  const menu = page.getByRole("menu", { name: "Message actions for Grace Hopper" });
+  await expect(menu).toBeVisible();
+  await expect(bars).toHaveCount(0);
+  await expect(menu.getByRole("group", { name: "Reactions" }).getByRole("menuitem")).toHaveCount(5);
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(page.locator("#post-38")).toBeFocused();
+
+  await posted(page, 39).hover();
+  await page.getByRole("button", { name: "More actions" }).click();
+  await expect(page.getByRole("menu", { name: "Message actions for Ouro" })).toBeVisible();
+  await expect(page.locator('[data-ouro="menu"]')).toHaveCount(1);
+  await page.getByRole("menuitem", { name: "Heart" }).click();
+  await expect(page.getByLabel("You reacted ❤️")).toBeVisible();
+});
+
+test("from the keyboard, focus on a post shows its bar, and Shift+F10 opens its menu; Escape puts focus back on the post", async ({ page }) => {
+  await openStory(page, "chat-messagelist--actions");
+  await page.mouse.move(1, 1);
+  await page.locator("#post-39").focus();
+  await page.keyboard.press("ArrowUp");
+  await expect(page.locator("#post-38")).toBeFocused();
+  await expect(page.locator('#post-38 [role="toolbar"]')).toHaveCount(1);
+  await page.keyboard.press("Shift+F10");
+  const menu = page.getByRole("menu", { name: "Message actions for Grace Hopper" });
+  await expect(menu).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(page.locator("#post-38")).toBeFocused();
+});
+
+test("on a CPU slowed 4 times, the bar is on the post the pointer moved to by the next frame, and so is the menu after a right-click", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
+  await openStory(page, "chat-messagelist--actions");
+  // Each pointerover onto a post: the work done in the event, and whether the bar was in that post at the next frame.
+  await page.evaluate(() => {
+    const samples: { id: string; work: number; shown: boolean }[] = [];
+    const menus: { work: number; shown: boolean }[] = [];
+    let start = 0;
+    let started = 0;
+    Object.assign(window, { hoverSamples: samples, menuSamples: menus });
+    document.addEventListener("pointerover", () => (start = performance.now()), true);
+    window.addEventListener("pointerover", (event) => {
+      const row = (event.target as Element).closest<HTMLElement>('[data-ouro="message"]');
+      if (row === null || samples.at(-1)?.id === row.id) return;
+      const work = performance.now() - start;
+      requestAnimationFrame(() => samples.push({ id: row.id, work, shown: row.querySelector('[role="toolbar"]') !== null }));
+    });
+    document.addEventListener("contextmenu", () => (started = performance.now()), true);
+    window.addEventListener("contextmenu", () => {
+      const work = performance.now() - started;
+      requestAnimationFrame(() => menus.push({ work, shown: document.querySelector('[data-ouro="menu"]') !== null }));
+    });
+  });
+  // Warm: the bar's and the menu's code load the first time each shows.
+  await posted(page, 39).hover();
+  await posted(page, 39).click({ button: "right" });
+  // The menu's code comes with its first opening: Escape once it is open, or the menu opens after it and stays.
+  await expect(page.locator('[data-ouro="menu"]')).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator('[data-ouro="menu"]')).toHaveCount(0);
+  await page.evaluate(() => {
+    const w = window as unknown as { hoverSamples: unknown[]; menuSamples: unknown[] };
+    w.hoverSamples.length = 0;
+    w.menuSamples.length = 0;
+  });
+  // The posts wholly in view, newest first: the pointer moves between them without the list scrolling, as a scroll under
+  // the pointer puts the bar away until the pointer moves again.
+  const inView = await page.evaluate(() => {
+    const list = document.querySelector("[data-ouro-message-list-scroller]")!.getBoundingClientRect();
+    return [...document.querySelectorAll('[data-ouro="message"] [data-ouro-message-content]')]
+      .map((content) => content.getBoundingClientRect())
+      .filter((box) => box.top >= list.top && box.bottom <= list.bottom)
+      .reverse()
+      .slice(0, 4)
+      .map((box) => ({ x: box.left + Math.min(box.width / 2, 40), y: box.top + box.height / 2 }));
+  });
+  expect(inView.length).toBeGreaterThanOrEqual(3);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+  let hovers: { id: string; work: number; shown: boolean }[];
+  try {
+    for (let step = 1; step <= 10; step++) {
+      await page.mouse.move(inView[step % inView.length]!.x, inView[step % inView.length]!.y);
+      // Its sample is taken at the next frame: the pointer moves on once it is.
+      await page.waitForFunction((count) => (window as unknown as { hoverSamples: unknown[] }).hoverSamples.length >= count, step);
+    }
+    // The hovers so far: a right-click opens the menu, and the bar goes as it opens, before the next frame.
+    hovers = await page.evaluate(() => [...(window as unknown as { hoverSamples: { id: string; work: number; shown: boolean }[] }).hoverSamples]);
+    for (const [index, at] of [inView[1]!, inView[0]!, inView[2]!].entries()) {
+      await page.mouse.click(at.x, at.y, { button: "right" });
+      // Its sample is taken at the next frame: Escape once it is, and the next right-click once the menu has gone.
+      await page.waitForFunction((count) => (window as unknown as { menuSamples: unknown[] }).menuSamples.length >= count, index + 1);
+      await page.keyboard.press("Escape");
+      await expect(page.locator('[data-ouro="menu"]')).toHaveCount(0);
+    }
+  } finally {
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+  }
+  const menus = await page.evaluate(() => (window as unknown as { menuSamples: { work: number; shown: boolean }[] }).menuSamples);
+  const median = (values: number[]) => values.toSorted((a, b) => a - b)[Math.floor(values.length / 2)]!;
+  const report = `hover: median ${median(hovers.map((sample) => sample.work)).toFixed(1)} ms, max ${Math.max(...hovers.map((sample) => sample.work)).toFixed(1)} ms over ${hovers.length}; menu: median ${median(menus.map((sample) => sample.work)).toFixed(1)} ms over ${menus.length}`;
+  test.info().annotations.push({ type: "latency at 4x CPU", description: report });
+  console.log(`[latency at 4x CPU] ${report}`);
+  expect(hovers.length).toBeGreaterThanOrEqual(8);
+  expect(hovers.filter((sample) => !sample.shown)).toEqual([]);
+  expect(menus.map((sample) => sample.shown)).toEqual([true, true, true]);
+  // The frame is what is held, not milliseconds: these stories run on the development build, several times slower than
+  // a production one, and the work each event does is reported above.
+});
+
+test("a long conversation draws only what is near the view, and a quote or a search reaches a message far up", async ({ page }) => {
+  await openStory(page, "chat-messagelist--long-conversation");
+  const scroller = page.getByRole("region", { name: "Conversation with Ouro" });
+  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  expect(await page.getByRole("article").count()).toBeLessThan(60);
+
+  // The quote on the newest message goes to the first question, drawing it first.
+  await page.getByRole("button", { name: /Quoting Ana Lind/ }).click();
+  await expect(page.locator("#long-0")).toBeFocused();
+  await expect(page.locator("#long-0")).toBeInViewport();
+  await expect(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+
+  // Find in chat searches the messages, not the page, and reveals the match.
+  await page.getByRole("textbox", { name: "Find in chat" }).fill("(1200)");
+  await page.getByRole("button", { name: "Find" }).click();
+  await expect(page.locator("#long-1199")).toBeFocused();
+  await expect(page.locator("#long-1199")).toBeInViewport();
+
+  // Jump to latest draws the end again, and goes there.
+  await page.getByRole("button", { name: "Jump to latest" }).click();
+  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  await expect(page.locator("#long-1999")).toBeFocused();
+});

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { resetRooms, rooms } from "@/registry/ouro/ax/example-cli";
-import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
+import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
 import { AX_SECTION } from "../copy";
 import mainReport from "../../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-main.json";
 import adoptionReport from "../../../docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.json";
@@ -12,6 +12,8 @@ import { cast, CAST } from "./cast";
 import { MORNING, MORNING_ART_ALT } from "./story";
 import { CHAT_TITLE, SPEAKERS } from "./parts";
 import transcripts from "./transcripts.json";
+
+await Promise.all([loadPageCode("/ax/"), loadPageCode("/")]);
 
 // Every source of the site's AX copy but the cast itself and this test, to hold the names to one file.
 const copySources = {
@@ -213,6 +215,9 @@ describe("Ouro AX page", () => {
     await expect.poll(() => asks.element().textContent).toContain(ASKS[2]!.answer({ posted: true, heard: null, noted: true }));
     expect(asks.element().querySelectorAll(".ax-avatar-agent svg").length, "each reply carries the agent's mark").toBe(ASKS.length);
     expect(asks.element().querySelector(".ax-reward svg")).not.toBeNull();
+    // ax.css finds each heart by its place in the drawing, so a redrawn heart that moved would stop beating.
+    const beating = [...asks.element().querySelectorAll(".ax-reward circle")].filter((circle) => getComputedStyle(circle).animationName === "ax-heartbeat");
+    expect(new Set(beating.map((circle) => /--duo-(heart|eye)/.exec(circle.getAttribute("fill") ?? "")?.[1])), "both hearts beat").toEqual(new Set(["heart", "eye"]));
     expect(document.body.textContent, "every name slot is filled").not.toMatch(/\{[a-z]+(\.[a-z]+)?\}/i);
   });
 

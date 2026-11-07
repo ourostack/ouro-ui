@@ -5,7 +5,7 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { cleanupStories, closeOverlay, isVisible, openOverlay, openPopup, overlayOpeners, renderStory, selectedStories, settle, story } from "./stories.tsx";
 import { sliced } from "./slice.ts";
-import { storyScanTimeout } from "./story-axe.ts";
+import { parkPointer, storyScanTimeout } from "./story-axe.ts";
 import { applyThemeFixture, themeFixtures, topLevelBlocks } from "./theme-fixtures.ts";
 
 // The components take their shadows and fonts from shadcn's standard theme tokens, so a theme
@@ -127,6 +127,9 @@ describe("theme fixtures", () => {
 describe("standard shadow and font tokens", () => {
   it.each(sliced(selectedStories, "theme tokens"))("$id reads its shadows and fonts from the theme, closed and with each overlay open", async ({ id, Story }) => {
     setSentinels();
+    // At rest, as the axe scan starts: WebKit sends a mouse move to whatever mounts under where the last story left the
+    // mouse, which puts MessageList's action bar on another message while its menu button is being pressed.
+    await parkPointer();
     const host = await renderStory(Story);
     await settle();
     const found = offenders().map((line) => `closed: ${line}`);

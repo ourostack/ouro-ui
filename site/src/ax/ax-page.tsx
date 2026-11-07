@@ -163,7 +163,7 @@ export default function AxPage(): JSX.Element {
             <XrayCard title="After: its adoption" commit={xray.after.commit} side={xray.after} />
           </div>
           <p className="m-0 text-muted-foreground">
-            {claim("Every must claim held after adoption; before it, four failed and two could not be checked at all.", {
+            {claim("Every must claim held after adoption; before it, four failed and the X-ray skipped two, because the tool had not listed its surfaces for it.", {
               source: [{ evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-main.md" }, { evidence: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-pr459.md" }],
               verify: [
                 { fileLine: "docs/decisions/2026-10-30-ouro-ax/evidence/xray-adopter-main.md", pattern: "Does not conform yet: 4 must claims not holding; no inventory given; 2 must claims skipped" },
@@ -202,7 +202,7 @@ export default function AxPage(): JSX.Element {
                   </p>
                 ) : (
                   <p className="m-0 text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">Before, the X-ray could not check it: </span>
+                    <span className="font-medium text-foreground">Before, the X-ray skipped it: </span>
                     the tool had not yet listed its surfaces for it.
                   </p>
                 )}

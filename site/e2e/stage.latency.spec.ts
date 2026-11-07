@@ -11,6 +11,10 @@ import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } fro
 async function open(page: Page): Promise<void> {
   await page.goto("./");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  // Measured with the fish swimming: the stage has judged the screen fast enough for them.
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", "half");
 }
 
 const tank = (page: Page, name: string) => page.getByRole("switch", { name, exact: true });

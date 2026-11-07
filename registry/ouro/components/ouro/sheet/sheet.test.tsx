@@ -18,7 +18,7 @@ import {
   SheetViewport,
 } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { registerSheetProperties } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
-import { Sheet, type SheetProps } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { Sheet, SheetFrame, type SheetProps } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -416,6 +416,37 @@ describe("feel", () => {
     expect(getComputedStyle(inside).getPropertyValue("--ouro-sheet-transform")).toBe("");
   });
 
+  it("SheetFrame tells onOpenChangeComplete once an open and a close have finished", async () => {
+    const complete = vi.fn();
+    const frame = (open: boolean) => (
+      <SheetFrame title="Filters" closeLabel="Close" side="left" open={open} onOpenChange={() => {}} onOpenChangeComplete={complete}>
+        <p>Body</p>
+      </SheetFrame>
+    );
+    const { rerender } = await render(frame(true));
+    await expect.poll(() => complete.mock.calls).toEqual([[true]]);
+    await rerender(frame(false));
+    await expect.poll(() => complete.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it("registers its own variables and Base UI's drawer ones, each with its syntax and starting value, none inherited", () => {
+    const register = vi.spyOn(CSS, "registerProperty").mockImplementation(() => undefined);
+    registerSheetProperties();
+    const length = (name: string) => ({ name, syntax: "<length>", inherits: false, initialValue: "0px" });
+    expect(register.mock.calls.map(([definition]) => definition)).toEqual([
+      length("--ouro-sheet-x"),
+      length("--ouro-sheet-y"),
+      length("--ouro-sheet-grab"),
+      { name: "--ouro-sheet-transform", syntax: "*", inherits: false },
+      length("--drawer-swipe-movement-x"),
+      length("--drawer-swipe-movement-y"),
+      length("--drawer-snap-point-offset"),
+      { name: "--drawer-swipe-progress", syntax: "<number>", inherits: false, initialValue: "0" },
+      { name: "--drawer-swipe-strength", syntax: "<number>", inherits: false, initialValue: "1" },
+      { name: "--drawer-frontmost-height", syntax: "*", inherits: false },
+    ]);
+  });
+
   it("registers its variables once: a second copy of the module finds them registered and does nothing", () => {
     expect(() => registerSheetProperties()).not.toThrow();
   });
@@ -445,6 +476,14 @@ describe("feel", () => {
     const durations = style.transitionDuration.split(", ");
     expect(durations[properties.indexOf("transform")]).toBe("0s");
     expect(durations[properties.indexOf("opacity")]).not.toBe("0s");
+  });
+
+  it("opens without restyling its content for Base UI's variables: the keyboard inset is already 0px above the viewport, and the frontmost height is not inherited", async () => {
+    const sheet = await openUncontrolled();
+    expect(getComputedStyle(viewport()!.parentElement!).getPropertyValue("--drawer-keyboard-inset").trim()).toBe("0px");
+    sheet.style.setProperty("--drawer-frontmost-height", "844px");
+    const inside = sheet.querySelector<HTMLElement>("[data-ouro-sheet-close]")!;
+    expect(getComputedStyle(inside).getPropertyValue("--drawer-frontmost-height")).toBe("");
   });
 
   it("pads the popup bottom by var(--drawer-keyboard-inset, 0px) so the keyboard never covers inputs", async () => {
@@ -833,10 +872,41 @@ describe("Sheet iOS backdrop rule", () => {
     expect(withIosRules(pageCss())).not.toBe(pageCss());
   });
 
+  it("reads no layout as the backdrop mounts, where the backdrop is fixed", async () => {
+    const reads: Element[] = [];
+    const rect = Element.prototype.getBoundingClientRect;
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      reads.push(this);
+      return rect.call(this);
+    });
+    await render(
+      <SheetRoot defaultOpen>
+        <SheetPortal>
+          <SheetBackdrop />
+          <SheetViewport>
+            <SheetPopup>
+              <SheetTitle>Fixed</SheetTitle>
+            </SheetPopup>
+          </SheetViewport>
+        </SheetPortal>
+      </SheetRoot>,
+    );
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const layer = backdrop()!;
+    expect(getComputedStyle(layer).position).toBe("fixed");
+    expect(reads).not.toContain(layer);
+    expect(layer.style.getPropertyValue("--ouro-backdrop-top")).toBe("");
+  });
+
   // The rule applies under @supports (-webkit-touch-callout: none), which only iOS
   // matches, so the test switches the shipped rule on (withIosRules).
   it("covers the visible screen on a page scrolled 2000px", async () => {
+    // The anchor follows the same query, so it is switched on with the rules.
+    const supports = CSS.supports.bind(CSS);
     const ios = document.createElement("style");
+    vi.spyOn(CSS, "supports").mockImplementation((...query: [string, string?]) =>
+      query[0] === "-webkit-touch-callout" && query[1] === "none" ? true : supports(...(query as [string, string])),
+    );
     ios.textContent = withIosRules(pageCss());
     document.head.append(ios);
     mounted.push(ios);

@@ -481,6 +481,7 @@
     "registry/ouro/e2e/ouro/live-captions.spec.ts": 5000,
     "registry/ouro/e2e/ouro/link.spec.ts": 10421,
     "registry/ouro/e2e/ouro/local-date.spec.ts": 6543,
+    "registry/ouro/e2e/ouro/media-tile.spec.ts": 4000,
     "registry/ouro/e2e/ouro/menu.spec.ts": 19099,
     "registry/ouro/e2e/ouro/message-list.spec.ts": 41593,
     "registry/ouro/e2e/ouro/message.spec.ts": 13381,
@@ -541,9 +542,11 @@
     "site/e2e/chapter-three.spec.ts": 149219,
     "site/e2e/chapter-two.spec.ts": 161310,
     "site/e2e/dive.spec.ts": 45833,
+    "site/e2e/site-menu.spec.ts": 120000,
     "site/e2e/stage.spec.ts": 235336,
     "site/e2e/voyage-live.spec.ts": 257000,
     "site/e2e/voyage-presets.spec.ts": 650000,
-    "site/e2e/voyage.spec.ts": 273715
+    "site/e2e/voyage.spec.ts": 273715,
+    "site/e2e/early-input.spec.ts": 15000
   }
 }

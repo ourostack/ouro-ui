@@ -45,3 +45,17 @@ it("inserts with setRangeText and an input event where insertText is not availab
   // It edits as typing would, so the control has focus afterwards.
   expect(document.activeElement).toBe(input);
 });
+
+it("focuses the field without scrolling a box that clips it", () => {
+  const frame = document.createElement("div");
+  frame.style.cssText = "height: 60px; overflow: hidden";
+  frame.innerHTML = '<div style="height: 400px"></div>';
+  document.body.append(frame);
+  const box = field("textarea", "Hi @jo");
+  frame.append(box);
+  insertText(box, 3, 6, "@Jordan Lee ");
+  expect(box.value).toBe("Hi @Jordan Lee ");
+  expect(document.activeElement).toBe(box);
+  expect(frame.scrollTop).toBe(0);
+  frame.remove();
+});

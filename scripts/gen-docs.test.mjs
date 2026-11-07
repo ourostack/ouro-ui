@@ -82,8 +82,8 @@ test("the eager page index retains routing text without Markdown-only metadata",
   const index = JSON.parse(readFileSync(file, "utf8"));
   const pages = JSON.parse(readFileSync(join(out, "site/src/docs/pages.json"), "utf8"));
   assert.ok(index.length > 0);
-  assert.deepEqual(index, pages.map(({ name, title, kind, summary }) => ({ name, title, kind, summary })));
-  for (const page of index) assert.deepEqual(Object.keys(page).sort(), ["kind", "name", "summary", "title"]);
+  assert.deepEqual(index, pages.map(({ name, title, kind, group, summary }) => ({ name, title, kind, group, summary })));
+  for (const page of index) assert.deepEqual(Object.keys(page).sort(), ["group", "kind", "name", "summary", "title"]);
   assert.ok(index.some((page) => page.kind === "guide"));
   assert.ok(index.some((page) => page.kind === "export"));
 });

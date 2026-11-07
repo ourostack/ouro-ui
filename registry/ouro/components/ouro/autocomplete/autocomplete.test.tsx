@@ -322,7 +322,8 @@ describe("Autocomplete", () => {
     await type(control, "@");
     await expect.poll(() => options().length).toBe(4);
     await userEvent.hover(options()[2]!);
-    expect(activeLabel(control)).toBe("Priya Natarajan");
+    // A mouse move is a continuous event, which React renders in a later task, not before the hover returns.
+    await expect.poll(() => activeLabel(control)).toBe("Priya Natarajan");
     await userEvent.hover(options()[2]!);
     await userEvent.click(options()[1]!);
     expect(control.value).toBe("@Jordan Lee ");

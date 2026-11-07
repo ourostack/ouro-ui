@@ -278,9 +278,30 @@ describe("Lightbox fetching", () => {
   it("starts fetching the full image as its thumbnail is pressed, before the viewer opens", async () => {
     const { host } = await render(lightbox());
     const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
-    await act(async () => thumbnails(host)[3]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 })));
+    await act(async () => thumbnails(host)[3]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" })));
     expect(sources.mock.calls).toEqual([[kitchen[3]!.src]]);
     expect(popup()).toBeNull();
+    sources.mockRestore();
+  });
+
+  it("waits for a finger or pen to lift without moving, so a scroll that starts on a thumbnail fetches nothing", async () => {
+    const { host } = await render(lightbox());
+    const sources = vi.spyOn(HTMLImageElement.prototype, "src", "set");
+    const press = (thumbnail: Element, type: string, x: number, y: number, pointerType: string) =>
+      act(async () => void thumbnail.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerType, clientX: x, clientY: y })));
+    const [first, second, third] = thumbnails(host);
+    // A finger that comes down and lifts where it was, give or take a little, is a tap.
+    await press(first!, "pointerdown", 20, 20, "touch");
+    expect(sources).not.toHaveBeenCalled();
+    await press(first!, "pointerup", 26, 28, "touch");
+    expect(sources.mock.calls).toEqual([[kitchen[0]!.src]]);
+    // One that moves further is a scroll; one the browser cancels was taken by a scroll; a lift with no press before it is neither.
+    await press(second!, "pointerdown", 20, 20, "pen");
+    await press(second!, "pointerup", 20, 40, "pen");
+    await press(third!, "pointerdown", 20, 20, "touch");
+    await act(async () => void third!.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerType: "touch" })));
+    await press(third!, "pointerup", 20, 20, "touch");
+    expect(sources.mock.calls).toEqual([[kitchen[0]!.src]]);
     sources.mockRestore();
   });
 

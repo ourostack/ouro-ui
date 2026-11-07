@@ -69,10 +69,9 @@ export interface AgentPresenceProps {
   /**
    * Called with an agent's `id` when the person presses its Stop. Stop the agent and drop it
    * from `agents`; AgentPresence says "inbox agent stopped" once it has gone. The person may stop
-   * any agent here. When an agent asks through the app's `stop` twin instead, stop it only if
-   * `id` is the calling agent's own, and refuse any other agent's row.
+   * any agent here.
    * @claim "Called with an agent's `id` when" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence > stops one agent, says so once it has gone, and keeps focus in the list)
-   * @claim "When an agent asks through the app's `stop` twin" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > binds stop to a twin that names the calling agent's row, and Stop all to words that refuse)
+   * @claim "The person may stop any agent here." registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > through an app's stop twin, which the kit scopes to the calling agent's row > lets the person stop any agent's row)
    */
   onStop: (id: string) => void;
   /**
@@ -157,10 +156,10 @@ function Sparkle(): JSX.Element {
  * chip.
  *
  * Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`, lets agents read who is
- * listening and what for (consent `none`). An agent may stop only its own listening, through the
- * app's `stop` twin, which refuses any other agent's row. Stop on another agent's row and Stop
- * all are the person's, because the person asked those agents to listen. It offers no way to
- * start listening: that stays the person's.
+ * listening and what for (consent `none`). An agent may stop only its own listening: `stop` is
+ * `scope: "self"`, so Ouro AX refuses an agent's call on another agent's row. Stop on another
+ * agent's row and Stop all are the person's, because the person asked those agents to listen. It
+ * offers no way to start listening: that stays the person's.
  *
  * Use `Avatar` or `Badge` instead to show who is present in a conversation, and `toast()` for
  * a one-off notice.
@@ -175,7 +174,8 @@ function Sparkle(): JSX.Element {
  * @claim "When a Stop goes with its agent," registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence > stops one agent, says so once it has gone, and keeps focus in the list)
  * @claim "When a Stop goes with its agent," registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence > moves focus to the control after the chip when the last agent goes)
  * @claim "Its agent side, `agentPresenceAx` in `agent-presence-styles.ts`," registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
- * @claim "An agent may stop only its own listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > binds stop to a twin that names the calling agent's row, and Stop all to words that refuse)
+ * @claim "An agent may stop only its own listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > through an app's stop twin, which the kit scopes to the calling agent's row > lets an agent stop its own row)
+ * @claim "so Ouro AX refuses an agent's call on another agent's row" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > through an app's stop twin, which the kit scopes to the calling agent's row > refuses an agent on another agent's row, with the reason, and leaves the row)
  * @claim "Stop on another agent's row and Stop" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
  * @claim "It offers no way to start listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
  * @group Feedback

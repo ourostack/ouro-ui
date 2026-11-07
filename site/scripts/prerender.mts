@@ -78,7 +78,15 @@ function pageAssets(kind: string): string[] {
  * The islands whose stylesheets a page links in its HTML as well, so it paints styled before they load. The Ouro AX
  * page's body and exhibit carry ax/ax.css, which the home page loads only with its own island (ax/ax.css says why).
  */
-const islandSheets: Record<string, string[]> = { "/ax/": ["src/ax/ax-page.tsx", "src/ax/exhibit.tsx"] };
+const islandSheets: Record<string, string[]> = {
+  "/ax/": ["src/ax/ax-page.tsx", "src/ax/exhibit.tsx"],
+  "/apple/": ["src/apple/home.tsx"],
+  "/apple/hx/": ["src/apple/hx.tsx"],
+  "/apple/feel/": ["src/apple/feel.tsx"],
+  "/apple/ax/": ["src/apple/ax.tsx"],
+  "/apple/reins/": ["src/apple/reins.tsx"],
+  "/apple/start/": ["src/apple/start.tsx"],
+};
 
 function islandAssets(path: string): string[] {
   const loaded = new Set([...closure("index.html"), ...closure(`src/pages/${pageKind(path)}.tsx`)]);

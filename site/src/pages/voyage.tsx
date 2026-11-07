@@ -6,8 +6,8 @@ import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
 import { HydrateInTurn } from "../hydrate";
-import { href, normalizePath } from "../paths";
-import { AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland, RepaintIsland } from "../voyage/chapters/island";
+import { APPLE_PATHS, href, normalizePath } from "../paths";
+import { AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland, RepaintIsland } from "../voyage/chapters/island";
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
@@ -21,6 +21,17 @@ import "../voyage/voyage.css";
 import "../voyage/chapters/chapters.css";
 
 const docsHref = (item: string) => href(`/docs/${item}/`);
+
+/** Each Ouro UI for Apple page's body, an island of its own (apple/). */
+const APPLE_ISLANDS: Record<(typeof APPLE_PATHS)[number], () => JSX.Element> = {
+  "/apple/": AppleHomeIsland,
+  "/apple/hx/": AppleHxIsland,
+  "/apple/feel/": AppleFeelIsland,
+  "/apple/ax/": AppleAxIsland,
+  "/apple/reins/": AppleReinsIsland,
+  "/apple/start/": AppleStartIsland,
+};
+const isApple = (page: string): page is (typeof APPLE_PATHS)[number] => page in APPLE_ISLANDS;
 
 /** HX Inspector's code loads only once someone turns X-ray on, so the page's first JavaScript carries none of it. */
 const Inspector = lazy(() => import("@/registry/ouro/components/ouro/inspector/inspector").then((module) => ({ default: module.Inspector })));
@@ -81,6 +92,11 @@ const noSubscription = () => () => {};
  * (the porthole stage, the two ships, the themes, agents and install), the Nautilus's own page
  * (the story's opening, its chapters, then Chapter I) and Ouro AX's (a morning with an agent, an island).
  */
+function ApplePage({ page }: { page: (typeof APPLE_PATHS)[number] }): JSX.Element {
+  const Island = APPLE_ISLANDS[page];
+  return <Island />;
+}
+
 export default function VoyagePage({ path }: { path: string }): JSX.Element {
   const page = normalizePath(path);
   const nautilus = page === "/nautilus/";
@@ -94,9 +110,14 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
         {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
         <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
-            <VoyageHeader path={page === "/nautilus/" || page === "/ax/" ? page : "/"} />
+            <VoyageHeader path={page === "/nautilus/" || page === "/ax/" ? page : isApple(page) ? "/apple/" : "/"} page={page} />
           </Suspense>
-          {page === "/ax/" ? (
+          {isApple(page) ? (
+            <main>
+              <ApplePage page={page} />
+              <Popups />
+            </main>
+          ) : page === "/ax/" ? (
             <main>
               <AxHero exhibit={<AxExhibitIsland />} />
               <AxIsland />
