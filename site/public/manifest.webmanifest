@@ -1,0 +1,14 @@
+{
+  "name": "Ouro HX",
+  "short_name": "Ouro HX",
+  "description": "Feels right to the people using it. Obvious to the agents building it.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#fbd9b6",
+  "theme_color": "#2e9b4f",
+  "icons": [
+    { "src": "/brand/storybook/icons/ouro-hx-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brand/storybook/icons/ouro-hx-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
