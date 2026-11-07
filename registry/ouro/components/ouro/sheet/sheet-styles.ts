@@ -100,6 +100,9 @@ function registerSheetProperties(): void {
     ...["--drawer-swipe-movement-x", "--drawer-swipe-movement-y", "--drawer-snap-point-offset"].map((name) => ({ name, syntax: "<length>", inherits: false, initialValue: "0px" })),
     { name: "--drawer-swipe-progress", syntax: "<number>", inherits: false, initialValue: "0" },
     { name: "--drawer-swipe-strength", syntax: "<number>", inherits: false, initialValue: "1" },
+    // Base UI's too, which it sets on the popup as each sheet opens and does not register: inherited, it restyled the
+    // whole sheet once more in the middle of the press. Base UI reads it on the popup only.
+    { name: "--drawer-frontmost-height", syntax: "*", inherits: false },
   ];
   for (const property of properties) {
     try {

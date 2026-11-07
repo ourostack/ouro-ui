@@ -103,6 +103,34 @@ for (const { path, navs } of PAGES) {
   });
 }
 
+test("the site's CSS has no rule that makes an open restyle more than it changes", async ({ page }) => {
+  // Two kinds of rule made each open of the menu restyle the whole page or the whole sheet in Chrome, once per change,
+  // and so cost the press tens of ms on a slow phone: a bare :has() (every element, the page's root too, then hangs on
+  // what the focus or a new node does), and a group-* variant on an attribute each sheet, menu and popover toggles as
+  // it opens (Tailwind writes it as `.x:is(:where(.group)[data-open] *)`, which Chrome cannot narrow to `.x`).
+  for (const path of ["./", "docs/button/"]) {
+    await page.goto(path);
+    await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    const offenders = await page.evaluate(() => {
+      const found: string[] = [];
+      const walk = (rules: CSSRuleList) => {
+        for (const rule of rules) {
+          if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) walk((rule as CSSGroupingRule).cssRules);
+          const selector = (rule as CSSStyleRule).selectorText;
+          if (!selector) continue;
+          for (const part of selector.split(",")) {
+            const one = part.trim();
+            if (one.startsWith(":has(") || /:is\(:where\(\.(group|peer)[^)]*\)\[data-(open|closed|starting-style|ending-style)\]/.test(one)) found.push(one);
+          }
+        }
+      };
+      for (const sheet of document.styleSheets) walk(sheet.cssRules);
+      return found;
+    });
+    expect(offenders, path).toEqual([]);
+  }
+});
+
 test("on a phone the menu lists each section's pages, the Apple pages from their own list", async ({ page }) => {
   await open(page, "apple/hx/");
   await openMenu(page);

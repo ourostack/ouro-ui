@@ -443,6 +443,7 @@ describe("feel", () => {
       length("--drawer-snap-point-offset"),
       { name: "--drawer-swipe-progress", syntax: "<number>", inherits: false, initialValue: "0" },
       { name: "--drawer-swipe-strength", syntax: "<number>", inherits: false, initialValue: "1" },
+      { name: "--drawer-frontmost-height", syntax: "*", inherits: false },
     ]);
   });
 
@@ -475,6 +476,14 @@ describe("feel", () => {
     const durations = style.transitionDuration.split(", ");
     expect(durations[properties.indexOf("transform")]).toBe("0s");
     expect(durations[properties.indexOf("opacity")]).not.toBe("0s");
+  });
+
+  it("opens without restyling its content for Base UI's variables: the keyboard inset is already 0px above the viewport, and the frontmost height is not inherited", async () => {
+    const sheet = await openUncontrolled();
+    expect(getComputedStyle(viewport()!.parentElement!).getPropertyValue("--drawer-keyboard-inset").trim()).toBe("0px");
+    sheet.style.setProperty("--drawer-frontmost-height", "844px");
+    const inside = sheet.querySelector<HTMLElement>("[data-ouro-sheet-close]")!;
+    expect(getComputedStyle(inside).getPropertyValue("--drawer-frontmost-height")).toBe("");
   });
 
   it("pads the popup bottom by var(--drawer-keyboard-inset, 0px) so the keyboard never covers inputs", async () => {

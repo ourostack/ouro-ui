@@ -195,7 +195,9 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
       }
       return true;
     };
-    if (reveal()) return;
+    // In the frame that first draws the sheet, not as the press's work ends: the sheet's own setup there (its focus,
+    // its height, the page's scroll lock) restyles the sheet between reads, so reading here as well cost the press a
+    // third restyle of the whole sheet. The frame's callbacks still run before it paints, so nothing shows unscrolled.
     let tries = 0;
     frame.current = requestAnimationFrame(function again() {
       if (!reveal() && ++tries < 30) frame.current = requestAnimationFrame(again);
@@ -274,8 +276,9 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
             tabIndex={-1}
             aria-hidden="true"
             data-site-menu-close=""
-            // Out of the way while the sheet's own Close shows, under keyboard focus, in the same corner.
-            className="[:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-2 z-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent active:bg-accent"
+            // Out of the way while the sheet's own Close shows, under keyboard focus, in the same corner. Asked of the
+            // sheet, not of any element: a bare :has() makes Chrome restyle the whole page on each focus and insertion.
+            className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-2 z-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent active:bg-accent"
           />
         }
       >
@@ -284,7 +287,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
         </svg>
       </SheetClose>
       <div ref={fade} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
-      {tools && <div className="[:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-2 z-3 flex gap-1 sm:hidden">{tools}</div>}
+      {tools && <div className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-2 z-3 flex gap-1 sm:hidden">{tools}</div>}
       {children}
     </>
   );

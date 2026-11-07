@@ -578,9 +578,10 @@ test("the stage judges the screen only once the site menu over it has closed", a
   // The stage's beat put off by six seconds, so the menu opens first, on a page too slow for the fish.
   await onTheBeat(page, { delay: 6000 });
   await slowFrames(page, 150);
+  await openSlow(page);
   // A record of what the stage waits on, read back if it has not judged: the menu's mark on the root, its beats (the
-  // 500 ms waits) as they are set and fire, and the frames drawn.
-  await page.addInitScript(() => {
+  // 500 ms waits) as they are set and fire, and the frames drawn. Kept from the loaded page, whose root is the one marked.
+  await page.evaluate(() => {
     const record = { marks: [] as string[], beats: [] as string[], frames: 0 };
     (window as unknown as { __stageRecord: typeof record }).__stageRecord = record;
     const at = () => Math.round(performance.now());
@@ -590,12 +591,12 @@ test("the stage judges the screen only once the site menu over it has closed", a
     });
     const set = window.setTimeout;
     window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
-      if (ms !== 500) return set(callback, ms, ...rest);
+      if (ms !== 500 && ms !== 2000) return set(callback, ms, ...rest);
       const id = set(() => {
-        record.beats.push(`${at()}:fire#${id}`);
+        record.beats.push(`${at()}:fire${ms}#${id}`);
         callback();
       }, ms, ...rest);
-      record.beats.push(`${at()}:set#${id}`);
+      record.beats.push(`${at()}:set${ms}#${id}`);
       return id;
     }) as typeof setTimeout;
     const count = () => {
@@ -604,7 +605,6 @@ test("the stage judges the screen only once the site menu over it has closed", a
     };
     requestAnimationFrame(count);
   });
-  await openSlow(page);
   await siteMenu(page).click();
   // real clock: past the stage's put-off beat and a second of frames, with the menu open all the while.
   await page.waitForTimeout(8000);
@@ -624,6 +624,10 @@ test("the stage judges the screen only once the site menu over it has closed", a
             speed: document.querySelector(".stage-scene")?.getAttribute("data-speed"),
             sheets: [...document.querySelectorAll<HTMLElement>('[data-ouro="sheet"]')].map((sheet) => (sheet.hidden ? "hidden" : "shown")),
             scrollY: Math.round(scrollY),
+            // The page's own visibility, under the stand-in onTheBeat gives document.hidden.
+            visibility: document.visibilityState,
+            reallyHidden: Object.getOwnPropertyDescriptor(Document.prototype, "hidden")?.get?.call(document),
+            reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
             now: Math.round(performance.now()),
             record: (window as unknown as { __stageRecord: unknown }).__stageRecord,
           });
