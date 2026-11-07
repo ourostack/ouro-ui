@@ -360,6 +360,12 @@ export function overlayOpeners(
 
 /** Resolves once every finite animation and transition in the document has finished. */
 export async function settle(): Promise<void> {
+  // A Navbar whose menu button shows builds its sheet, hidden, once the page is idle, in a transition no animation waits
+  // for: scanned before it lands, the page changed under axe (heading-order undecided, StackedLayout/Reader at 390 px).
+  await vi.waitFor(() => {
+    const menus = document.querySelectorAll('[data-ouro-navbar-menu][aria-haspopup="dialog"]').length;
+    if (document.querySelectorAll('[data-ouro="sheet"]').length < menus) throw new Error("a Navbar's sheet is not built yet");
+  }, waitOptions);
   for (let round = 0; round < 20; round++) {
     // Base UI clears the starting style in a deferred React update. Before that
     // commit a sheet is offscreen but has no running transition to await.
