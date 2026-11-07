@@ -245,9 +245,6 @@ export async function cleanupStories(): Promise<void> {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted.splice(0)) node.remove();
   setScheme("light");
-  // Off the page, so the next story doesn't mount under the pointer the last one left there: WebKit sends a
-  // mouse move to whatever mounts under it, and a trigger that opens on hover (NavigationMenu's) would open.
-  if (matchMedia("(hover: hover)").matches) await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
 }
 
 /** Whether an element is rendered and visible (not `display: none` or `visibility: hidden`). */
