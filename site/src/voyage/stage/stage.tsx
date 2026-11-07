@@ -165,23 +165,30 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       if (!document.hidden && !menuOpen()) wait = window.setTimeout(judge, 500);
     };
     soon();
-    const playing = () => setPaced(true);
-    const element = root.current;
     document.addEventListener("visibilitychange", soon);
     const menu = new MutationObserver(soon);
     menu.observe(document.documentElement, { attributes: true, attributeFilter: ["data-site-menu-open"] });
-    element?.addEventListener("pointerdown", playing, true);
-    element?.addEventListener("keydown", playing, true);
     return () => {
       clearTimeout(wait);
       clearTimeout(deadline);
       cancelAnimationFrame(frame);
       document.removeEventListener("visibilitychange", soon);
       menu.disconnect();
-      element?.removeEventListener("pointerdown", playing, true);
-      element?.removeEventListener("keydown", playing, true);
     };
   }, [paced, offscreen, speed]);
+  // A press on the stage means they are playing. Its listeners stay for the stage's life: taken off as the verdict committed,
+  // they cost CI's WebKit a frame of 300 to 700 ms (ourostack/ouro-ui#667).
+  useEffect(() => {
+    const element = root.current;
+    if (!element) return;
+    const playing = () => setPaced(true);
+    element.addEventListener("pointerdown", playing, true);
+    element.addEventListener("keydown", playing, true);
+    return () => {
+      element.removeEventListener("pointerdown", playing, true);
+      element.removeEventListener("keydown", playing, true);
+    };
+  }, []);
 
   const onDepth = useStable((value: number) => {
     // Going down sends up a stream of bubbles.
@@ -507,18 +514,35 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
  */
 const ShipLog = memo(function ShipLog({ log, logOpen }: { log: Entry[]; logOpen: Flag }): JSX.Element {
   const [open, setOpen] = useState(false);
+  // Closed, the list keeps the lines it last showed and doesn't re-render: a line added to the hidden list cost CI's
+  // WebKit a frame of 300 to 500 ms (ourostack/ouro-ui#667). It closes on what it showed, and catches up just before it
+  // opens, while still hidden, so it reads out none of the lines the crew's strip already did (MessageList hears the
+  // catch-up in a microtask, so the panel opens in the next one, before the frame).
+  const [shown, setShown] = useState(log);
+  if (open && shown !== log) setShown(log);
   const onOpenChange = (next: boolean) => {
-    setOpen(next);
     logOpen.set(next);
+    if (!next) {
+      setOpen(false);
+      return;
+    }
+    flushSync(() => setShown(log));
+    queueMicrotask(() => flushSync(() => setOpen(true)));
   };
+  const list = useMemo(
+    () => (
+      <MessageList label={STAGE_COPY.log} className="stage-log">
+        {shown.map((entry) => (
+          <LogEntry key={entry.id} entry={entry} />
+        ))}
+      </MessageList>
+    ),
+    [shown],
+  );
   return (
     <div className="stage-log-fold" data-stage-control="log">
       <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={onOpenChange}>
-        <MessageList label={STAGE_COPY.log} className="stage-log">
-          {log.map((entry) => (
-            <LogEntry key={entry.id} entry={entry} />
-          ))}
-        </MessageList>
+        {list}
       </Collapsible>
     </div>
   );
