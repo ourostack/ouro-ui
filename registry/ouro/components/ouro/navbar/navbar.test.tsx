@@ -97,9 +97,11 @@ describe("Navbar current-page marks", () => {
   }
 });
 afterEach(async () => {
+  // Unmounted first, so an effect's cleanup still finds the stubs it started with: WebKit has no cancelIdleCallback of
+  // its own to fall back on (ourostack/ouro-ui#685).
+  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
-  await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
   await page.viewport(414, 896);

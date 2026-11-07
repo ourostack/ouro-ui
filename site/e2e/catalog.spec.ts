@@ -147,9 +147,10 @@ test("real production hydration keeps label/control IDs while the uncached selec
     expect(before).not.toBeNull();
     await expect(page.locator(`label[for="${before}"]`)).toHaveText("Recipe name");
     await expect(page.locator("[data-site-demo-loading]")).toHaveCount(0);
-    await expect(name).toBeDisabled();
-    await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeDisabled();
+    // Never shown disabled: a tap or text before the chunk arrives is kept and answered then (early-input.spec.ts).
+    await expect(name).toBeEnabled();
+    await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeEnabled();
     await expect(page.locator("[data-site-demo-ready]")).toHaveCount(0);
     release();
     // The demo goes live a render after its chunk arrives, and says so once its handlers are attached.
