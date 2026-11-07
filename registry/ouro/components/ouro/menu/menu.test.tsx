@@ -36,6 +36,28 @@ function behind(element: Element): string {
 }
 
 
+/**
+ * Gives every Base UI focus guard on the page the role WebKit on Apple platforms gives it, where Base UI's FocusGuard
+ * makes it a button for VoiceOver and drops its aria-hidden. CI's WebKit runs on Linux, where the guards stay hidden.
+ */
+function guardsAsOnApple(): void {
+  for (const guard of document.querySelectorAll("[data-base-ui-focus-guard]")) {
+    guard.setAttribute("role", "button");
+    guard.removeAttribute("aria-hidden");
+  }
+}
+
+/** The gate's findings on the page, but for content outside a landmark: these tests render no main. */
+async function structureFindings() {
+  return (await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) })).filter((finding) => finding.rule !== "region");
+}
+
+/** The menu bar's or a menu's own focus guards: the ones in it, not in a popup it owns. */
+function guardsIn(element: Element): Element[] {
+  return [...element.querySelectorAll("[data-base-ui-focus-guard]")];
+}
+
+
 // Runs in Chromium and WebKit.
 
 const roots: Root[] = [];
@@ -551,6 +573,52 @@ describe("Menu items", () => {
     expect(child!.querySelector("[data-ouro-menu-back]")).toBeNull();
     await userEvent.keyboard("{ArrowLeft}");
     await expect.poll(() => menus().length).toBe(1);
+  });
+
+  it("keeps an open submenu's focus guards out of its menu, where WebKit on Apple platforms makes them buttons", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuSub label="Share">
+          <MenuItem>Copy link</MenuItem>
+        </MenuSub>
+      </Menu>,
+    );
+    trigger().focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+    await userEvent.keyboard("{ArrowDown}{ArrowRight}");
+    await expect.poll(() => menus().length).toBe(2);
+    const [parent, child] = menus();
+    expect(guardsIn(parent!)).toHaveLength(2);
+    guardsAsOnApple();
+    // The parent menu holds items only (aria-required-children); the submenu's own guards stay buttons for VoiceOver.
+    await expect.poll(() => guardsIn(parent!).map((guard) => [guard.getAttribute("role"), guard.getAttribute("aria-hidden")])).toEqual([
+      [null, "true"],
+      [null, "true"],
+    ]);
+    expect(describeFindings(await structureFindings())).toBe("");
+    expect(guardsIn(document.body).filter((guard) => !parent!.contains(guard)).map((guard) => guard.getAttribute("role"))).toContain("button");
+    expect(child!.closest("[data-ouro='menu-portal']")).not.toBeNull();
+    // Tab still stops on them: they keep their place in the focus order.
+    expect(guardsIn(parent!).map((guard) => guard.getAttribute("tabindex"))).toEqual(["0", "0"]);
+  });
+
+  it("leaves a dropdown's focus guards as WebKit on Apple platforms makes them, buttons that VoiceOver's cursor lands on", async () => {
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    const beside = guardsIn(document.body).filter((guard) => guard.getAttribute("data-type") === "outside");
+    expect(beside).toHaveLength(2);
+    guardsAsOnApple();
+    // Hidden ones change on the next microtask; these stay buttons after it.
+    await act(async () => {});
+    expect(beside.map((guard) => guard.getAttribute("role"))).toEqual(["button", "button"]);
+    expect(document.querySelector("[data-ouro-menu-guards]")).toBeNull();
   });
 
   it("renders every entry type from items", async () => {
@@ -1220,6 +1288,58 @@ describe("MenuBar", () => {
     await userEvent.hover(barTrigger("Edit"));
     await expect.poll(() => menu()?.textContent).toBe("Undo");
     expect(barTrigger("Edit").element().hasAttribute("data-popup-open")).toBe(true);
+  });
+
+  it("holds only its menus while one is open, where WebKit on Apple platforms makes the focus guards beside it buttons", async () => {
+    await renderBar();
+    const bar = page.getByRole("menubar", { name: "Recipe editor" }).element();
+    await userEvent.click(barTrigger("File"));
+    await settled();
+    expect(guardsIn(bar)).toHaveLength(2);
+    guardsAsOnApple();
+    await expect.poll(() => guardsIn(bar).every((guard) => !guard.hasAttribute("role") && guard.getAttribute("aria-hidden") === "true")).toBe(true);
+    expect(describeFindings(await structureFindings())).toBe("");
+    // The next menu's guards are new elements, and are hidden too.
+    await userEvent.hover(barTrigger("Edit"));
+    await expect.poll(() => menu()?.textContent).toBe("Undo");
+    guardsAsOnApple();
+    await expect.poll(() => guardsIn(bar).map((guard) => guard.getAttribute("role"))).toEqual([null, null]);
+  });
+
+  it("moves focus from an open menu past the bar on Tab, closing it, and back to its trigger on Shift+Tab, with its guards hidden as on Apple platforms", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <MenuBar aria-label="Recipe editor">
+          <Menu label="File">
+            <MenuItem>New</MenuItem>
+          </Menu>
+        </MenuBar>
+        <button type="button">After</button>
+      </>,
+    );
+    const bar = page.getByRole("menubar").element();
+    for (const [shift, lands] of [[false, "After"], [true, "File"]] as const) {
+      (barTrigger("File").element() as HTMLElement).focus();
+      await userEvent.keyboard("{ArrowDown}");
+      await expect.poll(() => document.activeElement?.textContent).toBe("New");
+      guardsAsOnApple();
+      await expect.poll(() => guardsIn(bar).map((guard) => guard.getAttribute("role"))).toEqual([null, null]);
+      await pressTab({ shift });
+      await expect.poll(() => document.activeElement?.textContent).toBe(lands);
+      if (!shift) await expect.poll(menu).toBeNull();
+      else await userEvent.keyboard("{Escape}");
+    }
+  });
+
+  it("keeps its menus' gap, closed and open", async () => {
+    await renderBar();
+    const gap = parseFloat(getComputedStyle(page.getByRole("menubar").element()).columnGap);
+    const between = () => barTrigger("Edit").element().getBoundingClientRect().left - barTrigger("File").element().getBoundingClientRect().right;
+    expect(between()).toBeCloseTo(gap, 1);
+    await userEvent.click(barTrigger("File"));
+    await settled();
+    expect(between()).toBeCloseTo(gap, 1);
   });
 
   it("gives its triggers a 32px row with a fine pointer", async () => {

@@ -43,6 +43,7 @@ import {
   menuBarTriggerClass,
   menuContextTriggerClass,
   menuGroupLabelClass,
+  menuGuardsClass,
   menuIndicatorClass,
   menuItemClass,
   menuPopupClass,
@@ -432,7 +433,37 @@ function MenuSurface({
 }): JSX.Element {
   const Positioner = context ? ContextMenu.Positioner : BaseMenu.Positioner;
   const portal = usePortalContainer("Menu", true);
-  return (
+  // An open menu leaves two focus guards beside its trigger (Base UI's FloatingPortal): a menubar's menu leaves them in
+  // the bar, a submenu in its menu. In WebKit on Apple platforms they are role="button", so that VoiceOver's cursor
+  // lands on them and is sent into the popup (Base UI utils/FocusGuard), and a menubar or a menu may hold no buttons
+  // (aria-required-children, issue #663). There they are hidden, as they are on every other platform; Tab still stops on
+  // them. The group Base UI puts between them owns the popup (aria-owns), so the popup is read right after its trigger.
+  // The guards inside the popup are left as buttons on purpose, so VoiceOver's cursor still moves focus into and out of
+  // it: they sit in the owned popup, beside the menu, not among the bar's or the menu's own children. A dropdown's guards
+  // are left alone too, as its trigger sits in no container that limits its children.
+  const inMenu = useContext(MenuContext) !== null;
+  const inBar = useContext(MenuBarContext);
+  const inside = inMenu || inBar;
+  const guards = useRef<HTMLSpanElement | null>(null);
+  useLayoutEffect(() => {
+    const holder = guards.current;
+    if (holder === null) return;
+    const hide = () => {
+      for (const guard of holder.querySelectorAll("[data-base-ui-focus-guard][role]")) {
+        guard.removeAttribute("role");
+        guard.setAttribute("aria-hidden", "true");
+      }
+    };
+    const observer = new MutationObserver(hide);
+    // Base UI mounts a guard without a role and gives it one a render later, so a change of role is all to watch for.
+    observer.observe(holder, { subtree: true, attributeFilter: ["role"] });
+    // `inside` comes from context fixed by where the surface is rendered, so the holder never comes or goes.
+    // Stryker disable next-line ArrowFunction: an observer left on a holder that has left the page sees no more changes.
+    return () => observer.disconnect();
+  },
+  // Stryker disable next-line ArrayDeclaration: the effect reads only the holder, the same element for the surface's life, so it runs once whatever it lists.
+  []);
+  const surface = (
     <BaseMenu.Portal {...portal} data-ouro="menu-portal" className={floatingPortalClass}>
       <PortalScope>
         {sheet && <BaseMenu.Backdrop data-ouro="menu-backdrop" className={menuBackdropClass} />}
@@ -472,6 +503,12 @@ function MenuSurface({
         </Positioner>
       </PortalScope>
     </BaseMenu.Portal>
+  );
+  if (!inside) return surface;
+  return (
+    <span ref={guards} data-ouro-menu-guards="" className={menuGuardsClass}>
+      {surface}
+    </span>
   );
 }
 
