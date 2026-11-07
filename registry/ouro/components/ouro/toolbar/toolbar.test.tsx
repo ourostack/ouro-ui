@@ -531,6 +531,65 @@ describe("Toolbar overflow", () => {
     }
   });
 
+  it("measures its entries again for every change in the text, not only the first", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    try {
+      document.documentElement.style.fontSize = "48px";
+      await expect.poll(() => view.more).not.toBeNull();
+      document.documentElement.style.fontSize = "";
+      await expect.poll(() => view.more).toBeNull();
+      document.documentElement.style.fontSize = "48px";
+      await expect.poll(() => view.more).not.toBeNull();
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
+  it("measures its entries again for every font that starts loading, not only the first", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    await frames();
+    for (let load = 0; load < 2; load++) {
+      const measured = await measuredWhile(() => act(async () => {
+        document.fonts.dispatchEvent(new Event("loading"));
+        await document.fonts.ready;
+      }));
+      expect(measured).toBeGreaterThan(0);
+    }
+  });
+
+  it("listens for fonts once, and lets go of its listener and its observer when it unmounts", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic"].map((label) => ({ label }));
+    const added = vi.spyOn(document.fonts, "addEventListener");
+    const removed = vi.spyOn(document.fonts, "removeEventListener");
+    const Native = window.ResizeObserver;
+    const made: ResizeObserver[] = [];
+    window.ResizeObserver = class extends Native {
+      constructor(callback: ResizeObserverCallback) {
+        super(callback);
+        made.push(this);
+      }
+    };
+    const disconnected = vi.spyOn(Native.prototype, "disconnect");
+    try {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      await act(async () => root.render(<Toolbar label="Formatting" size="sm" items={items} />));
+      await act(async () => root.render(<Toolbar label="Formatting" size="sm" items={[...items]} />));
+      expect(added.mock.calls.filter(([type]) => type === "loading")).toHaveLength(1);
+      await act(async () => root.unmount());
+      expect(removed.mock.calls.filter(([type]) => type === "loading")).toHaveLength(1);
+      expect(made.length).toBeGreaterThan(0);
+      for (const observer of made) expect(disconnected.mock.contexts).toContain(observer);
+    } finally {
+      window.ResizeObserver = Native;
+    }
+  });
+
   it("moves the controls that do not fit into a More menu at the end", async () => {
     const { buttons, more } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
     expect(more).not.toBeNull();

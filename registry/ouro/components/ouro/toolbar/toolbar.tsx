@@ -514,12 +514,14 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
       const changed = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].some(
         (element) => !(Math.abs(element.getBoundingClientRect().width - measured[Number(element.getAttribute("data-ouro-toolbar-entry"))]!) <= 0.5),
       );
+      // Stryker disable next-line ArithmeticOperator: equivalent; the epoch is only compared for difference, so count - 1 forces a measure just as count + 1 does.
       if (changed) setEpoch((count) => count + 1);
     });
     entries.current = stale;
     // A font that loads changes the labels' widths, and maybe nothing the observers see, so the entries are measured
     // again once the fonts are ready. (WebKit sends no loadingdone for a face it finds at once, only loading.)
     const fonts = root.ownerDocument.fonts;
+    // Stryker disable next-line ArithmeticOperator: equivalent; the epoch is only compared for difference, so count - 1 forces a measure just as count + 1 does.
     const loading = () => void fonts.ready.then(() => setEpoch((count) => count + 1));
     fonts.addEventListener("loading", loading);
     return () => {
