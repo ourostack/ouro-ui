@@ -46,7 +46,9 @@ for (const path of ["./", "docs/tooltip/", "ax/"]) {
     await button.click();
     release();
     await hydrated(button);
+    // real clock: the menu stays open until it is closed; no timer ends it.
     await expect(page.getByRole("dialog", { name: "Menu" })).toBeVisible({ timeout: ANSWERED });
+    // real clock: the menu stays open until it is closed; no timer ends it.
     await expect(page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Site" })).toBeVisible();
   });
 }
@@ -60,6 +62,7 @@ test("a tap on the theme picker or Search before the page's script has run is an
     release();
     await hydrated(button);
     // Each opens a dialog: the theme picker's popover, and Search's command palette.
+    // real clock: each stays open until it is closed; no timer ends it.
     await expect(page.getByRole("dialog")).toBeVisible({ timeout: ANSWERED });
     await page.unroute(ENTRY);
   }
