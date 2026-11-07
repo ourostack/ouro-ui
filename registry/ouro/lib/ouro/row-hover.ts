@@ -162,11 +162,14 @@ export function useRowHover<T>(
   // the listeners below go only after that.
   // Stryker disable next-line BooleanLiteral: its own mount layout effect below sets it true before anything can read it (every call through api.current, and the main effect's own listeners, run only once all of this commit's layout effects, including this one, are done), so forcing its initial value false here can't be observed.
   const live = useRef(true);
-  useLayoutEffect(() => {
-    live.current = true;
-    return () => void (live.current = false);
+  useLayoutEffect(
+    () => {
+      live.current = true;
+      return () => void (live.current = false);
+    },
     // Stryker disable next-line ArrayDeclaration: a constant string literal never differs from the previous render's, so these deps compare equal exactly when `[]` does; the effect still runs once at mount and its cleanup once at unmount either way, and no test can tell them apart.
-  }, []);
+    [],
+  );
   // After every ref of the update is in place: a list whose element's ref is replaced in the same update the layer
   // arrives in has it only once the layout effects are done.
   useEffect(() => {
