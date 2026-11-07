@@ -1,0 +1,9 @@
+{
+  "about": "The sources Ouro images (registry/ouro/images/images.ts) makes site/public/showcase/ from: node registry/ouro/images/images.ts site/showcase --out site/public/showcase --widths 640,960,1280 --base /showcase/",
+  "files": ["spoonjoy-xray-light.webp", "spoonjoy-xray-dark.webp"],
+  "copiedFrom": "ourostack/ouroboros-website@3752010:public/images/workshop/ouro-hx-spoonjoy-xray-{light,dark}.webp, the Ouro HX page this home page's showcases replaced",
+  "source": "https://spoonjoy.app/test-kitchen?xray",
+  "captured": "2026-10-31",
+  "method": "Playwright Chromium, 1280x900 viewport at 2x, prefers-color-scheme light and dark, scrolled 500px, cropped to the top 690 CSS px and resized to 1600 wide",
+  "notes": "Unedited screenshots of the live Spoonjoy app with its X-ray overlay, which outlines and names each Ouro HX component on the page."
+}

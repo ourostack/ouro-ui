@@ -5,6 +5,7 @@ import { CodeBlock } from "../components/code";
 import { href } from "../paths";
 import { HapticTable } from "./haptics";
 import { Loop } from "./loop";
+import { StoryOpener } from "../components/story-world";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 import { PressTwin } from "./press-twin";
 import { SpringTwin } from "./spring-twin";
@@ -31,6 +32,7 @@ export default function AppleHx(): JSX.Element {
   return (
     <div id="apple-hx" className="apple">
       <AppleMenu current="/apple/hx/" />
+      <StoryOpener scene="ouro-ui-apple" line="Press the green card on the phone, then on the laptop. Same spring, same little click." />
       <AppleHero
         id="apple-hx-title"
         eyebrow="Ouro HX for Apple"

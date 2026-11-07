@@ -17,7 +17,9 @@ interface Route {
   title: string;
   description: string;
 }
-const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, headTags, pageKind } = (await import(pathToFileURL(server).href)) as {
+const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, headTags, pageKind, sitemap, SITE } = (await import(pathToFileURL(server).href)) as {
+  sitemap: (routes: Route[]) => string;
+  SITE: string;
   render: (path: string) => Promise<string>;
   pageKind: (path: string) => string;
   headTags: (route: Route, canonical: boolean) => string[];
@@ -125,6 +127,9 @@ writeFileSync(
   join(dist, "404.html"),
   await page({ path: "/404/", title: "Lost at sea · Ouro HX", description: "This page has drifted off our charts. Head back to the surface, or search the docs." }, "/404/", false),
 );
+// Every page for crawlers, and robots.txt pointing to it (the routes, as built above).
+writeFileSync(join(dist, "sitemap.xml"), sitemap(routes));
+writeFileSync(join(dist, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 // The published Markdown shows installed paths (`@/components/ouro/...`), as the HTML pages
 // do, and parts.md is published beside it so each page's link to it resolves.
 // A link to another docs file names that file's published page (`Form.md` is `form.md`).

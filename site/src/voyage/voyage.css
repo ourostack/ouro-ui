@@ -484,6 +484,28 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
 [data-theme="brass"] .site-ship-nautilus {
   --sea-ink: color-mix(in oklab, var(--chart-2) 55%, var(--primary));
 }
+/* Spoonjoy's X-ray screenshot beside its showcase: the theme's own shot, edges softly rounded, no frame or shadow. */
+.site-ship-shot-link {
+  display: block;
+  border-radius: calc(var(--radius) * 1.4);
+}
+.site-ship-shot-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+.site-ship-shot-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: calc(var(--radius) * 1.4);
+}
+.site-ship-shot-dark,
+.dark .site-ship-shot-light {
+  display: none;
+}
+.dark .site-ship-shot-dark {
+  display: block;
+}
 /* A quiet text link beside a card's buttons ("Source"), 44px tall on touch. */
 .site-quiet-link {
   display: inline-flex;
@@ -508,5 +530,23 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
 @media (pointer: coarse) {
   .site-quiet-link {
     min-height: 2.75rem;
+  }
+}
+
+/* The install section's list of what comes with every component (home-reference.tsx): open text under hairlines, two across on a wide screen. */
+.site-perks {
+  display: grid;
+  gap: 1.25rem 2rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.site-perks > li {
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+}
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .site-perks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

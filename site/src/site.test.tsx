@@ -168,6 +168,30 @@ describe("home page", () => {
     expect(page.getByRole("link", { name: "Switching from shadcn" }).element().getAttribute("href")).toBe("/docs/switching-from-shadcn/");
   });
 
+  it("shows Spoonjoy's X-ray shot beside its showcase, AVIF first at each width, linked to the Test Kitchen with X-ray on", async () => {
+    await renderPage("/");
+    const showcase = document.querySelector("[data-site-ship='ship-spoonjoy']")!;
+    const pictures = [...showcase.querySelectorAll("picture")];
+    expect(pictures.map((picture) => picture.className)).toEqual(["site-ship-shot-light", "site-ship-shot-dark"]);
+    for (const picture of pictures) {
+      expect([...picture.querySelectorAll("source")].map((source) => source.type)).toEqual(["image/avif", "image/webp"]);
+      expect(picture.querySelector("source")!.srcset).toMatch(/-640\.avif 640w, .*-1600\.avif 1600w$/);
+      const image = picture.querySelector("img")!;
+      expect([image.getAttribute("width"), image.getAttribute("height"), image.loading]).toEqual(["1600", "863", "lazy"]);
+      expect(image.alt).toMatch(/^Spoonjoy's Crispy Lemon Chickpeas recipe/);
+    }
+    expect(pictures[0]!.closest("a")!.getAttribute("href")).toBe("https://spoonjoy.app/test-kitchen?xray");
+    await expect.element(page.getByText(/Real app, real recipe, real chickpeas\.$/)).toBeVisible();
+  });
+
+  it("lists what comes with every component beside the install steps, under hairlines", async () => {
+    await renderPage("/");
+    const install = document.getElementById("install")!;
+    const names = [...install.querySelectorAll(".site-perks > li > h3")].map((heading) => heading.textContent);
+    expect(names).toEqual(["Yours to keep", "Keeps your theme", "Phones get sheets", "Motion, minus the luggage", "Tests, if you want them", "Agents read the manual too"]);
+    expect(install.querySelector(".site-perks a")!.getAttribute("href")).toBe("/llms.txt");
+  });
+
   it("adds ouro-base once, before the first component", async () => {
     await renderPage("/");
     await expect.element(page.getByText(`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`, { exact: true })).toBeVisible();

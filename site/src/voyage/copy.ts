@@ -21,10 +21,18 @@ export const TWO_SHIPS = {
   },
   spoonjoy: {
     title: "Spoonjoy: built for dinner.",
-    body: "A recipe app with a look of its own. Open its Test Kitchen, then turn on X-ray to see the Ouro HX parts inside.",
+    body: "A recipe app with a look of its own, already cooking in production. Open its Test Kitchen, then turn on X-ray to see the Ouro HX parts inside.",
     open: "Try the Test Kitchen",
     xray: "X-ray it",
     source: "Source",
+    /** The X-ray screenshot (site/showcase/provenance.json), its caption from ouroboros.bot/ouro-hx/, which this section replaced. */
+    shot: {
+      alt: {
+        light: "Spoonjoy's Crispy Lemon Chickpeas recipe with X-ray on: the navbar, a number field, a button and a checklist are outlined and labeled with their Ouro HX component names.",
+        dark: "Spoonjoy's Crispy Lemon Chickpeas recipe in dark mode with X-ray on: the navbar, a number field, a button and a checklist are outlined and labeled with their Ouro HX component names.",
+      },
+      caption: "The Test Kitchen with X-ray on: the outlined parts wear their Ouro HX name tags. Real app, real recipe, real chickpeas.",
+    },
   },
 } as const;
 
