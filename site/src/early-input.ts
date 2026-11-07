@@ -15,10 +15,10 @@ export const EARLY_CONTROLS = 'button, [role="button"], [role="checkbox"], [role
 export const EARLY_FIELDS = 'input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]), textarea, select';
 
 /**
- * The controls a press moves by where it lands, not by a click: a slider's track. A tap there, or a drag, is kept as the
- * point the finger left it, and pressed there again.
+ * The controls a press moves by where it lands and goes, not by a click: a slider, and a row that swipes open. A tap or
+ * a drag there is kept as where the finger came down and where it lifted, and made again along that line.
  */
-export const EARLY_POINTS = "[data-ouro-slider-control]";
+export const EARLY_POINTS = '[data-ouro-slider-control], [data-ouro="swipe-actions"]';
 
 /** Where React renders: a control elsewhere is never hydrated, so a tap on it is left to the page. */
 export const EARLY_SCOPE = "#root";
@@ -65,7 +65,7 @@ export function keepEarlyInput(
   };
   let tap: HTMLElement | null = null;
   // Where a press on a control in `points` left it, and on what; and whether the finger is still down.
-  let point: { target: Element; x: number; y: number; type: string } | null = null;
+  let point: { from: [number, number]; x: number; y: number; type: string } | null = null;
   let down = false;
   // The kept control stays pressed until it is answered, so the tap shows it landed: the theme's press scale, where
   // motion is welcome, and a little dimmer. Set on the element and put back as it was.
@@ -137,7 +137,9 @@ export function keepEarlyInput(
     };
     if (typeof MutationObserver === "function") {
       observer = new MutationObserver((records) => {
-        if (records.some((record) => !(record.target === pressed && record.attributeName === "style"))) finish();
+        // Not the press's own look, and not the page's <head>, where a preload for what the press opens lands first.
+        const head = (document as unknown as Document).head;
+        if (records.some((record) => !(record.target === pressed && record.attributeName === "style") && !(head && head.contains(record.target)))) finish();
       });
       observer.observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
     }
@@ -146,11 +148,18 @@ export function keepEarlyInput(
     const limit = setTimeout(finish, answerWithin);
     if (!at) pressed.click();
     else {
-      // Pressed where the finger left it, and let go: pointer 0, which no browser pointer has, so the control does not
-      // try to capture it.
-      const at2 = { bubbles: true, cancelable: true, composed: true, clientX: at.x, clientY: at.y, button: 0, buttons: 1, pointerId: 0, isPrimary: true, pointerType: at.type };
-      at.target.dispatchEvent(new PointerEvent("pointerdown", at2));
-      at.target.dispatchEvent(new PointerEvent("pointerup", { ...at2, buttons: 0 }));
+      // On the control itself, so a drag that began on a slider's thumb moves the slider rather than the thumb in place:
+      // down where the finger came down, along to where it lifted, and up there. Pointer 0, which no browser pointer has,
+      // so a control that tries to capture it is told no.
+      const event = (x: number, y: number, buttons: number) =>
+        ({ bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, button: 0, buttons, pointerId: 0, isPrimary: true, pointerType: at.type }) as PointerEventInit;
+      pressed.dispatchEvent(new PointerEvent("pointerdown", event(at.from[0], at.from[1], 1)));
+      for (let step = 1; step <= 4; step++) {
+        const x = at.from[0] + ((at.x - at.from[0]) * step) / 4;
+        const y = at.from[1] + ((at.y - at.from[1]) * step) / 4;
+        pressed.dispatchEvent(new PointerEvent("pointermove", event(x, y, 1)));
+      }
+      pressed.dispatchEvent(new PointerEvent("pointerup", event(at.x, at.y, 0)));
     }
   };
   const soon = () => {
@@ -196,12 +205,15 @@ export function keepEarlyInput(
       const target = event.target as Element | null;
       const control = target && target.closest ? target.closest(points) : null;
       if (!control || fiber(control) || !control.closest(scope) || control.closest('[disabled], [data-disabled], [aria-disabled="true"]')) return;
+      // A press on a button inside a row is the button's: kept by its click.
+      const inner = target!.closest(controls);
+      if (inner && control.contains(inner) && inner !== control) return;
       // Kept, not also taken by React, should it hydrate the control within this press: the replay is the press.
       event.stopPropagation();
       hold(control as HTMLElement);
       // A whole track shrinking would read as the slider moving: it only dims.
       (control as HTMLElement).style.scale = before[0];
-      point = { target: target!, x: event.clientX, y: event.clientY, type: event.pointerType };
+      point = { from: [event.clientX, event.clientY], x: event.clientX, y: event.clientY, type: event.pointerType };
       down = true;
       soon();
     },
@@ -215,7 +227,18 @@ export function keepEarlyInput(
     { capture: true, passive: true },
   );
   document.addEventListener("pointerup", () => (down = false), true);
-  document.addEventListener("pointercancel", () => (down = false), true);
+  // The browser took the finger for a scroll: nothing was pressed, and the control looks as it did.
+  document.addEventListener(
+    "pointercancel",
+    () => {
+      if (down && point) {
+        hold(null);
+        page.__ouroEarlyInput = waiting();
+      }
+      down = false;
+    },
+    true,
+  );
   document.addEventListener("input", typed, true);
   document.addEventListener("change", typed, true);
 }

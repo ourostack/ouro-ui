@@ -76,11 +76,18 @@ describe("keepEarlyInput", () => {
   it("keeps the pressed look until the page answers the press, or for at most its limit", async () => {
     const { document, clicks } = page('<button data-name="search" data-quiet>Search</button>', EARLY_PATIENCE, 120);
     const search = document.querySelector("button")!;
+    const head = globalThis.document.createElement("head");
+    document.parentElement!.append(head);
+    Object.defineProperty(document.parentElement!, "head", { value: head });
     search.click();
     hydrate(search);
     await frames3();
     // Pressed, but the page has not answered yet (its palette's code is loading): still pressed.
     expect(clicks).toEqual(["search"]);
+    expect(search.style.opacity).toBe("0.8");
+    // A preload for the palette's code lands in the <head> first: not an answer.
+    head.append(globalThis.document.createElement("link"));
+    await nextFrame();
     expect(search.style.opacity).toBe("0.8");
     const palette = globalThis.document.createElement("div");
     document.append(palette);
@@ -102,7 +109,8 @@ describe("keepEarlyInput", () => {
     const { window, document } = page('<div data-ouro-slider-control style="width: 200px; height: 20px"><div class="track"></div></div>');
     const control = document.querySelector<HTMLElement>("[data-ouro-slider-control]")!;
     const heard: string[] = [];
-    for (const type of ["pointerdown", "pointerup"]) control.addEventListener(type, (event) => heard.push(`${type} ${(event as PointerEvent).clientX} ${(event as PointerEvent).pointerId}`));
+    for (const type of ["pointerdown", "pointermove", "pointerup"])
+      control.addEventListener(type, (event) => heard.push(`${type} ${(event as PointerEvent).clientX} ${(event as PointerEvent).pointerId} ${(event as PointerEvent).buttons}`));
     // A drag: down at 20, along to 150, up there, and the click that follows.
     control.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 20, clientY: 5, pointerId: 7, pointerType: "touch" }));
     control.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: 150, clientY: 5, pointerId: 7 }));
@@ -113,8 +121,34 @@ describe("keepEarlyInput", () => {
     heard.length = 0;
     hydrate(control);
     await frames3();
-    expect(heard).toEqual(["pointerdown 150 0", "pointerup 150 0"]);
+    // On the control, from where it came down to where it lifted, with the button held along the way.
+    expect(heard).toEqual(["pointerdown 20 0 1", "pointermove 52.5 0 1", "pointermove 85 0 1", "pointermove 117.5 0 1", "pointermove 150 0 1", "pointerup 150 0 0"]);
     expect(window.__ouroEarlyInput).toBe(0);
+  });
+
+  it("lets a press on a slider go when the browser takes it for a scroll", async () => {
+    const { window, document } = page('<div data-ouro-slider-control style="width: 200px; height: 20px"></div>');
+    const control = document.querySelector<HTMLElement>("[data-ouro-slider-control]")!;
+    control.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 20, clientY: 5, pointerId: 7, pointerType: "touch" }));
+    expect(control.style.opacity).toBe("0.8");
+    control.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 7 }));
+    expect(control.style.opacity).toBe("");
+    expect(window.__ouroEarlyInput ?? 0).toBe(0);
+    let heard = 0;
+    control.addEventListener("pointerdown", () => (heard += 1));
+    hydrate(control);
+    await frames3();
+    expect(heard).toBe(0);
+  });
+
+  it("leaves a press on a button inside a swiping row to the button's own click", async () => {
+    const { document, clicks } = page('<div data-ouro="swipe-actions"><button data-name="more">More</button></div>');
+    const more = document.querySelector("button")!;
+    more.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 5, clientY: 5, pointerId: 3 }));
+    more.click();
+    hydrate(more);
+    await frames3();
+    expect(clicks).toEqual(["more"]);
   });
 
   it("keeps still where the reader asks for less motion, and only dims", () => {

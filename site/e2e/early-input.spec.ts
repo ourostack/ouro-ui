@@ -126,3 +126,46 @@ test("a tap on a live slider before its own script arrived moves it there once i
   await hydrated(track);
   await expect(spice).toHaveAttribute("aria-valuenow", "4", { timeout: ANSWERED });
 });
+
+test("a drag of a live slider's thumb before its own script arrived moves it to where the drag ended once it does", async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  const { asked, release } = await hold(page, "**/assets/slider.demo-*.js");
+  await page.goto("docs/slider/", { waitUntil: "domcontentloaded" });
+  await asked;
+  const spice = page.getByRole("slider", { name: "Spice level" });
+  const track = page.locator('[data-ouro="slider"]').filter({ has: spice }).locator("[data-ouro-slider-control]");
+  const thumb = track.locator("[data-ouro-slider-thumb]");
+  const [from, box] = [(await thumb.boundingBox())!, (await track.boundingBox())!];
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.95, box.y + box.height / 2, { steps: 5 });
+  await page.mouse.up();
+  release();
+  await hydrated(track);
+  await expect(spice).toHaveAttribute("aria-valuenow", "5", { timeout: ANSWERED });
+});
+
+test("a swipe on a live example's row before its own script arrived opens the row's actions once it does", async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  const { asked, release } = await hold(page, "**/assets/swipe-actions.demo-*.js");
+  await page.goto("docs/swipe-actions/", { waitUntil: "domcontentloaded" });
+  await asked;
+  const row = page.locator('[data-site-demo="swipe-actions"] [data-ouro="swipe-actions"]').first();
+  const box = (await row.boundingBox())!;
+  // A finger, leftward from the row's right side a third of the way across: its trailing action. A mouse never swipes a row
+  // (its way to the actions is the actions button), and WebKit has no touch input to drive, so the finger is pointer events.
+  await row.evaluate(async (element, box) => {
+    const y = box.y + box.height / 2;
+    const at = (x: number, buttons: number): PointerEventInit =>
+      ({ bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, button: 0, buttons, pointerId: 2, isPrimary: true, pointerType: "touch" });
+    element.dispatchEvent(new PointerEvent("pointerdown", at(box.x + box.width * 0.9, 1)));
+    for (let step = 1; step <= 8; step++) {
+      await new Promise((frame) => setTimeout(frame, 16));
+      element.dispatchEvent(new PointerEvent("pointermove", at(box.x + box.width * (0.9 - 0.04 * step), 1)));
+    }
+    element.dispatchEvent(new PointerEvent("pointerup", at(box.x + box.width * 0.58, 0)));
+  }, box);
+  release();
+  await hydrated(row);
+  await expect(row).toHaveAttribute("data-open", "trailing", { timeout: ANSWERED });
+});

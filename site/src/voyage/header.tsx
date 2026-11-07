@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState, useSyncExternalStore, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -107,15 +107,21 @@ export function ThemePicker(): JSX.Element {
 }
 
 // The palette's code loads the first time it is wanted, so the page's first load does not carry it: as the reader
-// points at Search, focuses it or presses it, so it is mostly here by the click.
-const loadPalette = () => import("./site-palette");
-const SitePalette = lazy(loadPalette);
-const wantPalette = () => void loadPalette();
+// points at Search, focuses it or presses it. It is put in place once its code has arrived, not suspended while it
+// loads: React reveals a suspended part about 300 ms late, which held back a press with no hover first (a finger, a
+// quick click).
+type Palette = typeof import("./site-palette").default;
+let loading: Promise<Palette> | undefined;
+const loadPalette = (): Promise<Palette> => (loading ??= import("./site-palette").then((module) => module.default));
 
 /** ⌘K: every page, the presets, light and dark, and X-ray (site-palette.tsx). */
 function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>> }): JSX.Element {
-  const [wanted, setWanted] = useState(false);
-  if (open && !wanted) setWanted(true);
+  const [SitePalette, setSitePalette] = useState<Palette | null>(null);
+  const want = () => void loadPalette().then((palette) => setSitePalette(() => palette));
+  // ⌘K opens it with no press on the button.
+  useEffect(() => {
+    if (open) want();
+  }, [open]);
   return (
     <>
       <Button
@@ -123,19 +129,19 @@ function SiteCommand({ open, setOpen }: { open: boolean; setOpen: Dispatch<SetSt
         tone="secondary"
         size="sm"
         onClick={() => setOpen(true)}
-        onPointerEnter={wantPalette}
-        onPointerDown={wantPalette}
-        onFocus={wantPalette}
+        onPointerEnter={want}
+        onPointerDown={want}
+        onFocus={want}
         aria-haspopup="dialog"
         // As wide as Ctrl+K needs, with the hint at its end, as a search field: the server can't know the platform, so
         // a Mac's ⌘K, narrower, arrives as the page hydrates, and would otherwise pull the controls beside it along.
-        className="max-sm:hidden min-w-[8.25rem] justify-between"
+        className="max-sm:hidden min-w-[8.25rem] [&>[data-ouro-label]]:w-full [&>[data-ouro-label]]:justify-between"
         aria-keyshortcuts="Meta+K Control+K"
       >
         Search
         <Kbd keys={["mod", "k"]} className="ms-1" />
       </Button>
-      <Suspense>{wanted && <SitePalette open={open} onOpenChange={setOpen} />}</Suspense>
+      {SitePalette && <SitePalette open={open} onOpenChange={setOpen} />}
     </>
   );
 }
