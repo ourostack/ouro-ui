@@ -68,18 +68,9 @@ async function openMenu(page: Page): Promise<void> {
   await settled(page);
 }
 
-/**
- * The sheet has finished moving: nothing animates on it (the "you're here" ping inside may go on), and two reads of its
- * place, and of its list's scroll to the page you are on, agree. A press while the list still scrolls can land its
- * pointerdown and pointerup on different links, which raises no click (ourostack/ouro-ui#664).
- */
+/** The sheet has finished moving: nothing animates on it (the "you're here" ping inside may go on), and two reads of its place agree. */
 async function settled(page: Page): Promise<void> {
-  const place = () =>
-    sheet(page).evaluate((element) => {
-      if (element.getAnimations().length > 0) return "moving";
-      const scrolls = [element, ...element.querySelectorAll<HTMLElement>("*")].map((part) => part.scrollTop).join(",");
-      return `${element.getBoundingClientRect().x}:${scrolls}`;
-    });
+  const place = () => sheet(page).evaluate((element) => (element.getAnimations().length > 0 ? "moving" : `${element.getBoundingClientRect().x}`));
   let last = "";
   await expect
     .poll(async () => {
@@ -675,9 +666,24 @@ test("on a phone choosing the page you are on closes the menu and stays put", as
 test("on a phone the page you are on, chosen with a modifier key held, opens in a new tab and the menu stays", async ({ page, context }) => {
   await open(page, "ax/");
   await openMenu(page);
-  const tab = context.waitForEvent("page");
+  // What the press did, read back if no tab opens (ourostack/ouro-ui#664): each pointer and click event, its target, its
+  // modifier keys and whether anything cancelled it, as the event leaves the page.
+  await page.evaluate(() => {
+    const events: string[] = [];
+    (window as unknown as { __press: string[] }).__press = events;
+    for (const type of ["pointerdown", "pointerup", "click", "auxclick"])
+      window.addEventListener(type, (event) => {
+        const target = event.target as Element;
+        const mouse = event as MouseEvent;
+        events.push(`${Math.round(performance.now())}:${type}@${target.tagName}${target.getAttribute("aria-current") ? "[current]" : ""}"${(target.textContent ?? "").trim().slice(0, 16)}" ctrl=${mouse.ctrlKey} meta=${mouse.metaKey} prevented=${event.defaultPrevented}`);
+      });
+  });
+  const tab = context.waitForEvent("page", { timeout: 10_000 }).catch(async () => {
+    throw new Error(`no tab opened; the press: ${JSON.stringify(await page.evaluate(() => (window as unknown as { __press: string[] }).__press))}`);
+  });
   await sheet(page).locator('[aria-current="page"]').click({ modifiers: ["ControlOrMeta"] });
-  expect((await tab).url()).toMatch(/\/ax\/$/);
+  // The tab opens on about:blank and then loads the page.
+  await (await tab).waitForURL(/\/ax\/$/);
   await expect(sheet(page)).toBeVisible();
 });
 
