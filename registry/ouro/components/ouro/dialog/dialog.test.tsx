@@ -915,7 +915,12 @@ describe("Dialog close button press", () => {
 
 describe("Dialog iOS backdrop rule", () => {
   it("covers the visible screen on a page scrolled 2000px", async () => {
+    // The anchor follows the same query, so it is switched on with the rules.
+    const supports = CSS.supports.bind(CSS);
     const ios = document.createElement("style");
+    vi.spyOn(CSS, "supports").mockImplementation((...query: [string, string?]) =>
+      query[0] === "-webkit-touch-callout" && query[1] === "none" ? true : supports(...(query as [string, string])),
+    );
     ios.textContent = withIosRules(pageCss());
     document.head.append(ios);
     mounted.push(ios);

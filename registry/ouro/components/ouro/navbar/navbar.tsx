@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
+import { startTransition, useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
@@ -79,6 +79,20 @@ export interface NavbarProps {
    * @claim "The name of the button that" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > hides the menu button from 640px up)
    */
   menuLabel?: string | undefined;
+  /**
+   * What the sheet behind the menu button holds in place of the `items` links, when a phone
+   * needs more than the bar, such as a section's own pages under its name, or a filter over a
+   * long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`;
+   * mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the
+   * sheet. Once the page has been idle it mounts, hidden, ahead of the first press (a press
+   * before then mounts it as it opens), and it mounts afresh the same way after each close, so
+   * each open starts with the state it first had.
+   *
+   * @claim "Choosing a link in it closes the sheet." registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > shows the menu prop in the sheet in place of the links, and closes it when a link there is chosen)
+   * @claim "Once the page has been idle" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens)
+   * @claim "so each open starts with the" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > opens afresh after each close: the menu prop's state and the sheet's scroll as the first open had them)
+   */
+  menu?: ReactNode;
   /** The label of that sheet's close button. @default "Close" */
   closeLabel?: string | undefined;
   /** Layout only: margins, position (`sticky top-0`). Appearance classes warn in development. */
@@ -125,7 +139,8 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * render through `OuroProvider`'s `linkComponent`, so your router navigates.
  *
  * The phone menu opens once JavaScript has loaded (after hydration); the links are in the
- * server HTML from 640px up.
+ * server HTML from 640px up. Once the menu button shows, the sheet is built while the page is
+ * idle and kept, hidden, between opens, so a press only shows it.
  *
  * Use `Sidebar` instead for more than a handful of destinations, or sections of them. Use
  * `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one
@@ -150,6 +165,7 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
  * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
  * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
+ * @claim "the sheet is built while the page is" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens)
  */
 export function Navbar(props: NavbarProps): JSX.Element {
   const {
@@ -159,6 +175,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
     brand,
     actions,
     menuLabel = "Menu",
+    menu,
     closeLabel = "Close",
     className,
     ref,
@@ -199,6 +216,29 @@ export function Navbar(props: NavbarProps): JSX.Element {
   const slot = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   if (!collapsed && open) setOpen(false);
+  // Once the menu button shows, the sheet is built while the page is idle, so a press only shows it: building it then
+  // (a long menu is hundreds of elements) would hold up the press's first frame. Kept from then on, hidden while closed,
+  // and built afresh once each close has finished, so every open starts as the first did: the `menu` prop's own state
+  // (a filter's text, a list unfolded) and the sheet's scroll left behind.
+  const [built, setBuilt] = useState(false);
+  // The sheet's content goes in on a later turn than its frame: a transition renders in slices, but commits in one, and
+  // the docs' menu and the sheet's frame together held a frame of 110 ms on CI's WebKit (ourostack/ouro-ui#670).
+  const [filled, setFilled] = useState(false);
+  const [round, setRound] = useState(0);
+  useEffect(() => {
+    if (!collapsed || filled) return;
+    // As a transition, which React renders in slices that leave the frames between them free: built in one go, a long
+    // menu held a frame past 100 ms on a slow screen. A press in the middle opens the sheet as it is.
+    const build = () => startTransition(() => (built ? setFilled(true) : setBuilt(true)));
+    // Where the browser has no idle callback (Safari), after the page's other start-up work, and the content a beat later.
+    if (typeof requestIdleCallback !== "function") {
+      const timer = setTimeout(build, built ? 100 : 500);
+      return () => clearTimeout(timer);
+    }
+    // Stryker disable next-line ObjectLiteral: the timeout only bounds a page that is never idle, which no test page is.
+    const idle = requestIdleCallback(build, { timeout: 2000 });
+    return () => cancelIdleCallback(idle);
+  }, [collapsed, built, filled]);
 
   // Before paint, so a client mount never shows a row that does not fit.
   useLayoutEffect(() => {
@@ -230,7 +270,6 @@ export function Navbar(props: NavbarProps): JSX.Element {
         aria-current={link.current || link.href === marked ? "page" : undefined}
         data-ouro-control="navbar"
         data-ouro-part="sheet-link"
-        onClick={() => setOpen(false)}
         className={cn(link_, sheetLink)}
       >
         {link.label}
@@ -264,24 +303,51 @@ export function Navbar(props: NavbarProps): JSX.Element {
         <NavigationMenuView label={label} items={items} currentPath={currentPath} oneLine listRef={list} />
       </div>
       {actions !== undefined && <div className="ms-auto flex shrink-0 items-center gap-2">{actions}</div>}
-      <SheetFrame title={menuLabel} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
-        <nav aria-label={label}>
-          <ul className={cn(list_, "flex-col gap-1")}>
-            {items.map((item, index) =>
-              item.links !== undefined ? (
-                <li key={index} className="grid gap-1 pt-3 first:pt-0">
-                  <p id={`${id}${index}`} className="m-0 px-3 py-1 text-xs leading-4 font-medium text-muted-foreground">
-                    {item.label}
-                  </p>
-                  <ul aria-labelledby={`${id}${index}`} className={cn(list_, "flex-col gap-1")}>
-                    {item.links.map(sheetLinkFor)}
-                  </ul>
-                </li>
-              ) : (
-                sheetLinkFor(item, index)
-              ),
-            )}
-          </ul>
+      <SheetFrame
+        key={round}
+        onOpenChangeComplete={(shown) => {
+          if (shown) return;
+          // Stryker disable next-line ArithmeticOperator: any key the sheet has not had builds it afresh, a count down as well as up.
+          setRound((count) => count + 1);
+          // The fresh sheet, too, takes its frame now and its content on a later turn (ourostack/ouro-ui#670).
+          setFilled(false);
+        }}
+        keepMounted={built}
+        title={menuLabel}
+        closeLabel={closeLabel}
+        side="left"
+        open={open}
+        onOpenChange={setOpen}
+        finalFocus={menuButton}
+      >
+        <nav
+          aria-label={label}
+          // A link chosen in the sheet closes it: the items' links, and any in the menu prop. Not one opened elsewhere (a new
+          // tab or window, with a modifier key held): the page stays, and so does the sheet. A router's link that handles the
+          // click itself still closes it.
+          onClick={(event) => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            if ((event.target as Element).closest("a[href]")) setOpen(false);
+          }}
+        >
+          {!open && !filled ? null : menu ?? (
+            <ul className={cn(list_, "flex-col gap-1")}>
+              {items.map((item, index) =>
+                item.links !== undefined ? (
+                  <li key={index} className="grid gap-1 pt-3 first:pt-0">
+                    <p id={`${id}${index}`} className="m-0 px-3 py-1 text-xs leading-4 font-medium text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <ul aria-labelledby={`${id}${index}`} className={cn(list_, "flex-col gap-1")}>
+                      {item.links.map(sheetLinkFor)}
+                    </ul>
+                  </li>
+                ) : (
+                  sheetLinkFor(item, index)
+                ),
+              )}
+            </ul>
+          )}
         </nav>
       </SheetFrame>
     </header>

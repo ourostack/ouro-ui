@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
-import { describeFindings, scan, scanStory, scanStoryViolations, storyScanTimeout } from "./story-axe.ts";
+import { describeFindings, parkPointer, scan, scanStory, scanStoryViolations, storyScanTimeout } from "./story-axe.ts";
 import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, story, storyFiles } from "./stories.tsx";
 import { sliced } from "./slice.ts";
 
@@ -15,6 +15,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await cleanupStories();
+  await parkPointer();
 });
 
 it("covers every story file, each with stories", () => {

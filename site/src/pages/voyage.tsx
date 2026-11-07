@@ -110,7 +110,7 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
         {/* Each boundary hydrates as its own task, so no single task blocks a tap for long. */}
         <div className="voyage min-h-dvh bg-background text-foreground">
           <Suspense>
-            <VoyageHeader path={page === "/nautilus/" || page === "/ax/" ? page : isApple(page) ? "/apple/" : "/"} />
+            <VoyageHeader path={page === "/nautilus/" || page === "/ax/" ? page : isApple(page) ? "/apple/" : "/"} page={page} />
           </Suspense>
           {isApple(page) ? (
             <main>
