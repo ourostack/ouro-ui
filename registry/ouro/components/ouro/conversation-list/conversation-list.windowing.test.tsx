@@ -519,6 +519,14 @@ describe("ConversationList windowing with sections", () => {
     expect(view.pane.scrollTop).toBe(0);
   });
 
+  it("renders exactly the rows that start inside the first view on a short list's first commit", () => {
+    const count = (density: "comfortable" | "compact") =>
+      renderToString(<ConversationList label="Chats" items={many(50)} density={density} onSelect={() => {}} />).split('data-ouro-part="row"').length - 1;
+    // Estimated rows are 58 and 34 pixels tall, so the first 1000 pixels start 18 and 30 of them.
+    expect(count("comfortable")).toBe(18);
+    expect(count("compact")).toBe(30);
+  });
+
   it("mounts only the visible window of a windowed list's sections on the first commit, and re-renders only the two rows a selection switch touches", async () => {
     const items = many(200, (index) => ({ section: `s${Math.floor(index / 50)}` }));
     const sections = [0, 1, 2, 3].map((n) => ({ id: `s${n}`, title: `S${n}` }));
