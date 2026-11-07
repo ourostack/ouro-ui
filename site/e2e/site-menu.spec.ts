@@ -55,15 +55,38 @@ async function openers(page: Page, root: string): Promise<string[]> {
   }, root);
 }
 
+/**
+ * The page's own frame, in ms: the median of five. A click waits for two frames in which its target holds still, and the
+ * sheet shows a frame after the press; CI's WebKit draws the home page's first seconds at 0.4 to 1.8 s a frame (#681).
+ */
+async function framePace(page: Page): Promise<number> {
+  return page.evaluate(
+    () =>
+      new Promise<number>((done) => {
+        const gaps: number[] = [];
+        let last = 0;
+        const frame = (now: number) => {
+          if (last) gaps.push(now - last);
+          last = now;
+          if (gaps.length < 5) requestAnimationFrame(frame);
+          else done(gaps.sort((a, b) => a - b)[2]!);
+        };
+        requestAnimationFrame(frame);
+      }),
+  );
+}
+
 /** Opens the menu and waits for it to slide into place. The docs' header is an island, so its button works once it has hydrated. */
 async function openMenu(page: Page): Promise<void> {
   await expect(async () => {
+    // A second, or three of the page's frames where it draws slower.
+    const within = Math.max(1000, 3 * (await framePace(page)));
     // Once the sheet is open its backdrop covers the button, and a second press would close it.
     // A button that says open with no sheet to show for it is pressed again, closing it, and the next try opens it.
     const expanded = (await menuButton(page).getAttribute("aria-expanded")) === "true";
-    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: 1000 });
+    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: within });
     // real clock: the menu stays open until it is closed; no timer ends it.
-    await expect(sheet(page)).toBeVisible({ timeout: 1000 });
+    await expect(sheet(page)).toBeVisible({ timeout: within });
   }).toPass();
   await settled(page);
 }

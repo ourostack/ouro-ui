@@ -44,13 +44,15 @@ async function hydrated(control: Locator): Promise<void> {
 async function recordTimeline(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const log: string[] = [];
-    (window as unknown as { __timeline: string[] }).__timeline = log;
+    const frames: number[] = [];
+    Object.assign(window, { __timeline: log, __frames: frames });
     const at = () => Math.round(performance.now());
     let last = 0;
     let kept = -1;
     const frame = () => {
       const now = at();
       const held = (window as unknown as { __ouroEarlyInput?: number }).__ouroEarlyInput ?? 0;
+      if (last) frames.push(now - last);
       if (now - last > 50 || held !== kept) log.push(`${now}: frame +${now - last}, kept ${held}`);
       [last, kept] = [now, held];
       requestAnimationFrame(frame);
@@ -61,6 +63,17 @@ async function recordTimeline(page: Page): Promise<void> {
       if (document.documentElement.hasAttribute("data-site-ready") && !log.some((line) => line.endsWith("ready"))) log.push(`${at()}: ready`);
     }).observe(document.documentElement, { attributes: true });
   });
+}
+
+/**
+ * How long a kept tap may take to be answered on this page: ANSWERED, or three of the page's own recent frames where they
+ * are slower (`recordTimeline`). The page answers a frame after the control hydrates and shows the answer on the next; CI's
+ * WebKit draws the home page's first seconds at 0.4 to 1.8 s a frame (#683, #676), where no page answers within 1 s.
+ */
+async function answerWithin(page: Page): Promise<number> {
+  const frames = await page.evaluate(() => (window as unknown as { __frames: number[] }).__frames.slice(-8));
+  const pace = [...frames].sort((a, b) => a - b)[Math.floor(frames.length / 2)] ?? 0;
+  return Math.max(ANSWERED, 3 * pace);
 }
 
 /** Runs `check`, and on a failure adds the page's timeline (`recordTimeline`) to its message. */
@@ -85,8 +98,9 @@ for (const path of ["./", "docs/tooltip/", "ax/"]) {
     release();
     await hydrated(button);
     await page.evaluate(() => (window as unknown as { __timeline: string[] }).__timeline.push(`${Math.round(performance.now())}: the button has hydrated`));
+    const within = await answerWithin(page);
     // real clock: the menu stays open until it is closed; no timer ends it.
-    await explained(page, () => expect(page.getByRole("dialog", { name: "Menu" })).toBeVisible({ timeout: ANSWERED }));
+    await explained(page, () => expect(page.getByRole("dialog", { name: "Menu" })).toBeVisible({ timeout: within }));
     // real clock: the menu stays open until it is closed; no timer ends it.
     await expect(page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Site" })).toBeVisible();
   });
@@ -150,7 +164,8 @@ test("a tap on the stage before the page's script has run is answered once the p
   await speed.click();
   release();
   await page.waitForFunction(() => Object.keys(document.getElementById("root")!).some((key) => key.startsWith("__reactContainer$")));
-  await explained(page, () => expect(speed).toHaveAttribute("aria-checked", "true", { timeout: ANSWERED }));
+  const within = await answerWithin(page);
+  await explained(page, () => expect(speed).toHaveAttribute("aria-checked", "true", { timeout: within }));
 });
 
 test("a tap on a live slider before its own script arrived moves it there once it does", async ({ page }) => {
