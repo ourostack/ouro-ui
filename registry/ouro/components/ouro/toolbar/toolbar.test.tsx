@@ -448,6 +448,59 @@ describe("Toolbar overflow", () => {
     }
   });
 
+  const frames = () => act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  // Only the measuring reads the More button's width, so these reads count the times the entries were measured.
+  const measuredWhile = async (change: () => Promise<void> | void) => {
+    const spy = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    try {
+      await change();
+      await frames();
+      return spy.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
+    } finally {
+      spy.mockRestore();
+    }
+  };
+
+  it("measures its entries again when a font starts loading, even when no entry changes size", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    await frames();
+    const measured = await measuredWhile(() => act(async () => {
+      document.fonts.dispatchEvent(new Event("loading"));
+      await document.fonts.ready;
+    }));
+    expect(measured).toBeGreaterThan(0);
+  });
+
+  it("measures its entries again when any one of them changes size, not only when all do", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    expect(view.more).toBeNull();
+    await frames();
+    const wide = view.host.querySelectorAll<HTMLElement>("[data-ouro-toolbar-entry]")[1]!;
+    wide.style.flexShrink = "0";
+    wide.style.minWidth = "500px";
+    await expect.poll(() => view.more).not.toBeNull();
+  });
+
+  it("does not measure again for an entry that changed by half a pixel, and does for more than that", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    await frames();
+    const entry = view.host.querySelector<HTMLElement>("[data-ouro-toolbar-entry]")!;
+    const width = entry.getBoundingClientRect().width;
+    entry.style.flexShrink = "0";
+    entry.style.boxSizing = "border-box";
+    const half = await measuredWhile(() => {
+      entry.style.width = `${width + 0.5}px`;
+    });
+    expect(half).toBe(0);
+    const more = await measuredWhile(() => {
+      entry.style.width = `${width + 2}px`;
+    });
+    expect(more).toBeGreaterThan(0);
+  });
+
   it("measures its entries again when the text grows without the row resizing, as with a larger root font size", async () => {
     const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
     const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);

@@ -509,6 +509,7 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     const root = rootRef.current!;
     const stale = new ResizeObserver(() => {
       const measured = widths.current;
+      // Stryker disable next-line ConditionalExpression: equivalent; the effect above measures in the same commit, before this observer exists, so measured is never null here.
       if (measured === null) return;
       const changed = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].some(
         (element) => !(Math.abs(element.getBoundingClientRect().width - measured[Number(element.getAttribute("data-ouro-toolbar-entry"))]!) <= 0.5),
