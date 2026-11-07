@@ -16,11 +16,15 @@ async function open(page: Page): Promise<void> {
 
 const scene = (page: Page) => page.locator(".stage-scene");
 
+/** The page opens in Ouro's meadow, the porthole below it; the stage judges the screen only once it is on it, so bring it up. */
+const bringUp = (page: Page) => page.evaluate(() => document.querySelector("[data-stage]")!.scrollIntoView({ block: "center", behavior: "instant" }));
+
 /**
  * The fish swimming at Half, from a page the stage has judged: a screen too slow to swim them (CI's WebKit, drawing without
  * its GPU) starts in still water, and a press on Half sets them going, as a visitor's would.
  */
 async function swimming(page: Page): Promise<void> {
+  await bringUp(page);
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
   // The verdict asked of the control, which commits with data-paced: the scene follows the controls a paint later, so its
@@ -408,6 +412,7 @@ test("a screen too slow to swim the fish gets still water, its speed at Stop, an
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await slowFrames(page, 150);
   await openSlow(page);
+  await bringUp(page);
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
   await expect(scene(page)).toHaveAttribute("data-speed", "stop");
@@ -496,6 +501,7 @@ test("one long task is not a slow screen: the fish keep swimming", async ({ page
   // One stall of nearly a second inside the second the stage reads, which a count of that second's frames calls slow.
   await onTheBeat(page, { stall: 900 });
   await open(page);
+  await bringUp(page);
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
   await expect(scene(page)).toHaveAttribute("data-speed", "half");
@@ -506,6 +512,7 @@ test("a screen that draws no frame for two seconds, twice running, gets still wa
   // No frame for 4.5 s from the beat, past both of the stage's two-second waits; then frames, which draw its Stop.
   await onTheBeat(page, { starve: true, lift: [4500] });
   await open(page);
+  await bringUp(page);
   // real clock: the stage gives up waiting for frames two seconds after it starts to read them, twice.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 10_000 });
   await expect(scene(page)).toHaveAttribute("data-speed", "stop");
@@ -518,6 +525,7 @@ test("two seconds without a frame, once, is not a slow screen: the stage reads a
   // No frame for 1.9 s from the beat, so the stage's first two seconds end without a verdict; then frames as usual.
   await onTheBeat(page, { starve: true, lift: [1900] });
   await open(page);
+  await bringUp(page);
   // real clock: the stage judges the screen on its real frames, a beat, two seconds and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 10_000 });
   await expect(scene(page)).toHaveAttribute("data-speed", "half");
@@ -529,6 +537,7 @@ test("a page hidden and shown again starts its count of frameless seconds afresh
   // Two frameless seconds, then the page hidden and shown, then two more and frames as usual: once each side is not slow.
   await onTheBeat(page, { starve: true, lift: [undefined, 1900], hideAt: 2500 });
   await open(page);
+  await bringUp(page);
   // real clock: the stage judges the screen on its real frames, across a beat, the hidden page, another beat and seconds of frames.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 15_000 });
   await expect(scene(page)).toHaveAttribute("data-speed", "half");
@@ -544,6 +553,7 @@ for (const { choice, press, speed } of [
     await onTheBeat(page, { delay: 4000 });
     await slowFrames(page, 150);
     await openSlow(page);
+    await bringUp(page);
     await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
     await press(page);
     // real clock: the press itself marks the stage as judged; no timer is involved.
@@ -658,14 +668,11 @@ test("the fish rest while the stage is off screen", async ({ page }) => {
   await open(page);
   await swimming(page);
   const state = () => page.locator(".stage-band-sunlit .stage-drift").first().evaluate((element) => element.getAnimations()[0]?.playState);
-  // The page opens in Ouro's meadow, the porthole below it on a short screen: bring it up first.
-  const bringUp = () => page.evaluate(() => document.querySelector("[data-stage]")!.scrollIntoView({ block: "center", behavior: "instant" }));
-  await bringUp();
   await expect.poll(state).toBe("running");
   await page.evaluate(() => window.scrollTo(0, document.querySelector("[data-stage]")!.getBoundingClientRect().bottom + window.scrollY + 40));
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-offscreen", "");
   await expect.poll(state).toBe("paused");
-  await bringUp();
+  await bringUp(page);
   await expect.poll(state).toBe("running");
 });
 
