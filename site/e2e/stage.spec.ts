@@ -582,7 +582,7 @@ test("the stage judges the screen only once the site menu over it has closed", a
   // A record of what the stage waits on, read back if it has not judged: the menu's mark on the root, its beats (the
   // 500 ms waits) as they are set and fire, and the frames drawn. Kept from the loaded page, whose root is the one marked.
   await page.evaluate(() => {
-    const record = { marks: [] as string[], beats: [] as string[], frames: 0 };
+    const record = { marks: [] as string[], beats: [] as string[], frames: 0, lastFrame: 0 };
     (window as unknown as { __stageRecord: typeof record }).__stageRecord = record;
     const at = () => Math.round(performance.now());
     new MutationObserver(() => record.marks.push(`${at()}:${document.documentElement.hasAttribute("data-site-menu-open") ? "open" : "shut"}`)).observe(document.documentElement, {
@@ -599,8 +599,19 @@ test("the stage judges the screen only once the site menu over it has closed", a
       record.beats.push(`${at()}:set${ms}#${id}`);
       return id;
     }) as typeof setTimeout;
+    const clear = window.clearTimeout;
+    window.clearTimeout = ((id?: number) => {
+      if (id && record.beats.some((beat) => beat.endsWith(`#${id}`))) record.beats.push(`${at()}:clear#${id}`);
+      clear(id);
+    }) as typeof clearTimeout;
+    const stage = document.querySelector("[data-stage]")!;
+    new MutationObserver(() => record.marks.push(`${at()}:${stage.hasAttribute("data-paced") ? "paced" : "unpaced"}`)).observe(stage, {
+      attributes: true,
+      attributeFilter: ["data-paced"],
+    });
     const count = () => {
       record.frames += 1;
+      record.lastFrame = at();
       requestAnimationFrame(count);
     };
     requestAnimationFrame(count);
