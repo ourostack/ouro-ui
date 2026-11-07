@@ -488,4 +488,21 @@ describe("ConversationList windowing with sections", () => {
     expect(document.activeElement!.parentElement!.getAttribute("aria-setsize")).toBe("200");
     expect(document.activeElement!.closest("li[data-ouro-conversation-section]")!.getAttribute("aria-posinset")).toBe("3");
   });
+
+  it("renders a short list's first commit with only the rows the first view reaches and the rest after it paints", async () => {
+    const items = many(50, (index) => ({ section: index % 2 ? "a" : "b" }));
+    const sections = [
+      { id: "a", title: "A" },
+      { id: "b", title: "B" },
+    ];
+    const first = renderToString(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />);
+    const firstRows = first.split('data-ouro-part="row"').length - 1;
+    expect(firstRows).toBeGreaterThan(0);
+    expect(firstRows).toBeLessThan(50);
+    expect(first.split('data-ouro-part="section"').length - 1).toBe(2);
+
+    const view = await render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />);
+    expect(view.rows()).toHaveLength(50);
+    expect(view.pane.scrollTop).toBe(0);
+  });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -338,6 +339,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [measured, setMeasured] = useState<{ density: ConversationListDensity; heights: ReadonlyMap<string, number> } | null>(null);
   const [range, setRange] = useState<readonly [number, number] | null>(null);
   const [reach, setReach] = useState<string | null>(null);
+  // A short list's first render holds only the rows the first view reaches; the rest render once it has painted.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => setSettled(true), []);
   const controls = useRef(new Map<string, HTMLButtonElement>());
   const latest = useRef<Laid | null>(null);
   const clips = useRef<HTMLElement[] | null>(null);
@@ -397,12 +401,14 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const heights = measured?.density === density ? measured.heights : noHeights;
   const { offsets, total } = place(keys, heights, estimates[density]);
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
-  const [start, end] = range ?? [0, offsets.filter((offset) => offset < firstView).length];
+  const firstRows = offsets.filter((offset) => offset < firstView).length;
+  const [start, end] = range ?? [0, firstRows];
   const indexes = new Map(keys.map((key, index) => [key, index]));
   const kept = new Set([tabStop, current, reach]);
   const rendered = (key: string) => {
     const index = indexes.get(key)!;
-    return !windowed || (index >= start && index < end) || kept.has(key);
+    if (!windowed) return settled || index < firstRows || kept.has(key);
+    return (index >= start && index < end) || kept.has(key);
   };
   // In a windowed list a control's slot is placed where it would be, with the gap before it as padding, and says
   // where it is in its list, since screen readers cannot count the rows that are not there.
@@ -683,7 +689,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
             const open = isOpen(section);
             const groupId = `${baseId}-section-${index}`;
             const shownRows = open ? rows.flatMap((item, at) => (rendered(`row:${item.id}`) ? [rowFor(item, at + 1, rows.length)] : [])) : [];
-            if (!rendered(key) && shownRows.length === 0) return null;
+            if (windowed && !rendered(key) && shownRows.length === 0) return null;
             const header = (
               <button
                 ref={controlRef(key)}
