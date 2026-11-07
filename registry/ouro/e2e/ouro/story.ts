@@ -51,9 +51,26 @@ export async function holdClock(page: Page): Promise<void> {
   }
 }
 
-/** Waits for an element's transitions (opening, springing back) to finish, then returns its box. */
+/**
+ * Waits for the transitions that move an element (opening, springing back) to finish, then returns its box: its own and
+ * its contents', and those of what holds it, since a sheet sliding in carries its search input with it. A frame with none
+ * running is waited out first, as a sheet mounts a frame before its slide starts (ourostack/ouro-ui#696). Endless
+ * animations, which never finish, move nothing here.
+ */
 export async function settledBox(element: Locator): Promise<{ x: number; y: number; width: number; height: number }> {
-  await element.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished)));
+  await element.evaluate(async (el) => {
+    const moving = () =>
+      el.ownerDocument.getAnimations().filter((animation) => {
+        const target = (animation.effect as KeyframeEffect | null)?.target;
+        return target instanceof Element && (target.contains(el) || el.contains(target)) && animation.playState !== "finished" && Number.isFinite(animation.effect?.getComputedTiming().endTime);
+      });
+    for (;;) {
+      await new Promise((frame) => requestAnimationFrame(() => requestAnimationFrame(frame)));
+      const running = moving();
+      if (!running.length) return;
+      await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
+    }
+  });
   const box = await element.boundingBox();
   if (!box) throw new Error("settledBox: the element is not visible");
   return box;
