@@ -778,7 +778,7 @@ function lift(rule: HTMLStyleElement): void {
 }
 
 /**
- * Measures text contrast that axe could not judge: waits for running transitions, hides the
+ * Measures text contrast that axe left undecided: waits for running transitions, hides the
  * element's glyphs, screenshots the page and finds the worst pixel behind each line of its
  * text. Anything drawn over the text (an outline, a tag, a veil) counts as behind it, since it
  * is what the text is seen against.
@@ -790,9 +790,9 @@ function lift(rule: HTMLStyleElement): void {
  * @example
  * const verdict = await measureTextContrast(label, 4.5);
  * expect(verdict).toEqual({ pass: true });
- * @claim "Measures text contrast that axe could" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes text over a gradient when every pixel behind it meets 4.5:1, and fails faint text over the same gradient)
- * @claim "Measures text contrast that axe could" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures a line drawn over text as what the text is seen against, though axe never sees it)
- * @claim "Measures text contrast that axe could" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures text once its color transitions finish, as after a switch to dark)
+ * @claim "Measures text contrast that axe left undecided" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes text over a gradient when every pixel behind it meets 4.5:1, and fails faint text over the same gradient)
+ * @claim "Measures text contrast that axe left undecided" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures a line drawn over text as what the text is seen against, though axe never sees it)
+ * @claim "Measures text contrast that axe left undecided" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > measures text once its color transitions finish, as after a switch to dark)
  * @claim "Passes when the text color, as" registry/ouro/lib/ouro/testing/axe.ts verify:fileLine(registry/ouro/lib/ouro/testing/axe.ts, /\? 3 : 4\.5;/)
  * @claim "Where an open popup covers the" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes text an open popup covers once the popup shuts it off from assistive technology, and measures what still shows)
  * @claim "Where an open popup covers the" registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > passes page text a popup's layer covers, which hides it while the popup is open, and measures what still shows)
@@ -928,7 +928,7 @@ async function measureLinkInText(link: Element, block: Element): Promise<Verdict
         return true;
       })
     : [];
-  const unseen = "axe could not judge whether it stands out from the text around it, and no text of it and around it shows to measure";
+  const unseen = "axe left undecided whether it stands out from the text around it, and no text of it and around it shows to measure";
   if (own.length === 0 || (painted && around.length === 0)) return { pass: false, reason: unseen };
   // A still, transparent box over those lines: its screenshot is the page there.
   const boxes = [...own, ...around].map(({ box }) => box);
@@ -950,7 +950,7 @@ async function measureLinkInText(link: Element, block: Element): Promise<Verdict
     if (Math.abs(placed.left - left) > 0.5 || Math.abs(placed.top - top) > 0.5) throw new Error("the page moves a fixed box away from where it is placed");
     context = await screenshot(probe);
   } catch (error) {
-    return { pass: false, reason: `axe could not judge whether it stands out from the text around it, and it could not be screenshotted: ${(error as Error).message.split("\n")[0]}` };
+    return { pass: false, reason: `axe left undecided whether it stands out from the text around it, and the screenshot to measure it threw: ${(error as Error).message.split("\n")[0]}` };
   } finally {
     probe.remove();
     lift(hide);
@@ -1077,7 +1077,7 @@ async function shoot(root: Element, items: Measured[], last: boolean): Promise<V
       if (!last) throw new PageChanged();
       return items.map(() => ({ pass: false, reason: keptChanging }));
     }
-    const reason = `axe could not judge its contrast, and it could not be screenshotted: ${(error as Error).message.split("\n")[0]}`;
+    const reason = `axe left its contrast undecided, and the screenshot to measure it threw: ${(error as Error).message.split("\n")[0]}`;
     return items.map(() => ({ pass: false, reason }));
   } finally {
     for (const { element } of items) element.removeAttribute("data-ouro-measure");
@@ -1097,7 +1097,7 @@ async function shoot(root: Element, items: Measured[], last: boolean): Promise<V
   const exposedBoxes = () =>
     (exposed ??= [...document.body.querySelectorAll("*")].filter((other) => !other.closest(hiddenFromAt)).map((other) => ({ other, box: other.getBoundingClientRect() })));
   return texts.map(({ element, required, placeholder, cells, text }) => {
-    if (cells.length === 0) return { pass: false, reason: placeholder ? "its placeholder has no box on the screen to measure" : "axe could not judge its contrast, and it has no text of its own to measure" };
+    if (cells.length === 0) return { pass: false, reason: placeholder ? "its placeholder has no box on the screen to measure" : "axe left its contrast undecided, and it has no text of its own to measure" };
     // Where an open popup covers the text, those pixels are the popup's, measured as its own text:
     // what a popup's layer paints, or any exposed layer over text the popup shuts off from assistive
     // technology. What still shows is measured. A layer hidden from assistive technology (an
@@ -1135,7 +1135,7 @@ async function shoot(root: Element, items: Measured[], last: boolean): Promise<V
       }
     }
     if (measured === 0 && covered > 0) return { pass: true };
-    if (worst === Number.POSITIVE_INFINITY) return { pass: false, reason: "axe could not judge its contrast, and its text is off the screen" };
+    if (worst === Number.POSITIVE_INFINITY) return { pass: false, reason: "axe left its contrast undecided, and its text is off the screen" };
     if (worst >= required) return { pass: true };
     if (placeholder) return { pass: false, reason: `its placeholder measured ${worst.toFixed(2)}:1 against the worst pixel behind it, needs ${required}:1` };
     return { pass: false, reason: `measured ${worst.toFixed(2)}:1 against the worst pixel behind its text, needs ${required}:1` };

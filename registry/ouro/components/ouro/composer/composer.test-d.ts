@@ -28,6 +28,14 @@ expectTypeOf<{
   highlights: [{ start: 0; end: 2; label: "Suggested" }];
   rows: 2;
   maxRows: 6;
+  expanded: true;
+  onExpandedChange: (expanded: boolean) => void;
+  expandLabel: "Long message";
+  expandedRows: 8;
+  expandedMaxRows: 24;
+  formatting: true;
+  editorRef: { current: null };
+  pasteText: (data: DataTransfer) => string | undefined;
   name: "message";
   maxLength: 500;
   onPaste: () => void;
@@ -59,6 +67,8 @@ expectTypeOf<{ label: "Message"; onSend: () => void; enterToSend: true }>().not.
 expectTypeOf<{ label: "Message"; onSend: () => void; loading: true }>().not.toExtend<ComposerProps>();
 expectTypeOf<{ label: "Message"; onSend: () => void; sendDisabled: true }>().not.toExtend<ComposerProps>();
 expectTypeOf<{ label: "Message"; onSend: () => void; replyTo: "message-1" }>().not.toExtend<ComposerProps>();
+expectTypeOf<{ label: "Message"; onSend: () => void; expandable: true }>().not.toExtend<ComposerProps>();
+expectTypeOf<{ label: "Message"; onSend: () => void; defaultExpanded: false }>().toExtend<ComposerProps>();
 
 // The same checks through JSX.
 // @ts-expect-error onSend is required.

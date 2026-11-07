@@ -260,8 +260,8 @@ export function restoreTimer(timerId: string, state: TimerState): boolean {
 
 /**
  * Cancels or dismisses a timer by its timerId, including when its screen is not mounted.
- * Mounted readers return to idle. A false return means storage could not forget the timer;
- * mounted state still resets.
+ * Mounted readers return to idle. A false return means `localStorage` threw when it removed the
+ * timer (storage the browser blocks), so a reload brings it back; mounted state still resets.
  *
  * @group Feedback
  * @see https://ui.ouro.bot/docs/use-timer
@@ -269,7 +269,7 @@ export function restoreTimer(timerId: string, state: TimerState): boolean {
  * resetTimer("pasta");
  * @claim "Cancels or dismisses a timer" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::timer state transfer > resets a stored timer with no mounted reader)
  * @claim "Mounted readers return to idle" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::timer state transfer > resets every mounted reader and its pending completion by timer id)
- * @claim "A false return means storage could" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::timer state transfer > reports a blocked reset write while resetting mounted state)
+ * @claim "A false return means" registry/ouro/lib/ouro/use-timer.test.tsx verify:testExists(registry/ouro/lib/ouro/use-timer.test.tsx::timer state transfer > reports a blocked reset write while resetting mounted state)
  */
 export function resetTimer(timerId: string): boolean {
   const entry = entries.get(timerId);

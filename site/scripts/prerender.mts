@@ -82,7 +82,9 @@ const islandSheets: Record<string, string[]> = {
   "/ax/": ["src/ax/ax-page.tsx", "src/ax/exhibit.tsx"],
   "/apple/": ["src/apple/home.tsx"],
   "/apple/hx/": ["src/apple/hx.tsx"],
+  "/apple/feel/": ["src/apple/feel.tsx"],
   "/apple/ax/": ["src/apple/ax.tsx"],
+  "/apple/reins/": ["src/apple/reins.tsx"],
   "/apple/start/": ["src/apple/start.tsx"],
 };
 

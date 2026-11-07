@@ -32,8 +32,21 @@ function idle(): Promise<void> {
   return new Promise((resolve) => requestIdleCallback(() => resolve(), { timeout: 500 }));
 }
 
+/** Set once a tap or text from before hydration is kept: every boundary from then on hydrates without waiting its turn. */
+let hurried = false;
+
 function releaseAll(): void {
   for (const turn of turns.values()) turn.release();
+}
+
+/**
+ * Every boundary waiting its turn hydrates now, as a press would have it, and so does each one that joins the queue
+ * later: React renders a boundary's children, and so asks for its turn, only after the page's own effects have run, so
+ * at the moment of the hurry the queue is usually still empty. For a tap or text kept from before (early-input.ts).
+ */
+export function hurryHydration(): void {
+  hurried = true;
+  releaseAll();
 }
 
 const REACHES = ["pointerdown", "mousedown", "touchstart", "keydown", "focusin", "click"] as const;
@@ -60,6 +73,7 @@ function turnFor(name: string): Turn {
       return done;
     });
   turns.set(name, turn);
+  if (hurried) turn.release();
   return turn;
 }
 

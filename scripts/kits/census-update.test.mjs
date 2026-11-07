@@ -731,10 +731,10 @@ describe("census-merge.mjs", () => {
         };
         const missing = io();
         merge.main(["d", "o.json"], { readdir, readFile: census(new Error("ENOENT: no such file")), writeFile, io: missing, exit });
-        expect(missing.error).toHaveBeenCalledWith(`Ouro census merge failed: d/${EXPECTED_FILE} could not be read (ENOENT: no such file): the census spec writes it when it starts, so the census did not run.`);
+        expect(missing.error).toHaveBeenCalledWith(`Ouro census merge stopped: reading d/${EXPECTED_FILE} threw (ENOENT: no such file). The census spec writes it when it starts, so the census did not run: run the census spec, then merge again.`);
         const thrown = io();
         merge.main(["d", "o.json"], { readdir, readFile: census(["EACCES"]), writeFile, io: thrown, exit });
-        expect(thrown.error).toHaveBeenCalledWith(expect.stringContaining("could not be read (EACCES)"));
+        expect(thrown.error).toHaveBeenCalledWith(expect.stringContaining("threw (EACCES)"));
         const notJson = io();
         merge.main(["d", "o.json"], { readdir, readFile: census("{"), writeFile, io: notJson, exit });
         expect(notJson.error).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^d/${EXPECTED_FILE.replace(/\./g, "\\.")} is not JSON: `)));

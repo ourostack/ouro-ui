@@ -61,7 +61,7 @@ const components = readComponents(root).map((entry) => entry.name);
 /** The helper items, one per file in lib/ouro, and the helpers that have tests. */
 const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$/.test(file));
 const libs = libFiles.filter((file) => !/\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
-const axRuntime = ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-problem", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
+const axRuntime = ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-precise-copy", "ax-problem", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
 const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$/, "")}-tests`))].sort();
 /** The components this repository had when the manifests replaced the script's list: their order never changes. */
 const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
@@ -346,7 +346,7 @@ test("Ouro AX items depend on the ax items they import", () => {
   assert.equal(itemForFile("registry/ouro/ax/fixtures/flows-suite.mts"), "ax-flows-tests");
   assert.deepEqual(item("ax-problem").registryDependencies, undefined);
   assert.deepEqual(item("ax-outcome").registryDependencies, ["ax-effects", "ax-exit-codes", "ax-problem"].map(repo));
-  assert.deepEqual(item("ax-xray").registryDependencies, ["ax-checks", "ax-claims", "ax-component", "ax-dev-commands", "ax-outcome", "ax-terminal", "ax-wait", "ax-work-event"].map(repo));
+  assert.deepEqual(item("ax-xray").registryDependencies, ["ax-checks", "ax-claims", "ax-component", "ax-dev-commands", "ax-outcome", "ax-precise-copy", "ax-terminal", "ax-wait", "ax-work-event"].map(repo));
   assert.deepEqual(item("ax-checks").registryDependencies, ["ax-dev-commands", "ax-exit-codes", "ax-outcome", "ax-terminal"].map(repo));
   assert.deepEqual(item("ax-terminal").registryDependencies, ["ax-outcome", "ax-voice"].map(repo));
   assert.deepEqual(item("ax-voice").registryDependencies, ["ax-outcome"].map(repo));

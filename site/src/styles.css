@@ -43,8 +43,13 @@
   body {
     @apply m-0 font-sans antialiased;
   }
+  /* A place you jump to lands a little below the top; on a phone, below the docs' sticky header (voyage/header.tsx).
+     Not scroll-padding on the page: that would scroll it when focus goes back to the header's menu button. */
   :target {
     scroll-margin-top: 1.5rem;
+    @media (width < 40rem) {
+      scroll-margin-top: 5rem;
+    }
   }
 }
 

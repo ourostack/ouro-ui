@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, renderPage, setScheme } from "../../../test/render";
+import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CLASSING, FINDS, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
 import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, SHORTEST, writeDay, writeLeagues } from "./route";
+
+await loadPageCode("/nautilus/");
 
 // Chapter II (site-design.md, slice S3): its words read at grade 6 or under, its route maths is
 // right, it renders in the page with each control marked, and the chart room and the catalogue do

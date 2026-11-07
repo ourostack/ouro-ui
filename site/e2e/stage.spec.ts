@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { BELL_TOASTS, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { allCrewLines, BELL_TOASTS, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
 import { watchToasts } from "./toasts";
 
@@ -15,6 +15,40 @@ async function open(page: Page): Promise<void> {
 }
 
 const scene = (page: Page) => page.locator(".stage-scene");
+
+/**
+ * The fish swimming at Half, from a page the stage has judged: a screen too slow to swim them (CI's WebKit, drawing without
+ * its GPU) starts in still water, and a press on Half sets them going, as a visitor's would.
+ */
+async function swimming(page: Page): Promise<void> {
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  // The verdict asked of the control, which commits with data-paced: the scene follows the controls a paint later, so its
+  // data-speed can still say Half for a frame after the stage has chosen Stop.
+  if (await page.getByRole("radio", { name: "Stop" }).isChecked()) await page.getByRole("radio", { name: "Half" }).click();
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+}
+
+/** Holds the page on each frame for `ms` from when its HTML has loaded, as a screen that draws slowly would. */
+const slowFrames = (page: Page, ms: number) =>
+  page.addInitScript((hold) => {
+    const burn = () => {
+      const end = performance.now() + hold;
+      while (performance.now() < end);
+      requestAnimationFrame(burn);
+    };
+    addEventListener("DOMContentLoaded", () => requestAnimationFrame(burn));
+  }, ms);
+
+/** Opens the stage on a page that draws slowly, which takes longer to be ready. */
+async function openSlow(page: Page): Promise<void> {
+  await page.goto("./");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached({ timeout: 20_000 });
+}
+
+/** The stage's endless animations that are running: the fish's drift and the caustics' sway. */
+const ambient = (page: Page) =>
+  page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === "running" && ["stage-drift", "stage-caustics"].includes((animation as CSSAnimation).animationName)).length);
 const porthole = (page: Page) => page.locator(".stage-porthole");
 /** The crew's newest line, under the porthole. */
 const lastLog = (page: Page) => page.locator("[data-stage-crew]");
@@ -170,6 +204,7 @@ test.describe("each control on the stage", () => {
   test("control: speed sets how fast the fish swim, and Stop holds them", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
+    await swimming(page);
     const drift = () =>
       page.locator(".stage-band-sunlit .stage-drift").first().evaluate((element) => {
         const animation = element.getAnimations()[0];
@@ -201,6 +236,8 @@ test.describe("each control on the stage", () => {
   });
 
   test("control: log unfolds the crew's lines", async ({ page }) => {
+    // Still, so the lines are the presses' own: a slow screen's still water would add the captain's.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
     const fold = page.getByRole("button", { name: /^Ship's log \(/ });
     // At rest the captain's welcome shows under the porthole, and the log holds it.
@@ -367,9 +404,259 @@ test("three full tanks are a small celebration: the hull's lights blink and bubb
   await expect(page.locator("[data-stage-tank-count]")).toHaveText(STAGE_COPY.tankCount(3));
 });
 
+test("a screen too slow to swim the fish gets still water, its speed at Stop, and Half sets them swimming", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await slowFrames(page, 150);
+  await openSlow(page);
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  await expect(scene(page)).toHaveAttribute("data-speed", "stop");
+  await expect(page.getByRole("radio", { name: "Stop" })).toBeChecked();
+  await expect(lastLog(page)).toContainText(LOG.stillWater.text);
+  await expect.poll(() => ambient(page)).toBe(0);
+  await page.getByRole("radio", { name: "Half" }).click();
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+  await expect.poll(() => ambient(page)).toBeGreaterThan(0);
+});
+
+/**
+ * Times the page to the stage's beat (its 500 ms wait before it reads the frames). `stall` holds the page that long inside
+ * the second the stage reads (after its first frame); `delay` puts the first beat off. With `starve`, the page draws no frame from
+ * each beat on (requestAnimationFrame's callbacks wait) until `lift[n]` ms after the nth beat, if that is given; `hideAt`
+ * hides the page and shows it again that long after the first beat.
+ */
+const onTheBeat = (
+  page: Page,
+  { stall = 0, delay = 0, starve = false, lift = [], hideAt = 0 }: { stall?: number; delay?: number; starve?: boolean; lift?: (number | undefined)[]; hideAt?: number },
+) =>
+  page.addInitScript(
+    ({ stall, delay, starve, lift, hideAt }) => {
+      const original = window.setTimeout;
+      const frames = window.requestAnimationFrame.bind(window);
+      const cancel = window.cancelAnimationFrame.bind(window);
+      let starving = false;
+      // Held frames keep ids of their own (negative, apart from the browser's), so cancelling one still works.
+      const waiting = new Map<number, FrameRequestCallback>();
+      let held = 0;
+      window.requestAnimationFrame = (callback) => {
+        if (!starving) return frames(callback);
+        waiting.set(--held, callback);
+        return held;
+      };
+      window.cancelAnimationFrame = (id) => {
+        if (id < 0) waiting.delete(id);
+        else cancel(id);
+      };
+      const feed = () => {
+        starving = false;
+        for (const callback of waiting.values()) frames(callback);
+        waiting.clear();
+      };
+      let hidden = false;
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
+      let beats = 0;
+      let scheduled = 0;
+      window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
+        if (ms !== 500) return original(callback, ms, ...rest);
+        const later = scheduled++ === 0 ? delay : 0;
+        return original(
+          () => {
+            const beat = beats++;
+            if (starve) starving = true;
+            callback();
+            // A gap in `lift` arrives here as null (the script's arguments travel as JSON).
+            const after = lift[beat];
+            if (starve && typeof after === "number") original(feed, after);
+            if (hideAt && beat === 0)
+              original(() => {
+                hidden = true;
+                document.dispatchEvent(new Event("visibilitychange"));
+                hidden = false;
+                document.dispatchEvent(new Event("visibilitychange"));
+              }, hideAt);
+            // The stall lands inside the second the stage reads: its first frame has started it.
+            if (stall)
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => {
+                  const end = performance.now() + stall;
+                  while (performance.now() < end);
+                }),
+              );
+          },
+          500 + later,
+        );
+      }) as typeof setTimeout;
+    },
+    { stall, delay, starve, lift, hideAt },
+  );
+
+test("one long task is not a slow screen: the fish keep swimming", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "CI's WebKit is a slow screen with no stall: it draws without the GPU");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // One stall of nearly a second inside the second the stage reads, which a count of that second's frames calls slow.
+  await onTheBeat(page, { stall: 900 });
+  await open(page);
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+});
+
+test("a screen that draws no frame for two seconds, twice running, gets still water", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // No frame for 4.5 s from the beat, past both of the stage's two-second waits; then frames, which draw its Stop.
+  await onTheBeat(page, { starve: true, lift: [4500] });
+  await open(page);
+  // real clock: the stage gives up waiting for frames two seconds after it starts to read them, twice.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 10_000 });
+  await expect(scene(page)).toHaveAttribute("data-speed", "stop");
+  await expect(lastLog(page)).toContainText(LOG.stillWater.text);
+});
+
+test("two seconds without a frame, once, is not a slow screen: the stage reads another second", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "CI's WebKit is a slow screen with no stall: it draws without the GPU");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // No frame for 1.9 s from the beat, so the stage's first two seconds end without a verdict; then frames as usual.
+  await onTheBeat(page, { starve: true, lift: [1900] });
+  await open(page);
+  // real clock: the stage judges the screen on its real frames, a beat, two seconds and then a second of them.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 10_000 });
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+});
+
+test("a page hidden and shown again starts its count of frameless seconds afresh", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "CI's WebKit is a slow screen with no stall: it draws without the GPU");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // Two frameless seconds, then the page hidden and shown, then two more and frames as usual: once each side is not slow.
+  await onTheBeat(page, { starve: true, lift: [undefined, 1900], hideAt: 2500 });
+  await open(page);
+  // real clock: the stage judges the screen on its real frames, across a beat, the hidden page, another beat and seconds of frames.
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 15_000 });
+  await expect(scene(page)).toHaveAttribute("data-speed", "half");
+});
+
+for (const { choice, press, speed } of [
+  { choice: "a speed", press: (page: Page) => page.getByRole("radio", { name: "Full" }).click(), speed: "full" },
+  { choice: "a tank", press: (page: Page) => tank(page, FORE.name).click(), speed: "half" },
+]) {
+  test(`${choice} chosen before the stage has judged the screen stands, however slow it draws`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    // The stage's beat put off by four seconds, so the visitor's press comes first.
+    await onTheBeat(page, { delay: 4000 });
+    await slowFrames(page, 150);
+    await openSlow(page);
+    await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
+    await press(page);
+    // real clock: the press itself marks the stage as judged; no timer is involved.
+    await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+    // real clock: past the stage's put-off beat and a second of frames, to show it no longer judges.
+    await page.waitForTimeout(6000);
+    await expect(scene(page)).toHaveAttribute("data-speed", speed);
+    await expect(lastLog(page)).not.toContainText(LOG.stillWater.text);
+  });
+}
+
+const siteMenu = (page: Page) => page.getByRole("banner").getByRole("button", { name: "Menu", exact: true });
+
+test("under the open site menu the fish wait, and swim on when it closes, at every open", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await open(page);
+  await swimming(page);
+  // real clock: the sheet is built when the browser says the page is idle, which no page clock drives.
+  await expect(page.locator('[data-ouro="sheet"][hidden]')).toBeAttached();
+  await expect.poll(() => ambient(page)).toBeGreaterThan(0);
+  // The first open and the next, on the sheet kept between them.
+  for (let round = 0; round < 2; round += 1) {
+    await siteMenu(page).click();
+    await expect.poll(() => ambient(page)).toBe(0);
+    await page.keyboard.press("Escape");
+    await expect.poll(() => ambient(page)).toBeGreaterThan(0);
+  }
+});
+
+test("the stage judges the screen only once the site menu over it has closed", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // The stage's beat put off by six seconds, so the menu opens first, on a page too slow for the fish.
+  await onTheBeat(page, { delay: 6000 });
+  await slowFrames(page, 150);
+  await openSlow(page);
+  // A record of what the stage waits on, read back if it has not judged: the menu's mark on the root, its beats (the
+  // 500 ms waits) as they are set and fire, and the frames drawn. Kept from the loaded page, whose root is the one marked.
+  await page.evaluate(() => {
+    const record = { marks: [] as string[], beats: [] as string[], frames: 0, lastFrame: 0 };
+    (window as unknown as { __stageRecord: typeof record }).__stageRecord = record;
+    const at = () => Math.round(performance.now());
+    new MutationObserver(() => record.marks.push(`${at()}:${document.documentElement.hasAttribute("data-site-menu-open") ? "open" : "shut"}`)).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-site-menu-open"],
+    });
+    const set = window.setTimeout;
+    window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
+      if (ms !== 500 && ms !== 2000) return set(callback, ms, ...rest);
+      const id = set(() => {
+        record.beats.push(`${at()}:fire${ms}#${id}`);
+        callback();
+      }, ms, ...rest);
+      record.beats.push(`${at()}:set${ms}#${id}`);
+      return id;
+    }) as typeof setTimeout;
+    const clear = window.clearTimeout;
+    window.clearTimeout = ((id?: number) => {
+      if (id && record.beats.some((beat) => beat.endsWith(`#${id}`))) record.beats.push(`${at()}:clear#${id}`);
+      clear(id);
+    }) as typeof clearTimeout;
+    const stage = document.querySelector("[data-stage]")!;
+    new MutationObserver(() => record.marks.push(`${at()}:${stage.hasAttribute("data-paced") ? "paced" : "unpaced"}`)).observe(stage, {
+      attributes: true,
+      attributeFilter: ["data-paced"],
+    });
+    const count = () => {
+      record.frames += 1;
+      record.lastFrame = at();
+      requestAnimationFrame(count);
+    };
+    requestAnimationFrame(count);
+  });
+  await siteMenu(page).click();
+  // real clock: past the stage's put-off beat and a second of frames, with the menu open all the while.
+  await page.waitForTimeout(8000);
+  await expect(page.locator("[data-stage]")).not.toHaveAttribute("data-paced", "");
+  await page.keyboard.press("Escape");
+  // real clock: a beat after the menu closes, and then a second of frames. Until then, what the stage is waiting on.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const stage = document.querySelector("[data-stage]")!;
+          if (stage.hasAttribute("data-paced")) return "judged";
+          return JSON.stringify({
+            menuOpen: document.documentElement.hasAttribute("data-site-menu-open"),
+            offscreen: stage.hasAttribute("data-offscreen"),
+            hidden: document.hidden,
+            speed: document.querySelector(".stage-scene")?.getAttribute("data-speed"),
+            sheets: [...document.querySelectorAll<HTMLElement>('[data-ouro="sheet"]')].map((sheet) => (sheet.hidden ? "hidden" : "shown")),
+            scrollY: Math.round(scrollY),
+            // The page's own visibility, under the stand-in onTheBeat gives document.hidden.
+            visibility: document.visibilityState,
+            reallyHidden: Object.getOwnPropertyDescriptor(Document.prototype, "hidden")?.get?.call(document),
+            reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
+            now: Math.round(performance.now()),
+            record: (window as unknown as { __stageRecord: unknown }).__stageRecord,
+          });
+        }),
+      { timeout: 15_000 },
+    )
+    .toBe("judged");
+  await expect(scene(page)).toHaveAttribute("data-speed", "stop");
+  // The crew says why, through React's scheduler: if that were held up after the menu closes, this line would not come.
+  await expect(lastLog(page)).toContainText(LOG.stillWater.text);
+});
+
 test("the fish rest while the stage is off screen", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 600 });
   await open(page);
+  await swimming(page);
   const state = () => page.locator(".stage-band-sunlit .stage-drift").first().evaluate((element) => element.getAnimations()[0]?.playState);
   expect(await state()).toBe("running");
   await page.evaluate(() => window.scrollTo(0, document.querySelector("[data-stage]")!.getBoundingClientRect().bottom + window.scrollY + 40));
@@ -529,6 +816,37 @@ test("on a phone, keyboard focus on the stage always stops below the pinned port
   }
   await context.close();
 });
+
+// The crew's strip is set to the longest line's height, not grown to each (stage.css, ourostack/ouro-ui#667): every line fits
+// it, unclipped, from the narrowest phone to a wide screen, and the strip is the same height whichever line it shows.
+for (const width of [320, 360, 375, 390, 430, 600, 768, 1024, 1280]) {
+  test(`at ${width} px every crew line fits the crew's strip, which holds its height`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await open(page);
+    const misfits = await page.evaluate(
+      ({ lines, speakers }) => {
+        const crew = document.querySelector<HTMLElement>("[data-stage-crew]")!;
+        const words = crew.querySelector<HTMLElement>(".stage-crew-words")!;
+        const name = words.querySelector(".stage-crew-name")!;
+        const style = getComputedStyle(crew);
+        const strip = crew.getBoundingClientRect();
+        const top = strip.top + parseFloat(style.borderTopWidth) + parseFloat(style.paddingTop) - 0.5;
+        const bottom = strip.bottom - parseFloat(style.paddingBottom) + 0.5;
+        const out: string[] = [];
+        for (const line of lines) {
+          name.textContent = `${speakers[line.name]}:`;
+          words.lastChild!.textContent = ` ${line.text}`;
+          const box = words.getBoundingClientRect();
+          const height = crew.getBoundingClientRect().height;
+          if (box.top < top || box.bottom > bottom || height !== strip.height) out.push(`"${line.text}": words ${Math.round(box.top)}-${Math.round(box.bottom)} in ${Math.round(top)}-${Math.round(bottom)}, strip ${height}`);
+        }
+        return out;
+      },
+      { lines: allCrewLines(), speakers: SPEAKER },
+    );
+    expect(misfits).toEqual([]);
+  });
+}
 
 for (const mode of ["light", "dark"] as const) {
   test(`on a phone (${mode}), the crew's line sits between the porthole and the console, over nothing, at rest and after a dive`, async ({ browser }) => {

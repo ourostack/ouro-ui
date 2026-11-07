@@ -1,6 +1,6 @@
 import { useEffect, useRef, type JSX, type ReactNode } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { href } from "../paths";
+import { APPLE_PAGES, href, type ApplePath } from "../paths";
 import { Container } from "../voyage/layout";
 import "./apple.css";
 
@@ -9,15 +9,7 @@ import "./apple.css";
  * out openly with space and hairline rules; the only framed things are the captures, because they are screens.
  */
 
-/** The section's pages, in reading order. */
-export const APPLE_PAGES = [
-  { path: "/apple/", label: "Overview", short: "Overview" },
-  { path: "/apple/hx/", label: "Ouro HX for Apple", short: "HX" },
-  { path: "/apple/ax/", label: "Ouro AX for Apple", short: "AX" },
-  { path: "/apple/start/", label: "Get started", short: "Get started" },
-] as const;
-
-export type ApplePath = (typeof APPLE_PAGES)[number]["path"];
+export { APPLE_PAGES, type ApplePath } from "../paths";
 
 /** The section's menu, under the site's header: where you are among the Apple pages. */
 export function AppleMenu({ current }: { current: ApplePath }): JSX.Element {

@@ -65,7 +65,10 @@ const CEILINGS = { voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's
  * ceiling also pays for the component classes its pages reach (site/src/voyage/voyage-sources.generated.css).
  */
-const CSS_CEILINGS = { voyage: 37 * 1024, docs: 40 * 1024 } as const;
+// The voyage's rose by 512 bytes for the phone's one menu (voyage/site-menu.tsx: its close button, X-ray beside it, a
+// heading you jump to landing below the sticky header, the fish waiting under the open menu) and for the layers that make
+// the stage's switch to still water cheap (stage.css, #667): together 489 bytes over main at d6059dc6, 37,834 there.
+const CSS_CEILINGS = { voyage: 37 * 1024 + 512, docs: 40 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
@@ -144,9 +147,10 @@ test("real production hydration keeps label/control IDs while the uncached selec
     expect(before).not.toBeNull();
     await expect(page.locator(`label[for="${before}"]`)).toHaveText("Recipe name");
     await expect(page.locator("[data-site-demo-loading]")).toHaveCount(0);
-    await expect(name).toBeDisabled();
-    await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeDisabled();
+    // Never shown disabled: a tap or text before the chunk arrives is kept and answered then (early-input.spec.ts).
+    await expect(name).toBeEnabled();
+    await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeEnabled();
     await expect(page.locator("[data-site-demo-ready]")).toHaveCount(0);
     release();
     // The demo goes live a render after its chunk arrives, and says so once its handlers are attached.
@@ -291,7 +295,9 @@ const ISLANDS = [
   // The Ouro UI for Apple pages (site/src/apple/), each an island of its own.
   { chapter: "Apple's overview", entry: "src/apple/home.tsx", source: "site/src/apple/", recharts: false },
   { chapter: "Ouro HX for Apple", entry: "src/apple/hx.tsx", source: "site/src/apple/", recharts: false },
+  { chapter: "Ouro Feel", entry: "src/apple/feel.tsx", source: "site/src/apple/", recharts: false },
   { chapter: "Ouro AX for Apple", entry: "src/apple/ax.tsx", source: "site/src/apple/", recharts: false },
+  { chapter: "Ouro Reins", entry: "src/apple/reins.tsx", source: "site/src/apple/", recharts: false },
   { chapter: "Apple's get started", entry: "src/apple/start.tsx", source: "site/src/apple/", recharts: false },
 ] as const;
 

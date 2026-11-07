@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, renderPage } from "../../../test/render";
+import { cleanupPage, loadPageCode, renderPage } from "../../../test/render";
 import { firstFind, watchForWord } from "./listen";
 import { LEAGUES, leaguesAt, startLeagues } from "./leagues";
 import { setXray } from "../xray-store";
 import { guess, search } from "../../components/lost-at-sea";
+
+await Promise.all([loadPageCode("/"), loadPageCode("/nautilus/")]);
 
 const nemo = () => document.querySelector<HTMLElement>('[data-egg="nemo"]');
 const leagues = () => document.querySelector<HTMLElement>('[data-egg="leagues"]');
