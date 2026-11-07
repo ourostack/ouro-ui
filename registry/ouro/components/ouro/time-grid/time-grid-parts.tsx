@@ -41,7 +41,7 @@ const chevron = (d: string) => (
  * `onDateChange` for its keys either way.
  *
  * @group Data
- * @see https://ui.ouro.bot/docs/time-grid
+ * @see https://ui.ouroboros.bot/docs/time-grid
  *
  * @example
  * <TimeGridNav date={date} view={view} onDateChange={setDate} />

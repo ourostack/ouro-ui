@@ -76,7 +76,7 @@ function headingHint(token: string): string {
  * `title` prop, which also labels it for assistive technology.
  *
  * @group Text
- * @see https://ui.ouro.bot/docs/heading
+ * @see https://ui.ouroboros.bot/docs/heading
  *
  * @example
  * <Heading level={1}>Recipes</Heading>

@@ -188,7 +188,7 @@ const example = '<Sidebar label="Main" sections={[{ items: [{ label: "Recipes", 
  * of the app's top-level pages, each an icon over its label, and `Tabs` for views of one page.
  *
  * @group Navigation
- * @see https://ui.ouro.bot/docs/sidebar
+ * @see https://ui.ouroboros.bot/docs/sidebar
  *
  * @example
  * <Sidebar

@@ -3,7 +3,7 @@
   "name": "Ouro UI stories: controls, overlays and feedback",
   "surface": "web",
   "app": {
-    "target": "https://ui.ouro.bot/",
+    "target": "https://ui.ouroboros.bot/",
     "url": "${target}"
   },
   "matrix": {

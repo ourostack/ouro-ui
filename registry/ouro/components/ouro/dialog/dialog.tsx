@@ -220,7 +220,7 @@ function CloseIcon(): JSX.Element {
  * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
  *
  * @group Overlays
- * @see https://ui.ouro.bot/docs/dialog
+ * @see https://ui.ouroboros.bot/docs/dialog
  *
  * @example
  * <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>

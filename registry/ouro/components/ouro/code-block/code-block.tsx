@@ -135,7 +135,7 @@ function CodeWithEmoji({ code, catalogue }: { code: string; catalogue: EmojiCata
  * running text, and `CopyButton` for one value without a block around it.
  *
  * @group Display
- * @see https://ui.ouro.bot/docs/code-block
+ * @see https://ui.ouroboros.bot/docs/code-block
  *
  * @claim "fading out at the side where a long line goes on" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock > fades out at the side where a long line goes on, with its focus ring over the fade)
  * @example

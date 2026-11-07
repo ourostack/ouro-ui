@@ -860,7 +860,7 @@ interface Spoken {
  * Use a plain list instead for messages that do not arrive live, such as an inbox.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/message-list
+ * @see https://ui.ouroboros.bot/docs/message-list
  *
  * @example
  * <MessageList label="Conversation with Ouro" className="h-[60dvh]">

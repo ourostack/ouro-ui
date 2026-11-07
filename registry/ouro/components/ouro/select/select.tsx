@@ -287,7 +287,7 @@ function SelectControl({
  * show, and `Combobox` when the user needs to type to filter.
  *
  * @group Forms
- * @see https://ui.ouro.bot/docs/select
+ * @see https://ui.ouroboros.bot/docs/select
  *
  * @example
  * <Select

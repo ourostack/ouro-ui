@@ -109,7 +109,7 @@ const fix = '<RouteProgress active={navigation.state !== "idle"} />';
  * that is busy, and `Button`'s `loading` for the one action a person just took.
  *
  * @group Feedback
- * @see https://ui.ouro.bot/docs/route-progress
+ * @see https://ui.ouroboros.bot/docs/route-progress
  *
  * @example
  * // React Router, in the root route:

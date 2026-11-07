@@ -148,7 +148,7 @@ function Line({
  * Use `toast()` instead to confirm a single action, and `Alert` for a problem that blocks the page.
  *
  * @group Feedback
- * @see https://ui.ouro.bot/docs/sync-status
+ * @see https://ui.ouroboros.bot/docs/sync-status
  *
  * @example
  * <SyncStatus status={navigator.onLine ? (pending ? "saving" : "saved") : "offline"} onRetry={flush} />

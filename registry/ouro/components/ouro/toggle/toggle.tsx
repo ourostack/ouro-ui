@@ -121,7 +121,7 @@ export type ToggleProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof To
  * instead for a setting that takes effect at once, and `Checkbox` for a form value.
  *
  * @group Actions
- * @see https://ui.ouro.bot/docs/toggle
+ * @see https://ui.ouroboros.bot/docs/toggle
  *
  * @example
  * <Toggle label="Bold" icon={BoldIcon} hideLabel pressed={bold} onPressedChange={setBold} />

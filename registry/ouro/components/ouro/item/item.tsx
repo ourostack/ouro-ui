@@ -211,7 +211,7 @@ const above = {
  * plain horizontal layout with no list semantics.
  *
  * @group Lists
- * @see https://ui.ouro.bot/docs/item
+ * @see https://ui.ouroboros.bot/docs/item
  *
  * @example
  * <Item
