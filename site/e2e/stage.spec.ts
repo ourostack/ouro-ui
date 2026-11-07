@@ -23,7 +23,9 @@ const scene = (page: Page) => page.locator(".stage-scene");
 async function swimming(page: Page): Promise<void> {
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
-  if ((await scene(page).getAttribute("data-speed")) === "stop") await page.getByRole("radio", { name: "Half" }).click();
+  // The verdict asked of the control, which commits with data-paced: the scene follows the controls a paint later, so its
+  // data-speed can still say Half for a frame after the stage has chosen Stop.
+  if (await page.getByRole("radio", { name: "Stop" }).isChecked()) await page.getByRole("radio", { name: "Half" }).click();
   await expect(scene(page)).toHaveAttribute("data-speed", "half");
 }
 
