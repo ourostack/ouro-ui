@@ -357,23 +357,39 @@ const FRAME_GAP_BUDGET = 100;
 for (const path of ["./", "docs/button/"]) {
   test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press`, async ({ page }) => {
     await open(page, path);
-    const longestGap = () =>
+    if (path === "./") {
+      // The frames after the stage has judged the screen, and once its scene shows the speed the control chose: on a screen
+      // too slow for the fish, the one switch to still water repaints the stage (ourostack/ouro-ui#667).
+      await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+      const stop = await page.getByRole("radio", { name: "Stop" }).isChecked();
+      await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", stop ? "stop" : "half");
+    }
+    // The longest gap, when in the read it fell, and whether the stage's verdict landed during the read.
+    const read = () =>
       page.evaluate(
         () =>
-          new Promise<number>((resolve) => {
+          new Promise<{ longest: number; at: number; paced: boolean }>((resolve) => {
+            const stage = document.querySelector("[data-stage]");
+            const pacedBefore = stage?.hasAttribute("data-paced") ?? true;
             let last = 0;
             let longest = 0;
+            let at = 0;
             const start = performance.now();
             const tick = (now: number) => {
-              if (last) longest = Math.max(longest, now - last);
+              if (last && now - last > longest) {
+                longest = now - last;
+                at = Math.round(last - start);
+              }
               last = now;
               if (now - start < 1500) requestAnimationFrame(tick);
-              else resolve(longest);
+              else resolve({ longest, at, paced: pacedBefore !== (stage?.hasAttribute("data-paced") ?? true) });
             };
             requestAnimationFrame(tick);
           }),
       );
-    const gap = await longestGap();
+    const longestGap = async () => (await read()).longest;
+    const first = await read();
+    const gap = first.longest;
     // Over budget: say whether the page's running animations are what holds the frames, by pausing them and reading again.
     let paused = "";
     if (gap >= FRAME_GAP_BUDGET) {
@@ -384,7 +400,7 @@ for (const path of ["./", "docs/button/"]) {
       });
       paused = ` (with its ${names.length} running animations [${names.join(", ")}] paused: ${Math.round(await longestGap())} ms)`;
     }
-    expect(gap, `the longest gap between frames, in ms${paused}`).toBeLessThan(FRAME_GAP_BUDGET);
+    expect(gap, `the longest gap between frames, in ms, ${first.at} ms into the read${first.paced ? ", as the stage judged the screen" : ""}${paused}`).toBeLessThan(FRAME_GAP_BUDGET);
     await menuButton(page).click({ timeout: 1000 });
     // real clock: the sheet stays open until it is closed; no timer ends it.
     await expect(sheet(page)).toBeVisible({ timeout: 1000 });
