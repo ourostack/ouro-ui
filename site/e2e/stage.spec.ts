@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { BELL_TOASTS, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { allCrewLines, BELL_TOASTS, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
 import { watchToasts } from "./toasts";
 
@@ -868,6 +868,37 @@ test("on a phone, keyboard focus on the stage always stops below the pinned port
   await context.close();
 });
 
+// The crew's strip is set to the longest line's height, not grown to each (stage.css, ourostack/ouro-ui#667): every line fits
+// it, unclipped, from the narrowest phone to a wide screen, and the strip is the same height whichever line it shows.
+for (const width of [320, 360, 375, 390, 430, 600, 768, 1024, 1280]) {
+  test(`at ${width} px every crew line fits the crew's strip, which holds its height`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await open(page);
+    const misfits = await page.evaluate(
+      ({ lines, speakers }) => {
+        const crew = document.querySelector<HTMLElement>("[data-stage-crew]")!;
+        const words = crew.querySelector<HTMLElement>(".stage-crew-words")!;
+        const name = words.querySelector(".stage-crew-name")!;
+        const style = getComputedStyle(crew);
+        const strip = crew.getBoundingClientRect();
+        const top = strip.top + parseFloat(style.borderTopWidth) + parseFloat(style.paddingTop) - 0.5;
+        const bottom = strip.bottom - parseFloat(style.paddingBottom) + 0.5;
+        const out: string[] = [];
+        for (const line of lines) {
+          name.textContent = `${speakers[line.name]}:`;
+          words.lastChild!.textContent = ` ${line.text}`;
+          const box = words.getBoundingClientRect();
+          const height = crew.getBoundingClientRect().height;
+          if (box.top < top || box.bottom > bottom || height !== strip.height) out.push(`"${line.text}": words ${Math.round(box.top)}-${Math.round(box.bottom)} in ${Math.round(top)}-${Math.round(bottom)}, strip ${height}`);
+        }
+        return out;
+      },
+      { lines: allCrewLines(), speakers: SPEAKER },
+    );
+    expect(misfits).toEqual([]);
+  });
+}
+
 for (const mode of ["light", "dark"] as const) {
   test(`on a phone (${mode}), the crew's line sits between the porthole and the console, over nothing, at rest and after a dive`, async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, colorScheme: mode, baseURL: test.info().project.use.baseURL! });
@@ -926,71 +957,4 @@ test("on a phone, the bell's toast never covers the bell", async ({ browser }) =
   await expect.poll(toasts.settled).toBeGreaterThan(5);
   expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
   await context.close();
-});
-
-// TEMPORARY (#667): what each part of the switch to still water costs a frame, each part alone, on a page that swims.
-test("DIAG switch parts", async ({ page }) => {
-  test.setTimeout(120_000);
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.addInitScript(() => {
-    const frames: number[] = [];
-    (window as unknown as { __frames: number[] }).__frames = frames;
-    const count = () => {
-      frames.push(performance.now());
-      requestAnimationFrame(count);
-    };
-    requestAnimationFrame(count);
-  });
-  await open(page);
-  await swimming(page);
-  await page.waitForTimeout(1000);
-  const lines: string[] = [];
-  const step = async (name: string, action: string) => {
-    const from = await page.evaluate((code) => {
-      const at = (window as unknown as { __frames: number[] }).__frames.length;
-      // eslint-disable-next-line no-new-func
-      new Function(code)();
-      return at;
-    }, action);
-    await page.waitForTimeout(900);
-    const gaps = await page.evaluate((at) => {
-      const all = (window as unknown as { __frames: number[] }).__frames;
-      return all.slice(Math.max(1, at - 2)).map((time, index, list) => (index ? Math.round(time - list[index - 1]!) : 0)).slice(1);
-    }, from);
-    lines.push(`${name}: max ${Math.max(...gaps)} | ${gaps.slice(0, 8).join(" ")}`);
-  };
-  const press = (name: string) => `[...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='${name}' || e.getAttribute('aria-label')==='${name}')?.click()`;
-  const text = "const w = document.querySelector('.stage-crew-words'); w.lastChild.textContent = ' Slow screen, so the fish rest. Press Half to sail on! ' + (performance.now() % 7 > 3.5 ? 'a' : 'b')";
-  const css = (rule: string) => `let s = document.getElementById('diag'); if (!s) { s = document.createElement('style'); s.id = 'diag'; document.head.append(s); } s.textContent = ${JSON.stringify(rule)}`;
-  lines.push(
-    await page.evaluate(() => {
-      const out: string[] = [];
-      for (let e: Element | null = document.querySelector(".stage-crew"); e; e = e.parentElement) {
-        const c = getComputedStyle(e);
-        out.push(`${e.tagName.toLowerCase()}.${[...e.classList].slice(0, 2).join(".")} ${c.display} ${c.contain} ${c.containerType} ${c.position} ${c.overflow} h${Math.round(e.getBoundingClientRect().height)}`);
-      }
-      return `chain: ${out.join(" < ")} | elements ${document.querySelectorAll("*").length} | composited? ${document.querySelectorAll(".stage *").length}`;
-    }),
-  );
-  await step("idle", "");
-  await step("text a", text);
-  await step("text b", text);
-  for (const [label, rule] of [
-    ["crew contain layout paint", ".stage-crew { contain: layout paint; }"],
-    ["crew contain strict 80px", ".stage-crew { contain: strict; height: 80px; }"],
-    ["stage contain layout paint", ".stage { contain: layout paint; }"],
-    ["stage contain strict", ".stage { contain: strict; height: 900px; }"],
-    ["main siblings cv auto", "main > * > *:not(:has(.stage)), main > *:not(:has(.stage)) { content-visibility: auto; contain-intrinsic-size: auto 600px; }"],
-    ["header hidden", "header, [role=banner] { display: none !important; }"],
-    ["all filters off", "* { filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; mask: none !important; -webkit-mask: none !important; box-shadow: none !important; }"],
-  ] as const) {
-    await step(`${label} on`, css(rule));
-    await step(`${label} text a`, text);
-    await step(`${label} text b`, text);
-    await step(`${label} press Stop`, press("Stop"));
-    await step(`${label} press Half`, press("Half"));
-    await step(`${label} off`, css(""));
-  }
-  await step("idle end", "");
-  console.log(`SWITCHDIAG ${test.info().project.name}\n${lines.join("\n")}`);
 });
