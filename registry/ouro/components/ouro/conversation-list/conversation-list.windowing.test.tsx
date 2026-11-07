@@ -7,6 +7,19 @@ import { ConversationList, type ConversationListItem, type ConversationListSecti
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
+const avatarRenders = vi.hoisted(() => ({ count: 0 }));
+// Each row renders one avatar, so counting avatar renders counts row renders.
+vi.mock("@/registry/ouro/components/ouro/avatar/avatar", async (original) => {
+  const actual = await original<typeof import("@/registry/ouro/components/ouro/avatar/avatar")>();
+  return {
+    ...actual,
+    Avatar: (props: Parameters<typeof actual.Avatar>[0]) => {
+      avatarRenders.count += 1;
+      return actual.Avatar(props);
+    },
+  };
+});
+
 const roots: Root[] = [];
 let mounted: Element[] = [];
 
@@ -504,5 +517,49 @@ describe("ConversationList windowing with sections", () => {
     const view = await render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />);
     expect(view.rows()).toHaveLength(50);
     expect(view.pane.scrollTop).toBe(0);
+  });
+
+  it("mounts only the visible window of a windowed list's sections on the first commit, and re-renders only the two rows a selection switch touches", async () => {
+    const items = many(200, (index) => ({ section: `s${Math.floor(index / 50)}` }));
+    const sections = [0, 1, 2, 3].map((n) => ({ id: `s${n}`, title: `S${n}` }));
+    const first = renderToString(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />);
+    const firstRows = first.split('data-ouro-part="row"').length - 1;
+    expect(firstRows).toBeGreaterThan(0);
+    expect(firstRows).toBeLessThan(40);
+
+    avatarRenders.count = 0;
+    const view = await render(<ConversationList label="Chats" items={items} sections={sections} selectedId="c1" onSelect={() => {}} />);
+    expect(view.rows().length).toBeLessThan(40);
+    // Measuring passes re-render rows whose offset moved, but never reach the rows beyond the window.
+    expect(avatarRenders.count).toBeGreaterThanOrEqual(view.rows().length);
+    expect(avatarRenders.count).toBeLessThan(items.length);
+
+    avatarRenders.count = 0;
+    await view.rerender(<ConversationList label="Chats" items={items} sections={sections} selectedId="c1" onSelect={() => {}} />);
+    const before = view.rows().map((r) => r.parentElement!.style.top).join();
+    avatarRenders.count = 0;
+    await view.rerender(<ConversationList label="Chats" items={items} sections={sections} selectedId="c2" onSelect={() => {}} />);
+    expect(view.rows().map((r) => r.parentElement!.style.top).join()).toBe(before);
+    expect(avatarRenders.count).toBe(2);
+    expect(view.rows().filter((row) => row.getAttribute("aria-current") === "true")).toHaveLength(1);
+
+    avatarRenders.count = 0;
+    await view.rerender(<ConversationList label="Chats" items={items} sections={sections} selectedId="c2" onSelect={() => {}} />);
+    expect(avatarRenders.count).toBe(0);
+  });
+
+  it("re-renders only the two rows a selection switch touches in a short list, and calls the latest onSelect", async () => {
+    const items = many(10);
+    const first = vi.fn();
+    const second = vi.fn();
+    avatarRenders.count = 0;
+    const view = await render(<ConversationList label="Chats" items={items} selectedId="c0" onSelect={first} />);
+    expect(avatarRenders.count).toBe(10);
+    avatarRenders.count = 0;
+    await view.rerender(<ConversationList label="Chats" items={items} selectedId="c3" onSelect={second} />);
+    expect(avatarRenders.count).toBe(2);
+    await act(async () => view.rows()[5]!.click());
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledWith("c5");
   });
 });

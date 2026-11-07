@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  memo,
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -267,6 +269,148 @@ function Chevron({ open }: { open: boolean }): JSX.Element {
   );
 }
 
+type RowProps = {
+  item: ConversationListItem;
+  rowKey: string;
+  density: ConversationListDensity;
+  unreadLabel: string;
+  draftLabel: string;
+  selected: boolean;
+  tabStop: boolean;
+  windowed: boolean;
+  top: number;
+  slotClass: string;
+  position: number;
+  count: number;
+  register: (key: string, node: HTMLButtonElement | null) => void;
+  onPick: (id: string, event: MouseEvent<HTMLButtonElement>) => void;
+  onKey: (event: KeyboardEvent<HTMLButtonElement>, key: string) => void;
+  onActive: (key: string) => void;
+};
+
+// A row renders again only when its own conversation, place or state changes, so opening another conversation renders
+// the row that closes and the row that opens, not the list.
+const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive }: RowProps): JSX.Element {
+  const drafted = shown(item.draft);
+  const withPreview = density === "comfortable" && (drafted || shown(item.preview));
+  // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
+  const withContext = shown(item.context);
+  const endsTitle = !withPreview && !withContext && !item.subtitle;
+  const endsSubtitle = !withPreview && !withContext && !!item.subtitle;
+  const hasMark = shown(item.mark);
+  const end = (
+    <>
+      {hasMark && (
+        // As tall as the line, so a badge that is a little taller leaves the row the height of the others.
+        <span data-ouro-conversation-mark="" className={cn("flex h-5 shrink-0 items-center text-xs", quiet)}>
+          {item.mark}
+        </span>
+      )}
+      {item.unread && <Unread label={unreadLabel} dot={!hasMark} />}
+    </>
+  );
+  return (
+    <li
+      {...(windowed && { style: { top }, "aria-posinset": position, "aria-setsize": count })}
+      className={cn("m-0 p-0", windowed && slotClass)}
+    >
+      <button
+        ref={(node) => register(key, node)}
+        type="button"
+        data-ouro-control="conversation-list"
+        data-ouro-part="row"
+        tabIndex={tabStop ? 0 : -1}
+        aria-current={selected ? "true" : undefined}
+        onClick={(event) => onPick(item.id, event)}
+        onKeyDown={(event) => onKey(event, key)}
+        onFocus={() => onActive(key)}
+        className={cn(controlClass, rowClass, selected && currentClass, density === "compact" ? "py-1.5" : "py-2")}
+      >
+        {item.avatar === false ? null : typeof item.avatar === "object" ? (
+          <span data-ouro-conversation-avatar="" className="flex shrink-0">
+            {item.avatar}
+          </span>
+        ) : (
+          <Avatar name={item.name ?? (item.title as string)} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
+        )}
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="flex min-w-0 flex-1 items-center gap-1.5">
+              {shown(item.icon) && (
+                <span data-ouro-conversation-icon="" className={cn("flex shrink-0 items-center [&_svg]:size-4", quiet)}>
+                  {item.icon}
+                </span>
+              )}
+              <span data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
+                {item.name === undefined ? (
+                  item.title
+                ) : (
+                  <>
+                    <span aria-hidden="true">{item.title}</span>
+                    <span className="sr-only">{item.name}</span>
+                  </>
+                )}
+              </span>
+              {item.nameTag && (
+                <span data-ouro-conversation-name-tag="" className={cn("shrink-0 text-sm pointer-fine:text-xs", quiet)}>
+                  <span className="sr-only">, </span>
+                  {item.nameTag}
+                </span>
+              )}
+              {shown(item.where) && (
+                <span data-ouro-conversation-where="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-sm pointer-fine:text-xs", quiet)}>
+                  <span aria-hidden="true">· </span>
+                  {item.where}
+                </span>
+              )}
+              {item.badges}
+            </span>
+            {shown(item.time) && (
+              <span data-ouro-conversation-time="" className={cn("shrink-0 text-xs tabular-nums", quiet)}>
+                {item.time}
+              </span>
+            )}
+            {endsTitle && end}
+          </span>
+          {item.subtitle && (
+            <span className="flex min-w-0 items-center gap-2">
+              <span data-ouro-conversation-subtitle="" className={cn("min-w-0 flex-1 truncate text-xs", quiet)}>
+                {item.subtitle}
+              </span>
+              {endsSubtitle && end}
+            </span>
+          )}
+          {withContext && (
+            <span className="flex min-w-0 items-center gap-2">
+              <span data-ouro-conversation-context="" className="min-w-0 flex-1 truncate text-sm text-foreground">
+                {item.context}
+              </span>
+              {!withPreview && end}
+            </span>
+          )}
+          {withPreview && (
+            <span className="flex min-w-0 items-center gap-2">
+              <span data-ouro-conversation-preview="" className={cn("min-w-0 flex-1 truncate text-sm", item.unread ? "text-foreground" : quiet)}>
+                {drafted ? (
+                  <>
+                    <span data-ouro-conversation-draft="" className="font-medium text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
+                      {draftLabel}
+                    </span>{" "}
+                    {item.draft}
+                  </>
+                ) : (
+                  item.preview
+                )}
+              </span>
+              {end}
+            </span>
+          )}
+        </span>
+      </button>
+    </li>
+  );
+});
+
 /**
  * A list of conversations to choose from: each row shows the avatar, the title, when the
  * latest message arrived and a line of it, and marks unread conversations with a bold title
@@ -416,10 +560,11 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const index = indexes.get(key)!;
     return { className: cn("absolute inset-x-0", index > 0 && (kindOf(key) === "section" ? "pt-2.5" : "pt-0.5")), style: { top: offsets[index] } };
   };
-  const controlRef = (key: string) => (node: HTMLButtonElement | null) => {
+  const register = useCallback((key: string, node: HTMLButtonElement | null) => {
     if (node) controls.current.set(key, node);
     else controls.current.delete(key);
-  };
+  }, []);
+  const controlRef = (key: string) => (node: HTMLButtonElement | null) => register(key, node);
 
   // The list's view, from its top: the part no scrolling box around it, or the window, clips.
   const view = () => {
@@ -541,127 +686,40 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     event.preventDefault();
     focusKey(keys[to(keys.indexOf(key), keys.length - 1)]!);
   };
+  // The rows are memoised, so they call the latest handlers through these stable ones.
+  const handlers = useRef({ onSelect, move });
+  useLayoutEffect(() => {
+    handlers.current = { onSelect, move };
+  });
+  const onPick = useCallback((id: string, event: MouseEvent<HTMLButtonElement>) => {
+    const { onSelect: select } = handlers.current;
+    if (select.length > 1) select(id, event);
+    else (select as (id: string) => void)(id);
+  }, []);
+  const onKey = useCallback((event: KeyboardEvent<HTMLButtonElement>, key: string) => handlers.current.move(event, key), []);
 
   const rowFor = (item: ConversationListItem, position: number, count: number) => {
     const key = `row:${item.id}`;
-    const drafted = shown(item.draft);
-    const withPreview = density === "comfortable" && (drafted || shown(item.preview));
-    // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
-    const withContext = shown(item.context);
-    const endsTitle = !withPreview && !withContext && !item.subtitle;
-    const endsSubtitle = !withPreview && !withContext && !!item.subtitle;
-    const hasMark = shown(item.mark);
-    const end = (
-      <>
-        {hasMark && (
-          // As tall as the line, so a badge that is a little taller leaves the row the height of the others.
-          <span data-ouro-conversation-mark="" className={cn("flex h-5 shrink-0 items-center text-xs", quiet)}>
-            {item.mark}
-          </span>
-        )}
-        {item.unread && <Unread label={unreadLabel} dot={!hasMark} />}
-      </>
-    );
     return (
-      <li
+      <Row
         key={item.id}
-        {...(windowed && { ...slot(key), "aria-posinset": position, "aria-setsize": count })}
-        className={cn("m-0 p-0", windowed && slot(key).className)}
-      >
-        <button
-          ref={controlRef(key)}
-          type="button"
-          data-ouro-control="conversation-list"
-          data-ouro-part="row"
-          tabIndex={key === tabStop ? 0 : -1}
-          aria-current={item.id === selectedId ? "true" : undefined}
-          onClick={(event) => (onSelect.length > 1 ? onSelect(item.id, event) : (onSelect as (id: string) => void)(item.id))}
-          onKeyDown={(event) => move(event, key)}
-          onFocus={() => setActive(key)}
-          className={cn(controlClass, rowClass, item.id === selectedId && currentClass, density === "compact" ? "py-1.5" : "py-2")}
-        >
-          {item.avatar === false ? null : typeof item.avatar === "object" ? (
-            <span data-ouro-conversation-avatar="" className="flex shrink-0">
-              {item.avatar}
-            </span>
-          ) : (
-            <Avatar name={item.name ?? (item.title as string)} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
-          )}
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                {shown(item.icon) && (
-                  <span data-ouro-conversation-icon="" className={cn("flex shrink-0 items-center [&_svg]:size-4", quiet)}>
-                    {item.icon}
-                  </span>
-                )}
-                <span data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
-                  {item.name === undefined ? (
-                    item.title
-                  ) : (
-                    <>
-                      <span aria-hidden="true">{item.title}</span>
-                      <span className="sr-only">{item.name}</span>
-                    </>
-                  )}
-                </span>
-                {item.nameTag && (
-                  <span data-ouro-conversation-name-tag="" className={cn("shrink-0 text-sm pointer-fine:text-xs", quiet)}>
-                    <span className="sr-only">, </span>
-                    {item.nameTag}
-                  </span>
-                )}
-                {shown(item.where) && (
-                  <span data-ouro-conversation-where="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-sm pointer-fine:text-xs", quiet)}>
-                    <span aria-hidden="true">· </span>
-                    {item.where}
-                  </span>
-                )}
-                {item.badges}
-              </span>
-              {shown(item.time) && (
-                <span data-ouro-conversation-time="" className={cn("shrink-0 text-xs tabular-nums", quiet)}>
-                  {item.time}
-                </span>
-              )}
-              {endsTitle && end}
-            </span>
-            {item.subtitle && (
-              <span className="flex min-w-0 items-center gap-2">
-                <span data-ouro-conversation-subtitle="" className={cn("min-w-0 flex-1 truncate text-xs", quiet)}>
-                  {item.subtitle}
-                </span>
-                {endsSubtitle && end}
-              </span>
-            )}
-            {withContext && (
-              <span className="flex min-w-0 items-center gap-2">
-                <span data-ouro-conversation-context="" className="min-w-0 flex-1 truncate text-sm text-foreground">
-                  {item.context}
-                </span>
-                {!withPreview && end}
-              </span>
-            )}
-            {withPreview && (
-              <span className="flex min-w-0 items-center gap-2">
-                <span data-ouro-conversation-preview="" className={cn("min-w-0 flex-1 truncate text-sm", item.unread ? "text-foreground" : quiet)}>
-                  {drafted ? (
-                    <>
-                      <span data-ouro-conversation-draft="" className="font-medium text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
-                        {draftLabel}
-                      </span>{" "}
-                      {item.draft}
-                    </>
-                  ) : (
-                    item.preview
-                  )}
-                </span>
-                {end}
-              </span>
-            )}
-          </span>
-        </button>
-      </li>
+        item={item}
+        rowKey={key}
+        density={density}
+        unreadLabel={unreadLabel}
+        draftLabel={draftLabel}
+        selected={item.id === selectedId}
+        tabStop={key === tabStop}
+        windowed={windowed}
+        top={windowed ? offsets[indexes.get(key)!]! : 0}
+        slotClass={windowed ? slot(key).className : ""}
+        position={position}
+        count={count}
+        register={register}
+        onPick={onPick}
+        onKey={onKey}
+        onActive={setActive}
+      />
     );
   };
 
