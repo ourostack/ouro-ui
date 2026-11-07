@@ -957,27 +957,36 @@ test("DIAG switch parts", async ({ page }) => {
       const all = (window as unknown as { __frames: number[] }).__frames;
       return all.slice(Math.max(1, at - 2)).map((time, index, list) => (index ? Math.round(time - list[index - 1]!) : 0)).slice(1);
     }, from);
-    lines.push(`${name}: max ${Math.max(...gaps)} | ${gaps.slice(0, 14).join(" ")}`);
+    lines.push(`${name}: max ${Math.max(...gaps)} | ${gaps.slice(0, 8).join(" ")}`);
   };
-  const scene = "document.querySelector('.stage-scene')";
-  const drift = "document.getAnimations().filter(a => a.animationName === 'stage-drift')";
+  const press = (name: string) => `[...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='${name}' || e.getAttribute('aria-label')==='${name}')?.click()`;
+  const hide = (selector: string) => `document.querySelectorAll('${selector}').forEach(e => e.style.display='none')`;
+  const show = (selector: string) => `document.querySelectorAll('${selector}').forEach(e => e.style.display='')`;
+  const pair = async (label: string) => {
+    await step(`${label} Stop`, press("Stop"));
+    await step(`${label} Half`, press("Half"));
+  };
   await step("idle", "");
-  await step("scene stop attr", `${scene}.setAttribute('data-speed','stop')`);
-  await step("scene half attr", `${scene}.setAttribute('data-speed','half')`);
-  await step("drift inline paused", "document.querySelectorAll('.stage-drift').forEach(e => e.style.animationPlayState='paused')");
-  await step("drift inline running", "document.querySelectorAll('.stage-drift').forEach(e => e.style.animationPlayState='')");
-  await step("caustics inline paused", "document.querySelectorAll('.stage-caustics > svg').forEach(e => e.style.animationPlayState='paused')");
-  await step("caustics inline running", "document.querySelectorAll('.stage-caustics > svg').forEach(e => e.style.animationPlayState='')");
-  await step("wake opacity 0", "document.querySelectorAll('.stage-wake').forEach(e => e.style.opacity='0')");
-  await step("wake opacity back", "document.querySelectorAll('.stage-wake').forEach(e => e.style.opacity='')");
-  await step("drift rate 0", `${drift}.forEach(a => a.updatePlaybackRate(0))`);
-  await step("drift rate 1", `${drift}.forEach(a => a.updatePlaybackRate(1))`);
-  await step("drift waapi pause", `${drift}.forEach(a => a.pause())`);
-  await step("drift waapi play", `${drift}.forEach(a => a.play())`);
-  await step("data-paced toggle", "const s = document.querySelector('[data-stage]'); s.removeAttribute('data-paced'); s.setAttribute('data-paced','')");
-  await step("press Stop", "document.querySelector('input[type=radio][value=stop], [role=radio][aria-label=Stop]') ? 0 : 0; [...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='Stop' || e.getAttribute('aria-label')==='Stop')?.click()");
-  await step("press Half", "[...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='Half' || e.getAttribute('aria-label')==='Half')?.click()");
-  await step("press Stop again", "[...document.querySelectorAll('[role=radio]')].find(e => e.textContent.trim()==='Stop' || e.getAttribute('aria-label')==='Stop')?.click()");
-  await step("idle stopped", "");
+  await pair("plain");
+  await pair("plain again");
+  for (const [label, selector] of [
+    ["no crew line", ".stage-crew"],
+    ["no log fold", ".stage-log-fold"],
+    ["no thumb", "[data-ouro-segment-thumb]"],
+    ["no porthole", ".stage-porthole"],
+    ["no crew words", ".stage-crew-words"],
+  ] as const) {
+    await step(`hide ${label}`, hide(selector));
+    await pair(label);
+    await step(`show ${label}`, show(selector));
+  }
+  await step("crew text only", "const w = document.querySelector('.stage-crew-words'); w.lastChild.textContent = ' Slow screen, so the fish rest. Press Half to sail on! ' + Date.now()");
+  await step("crew pretty off", "document.querySelector('.stage-crew').style.textWrap='wrap'");
+  await pair("pretty off");
+  await step("scene label only", "document.querySelector('.stage-scene').setAttribute('aria-label', 'x ' + Date.now())");
+  await step("log title only", "const t = document.querySelector('.stage-log-fold button, .stage-log-fold summary'); if (t) t.lastChild.textContent += ' '");
+  await step("lights", "document.querySelector('[data-stage-control=lights] [role=switch], [data-stage-control=lights] button')?.click()");
+  await step("lights back", "document.querySelector('[data-stage-control=lights] [role=switch], [data-stage-control=lights] button')?.click()");
+  await step("idle end", "");
   console.log(`SWITCHDIAG ${test.info().project.name}\n${lines.join("\n")}`);
 });
