@@ -475,7 +475,7 @@ function countFits(root: HTMLElement, widths: readonly number[], moreWidth: numb
  */
 function widthInputs(items: readonly ToolbarEntry[]): string {
   const shape = (entry: ToolbarEntry): unknown =>
-    entry.type === "separator" ? "separator" : entry.type === "group" ? [entry.label, entry.items.map(shape)] : [entry.label, entry.hideLabel === true, entry.icon !== undefined];
+    entry.type === "separator" ? "separator" : entry.type === "group" ? [entry.label, entry.items.map(shape)] : [entry.type, entry.label, entry.hideLabel === true, entry.icon !== undefined];
   return JSON.stringify(items.map(shape));
 }
 
@@ -489,16 +489,45 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
   const widths = useRef<readonly number[] | null>(null);
   const moreWidth = useRef(0);
   const inputs = widthInputs(items);
-  const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; shown: number } | null>(null);
-  const measuring = layout?.inputs !== inputs || layout.size !== size;
+  // Counts the times the entries' text changed under them (a font loading, a zoom), which measures them again.
+  const [epoch, setEpoch] = useState(0);
+  const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; epoch: number; shown: number } | null>(null);
+  const measuring = layout?.inputs !== inputs || layout.size !== size || layout.epoch !== epoch;
+  const entries = useRef<ResizeObserver | null>(null);
   const refocus = useRef(false);
 
   useLayoutEffect(() => {
     const root = rootRef.current!;
     widths.current = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].map((element) => element.getBoundingClientRect().width);
     moreWidth.current = root.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.getBoundingClientRect().width;
-    setLayout({ inputs, size, shown: countFits(root, widths.current!, moreWidth.current, refocus) });
-  }, [inputs, size]);
+    setLayout({ inputs, size, epoch, shown: countFits(root, widths.current!, moreWidth.current, refocus) });
+  }, [inputs, size, epoch]);
+
+  // A shown entry that is wider or narrower than measured means its text changed without the root resizing.
+  useLayoutEffect(() => {
+    const root = rootRef.current!;
+    const stale = new ResizeObserver(() => {
+      const measured = widths.current;
+      if (measured === null) return;
+      const changed = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].some(
+        (element) => Math.abs(element.getBoundingClientRect().width - measured[Number(element.getAttribute("data-ouro-toolbar-entry"))]) > 0.5,
+      );
+      if (changed) setEpoch((count) => count + 1);
+    });
+    entries.current = stale;
+    // A font that loads changes the labels' widths, and maybe nothing the observers see, so the entries are measured
+    // again once the fonts are ready. (WebKit sends no loadingdone for a face it finds at once, only loading.)
+    const fonts = root.ownerDocument.fonts;
+    const loading = () => void fonts.ready.then(() => setEpoch((count) => count + 1));
+    fonts.addEventListener("loading", loading);
+    return () => {
+      stale.disconnect();
+      fonts.removeEventListener("loading", loading);
+    };
+  }, []);
+  useLayoutEffect(() => {
+    for (const element of rootRef.current!.querySelectorAll(":scope > [data-ouro-toolbar-entry]")) entries.current!.observe(element);
+  });
 
   const shown = measuring ? items.length : layout.shown;
   useLayoutEffect(() => {

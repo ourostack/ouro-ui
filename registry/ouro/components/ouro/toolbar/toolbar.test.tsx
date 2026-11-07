@@ -365,6 +365,68 @@ describe("Toolbar overflow", () => {
     expect(names(buttons)).not.toEqual(before);
   });
 
+  const fontFace = (name: string, adjust: string) =>
+    new FontFace(name, 'local("DejaVu Sans"), local("Helvetica"), local("Arial"), local("Liberation Sans")', { sizeAdjust: adjust } as FontFaceDescriptors);
+
+  it("measures its entries again when a font loads, so a face that widens the labels moves the controls that no longer fit into More", async () => {
+    const face = fontFace("OuroToolbarWide", "300%");
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(
+      <div lang="zxx" style={{ fontFamily: "OuroToolbarWide, sans-serif" }}>
+        <Toolbar label="Formatting" size="sm" items={items} />
+      </div>,
+      560,
+    );
+    expect(view.more).toBeNull();
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    document.fonts.add(face);
+    try {
+      await act(async () => {
+        await face.load();
+        await document.fonts.ready;
+      });
+      await expect.poll(() => view.more).not.toBeNull();
+    } finally {
+      document.fonts.delete(face);
+    }
+  });
+
+  it("measures its entries again when a font loads that is narrower, so a control that was in More comes back into the row", async () => {
+    const face = fontFace("OuroToolbarNarrow", "40%");
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(
+      <div lang="zxx" style={{ fontFamily: "OuroToolbarNarrow, sans-serif" }}>
+        <Toolbar label="Formatting" size="sm" items={items} />
+      </div>,
+      230,
+    );
+    expect(view.more).not.toBeNull();
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    document.fonts.add(face);
+    try {
+      await act(async () => {
+        await face.load();
+        await document.fonts.ready;
+      });
+      await expect.poll(() => view.more).toBeNull();
+    } finally {
+      document.fonts.delete(face);
+    }
+  });
+
+  it("measures its entries again when the text grows without the row resizing, as with a larger root font size", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    expect(view.more).toBeNull();
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    document.documentElement.style.fontSize = "48px";
+    try {
+      await expect.poll(() => view.more).not.toBeNull();
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
   it("moves the controls that do not fit into a More menu at the end", async () => {
     const { buttons, more } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
     expect(more).not.toBeNull();
