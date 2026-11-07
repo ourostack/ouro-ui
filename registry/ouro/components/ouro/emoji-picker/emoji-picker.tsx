@@ -1204,9 +1204,8 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
             if (cell) setActive(Number(cell.dataset.cell));
             setGridFocus(Boolean(cell));
           }}
-          onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setGridFocus(false);
-          }}
+          // Focus moving on to another emoji is this blur and its focus in one render, so the preview never stops between them.
+          onBlur={() => setGridFocus(false)}
         >
           {total === 0 ? (
             <p className="m-0 px-1 py-6 text-sm leading-5 text-muted-foreground">{searching ? labels.noResultsLabel : null}</p>
