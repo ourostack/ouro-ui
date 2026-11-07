@@ -275,12 +275,17 @@ describe("Navbar", () => {
       expect(document.querySelectorAll('[data-ouro="sheet"] a[href]')).toHaveLength(0);
       await userEvent.click(press(menuButton));
       await expect.element(page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: items[0]!.label })).toBeVisible();
-      // The content's turn, at last, leaves the open sheet as it is, and the sheet built afresh after the close keeps it.
+      // The content's turn, at last, leaves the open sheet as it is.
       for (const callback of held.splice(0)) callback();
       await expect.element(page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: items[0]!.label })).toBeVisible();
+      // The sheet built afresh after the close takes its frame first and its content on the next turn too.
       await sheetSettled();
       await userEvent.keyboard("{Escape}");
-      await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden && document.querySelectorAll('[data-ouro="sheet"] a[href]').length).toBe(items.length);
+      await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
+      await expect.poll(() => held.length).toBeGreaterThan(0);
+      expect(document.querySelectorAll('[data-ouro="sheet"] a[href]')).toHaveLength(0);
+      for (const callback of held.splice(0)) callback();
+      await expect.poll(() => document.querySelectorAll('[data-ouro="sheet"] a[href]').length).toBe(items.length);
     });
 
     it(`builds no sheet when the menu button hides again before the page is idle${idle ? "" : ", where the browser has no idle callback"}`, async () => {

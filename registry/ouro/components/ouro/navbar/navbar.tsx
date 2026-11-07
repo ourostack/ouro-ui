@@ -306,8 +306,11 @@ export function Navbar(props: NavbarProps): JSX.Element {
       <SheetFrame
         key={round}
         onOpenChangeComplete={(shown) => {
+          if (shown) return;
           // Stryker disable next-line ArithmeticOperator: any key the sheet has not had builds it afresh, a count down as well as up.
-          if (!shown) setRound((count) => count + 1);
+          setRound((count) => count + 1);
+          // The fresh sheet, too, takes its frame now and its content on a later turn (ourostack/ouro-ui#670).
+          setFilled(false);
         }}
         keepMounted={built}
         title={menuLabel}
