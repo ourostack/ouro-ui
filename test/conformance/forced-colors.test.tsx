@@ -311,6 +311,9 @@ async function gaps(root: ParentNode, state: string): Promise<string[]> {
   }
   // A list's highlighted item stands for focus: the highlight must show, moving from item to item.
   for (const control of virtual) {
+    // Gone, or going, with an earlier focus (the items of a menu the story opened, which closes as focus leaves it): not
+    // shown, so not compared here; its items are compared with the menu open from its trigger.
+    if (!control.isConnected || control.closest("[data-ending-style], [data-closed]") !== null) continue;
     const around = frame(control);
     const before = look(around);
     // A list that loads as you search may redraw under the pointer, so point at the item until it highlights.

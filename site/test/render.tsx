@@ -86,6 +86,16 @@ export function setScheme(scheme: "light" | "dark"): void {
  * scan's time limit on that page before the scan began.
  */
 export async function settle(): Promise<void> {
+  // Where the phone menu button shows, the Navbar builds its sheet once the page is idle: wait for it, so a scan that
+  // follows does not see the page change under it (axe cannot place the headings of a part added mid-scan).
+  const menuButton = document.querySelector<HTMLElement>("[data-ouro-navbar-menu]");
+  if (menuButton && menuButton.getClientRects().length > 0) {
+    const start = performance.now();
+    while (!document.querySelector('[data-ouro="sheet"]')) {
+      if (performance.now() - start > 5000) throw new Error("the Navbar's sheet was not built");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
   for (let round = 0; round < 50; round++) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const running = document

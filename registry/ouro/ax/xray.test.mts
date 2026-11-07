@@ -665,6 +665,31 @@ test("a listening read's follow, fields and cursor: ignored, missing, no lines, 
   assert.ok(failingNotes(plain, "ui.twin-exists").every((n) => n.endsWith("no help JSON to find the twin in")));
 });
 
+test("a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through", async () => {
+  const results = (report: Report) => report.results.filter((r) => r.claim === "copy.precise-failure").map((r) => [r.verdict, r.surface, r.note]);
+  const plain = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad" }));
+  assert.deepEqual(results(plain), [
+    ["fail", "Could not reach the room service. Try later.", '`bad help --json` commands[0].errors[0]: "Could not reach the room service. Try later." says "could not" and not what happened or why'],
+    ["fail", "Error: something went wrong", results(plain)[1]![2]],
+  ]);
+  assert.match(String(results(plain)[1]![2]), /^`bad send .*` prints: "Error: something went wrong" says "something went wrong" and not what happened or why$/);
+  const allowFile = join(scratch, "failure-copy-allow.json");
+  writeFileSync(allowFile, JSON.stringify([
+    { match: "Could not reach the room service.", reason: "a test of a text allowed in help" },
+    { match: "something went wrong", reason: "a test of a text allowed by its line" },
+  ]));
+  const allowed = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad", failureCopyAllow: allowFile }));
+  assert.deepEqual(results(allowed), [
+    ["pass", "Could not reach the room service.", "allowed: a test of a text allowed in help"],
+    ["pass", "something went wrong", "allowed: a test of a text allowed by its line"],
+  ]);
+  writeFileSync(allowFile, JSON.stringify([{ match: "could not" }]));
+  const bad = io();
+  assert.equal(await main(["--cli", fixture("bad-cli.mjs"), "--failure-copy-allow", allowFile], bad.io), 2);
+  assert.match(bad.o.err, /--failure-copy-allow .*failure-copy-allow\.json: the failure copy allow-list has 1 problem:\nentry 0 \{"match":"could not"\} needs a non-empty "match" and a "reason"/);
+  assert.equal(parseArgs(["--cli", "x", "--failure-copy-allow", "a.json"]).failureCopyAllow, "a.json");
+});
+
 test("a CLI that asks for developer commands fails cli.no-dev-commands once per command, and a step marked sourceCheckout passes", async () => {
   const report = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad" }));
   const results = report.results.filter((r) => r.claim === "cli.no-dev-commands");

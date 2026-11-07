@@ -22,7 +22,7 @@ type CheckFix = NextStep | { byHand: string; sourceCheckout?: true };
 /** The version of the report's shape; `--json` carries it as `ax`, as an outcome or a wait does. */
 const CHECKS_VERSION = "checks/1";
 
-/** `errored` is a check that couldn't run: it threw, so the tool broke rather than found something. */
+/** `errored` is a check that threw before finishing, so the tool broke rather than found something. */
 type CheckState = "passed" | "warned" | "failed" | "errored" | "skipped";
 
 /**
@@ -134,13 +134,13 @@ const wallClock = (): Pick<Timers, "now"> => ({ now: () => Date.now() });
 
 /**
  * The exit code for a verdict: 0 when nothing failed, warnings included; the declared `findings` code when a check
- * found a problem; and the base `error` code when a check couldn't run, since then the tool broke.
+ * found a problem; and the base `error` code when a check threw before finishing, since then the tool broke.
  *
  * @claim "the declared `findings` code when a check found a problem" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::findings exit with the declared findings code and a check that couldn't run exits 1, never the same code)
  */
 const EXITS: Readonly<Record<Verdict, number>> = Object.freeze({ passed: 0, warned: 0, failed: FINDINGS_EXIT_CODE.code, errored: BASE_EXIT_CODES[1]!.code });
 
-/** What a row records: a check's result, or that it couldn't run. */
+/** What a row records: a check's result, or what it threw. */
 type RowResult = CheckResult | { state: "errored"; detail: string; fix: CheckFix };
 
 async function runChecks<C>(def: ChecksDef<C>, context: C, options: ChecksRunOptions): Promise<ChecksReport> {
@@ -154,7 +154,7 @@ async function runChecks<C>(def: ChecksDef<C>, context: C, options: ChecksRunOpt
   try {
     for (const [i, check] of def.checks.entries()) {
       const unmet = (check.needs ?? []).map((id) => byId.get(id)!).find((r) => r.state !== "passed" && r.state !== "warned");
-      const why = { skipped: "was not run", errored: "couldn't run", failed: "failed" } as const;
+      const why = { skipped: "was not run", errored: "threw before finishing", failed: "failed" } as const;
       let result: RowResult;
       const start = clock.now();
       if (unmet) {
@@ -225,9 +225,9 @@ function summaryOf<C>(def: ChecksDef<C>, rows: readonly CheckRow[], counts: Reco
   const notRun = counts.skipped ? `, ${counts.skipped} not run` : "";
   const warned = counts.warned ? `, ${counts.warned} warned` : "";
   const failed = counts.failed ? `, ${counts.failed} failed` : "";
-  const says = { failed: "failed", warned: "needs a look", errored: "couldn't run" } as const;
+  const says = { failed: "failed", warned: "needs a look", errored: "threw before finishing" } as const;
   if (rows.length === 1 && verdict !== "passed") return `The ${noun[0]} ${says[verdict]}: ${labels(verdict)}, in ${took}.`;
-  if (verdict === "errored") return `${counts.errored} of ${all} couldn't run: ${labels("errored")}. ${counts.passed} passed${failed}${warned}${notRun}, in ${took}.`;
+  if (verdict === "errored") return `${counts.errored} of ${all} threw before finishing: ${labels("errored")}. ${counts.passed} passed${failed}${warned}${notRun}, in ${took}.`;
   if (verdict === "failed") return `${counts.failed} of ${all} failed: ${labels("failed")}. ${counts.passed} passed${warned}${notRun}, in ${took}.`;
   if (verdict === "warned") return `${counts.warned} of ${all} ${counts.warned === 1 ? "needs" : "need"} a look: ${labels("warned")}. ${counts.passed} passed${notRun}, in ${took}.`;
   if (!counts.passed) return `${rows.length === 1 ? `The ${noun[0]} was not run` : `None of the ${plural(rows.length, noun)} were run`}, in ${took}.`;
@@ -274,8 +274,8 @@ function checksText(report: ChecksReport, style: TerminalStyle, options: { verbo
     out.push("", p.bold(title), ...rows.flatMap((r) => [`  ${markOf(r.state, style)} ${r.label}${time(r)}`, ...body(r).map((l) => `    ${l}`)]));
   };
   const problem = (r: CheckRow) => [...(r.detail ? [r.detail] : []), ...(r.fix ? fixLines(r.fix, style, r.state !== "skipped") : [])];
-  section("Couldn't run", report.rows.filter((r) => r.state === "errored"), problem);
-  section("Failed", report.rows.filter((r) => r.state === "failed"), problem);
+  section("Threw before finishing", report.rows.filter((r) => r.state === "errored"), problem);
+  section("Found a problem", report.rows.filter((r) => r.state === "failed"), problem);
   section("Warnings", report.rows.filter((r) => r.state === "warned"), problem);
   const skipped = report.rows.filter((r) => r.state === "skipped");
   section("Still to check", options.verbose ? skipped : skipped.filter((r) => r.fix), problem);

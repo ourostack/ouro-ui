@@ -8,7 +8,7 @@ import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./d
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
-import { docsSections } from "./components/docs-sidebar";
+import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
@@ -196,6 +196,8 @@ describe("docs", () => {
   it("lists the components in the sidebar under a label per catalog group, with Start first, then Guides, and Platforms last", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/checklist/");
+    // The sidebar is an island of its own (components/docs-shell.tsx), drawn once its chunk loads.
+    await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
     const nav = page.getByRole("navigation", { name: "Docs" });
     const groups = siteGroups.filter((group) => docsItems.some((item) => item.group === group));
     for (const group of groups) {
@@ -305,6 +307,7 @@ describe("docs", () => {
     // The docs sidebar sticks to the top of the window, so a header that stuck there too would cover its filter.
     await page.viewport(1280, 800);
     await renderPage("/docs/composer/");
+    await expect.poll(() => document.querySelector('input[placeholder="Filter components"]')).not.toBeNull();
     window.scrollTo({ top: 600, behavior: "instant" });
     const field = document.querySelector<HTMLInputElement>('input[placeholder="Filter components"]')!;
     await expect.poll(() => field.getBoundingClientRect().top).toBeLessThan(60);

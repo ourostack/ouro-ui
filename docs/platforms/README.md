@@ -6,7 +6,7 @@ Ouro HX is how an app treats people, and Ouro AX is how it treats agents. Neithe
 
 A platform gets its own repository and pins a release of [Ouro UI core](https://github.com/ourostack/ouro-ui-core), the part that holds on any platform. Today core holds Ouro HX's tokens and Ouro AX for Apple's claims; Ouro HX's design language and web's Ouro AX standard move in later.[^core-today] A platform takes core's files from a release tag, never from a branch, and its CI checks that they arrived unchanged.[^pinning]
 
-- [Ouro HX & AX for web](https://ui.ouro.bot/) lives in `ourostack/ouro-ui`: the components, the AX kit for command lines, HTTP and MCP, and this site.[^web-home]
+- [Ouro HX & AX for web](https://ui.ouroboros.bot/) lives in `ourostack/ouro-ui`: the components, the AX kit for command lines, HTTP and MCP, and this site.[^web-home]
 - [Ouro HX & AX for Apple](apple.md) is a Swift package for iPhone, iPad and Mac, with Siri as the agent at the door.
 - [Ouro HX & AX for Android](android.md) and [for Windows](windows.md) are spare rooms with the lights on, waiting for a builder.
 - [Ouro HX & AX for your platform](your-platform.md) is the door we left open for whatever comes next.

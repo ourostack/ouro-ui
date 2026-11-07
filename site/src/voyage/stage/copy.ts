@@ -124,6 +124,7 @@ export const LOG = {
     full: { name: "Ned Land", text: "Full speed! Now we are sailing!" },
   },
   bell: { name: "Conseil", text: "The bell rang. I counted it. One." },
+  stillWater: { name: "Captain Nemo", text: "Slow screen, so the fish rest. Press Half to sail on!" },
 } as const satisfies Record<string, unknown>;
 
 /** What the crew says when the bell rings, in turn. */
@@ -133,6 +134,24 @@ export const BELL_TOASTS: readonly LogLine[] = [
   { name: "Professor Aronnax", text: "I hope that means dinner." },
   { name: "Captain Nemo", text: "The bell is for the crew, not for the fish." },
 ];
+
+/** Every line the crew can say, each tank's by name: for the readability check, and the crew's strip, which fits them all. */
+export function allCrewLines(): LogLine[] {
+  return [
+    ...OPENING_LOG,
+    ...Object.values(LOG.band),
+    ...TANKS.flatMap((tank) => [LOG.tankFull(tank.noun, 1), LOG.tankFull(tank.noun, 2), LOG.tankEmpty(tank.noun)]),
+    LOG.allFull,
+    LOG.dive,
+    LOG.surface,
+    LOG.lightsOnDeep,
+    LOG.lightsOn,
+    LOG.lightsOff,
+    ...Object.values(LOG.speed),
+    LOG.bell,
+    LOG.stillWater,
+  ];
+}
 
 /** Every line a visitor can read on the stage, for the readability check. */
 export function allStageText(): string[] {
@@ -146,19 +165,7 @@ export function allStageText(): string[] {
     ...BANDS.map((band) => band.label),
     ...TANKS.map((tank) => tank.label),
     ...SPEEDS.map((speed) => speed.label),
-    ...OPENING_LOG.map((line) => line.text),
-    ...Object.values(LOG.band).map((line) => line.text),
-    LOG.tankFull(TANKS[0].noun, 1).text,
-    LOG.tankFull(TANKS[0].noun, 2).text,
-    LOG.tankEmpty(TANKS[0].noun).text,
-    LOG.allFull.text,
-    LOG.dive.text,
-    LOG.surface.text,
-    LOG.lightsOnDeep.text,
-    LOG.lightsOn.text,
-    LOG.lightsOff.text,
-    ...Object.values(LOG.speed).map((line) => line.text),
-    LOG.bell.text,
+    ...allCrewLines().map((line) => line.text),
     ...BELL_TOASTS.map((line) => line.text),
   ];
   for (const band of ["sunlit", "twilight", "midnight"] as const) {

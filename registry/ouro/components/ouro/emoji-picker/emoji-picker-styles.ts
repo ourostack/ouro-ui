@@ -5,6 +5,7 @@ export {
   barClass,
   cellClass,
   COLUMNS,
+  FIRST_CELLS,
   emojiSkinTones,
   fillCount,
   gridClass,
@@ -43,6 +44,9 @@ const skinToneNames: Readonly<Record<EmojiSkinTone, string>> = {
 
 /** Emoji per row in the grid. @internal */
 const COLUMNS = 8;
+
+/** The grid's cells fetched first, at high priority: about what the picker shows as it opens. @internal */
+const FIRST_CELLS = 8 * COLUMNS;
 
 /** The part of an emoji the tone and the search read. @internal */
 interface ToneableEmoji {

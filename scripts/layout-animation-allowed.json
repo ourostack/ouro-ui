@@ -7,5 +7,8 @@
   },
   "registry/ouro/components/ouro/checklist/checklist-styles.ts": {
     "motion-safe:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),grid-template-rows_var(--ouro-duration-base)_var(--ouro-ease-out)]": "a row added or removed closes its gap so the rows below follow it, which a transform would overlap; with reduced motion it only fades"
+  },
+  "registry/ouro/components/ouro/composer/composer.tsx": {
+    "transition-[height]": "an in-flow growth: the box's height moves the messages above and below it as a long message makes it taller, which a transform would overlap; it is off with reduced motion"
   }
 }

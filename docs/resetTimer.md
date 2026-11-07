@@ -2,7 +2,7 @@
 
 # resetTimer
 
-Cancels or dismisses a timer by its timerId, including when its screen is not mounted. Mounted readers return to idle. A false return means storage could not forget the timer; mounted state still resets.
+Cancels or dismisses a timer by its timerId, including when its screen is not mounted. Mounted readers return to idle. A false return means `localStorage` threw when it removed the timer (storage the browser blocks), so a reload brings it back; mounted state still resets.
 
 ```tsx
 import { resetTimer } from "@/registry/ouro/lib/ouro/use-timer";

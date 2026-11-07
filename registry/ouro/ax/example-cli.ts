@@ -14,7 +14,7 @@ import { formatDuration, parseDuration, WAIT_FLAGS, waitFor, type AxEvent } from
  * A small tool built only from the kit, for the tests and as the pattern to copy: commands of both effects, an action
  * that returns an outcome with a preview, a wait on a room, an ambiguous word, a tool-specific exit code and a voice.
  */
-const exits = defineExitCodes([...BASE_EXIT_CODES, { code: 3, name: "unavailable", short: "unavailable", meaning: "the service could not be reached" }]);
+const exits = defineExitCodes([...BASE_EXIT_CODES, { code: 3, name: "unavailable", short: "unavailable", meaning: "the service didn't answer" }]);
 
 const rooms: Record<string, { title: string; members: string[]; notes: string[]; messages: AxEvent[] }> = {};
 
