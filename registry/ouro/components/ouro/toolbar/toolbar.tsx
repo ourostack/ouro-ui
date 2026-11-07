@@ -469,7 +469,7 @@ function countFits(root: HTMLElement, widths: readonly number[], moreWidth: numb
 }
 
 /**
- * What decides each entry's width: its type, label, whether it shows its label and has an icon, and a group's
+ * What decides an entry's width: its type, label, whether it shows its label and has an icon, and a group's
  * controls. Handlers, pressed states and shortcuts change none of it, nor does an app rendering the same items anew.
  * @claim "Handlers, pressed states and shortcuts change none" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > lays nothing out when it renders again with new items that look the same, and measures again when a label changes)
  */
