@@ -432,7 +432,35 @@ function MenuSurface({
 }): JSX.Element {
   const Positioner = context ? ContextMenu.Positioner : BaseMenu.Positioner;
   const portal = usePortalContainer("Menu", true);
-  return (
+  // An open menu leaves two focus guards beside its trigger (Base UI's FloatingPortal): a menubar's menu leaves them in
+  // the bar, a submenu in its menu. In WebKit on Apple platforms they are role="button", so that VoiceOver's cursor
+  // lands on them and is sent into the popup (Base UI utils/FocusGuard), and a menubar or a menu may hold no buttons
+  // (aria-required-children, issue #663). There they are hidden, as they are on every other platform. The group Base UI
+  // puts between them owns the popup (aria-owns), so the popup is read right after its trigger anyway, and the guards
+  // inside the popup stay buttons. Tab still stops on these. The holder is out of the flow, so the bar's gap stays shut.
+  // A dropdown's guards are left alone: its trigger can be anywhere, and its popup is read at the end of the page.
+  const inMenu = useContext(MenuContext) !== null;
+  const inBar = useContext(MenuBarContext);
+  const inside = inMenu || inBar;
+  const guards = useRef<HTMLSpanElement | null>(null);
+  useLayoutEffect(() => {
+    const holder = guards.current;
+    if (holder === null) return;
+    const hide = () => {
+      for (const guard of holder.querySelectorAll("[data-base-ui-focus-guard][role]")) {
+        guard.removeAttribute("role");
+        guard.setAttribute("aria-hidden", "true");
+      }
+    };
+    const observer = new MutationObserver(hide);
+    // Base UI mounts a guard without a role and gives it one a render later, so a change of role is all to watch for.
+    observer.observe(holder, { subtree: true, attributeFilter: ["role"] });
+    // Stryker disable next-line ArrowFunction: an observer left on a holder that has left the page sees no more changes.
+    return () => observer.disconnect();
+  },
+  // Stryker disable next-line ArrayDeclaration: the effect reads only the holder, the same element for the surface's life, so it runs once whatever it lists.
+  []);
+  const surface = (
     <BaseMenu.Portal {...portal} data-ouro="menu-portal" className={floatingPortalClass}>
       <PortalScope>
         {sheet && <BaseMenu.Backdrop data-ouro="menu-backdrop" className={menuBackdropClass} />}
@@ -472,6 +500,12 @@ function MenuSurface({
         </Positioner>
       </PortalScope>
     </BaseMenu.Portal>
+  );
+  if (!inside) return surface;
+  return (
+    <span ref={guards} data-ouro-menu-guards="" className="absolute">
+      {surface}
+    </span>
   );
 }
 
