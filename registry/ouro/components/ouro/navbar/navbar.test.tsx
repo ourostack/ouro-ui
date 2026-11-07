@@ -240,6 +240,49 @@ describe("Navbar", () => {
   });
 
   for (const idle of [true, false]) {
+    it(`builds the sheet's frame first and puts its content in on a later turn${idle ? "" : ", where the browser has no idle callback"}`, async () => {
+      // An idle callback that comes 300 ms on.
+      vi.stubGlobal("requestIdleCallback", idle ? (callback: () => void) => setTimeout(callback, 300) : undefined);
+      vi.stubGlobal("cancelIdleCallback", idle ? (id: number) => clearTimeout(id) : undefined);
+      await page.viewport(390, 844);
+      await render(<Navbar label="Main" items={items} />);
+      const popup = () => document.querySelector<HTMLElement>('[data-ouro="sheet"]');
+      const links = () => popup()?.querySelectorAll("a[href]").length ?? 0;
+      await expect.poll(popup, { timeout: 2000 }).not.toBeNull();
+      // Its frame alone, with no links yet; then, a turn later, the links.
+      expect(popup()!.hidden).toBe(true);
+      expect(links()).toBe(0);
+      await expect.poll(links, { timeout: 2000 }).toBeGreaterThan(0);
+      expect(popup()!.hidden).toBe(true);
+    });
+
+    if (idle)
+    it("opens with its links on a press between the sheet's frame and its content", async () => {
+      // The frame's idle turn comes at once; the content's is held until after the press.
+      const held: Array<() => void> = [];
+      let fired = false;
+      vi.stubGlobal("requestIdleCallback", (callback: () => void) => {
+        if (fired) return held.push(callback);
+        return setTimeout(() => {
+          fired = true;
+          callback();
+        }, 0);
+      });
+      vi.stubGlobal("cancelIdleCallback", (id: number) => clearTimeout(id));
+      await page.viewport(390, 844);
+      const { menuButton } = await render(<Navbar label="Main" items={items} />);
+      await expect.poll(() => document.querySelector('[data-ouro="sheet"]'), { timeout: 2000 }).not.toBeNull();
+      expect(document.querySelectorAll('[data-ouro="sheet"] a[href]')).toHaveLength(0);
+      await userEvent.click(press(menuButton));
+      await expect.element(page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: items[0]!.label })).toBeVisible();
+      // The content's turn, at last, leaves the open sheet as it is, and the sheet built afresh after the close keeps it.
+      for (const callback of held.splice(0)) callback();
+      await expect.element(page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: items[0]!.label })).toBeVisible();
+      await sheetSettled();
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden && document.querySelectorAll('[data-ouro="sheet"] a[href]').length).toBe(items.length);
+    });
+
     it(`builds no sheet when the menu button hides again before the page is idle${idle ? "" : ", where the browser has no idle callback"}`, async () => {
       // An idle callback that comes 300 ms on, cancelled as a timer is.
       vi.stubGlobal("requestIdleCallback", idle ? (callback: () => void) => setTimeout(callback, 300) : undefined);

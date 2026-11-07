@@ -68,6 +68,28 @@ async function openMenu(page: Page): Promise<void> {
   await settled(page);
 }
 
+/**
+ * The folds have finished sliding: nothing in the sheet runs a finite animation (the "you're here" ping goes on), and two
+ * reads of where its folds sit agree. A fold opening slides the folds below it down, and on CI's WebKit a click aimed at
+ * one of them while it still moved could land on the gap it left.
+ */
+async function foldsStill(page: Page): Promise<void> {
+  const place = () =>
+    sheet(page).evaluate((element) => {
+      const moving = element.getAnimations({ subtree: true }).some((animation) => animation.playState === "running" && animation.effect?.getTiming().iterations !== Infinity);
+      return moving ? "moving" : [...element.querySelectorAll("[data-site-menu-group]")].map((group) => Math.round(group.getBoundingClientRect().y)).join(",");
+    });
+  let last = "";
+  await expect
+    .poll(async () => {
+      const now = await place();
+      const same = now !== "moving" && now === last;
+      last = now;
+      return same;
+    })
+    .toBe(true);
+}
+
 /** The sheet has finished moving: nothing animates on it (the "you're here" ping inside may go on), and two reads of its place agree. */
 async function settled(page: Page): Promise<void> {
   const place = () => sheet(page).evaluate((element) => (element.getAnimations().length > 0 ? "moving" : `${element.getBoundingClientRect().x}`));
@@ -200,6 +222,7 @@ test("on any docs page the menu lists the guides and the components, as the side
   const navigation = sheet(page).getByRole("button", { name: /^Navigation \d+ pages$/ });
   await expect(navigation).toHaveAttribute("aria-expanded", "false");
   await navigation.click();
+  await foldsStill(page);
   await sheet(page).getByRole("link", { name: "SegmentedControl", exact: true }).click();
   await expect(page).toHaveURL(/\/docs\/segmented-control\/$/);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
@@ -209,6 +232,7 @@ test("on any docs page the menu lists the guides and the components, as the side
   await sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ }).click();
   await expect(sheet(page).getByRole("link", { name: "Ouro AX guide", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Ouro AX", exact: true })).toHaveCount(1);
+  await foldsStill(page);
   await sheet(page).getByRole("button", { name: /^Ouro AX, part by part \d+ pages$/ }).click();
   await expect(sheet(page).getByRole("link", { name: "ax-cli", exact: true })).toBeVisible();
   // A helper's page is in its component's group, after the components.

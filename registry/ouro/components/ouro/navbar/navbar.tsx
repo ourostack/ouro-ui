@@ -221,21 +221,24 @@ export function Navbar(props: NavbarProps): JSX.Element {
   // and built afresh once each close has finished, so every open starts as the first did: the `menu` prop's own state
   // (a filter's text, a list unfolded) and the sheet's scroll left behind.
   const [built, setBuilt] = useState(false);
+  // The sheet's content goes in on a later turn than its frame: a transition renders in slices, but commits in one, and
+  // the docs' menu and the sheet's frame together held a frame of 110 ms on CI's WebKit (ourostack/ouro-ui#670).
+  const [filled, setFilled] = useState(false);
   const [round, setRound] = useState(0);
   useEffect(() => {
-    if (!collapsed || built) return;
+    if (!collapsed || filled) return;
     // As a transition, which React renders in slices that leave the frames between them free: built in one go, a long
     // menu held a frame past 100 ms on a slow screen. A press in the middle opens the sheet as it is.
-    const build = () => startTransition(() => setBuilt(true));
-    // Where the browser has no idle callback (Safari), after the page's other start-up work.
+    const build = () => startTransition(() => (built ? setFilled(true) : setBuilt(true)));
+    // Where the browser has no idle callback (Safari), after the page's other start-up work, and the content a beat later.
     if (typeof requestIdleCallback !== "function") {
-      const timer = setTimeout(build, 500);
+      const timer = setTimeout(build, built ? 100 : 500);
       return () => clearTimeout(timer);
     }
     // Stryker disable next-line ObjectLiteral: the timeout only bounds a page that is never idle, which no test page is.
     const idle = requestIdleCallback(build, { timeout: 2000 });
     return () => cancelIdleCallback(idle);
-  }, [collapsed, built]);
+  }, [collapsed, built, filled]);
 
   // Before paint, so a client mount never shows a row that does not fit.
   useLayoutEffect(() => {
@@ -324,7 +327,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
             if ((event.target as Element).closest("a[href]")) setOpen(false);
           }}
         >
-          {menu ?? (
+          {!open && !filled ? null : menu ?? (
             <ul className={cn(list_, "flex-col gap-1")}>
               {items.map((item, index) =>
                 item.links !== undefined ? (
