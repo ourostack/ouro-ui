@@ -468,24 +468,37 @@ function countFits(root: HTMLElement, widths: readonly number[], moreWidth: numb
   return fits;
 }
 
-// Overflow: with a new `items` or `size`, every entry is shown and measured before paint; then
+/**
+ * What decides each entry's width: its type, label, whether it shows its label and has an icon, and a group's
+ * controls. Handlers, pressed states and shortcuts change none of it, nor does an app rendering the same items anew.
+ * @claim "Handlers, pressed states and shortcuts change none" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > lays nothing out when it renders again with new items that look the same, and measures again when a label changes)
+ */
+function widthInputs(items: readonly ToolbarEntry[]): string {
+  const shape = (entry: ToolbarEntry): unknown =>
+    entry.type === "separator" ? "separator" : entry.type === "group" ? [entry.label, entry.items.map(shape)] : [entry.label, entry.hideLabel === true, entry.icon !== undefined];
+  return JSON.stringify(items.map(shape));
+}
+
+// Overflow: with new widths or a new `size`, every entry is shown and measured before paint; then
 // as many as fit stay in the row and the rest move into the More menu. The widths measured
-// then serve every later resize.
+// then serve every later resize, which the resize observer reports once the page is laid out, where
+// reads are free. A render of the same entries measures nothing: a read inside a commit lays the page out at once.
 function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly ToolbarEntry[], size: ToolbarSize) {
   const rootRef = useRef<HTMLDivElement>(null);
   const setRef = useMergedRef(ref, rootRef);
   const widths = useRef<readonly number[] | null>(null);
   const moreWidth = useRef(0);
-  const [layout, setLayout] = useState<{ items: readonly ToolbarEntry[]; size: ToolbarSize; shown: number } | null>(null);
-  const measuring = layout?.items !== items || layout.size !== size;
+  const inputs = widthInputs(items);
+  const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; shown: number } | null>(null);
+  const measuring = layout?.inputs !== inputs || layout.size !== size;
   const refocus = useRef(false);
 
   useLayoutEffect(() => {
     const root = rootRef.current!;
     widths.current = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].map((element) => element.getBoundingClientRect().width);
     moreWidth.current = root.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.getBoundingClientRect().width;
-    setLayout({ items, size, shown: countFits(root, widths.current!, moreWidth.current, refocus) });
-  }, [items, size]);
+    setLayout({ inputs, size, shown: countFits(root, widths.current!, moreWidth.current, refocus) });
+  }, [inputs, size]);
 
   const shown = measuring ? items.length : layout.shown;
   useLayoutEffect(() => {

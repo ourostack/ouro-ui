@@ -7,6 +7,7 @@ import { Toolbar, type ToolbarEntry, type ToolbarProps } from "@/registry/ouro/c
 import { fitCount, splitEntries } from "@/registry/ouro/components/ouro/toolbar/toolbar-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -344,6 +345,26 @@ describe("Toolbar", () => {
 });
 
 describe("Toolbar overflow", () => {
+  it("lays nothing out when it renders again with new items that look the same, and measures again when a label changes", async () => {
+    const same = () => formatting.map((entry) => (entry.type === "group" ? { ...entry, items: entry.items.map((item) => ({ ...item })) } : { ...entry }));
+    const { rerender, buttons } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
+    // The resize observer reports the row a frame later, and measures then, where layout is free.
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    for (let count = 0; count < 5; count++) {
+      const reads = watchLayoutReads();
+      await rerender(<Toolbar label="Formatting" size="sm" items={same().map((entry) => (entry.type === "toggle" ? { ...entry, pressed: count % 2 === 0, onPressedChange: () => {} } : entry))} />);
+      reads.stop();
+      expect(reads.names()).toEqual([]);
+    }
+    const before = names(buttons);
+    const renamed = same().map((entry) => (entry.type === "toggle" && entry.label === "Bold" ? { ...entry, label: "Strong text", hideLabel: false } : entry));
+    const reads = watchLayoutReads();
+    await rerender(<Toolbar label="Formatting" size="sm" items={renamed} />);
+    reads.stop();
+    expect(reads.names().length).toBeGreaterThan(0);
+    expect(names(buttons)).not.toEqual(before);
+  });
+
   it("moves the controls that do not fit into a More menu at the end", async () => {
     const { buttons, more } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
     expect(more).not.toBeNull();
