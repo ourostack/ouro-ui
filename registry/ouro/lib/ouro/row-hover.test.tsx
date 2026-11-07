@@ -729,6 +729,39 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("takes the focusin listener out with the layer whose effect added it: keyboard focus coming into a row after a layer swap never shows it from the old one", async () => {
+    // Only the old layer ever gets the row, so the new effect's own focusin finds no row to show;
+    // only a stale listener from the torn-down effect could still show it.
+    const oldLayer = createRowLayer<string>();
+    function Harness({ layer }: { layer: RowLayer<string> }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        oldLayer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" tabIndex={-1} style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={oldLayer} />);
+    expect(probe.hover.row).toBeNull();
+    // A new, empty layer: the old effect tears down, and its focusin listener should go with it.
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    await userEvent.keyboard("{Shift}");
+    await act(async () => row("r0").focus());
+    expect(layerIn("r0")).toBeNull();
+    expect(probe.hover.row).toBeNull();
+  });
+
   it("takes the focusout listener out with the layer whose effect added it: focus leaving the list after a layer swap never hides from the old one", async () => {
     // Only the old layer ever gets the row: a new layer's own mount-time arrival check, with the
     // row unregistered in it, finds nothing focused there, so its own via never becomes "focus"
