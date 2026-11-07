@@ -714,7 +714,7 @@ export function Message(props: MessageProps): JSX.Element {
   // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
   const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
   useEffect(() => {
-    // Stryker disable next-line ConditionalExpression: the bar's code for a message without one renders nothing; site/e2e/catalog.spec.ts holds a page without bars to never loading it.
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: `Bar` only reaches the render when `!layered` (the ternary a few lines down shows it only there), so loading it when `layered` instead (as `||` would, and as a forced-true condition does) can never be seen in what the message draws; the bar's code for a message without one renders nothing either way; site/e2e/catalog.spec.ts holds a page without bars to never loading it.
     if (hasBar && !layered) void loadBar().then((Loaded) => setBar(() => Loaded));
   }, [hasBar, layered]);
   const slot = useRef<HTMLSpanElement | null>(null);
@@ -764,7 +764,9 @@ export function Message(props: MessageProps): JSX.Element {
     layer.set(element, data);
   });
   useLayoutEffect(() => {
-    if (!layered || element === null) return;
+    if (!layered) return;
+    // Stryker disable next-line ConditionalExpression: `element` is null only on this effect's first commit, before the ref's own setElement lands; forcing this guard false there only registers a no-op `layer.delete(null)`, which the very next commit's run (element now set) replaces with the real cleanup, so the layer ends up the same either way.
+    if (element === null) return;
     return () => layer.delete(element);
   }, [layer, layered, element]);
 

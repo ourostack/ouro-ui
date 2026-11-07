@@ -165,6 +165,7 @@ export function useRowHover<T>(
   useLayoutEffect(() => {
     live.current = true;
     return () => void (live.current = false);
+    // Stryker disable next-line ArrayDeclaration: a constant string literal never differs from the previous render's, so these deps compare equal exactly when `[]` does; the effect still runs once at mount and its cleanup once at unmount either way, and no test can tell them apart.
   }, []);
   // After every ref of the update is in place: a list whose element's ref is replaced in the same update the layer
   // arrives in has it only once the layout effects are done.

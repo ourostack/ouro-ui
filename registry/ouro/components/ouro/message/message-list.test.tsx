@@ -1177,6 +1177,20 @@ describe("MessageList", () => {
     expect(spoken).toEqual(["Ouro: Preheat the oven.", "Ouro: Then rest it."]);
   });
 
+  it("stays silent on a key swap whose text differs only by surrounding whitespace, as a stream's own trailing newline might leave", async () => {
+    const items = history(4);
+    const { live, rerender } = await render(<Chat items={items} />);
+    const { spoken, stop } = recordAnnouncements(live);
+    const reply = { id: "temp", role: "assistant" as const, text: "Preheat the oven.\n" };
+    await rerender(<Chat items={[...items, reply]} />);
+    await expect.poll(() => spoken.length).toBe(1);
+    // The server's id for the same reply, its surrounding whitespace gone: the same text, so still silent.
+    await rerender(<Chat items={[...items, { id: "server-9", role: "assistant", text: "Preheat the oven." }]} />);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    stop();
+    expect(spoken).toEqual(["Ouro: Preheat the oven."]);
+  });
+
   it("announces a streaming reply once when its key changes mid-stream, when it finishes", async () => {
     const items = history(2);
     const { live, rerender } = await render(<Chat items={items} />);
@@ -2094,6 +2108,16 @@ describe("MessageList keyboard", () => {
     await expect.element(page.getByRole("menuitem", { name: "Copy link" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => focusedId()).toBe("with-menu");
+  });
+
+  it("takes a focus guard's own tabindex out of the Tab order, as Base UI and Floating UI leave it at 0", async () => {
+    const { host } = await render(<Chat items={history(2)} />);
+    const content = host.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const guard = document.createElement("span");
+    guard.setAttribute("data-base-ui-focus-guard", "");
+    guard.tabIndex = 0;
+    await act(async () => void content.appendChild(guard));
+    await expect.poll(() => guard.getAttribute("tabindex")).toBe("-1");
   });
 
   it("passes over the focus guards around an open menu's button, so Tab never bounces back to the message", async () => {

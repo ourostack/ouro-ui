@@ -7,9 +7,11 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageProps } from "@/registry/ouro/components/ouro/message/message";
+import type { MessageBarData } from "@/registry/ouro/components/ouro/message/message-parts";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/registry/ouro/components/ouro/table/table-parts";
+import { createRowLayer, RowLayerContext, type RowLayer } from "@/registry/ouro/lib/ouro/row-hover";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -2205,6 +2207,33 @@ describe("Message actions", () => {
     expect(host.querySelector('[role="toolbar"]')).not.toBeNull();
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Message in a list's layer", () => {
+  it("leaves the list's layer as it stops being layered, and as it goes", async () => {
+    const layer = createRowLayer<MessageBarData>();
+    const reply = { key: "reply", label: "Reply", icon: "↩", onClick: () => {} };
+    function Harness({ withBar }: { withBar: boolean }) {
+      return (
+        <RowLayerContext.Provider value={layer as RowLayer<unknown>}>
+          <Message variant="chat" role="assistant" name="Mara Quill" actions={withBar ? [reply] : []}>
+            Morning!
+          </Message>
+        </RowLayerContext.Provider>
+      );
+    }
+    const { host, rerender } = await render(<Harness withBar={true} />);
+    const element = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
+    expect(layer.get(element)).not.toBeUndefined();
+    // Its actions removed: hasBar goes false, so it is no longer layered, and the layer no longer holds it.
+    await rerender(<Harness withBar={false} />);
+    expect(layer.get(element)).toBeUndefined();
+    // Layered again, then unmounted outright: the layer gives it up either way.
+    await rerender(<Harness withBar={true} />);
+    expect(layer.get(element)).not.toBeUndefined();
+    await act(async () => roots.pop()!.unmount());
+    expect(layer.get(element)).toBeUndefined();
   });
 });
 

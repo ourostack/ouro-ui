@@ -806,6 +806,115 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("takes the window blur listener out with the layer whose effect added it: the window losing focus after a layer swap never hides from the old one", async () => {
+    // Only the old layer ever gets the row: a new layer's own mount-time arrival check, with the
+    // row unregistered in it, finds nothing focused or pointed at there, so its own via stays null
+    // and its own blur handler no-ops; only a stale listener from the torn-down effect could still
+    // hide from a window blur with the old row and via it closed over.
+    const oldLayer = createRowLayer<string>();
+    function Harness({ layer }: { layer: RowLayer<string> }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        oldLayer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={oldLayer} />);
+    const target = row("r0");
+    await act(async () => {
+      pointer(target, "pointermove", "mouse", { x: -500, y: -500 });
+      pointer(target, "pointerover", "mouse", { x: 10, y: 10 });
+    });
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("pointer");
+    // A new, empty layer: the old effect tears down, and its window blur listener should go with it.
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    await act(async () => void window.dispatchEvent(new Event("blur")));
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("pointer");
+  });
+
+  it("takes the keydown listener out with the layer whose effect added it: a key on the row after a layer swap never shows through the old one", async () => {
+    // Only the old layer ever gets the row: a new layer's own keydown handler, with the row
+    // unregistered in it, finds nothing there, so it never shows; only a stale listener from the
+    // torn-down effect could still show it from a key alone.
+    const oldLayer = createRowLayer<string>();
+    function Harness({ layer }: { layer: RowLayer<string> }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        oldLayer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" tabIndex={-1} style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={oldLayer} />);
+    // A new, empty layer: the old effect tears down before focus or a key ever lands in the row.
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    await act(async () => row("r0").focus());
+    expect(layerIn("r0")).toBeNull();
+    await key(row("r0"), { key: "a" });
+    expect(layerIn("r0")).toBeNull();
+  });
+
+  it("takes the pointerdown listener out with the layer whose effect added it: a pointerdown elsewhere after a layer swap never hides a touch-shown row from the old one", async () => {
+    // Only the old layer ever gets the row: a new layer's own mount-time arrival check, with the
+    // row unregistered in it, finds nothing there, so its own via stays null and its own
+    // pointerdown handler no-ops; only a stale listener from the torn-down effect could still hide
+    // it, from a touch it alone showed.
+    const oldLayer = createRowLayer<string>();
+    function Harness({ layer }: { layer: RowLayer<string> }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        oldLayer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={oldLayer} />);
+    await act(async () => void pointer(row("r0"), "pointerup", "touch"));
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("touch");
+    // A new, empty layer: the old effect tears down, and its pointerdown listener should go with it.
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    await act(async () => void document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" })));
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("touch");
+  });
+
   it("takes the layer's own change listener out with the effect that added it: the old layer's data changing after a layer swap renders nothing", async () => {
     let renders = 0;
     function Harness({ layer }: { layer: RowLayer<string> }) {
