@@ -1306,6 +1306,32 @@ describe("MenuBar", () => {
     await expect.poll(() => guardsIn(bar).map((guard) => guard.getAttribute("role"))).toEqual([null, null]);
   });
 
+  it("moves focus from an open menu past the bar on Tab, closing it, and back to its trigger on Shift+Tab, with its guards hidden as on Apple platforms", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <MenuBar aria-label="Recipe editor">
+          <Menu label="File">
+            <MenuItem>New</MenuItem>
+          </Menu>
+        </MenuBar>
+        <button type="button">After</button>
+      </>,
+    );
+    const bar = page.getByRole("menubar").element();
+    for (const [shift, lands] of [[false, "After"], [true, "File"]] as const) {
+      (barTrigger("File").element() as HTMLElement).focus();
+      await userEvent.keyboard("{ArrowDown}");
+      await expect.poll(() => document.activeElement?.textContent).toBe("New");
+      guardsAsOnApple();
+      await expect.poll(() => guardsIn(bar).map((guard) => guard.getAttribute("role"))).toEqual([null, null]);
+      await pressTab({ shift });
+      await expect.poll(() => document.activeElement?.textContent).toBe(lands);
+      if (!shift) await expect.poll(menu).toBeNull();
+      else await userEvent.keyboard("{Escape}");
+    }
+  });
+
   it("keeps its menus' gap, closed and open", async () => {
     await renderBar();
     const gap = parseFloat(getComputedStyle(page.getByRole("menubar").element()).columnGap);
