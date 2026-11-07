@@ -1,5 +1,6 @@
 import type { Route } from "./routes";
 import { pageKind } from "./paths";
+import { earlyInputScript } from "./early-input";
 import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
 import { CARDS, cardAlt, STORYBOOK } from "./storybook";
@@ -28,6 +29,8 @@ export function headTags(route: Route, canonical: boolean): string[] {
   return [
     // First, so the stored theme and dark mode are on <html> before anything paints.
     `<script>${prepaintScript}</script>`,
+    // Before the body, so a tap or text in the page's first moments is kept until the page can answer it.
+    `<script>${earlyInputScript}</script>`,
     `<title>${title}</title>`,
     `<meta name="description" content="${description}" />`,
     route.noindex ? `<meta name="robots" content="noindex, nofollow" />` : "",
