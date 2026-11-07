@@ -691,6 +691,85 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("takes the tap listener out with the layer whose effect added it: a touch tap on the row after a layer swap never shows through the old one", async () => {
+    // Only the old layer ever gets the row: a new layer's own tap handler, with the row unregistered
+    // in it, finds nothing there, so only a stale listener from the torn-down effect could still
+    // show it from a touch alone.
+    const oldLayer = createRowLayer<string>();
+    function Harness({ layer }: { layer: RowLayer<string> }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        oldLayer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={oldLayer} />);
+    const target = row("r0");
+    await act(async () => {
+      pointer(target, "pointermove", "mouse", { x: -500, y: -500 });
+      pointer(target, "pointerover", "mouse", { x: 10, y: 10 });
+    });
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("pointer");
+    // A new, empty layer: the old effect tears down, and its tap listener should go with it.
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    await act(async () => void pointer(target, "pointerup", "touch"));
+    expect(probe.hover.via).toBe("pointer");
+  });
+
+  it("takes the focusout listener out with the layer whose effect added it: focus leaving the list after a layer swap never hides from the old one", async () => {
+    // Only the old layer ever gets the row: a new layer's own mount-time arrival check, with the
+    // row unregistered in it, finds nothing focused there, so its own via never becomes "focus"
+    // and its own focusout handler stays a no-op; only a stale listener from the torn-down effect
+    // could still hide from this one's focus alone.
+    const oldLayer = createRowLayer<string>();
+    function Harness({ layer }: { layer: RowLayer<string> }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const rowRef = useRef<HTMLDivElement>(null);
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        oldLayer.set(rowRef.current!, "r0");
+      }, []);
+      return (
+        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+          <div ref={rowRef} id="r0" tabIndex={-1} style={{ height: 40 }}>
+            <span data-text="">Row</span>
+          </div>
+          {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
+        </div>
+      );
+    }
+    const { rerender } = await render(<Harness layer={oldLayer} />);
+    const target = row("r0");
+    await userEvent.keyboard("{Shift}");
+    await act(async () => target.focus());
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("focus");
+    // A new, empty layer: the old effect tears down, and its focusout listener should go with it.
+    await rerender(<Harness layer={createRowLayer<string>()} />);
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    await act(async () => void list().dispatchEvent(new FocusEvent("focusout", { relatedTarget: outside })));
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("focus");
+    outside.remove();
+  });
+
   it("takes the pointerleave listener out with the layer whose effect added it: the pointer leaving after a layer swap never hides from the old one", async () => {
     function Harness({ layer }: { layer: RowLayer<string> }) {
       const ref = useRef<HTMLDivElement>(null);
