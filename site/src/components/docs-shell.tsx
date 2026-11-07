@@ -16,7 +16,7 @@ const DocsSidebar = lazy(() => import("./docs-sidebar"));
  */
 const DocsHeader = lazy(() => import("./docs-header"));
 
-/** Docs pages: the sidebar beside the page from 640px up; on smaller screens it opens as a drawer. */
+/** Docs pages: the sidebar beside the page from 640px up; on smaller screens the header's menu holds its links. */
 export function DocsShell({ current, children }: { current: string; children: ReactNode }): JSX.Element {
   return (
     <PopupsProvider>
@@ -24,7 +24,8 @@ export function DocsShell({ current, children }: { current: string; children: Re
         <DocsHeader current={current} />
       </Suspense>
       <Container className="sm:grid sm:grid-cols-[16rem_minmax(0,1fr)] sm:gap-8 lg:gap-12">
-        <aside className="max-sm:border-b max-sm:border-border max-sm:pb-2">
+        {/* Below 640px the header's one menu lists the docs too (voyage/site-menu.tsx), so the sidebar steps aside. */}
+        <aside className="max-sm:hidden">
           <Suspense>
             <DocsSidebar current={current} />
           </Suspense>

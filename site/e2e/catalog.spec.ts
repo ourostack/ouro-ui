@@ -65,7 +65,10 @@ const CEILINGS = { voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's
  * ceiling also pays for the component classes its pages reach (site/src/voyage/voyage-sources.generated.css).
  */
-const CSS_CEILINGS = { voyage: 37 * 1024, docs: 40 * 1024 } as const;
+// The voyage's rose by 512 bytes for the phone's one menu (voyage/site-menu.tsx: its close button, X-ray beside it, a
+// heading you jump to landing below the sticky header, the fish waiting under the open menu) and for the layers that make
+// the stage's switch to still water cheap (stage.css, #667): together 489 bytes over main at d6059dc6, 37,834 there.
+const CSS_CEILINGS = { voyage: 37 * 1024 + 512, docs: 40 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())

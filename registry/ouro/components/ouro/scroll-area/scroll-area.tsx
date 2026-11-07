@@ -57,12 +57,17 @@ export type ScrollAreaProps = Omit<HTMLAttributes<HTMLDivElement>, keyof ScrollA
 
 const orientations = ["vertical", "horizontal", "both"] as const;
 
-// The custom scrollbar is for a mouse: it fades in on hover, scroll or keyboard focus. On a
-// coarse pointer it lets touches through to the native scroll container under it, so a
-// finger anywhere pans the content with the platform's momentum, and it is a thin indicator.
+/**
+ * The custom scrollbar is for a mouse: it fades in on hover, scroll or keyboard focus. On a
+ * coarse pointer it lets touches through to the native scroll container under it, so a
+ * finger anywhere pans the content with the platform's momentum, and it is a thin indicator.
+ * Keyboard focus reaches it from the viewport before it (peer), not from the root (:has): a :has
+ * rule over the root's descendants restyles the whole page on every change of focus anywhere.
+ * @claim "Keyboard focus reaches it from the viewport" registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > is a keyboard-scrollable region named by label)
+ */
 const scrollbar =
   "flex p-0.5 opacity-0 transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) " +
-  "data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0 group-has-[[data-scroll-viewport]:focus-visible]/scroll-area:opacity-100 " +
+  "data-hovering:opacity-100 data-scrolling:opacity-100 data-scrolling:duration-0 peer-focus-visible/scroll-viewport:opacity-100 " +
   "pointer-coarse:pointer-events-none";
 const scrollbars = {
   vertical: "w-2.5 pointer-coarse:w-1.5",
@@ -164,7 +169,7 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         data-ouro-part="viewport"
         role={label ? "region" : undefined}
         aria-label={label}
-        className={cn("min-h-0 flex-1 rounded-[inherit] outline-none", scrollFadeClass, contain && "overscroll-contain")}
+        className={cn("peer/scroll-viewport min-h-0 flex-1 rounded-[inherit] outline-none", scrollFadeClass, contain && "overscroll-contain")}
       >
         <BaseScrollArea.Content>{children}</BaseScrollArea.Content>
       </BaseScrollArea.Viewport>

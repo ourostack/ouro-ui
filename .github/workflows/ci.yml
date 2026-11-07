@@ -1205,7 +1205,8 @@ jobs:
     # Each voyage stage control answers within budget on a 4x slower CPU: of 20 presses after two
     # warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the control's CI
     # baseline (site/e2e/latency.ts, site/e2e/stage.latency.spec.ts), measured alone so no other
-    # test shares the CPU.
+    # test shares the CPU. The stage's switch to still water draws no long frame, in Chromium and
+    # WebKit (site/e2e/stage-switch.latency.spec.ts).
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
