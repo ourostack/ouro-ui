@@ -864,9 +864,17 @@ describe("EmojiPicker search", () => {
     // The results take the category bar's row while there is a search (ourostack/ouro-ui#696).
     const place = () => ({ height: panel()!.getBoundingClientRect().height, search: search().getBoundingClientRect().y });
     const before = place();
+    const scroller = panel()!.querySelector<HTMLElement>(".overflow-y-auto")!;
+    expect(getComputedStyle(scroller).position).not.toBe("absolute");
+    expect(scroller.getBoundingClientRect().top).toBeGreaterThanOrEqual(categoryButtons()[0]!.getBoundingClientRect().bottom);
     await type("face");
     expect(categoryButtons()).toHaveLength(0);
     expect(place()).toEqual(before);
+    // The bar's row is kept unseen, rule and all, and the results start at its top.
+    const kept = panel()!.querySelector<HTMLElement>('[aria-hidden="true"][inert]')!;
+    expect(getComputedStyle(kept).visibility).toBe("hidden");
+    expect(getComputedStyle(scroller).position).toBe("absolute");
+    expect(scroller.getBoundingClientRect().top).toBe(kept.getBoundingClientRect().top);
     await type("zzz");
     expect(place()).toEqual(before);
     await userEvent.clear(search());
