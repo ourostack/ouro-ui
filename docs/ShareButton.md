@@ -2,7 +2,7 @@
 
 # ShareButton
 
-A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says "Link copied" for two seconds and screen readers hear it once. It shares the page's own address unless given `url`.
+A button that shares a link: through the system's share sheet where there is one (phones, Safari), and by copying it where there is not, when it says "Link copied" for two seconds and screen readers hear it once. It shares the page's own address unless given `url`. When neither works, it says for two seconds which the browser blocked, "Browser blocked sharing" or, where there is no share sheet, "Browser blocked copying", with the whole of `failedMessage` as its tooltip, and screen readers hear that whole sentence once.
 
 ```tsx
 import { ShareButton } from "@/registry/ouro/components/ouro/share-button/share-button";
@@ -26,7 +26,8 @@ Type: `ShareButtonProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-auto`). Appearance classes warn in development. |
 | `copiedLabel` | `string` | `"Link copied"` | What it says, and screen readers hear, when there was no share sheet and the link was copied instead. |
-| `failedLabel` | `string` | `"Couldn't share"` | What it says, and screen readers hear, when neither sharing nor copying worked. |
+| `failedLabel` | `string` | `"Browser blocked sharing"` when the share sheet refused, "Browser blocked copying" where there is no share sheet | What it says for two seconds when neither sharing nor copying worked: short, so the button keeps its width. |
+| `failedMessage` | `string` | `"The browser refused the share and blocked copying the link. Copy the link by hand."` when the share sheet refused, "This browser has no share sheet, and it blocked copying the link. Copy the link by hand." where there is none, or `failedLabel` when only that is given | What screen readers hear, and the button's tooltip says while it shows `failedLabel`, when neither sharing nor copying worked: what happened and what to do instead. |
 | `hideLabel` | `boolean` |  | Shows only the icon; the label stays the button's name for screen readers. |
 | `label` | `string` | `"Share"` | The button's label, and its name for screen readers with `hideLabel`. |
 | `onShare` | `((result: ShareResult) => void)` |  | Called with how the share ended: `shared`, `copied`, `cancelled` or `failed`. |

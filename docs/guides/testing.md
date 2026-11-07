@@ -18,7 +18,7 @@ The tests do not run in jsdom or happy-dom. They drag, flick and measure, so the
 ## Install and run
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.4 ourostack/ouro-ui/dialog-tests#v1.3.4
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6 ourostack/ouro-ui/dialog-tests#v1.3.6
 ```
 
 A `<name>-tests` item installs the component's tests, type tests, stories and spec, the tests of every component and helper that came with it, and `ouro-testing`, the test kit.[^tests-closure] CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union.[^subsets] The forms set is `field`, `fieldset`, `text-field`, `text-area`, `checkbox`, `checkbox-group`, `radio-group`, `switch`, `form`, `select`, `native-select` and `combobox`. Other items receive their full test dependency closure but are not measured individually. This closure guarantee does not establish execution coverage for every item alone.[^subsets] `ouro-tests` adds every component with all of its tests.[^ouro-tests]
@@ -87,7 +87,7 @@ These lookups are the same in Playwright (`page.getByRole`) and in Vitest browse
 | A required field | The same: `getByRole("textbox", { name: "Email", exact: true })`, or `getByLabel("Email", { exact: true })` | The required marker is drawn with CSS beside the label, not in its text. Both lookups use "Email" without `*`. |
 | A password field | `getByRole("textbox", { name: "Password", exact: true })`, or `getByLabel("Password", { exact: true })` | Playwright and Vitest give a password input the `textbox` role. The "Show password" button is named by hidden text, not `aria-label`, so a loose label lookup also finds the input alone. Find the button by its role and name. In Testing Library a password input has no role: use `getByLabelText("Password", { exact: true })`, required or not.[^password-role] |
 | A field's error | `getByText("Enter an email address.")`, or assert on the field: `toHaveAccessibleDescription("Enter an email address.")` and `toHaveAttribute("aria-invalid", "true")` | The error is the field's description. It is not an alert, so `getByRole("alert")` does not find it. |
-| The form's message | `getByRole("alert").filter({ hasText: "We could not save your changes." })` | A `Form` renders an alert only while there is a message. An accepted new answer inserts a new alert with its text already present; a form without a message has no alert.[^form-alert] Filtering by text checks the actual message rather than another alert on the page. |
+| The form's message | `getByRole("alert").filter({ hasText: "The server is down, so your changes were not saved. Try again in a few minutes." })` | A `Form` renders an alert only while there is a message. An accepted new answer inserts a new alert with its text already present; a form without a message has no alert.[^form-alert] Filtering by text checks the actual message rather than another alert on the page. |
 
 Other controls: a `Select` and a `Combobox` are `getByRole("combobox", { name })`; a `Checkbox` is `getByRole("checkbox", { name })`; a `Switch` is `getByRole("switch", { name })`; a `RadioGroup` is `getByRole("radiogroup", { name })` with `getByRole("radio", { name })` inside.
 
@@ -118,6 +118,19 @@ await Promise.all([
 ```
 
 The part, or an element around it inside the part's own component (`[data-ouro]`), must carry the state's attribute when you call a helper (`data-checked`, or `data-swiping=left` for a value), so render outside the state and change into it; a checked row or an open overlay around the component does not count. A transition or CSS animation the browser cancels mid-way counts only when one takes its place on the same element (a transition of the same property, or a CSS animation of the same name) or 90% of its duration had passed.[^motion-cancel] The replacement may still be running when the helper next reads the part, or, on a slow frame, may have begun and ended, uncancelled, in between: the helper listens for the part's transition and animation events while it waits. A replacement for another property or animation, or one that is itself cancelled, does not count. `reduced` must match the page's reduced-motion setting (`commands.emulateMedia({ reducedMotion: "reduce" })`). A DOM `click()` keeps a pointer's press scale out of the motion you measure. Each helper also records what it proved in the test's meta; Ouro UI's own CI holds every component's declared motion to those records, and in your app nothing reads them.[^motion-records]
+
+## Proving a render lays nothing out
+
+A read of an element's size or place (`offsetHeight`, `clientWidth`, `scrollHeight`, `getBoundingClientRect()`, `getComputedStyle()` and the like) inside a React commit makes the browser lay out the page it has just changed at once, before it paints, so a component that measures on each render pays for a layout whenever anything above it renders.[^forced-layout] `lib/ouro/testing/layout-reads.ts` records them (the `offset*`, `client*` and `scroll*` sizes, `innerText`, the rectangles of elements, ranges and SVG shapes, `getComputedStyle()`, `computedStyleMap()`, `focus()`, `scrollIntoView()`, `elementFromPoint()` and the window's scroll position and size, listed in `layoutReadNames`): start `watchLayoutReads()` right before a render, stop it right after, and expect nothing for a render that changes nothing the component measures.[^layout-reads]
+
+```ts
+const reads = watchLayoutReads();
+await act(() => root.render(<NavigationRail label="Main" items={withNewCount} />));
+reads.stop();
+expect(reads.names()).toEqual([]);
+```
+
+It counts those reads anywhere on the page while it runs, your own included, and stops itself at the end of the test. Watches nest, each recording from its own start to its own stop; stub a read with `vi.spyOn` before the first starts or after the last stops.[^layout-reads] A resize observer's callback runs once the page is laid out, where reads are free, so let one that a render set off run before you start watching. NavigationRail's tests use it.[^layout-reads-rail]
 
 ## Proving announcements
 
@@ -216,3 +229,6 @@ Ouro's own test measures a real click the same way, in Vitest's browser mode.[^i
 [^interaction-rounding]: https://www.w3.org/TR/event-timing/; test:registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports from the event to the second animation frame when no entry arrives first, and ignores a later entry verify:urlOk(https://www.w3.org/TR/event-timing/) verify:testExists(registry/ouro/lib/ouro/measure-interaction.test.ts::measureInteraction > reports from the event to the second animation frame when no entry arrives first, and ignores a later entry)
 [^layers]: registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /compositedLayers lists a layer for an element only while it has will-change: transform/) verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /compositedLayers throws outside Chromium/)
 [^springs-rest]: registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.springs.test.tsx, /gives messages composited layers only while they spring, and none once they rest/) verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs at rest > leaves no will-change and no transform on anything in the list once its springs settle)
+[^layout-reads]: registry/ouro/lib/ouro/testing/layout-reads.ts verify:testExists(registry/ouro/lib/ouro/testing/layout-reads.test.ts::watchLayoutReads > records each read that lays the page out, with what it was read from, in order) verify:testExists(registry/ouro/lib/ouro/testing/layout-reads.test.ts::watchLayoutReads > nests: each watch records from its own start to its own stop, in either order, and the last puts the browser's reads back) verify:testExists(registry/ouro/lib/ouro/testing/layout-reads.test.ts::watchLayoutReads > puts the browser's own reads back on stop, and at the end of the test)
+[^layout-reads-rail]: registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail fit > lays nothing out when it renders again with only a new count, or with the same items)
+[^forced-layout]: registry/ouro/lib/ouro/testing/layout-reads.test.ts verify:testExists(registry/ouro/lib/ouro/testing/layout-reads.test.ts::watchLayoutReads > reads a size changed a moment ago at once, which the browser can answer only by laying the page out first)

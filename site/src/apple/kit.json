@@ -1,0 +1,33 @@
+{
+  "release": "0.2.1",
+  "commit": "c9a84aff2ec71b92981d70595df3158f7ba2c4d0",
+  "main": "700c973facc51ab0c00354bffb940c6cbae0340f",
+  "feelReinsRelease": null,
+  "releaseUrl": "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1",
+  "repository": "https://github.com/ourostack/ouro-ui-apple",
+  "packageLine": ".package(url: \"https://github.com/ourostack/ouro-ui-apple.git\", from: \"0.2.1\")",
+  "requires": { "iOS": "18", "macOS": "15", "swiftTools": "6.1" },
+  "sources": {
+    "tokens": "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Sources/OuroHX/Tokens/OuroTokens.swift",
+    "motion": "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Sources/OuroHX/Motion/OuroMotion.swift",
+    "haptics": "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Sources/OuroHX/Haptics/OuroHaptics.swift",
+    "claims": "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Sources/OuroAXTesting/Resources/apple.claims.json",
+    "packageSwift": "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift",
+    "coreTokens": "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json"
+  },
+  "spring": { "visualDuration": 0.4, "bounce": 0.15, "settle": 0.75 },
+  "press": { "scale": 0.97, "duration": 0.16 },
+  "reducedMotionCrossfade": 0.2,
+  "themes": ["pearl", "abyss", "brass", "chart", "cookbook", "coral"],
+  "claims": 30,
+  "haptics": [
+    { "name": "selected", "feedback": "selection", "when": "A choice changed: a tab, a segment, a picker row." },
+    { "name": "checked", "feedback": "selection", "when": "Something ticked off: an ingredient, a list item, a to-do." },
+    { "name": "stepped", "feedback": "selection", "when": "A stepper moved one step." },
+    { "name": "turned", "feedback": "impact", "weight": "light", "intensity": 0.7, "when": "A page or step turned." },
+    { "name": "started", "feedback": "impact", "weight": "medium", "intensity": 1, "when": "Something began that runs on: a timer, a cook session, a download." },
+    { "name": "finished", "feedback": "success", "when": "Something finished well: a timer ran out, a book or recipe finished." },
+    { "name": "warned", "feedback": "warning", "when": "About to do something that can't be undone." },
+    { "name": "failed", "feedback": "error", "when": "It didn't work." }
+  ]
+}

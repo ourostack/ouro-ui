@@ -12,8 +12,11 @@ test("the voyage's CSS sources are current: run node site/scripts/page-css.mts w
 
 test("the voyage's Tailwind build leaves out what the voyage never renders, and keeps what it does", () => {
   const css = generate();
-  // The docs, their page module, and a component the voyage does not import.
-  assert.match(css, /@source not "\.\.\/docs";/);
+  // The docs' demos and markdown, their page module, and a component the voyage does not import. The voyage keeps the docs'
+  // index of items: its palette (voyage/site-palette.tsx) lists every page through components/docs-sections.tsx, which reads docs/items.ts.
+  assert.match(css, /@source not "\.\.\/docs\/demos";/);
+  assert.match(css, /@source not "\.\.\/docs\/demos\.tsx";/);
+  assert.match(css, /@source not "\.\.\/docs\/markdown\.tsx";/);
   assert.match(css, /@source not "\.\.\/pages\/docs\.tsx";/);
   assert.match(css, /@source not "\.\.\/\.\.\/\.\.\/registry\/ouro\/components\/ouro\/accordion";/);
   // What the voyage renders: its own modules, and the components it imports, through the islands too.

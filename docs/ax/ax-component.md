@@ -5,7 +5,7 @@
 A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own. A component imports `defineComponentAx` from the kit's `ouro/ax/component` under the registry alias, which the shadcn CLI rewrites to the app's lib alias (`@/lib/ouro/ax/component`), and its item brings `ax-component` with it. The path is not spelled out here, since an installed file may not name the registry.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-component#v1.3.4
+npx shadcn@latest add ourostack/ouro-ui/ax-component#v1.3.6
 ```
 
 It installs `lib/ouro/ax/component.ts`, with `ax-effects`. Its tests are `ax-component-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -36,6 +36,7 @@ An action an agent may take; the app binds its CLI twin.
 interface AxAgentAction extends AxActionBase {
   agent: true;
   personOnly?: never;
+  scope?: AxScope;
 }
 ```
 
@@ -59,6 +60,7 @@ An action only the person takes, with the reason in one line, said to you, the a
 interface AxPersonOnlyAction extends AxActionBase {
   personOnly: string;
   agent?: never;
+  scope?: never;
 }
 ```
 
@@ -76,9 +78,17 @@ interface AxRead {
 }
 ```
 
+### `AxScope`
+
+Whose item an agent action may act on: `self`, only the calling agent's own, such as its own row in AgentPresence. An action without a scope acts on any item.
+
+```ts
+type AxScope = "self";
+```
+
 ### `bindAx`
 
-Binds a component's twins to the app's commands and returns its entries for the X-ray inventory (`ui`). It throws when a read or an agent action has no twin, a read with `push: "filtered"` has no stream, a person-only action is given a twin or has no `refuseAs` words, `refuseAs` names an action that is not person-only, or a binding names nothing the component declares.
+Binds a component's twins to the app's commands and returns its entries for the X-ray inventory (`ui`). It throws when a read or an agent action has no twin, a read with `push: "filtered"` has no stream, a person-only action is given a twin or has no `refuseAs` words, `refuseAs` names an action that is not person-only, a `scope: "self"` action's twin does not say who is calling (`--agent <me>`), or a binding names nothing the component declares. A scoped action's entry carries its scope.
 
 ```ts
 function bindAx(ax: ComponentAx, bindings: AxBindings): UiEntry[]
@@ -109,7 +119,7 @@ interface ComponentAx {
 
 ### `defineComponentAx`
 
-Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither, and a reserved id (`isReservedPersonOnly`) never `agent: true`. A problem throws one line with its fix.
+Declares a component's agent side and checks it: unique read and action ids, a field list on each read, a known consent and effect, each action either `agent: true` or `personOnly` with a one-line reason, never both or neither, a reserved id (`isReservedPersonOnly`) never `agent: true`, and a scope only `"self"`, only on an agent action. A problem throws one line with its fix.
 
 ```ts
 function defineComponentAx(def: { component: string; reads: readonly AxRead[]; actions: readonly AxAction[]; }): ComponentAx
@@ -222,5 +232,6 @@ interface UiEntry {
   push?: string;
   trigger?: string;
   refuseAs?: string;
+  scope?: AxScope;
 }
 ```

@@ -75,6 +75,7 @@ const componentFiles = [
   "registry/ouro/lib/ouro/people-cache.ts",
   "registry/ouro/lib/ouro/use-person.ts",
   "registry/ouro/lib/ouro/measure-interaction.ts",
+  "registry/ouro/lib/ouro/porthole-view.ts",
 ];
 /** Part files (`<folder>/<stem>-parts.tsx`), by the family their parts are named after (the stem in PascalCase). */
 const partFiles: Record<string, string> = Object.fromEntries(
@@ -693,7 +694,7 @@ for (const page of sitePages) {
   taken.set(page.name, page.markdown);
 }
 outputs.set("site/src/docs/pages.json", `${JSON.stringify(sitePages, null, 2)}\n`);
-outputs.set("site/src/docs/page-index.json", `${JSON.stringify(sitePages.map(({ name, title, kind, summary }) => ({ name, title, kind, summary })), null, 2)}\n`);
+outputs.set("site/src/docs/page-index.json", `${JSON.stringify(sitePages.map(({ name, title, kind, group, summary }) => ({ name, title, kind, group, summary })), null, 2)}\n`);
 
 const catalogLines = () =>
   catalogGroups

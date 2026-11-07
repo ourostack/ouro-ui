@@ -199,7 +199,7 @@ it("keeps the message a scrolled-up reader is on in place when older history loa
   await expect.element(jumpButton()).toBeVisible();
 });
 
-it("shows a message's action bar after a tap in a list, where the message itself takes keyboard focus", async () => {
+it("shows the list's one action bar on a tapped message, where the message itself takes keyboard focus, until a press lands elsewhere", async () => {
   await render(
     <MessageList label="Channel" style={{ height: 400 }}>
       {["Earlier", "Newest"].map((text) => (
@@ -209,14 +209,16 @@ it("shows a message's action bar after a tap in a list, where the message itself
       ))}
     </MessageList>,
   );
+  const bars = () => document.querySelectorAll('[role="toolbar"]');
   for (const id of ["Newest", "Earlier"]) {
     const message = document.getElementById(id)!;
     expect(message.hasAttribute("tabindex")).toBe(true);
-    await expect.poll(() => message.querySelector('[role="toolbar"]')).not.toBeNull();
-    const bar = message.querySelector<HTMLElement>('[role="toolbar"]')!;
-    expect(getComputedStyle(bar).opacity).toBe("0");
-    // A tap whose target is the message itself, as on the space beside its bubble.
-    await act(async () => void message.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" })));
-    await expect.poll(() => getComputedStyle(bar).opacity).toBe("1");
+    // A tap whose target is the message itself, as on the space beside its bubble; the bar's code loads with the first message that has one.
+    const tap = () => message.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" }));
+    await expect.poll(async () => (await act(async () => void tap()), message.querySelector('[role="toolbar"]'))).not.toBeNull();
+    expect(bars()).toHaveLength(1);
+    expect(getComputedStyle(message.querySelector('[role="toolbar"]')!).opacity).toBe("1");
   }
+  await act(async () => void document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" })));
+  expect(bars()).toHaveLength(0);
 });

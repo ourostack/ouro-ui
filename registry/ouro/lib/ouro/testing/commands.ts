@@ -445,7 +445,7 @@ const TOUCH_TIDY_MS = 1000;
  * goes to, even one Playwright does not list yet. It takes a point in the top-level document,
  * and a touch a point in the visual viewport, so where that viewport is in the page is added: the
  * top-level page's scroll, and the pan of a pinch-zoomed page. "unknown" means
- * the kit could not place the point in a frame: Chromium found nothing there, as for a point
+ * the hit test gave the kit nothing to place: Chromium found nothing there, as for a point
  * outside the viewport, or the node there lacks a window.
  * @claim "`DOM.getNodeForLocation` hit-tests the way input does" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::the kit waits for the frame under a pointer-events: none overlay, where the touch lands)
  * @claim "`DOM.getNodeForLocation` hit-tests the way input does" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::the kit does not wait for a pointer-events: none iframe, which the touch passes through)
@@ -711,8 +711,8 @@ async function watchTarget(
       traceStep(trace, `the gesture's frame answered: ${answer.url}`);
       if (answer.error === undefined) return { calls };
       // A lift is sent all the same, so the finger is not left down.
-      const gone = `${command}: could not watch ${answer.url}, the frame the gesture's touchstart went to: ${answer.error}.`;
-      if (expected.type === "touchEnd") return { calls, gone: `${gone} The touchEnd was sent, but nothing could see it.` };
+      const gone = `${command}: the watch for the ${expected.type} did not start in ${answer.url}, the frame the gesture's touchstart went to: ${answer.error}.`;
+      if (expected.type === "touchEnd") return { calls, gone: `${gone} The touchEnd was sent, but no watcher saw it.` };
       throw new Error(`${gone} The ${expected.type} was not sent.`);
     }
     // Whether the frame at the point is armed but the hit test there does not reach inside it yet, which no change announces.
@@ -785,7 +785,7 @@ async function watchTarget(
           ),
         ).then((notes) => notes.filter((note) => note !== undefined));
         throw new Error(
-          `${command}: could not watch the frame at (${Math.round(target.point.x)}, ${Math.round(target.point.y)}) within ${TOUCH_HANDLED_TIMEOUT_MS}ms, so the ${expected.type} was not sent. ` +
+          `${command}: the frame at (${Math.round(target.point.x)}, ${Math.round(target.point.y)}) was not ready for the ${expected.type} within ${TOUCH_HANDLED_TIMEOUT_MS}ms, so it was not sent. ` +
             (inside === false
               ? `The frame there is ${at.where}: its watcher is armed, but Chromium's hit test at that point does not reach inside it yet`
               : `The frame there is ${at.where}, and it has no watcher`) +

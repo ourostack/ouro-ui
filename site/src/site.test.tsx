@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
+import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
@@ -8,7 +8,7 @@ import { docsPages, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
-import { docsSections } from "./components/docs-sidebar";
+import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
@@ -18,6 +18,8 @@ import { SHIP_PAGES } from "./docs/ships";
 import readme from "../../README.md?raw";
 import registry from "../../registry.json";
 import { siteGroups } from "../../scripts/catalog-groups.mts";
+
+await loadPageCode("/");
 
 const llmsResponse = await fetch(href("/llms.txt"));
 if (!llmsResponse.ok || !llmsResponse.headers.get("content-type")?.includes("text/plain")) {
@@ -194,6 +196,8 @@ describe("docs", () => {
   it("lists the components in the sidebar under a label per catalog group, with Start first and Guides last", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/checklist/");
+    // The sidebar is an island of its own (components/docs-shell.tsx), drawn once its chunk loads.
+    await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
     const nav = page.getByRole("navigation", { name: "Docs" });
     const groups = siteGroups.filter((group) => docsItems.some((item) => item.group === group));
     for (const group of groups) {
@@ -303,6 +307,7 @@ describe("docs", () => {
     // The docs sidebar sticks to the top of the window, so a header that stuck there too would cover its filter.
     await page.viewport(1280, 800);
     await renderPage("/docs/composer/");
+    await expect.poll(() => document.querySelector('input[placeholder="Filter components"]')).not.toBeNull();
     window.scrollTo({ top: 600, behavior: "instant" });
     const field = document.querySelector<HTMLInputElement>('input[placeholder="Filter components"]')!;
     await expect.poll(() => field.getBoundingClientRect().top).toBeLessThan(60);

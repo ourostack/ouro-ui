@@ -34,6 +34,7 @@ async function render(node: ReactNode) {
   roots.push(root);
   await act(async () => root.render(node));
   const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+  // Every message in: a long conversation puts its older messages in above the newest, a few a frame.
   return {
     scroller,
     messages: () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')],
@@ -41,11 +42,11 @@ async function render(node: ReactNode) {
   };
 }
 
-function Chat({ count, from = 0, height = 300, springy }: { count: number; from?: number; height?: number; springy?: boolean }) {
+function Chat({ count, from = 0, height = 300, springy, windowing }: { count: number; from?: number; height?: number; springy?: boolean; windowing?: boolean }) {
   return (
     <div>
       <button type="button">Before</button>
-      <MessageList label="Conversation" style={{ height }} springy={springy}>
+      <MessageList label="Conversation" style={{ height }} springy={springy} windowing={windowing}>
         {Array.from({ length: count }, (_, index) => (
           <Message key={from + index} id={`m-${from + index}`} role={(from + index) % 2 ? "assistant" : "user"} name={(from + index) % 2 ? "Ouro" : "Ana"}>
             {`Message ${from + index}: ${"rest the dough ".repeat(3)}`}
@@ -69,11 +70,12 @@ function laidOut(element: HTMLElement): { top: number; bottom: number; middle: n
   return { top: box.top - shift, bottom: box.bottom - shift, middle: (box.top + box.bottom) / 2 - shift };
 }
 
-/** The reader's wheel over the list at `y`, `delta` px, and the scroll it makes, as the browser would send them. */
+/** The reader's wheel over the list at `y`, `delta` px, and the scroll it makes and its end, as the browser would send them. */
 function wheel(scroller: HTMLElement, delta: number, y: number) {
   scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: delta, clientY: y, bubbles: true }));
   scroller.scrollTop += delta;
   scroller.dispatchEvent(new Event("scroll"));
+  scroller.dispatchEvent(new Event("scrollend"));
 }
 
 /** The browser's next scroll event on the list: after `wheel`, its own, which it sends at the next frame. */
@@ -285,6 +287,7 @@ describe("MessageList springs", () => {
     expect(scroller.scrollTop).toBeGreaterThan(top + 100);
     expect(laidOut(reading).top).toBeCloseTo(place, 0);
     const kept = scroller.scrollTop;
+    scroller.dispatchEvent(new Event("scrollend"));
     frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
     expect(scroller.scrollTop).toBe(kept);
     expect(laidOut(reading).top).toBeCloseTo(place, 0);
@@ -293,7 +296,8 @@ describe("MessageList springs", () => {
   it("moves only the messages in or near view, reading as few in a thousand as in fifty, on one frame loop", async () => {
     const reads: number[] = [];
     for (const count of [50, 1000]) {
-      const { scroller, messages } = await render(<Chat count={count} />);
+      // The whole list, so a thousand messages are in the page.
+      const { scroller, messages } = await render(<Chat count={count} windowing={false} />);
       await scrollInCode(scroller, scroller.scrollHeight / 2);
       const frames = holdFrames();
       const asked = vi.spyOn(window, "requestAnimationFrame");
@@ -376,6 +380,26 @@ describe("MessageList springs", () => {
     }
   });
 
+  it("springs the messages as the arrow keys scroll the list to the next one", async () => {
+    const { scroller, messages } = await render(<Chat count={30} />);
+    (document.querySelector("button") as HTMLElement).focus();
+    await pressTab();
+    const frames = holdFrames();
+    // Up, message by message, until a key scrolls the list.
+    let top = scroller.scrollTop;
+    for (let step = 0; step < 12 && scroller.scrollTop === top; step++) {
+      top = scroller.scrollTop;
+      await userEvent.keyboard("{ArrowUp}");
+    }
+    expect(scroller.scrollTop).toBeLessThan(top);
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    expect(messages().some((message) => message !== document.activeElement && message.style.transform !== "")).toBe(true);
+    scroller.dispatchEvent(new Event("scrollend"));
+    frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    frames.release();
+  });
+
   it("follows the keys, with the focused message where the scroll starts, and its focus ring moves with it", async () => {
     const { scroller, messages } = await render(<Chat count={30} />);
     (document.querySelector("button") as HTMLElement).focus();
@@ -383,14 +407,18 @@ describe("MessageList springs", () => {
     const frames = holdFrames();
     const newest = document.activeElement as HTMLElement;
     expect(newest).toBe(messages().at(-1));
-    // After a wheel, the keys scroll from the focused message, not from where the pointer was.
-    wheel(scroller, -20, scroller.getBoundingClientRect().top);
+    // After a wheel, the keys scroll from the focused message, not from where the pointer was. The wheel leaves the
+    // focused message wholly in view (it is less than the list's 16px padding): a browser may reveal the focused
+    // message before a key (WebKit does when the page is busy), which would scroll the list without the reader.
+    wheel(scroller, -10, scroller.getBoundingClientRect().top);
     frames.step(16);
     frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
     // Past the wheel's 250ms, so only the key makes the scroll the reader's.
     frames.step(300);
     // Page Up: the focused message lands exactly where the key puts it, and the others trail above.
     const top = scroller.scrollTop;
+    newest.scrollIntoView({ block: "nearest" });
+    expect(scroller.scrollTop).toBe(top);
     await userEvent.keyboard("{PageUp}");
     scroller.dispatchEvent(new Event("scroll"));
     frames.step(16);
@@ -495,6 +523,8 @@ describe("MessageList springs", () => {
     scroller.dispatchEvent(new Event("scroll"));
     frames.step(16);
     expect(messages().some((message) => shiftOf(message) < 0)).toBe(true);
+    // The browser says each scroll ended (the scrollend these held frames keep from coming), as it does after a scroll and its momentum.
+    scroller.dispatchEvent(new Event("scrollend"));
     frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
     frames.step(251);
     scroller.scrollTop -= 30;
@@ -507,6 +537,7 @@ describe("MessageList springs", () => {
     frames.step(200);
     scroller.scrollTop -= 1;
     scroller.dispatchEvent(new Event("scroll"));
+    scroller.dispatchEvent(new Event("scrollend"));
     frames.step(16);
     frames.step(150);
     expectAtRest(messages());
@@ -514,6 +545,50 @@ describe("MessageList springs", () => {
     scroller.dispatchEvent(new Event("scroll"));
     frames.step(16);
     expect(messages().some((message) => shiftOf(message) < 0)).toBe(true);
+  });
+
+  it("keeps a scroll the reader's until the browser says it ended, however long a frame takes", async () => {
+    const { scroller, messages } = await render(<Chat count={60} />);
+    await scrollInCode(scroller, 400);
+    const frames = holdFrames();
+    const asked = vi.spyOn(window, "requestAnimationFrame");
+    const pointer = scroller.getBoundingClientRect().top;
+    const still = () => messages().every((message) => shiftOf(message) === 0);
+    const settling = () => scroller.querySelectorAll("[data-ouro-settling]").length;
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 0, clientY: pointer, bubbles: true }));
+    frames.step(16);
+    scroller.scrollTop -= 30;
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    expect(messages().some((message) => shiftOf(message) < 0)).toBe(true);
+    // Back at their places while the scroll goes on, the messages wait there, still settling, and ask for no frames.
+    frames.until(still);
+    expect(settling()).toBeGreaterThan(0);
+    const calls = asked.mock.calls.length;
+    frames.step(16);
+    expect(asked.mock.calls.length).toBe(calls);
+    // A frame of 400ms, as on a busy page while a fling goes on off the main thread: its next scroll is still the reader's,
+    // even one that the long frame made more than the list's height.
+    frames.step(400);
+    scroller.scrollTop -= scroller.clientHeight + 10;
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    expect(messages().some((message) => shiftOf(message) < 0)).toBe(true);
+    frames.until(still);
+    expect(settling()).toBeGreaterThan(0);
+    // The browser says it ended: they rest in the next frame.
+    scroller.dispatchEvent(new Event("scrollend"));
+    frames.step(16);
+    expectAtRest(messages());
+    // Once it ended, a scroll more than 250ms after the last is not the reader's, and a new scroll of the list's height is a jump again.
+    frames.step(251);
+    scroller.scrollTop += 30;
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    expectAtRest(messages());
+    wheel(scroller, scroller.clientHeight, pointer);
+    frames.step(16);
+    expectAtRest(messages());
   });
 
   it("springs messages that arrive after it mounts, inside a group already there too", async () => {

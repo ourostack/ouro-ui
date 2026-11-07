@@ -211,7 +211,7 @@ function unwatchableFrame(top: number, body = "<div style='height:100px'></div>"
 }
 
 const refused = (x: number, y: number) =>
-  `touchStep: could not watch the frame at (${x}, ${y}) within 5000ms, so the touchStart was not sent. The frame there is about:srcdoc, and it has no watcher.`;
+  `touchStep: the frame at (${x}, ${y}) was not ready for the touchStart within 5000ms, so it was not sent. The frame there is about:srcdoc, and it has no watcher.`;
 
 test("a touchstart into a frame the kit cannot watch is refused after the time limit, and the next touch works", async () => {
   await unwatchableFrame(300);
@@ -477,7 +477,7 @@ test("a touch into an iframe that never loads does not hang", async () => {
     (error: Error) => error.message,
   );
   expect(performance.now() - started).toBeLessThan(2 * 5000 + 2000);
-  if (outcome !== "handled") expect(outcome).toMatch(/^touchStep: could not watch the frame at \(100, 350\) within 5000ms, so the touchStart was not sent\. The frame there is /);
+  if (outcome !== "handled") expect(outcome).toMatch(/^touchStep: the frame at \(100, 350\) was not ready for the touchStart within 5000ms, so it was not sent\. The frame there is /);
   // A touch elsewhere is not held up by it.
   expect(await tapAt(window, 100, 50)).toEqual(["touchstart", "touchend"]);
 });
@@ -529,7 +529,7 @@ test("a lift into a frame that has gone is sent all the same, and throws naming 
   // The finger's target goes away with its frame, so no page gets the touchend.
   frame.remove();
   await expect(commands.touchStep({ type: "touchEnd" })).rejects.toThrow(
-    "touchStep: could not watch about:srcdoc, the frame the gesture's touchstart went to: frame.evaluate: Frame was detached. The touchEnd was sent, but nothing could see it.",
+    "touchStep: the watch for the touchEnd did not start in about:srcdoc, the frame the gesture's touchstart went to: frame.evaluate: Frame was detached. The touchEnd was sent, but no watcher saw it.",
   );
   // The next gesture starts clean.
   const element = scroller();

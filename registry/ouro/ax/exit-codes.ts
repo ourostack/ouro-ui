@@ -29,7 +29,7 @@ const BASE_EXIT_CODES: readonly ExitCode[] = Object.freeze([
 
 /**
  * The code a check or doctor tool declares beside the base codes: its checks ran and found a problem, with a fix
- * beside it. A check that couldn't run is a crash and exits with the base `error` code instead, so an agent tells "the
+ * beside it. A check that threw before finishing is a crash and exits with the base `error` code instead, so an agent tells "the
  * tool found something" from "the tool broke" by the code alone.
  *
  * @claim "exits with the base `error` code instead" registry/ouro/ax/checks.test.mts verify:testExists(registry/ouro/ax/checks.test.mts::findings exit with the declared findings code and a check that couldn't run exits 1, never the same code)

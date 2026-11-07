@@ -5,7 +5,7 @@
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-claims#v1.3.4
+npx shadcn@latest add ourostack/ouro-ui/ax-claims#v1.3.6
 ```
 
 It installs `lib/ouro/ax/claims.ts`. Its tests are `ax-claims-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -48,13 +48,14 @@ see, those that take free text, and the wait command.
 - `route`, `read-route`, `ref-route`, `others-route`: HTTP routes that answer an error, GET routes, routes with an id
 in the path, and the probes of writes other people see.
 - `tool`, `tool-required`: MCP tools, and those with required arguments.
-- `twin`, `action-twin`, `person-only`, `reserved`, `ui-read`, `listening`, `listening-push`: from the `ui` inventory,
-the twins, the twins of agent actions, the person-only actions, the actions with a reserved id, the reads, the
-reads of what people say, and their streams.
+- `twin`, `action-twin`, `person-only`, `reserved`, `self`, `ui-read`, `listening`, `listening-push`: from the `ui`
+inventory, the twins, the twins of agent actions, the person-only actions, the actions with a reserved id, the
+actions an agent takes only on its own item (`scope: "self"`), the reads, the reads of what people say, and their
+streams.
 ```
 
 ```ts
-const CLAIM_SCOPES: readonly ["interface", "command", "read", "others", "text", "wait", "events", "route", "read-route", "ref-route", "others-route", "tool", "tool-required", "twin", "action-twin", "person-only", "reserved", "ui-read", "listening", "listening-push"]
+const CLAIM_SCOPES: readonly ["interface", "command", "read", "others", "text", "wait", "events", "route", "read-route", "ref-route", "others-route", "tool", "tool-required", "twin", "action-twin", "person-only", "reserved", "self", "ui-read", "listening", "listening-push"]
 ```
 
 ### `CLAIM_SET`
@@ -70,7 +71,7 @@ const CLAIM_SET: ClaimSet
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```ts
-const CLAIM_SET_VERSION: "1.4.0"
+const CLAIM_SET_VERSION: "1.5.0"
 ```
 
 ### `ClaimEvidence`
@@ -148,6 +149,7 @@ Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and chec
 | `cli.reads-stay-reads` | must | hazard |
 | `cli.refusals-change-nothing` | must | hazard |
 | `cli.no-dev-commands` | must | hazard |
+| `copy.precise-failure` | must | hazard |
 | `http.inventory` | must | hazard |
 | `http.wrong-ref-first` | must | hazard |
 | `http.others-need-why` | must | hazard |
@@ -159,6 +161,7 @@ Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and chec
 | `ui.twin-effect-matches` | must | hazard |
 | `ui.person-only-refuses` | must | hazard |
 | `ui.reserved-person-only` | must | hazard |
+| `ui.self-scope-refuses` | must | hazard |
 | `ui.listening-needs-yes` | must | hazard |
 | `cli.listening-push-filtered` | must | hazard |
 | `cli.command-help` | should | evaluation: [eval-baseline.md](../../docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md) |

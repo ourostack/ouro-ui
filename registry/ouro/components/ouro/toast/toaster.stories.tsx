@@ -61,7 +61,7 @@ export const Tones: Story = {
       <Button variant="soft" tone="warning" onClick={() => toast("You're offline", { tone: "warning", description: "Changes save when you reconnect." })}>
         Warning
       </Button>
-      <Button variant="soft" tone="destructive" onClick={() => toast("Couldn't save", { tone: "destructive", description: "Check your connection." })}>
+      <Button variant="soft" tone="destructive" onClick={() => toast("Not saved: you're offline", { tone: "destructive", description: "Check your connection." })}>
         Destructive
       </Button>
       <Toaster {...args} />
@@ -89,7 +89,7 @@ function ShowOnMount() {
   useEffect(() => {
     toast("Recipe saved", { tone: "success", description: "Find it in your cookbook.", duration: 0 });
     toast("Recipe deleted", { duration: 0, action: { label: "Undo", onClick: () => {} } });
-    toast("Couldn't sync", { tone: "destructive", description: "We'll try again in a minute.", duration: 0 });
+    toast("Not synced: the server didn't answer", { tone: "destructive", description: "We'll try again in a minute.", duration: 0 });
     return () => toast.dismiss();
   }, []);
   return null;

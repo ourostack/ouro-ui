@@ -9,10 +9,10 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 ```
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.4
+npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.6
 ```
 
-It installs `lib/ouro/ax/xray.ts`, with `ax-checks`, `ax-claims`, `ax-component`, `ax-dev-commands`, `ax-outcome`, `ax-terminal`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/xray.ts`, with `ax-checks`, `ax-claims`, `ax-component`, `ax-dev-commands`, `ax-outcome`, `ax-precise-copy`, `ax-terminal`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 
@@ -239,7 +239,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 ```
 
 ```ts
-const XRAY_VERSION: "1.4.0"
+const XRAY_VERSION: "1.5.0"
 ```
 
 ### `XrayOptions`
@@ -258,6 +258,7 @@ interface XrayOptions {
   inventory?: string | undefined;
   events?: string | undefined;
   commit?: string | undefined;
+  failureCopyAllow?: string | undefined;
   conformance: boolean;
   state: string[];
   volatile: string[];

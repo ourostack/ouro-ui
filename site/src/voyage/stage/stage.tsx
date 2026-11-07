@@ -15,6 +15,7 @@ import { useStable } from "../use-stable";
 import { GITHUB } from "../../paths";
 import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEAKER, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
+import { flushSync } from "react-dom";
 import "./stage.css";
 
 interface Entry extends LogLine {
@@ -103,6 +104,92 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     return () => observer.disconnect();
   }, []);
 
+  // A screen too slow to swim the fish (frames over 100 ms apart, as on a machine drawing without its GPU) gets still water:
+  // the speed goes to Stop, which its control shows, and Half or Full sets them swimming again. Moving fish there hold the
+  // page between frames, so a press anywhere lands late. Judged once a visit, on the middle gap of a second of frames (so
+  // one long task is not a slow screen), while the stage is in view, the page is shown and the site menu is closed (under
+  // it the fish wait, so its frames would not say how they swim); a press on the speed first is
+  // the visitor's own choice, and it stands, as does any press on the stage once they are playing. The captain says why the
+  // fish stopped. data-paced says it has been judged.
+  const [paced, setPaced] = useState(false);
+  useEffect(() => {
+    if (paced || offscreen || speed !== "half" || typeof matchMedia === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    let wait = 0;
+    let deadline = 0;
+    let starved = false;
+    const menuOpen = () => document.documentElement.hasAttribute("data-site-menu-open");
+    const verdict = (slow: boolean) => {
+      cancelAnimationFrame(frame);
+      clearTimeout(deadline);
+      // Committed in the frame that decides it, not left to React's scheduler: on CI's WebKit, after the site menu had opened
+      // and closed over a slow screen, the verdict was reached and its scheduled commit never came (ourostack/ouro-ui#648).
+      flushSync(() => {
+        if (slow) setSpeed("stop");
+        setPaced(true);
+      });
+      if (slow) write(LOG.stillWater);
+    };
+    const judge = () => {
+      const gaps: number[] = [];
+      let start = 0;
+      let last = 0;
+      const tick = (now: number) => {
+        if (document.hidden || menuOpen()) return;
+        if (last) gaps.push(now - last);
+        else start = now;
+        last = now;
+        if (now - start < 1000 || gaps.length < 3) frame = requestAnimationFrame(tick);
+        else verdict(gaps.toSorted((x, y) => x - y)[Math.floor(gaps.length / 2)]! > 100);
+      };
+      frame = requestAnimationFrame(tick);
+      // No verdict 2 s after judging starts means the frames never came (under three, or a second's worth, in that
+      // time). Twice running, the screen is slow, though it never gets to say so in frames; once could be one long task.
+      deadline = window.setTimeout(() => {
+        if (document.hidden || menuOpen()) return;
+        cancelAnimationFrame(frame);
+        if (starved) verdict(true);
+        else {
+          starved = true;
+          judge();
+        }
+      }, 2000);
+    };
+    // A beat after the stage comes into view, the page is shown again or the menu closes, so the page's own first work is
+    // not counted.
+    const soon = () => {
+      clearTimeout(wait);
+      clearTimeout(deadline);
+      cancelAnimationFrame(frame);
+      starved = false;
+      if (!document.hidden && !menuOpen()) wait = window.setTimeout(judge, 500);
+    };
+    soon();
+    document.addEventListener("visibilitychange", soon);
+    const menu = new MutationObserver(soon);
+    menu.observe(document.documentElement, { attributes: true, attributeFilter: ["data-site-menu-open"] });
+    return () => {
+      clearTimeout(wait);
+      clearTimeout(deadline);
+      cancelAnimationFrame(frame);
+      document.removeEventListener("visibilitychange", soon);
+      menu.disconnect();
+    };
+  }, [paced, offscreen, speed]);
+  // A press on the stage means they are playing. Its listeners stay for the stage's life: taken off as the verdict committed,
+  // they cost CI's WebKit a frame of 300 to 700 ms (ourostack/ouro-ui#667).
+  useEffect(() => {
+    const element = root.current;
+    if (!element) return;
+    const playing = () => setPaced(true);
+    element.addEventListener("pointerdown", playing, true);
+    element.addEventListener("keydown", playing, true);
+    return () => {
+      element.removeEventListener("pointerdown", playing, true);
+      element.removeEventListener("keydown", playing, true);
+    };
+  }, []);
+
   const onDepth = useStable((value: number) => {
     // Going down sends up a stream of bubbles.
     if (value > depth) setStream((count) => (value - depth >= 20 || count === 0 ? count + 1 : count));
@@ -149,6 +236,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     write(on ? (dived ? LOG.lightsOnDeep : LOG.lightsOn) : LOG.lightsOff);
   });
   const onSpeed = useStable((value: Speed) => {
+    setPaced(true);
     setSpeed(value);
     write(LOG.speed[value]);
   });
@@ -170,7 +258,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const scene = useAfterPaint(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
 
   return (
-    <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined}>
+    <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined} data-paced={paced ? "" : undefined}>
       <div className="stage-frame">
         {/* On a phone the porthole and the crew's newest line stay under the header while the console scrolls beneath them (stage.css), so every press shows its effect without the page jumping. */}
         <div className="stage-window">
@@ -426,18 +514,35 @@ const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Elemen
  */
 const ShipLog = memo(function ShipLog({ log, logOpen }: { log: Entry[]; logOpen: Flag }): JSX.Element {
   const [open, setOpen] = useState(false);
+  // Closed, the list keeps the lines it last showed and doesn't re-render: a line added to the hidden list cost CI's
+  // WebKit a frame of 300 to 500 ms (ourostack/ouro-ui#667). It closes on what it showed, and catches up just before it
+  // opens, while still hidden, so it reads out none of the lines the crew's strip already did (MessageList hears the
+  // catch-up in a microtask, so the panel opens in the next one, before the frame).
+  const [shown, setShown] = useState(log);
+  if (open && shown !== log) setShown(log);
   const onOpenChange = (next: boolean) => {
-    setOpen(next);
     logOpen.set(next);
+    if (!next) {
+      setOpen(false);
+      return;
+    }
+    flushSync(() => setShown(log));
+    queueMicrotask(() => flushSync(() => setOpen(true)));
   };
+  const list = useMemo(
+    () => (
+      <MessageList label={STAGE_COPY.log} className="stage-log">
+        {shown.map((entry) => (
+          <LogEntry key={entry.id} entry={entry} />
+        ))}
+      </MessageList>
+    ),
+    [shown],
+  );
   return (
     <div className="stage-log-fold" data-stage-control="log">
       <Collapsible title={STAGE_COPY.logAll(log.length)} open={open} onOpenChange={onOpenChange}>
-        <MessageList label={STAGE_COPY.log} className="stage-log">
-          {log.map((entry) => (
-            <LogEntry key={entry.id} entry={entry} />
-          ))}
-        </MessageList>
+        {list}
       </Collapsible>
     </div>
   );

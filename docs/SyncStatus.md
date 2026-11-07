@@ -2,7 +2,7 @@
 
 # SyncStatus
 
-One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Couldn't save, each with its icon, and Retry while there is a problem. Screen readers hear it only when a problem starts and when it clears, so every save is not narrated. It keeps the height of its longest state, so a change never moves the page. When Retry goes away while it has focus (the save it started is under way), focus moves to the status line, so the person stays where they were rather than at the top of the page.
+One line that says where the person's changes are: Saved, Saving…, Offline (kept on this device) or Not saved (the server refused the changes), each with its icon, and Retry while there is a problem. Screen readers hear it only when a problem starts and when it clears, so every save is not narrated. It keeps the height of its longest state, so a change never moves the page. When Retry goes away while it has focus (the save it started is under way), focus moves to the status line, so the person stays where they were rather than at the top of the page.
 
 ```tsx
 import { SyncStatus } from "@/registry/ouro/components/ouro/sync-status/sync-status";
@@ -63,7 +63,7 @@ interface SyncStatusLabels {
   saving?: string | undefined;
   /** While changes wait on this device. @default "Offline: changes are kept on this device" */
   offline?: string | undefined;
-  /** When the server refused the changes. @default "Couldn't save" */
+  /** When the server refused the changes. @default "Not saved: the server refused the changes" */
   error?: string | undefined;
   /** The retry button's label. @default "Retry" */
   retry?: string | undefined;
