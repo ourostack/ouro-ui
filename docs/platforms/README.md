@@ -20,7 +20,7 @@ A platform gets its own repository and pins a release of [Ouro UI core](https://
 | For Android | none yet | none yet | [Build it](android.md) |
 | For Windows | none yet | none yet | [Build it](windows.md) |
 
-Core's newest release is v0.3.0. Since v0.1.0 it has added Ouro AX for Apple's claim set and Ouro HX's component claims, each as data.[^core-v0.3.0]
+Core's newest release, v0.3.0, has added Ouro AX for Apple's claim set and Ouro HX's component claims since v0.1.0, each as data.[^core-v0.3.0]
 
 ## Building one
 
