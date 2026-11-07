@@ -36,6 +36,11 @@ function releaseAll(): void {
   for (const turn of turns.values()) turn.release();
 }
 
+/** Every boundary waiting its turn hydrates now, as a press would have it: for a tap kept from before (early-input.ts). */
+export function hurryHydration(): void {
+  releaseAll();
+}
+
 const REACHES = ["pointerdown", "mousedown", "touchstart", "keydown", "focusin", "click"] as const;
 
 function turnFor(name: string): Turn {

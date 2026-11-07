@@ -30,7 +30,8 @@ class DemoBoundary extends Component<{ name: string; title: string; children: Re
 const noClientUpdates = () => () => undefined;
 
 function SelectedDemo({ name, title }: { name: string; title: string }): JSX.Element {
-  // The server snapshot also keeps the first hydration render disabled.
+  // Hydrated a render after the example's own chunk arrives. Until then a tap or text there is kept and answered then
+  // (early-input.ts), so the example is never shown disabled.
   const hydrated = useSyncExternalStore(noClientUpdates, () => true, () => false);
   const root = useRef<HTMLDivElement>(null);
   // Live: the controls are enabled and, since a parent's effects run after its children's, every
@@ -42,7 +43,7 @@ function SelectedDemo({ name, title }: { name: string; title: string }): JSX.Ele
   if (!Demo) throw new Error(`Unknown live example "${name}"`);
   return (
     <div ref={root} data-site-demo={name} className="flex w-full justify-center">
-      <fieldset disabled={!hydrated} aria-label={`${title} example`} className="m-0 flex w-full min-w-0 [min-inline-size:0] justify-center border-0 p-0">
+      <fieldset aria-label={`${title} example`} className="m-0 flex w-full min-w-0 [min-inline-size:0] justify-center border-0 p-0">
         <Demo />
       </fieldset>
     </div>

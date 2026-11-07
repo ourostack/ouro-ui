@@ -3,7 +3,7 @@ import { hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { HydrateInTurn, hydratedInTurn, hydratingServerHtml } from "./hydrate";
+import { HydrateInTurn, hurryHydration, hydratedInTurn, hydratingServerHtml } from "./hydrate";
 
 // Hydration in turns (hydrate.tsx): each boundary hydrates after the one before it, once the
 // browser is idle, and a press hydrates the boundary it lands in at once. The test holds the idle
@@ -37,7 +37,7 @@ function Page({ names }: { names: string[] }): JSX.Element {
 }
 
 // The server's HTML, rendered before any test marks the page as hydrating.
-const serverHtml = new Map([["first", "second"], ["waiting", "later"], ["safari-a", "safari-b"]].map((names) => [names.join(), renderToString(<Page names={names} />)]));
+const serverHtml = new Map([["first", "second"], ["waiting", "later"], ["safari-a", "safari-b"], ["hurried-a", "hurried-b"]].map((names) => [names.join(), renderToString(<Page names={names} />)]));
 
 async function hydrate(names: string[], waits = true): Promise<void> {
   host.innerHTML = serverHtml.get(names.join())!;
@@ -104,6 +104,22 @@ describe("hydration in turns", () => {
     await hydratedInTurn();
     await act(() => button("safari-b").click());
     expect(button("safari-b").textContent).toBe("safari-b 1");
+  });
+
+  it("hydrates every boundary waiting its turn at once when hurried, as for a tap kept from before (early-input.ts)", async () => {
+    await hydrate(["hurried-a", "hurried-b"]);
+    expect(committed).toEqual([]);
+    await act(() => hurryHydration());
+    await expect.poll(() => committed).toEqual(["hurried-a", "hurried-b"]);
+    // The queue then passes its released turns as it reaches them, and reports the page hydrated.
+    let done = false;
+    void hydratedInTurn().then(() => (done = true));
+    await expect
+      .poll(async () => {
+        await goIdle();
+        return done;
+      })
+      .toBe(true);
   });
 
   it("answers a press on a boundary still waiting its turn, by hydrating it inside the press", async () => {
