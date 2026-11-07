@@ -65,7 +65,10 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
     record(`with "${opener.name}" open`, await scan());
     await closeOverlay();
   }
-  for (const opener of passingOpeners(host)) {
+  // Found afresh after each one closes: a trigger that mounts only while its row is hovered or focused
+  // (MessageList's one action bar) is a new element each time, and an element held from before is gone.
+  const opened = new Set<string>();
+  for (let opener = nextPassingOpener(host, opened); opener; opener = nextPassingOpener(host, opened)) {
     await opener.open();
     await vi.waitFor(() => {
       if (!opener.popup()) throw new Error(`${opener.name} opened nothing`);
@@ -86,7 +89,7 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
  * stays where the last story's overlay trigger left it, and WebKit sends a mouse move to whatever
  * mounts under it: TimeGrid's slot preview then shows in the "closed" scan.
  */
-async function parkPointer(): Promise<void> {
+export async function parkPointer(): Promise<void> {
   await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
 }
 
@@ -106,28 +109,44 @@ interface PassingOpener {
  * them out: each of `otherPopups` in the test kit, which apps' story checks open the same way. The
  * scan opens them too, so a popup of theirs outside every landmark fails like a menu's would.
  */
-function passingOpeners(host: HTMLElement): PassingOpener[] {
+function passingOpeners(host: HTMLElement): (PassingOpener & { key: string })[] {
   const usable = (element: HTMLElement) => isVisible(element) && !element.matches(':disabled, [aria-disabled="true"], [data-disabled]');
+  const seen = new Map<string, number>();
   return otherPopups.flatMap(({ kind, trigger, opensOn, popup }) =>
-    [...host.querySelectorAll<HTMLElement>(trigger)].filter(usable).map((element) => ({
-      name: `the ${kind} of "${accessibleName(element)}"`,
-      open: async () => {
-        if (opensOn === "hover") await userEvent.hover(element);
-        else if (opensOn === "press") await userEvent.click(element);
-        else {
-          // Focus from the keyboard, as a hover card opens for it; WebKit's Tab skips links by default.
-          await userEvent.keyboard("{Shift}");
-          element.focus();
-        }
-      },
-      close: async () => {
-        if (opensOn === "hover") await userEvent.unhover(element);
-        if (opensOn === "keyboard focus") element.blur();
-        await userEvent.keyboard("{Escape}");
-      },
-      popup: () => document.querySelector(popup),
-    })),
+    [...host.querySelectorAll<HTMLElement>(trigger)].filter(usable).map((element) => {
+      const name = `the ${kind} of "${accessibleName(element)}"`;
+      // The nth trigger of that name, so two alike (each row's "Like") are each opened once.
+      const nth = (seen.get(name) ?? 0) + 1;
+      seen.set(name, nth);
+      return {
+        key: `${name} #${nth}`,
+        name,
+        open: async () => {
+          if (opensOn === "hover") await userEvent.hover(element);
+          else if (opensOn === "press") await userEvent.click(element);
+          else {
+            // Focus from the keyboard, as a hover card opens for it; WebKit's Tab skips links by default.
+            await userEvent.keyboard("{Shift}");
+            element.focus();
+          }
+        },
+        close: async () => {
+          // A trigger that mounts only while its row is hovered (MessageList's one bar) may be gone by now: park instead.
+          if (opensOn === "hover") await (element.isConnected ? userEvent.unhover(element) : parkPointer());
+          if (opensOn === "keyboard focus") element.blur();
+          await userEvent.keyboard("{Escape}");
+        },
+        popup: () => document.querySelector(popup),
+      };
+    }),
   );
+}
+
+/** The first of {@link passingOpeners} on the page now that `opened` does not hold, which it then holds. */
+function nextPassingOpener(host: HTMLElement, opened: Set<string>): PassingOpener | undefined {
+  const opener = passingOpeners(host).find(({ key }) => !opened.has(key));
+  if (opener) opened.add(opener.key);
+  return opener;
 }
 
 /** Renders a story and scans it closed and with each of its overlays open: the findings as text, empty when there are none. */

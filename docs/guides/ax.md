@@ -9,8 +9,8 @@ Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. O
 ## Install
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.5         # the kit and the X-ray
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.5   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.6         # the kit and the X-ray
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.6   # with their node:test tests
 ```
 
 The shadcn CLI copies the files into `lib/ouro/ax/` under your lib alias. Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]
@@ -91,6 +91,7 @@ Receipt: a-t1
 | [`ax-component`](../ax/ax-component.md) | A component's agent side: what an agent reads from it and the actions it may take, bound to their CLI twins, for the X-ray to check. |
 | [`ax-lint`](../ax/ax-lint.md) | Checks the declarations, and against your command inventory that the commands you register run through them. |
 | [`ax-dev-commands`](../ax/ax-dev-commands.md) | Finds a developer command or a repository path in a message for an agent or a person, which the person's installed tool can't run; a step marked `sourceCheckout: true` passes. |
+| [`ax-precise-copy`](../ax/ax-precise-copy.md) | Finds a vague failure ("couldn't", "something went wrong", a bare "Error") in a message for an agent or a person, with an allow-list of precise texts and their reasons. |
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
 | [`ax-checks`](../ax/ax-checks.md) | A doctor or self-check declared once: progress while it runs, the verdict first, the fix beside a problem, the same facts in `--json`, and the findings exit code. |
@@ -104,6 +105,25 @@ Receipt: a-t1
 An action returns an outcome rather than a bare "ok". Its `state` says what became of it: `done`, `queued`, `planned`, `needs-human`, `uncertain`, `refused` or `failed`. `postcondition` says whether the tool checked the effect apart from the transport's answer, and `receipt.id` finds the request again. `runCli` sets the exit code from the state.[^outcome-exit]
 
 A wait takes a reference the agent already holds, such as a conversation id from a list, and waits inside the tool. `waitFor()` reads the source as often as it must and returns what happened, or, when the time limit passes, the cursor and the exact command that resumes the wait. The agent makes one call instead of writing a polling loop.
+
+## Say precisely why it failed
+
+When something fails, your message says what happened and precisely why (the system and its answer), who or what caused it where you know, and the next step as a command or an action. When you don't know the cause, say what you tried and what came back. "Couldn't show this picture" leaves you guessing: should the person retry, ask someone or change something?
+
+| Before | After |
+| --- | --- |
+| `Couldn't show this picture` | `The photo service says this picture was deleted by its owner. Ask them to share it again.` |
+| `inbox-agent: something went wrong` | `inbox-agent: the mail service didn't answer within 60 s. Run inbox-agent sync again.` |
+| `Unable to open the file` | `The file service says you don't have access to this file. Ask its owner for access.` |
+| `Error` | `inbox-agent: the mail service turned down its sign-in (401). Run inbox-agent login.` |
+
+The X-ray's must claim `copy.precise-failure` reads every refusal, error, outcome `error` and `summary`, `human.reason` and doctor finding it collects, and `help --json` in full, and fails each text that says "couldn't", "could not", "something went wrong", "unable to", "failed to load" or "an error occurred", or is only a bare "Error" or "Failed".[^precise-failure] A phrase passes when its cause follows in the same sentence, after a colon, a dash or "because", in at least two words that start with neither a next step nor a vague word, and "Error: …" is held to the same test; a negation or an action ("No errors", "Retry failed") passes too.[^precise-failure] So `Couldn't send: you're offline. Try again when you're back online.` passes, and `Couldn't send: try again.` does not. Your own tests can call the same checker, `vagueFailuresIn` from [`ax-precise-copy`](../ax/ax-precise-copy.md). When a precise text still holds a phrase ("The card service says your card could not be charged. Use another card."), list it in a file and pass `--failure-copy-allow <file>`: `[{ "match": "could not be charged", "reason": "names the card service and its answer" }]`. An entry without a reason stops the X-ray.[^failure-allow] The source rules kit holds an app's interface copy to the same list ([guardrails guide](guardrails.md#say-precisely-why-it-failed)).
+
+Prior art:
+
+- [Nielsen Norman Group's error-message guidelines](https://www.nngroup.com/articles/error-message-guidelines/ "verify:urlOk(https://www.nngroup.com/articles/error-message-guidelines/)"): adopt. Say precisely what went wrong in plain words, and offer a way forward.
+- [GOV.UK's error message component](https://design-system.service.gov.uk/components/error-message/ "verify:urlOk(https://design-system.service.gov.uk/components/error-message/)"): borrow. Its wording rules are for form fields, but its stance carries over: say what happened and how to fix it, in place of "an error occurred".
+- [Apple's Human Interface Guidelines on alerts](https://developer.apple.com/design/human-interface-guidelines/alerts "verify:urlOk(https://developer.apple.com/design/human-interface-guidelines/alerts)"): watch. It governs when an alert appears and how its buttons read, more than what a failure says.
 
 ## A voice
 
@@ -266,3 +286,5 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^install]: test:scripts/install-check.test.mjs::an installed file must equal its source once import paths are mapped to the app's aliases; test:scripts/registry.test.mjs::a component that imports the ax kit lists the ax item in its registryDependencies verify:testExists(scripts/install-check.test.mjs::an installed file must equal its source once import paths are mapped to the app's aliases) verify:testExists(scripts/registry.test.mjs::a component that imports the ax kit lists the ax item in its registryDependencies)
 [^rendered]: test:registry/ouro/ax/component.test.mts::expectAxRendered finds each declared action's control by data-ax-action, and names the ones it misses verify:testExists(registry/ouro/ax/component.test.mts::expectAxRendered finds each declared action's control by data-ax-action, and names the ones it misses)
 [^lint]: test:registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command verify:testExists(registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command)
+[^precise-failure]: test:registry/ouro/ax/xray.test.mts::a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through verify:testExists(registry/ouro/ax/xray.test.mts::a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through) verify:testExists(registry/ouro/ax/precise-copy.test.mts::walks a value, reading an outcome's error, human reason and summary and a checks report's findings, not the person's data)
+[^failure-allow]: test:registry/ouro/ax/precise-copy.test.mts::an allow-list needs a match and a reason in every entry verify:testExists(registry/ouro/ax/precise-copy.test.mts::an allow-list needs a match and a reason in every entry) verify:testExists(registry/ouro/ax/xray.test.mts::a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through)

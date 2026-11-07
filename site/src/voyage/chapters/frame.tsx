@@ -95,6 +95,16 @@ export function Steps({ label, steps }: { label: string; steps: readonly Step[] 
   );
 }
 
+const MARKER = {
+  position: "sticky",
+  top: "var(--site-header-h, 3.5rem)",
+  zIndex: 30,
+  marginBlockEnd: "1.5rem",
+  padding: "0.5rem max(1rem, calc(50% - 600px))",
+  borderBlock: "1px solid color-mix(in oklab, var(--border) 70%, transparent)",
+  background: "var(--background)",
+} as const;
+
 /**
  * On a phone the rail beside a chapter is left out, so a slim marker keeps its place instead: the
  * chapter and how many of its steps are done, held under the header while the chapter is on screen.
@@ -102,7 +112,8 @@ export function Steps({ label, steps }: { label: string; steps: readonly Step[] 
 export function PhoneMarker({ chapter, title, steps }: { chapter: string; title: string; steps: readonly Step[] }): JSX.Element {
   const done = steps.filter((step) => step.done).length;
   return (
-    <div className="site-phone-marker lg:hidden" data-chapter-marker="">
+    // Its frame is inline, not in frame.css: on a phone the first chapter's shows before its island brings that.
+    <div className="lg:hidden" data-chapter-marker="" style={MARKER}>
       <p className="m-0 flex items-center gap-2 text-sm">
         <span className="site-eyebrow">{chapter}</span>
         <span className="truncate font-medium">{title}</span>

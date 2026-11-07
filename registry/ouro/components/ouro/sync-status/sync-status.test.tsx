@@ -51,7 +51,7 @@ describe("SyncStatus", () => {
     ["saved", "Saved"],
     ["saving", "Saving…"],
     ["offline", "Offline: changes are kept on this device"],
-    ["error", "Couldn't save"],
+    ["error", "Not saved: the server refused the changes"],
   ] as const)("says %s with its icon", async (state, words) => {
     const { status, line } = await render(<SyncStatus status={state} />);
     expect(status.getAttribute("data-status")).toBe(state);
@@ -111,7 +111,7 @@ describe("SyncStatus", () => {
       await rerender(<SyncStatus status="saved" />);
       await expect.poll(() => announced.count("Saved")).toBe(1);
       await rerender(<SyncStatus status="error" />);
-      await expect.poll(() => announced.count("Couldn't save")).toBe(1);
+      await expect.poll(() => announced.count("Not saved: the server refused the changes")).toBe(1);
     } finally {
       announced.stop();
     }

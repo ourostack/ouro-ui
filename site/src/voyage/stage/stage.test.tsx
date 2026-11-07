@@ -252,13 +252,18 @@ describe("the stage's controls", () => {
     await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(1));
     for (const name of ["Full", "Stop", "Half", "Full", "Stop"]) await userEvent.click(page.getByRole("radio", { name }));
     await expect.poll(lastLog).toContain(LOG.speed.stop.text);
-    await expect.poll(() => logText()[0]).toContain(LOG.speed.full.text);
-    expect(logText()).toHaveLength(5);
     await expect.element(fold).toHaveAccessibleName(STAGE_COPY.logAll(5));
     const log = () => page.elementLocator(document.querySelector(".stage-log-fold")!);
-    await expect.element(log().getByText(LOG.speed.half.text)).not.toBeVisible();
+    expect(document.querySelector(".stage-log-fold [data-ouro-collapsible-panel]")!.hasAttribute("hidden")).toBe(true);
+    // Folded, the list waits; it catches up as it opens.
     await userEvent.click(fold);
     await expect.element(log().getByText(LOG.speed.half.text)).toBeVisible();
+    expect(logText()).toHaveLength(5);
+    expect(logText()[0]).toContain(LOG.speed.full.text);
+    expect(logText()[4]).toContain(LOG.speed.stop.text);
+    // Open, each new line joins it.
+    await userEvent.click(page.getByRole("radio", { name: "Half" }));
+    await expect.poll(() => logText()[4]).toContain(LOG.speed.half.text);
   });
 
   it("reads each crew line once, with the ship's log folded or open", async () => {

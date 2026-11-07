@@ -665,7 +665,7 @@ folders of a sharded run into one.
   --no-measured            skip the measured rules, and press nothing
   --ready-event <name>     an event the page fires once it has drawn, besides ouro:ready
 
-Exit codes: 0 ok, 1 error (the check could not run), 2 usage, 3 findings to fix.`;
+Exit codes: 0 ok, 1 error (the check stopped before it finished, as when the browser would not start), 2 usage, 3 findings to fix.`;
 
 // The command line, or the usage problem as a thrown Error.
 function parseArgs(argv: string[]): Args {
@@ -737,7 +737,7 @@ async function readJson<T>(file: string, error: (line: string) => void): Promise
   try {
     return JSON.parse(await readFile(file, "utf8")) as T;
   } catch (problem) {
-    error(`Could not read ${file}: ${(problem as Error).message}`);
+    error(`Reading ${file} stopped the check: ${(problem as Error).message}. Fix the file or its path, then run the check again.`);
     return null;
   }
 }
@@ -845,7 +845,7 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
       error(`${configFile}: ${(problem as Error).message}`);
       return EXIT.usage;
     }
-    error(`Ouro check could not run: ${(problem as Error).message}`);
+    error(`Ouro check stopped before it finished: ${(problem as Error).message}`);
     return EXIT.error;
   }
 }
