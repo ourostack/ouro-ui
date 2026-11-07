@@ -25,7 +25,7 @@ import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 
 ## Usage
 
-The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up. Once the menu button shows, the sheet is built while the page is idle and kept, hidden, between opens, so a press only shows it.
+The phone menu opens once JavaScript has loaded (after hydration); the links are in the server HTML from 640px up. A tap on the menu button before then does nothing unless your app keeps it: this site's head script keeps a tap on any control React has not yet hydrated, shows the control pressed, and presses it again once it has (`site/src/early-input.ts` in the repository). Once the menu button shows, the sheet is built while the page is idle and kept, hidden, between opens, so a press only shows it.
 
 Use `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one page. `StackedLayout` puts a Navbar above the page.
 
