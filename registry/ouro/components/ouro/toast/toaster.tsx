@@ -158,6 +158,7 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
   const classed = useRef(className);
   useLayoutEffect(() => {
     // The mount's read comes from the viewport's observer, once the page is laid out, not from the commit.
+    // Stryker disable next-line ConditionalExpression: equivalent; the effect runs only when className changes, and on mount the viewport is not yet mounted, so viewportElement.current is null and nothing is read.
     if (classed.current === className) return;
     classed.current = className;
     if (viewportElement.current) markEdge(viewportElement.current);

@@ -130,6 +130,20 @@ describe("Toaster", () => {
     await until(() => viewport()!.getAttribute("data-edge"), "bottom");
   });
 
+  it("reads its edge when a toast arrives, and not when the last one leaves", async () => {
+    await render(<Toaster />);
+    await show("Only", { duration: 0 });
+    const reads = watchLayoutReads();
+    await act(async () => toast.dismiss());
+    await gone("Only");
+    reads.stop();
+    expect(reads.reads.filter((read) => read.name === "getBoundingClientRect" && read.target === viewport())).toEqual([]);
+    const arriving = watchLayoutReads();
+    await show("Next", { duration: 0 });
+    arriving.stop();
+    expect(arriving.reads.some((read) => read.name === "getBoundingClientRect" && read.target === viewport())).toBe(true);
+  });
+
   it("hangs from the top and unfurls downward when its layout classes put it at the top", async () => {
     const box = (message: string) => toastNamed(message)!.getBoundingClientRect();
     // At the bottom, by default: the older toast peeks out above the newest.
