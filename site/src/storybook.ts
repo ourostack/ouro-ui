@@ -69,7 +69,7 @@ export const SCENES: Record<SceneName, Scene> = {
     alt: "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
     sky: ["#f8bcad", "#fabc9f", "#fbb59b", "#fdcb9d", "#fde99e"],
     height: 512,
-    phoneHeight: 432,
+    phoneHeight: 384,
     sun: [86, 12],
   },
 };
