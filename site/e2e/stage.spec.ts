@@ -410,8 +410,9 @@ test("three full tanks are a small celebration: the hull's lights blink and bubb
 // from an unscaled requestAnimationFrame, from just before the verdict until the scene has stood still for half a second.
 // The budget is 100 ms, or twice the page's own median frame in the 1.5 s before the verdict when that is more: CI's
 // WebKit draws without the GPU, and its swimming frames already run 70 to 95 ms apart, so a fixed 100 ms would judge the
-// runner and not the switch. The switch's old costs, 300 to 700 ms on that runner, are well over either.
+// runner and not the switch. It is never more than 250 ms, under the switch's old costs of 300 to 700 ms on that runner.
 const SWITCH_FRAME_BUDGET = 100;
+const SWITCH_FRAME_CEILING = 250;
 test("the switch to still water draws no long frame", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => {
@@ -463,7 +464,7 @@ test("the switch to still water draws no long frame", async ({ page }) => {
       }
     return { worst: Math.round(worst), at: Math.round(at), series, pace: Math.round(pace) };
   });
-  const budget = Math.max(SWITCH_FRAME_BUDGET, 2 * pace);
+  const budget = Math.min(SWITCH_FRAME_CEILING, Math.max(SWITCH_FRAME_BUDGET, 2 * pace));
   expect(worst, `the longest frame around the switch, ${at} ms from the verdict, against ${budget} ms (the page's median frame before it, ${pace} ms); each frame from 1.5 s before it: ${series}`).toBeLessThan(budget);
 });
 
