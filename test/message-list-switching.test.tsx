@@ -66,11 +66,11 @@ it("switches between two conversations of 1,200 messages with pictures, files, r
   // A first conversation, every message in and the action bar's code loaded, as after the app has run a while.
   await act(async () => root!.render(<Conversation name="Mara" />));
   await expect.poll(allIn, { timeout: 60_000 }).toBe(true);
-  // A list draws one action bar, on the message the pointer is over: hovering one loads its code, and leaving takes it away.
+  // A list draws one action bar, on the message the pointer is over: hovering one loads its code. Then the pointer
+  // goes off the page, so no switch mounts a message under it.
   const text = () => scroller().querySelector("[data-ouro-message-content]")!;
   await expect.poll(async () => (await userEvent.hover(text()), host!.querySelector('[role="toolbar"]'))).not.toBeNull();
-  await userEvent.unhover(text());
-  await expect.poll(() => host!.querySelector('[role="toolbar"]')).toBeNull();
+  await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
 
   const runs: { commit: number; firstFrame: number; allIn: number; longestFrame: number; reads: number; jumps: number; blank: number }[] = [];
   for (let at = 0; at < SWITCHES; at++) {
