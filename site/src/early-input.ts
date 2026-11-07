@@ -64,8 +64,9 @@ export function keepEarlyInput(
     return false;
   };
   let tap: HTMLElement | null = null;
-  // Where a press on a control in `points` left it, and on what; and whether the finger is still down.
-  let point: { from: [number, number]; x: number; y: number; type: string } | null = null;
+  // Where a press on a control in `points` left it, and on what, and when: how long the finger moved and how long it then
+  // rested before it lifted. And whether the finger is still down.
+  let point: { from: [number, number]; x: number; y: number; type: string; at: number; moved: number; rest: number } | null = null;
   let down = false;
   // The kept control stays pressed until it is answered, so the tap shows it landed: the theme's press scale, where
   // motion is welcome, and a little dimmer. Set on the element and put back as it was.
@@ -153,13 +154,16 @@ export function keepEarlyInput(
       // so a control that tries to capture it is told no.
       const event = (x: number, y: number, buttons: number) =>
         ({ bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, button: 0, buttons, pointerId: 0, isPrimary: true, pointerType: at.type }) as PointerEventInit;
+      // Over the time the finger took (up to 400 ms, then at most 200 ms at rest): a row reads a swipe's speed as a
+      // fling, and a whole swipe in one instant would fling it far past where the finger left it.
+      const took = Math.min(at.moved - at.at, 400);
       pressed.dispatchEvent(new PointerEvent("pointerdown", event(at.from[0], at.from[1], 1)));
       for (let step = 1; step <= 4; step++) {
         const x = at.from[0] + ((at.x - at.from[0]) * step) / 4;
         const y = at.from[1] + ((at.y - at.from[1]) * step) / 4;
-        pressed.dispatchEvent(new PointerEvent("pointermove", event(x, y, 1)));
+        setTimeout(() => pressed.dispatchEvent(new PointerEvent("pointermove", event(x, y, 1))), (took * step) / 4);
       }
-      pressed.dispatchEvent(new PointerEvent("pointerup", event(at.x, at.y, 0)));
+      setTimeout(() => pressed.dispatchEvent(new PointerEvent("pointerup", event(at.x, at.y, 0))), took + Math.min(at.rest, 200));
     }
   };
   const soon = () => {
@@ -213,7 +217,7 @@ export function keepEarlyInput(
       hold(control as HTMLElement);
       // A whole track shrinking would read as the slider moving: it only dims.
       (control as HTMLElement).style.scale = before[0];
-      point = { from: [event.clientX, event.clientY], x: event.clientX, y: event.clientY, type: event.pointerType };
+      point = { from: [event.clientX, event.clientY], x: event.clientX, y: event.clientY, type: event.pointerType, at: event.timeStamp, moved: event.timeStamp, rest: 0 };
       down = true;
       soon();
     },
@@ -222,11 +226,18 @@ export function keepEarlyInput(
   document.addEventListener(
     "pointermove",
     (event) => {
-      if (down && point) [point.x, point.y] = [event.clientX, event.clientY];
+      if (down && point) [point.x, point.y, point.moved] = [event.clientX, event.clientY, event.timeStamp];
     },
     { capture: true, passive: true },
   );
-  document.addEventListener("pointerup", () => (down = false), true);
+  document.addEventListener(
+    "pointerup",
+    (event) => {
+      if (down && point) point.rest = event.timeStamp - point.moved;
+      down = false;
+    },
+    true,
+  );
   // The browser took the finger for a scroll: nothing was pressed, and the control looks as it did.
   document.addEventListener(
     "pointercancel",

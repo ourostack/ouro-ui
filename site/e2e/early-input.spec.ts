@@ -145,7 +145,7 @@ test("a drag of a live slider's thumb before its own script arrived moves it to 
   await expect(spice).toHaveAttribute("aria-valuenow", "5", { timeout: ANSWERED });
 });
 
-test("a swipe on a live example's row before its own script arrived opens the row's actions once it does", async ({ page }) => {
+test("a swipe on a live example's row before its own script arrived opens the row's actions once it does, never past where the finger left it", async ({ page }) => {
   await page.setViewportSize(PHONE);
   const { asked, release } = await hold(page, "**/assets/swipe-actions.demo-*.js");
   await page.goto("docs/swipe-actions/", { waitUntil: "domcontentloaded" });
@@ -164,8 +164,21 @@ test("a swipe on a live example's row before its own script arrived opens the ro
       element.dispatchEvent(new PointerEvent("pointermove", at(box.x + box.width * (0.9 - 0.04 * step), 1)));
     }
     element.dispatchEvent(new PointerEvent("pointerup", at(box.x + box.width * 0.58, 0)));
+    // The row's offset on every frame from here on.
+    const offsets: number[] = [];
+    (window as unknown as { offsets: number[] }).offsets = offsets;
+    const look = () => {
+      offsets.push(new DOMMatrix(getComputedStyle(element.firstElementChild!).transform).m41);
+      requestAnimationFrame(look);
+    };
+    look();
   }, box);
   release();
   await hydrated(row);
   await expect(row).toHaveAttribute("data-open", "trailing", { timeout: ANSWERED });
+  // The replay is the swipe as the finger made it, in its time: the row goes about as far as the finger took it (a third
+  // of its width; on a ready page the same swipe carries it a tenth farther), where a swipe replayed in an instant flung
+  // it off the screen and back.
+  const farthest = Math.min(...(await page.evaluate(() => (window as unknown as { offsets: number[] }).offsets)));
+  expect(farthest).toBeGreaterThanOrEqual(-box.width * 0.32 * 1.2);
 });

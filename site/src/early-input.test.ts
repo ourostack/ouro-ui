@@ -126,6 +126,26 @@ describe("keepEarlyInput", () => {
     expect(window.__ouroEarlyInput).toBe(0);
   });
 
+  it("replays a swipe over the time the finger took, and rests as long before it lifts, so a row reads no fling", async () => {
+    const { document } = page('<div data-ouro="swipe-actions" style="width: 300px; height: 40px"></div>');
+    const row = document.querySelector<HTMLElement>('[data-ouro="swipe-actions"]')!;
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    row.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 270, clientY: 20, pointerId: 7, pointerType: "touch" }));
+    await wait(160);
+    row.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: 170, clientY: 20, pointerId: 7 }));
+    await wait(80);
+    row.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: 170, clientY: 20, pointerId: 7 }));
+    const heard: [string, number][] = [];
+    for (const type of ["pointerdown", "pointermove", "pointerup"]) row.addEventListener(type, () => heard.push([type, performance.now()]));
+    hydrate(row);
+    await wait(500);
+    expect(heard.map(([type]) => type)).toEqual(["pointerdown", "pointermove", "pointermove", "pointermove", "pointermove", "pointerup"]);
+    const at = (index: number) => heard[index]![1] - heard[0]![1];
+    expect(at(4)).toBeGreaterThanOrEqual(150);
+    expect(at(1)).toBeGreaterThanOrEqual(35);
+    expect(at(5) - at(4)).toBeGreaterThanOrEqual(70);
+  });
+
   it("lets a press on a slider go when the browser takes it for a scroll", async () => {
     const { window, document } = page('<div data-ouro-slider-control style="width: 200px; height: 20px"></div>');
     const control = document.querySelector<HTMLElement>("[data-ouro-slider-control]")!;
