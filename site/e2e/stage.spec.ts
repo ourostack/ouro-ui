@@ -404,6 +404,51 @@ test("three full tanks are a small celebration: the hull's lights blink and bubb
   await expect(page.locator("[data-stage-tank-count]")).toHaveText(STAGE_COPY.tankCount(3));
 });
 
+// The switch to still water draws no long frame: a visitor on a slow screen may reach for the menu just then
+// (ourostack/ouro-ui#667). The stage's judge is shown slow frames by scaling its requestAnimationFrame timestamps, so it
+// reaches its real verdict while the page itself runs at full speed and pays the switch's real cost; the frames are read
+// from an unscaled requestAnimationFrame, from just before the verdict until the scene has stood still for half a second.
+const SWITCH_FRAME_BUDGET = 100;
+test("the switch to still water draws no long frame", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => {
+    const raw = window.requestAnimationFrame.bind(window);
+    const frames: number[] = [];
+    (window as unknown as { __frames: number[] }).__frames = frames;
+    window.requestAnimationFrame = (callback) => raw((now) => callback(now * 10));
+    const count = () => {
+      frames.push(performance.now());
+      raw(count);
+    };
+    raw(count);
+    // When the verdict lands, stamped in the page.
+    document.addEventListener("DOMContentLoaded", () => {
+      const stage = document.querySelector("[data-stage]")!;
+      new MutationObserver(() => {
+        if (stage.hasAttribute("data-paced")) (window as unknown as { __paced: number }).__paced ??= performance.now();
+      }).observe(stage, { attributes: true, attributeFilter: ["data-paced"] });
+    });
+  });
+  await open(page);
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  await expect(scene(page)).toHaveAttribute("data-speed", "stop");
+  // real clock: half a second of frames with the scene still.
+  await page.waitForTimeout(500);
+  const { worst, at } = await page.evaluate(() => {
+    const from = (window as unknown as { __paced: number }).__paced;
+    const frames = (window as unknown as { __frames: number[] }).__frames.filter((time) => time >= from - 50);
+    let worst = 0;
+    let at = 0;
+    for (let index = 1; index < frames.length; index += 1)
+      if (frames[index]! - frames[index - 1]! > worst) {
+        worst = frames[index]! - frames[index - 1]!;
+        at = frames[index - 1]! - from;
+      }
+    return { worst: Math.round(worst), at: Math.round(at) };
+  });
+  expect(worst, `the longest frame around the switch, ${at} ms from the verdict`).toBeLessThan(SWITCH_FRAME_BUDGET);
+});
+
 test("a screen too slow to swim the fish gets still water, its speed at Stop, and Half sets them swimming", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await slowFrames(page, 150);
