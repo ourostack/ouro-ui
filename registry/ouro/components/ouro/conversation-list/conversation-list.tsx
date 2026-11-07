@@ -496,6 +496,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const scroller = useRef<Element | null>(null);
   // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
   const sync = useRef<(() => void) | null>(null);
+  // What the last sync ran for, and the observer that reports a row's change of size once the page is laid out.
+  const synced = useRef<{ inputs: string; heights: ReadonlyMap<string, number> } | null>(null);
+  const rows = useRef<ResizeObserver | null>(null);
   const revealed = useRef<string | null>(null);
   const focusNext = useRef<string | null>(null);
   // The row to keep in view while the heights around it settle, and where in the view.
@@ -646,7 +649,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     addEventListener("resize", onResize);
     const resizes = new ResizeObserver(onResize);
     for (const clip of found) resizes.observe(clip);
+    rows.current = resizes;
     return () => {
+      rows.current = null;
+      synced.current = null;
       document.removeEventListener("scroll", onScroll, { capture: true });
       removeEventListener("resize", onResize);
       resizes.disconnect();
@@ -683,6 +689,13 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       if (!changed) keepInView.current = null;
       update();
     };
+    // A sync reads layout, which inside a commit lays the page out at once, so a render runs it only when what it
+    // places changed: the rows, the window, the heights, the open, reached or focusable row. A row that changes size otherwise
+    // (new text) is reported by the observer, once the page is laid out, where reads are free.
+    const inputs = JSON.stringify([keys, start, end, density, current, reach, tabStop]);
+    for (const control of controls.current.values()) rows.current!.observe(control.parentElement!);
+    if (synced.current?.inputs === inputs && synced.current.heights === heights) return;
+    synced.current = { inputs, heights };
     sync.current();
   });
 
