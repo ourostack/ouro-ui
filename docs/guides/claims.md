@@ -112,6 +112,10 @@ The checks read only the checkout, so they give the same answer on every machine
 
 `urlOk` proves only that an address answers, so a file or folder on GitHub must be pinned to a 40-character commit hash (`https://github.com/<owner>/<repo>/blob/<commit>/<path>#L<line>`): at a branch or tag it still answers after the file changes, and the check refuses it.[^url-pinned] For a claim about what a tool does in the version you support, also check it where that version runs, as the install job does for the shadcn CLI.[^url-in-ci] `urlOk` reads its answers from `scripts/claims-urls.json`. After citing a new address, run `pnpm claims:lint --network <file>` and commit the cache. CI fetches again each address a pull request adds or changes, so a hand-written answer fails there, and an answer no claim cites fails.[^url-cache] A link cited only in a pull request's title or body, or in a draft read with `--stdin`, has no file to keep its answer, so the lint fetches it each time and leaves the cache alone.[^url-outside] The weekly run fetches every address again and fails when one answers differently, and when a committed answer is older than `urlMaxAgeDays` (30 by default): then run `pnpm claims:check --network` and commit the cache.[^url-network]
 
+## Dependabot pull requests
+
+Dependabot's bumps merge as they come. The `pull request claims` check skips the body of a pull request whose author is Dependabot, because the body quotes the upstream's release notes, and skips its title when it has the form "Bump <name> from <version> to <version>". Any other title is still linted. The attribution check accepts Dependabot as the author of a commit that changes only `package.json`, `pnpm-lock.yaml`, workflows or actions, with only Dependabot's own sign-off line.
+
 ## Surfaces and exemptions
 
 `claims.config.json` declares what is read and what is exempt:[^surfaces]
