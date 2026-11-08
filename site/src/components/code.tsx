@@ -37,7 +37,7 @@ export function CodeBlock({ code, label, wrap, copy, className }: { code: string
       <pre
         style={copy && !label ? { paddingInlineEnd: "5rem" } : undefined}
         tabIndex={0}
-        className={cn("m-0 overflow-x-auto rounded-xl border border-border bg-(--site-code) px-4 py-3.5 font-mono text-[0.8125rem] leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
+        className={cn("m-0 overflow-x-auto rounded-xl bg-(--site-code) px-4 py-3.5 font-mono text-[0.8125rem] leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
       >
         <code>{code}</code>
       </pre>
@@ -77,7 +77,7 @@ export function Command({ command, className }: { command: string; className?: s
   return (
     <div
       className={cn(
-        "flex min-w-0 items-start gap-2 rounded-xl border border-border bg-(--site-code) py-1.5 ps-4 pe-1.5",
+        "flex min-w-0 items-start gap-2 rounded-xl bg-(--site-code) py-1.5 ps-4 pe-1.5",
         className,
       )}
     >

@@ -30,7 +30,7 @@ const title = (item: string) => item.charAt(0).toUpperCase() + item.slice(1);
  * installs the whole library. No count: the home page sells what the kit does, not how many parts
  * it has (Ari, 2026-10-30).
  */
-export const INSTALL_CAPTION = `Installs with the shadcn CLI. This adds ${title(install.item)}; add any other part the same way.`;
+export const INSTALL_CAPTION = `Adds ${title(install.item)}. Any other part installs the same way.`;
 const [INSTALL_HOW, INSTALL_MORE] = [INSTALL_CAPTION.slice(0, INSTALL_CAPTION.indexOf(". ") + 1), INSTALL_CAPTION.slice(INSTALL_CAPTION.indexOf(". ") + 2)];
 
 /** The release the command pins, beside it, linking to that release's notes. */

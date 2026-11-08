@@ -45,7 +45,6 @@ function ScenePicture({ scene, priority, sizes }: { scene: SceneName; priority: 
  *
  * - `arrival`: the first thing on the page, full width, fetched first (the page's largest paint).
  * - `band`: further down a page, full width, fetched as it nears the screen.
- * - `inset`: inside a column (the docs), fetched first.
  */
 export function StoryWorld({
   scene,
@@ -54,7 +53,7 @@ export function StoryWorld({
   className,
 }: {
   scene: SceneName;
-  variant?: "arrival" | "band" | "inset";
+  variant?: "arrival" | "band";
   /** The words in the sky. */
   children?: ReactNode;
   className?: string | undefined;
@@ -69,7 +68,7 @@ export function StoryWorld({
     <div className={cn("story-world", `story-world-${variant}`, className)} style={style}>
       {children ? <div className="story-world-sky">{children}</div> : null}
       <div className="story-world-view">
-        <ScenePicture scene={scene} priority={variant !== "band"} sizes={variant === "inset" ? "(min-width: 64rem) 52rem, 100vw" : "100vw"} />
+        <ScenePicture scene={scene} priority={variant !== "band"} sizes="100vw" />
         <span aria-hidden="true" className="story-world-sun" />
       </div>
     </div>

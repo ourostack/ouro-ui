@@ -10,7 +10,7 @@ import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
-import { StoryWorld } from "../components/story-world";
+import type { SceneName } from "../storybook";
 import { LiveDemo } from "../components/live-demo";
 import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown, markdown } from "../docs/content";
@@ -24,18 +24,24 @@ import shipComponents from "../docs/ship-components.json";
 import { SHIP_PAGES } from "../docs/ships";
 import itemSources from "../docs/sources.json";
 
-function PageTitle({ eyebrow, title, lead }: { eyebrow: string; title: ReactNode; lead: ReactNode }): JSX.Element {
+/** A page's first words, under its scene: what it is for, in one paragraph. */
+function Lead({ children }: { children: ReactNode }): JSX.Element {
   return (
-    <header className="mb-10">
-      <p className="m-0 mb-3 text-sm font-medium text-primary">{eyebrow}</p>
-      <Heading level={1} size="2xl">
-        {title}
-      </Heading>
-      <Text size="lg" tone="muted" className="mt-4 max-w-[40rem] text-pretty">
-        {lead}
-      </Text>
-    </header>
+    <Text size="lg" tone="muted" className="mb-10 max-w-[40rem] text-pretty">
+      {children}
+    </Text>
   );
+}
+
+/**
+ * The scene a page opens on, from the storybook (storybook.ts): components on the workbench where the
+ * switch panel is built, guides by the shelf of scrolls, Ouro AX's pages in the morning the agents work
+ * through, and the platforms in Ouro's whole world (Apple's on its own bench).
+ */
+function sceneFor(page: DocsPage): SceneName {
+  if (page.kind === "platform") return page.name === "platforms/apple" ? "ouro-ui-apple" : "ourostack";
+  if (page.group === "Ouro AX" || /^ax(-|$)/.test(page.name)) return "playwright-focus-proof";
+  return page.kind === "guide" ? "ouroboros-skills" : "ouro-hx";
 }
 
 /** The generated page's blocks, split into its purpose, its import line and the rest. */
@@ -69,11 +75,11 @@ function pageBlocks(item: DocsItem): { purpose: string; importLine: string; body
 export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
   const { purpose, importLine, body } = pageBlocks(item);
   return (
-    <DocsShell current={`/docs/${item.name}/`}>
-      <PageTitle eyebrow={item.group} title={item.title} lead={inline(purpose)} />
+    <DocsShell current={`/docs/${item.name}/`} opener={{ scene: "ouro-hx", eyebrow: item.group, title: item.title }}>
+      <Lead>{inline(purpose)}</Lead>
       <section
         aria-label="Live demo"
-        className="flex min-h-48 items-center justify-center rounded-2xl border border-border px-5 py-10 sm:px-10"
+        className="flex min-h-48 items-center justify-center rounded-3xl bg-muted/50 px-5 py-10 sm:px-10"
       >
         <LiveDemo name={item.name} title={item.title} />
       </section>
@@ -236,8 +242,11 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
   if (lead?.kind !== "paragraph") throw new Error(`${page.file} must start with a title and a one-paragraph summary`);
   const link = (target: string) => siteLink(target, page.file);
   return (
-    <DocsShell current={`/docs/${page.name}/`}>
-      <PageTitle eyebrow={page.group} title={page.kind === "platform" ? <PlatformTitle title={page.title} /> : page.title} lead={inline(lead.text, link)} />
+    <DocsShell
+      current={`/docs/${page.name}/`}
+      opener={{ scene: sceneFor(page), eyebrow: page.group, title: page.kind === "platform" ? <PlatformTitle title={page.title} /> : page.title }}
+    >
+      <Lead>{inline(lead.text, link)}</Lead>
       <Markdown blocks={body} link={link} />
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
         <a href={`${GITHUB}/blob/main/${page.file}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
@@ -251,48 +260,58 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
   );
 }
 
+/** The index's way into each page: open rows under hairlines, two across from 640px, never a box. */
+function DoorList({ children }: { children: ReactNode }): JSX.Element {
+  return <ul className="m-0 grid list-none gap-x-10 p-0 sm:grid-cols-2">{children}</ul>;
+}
+
+/** One page's door: its name, an arrow that wakes as you point at it, and one line on what it is for. */
+function Door({ to, title, children }: { to: string; title: string; children: ReactNode }): JSX.Element {
+  return (
+    <li className="border-t border-border/70">
+      <a href={href(to)} className="group grid gap-1 rounded-sm py-4 no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-4">
+        <span className="font-medium text-foreground transition-colors group-hover:text-primary">
+          {title}{" "}
+          <span aria-hidden="true" className="text-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            →
+          </span>
+        </span>
+        <span className="text-sm leading-6 text-muted-foreground">{children}</span>
+      </a>
+    </li>
+  );
+}
+
 export function DocsIndex(): JSX.Element {
   // Every catalog group that has a component, in catalog order, App setup last.
   const groups = siteGroups.filter((group) => docsItems.some((item) => item.group === group));
   /** An id for a group's heading: "App setup" has a space, which an id may not. */
   const groupId = (group: string) => `group-${group.toLowerCase().replace(/\s+/g, "-")}`;
-  const card =
-    "group grid h-full gap-1.5 rounded-xl border border-border p-4 no-underline outline-ring transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2";
   return (
-    <DocsShell current="/docs/">
-      <StoryWorld scene="ouro-ui-core" variant="inset" className="mb-8">
-        <p className="story-world-line" data-story-line="">
-          Six jars of tokens, one pour, and every screen comes out painted to match.
-        </p>
-      </StoryWorld>
-      <PageTitle
-        eyebrow="Ouro HX"
-        title="Components"
-        lead={claim("Every Ouro HX component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too.", {
+    <DocsShell current="/docs/" opener={{ scene: "ouro-ui-core", eyebrow: "Ouro HX", title: "Components", tall: true }}>
+      <Lead>
+        {claim("Every Ouro HX component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too.", {
           source: [{ file: "site/src/site.test.tsx" }, { file: "scripts/gen-docs.mts" }],
           verify: [{ testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" }, { fileLine: "scripts/gen-docs.mts", pattern: "from the JSDoc and prop types in" }],
         })}
-      />
+      </Lead>
       {groups.map((group) => (
-        <section key={group} aria-labelledby={groupId(group)} className="mt-10">
-          <Heading level={2} size="md" id={groupId(group)} className="mb-4">
+        <section key={group} aria-labelledby={groupId(group)} className="mt-12 first-of-type:mt-0">
+          <Heading level={2} size="md" id={groupId(group)} className="mb-2">
             {group}
           </Heading>
-          <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
+          <DoorList>
             {docsItems
               .filter((item) => item.group === group)
               .map((item) => (
-                <li key={item.name}>
-                  <a href={href(`/docs/${item.name}/`)} className={card}>
-                    <span className="font-medium text-foreground">{item.title}</span>
-                    <span className="text-sm leading-6 text-muted-foreground">{inline(item.summary)}</span>
-                  </a>
-                </li>
+                <Door key={item.name} to={`/docs/${item.name}/`} title={item.title}>
+                  {inline(item.summary)}
+                </Door>
               ))}
-          </ul>
+          </DoorList>
         </section>
       ))}
-      <section aria-labelledby="group-more" className="mt-10">
+      <section aria-labelledby="group-more" className="mt-12">
         <Heading level={2} size="md" id="group-more" className="mb-4">
           Parts and app setup
         </Heading>
@@ -309,32 +328,23 @@ export function DocsIndex(): JSX.Element {
           ))}
         </ul>
       </section>
-      <section aria-labelledby="group-guides" className="mt-10">
-        <Heading level={2} size="md" id="group-guides" className="mb-4">
+      <section aria-labelledby="group-guides" className="mt-12">
+        <Heading level={2} size="md" id="group-guides" className="mb-2">
           Guides
         </Heading>
-        <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
+        <DoorList>
           {guidePages.map((page) => (
-            <li key={page.name}>
-              <a href={href(`/docs/${page.name}/`)} className={card}>
-                <span className="font-medium text-foreground">{page.title}</span>
-                <span className="text-sm leading-6 text-muted-foreground">{inline(page.summary)}</span>
-              </a>
-            </li>
+            <Door key={page.name} to={`/docs/${page.name}/`} title={page.title}>
+              {inline(page.summary)}
+            </Door>
           ))}
-          <li>
-            <a href={href("/docs/switching-from-shadcn/")} className={card}>
-              <span className="font-medium text-foreground">Switching from shadcn</span>
-              <span className="text-sm leading-6 text-muted-foreground">shadcn/ui components and props, and their Ouro HX equivalents.</span>
-            </a>
-          </li>
-          <li>
-            <a href={href("/docs/updating/")} className={card}>
-              <span className="font-medium text-foreground">Updating installed components</span>
-              <span className="text-sm leading-6 text-muted-foreground">Review upstream changes, then overwrite and reapply your edits.</span>
-            </a>
-          </li>
-        </ul>
+          <Door to="/docs/switching-from-shadcn/" title="Switching from shadcn">
+            shadcn/ui components and props, and their Ouro HX equivalents.
+          </Door>
+          <Door to="/docs/updating/" title="Updating installed components">
+            Review upstream changes, then overwrite and reapply your edits.
+          </Door>
+        </DoorList>
       </section>
     </DocsShell>
   );
@@ -412,8 +422,8 @@ Shadcn's prop names that Ouro HX doesn't use, and its Button variant and size va
 export function Switching(): JSX.Element {
   const example = agentExamples[0]!;
   return (
-    <DocsShell current="/docs/switching-from-shadcn/">
-      <PageTitle eyebrow="Guide" title="Switching from shadcn" lead={switchingIntro} />
+    <DocsShell current="/docs/switching-from-shadcn/" opener={{ scene: "ouroboros-skills", eyebrow: "Guide", title: "Switching from shadcn" }}>
+      <Lead>{switchingIntro}</Lead>
       <Markdown blocks={parse(switchingCoexist)} />
       <CodeBlock code={`${example.code}\n\n${example.devMessage}`} />
     </DocsShell>
@@ -422,12 +432,8 @@ export function Switching(): JSX.Element {
 
 export function Updating(): JSX.Element {
   return (
-    <DocsShell current="/docs/updating/">
-      <PageTitle
-        eyebrow="Guide"
-        title="Updating installed components"
-        lead="Ouro HX components are copied into your project, so they're yours to edit. To take an upstream change, compare first, then decide."
-      />
+    <DocsShell current="/docs/updating/" opener={{ scene: "ouroboros-skills", eyebrow: "Guide", title: "Updating installed components" }}>
+      <Lead>Ouro HX components are copied into your project, so they're yours to edit. To take an upstream change, compare first, then decide.</Lead>
       <ol className="m-0 grid list-none gap-12 p-0">
         <li className="grid gap-3">
           <Heading level={2} size="lg">
