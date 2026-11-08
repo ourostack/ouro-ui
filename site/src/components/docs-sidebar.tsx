@@ -18,12 +18,20 @@ export default function DocsSidebar({ current }: { current: string }): JSX.Eleme
     const scroller = holder.current?.querySelector<HTMLElement>("[data-ouro-sidebar-scroll]");
     const link = scroller?.querySelector<HTMLElement>('[aria-current="page"]');
     if (!scroller || !link) return;
-    // Below the fold (the sidebar's own, or the window's when the page's scene pushes it down): scroll its group
-    // to the top, so the group's name shows above it.
+    // What of the sidebar shows: its own box, cut off at the window's foot while the page's scene sits above it.
     const box = scroller.getBoundingClientRect();
-    if (link.getBoundingClientRect().bottom <= Math.min(box.bottom, innerHeight)) return;
+    const shown = Math.min(box.bottom, innerHeight);
+    const at = link.getBoundingClientRect();
+    if (at.bottom <= shown) return;
+    // Below that: scroll its group to the top, so the group's name shows above it, or further if the link still
+    // would not show (a long group in a short view).
     const group = link.closest("ul")?.parentElement ?? link;
-    scroller.scrollTop += group.getBoundingClientRect().top - box.top - 8;
+    const by = Math.max(group.getBoundingClientRect().top - box.top - 8, at.bottom - shown + 8);
+    // The last groups (Platforms) cannot scroll that far in a box that runs below the window: room under the
+    // list lets them, and is only ever blank space after its last link.
+    const short = by - (scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop);
+    if (short > 0) scroller.style.paddingBottom = `${short + 8}px`;
+    scroller.scrollTop += by;
   }, []);
   return (
     <div ref={holder} className="sm:sticky sm:top-0 sm:h-dvh sm:py-4">
