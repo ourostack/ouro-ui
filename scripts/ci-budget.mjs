@@ -410,7 +410,7 @@ export function reportUnavailable(error, summaryPath, log = console.log) {
   return 0;
 }
 
-async function main(argv) {
+async function judgeRun(argv) {
   const out = argv[argv.indexOf("--out") + 1];
   const { GH_TOKEN: token, GITHUB_REPOSITORY: repository, RUN_ID: runId, RUN_ATTEMPT: attempt = "1", EVENT: event, HEAD_REF: branch } = process.env;
   const full = process.env["FULL"] !== "false";
@@ -420,12 +420,7 @@ async function main(argv) {
     return 2;
   }
   const graph = jobGraph(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"));
-  let jobs;
-  try {
-    jobs = await fetchJobs({ repository, runId, attempt, token });
-  } catch (error) {
-    return reportUnavailable(error, process.env["GITHUB_STEP_SUMMARY"]);
-  }
+  const jobs = await fetchJobs({ repository, runId, attempt, token });
   const path = criticalPath(jobs, graph);
   const work = criticalPath(jobs, graph, { work: true });
   const wall = wallTime(jobs, graph);
@@ -437,6 +432,7 @@ async function main(argv) {
     const walls = runWalls(runs);
     recent = { event, runs: walls.length, p50Seconds: Math.round(percentile(walls, 0.5) ?? 0), p90Seconds: Math.round(percentile(walls, 0.9) ?? 0) };
   } catch (error) {
+    if (error instanceof ApiUnavailable) throw error;
     console.log(`::warning::The wall times of the latest runs could not be read: ${error.message}`);
   }
   const limit = budget.targetMinutes * 60 * (1 + budget.margin);
@@ -447,6 +443,7 @@ async function main(argv) {
     try {
       mainBaseline = baseline(await mergeQueueRuns({ repository, token, count: budget.baselineRuns }));
     } catch (error) {
+      if (error instanceof ApiUnavailable) throw error;
       console.log(`::warning::Main's baseline, from its latest merge queue runs, could not be read: ${error.message}`);
     }
     if (path.seconds > limit) {
@@ -459,6 +456,7 @@ async function main(argv) {
           previous: branch ? () => previousRunWork({ repository, token, branch, runId }) : null,
         });
       } catch (error) {
+        if (error instanceof ApiUnavailable) throw error;
         console.log(`::warning::The earlier attempt or the pull request's previous full run could not be read: ${error.message}`);
       }
     }
@@ -539,6 +537,15 @@ async function main(argv) {
     return 1;
   }
   return 0;
+}
+
+/** Judges the run; a phase GitHub will not answer for reports "Budget unavailable" and passes. */
+export async function main(argv) {
+  try {
+    return await judgeRun(argv);
+  } catch (error) {
+    return reportUnavailable(error, process.env["GITHUB_STEP_SUMMARY"]);
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) process.exitCode = await main(process.argv.slice(2));

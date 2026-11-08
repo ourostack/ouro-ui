@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
-import { ApiUnavailable, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
+import { ApiUnavailable, main, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -456,4 +456,25 @@ test("a run GitHub will not answer for reports budget unavailable and passes; an
   assert.match(readFileSync(summary, "utf8"), /Budget unavailable/);
   assert.equal(reportUnavailable(new ApiUnavailable("y"), undefined, () => {}), 0);
   assert.throws(() => reportUnavailable(new Error("x answered 404"), summary), /404/);
+});
+
+test("jobs answer, then the baseline read gets 502s: the run reports budget unavailable and exits 0", async () => {
+  const saved = { fetch: globalThis.fetch, log: console.log, base: retry.baseSeconds, env: { ...process.env } };
+  const logged = [];
+  Object.assign(process.env, { GH_TOKEN: "t", GITHUB_REPOSITORY: "o/r", RUN_ID: "1", RUN_ATTEMPT: "1", EVENT: "pull_request", FALLBACK: "false" });
+  delete process.env["GITHUB_STEP_SUMMARY"];
+  retry.baseSeconds = 0;
+  console.log = (line) => logged.push(line);
+  globalThis.fetch = async (url) => String(url).includes("/jobs?")
+    ? new Response(JSON.stringify({ total_count: 0, jobs: [] }), { status: 200 })
+    : new Response("bad gateway", { status: 502 });
+  try {
+    assert.equal(await main(["--out", join(tmpdir(), "budget-unused.json")]), 0);
+  } finally {
+    globalThis.fetch = saved.fetch;
+    console.log = saved.log;
+    retry.baseSeconds = saved.base;
+    process.env = saved.env;
+  }
+  assert.ok(logged.some((line) => line.startsWith("::warning::Budget unavailable")));
 });
