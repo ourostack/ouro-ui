@@ -9,9 +9,10 @@ import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads"
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const avatarRenders = vi.hoisted(() => ({ count: 0 }));
-// Each row renders one avatar, so counting avatar renders counts row renders.
-vi.mock("@/registry/ouro/components/ouro/avatar/avatar", async (original) => {
-  const actual = await original<typeof import("@/registry/ouro/components/ouro/avatar/avatar")>();
+// Each row renders one avatar, so counting avatar renders counts row renders. The mock path is
+// relative because the installer rewrites import statements, not module strings.
+vi.mock("../avatar/avatar", async (original) => {
+  const actual = await original<typeof import("../avatar/avatar")>();
   return {
     ...actual,
     Avatar: (props: Parameters<typeof actual.Avatar>[0]) => {
