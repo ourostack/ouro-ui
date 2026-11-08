@@ -56,7 +56,7 @@ export function medianCeiling(baseline: number): number {
   return Math.max(2 * baseline, baseline + 24);
 }
 
-/** Where a press's time went, from its Event Timing entry: waiting for the page's thread, its handlers, and the wait for the next paint (ms). */
+/** Where a press's time went, from its Event Timing entry: waiting for the page's thread, its handlers, and the wait for the next paint (ms). The duration is rounded to 8 ms and the other times are not, so the last part is accurate to within that rounding. */
 export function splitPress(entry: { startTime: number; processingStart: number; processingEnd: number; duration: number }): { inputDelay: number; processing: number; presentation: number } {
   const inputDelay = Math.round(entry.processingStart - entry.startTime);
   const processing = Math.round(entry.processingEnd - entry.processingStart);

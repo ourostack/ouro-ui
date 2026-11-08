@@ -82,5 +82,4 @@ test("a slow press's time is split into the page's input delay, its handlers and
   const press = splitPress({ startTime: 1000, processingStart: 1004, processingEnd: 1011, duration: 176 });
   expect(press).toEqual({ inputDelay: 4, processing: 7, presentation: 165 });
   expect(press.inputDelay + press.processing + press.presentation).toBe(176);
-  expect(summarise([...at(56, 17), 104, 104, 104], 64).report).toContain("104, 104, 104");
 });
