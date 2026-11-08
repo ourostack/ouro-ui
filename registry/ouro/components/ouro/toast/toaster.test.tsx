@@ -1,5 +1,6 @@
 import { StrictMode, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
@@ -11,6 +12,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
@@ -110,10 +112,43 @@ afterEach(async () => {
 const warnings = () => warn.mock.calls.map((call: unknown[]) => String(call[0]));
 
 describe("Toaster", () => {
+  it("lays nothing out when it mounts, and reads its edge once the page is laid out", async () => {
+    // The first Toaster of a page checks the theme once, which reads layout and is not what this measures.
+    await (await render(<Toaster />)).unmount();
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const reads = watchLayoutReads();
+    // Synchronously: a slow runner can reach a frame, where the observer's first read is allowed, before an awaited act returns.
+    flushSync(() => root.render(<Toaster />));
+    reads.stop();
+    expect(reads.names()).toEqual([]);
+    await act(async () => {});
+    expect(viewport()).not.toBeNull();
+    await until(() => viewport()!.getAttribute("data-edge"), "bottom");
+  });
+
+  it("reads its edge when a toast arrives, and not when the last one leaves", async () => {
+    await render(<Toaster />);
+    await show("Only", { duration: 0 });
+    const reads = watchLayoutReads();
+    await act(async () => toast.dismiss());
+    await gone("Only");
+    reads.stop();
+    expect(reads.reads.filter((read) => read.name === "getBoundingClientRect" && read.target === viewport())).toEqual([]);
+    const arriving = watchLayoutReads();
+    await show("Next", { duration: 0 });
+    arriving.stop();
+    expect(arriving.reads.some((read) => read.name === "getBoundingClientRect" && read.target === viewport())).toBe(true);
+  });
+
   it("hangs from the top and unfurls downward when its layout classes put it at the top", async () => {
     const box = (message: string) => toastNamed(message)!.getBoundingClientRect();
     // At the bottom, by default: the older toast peeks out above the newest.
     const { unmount } = await render(<Toaster />);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
     await show("Older", { duration: 0 });
     await show("Newer", { duration: 0 });
@@ -122,11 +157,15 @@ describe("Toaster", () => {
     await gone("Older");
     await gone("Newer");
     const removed = vi.spyOn(window, "removeEventListener");
+    const disconnected = vi.spyOn(ResizeObserver.prototype, "disconnect");
     await unmount();
     expect(removed).toHaveBeenCalledWith("resize", expect.any(Function));
+    expect(disconnected).toHaveBeenCalledTimes(1);
     removed.mockRestore();
+    disconnected.mockRestore();
     // At the top: the newest at the top, the older one peeking out below it.
     await render(<Toaster className="top-4 bottom-auto" />);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(viewport()!.getAttribute("data-edge")).toBe("top");
     await show("Older", { duration: 0 });
     await show("Newer", { duration: 0 });
