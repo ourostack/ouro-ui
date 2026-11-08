@@ -398,7 +398,7 @@ test("an earlier attempt confirms only when this attempt ran its jobs afresh, as
   assert.equal(freshAttempt([ran(1)], 1), true);
 });
 
-const answer = (status, body = "{}", headers = {}) => ({ ok: status >= 200 && status < 300, status, headers: new Headers(headers), text: async () => body, json: async () => JSON.parse(body), arrayBuffer: async () => Buffer.from(body) });
+const answer = (status, body = "{}", headers = {}) => ({ ok: status >= 200 && status < 300, status, headers: new globalThis.Headers(headers), text: async () => body, json: async () => JSON.parse(body), arrayBuffer: async () => Buffer.from(body) });
 
 /** A fake fetch that answers from `answers` in turn (an Error is thrown), and the waits asked of `sleep`. */
 function fake(answers) {
@@ -466,8 +466,8 @@ test("jobs answer, then the baseline read gets 502s: the run reports budget unav
   retry.baseSeconds = 0;
   console.log = (line) => logged.push(line);
   globalThis.fetch = async (url) => String(url).includes("/jobs?")
-    ? new Response(JSON.stringify({ total_count: 0, jobs: [] }), { status: 200 })
-    : new Response("bad gateway", { status: 502 });
+    ? new globalThis.Response(JSON.stringify({ total_count: 0, jobs: [] }), { status: 200 })
+    : new globalThis.Response("bad gateway", { status: 502 });
   try {
     assert.equal(await main(["--out", join(scratchDir("budget-"), "unused.json")]), 0);
   } finally {
