@@ -51,7 +51,7 @@ const LINE_TERMINATOR = /\r\n|[\n\r\u2028\u2029\u0085]/;
 /** Characters that draw nothing (zero-width spaces and joiners, soft hyphens, byte order marks, variation selectors, fillers, the blank braille cell): a way to split a name the checks look for. */
 const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
 /** Fillers that draw a blank, so a line is read both with them taken out (they split a word) and with them as spaces (they separate two). */
-const FILLER = /[\u115F\u1160\u3164\uFFA0\u2800]/g;
+const FILLER = /[\u115F\u1160\u3164\uFFA0\u2800\u200B]/g;
 const GENERATED = /(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;
 const ROBOT_FOOTER = /🤖.*(?<![a-z])generated(?![a-z])/iu;
 

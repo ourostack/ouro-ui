@@ -902,6 +902,9 @@ test("TypeScript copy: a claim word split by a hidden character in a short strin
   const copy = (text) => lintTypeScript(`const a = ${JSON.stringify(text)};`, { file: "site/src/copy.tsx", copy: true }).findings;
   assert.equal(copy("Every test").length, 1);
   assert.equal(copy("Ev\u200Bery test").length, 1);
+  assert.equal(copy("It is the\u3164best on the market.").length, 1);
+  assert.equal(copy("the\u3164best around").length, 1);
+  assert.equal(copy("Every\u3164test passes now.").length, 1);
 });
 
 test("a blank-drawing filler between two words is read as a space, so a claim across it is still seen", () => {

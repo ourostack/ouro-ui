@@ -277,6 +277,7 @@ test("attribution reads a blank-drawing filler as a space between words, so the 
   const found = (message) => problems([{ sha: "c1", authorName: "Ari Mendelow", authorEmail: MAINTAINER.email, committerName: "Ari Mendelow", committerEmail: MAINTAINER.email, message, files: ["a.txt"] }]);
   assert.equal(found("Fix\n\nGenerated\u2800with Claude").length, 1);
   assert.equal(found("Fix\n\nGenerated\u3164with Claude").length, 1);
+  assert.equal(found("Fix\n\nGenerated\u200Bwith Claude").length, 1);
   assert.equal(found("Fix\n\nCo-authored-by: Claude\u3164Code <a@b.c>").length, 1);
   assert.equal(found("Fix\n\nCo-authored-by: Cl\u3164aude <a@b.c>").length, 1);
 });

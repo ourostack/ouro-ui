@@ -130,7 +130,7 @@ const HOW_TO = {
 /** Characters that draw nothing: a way to split a word the patterns look for. */
 const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
 /** Fillers that draw a blank may sit inside a word or between words, so text is read with them removed and with them as spaces. */
-const FILLER = /[\u115F\u1160\u3164\uFFA0\u2800]/g;
+const FILLER = /[\u115F\u1160\u3164\uFFA0\u2800\u200B]/g;
 
 /** Whether text has one of the claim words (not a number): a quotation with one is read, not masked. */
 const hasClaimWord = (text) => [text, text.replace(FILLER, " ")].some((view) => WORDS.some(([, pattern]) => pattern.test(view.replace(INVISIBLE, ""))));
@@ -666,6 +666,12 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
     findings.push(...(wordsOnly ? result.findings.filter((finding) => finding.kinds?.some((kind) => !["number", "version", "date"].includes(kind))) : result.findings));
     claims.push(...result.claims);
   };
+  // A string is read as copy when it passes the gate with its hidden characters removed or with its fillers as spaces; the text read is the string itself.
+  const readCopy = (text, node) => {
+    const views = [text.replace(INVISIBLE, ""), text.replace(FILLER, " ").replace(INVISIBLE, "")];
+    if (views.some((view) => isMarkdown(view) || isProse(view) || statesNumber(view))) prose(text, node);
+    else if (views.some(saysSomething)) prose(text, node, true);
+  };
   const visit = (node) => {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "claim") {
       const [textNode, evidenceNode] = node.arguments;
@@ -694,15 +700,12 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
     }
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       if (isLookup(node)) return;
-      const text = node.text.replace(INVISIBLE, "");
-      if (isMarkdown(text) || isProse(text) || statesNumber(text)) prose(text, node);
-      else if (saysSomething(text)) prose(text, node, true);
+      readCopy(node.text, node);
       return;
     }
     if (ts.isTemplateExpression(node)) {
-      const text = [node.head.text, ...node.templateSpans.map((span) => `\${${span.expression.getText(tree)}}${span.literal.text}`)].join("").replace(INVISIBLE, "");
-      if (isMarkdown(text) || isProse(text) || statesNumber(text)) prose(text, node);
-      else if (saysSomething(text)) prose(text, node, true);
+      const text = [node.head.text, ...node.templateSpans.map((span) => `\${${span.expression.getText(tree)}}${span.literal.text}`)].join("");
+      readCopy(text, node);
     }
     ts.forEachChild(node, visit);
   };
