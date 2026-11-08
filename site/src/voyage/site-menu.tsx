@@ -26,9 +26,6 @@ export interface MenuSection {
 export const SITE_SECTIONS: readonly MenuSection[] = [
   { label: "Home", href: "/", hint: "Peek through the porthole" },
   { label: "The Nautilus", href: "/nautilus/", hint: "Build a submarine, then sail her" },
-  // Ouro UI's two halves, side by side: HX's components, then AX.
-  { label: "Ouro HX", href: "/docs/", hint: "Levers, dials and portholes" },
-  { label: "Ouro AX", href: "/ax/", hint: "A morning with an agent" },
   {
     label: "For Apple",
     href: "/apple/",
@@ -44,6 +41,10 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
       { label: "Updating installed components", href: "/docs/updating/" },
     ],
   },
+  // Ouro UI's two halves, side by side: HX's components, then AX. HX keeps the place Components had, after Docs, so on a
+  // phone its long folded list of components sits far down the menu, which opens scrolled to the page you are on.
+  { label: "Ouro HX", href: "/docs/", hint: "Levers, dials and portholes" },
+  { label: "Ouro AX", href: "/ax/", hint: "A morning with an agent" },
   { label: "GitHub", href: GITHUB, hint: "The blueprints, out in the open" },
 ];
 

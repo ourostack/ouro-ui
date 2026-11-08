@@ -113,8 +113,7 @@ describe("home page", () => {
     await renderPage("/");
     // The site is Ouro UI; the bar names its two halves side by side, and the hero says so under the install, each name a link to its half.
     await expect.element(page.getByRole("link", { name: "Ouro UI", exact: true })).toBeVisible();
-    expect(SITE_SECTIONS.map((section) => [section.label, section.href]).slice(1, 4)).toEqual([
-      ["The Nautilus", "/nautilus/"],
+    expect(SITE_SECTIONS.map((section) => [section.label, section.href]).slice(4, 6)).toEqual([
       ["Ouro HX", "/docs/"],
       ["Ouro AX", "/ax/"],
     ]);
