@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectWithinBudget, measure, medianCeiling } from "./latency";
+import { LATENCY, expectPressesWithinBudget, medianCeiling } from "./latency";
 
 // The site menu's press answers within budget on a phone, press to the paint that draws its sheet, on a CPU throttled
 // LATENCY.throttle×: on the home page, with the stage's fish and caustics running behind the header, and on a docs page,
@@ -74,14 +74,18 @@ test.describe("interaction latency", () => {
         await expect(sheet(page)).toHaveCount(0);
       };
       await close();
-      const samples = await measure(page, label, {
-        press: () => menuButton(page).click(),
-        // Each press opens the menu from closed.
-        setUp: async (index) => {
-          if (index > 0) await close();
+      await expectPressesWithinBudget(
+        page,
+        label,
+        {
+          press: () => menuButton(page).click(),
+          // Each press opens the menu from closed.
+          setUp: async (index) => {
+            if (index > 0) await close();
+          },
         },
-      });
-      expectWithinBudget(label, samples, BASELINE_MEDIAN[path]!);
+        BASELINE_MEDIAN[path]!,
+      );
     });
   }
 });

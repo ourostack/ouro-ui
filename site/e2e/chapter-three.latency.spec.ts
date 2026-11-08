@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CHAPTER_THREE_CONTROLS, ENCOUNTER, ORDERS, SALOON } from "../src/voyage/chapters/chapter-three-copy";
 import { CHAPTER_ONE } from "../src/voyage/chapters/copy";
-import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } from "./latency";
+import { LATENCY, expectPressesWithinBudget, medianCeiling, type Presses } from "./latency";
 
 // Each Chapter III control answers within budget, click to next paint, on a slower CPU, as
 // chapter-one.latency.spec.ts holds Chapter I's: latency.ts holds the budget and the measurement. A
@@ -126,7 +126,7 @@ test.describe("Chapter III interaction latency", () => {
     test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await open(page);
-      expectWithinBudget(id, await measure(page, id, presses(page, id)), BASELINE_MEDIAN[id]);
+      await expectPressesWithinBudget(page, id, presses(page, id), BASELINE_MEDIAN[id]);
     });
   }
 
@@ -134,14 +134,14 @@ test.describe("Chapter III interaction latency", () => {
     test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(ORDER_BASELINE[id])} ms) on a ${LATENCY.throttle}× slower CPU, the porthole redrawn after`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await open(page);
-      const samples = await measure(page, id, {
+      const presses: Presses = {
         press: (index) => step.press(page, index),
         setUp: async (index) => {
           if (step.after && index > 0) await step.after(page, index - 1);
           if (step.before) await step.before(page, index);
         },
-      });
-      expectWithinBudget(id, samples, ORDER_BASELINE[id]);
+      };
+      await expectPressesWithinBudget(page, id, presses, ORDER_BASELINE[id]);
     });
   }
 });
