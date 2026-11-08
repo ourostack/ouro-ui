@@ -1,11 +1,11 @@
 import { Buffer } from "node:buffer";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
+import { scratchDir } from "./scratch.mjs";
 import { ApiUnavailable, main, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -450,7 +450,7 @@ test("a download follows its redirect to storage and returns the bytes", async (
 
 test("a run GitHub will not answer for reports budget unavailable and passes; any other error still fails it", () => {
   const logged = [];
-  const summary = join(mkdtempSync(join(tmpdir(), "budget-")), "summary.md");
+  const summary = join(scratchDir("budget-"), "summary.md");
   assert.equal(reportUnavailable(new ApiUnavailable("x answered 503"), summary, (line) => logged.push(line)), 0);
   assert.match(logged[0], /^::warning::Budget unavailable: .*x answered 503/);
   assert.match(readFileSync(summary, "utf8"), /Budget unavailable/);
@@ -469,7 +469,7 @@ test("jobs answer, then the baseline read gets 502s: the run reports budget unav
     ? new Response(JSON.stringify({ total_count: 0, jobs: [] }), { status: 200 })
     : new Response("bad gateway", { status: 502 });
   try {
-    assert.equal(await main(["--out", join(tmpdir(), "budget-unused.json")]), 0);
+    assert.equal(await main(["--out", join(scratchDir("budget-"), "unused.json")]), 0);
   } finally {
     globalThis.fetch = saved.fetch;
     console.log = saved.log;
