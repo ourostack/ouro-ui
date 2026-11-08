@@ -6,15 +6,19 @@
 
 # Ouro HX
 
-**React components for people and the agents who build with them.** Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
+**React components for people, and for the agents who build them.** Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
 **[See it live: ui.ouroboros.bot](https://ui.ouroboros.bot/)**, with the [docs](https://ui.ouroboros.bot/docs/) and [Storybook](https://ui.ouroboros.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
 Ouro HX is the half of Ouro UI for the interfaces people use: React components you copy in with the shadcn CLI. **[Ouro AX](#ouro-ax)** is the other half, for the interfaces agents use.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6    # install a component
+# In an app set up with shadcn init (see Quick start):
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.6  # once per app: the tokens
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6     # then any component
 ```
+
+New to shadcn? [Quick start](#quick-start) has the `init` line.
 
 Browse first with `npx shadcn@latest search 'ourostack/ouro-ui#v1.3.6'` (list the items) and `npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.6'` (read one). The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
 
