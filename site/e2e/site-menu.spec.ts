@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { APPLE_PATHS } from "../src/paths";
 import { heightsUntilStill, quietFrames } from "./frames";
@@ -724,7 +724,64 @@ test("on a phone choosing the page you are on closes the menu and stays put", as
   expect(await page.evaluate(() => scrollY)).toBe(before);
 });
 
-test("on a phone the page you are on, chosen with a modifier key held, opens in a new tab and the menu stays", async ({ page, context }) => {
+/**
+ * Starts watching for the browser to open a new tab from `page`'s context and commit `url` in it. `opened` gives back
+ * that URL, or fails with `failure()` if no tab does within 10 s; `stop` ends the watch, so call it once the press is
+ * done with, whether or not it opened a tab. (`opened` is wrapped in an object because an async function's returned
+ * promise would be awaited along with it.)
+ *
+ * Chromium is asked over CDP for its tabs. Playwright reports a new tab only once its first real navigation commits, as
+ * a Page.frameNavigated on its session, and Chromium sometimes sends none: the tab opens, commits the page and runs its
+ * scripts, but Playwright's `page` event never comes (ourostack/ouro-ui#664: 1 of 98 new tabs in a protocol log of 200
+ * runs under load). The browser's own record of the tab and its URL does not depend on that event. WebKit has no CDP,
+ * so there it is Playwright's event.
+ */
+async function nextTab(
+  page: Page,
+  browser: Browser,
+  browserName: string,
+  url: RegExp,
+  failure: () => Promise<Error>,
+): Promise<{ opened: Promise<string>; stop: () => void }> {
+  const fail = (): Promise<never> => failure().then((error) => Promise.reject(error));
+  if (browserName !== "chromium") {
+    const opened = page
+      .context()
+      .waitForEvent("page", { timeout: 10_000 })
+      .then(async (tab) => (await tab.waitForURL(url), tab.url()), fail);
+    // Handled here too, so a press that throws first leaves no rejection unhandled; awaiting `opened` still sees it.
+    opened.catch(() => {});
+    return { opened, stop: () => {} };
+  }
+  const own = await page.context().newCDPSession(page);
+  const { targetInfo: mine } = await own.send("Target.getTargetInfo");
+  await own.detach();
+  const cdp = await browser.newBrowserCDPSession();
+  const { targetInfos } = await cdp.send("Target.getTargets");
+  const before = new Set(targetInfos.map((target) => target.targetId));
+  const shown = new Promise<string>((resolve) => {
+    const seen = ({ targetInfo }: { targetInfo: { targetId: string; type: string; url: string; browserContextId?: string } }) => {
+      if (targetInfo.type === "page" && targetInfo.browserContextId === mine.browserContextId && !before.has(targetInfo.targetId) && url.test(targetInfo.url))
+        resolve(targetInfo.url);
+    };
+    cdp.on("Target.targetCreated", seen);
+    cdp.on("Target.targetInfoChanged", seen);
+  });
+  await cdp.send("Target.setDiscoverTargets", { discover: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => void fail().catch(reject), 10_000);
+  });
+  const stop = () => {
+    clearTimeout(timer);
+    void cdp.detach().catch(() => {});
+  };
+  const opened = Promise.race([shown, late]).finally(stop);
+  opened.catch(() => {});
+  return { opened, stop };
+}
+
+test("on a phone the page you are on, chosen with a modifier key held, opens in a new tab and the menu stays", async ({ page, browser, browserName }) => {
   await open(page, "ax/");
   await openMenu(page);
   // What the press did, read back if no tab opens (ourostack/ouro-ui#664): each pointer and click event, its target, its
@@ -739,12 +796,14 @@ test("on a phone the page you are on, chosen with a modifier key held, opens in 
         events.push(`${Math.round(performance.now())}:${type}@${target.tagName}${target.getAttribute("aria-current") ? "[current]" : ""}"${(target.textContent ?? "").trim().slice(0, 16)}" ctrl=${mouse.ctrlKey} meta=${mouse.metaKey} prevented=${event.defaultPrevented}`);
       });
   });
-  const tab = context.waitForEvent("page", { timeout: 10_000 }).catch(async () => {
-    throw new Error(`no tab opened; the press: ${JSON.stringify(await page.evaluate(() => (window as unknown as { __press: string[] }).__press))}`);
-  });
-  await sheet(page).locator('[aria-current="page"]').click({ modifiers: ["ControlOrMeta"] });
   // The tab opens on about:blank and then loads the page.
-  await (await tab).waitForURL(/\/ax\/$/);
+  const tab = await nextTab(page, browser, browserName, /\/ax\/$/, async () => new Error(`no tab opened; the press: ${JSON.stringify(await page.evaluate(() => (window as unknown as { __press: string[] }).__press))}`));
+  try {
+    await sheet(page).locator('[aria-current="page"]').click({ modifiers: ["ControlOrMeta"] });
+    await tab.opened;
+  } finally {
+    tab.stop();
+  }
   await expect(sheet(page)).toBeVisible();
 });
 
