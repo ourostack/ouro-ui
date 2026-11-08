@@ -33,6 +33,7 @@ const TRIES = 3;
 
 interface Switch {
   worst: number;
+  raw: number;
   /** The longest gap as drawn, and the part of it a worker in the page also stood still through (the runner's). */
   gap: number;
   runner: number;
@@ -102,9 +103,11 @@ async function judge(page: Page): Promise<Switch> {
     let gap = 0;
     let runner = 0;
     let at = 0;
+    let raw = 0;
     for (let index = 1; index < frames.length; index += 1) {
       const [start, end] = [frames[index - 1]!, frames[index]!];
       const stood = stalls.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(end + origin, b) - Math.max(start + origin, a)), 0);
+      raw = Math.max(raw, end - start);
       if (end - start - stood > worst) {
         worst = end - start - stood;
         gap = end - start;
@@ -112,7 +115,7 @@ async function judge(page: Page): Promise<Switch> {
         at = start - from;
       }
     }
-    return { worst: Math.round(worst), gap: Math.round(gap), runner: Math.round(runner), at: Math.round(at), pace: Math.round(pace), paced: before.length, series };
+    return { worst: Math.round(worst), gap: Math.round(gap), raw: Math.round(raw), runner: Math.round(runner), at: Math.round(at), pace: Math.round(pace), paced: before.length, series };
   });
 }
 
@@ -140,6 +143,9 @@ test("the switch to still water draws no long frame", async ({ browser, browserN
   // Printed every run, so CI's log keeps the switch's cost.
   console.log(`switch to still water, ${browserName}: ${results.map((result) => `${result.worst} ms of the page's own in a ${result.gap} ms gap (${result.runner} ms the runner's) at ${result.at} (pace ${result.pace}, budget ${budget(result)})`).join("; ")}${unpaced.length ? `; judged again, with too few frames before the verdict: ${unpaced.map((result) => `${result.paced} frames, ${result.worst} ms at ${result.at}`).join("; ")}` : ""}`);
   expect(results, `only ${results.length} of ${VERDICTS} judgeable: the pool ran out with the rest on pages that drew fewer than ${PACED} frames in the 1.5 s before the verdict`).toHaveLength(VERDICTS);
-  for (const result of results)
+  for (const result of results) {
+    // A stop-the-world pause in the page's own process (a full GC) stops the worker too, so the split would excuse it as the runner's; the raw gap is bounded whatever the split.
+    expect(result.raw, `the longest raw frame gap around the switch, ${result.raw} ms of which ${result.runner} ms read as the runner's, against twice the ${budget(result)} ms budget: the split excuses a runner's stall, not a page-wide pause`).toBeLessThan(2 * budget(result));
     expect(result.worst, `the page's own longest frame around the switch, a ${result.gap} ms gap of which ${result.runner} ms the runner's, ${result.at} ms from the verdict, against ${budget(result)} ms (the page's median frame before it, ${result.pace} ms); each frame from 1.5 s before it: ${result.series}`).toBeLessThan(budget(result));
+  }
 });
