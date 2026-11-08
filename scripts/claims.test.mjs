@@ -29,10 +29,10 @@ import {
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(repo, "scripts/claims.mjs");
 
-/** registry.json is generated and not committed on main, so a fresh checkout has none: say how to make it instead of failing on a read. */
+/** registry.json and site/public/llms.txt are generated and not committed on main, so a fresh checkout has none: say how to make it instead of failing on a read. */
 const REGISTRY_MISSING = "registry.json missing: run pnpm registry";
 const requireRegistry = (root = repo) => {
-  if (!existsSync(join(root, "registry.json"))) throw new Error(REGISTRY_MISSING);
+  for (const file of ["registry.json", "site/public/llms.txt"]) if (!existsSync(join(root, file))) throw new Error(REGISTRY_MISSING);
 };
 
 /** A throwaway repository holding `files`, removed after this file's tests. */
@@ -881,5 +881,8 @@ test("the tests that read the generated registry.json say how to make it when it
   const dir = scratchDir("ouro-registry-hint-");
   assert.throws(() => requireRegistry(dir), { message: "registry.json missing: run pnpm registry" });
   writeFileSync(join(dir, "registry.json"), "{}");
+  assert.throws(() => requireRegistry(dir), { message: "registry.json missing: run pnpm registry" });
+  mkdirSync(join(dir, "site/public"), { recursive: true });
+  writeFileSync(join(dir, "site/public/llms.txt"), "");
   assert.doesNotThrow(() => requireRegistry(dir));
 });
