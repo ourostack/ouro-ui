@@ -236,3 +236,15 @@ test("attribution accepts Dependabot's own Co-authored-by trailer on its depende
     "Assisted-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
   ]) assert.deepEqual(fieldsOf([squash({ message: message(line) })]), ["message line 3"], line);
 });
+
+test("attribution reads a message split by any line terminator, so no separator hides an AI credit", () => {
+  const credit = "Co-authored-by: Claude <noreply@anthropic.com>";
+  for (const [name, separator] of [["CRLF", "\r\n"], ["CR", "\r"], ["line separator", " "], ["paragraph separator", " "], ["next line", "\u0085"], ["LF", "\n"]]) {
+    const found = problems([commit({ message: `Button: a fix (#1)${separator}${separator}${credit}${separator}` })]);
+    assert.deepEqual(found.map(({ field }) => field), ["message line 3"], name);
+    assert.match(found[0].problem, /credits an AI tool or a bot/, name);
+  }
+  // A generated-by line behind a terminator is read too, and a clean CRLF message passes.
+  assert.deepEqual(fieldsOf([commit({ message: "Button: a fix (#1)\r\n\r\nGenerated with Claude Code\r\n" })]), ["message line 3"]);
+  assert.deepEqual(problems([commit({ message: "Button: a fix (#1)\r\n\r\nSigned-off-by: Ari Mendelow <16390116+arimendelow@users.noreply.github.com>\r\n" })]), []);
+});
