@@ -303,9 +303,11 @@ function useTileObservers(
     // Stryker disable next-line ConditionalExpression: without a callback nothing reads whether the tile is seen, so observing it too changes only the cost.
     if (watching) {
       intersection = new IntersectionObserver(
-        ([entry]) => {
+        (entries) => {
+          // A busy page can queue several entries before this runs, oldest first; only the newest is where the tile is now.
+          const entry = entries[entries.length - 1]!;
           // Stryker disable next-line LogicalOperator,ConditionalExpression,EqualityOperator: with the one threshold at VISIBLE_RATIO, Chromium and WebKit already report isIntersecting false below it; the ratio guards an engine that does not.
-          seen = entry!.isIntersecting && entry!.intersectionRatio >= VISIBLE_RATIO;
+          seen = entry.isIntersecting && entry.intersectionRatio >= VISIBLE_RATIO;
           known = true;
           schedule();
         },

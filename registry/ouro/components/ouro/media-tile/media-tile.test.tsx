@@ -772,6 +772,47 @@ describe("MediaTile visibility", () => {
     expect(report.mock.calls.length).toBe(count);
   });
 
+  it("goes by the newest of the entries the browser hands over at once, so a tile that moved off screen is not left seen", async () => {
+    // A busy page can let the browser note the tile twice, here on screen and then a sliver,
+    // before the callback runs; it then gets both entries, oldest first.
+    const Real = window.IntersectionObserver;
+    const held: IntersectionObserverEntry[] = [];
+    let deliver = (): void => {};
+    window.IntersectionObserver = class extends Real {
+      constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        super((entries) => void held.push(...entries), options);
+        deliver = () => callback(held.splice(0), this);
+      }
+    };
+    try {
+      const report = vi.fn();
+      const { host } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320);
+      await expect.poll(() => held.map((entry) => entry.intersectionRatio)).toEqual([1]);
+      host.style.position = "fixed";
+      host.style.left = "0px";
+      host.style.top = `${innerHeight - 8}px`;
+      await expect.poll(() => held.length).toBe(2);
+      expect(held[1]!.intersectionRatio).toBeLessThan(0.1);
+      await act(async () => deliver());
+      await expect.poll(() => report.mock.calls).toEqual([[false, 320, 180]]);
+      // Back on screen, a sliver again and back on screen once more, in one batch: the newest wins
+      // even when an older entry says unseen.
+      for (const top of ["0px", `${innerHeight - 8}px`, "0px"]) {
+        const count = held.length;
+        host.style.top = top;
+        await expect.poll(() => held.length).toBe(count + 1);
+      }
+      expect(held.map((entry) => entry.intersectionRatio >= 0.1)).toEqual([true, false, true]);
+      await act(async () => deliver());
+      await expect.poll(() => report.mock.calls).toEqual([
+        [false, 320, 180],
+        [true, 320, 180],
+      ]);
+    } finally {
+      window.IntersectionObserver = Real;
+    }
+  });
+
   it("reports a hidden page as unseen at once, and seen again when it shows", async () => {
     const report = vi.fn();
     await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320);
