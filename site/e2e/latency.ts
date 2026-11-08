@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 
 
 // Click-to-paint latency for the voyage's controls, shared by every *.latency.spec.ts (run alone by
@@ -100,6 +101,20 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     const bcdp = await page.context().browser()!.newBrowserCDPSession();
     const info = (await bcdp.send("SystemInfo.getProcessInfo")) as { processInfo: { type: string; id: number }[] };
     pids.push(...info.processInfo.filter((p) => p.type === "renderer" || p.type === "GPU"));
+    if (process.env["LATENCY_PIN"] && process.platform === "linux") {
+      // Probe: the renderer's main thread alone on one physical core; everything else in the container off it.
+      const siblings = readFileSync("/sys/devices/system/cpu/cpu0/topology/thread_siblings_list", "utf8").trim();
+      const all = readFileSync("/sys/fs/cgroup/cpuset.cpus.effective", "utf8").trim();
+      const expand = (list: string) => list.split(",").flatMap((part) => { const [a, b] = part.split("-").map(Number); return b === undefined ? [a!] : Array.from({ length: b - a! + 1 }, (_, i) => a! + i); });
+      const reserved = new Set(expand(siblings));
+      const others = expand(all).filter((cpu) => !reserved.has(cpu));
+      const renderers = info.processInfo.filter((p) => p.type === "renderer").map((p) => p.id);
+      for (const pid of readdirSync("/proc").filter((d) => /^\d+$/.test(d))) {
+        try { execFileSync("taskset", ["-a", "-p", "-c", others.join(","), pid], { stdio: "ignore" }); } catch {}
+      }
+      for (const pid of renderers) try { execFileSync("taskset", ["-p", "-c", "0", String(pid)], { stdio: "ignore" }); } catch {}
+      console.log(`latency-pin siblings ${siblings} all ${all} others ${others.join(",")} renderers ${renderers.join(",")}`);
+    }
     await bcdp.detach();
   } catch {}
   /** Per process: main thread exec/wait ns, other threads exec/wait by name; and /proc/stat cpu. */
