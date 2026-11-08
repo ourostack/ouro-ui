@@ -115,7 +115,7 @@ test("the switch to still water draws no long frame", async ({ browser, browserN
   const budget = (result: Switch) => (browserName === "chromium" ? CHROMIUM_BUDGET : Math.max(WEBKIT_BUDGET, Math.round(WEBKIT_PACES * result.pace)));
   // Printed every run, so CI's log keeps the switch's cost.
   console.log(`switch to still water, ${browserName}: ${results.map((result) => `${result.worst} ms at ${result.at} (pace ${result.pace}, budget ${budget(result)})`).join("; ")}${unpaced.length ? `; judged again, with too few frames before the verdict: ${unpaced.map((result) => `${result.paced} frames, ${result.worst} ms at ${result.at}`).join("; ")}` : ""}`);
-  expect(results, `every verdict, with ${PACED} frames or more in the 1.5 s before it`).toHaveLength(VERDICTS);
+  expect(results, `only ${results.length} of ${VERDICTS} judgeable: the pool ran out with the rest on pages that drew fewer than ${PACED} frames in the 1.5 s before the verdict`).toHaveLength(VERDICTS);
   for (const result of results)
     expect(result.worst, `the longest frame around the switch, ${result.at} ms from the verdict, against ${budget(result)} ms (the page's median frame before it, ${result.pace} ms); each frame from 1.5 s before it: ${result.series}`).toBeLessThan(budget(result));
 });
