@@ -892,5 +892,8 @@ test("the lint sees a claim through Unicode format characters hidden in its word
   for (const text of ["Ev\u200Bery test passes now.", "All\u00AD components pass axe.", "\uFEFFNo\u2060 test fails.", "It always\u200D works.", "Ev\u034Fery test passes.", "Ev\uFE0Fery test passes.", "Ev\u3164ery test passes.", "Ev\u2800ery test passes."]) {
     assert.equal(lint(text).length, 1, JSON.stringify(text));
   }
+  // Inside a short quotation, which the lint reads as a mention, a hidden character must not hide the word either.
+  assert.equal(lint('The report says "Ev\u200Bery test passes now."').length, 1);
+  assert.equal(lint('The report says "Ev\u3164ery test passes now."').length, 1);
   assert.equal(lint("Moves \u{1F468}\u200D\u{1F373}\u200B focus back to the\u00AD trigger.").length, 0);
 });
