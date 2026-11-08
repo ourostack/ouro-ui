@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useRef, useState, type JSX, type KeyboardEvent, type PointerEvent } from "react";
+import { useCallback, useId, useMemo, useRef, useState, type JSX, type KeyboardEvent, type PointerEvent } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -159,7 +159,8 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const word = { ...words, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, value]) => value !== undefined)) };
+  // Merged once per labels object, so an app that keeps its labels in a constant merges them once.
+  const word = useMemo(() => ({ ...words, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, value]) => value !== undefined)) }), [labels]);
   const openError = labels?.openError ?? (typeof image === "string" ? openErrors.url : openErrors.file);
   const saveError = labels?.saveError ?? `The browser didn't turn the crop into a file. Press ${word.save} to try again, or choose another photo.`;
   const frame: Size = { width: FRAME_WIDTH, height: Math.round(FRAME_WIDTH / aspect) };

@@ -768,6 +768,14 @@ describe("ConversationList development messages", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it("reads the sections again when they change, so a row left without its section is named", async () => {
+    const rows = [{ id: "ana", title: "Ana Lind", section: "pinned" }];
+    const { rerender } = await render(<ConversationList label="Chats" items={rows} sections={[{ id: "pinned", title: "Pinned" }]} onSelect={() => {}} />);
+    expect(warn).not.toHaveBeenCalled();
+    await rerender(<ConversationList label="Chats" items={rows} sections={[{ id: "recent", title: "Recent" }]} onSelect={() => {}} />);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('the row "ana" names section "pinned", which is not in sections'));
+  });
+
   it.each([
     ["an unknown density", { density: "cozy" }, 'density="cozy" is not a density; use "comfortable" or "compact"', '<ConversationList density="compact">'],
     ["value", { value: "ana" }, "value is not a prop", "<ConversationList selectedId={openId}>"],

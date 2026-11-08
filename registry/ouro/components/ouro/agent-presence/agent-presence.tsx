@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type JSX, type Ref } from "react";
+import { useEffect, useMemo, useRef, useState, type JSX, type Ref } from "react";
 import { agentPresenceSizes, doingClass, unreadDotClass } from "@/registry/ouro/components/ouro/agent-presence/agent-presence-styles";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -208,7 +208,8 @@ export function AgentPresence(props: AgentPresenceProps): JSX.Element | null {
     variant,
   } = props;
   const size: Size = (agentPresenceSizes as readonly string[]).includes(sizeProp) ? (sizeProp as Size) : "sm";
-  const text = { ...words, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, value]) => value !== undefined)) } as Words;
+  // Merged once per labels object, so an app that keeps its labels in a constant merges them once.
+  const text = useMemo(() => ({ ...words, ...Object.fromEntries(Object.entries(labels ?? {}).filter(([, value]) => value !== undefined)) }) as Words, [labels]);
 
   useAppearanceClassNameCheck(
     "AgentPresence",
