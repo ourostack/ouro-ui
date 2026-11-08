@@ -23,16 +23,24 @@ export default function DocsSidebar({ current }: { current: string }): JSX.Eleme
     const shown = Math.min(box.bottom, innerHeight);
     const at = link.getBoundingClientRect();
     if (at.bottom <= shown) return;
-    // Below that: scroll its group to the top, so the group's name shows above it, or further if the link still
-    // would not show (a long group in a short view).
+    // Below that: scroll its group to the top, so the group's name shows above it. Where the window shows enough of
+    // the box, go further if the link still would not show (a long group in a short view), never past the box's top.
     const group = link.closest("ul")?.parentElement ?? link;
-    const by = Math.max(group.getBoundingClientRect().top - box.top - 8, at.bottom - shown + 8);
+    const toGroup = group.getBoundingClientRect().top - box.top - 8;
+    const by = shown - box.top < at.height + 16 ? toGroup : Math.min(Math.max(toGroup, at.bottom - shown + 8), at.top - box.top - 8);
     // The last groups (Platforms) cannot scroll that far in a box that runs below the window: room under the
-    // list lets them, and is only ever blank space after its last link.
+    // list lets them, and is only ever blank space after its last link, until a filter changes the list.
     const short = by - (scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop);
     if (short > 0) scroller.style.paddingBottom = `${short + 8}px`;
     scroller.scrollTop += by;
   }, []);
+  useEffect(() => {
+    // A filtered list starts at its first match, without the room the current page's group needed.
+    const scroller = holder.current?.querySelector<HTMLElement>("[data-ouro-sidebar-scroll]");
+    if (!scroller || filter === "") return;
+    scroller.style.paddingBottom = "";
+    scroller.scrollTop = 0;
+  }, [filter]);
   return (
     <div ref={holder} className="sm:sticky sm:top-0 sm:h-dvh sm:py-4">
       <Sidebar
