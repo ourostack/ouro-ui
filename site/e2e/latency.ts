@@ -80,6 +80,15 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
           loaf.push({ start: e.startTime, d: e.duration, block: e.blockingDuration, render: e.renderStart, style: e.styleAndLayoutStart, scripts: e.scripts.map((x) => `${x.invoker}:${Math.round(x.duration)}`).join("|") });
       }).observe({ type: "long-animation-frame", buffered: false });
     } catch {}
+    const inpress: number[] = [];
+    w.__inpress = inpress;
+    const loop = () => {
+      const start = performance.now();
+      let x = 0;
+      for (let i = 0; i < 200_000; i++) x = (x * 31 + i) | 0;
+      inpress.push(performance.now() - start + (x === 0.5 ? 1 : 0));
+    };
+    for (const type of ["pointerdown", "keydown"]) window.addEventListener(type, loop, { capture: true });
     const code = "let last=performance.timeOrigin+performance.now();const stalls=[];const n=()=>{const t=performance.timeOrigin+performance.now();if(t-last>20)stalls.push([last,t]);last=t};setInterval(n,4);onmessage=()=>{n();postMessage(stalls.splice(0))};";
     const worker = new Worker(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
     w.__stalls = () => new Promise((resolve) => { worker.onmessage = ({ data }) => resolve(data); worker.postMessage(0); });
@@ -109,6 +118,14 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
           const key = `${type === "GPU" ? "gpu" : `r${id}`}.${name}`;
           out[`${key}.run`] = (out[`${key}.run`] ?? 0) + exec! / 1e6;
           out[`${key}.wait`] = (out[`${key}.wait`] ?? 0) + wait! / 1e6;
+          if (Number(tid) === id || name.startsWith("CPUThrottling")) {
+            const st = readFileSync(`/proc/${id}/task/${tid}/stat`, "utf8").split(") ")[1]!.split(" ");
+            out[`${key}.minflt`] = Number(st[7]);
+            out[`${key}.majflt`] = Number(st[9]);
+            const status = readFileSync(`/proc/${id}/task/${tid}/status`, "utf8");
+            out[`${key}.nvcsw`] = Number(/nonvoluntary_ctxt_switches:\s+(\d+)/.exec(status)![1]);
+            out[`${key}.vcsw`] = Number(/\nvoluntary_ctxt_switches:\s+(\d+)/.exec(status)![1]);
+          }
         }
       } catch {}
     }
@@ -136,6 +153,7 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     await page.evaluate(async () => {
       const w = window as unknown as { __latency: unknown[]; __loaf: unknown[]; __stalls: () => Promise<unknown> };
       w.__latency.length = 0;
+      (w as unknown as { __inpress: number[] }).__inpress.length = 0;
       w.__loaf.length = 0;
       await w.__stalls();
     });
@@ -165,7 +183,7 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       const w = window as unknown as { __latency: { name: string; start: number; ps: number; pe: number; d: number }[]; __loaf: { start: number; d: number }[]; __stalls: () => Promise<[number, number][]> };
       const stalls = await w.__stalls();
       const origin = performance.timeOrigin;
-      return { origin, entries: [...w.__latency], loaf: [...w.__loaf], stalls: stalls.map(([a, b]) => [a - origin, b - origin] as [number, number]) };
+      return { inpress: [...(w as unknown as { __inpress: number[] }).__inpress], origin, entries: [...w.__latency], loaf: [...w.__loaf], stalls: stalls.map(([a, b]) => [a - origin, b - origin] as [number, number]) };
     });
     const durations = got.entries.map((entry) => entry.d);
     const pressed = (await interactions()) > before;
@@ -183,7 +201,7 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       if (top && index >= LATENCY.warmUps) windows.push({ index, from: top.start, to: top.start + top.d, d: top.d });
       const ds = Object.entries(s1).map(([k, v]) => [k, v - (s0[k] ?? 0)] as const).filter(([, v]) => v >= 1).map(([k, v]) => `${k}=${r(v)}`).join(" ");
       const dm = Object.entries(m1).map(([k, v]) => `${k}=${k === "JSHeapUsedSize" ? r((v - (m0[k] ?? 0)) / 1024) + "k" : r((v - (m0[k] ?? 0)) * 1000)}`).join(" ");
-      console.log(`latency-trace ${label} #${index}: ${line} calib{${c0.toFixed(1)} ${c1.toFixed(1)}} win{${win}} wall=${t1 - t0} metrics{${dm}} sched{${ds}}`);
+      console.log(`latency-trace ${label} #${index}: ${line} calib{${c0.toFixed(1)} ${c1.toFixed(1)}} inpress{${got.inpress.map((x) => x.toFixed(1)).join(" ")}} win{${win}} wall=${t1 - t0} metrics{${dm}} sched{${ds}}`);
     }
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
