@@ -469,6 +469,26 @@ describe("audit", () => {
     expect([window.scrollY, box.scrollTop]).toEqual([100, 50]);
   });
 
+  it("scrolls to the text at once under scroll-behavior: smooth, so it never measures a page still scrolling", async () => {
+    // Under a smooth scroll the screenshot could catch the page still moving, its pixels offset from the text's cells, so
+    // they would fall on what is next to the text (ourostack/ouro-ui#535).
+    document.documentElement.style.scrollBehavior = "smooth";
+    const seen = new Set<number>();
+    const record = () => seen.add(Math.round(window.scrollY));
+    try {
+      mountPage('<div style="height:3000px"></div><p id="far" style="margin:0;padding:8px;color:#111;background:#fff">Far down the page</p><div style="height:3000px"></div>');
+      window.scrollTo({ top: 0, behavior: "instant" });
+      window.addEventListener("scroll", record);
+      expect(await measureTextContrast(document.querySelector("#far")!, 4.5)).toEqual({ pass: true });
+    } finally {
+      window.removeEventListener("scroll", record);
+      document.documentElement.style.scrollBehavior = "";
+    }
+    // Where it scrolled to measure, and back to the top: no place in between.
+    expect(seen.size).toBeLessThanOrEqual(2);
+    expect(window.scrollY).toBe(0);
+  });
+
   it("puts back the scroll position of a scrolled box inside a shadow root", async () => {
     const gradient = "margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)";
     const scroller = (name: string) =>

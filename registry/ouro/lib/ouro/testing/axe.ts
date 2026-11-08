@@ -858,14 +858,15 @@ function inView(element: Element, root: Element): boolean {
 // (a wide table's last columns), which is scrolled to and taken with the text that then shows.
 // Unless this is the `last` try, a node gone from the page throws PageChanged, so the scan runs again.
 async function measureTexts(root: Element, items: Measured[], last: boolean): Promise<Verdict[]> {
-  // Centered, so a sticky header does not sit over text that scrolled to the top edge.
-  root.scrollIntoView({ block: "center", inline: "nearest" });
+  // Centered, so a sticky header does not sit over text that scrolled to the top edge, and at once: under a page's smooth
+  // scrolling the screenshot could catch the page still moving, its pixels offset from the text's cells (ourostack/ouro-ui#535).
+  root.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
   await settleTransitions();
   const verdicts = new Map<Measured, Verdict>();
   let pending = [...items];
   while (pending.length > 0) {
     const first = pending[0]!;
-    if (first.element.isConnected && !inView(first.element, root)) first.element.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (first.element.isConnected && !inView(first.element, root)) first.element.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
     const batch = [first, ...pending.slice(1).filter(({ element }) => element.isConnected && inView(element, root))];
     const results = await shoot(root, batch, last);
     for (const [index, item] of batch.entries()) verdicts.set(item, results[index]!);
@@ -912,7 +913,7 @@ const cut = (ratio: number) => Math.floor(ratio * 100) / 100;
 // one behind the block's text around it (outside other links and inner blocks). A background is
 // the mean of the pixels behind those lines, glyphs hidden, that nothing else covers.
 async function measureLinkInText(link: Element, block: Element): Promise<Verdict> {
-  link.scrollIntoView({ block: "center", inline: "nearest" });
+  link.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
   await settleTransitions();
   const own = lineBoxes(link, () => true);
   let painted = false;
