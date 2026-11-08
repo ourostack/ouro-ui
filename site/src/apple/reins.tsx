@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import type { JSX, ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock } from "../components/code";
@@ -13,6 +13,68 @@ import "./feel-reins.css";
 const GUIDE = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/README.md`;
 const SKILL = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/SKILL.md`;
 const REFLEX = "https://shopify.engineering/reflex";
+const PROTOCOL = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/PROTOCOL.md`;
+const ANY_MAC = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/README.md#reins-for-any-mac-app`;
+
+/** The same reins on any app: what a second driver, for whole Macs, adds. */
+const ANY_MAC_PARTS: readonly { name: string; body: ReactNode }[] = [
+  {
+    name: "The tree",
+    body: (
+      <>
+        Any app's tree of controls, pruned to what a person can act on. An element has a role, a label, a value and a frame, and an address like{" "}
+        <code className="apple-code">toolbar &gt; button[Back]</code> that a recorded journey replays.
+      </>
+    ),
+  },
+  {
+    name: "The pixels",
+    body: (
+      <>
+        No tree to read (a login window, a canvas, a stuck screen)? A screenshot's text boxes become the same elements, the state says{" "}
+        <code className="apple-code">"layer": "pixels"</code>, and an IP-KVM's keyboard and mouse do the clicking.
+      </>
+    ),
+  },
+  {
+    name: "Refusals first",
+    body: (
+      <>
+        <code className="apple-code">person-active</code> while someone is at the Mac. <code className="apple-code">app-protected</code> for an app that refuses
+        automation, a password prompt or a security setting. <code className="apple-code">permission-missing</code> names the step a person takes. Nothing is
+        touched.
+      </>
+    ),
+  },
+  {
+    name: "One round trip",
+    body: (
+      <>
+        Only lines cross the network. <code className="apple-code">batch</code> runs a whole form on the Mac and checks its untils there, and after the first
+        screen only a diff against the <code className="apple-code">rev</code> you hold comes back.
+      </>
+    ),
+  },
+];
+
+const ANY_MAC_LS = `$ ls Calculator
+{"focus":"Calculator","state":{"layer":"ax", "elements":[
+   {"i":3,  "ref":"statictext[Edit field]", "value":"0"},
+   {"i":8,  "ref":"button[7]",              "can":["click"]},
+   {"i":11, "ref":"button[Multiply]",       "can":["click"]},
+   {"i":23, "ref":"button[Equals]",         "can":["click"]} …]},
+ "actions":[{"name":"click","input":{"element":{"enum":["button[7]", …]}}}, …],
+ "rev":"6c64…"}`;
+
+const ANY_MAC_BATCH = `$ batch '[{"action":"click","input":{"element":"button[7]"}},
+         {"action":"click","input":{"element":"button[Multiply]"}},
+         {"action":"click","input":{"element":"button[6]"}},
+         {"action":"click","input":{"element":"button[Equals]"},
+          "until":{"@statictext[Edit field].value":"42"}}]'
+{"ok":true,"steps":[{"n":0,"ok":true}, … {"n":3,"ok":true}],
+ "screen":{"rev":"b81c…","since":"6c64…",
+           "put":[{"ref":"statictext[Edit field]","role":"statictext",
+                   "value":"42"}]}}`;
 
 /** What an agent sees, in four ideas. */
 const MODEL = [
@@ -186,6 +248,48 @@ export default function AppleReins(): JSX.Element {
             . One honest limit, shared with Reflex: a screen shows one column at a time, so a split view shows only the column in focus.
           </p>
         </div>
+      </AppleBand>
+
+      <AppleBand
+        id="any-mac"
+        eyebrow="Beyond our apps"
+        title="Any app on a Mac, same reins."
+        lede={
+          <p>
+            {claim("Reins is a protocol as well as a package: the screen, the requests and replies, every refusal with its exit code, journeys, and the batches and diffs a remote driver uses, written down on their own.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/0c611fe9d881ce3b0b93c0ffba2b758191f37913/docs/ouro-reins/PROTOCOL.md" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/0c611fe9d881ce3b0b93c0ffba2b758191f37913/docs/ouro-reins/PROTOCOL.md" },
+            })}{" "}
+            {claim("A second driver speaks it for whole Macs: Finder, System Settings or anyone's app, as state and actions, with no model in the loop and no clicking by guesswork.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/0c611fe9d881ce3b0b93c0ffba2b758191f37913/docs/ouro-reins/README.md#reins-for-any-mac-app" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/0c611fe9d881ce3b0b93c0ffba2b758191f37913/docs/ouro-reins/README.md" },
+            })}
+          </p>
+        }
+      >
+        <ul className="apple-quad">
+          {ANY_MAC_PARTS.map((item) => (
+            <li key={item.name} className="apple-quad-item">
+              <h3 className="apple-quad-title">{item.name}</h3>
+              <p className="apple-quad-body">{item.body}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="feel-reins-code">
+          <CodeBlock code={ANY_MAC_LS} label="What an agent sees in Calculator" />
+          <CodeBlock code={ANY_MAC_BATCH} label="Clicks and a check, one request" />
+        </div>
+        <p className="apple-fine">
+          Write your own driver against the{" "}
+          <a className="apple-inline-link" href={PROTOCOL}>
+            protocol
+          </a>
+          , or read how the{" "}
+          <a className="apple-inline-link" href={ANY_MAC}>
+            any-Mac driver
+          </a>{" "}
+          reads trees and pixels and when it says no. Its code isn't public yet.
+        </p>
       </AppleBand>
 
       <LayersBand current="/apple/reins/" />
