@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { springAt } from "@/registry/ouro/lib/ouro/spring";
@@ -778,5 +778,86 @@ describe("MessageList springs", () => {
     scroller.dispatchEvent(new Event("scroll"));
     frames.step(16);
     expect(long.style.transform).toBe("");
+  });
+});
+
+const variants = ["default", "chat", "post", "reply"] as const;
+
+/** A conversation whose messages have every part a Message draws: avatars with presence, times, quotes, actions, a menu, one not sent and one streaming. */
+function RichChat({ count }: { count: number }) {
+  return (
+    <MessageList label="Conversation" style={{ height: 600 }}>
+      {Array.from({ length: count }, (_, index) => (
+        <Message
+          key={index}
+          id={`rich-${index}`}
+          role={index % 2 ? "assistant" : "user"}
+          name={index % 2 ? "Ouro" : "Ana Lind"}
+          variant={variants[index % variants.length]}
+          bubble={index % 3 ? "filled" : "raised"}
+          presence="available"
+          presenceLabel="Available"
+          time="9:41 AM"
+          quote={index % 5 === 1 ? { author: "Ana Lind", excerpt: "How long should the dough rest?" } : undefined}
+          actions={[{ key: "reply", label: "Reply", icon: "↩", onClick: () => {} }]}
+          menu={[{ label: "Copy", onClick: () => {} }]}
+          failed={index === count - 2 ? { onRetry: () => {} } : undefined}
+          streaming={index === count - 1}
+        >
+          {`Message ${index}: ${"rest the dough ".repeat(3)}`}
+        </Message>
+      ))}
+    </MessageList>
+  );
+}
+
+/** Every drawn element in `root` that has `will-change` or a transform, with what it has. */
+function layered(root: Element) {
+  return [...root.querySelectorAll("*")].flatMap((element) => {
+    // Nothing drawn (a hidden touch target), nothing to composite.
+    if (element.getClientRects().length === 0) return [];
+    const style = getComputedStyle(element);
+    const has = [
+      style.willChange !== "auto" && `will-change: ${style.willChange}`,
+      ...(["transform", "translate", "scale", "rotate"] as const).map((name) => style[name] !== "none" && `${name}: ${style[name]}`),
+    ].filter(Boolean);
+    return has.length > 0 ? [`${element.closest("[data-ouro]")!.getAttribute("data-ouro")} ${element.tagName}: ${has.join("; ")}`] : [];
+  });
+}
+
+/** The wheel the reader turns over the list, a frame apart: six notches up. */
+async function fling(scroller: HTMLElement, frame: () => Promise<unknown>) {
+  for (let notch = 0; notch < 6; notch++) {
+    wheel(scroller, -60, scroller.getBoundingClientRect().top + 20);
+    await frame();
+  }
+}
+
+describe("MessageList springs at rest", () => {
+  it("leaves no will-change and no transform on anything in the list once its springs settle", async () => {
+    const { scroller, messages } = await render(<RichChat count={40} />);
+    const list = scroller.closest('[data-ouro="message-list"]')!;
+    expect(messages().filter((message) => message.querySelector('[data-ouro-part="action"], [data-ouro-message-failed]'))).not.toEqual([]);
+    expect(layered(list)).toEqual([]);
+    const frames = holdFrames();
+    await fling(scroller, async () => frames.step(16));
+    expect(scroller.querySelectorAll("[data-ouro-settling]").length).toBeGreaterThan(3);
+    expect(layered(list)).not.toEqual([]);
+    frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    expect(layered(list)).toEqual([]);
+  });
+
+  it.skipIf(server.browser !== "chromium")("gives messages composited layers only while they spring, and none once they rest", async () => {
+    const { scroller } = await render(<RichChat count={40} />);
+    const messageLayers = (layers: { element: string | null }[]) => layers.filter((layer) => layer.element?.startsWith('ARTICLE[data-ouro="message"]'));
+    const before = await commands.compositedLayers();
+    expect(messageLayers(before)).toEqual([]);
+    await fling(scroller, () => new Promise((resolve) => requestAnimationFrame(resolve)));
+    const moving = await commands.compositedLayers();
+    expect(messageLayers(moving).length).toBeGreaterThan(3);
+    await expect.poll(() => scroller.querySelector("[data-ouro-settling]")).toBeNull();
+    const after = await commands.compositedLayers();
+    expect(messageLayers(after)).toEqual([]);
+    expect(after).toHaveLength(before.length);
   });
 });
