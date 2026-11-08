@@ -6,7 +6,7 @@ import fonts from "./themes/fonts.json";
 import { CARDS, cardAlt, STORYBOOK } from "./storybook";
 
 /** Where Pages serves the site. */
-export const SITE = "https://ui.ouro.bot";
+export const SITE = "https://ui.ouroboros.bot";
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 

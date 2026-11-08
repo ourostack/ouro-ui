@@ -149,7 +149,7 @@ export type ReactionBarProps = Omit<HTMLAttributes<HTMLDivElement>, keyof Reacti
  * options, and `Badge` for a single count.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/reaction-bar
+ * @see https://ui.ouroboros.bot/docs/reaction-bar
  *
  * @example
  * <ReactionBar reactions={message.reactions} quick={quickReactions} onReact={(key) => toggleReaction(message.id, key)} />

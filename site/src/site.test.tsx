@@ -4,7 +4,7 @@ import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderP
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
-import { docsPages, repositoryLink } from "./docs/pages";
+import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
@@ -219,7 +219,7 @@ describe("docs", () => {
     expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
   });
 
-  it("lists the components in the sidebar under a label per catalog group, with Start first and Guides last", async () => {
+  it("lists the components in the sidebar under a label per catalog group, with Start first, then Guides, and Platforms last", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/checklist/");
     // The sidebar is an island of its own (components/docs-shell.tsx), drawn once its chunk loads.
@@ -231,7 +231,7 @@ describe("docs", () => {
       expect(list.getByRole("link").elements().map((link) => link.textContent), group).toEqual(docsItems.filter((item) => item.group === group).map((item) => item.title));
     }
     const labels = docsSections().map((section) => section.label);
-    expect(labels).toEqual(["Start", ...groups, "Guides"]);
+    expect(labels).toEqual(["Start", ...groups, "Guides", "Platforms"]);
     await expect.element(nav.getByRole("link", { name: "Checklist", exact: true })).toHaveAttribute("aria-current", "page");
     // The sidebar scrolls on its own, opened where the current page and its group's label show.
     const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
@@ -397,12 +397,12 @@ describe("head tags", () => {
     for (const tag of [
       '<meta property="og:title" content="Sheet · Ouro HX" />',
       '<meta property="og:description" content="Install &quot;sheet&quot; &amp; go" />',
-      '<meta property="og:url" content="https://ui.ouro.bot/docs/sheet/" />',
-      '<meta property="og:image" content="https://ui.ouro.bot/og.png" />',
+      '<meta property="og:url" content="https://ui.ouroboros.bot/docs/sheet/" />',
+      '<meta property="og:image" content="https://ui.ouroboros.bot/og.png" />',
       '<meta property="og:image:width" content="1200" />',
       '<meta property="og:image:height" content="630" />',
       '<meta name="twitter:card" content="summary_large_image" />',
-      '<meta name="twitter:image" content="https://ui.ouro.bot/og.png" />',
+      '<meta name="twitter:image" content="https://ui.ouroboros.bot/og.png" />',
       '<meta property="og:site_name" content="Ouro HX" />',
       '<meta property="og:image:alt" content="Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it." />',
       '<meta name="twitter:image:alt" content="Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it." />',
@@ -477,6 +477,99 @@ describe("guides and exports without an item", () => {
     expect(first.href).toMatch(/^https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\//);
     const ref = document.querySelector<HTMLAnchorElement>("sup a[href^='#source-']")!;
     expect(document.getElementById(ref.getAttribute("href")!.slice(1))).not.toBeNull();
+  });
+});
+
+describe("platforms", () => {
+  it("has a page per file in docs/platforms at docs/platforms/<name>, the index at docs/platforms", () => {
+    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/windows", "platforms/your-platform", "platforms/contributing"]);
+    for (const doc of platformPages) {
+      expect(doc.group).toBe("Platforms");
+      expect(routes.find((route) => route.path === `/docs/${doc.name}/`)?.title).toBe(`${doc.title} · Ouro UI`);
+    }
+  });
+
+  it("lists the platforms last in the docs sidebar, a platform only ever after for", () => {
+    const platforms = docsSections().find((section) => section.label === "Platforms")!;
+    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "For Windows", "For your platform", "A guide for platform builders"]);
+    expect(platforms.items.map((item) => ("href" in item ? item.href : ""))).toEqual(platformPages.map((doc) => href(`/docs/${doc.name}/`)));
+  });
+
+  it("sets the platform after for in smaller, quieter type than the products' names", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/platforms/apple/");
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect.element(heading).toHaveTextContent("Ouro HX & AX for Apple");
+    const platform = heading.element().querySelector<HTMLElement>("[data-platform-for]")!;
+    expect(platform.textContent).toBe("for Apple");
+    expect(parseFloat(getComputedStyle(platform).fontSize)).toBeLessThan(parseFloat(getComputedStyle(heading.element()).fontSize));
+    await renderPage("/docs/platforms/contributing/");
+    expect(page.getByRole("heading", { level: 1 }).element().querySelector("[data-platform-for]")).toBeNull();
+  });
+
+  it("shows which core release each platform meets, in a table on the Platforms page", async () => {
+    await renderPage("/docs/platforms/");
+    // Each cell's text without its footnote marks.
+    const text = (cell: Element) => {
+      const copy = cell.cloneNode(true) as Element;
+      for (const mark of copy.querySelectorAll("sup")) mark.remove();
+      return copy.textContent!.trim();
+    };
+    const rows = [...document.querySelectorAll("main table tbody tr")].map((row) => [...row.querySelectorAll("td")].slice(0, 3).map(text));
+    expect(rows).toEqual([
+      ["For web", "v1.3.3", "core v0.3.0, for its tokens"],
+      ["For Apple", "v0.3.4", "core v0.3.0"],
+      ["For Android", "none yet", "none yet"],
+      ["For Windows", "none yet", "none yet"],
+    ]);
+  });
+
+  it("gives the Apple page its install line, and what is coming with Siri AI", async () => {
+    await renderPage("/docs/platforms/apple/");
+    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.3.4")');
+    for (const name of ["What ships today", "What is coming"]) await expect.element(page.getByRole("heading", { level: 2, name })).toBeVisible();
+    for (const words of ["Tool intents.", "App skills.", "SiriEvaluations.", "The App Intents X-ray."]) expect(document.body.innerText).toContain(words);
+  });
+
+  it.each([
+    ["android", "AppFunctions", "docs/platforms/android.md", "ouro-ui-android"],
+    ["windows", "On-device Agent Registry", "docs/platforms/windows.md", "ouro-ui-windows"],
+    ["your-platform", "MCP server", "docs/platforms/<platform>.md", "ouro-ui-<platform>"],
+  ])("gives the %s page its agent door, the contract and the way to propose it", async (name, door, file, repository) => {
+    await renderPage(`/docs/platforms/${name}/`);
+    const text = document.body.innerText;
+    expect(text).toContain(door);
+    await expect.element(page.getByRole("heading", { level: 2, name: "The contract" })).toBeVisible();
+    for (const part of ["Take its tokens from a pinned core release", "Meet Ouro HX's bar", "Pass Ouro AX's X-ray"]) expect(text).toContain(part);
+    await expect.element(page.getByRole("heading", { level: 2, name: "Propose it" })).toBeVisible();
+    expect(text).toContain(file);
+    expect(text).toContain(`we create ${repository}, import your work with its history, and make you a contributor`);
+  });
+
+  it("reads a numbered list as an ordered list, not as one paragraph", () => {
+    expect(parse("Steps:\n1. Take the tokens.\n2. Meet the bar.\n10. Pass the X-ray.\n\nAfter.")).toEqual([
+      { kind: "paragraph", text: "Steps:" },
+      { kind: "list", ordered: true, items: ["Take the tokens.", "Meet the bar.", "Pass the X-ray."] },
+      { kind: "paragraph", text: "After." },
+    ]);
+  });
+
+  it.each(["/docs/platforms/android/", "/docs/platforms/windows/", "/docs/platforms/your-platform/", "/docs/platforms/contributing/", "/docs/ax-eval/", "/docs/testing/"])(
+    "renders %s's numbered steps as list items, with no step run into a paragraph",
+    async (path) => {
+      await renderPage(path);
+      expect(document.querySelectorAll("main ol > li").length).toBeGreaterThan(1);
+      const runOn = [...document.querySelectorAll("main p")].filter((paragraph) => /(^|\s)\d+\. \S/.test(paragraph.textContent!) && /(^|\s)1\. /.test(paragraph.textContent!));
+      expect(runOn.map((paragraph) => paragraph.textContent)).toEqual([]);
+    },
+  );
+
+  it("publishes each platform page's Markdown with its links relative to where it is published", () => {
+    const apple = platformPages.find((doc) => doc.name === "platforms/apple")!;
+    const index = platformPages.find((doc) => doc.name === "platforms")!;
+    // docs/platforms/apple.md is published at docs/platforms/apple.md, the index at docs/platforms.md.
+    expect(publishedMarkdown("[up](README.md) [it](android.md) [guide](../guides/claims.md)", apple.file)).toBe("[up](../platforms.md) [it](android.md) [guide](../claims.md)");
+    expect(publishedMarkdown("[it](apple.md) [guide](../guides/claims.md)", index.file)).toBe("[it](platforms/apple.md) [guide](claims.md)");
   });
 });
 

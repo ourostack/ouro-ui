@@ -224,7 +224,7 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  * need exact figures more than the shape of the data.
  *
  * @group Data
- * @see https://ui.ouro.bot/docs/chart
+ * @see https://ui.ouroboros.bot/docs/chart
  *
  * @example
  * <Chart
@@ -354,7 +354,7 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
  * Use `Chart` instead in new code; it is the same component.
  *
  * @group Data
- * @see https://ui.ouro.bot/docs/chart
+ * @see https://ui.ouroboros.bot/docs/chart
  *
  * @example
  * <ChartContainer title="Recipes cooked" data={months} categoryKey="month" config={config}>
@@ -523,7 +523,7 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
  * itself. Use it only inside a recharts chart passed to `Chart` as children.
  *
  * @group Data
- * @see https://ui.ouro.bot/docs/chart
+ * @see https://ui.ouroboros.bot/docs/chart
  *
  * @example
  * <Chart title="Recipes cooked" data={months} categoryKey="month" config={config}>
@@ -556,7 +556,7 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
  * itself. Use it only inside a recharts chart passed to `Chart` as children.
  *
  * @group Data
- * @see https://ui.ouro.bot/docs/chart
+ * @see https://ui.ouroboros.bot/docs/chart
  *
  * @example
  * <Chart title="Recipes" data={months} categoryKey="month" config={config}>

@@ -9,7 +9,7 @@
 // every registry item's install message.
 // - A relative link names a tracked file, in the same letter case, and its #fragment a
 //   heading of that file.
-// - A https://ui.ouro.bot/ URL names a page the site publishes: a registry
+// - A https://ui.ouroboros.bot/ URL names a page the site publishes: a registry
 //   item's (site/src/docs/catalog.json), a guide's or another export's
 //   (site/src/docs/pages.json), or one of the fixed pages below.
 // - Every registry item with a docs page of its own has one, and every docs/*.md file is
@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-export const SITE = "https://ui.ouro.bot/";
+export const SITE = "https://ui.ouroboros.bot/";
 
 /** Site paths that are not a docs page: fixed pages, and what Pages adds beside the site (pages.yml). */
 const fixedPages = ["", "ax/", "docs", "docs/", "docs/parts.md", "docs/switching-from-shadcn/", "docs/updating/", "llms.txt", "og.png", "r/registry.json", "r/{name}.json"];
@@ -69,7 +69,7 @@ export function links(text) {
     if (inCode) return;
     const prose = line.replace(/`[^`]*`/g, (code) => (code.includes(SITE) ? code : ""));
     for (const match of prose.matchAll(/\]\(([^)\s]+)\)/g)) out.push({ target: match[1], line: index + 1 });
-    for (const match of prose.matchAll(/https:\/\/ui\.ouro\.bot\/[^\s)"'`<>,;]*/g)) {
+    for (const match of prose.matchAll(/https:\/\/ui\.ouroboros\.bot\/[^\s)"'`<>,;]*/g)) {
       const target = match[0].replace(/[.:]+$/, "");
       if (!out.some((link) => link.line === index + 1 && link.target === target)) out.push({ target, line: index + 1 });
     }

@@ -174,7 +174,7 @@ const optionClass =
  * command palette.
  *
  * @group Forms
- * @see https://ui.ouro.bot/docs/autocomplete
+ * @see https://ui.ouroboros.bot/docs/autocomplete
  * @claim "In a `Composer`, the Enter that picks" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > picks with Enter in a Composer without sending, and leaves the next Enter to send)
  * @claim "Only the list scrolls to show" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > scrolls only its own list to the active suggestion, never a box around it)
  * @claim "The text a pick inserted keeps" registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx verify:testExists(registry/ouro/components/ouro/autocomplete/autocomplete.test.tsx::Autocomplete > keeps a picked name closed when a selection change leaves it and comes back, as an app's update of the text can make, so the next Enter sends)

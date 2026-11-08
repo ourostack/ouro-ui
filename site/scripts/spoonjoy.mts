@@ -94,7 +94,7 @@ export function build(
 }
 
 async function text(url: string): Promise<string> {
-  const response = await fetch(url, { redirect: "manual", headers: { "user-agent": "ouro-ui-docs (+https://ui.ouro.bot/)" } });
+  const response = await fetch(url, { redirect: "manual", headers: { "user-agent": "ouro-ui-docs (+https://ui.ouroboros.bot/)" } });
   if (response.status !== 200) throw new Error(`${url} answered ${response.status}, not 200 (signed out)`);
   return response.text();
 }

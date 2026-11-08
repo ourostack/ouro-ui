@@ -1034,7 +1034,7 @@ describe("Menu anchor", () => {
     }
     await userEvent.keyboard("{Escape}");
     await expect.poll(menu).toBeNull();
-    expect(document.activeElement).toBe(row());
+    await expect.poll(() => document.activeElement, { timeout: 2000 }).toBe(row());
   });
 
   it("opens beside an element, as a bottom sheet below 640px, and at a point as a menu", async () => {

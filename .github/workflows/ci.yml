@@ -52,12 +52,12 @@ jobs:
     # merge-queue entry, push to main, dispatched run and release branch runs it in full.
     #
     # On a pull request, the plan first yields to the merge queue (scripts/ci-yield.mjs): while a
-    # merge group's run has a job waiting for a runner, it waits, up to 20 minutes, before any of
+    # merge group's run has a job waiting for a runner, it waits, up to 10 minutes and not at all when the plan itself waited 5 or more for its runner (the pool is full, and the wait only idles this one), before any of
     # this run's jobs queue, so the queue's jobs take the organisation's shared runners first. It
     # fails open, and ci-budget leaves the wait out of the critical path. Its time limit is the
-    # yield's 22 minutes and the plan's own 8 on a pull request, and its own 10 on every other run, which never yields.
+    # yield's 12 minutes and the plan's own 8 on a pull request, and its own 10 on every other run, which never yields.
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 10 }}
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 10 }}
     permissions:
       actions: read
       contents: read
@@ -108,7 +108,7 @@ jobs:
       - name: Yield to the merge queue
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        timeout-minutes: 22
+        timeout-minutes: 12
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-yield.mjs
@@ -1528,7 +1528,7 @@ jobs:
     needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read

@@ -640,7 +640,7 @@ function MoreEntry({
  * `Navbar` for a few links across the top.
  *
  * @group Navigation
- * @see https://ui.ouro.bot/docs/navigation-rail
+ * @see https://ui.ouroboros.bot/docs/navigation-rail
  * @claim "The vertical bar of" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail > is a labelled navigation with a list of links, each named by its label, with the icons hidden)
  * @claim "The vertical bar of" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail > shows the current item's bar on the rail's start edge, its label in the foreground colour and its icon in the primary colour)
  * @claim "The vertical bar of" registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail > draws the current item's currentIcon, and its icon when it has none)

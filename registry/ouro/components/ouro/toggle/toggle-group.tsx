@@ -153,7 +153,7 @@ function asList(value: string | null | readonly string[] | undefined): readonly 
  * one `Toggle` for a single on/off button.
  *
  * @group Actions
- * @see https://ui.ouro.bot/docs/toggle-group
+ * @see https://ui.ouroboros.bot/docs/toggle-group
  *
  * @example
  * <ToggleGroup

@@ -102,7 +102,7 @@ const defaultLast = (time: string) => `Last reply ${time}`;
  * an action that is not about a thread, and `AvatarGroup` alone to show who is in something.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/thread-summary
+ * @see https://ui.ouroboros.bot/docs/thread-summary
  *
  * @example
  * <ThreadSummary count={thread.replies.length} repliers={thread.repliers} lastReply={formatTime(thread.lastReplyAt)} onOpen={() => openThread(thread.id)} />

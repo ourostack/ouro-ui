@@ -390,7 +390,7 @@ function columnWarnings(columns: readonly (TableColumnBase & { key: string })[])
  * on a server or by more than one column, control `sort` and pass the rows in that order.
  *
  * @group Data
- * @see https://ui.ouro.bot/docs/table
+ * @see https://ui.ouroboros.bot/docs/table
  *
  * @example
  * <Table

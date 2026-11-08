@@ -177,7 +177,7 @@ function place(track: HTMLElement): Map<string, number> {
  * @claim "It declares no actions: turning captions" registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > declares one agent read, the captions, behind listening consent and a filtered push, and no actions)
  * @claim "Its agent side, `liveCaptionsAx` in `live-captions-styles.ts`," registry/ouro/components/ouro/live-captions/live-captions.test.tsx verify:testExists(registry/ouro/components/ouro/live-captions/live-captions.test.tsx::LiveCaptions > declares one agent read, the captions, behind listening consent and a filtered push, and no actions)
  * @group Display
- * @see https://ui.ouro.bot/docs/live-captions
+ * @see https://ui.ouroboros.bot/docs/live-captions
  *
  * @example
  * <LiveCaptions label="Captions" hideLabel lines={[{ id: "1", speaker: "Mara Lind", text: "Shall we start?", final: true }]} />

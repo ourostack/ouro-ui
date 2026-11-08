@@ -51,7 +51,7 @@ import { componentsDir, MANIFEST, readComponents } from "./components.mts";
 import { treeFiles } from "./tree.mjs";
 
 const REPO = "ourostack/ouro-ui";
-const DOCS_URL = "https://ui.ouro.bot/docs";
+const DOCS_URL = "https://ui.ouroboros.bot/docs";
 
 /** Components, from each folder's component.json (scripts/components.mts): item name, folder, file stem, export name. */
 const components = readComponents();
@@ -789,7 +789,7 @@ export function buildRegistry(root: string): Registry {
   return {
     $schema: "https://ui.shadcn.com/schema/registry.json",
     name: "ouro",
-    homepage: "https://ui.ouro.bot/",
+    homepage: "https://ui.ouroboros.bot/",
     items,
   };
 }

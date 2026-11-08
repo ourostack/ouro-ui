@@ -142,7 +142,7 @@ function label(key: string, platform: Platform): { text: string; name: string | 
  * Use plain `Text` instead for a key named in prose that isn't a shortcut to press.
  *
  * @group Text
- * @see https://ui.ouro.bot/docs/kbd
+ * @see https://ui.ouroboros.bot/docs/kbd
  * @claim "and draw as text even where" registry/ouro/components/ouro/kbd/kbd.test.tsx verify:testExists(registry/ouro/components/ouro/kbd/kbd.test.tsx::Kbd > draws a key that is also an emoji as text)
  *
  * @example

@@ -129,7 +129,7 @@ function useAutoHide(enabled: boolean, bars: RefObject<HTMLDivElement | null>): 
  * sign-in pages.
  *
  * @group Navigation
- * @see https://ui.ouro.bot/docs/stacked-layout
+ * @see https://ui.ouroboros.bot/docs/stacked-layout
  *
  * @example
  * <StackedLayout
