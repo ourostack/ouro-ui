@@ -85,3 +85,38 @@ export async function pressTab(page: Page, { shift = false }: { shift?: boolean 
   const webkitOnMac = process.platform === "darwin" && page.context().browser()?.browserType().name() === "webkit";
   await page.keyboard.press(`${shift ? "Shift+" : ""}${webkitOnMac ? "Alt+" : ""}Tab`);
 }
+
+/**
+ * Whether a tap still raises a click on an element that cancels pointerdown, as a phone's browser
+ * does (Base UI's list items cancel it to keep focus in their input). The WebKit that
+ * Playwright 1.63 drives drops that click: https://github.com/microsoft/playwright/issues/43569,
+ * fixed from WebKit r2386 (Playwright 1.65 has r2388). This taps a probe that cancels
+ * pointerdown, then a plain one: the plain tap's click comes after any click of the first, so once
+ * it lands the answer is known, without waiting a set time for a click that may never come. Call
+ * it after `openStory` and before the spec opens anything: the probes sit over the page's
+ * top-left corner until it returns.
+ */
+export async function tapKeepsCancelledClick(page: Page): Promise<boolean> {
+  await page.evaluate(() => {
+    for (const cancels of [true, false]) {
+      const probe = document.createElement("button");
+      probe.type = "button";
+      probe.textContent = cancels ? "Cancelled probe" : "Plain probe";
+      probe.dataset["ouroTapProbe"] = cancels ? "cancelled" : "plain";
+      probe.dataset["clicks"] = "0";
+      Object.assign(probe.style, { position: "fixed", top: "0", left: cancels ? "0" : "60px", width: "48px", height: "48px", zIndex: "2147483647" });
+      if (cancels) probe.addEventListener("pointerdown", (event) => event.preventDefault());
+      probe.addEventListener("click", () => (probe.dataset["clicks"] = String(Number(probe.dataset["clicks"]) + 1)));
+      document.body.append(probe);
+    }
+  });
+  await page.locator('[data-ouro-tap-probe="cancelled"]').tap();
+  await page.locator('[data-ouro-tap-probe="plain"]').tap();
+  await page.waitForFunction(() => document.querySelector<HTMLElement>('[data-ouro-tap-probe="plain"]')?.dataset["clicks"] === "1");
+  return page.evaluate(() => {
+    const probes = [...document.querySelectorAll<HTMLElement>("[data-ouro-tap-probe]")];
+    const kept = probes.find((probe) => probe.dataset["ouroTapProbe"] === "cancelled")?.dataset["clicks"] === "1";
+    for (const probe of probes) probe.remove();
+    return kept;
+  });
+}

@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory, pressTab } from "./story";
+import { openStory, pressTab, tapKeepsCancelledClick } from "./story";
 
 test("typing filters the list, and Enter picks the highlighted item", async ({ page }) => {
   await openStory(page, "forms-combobox--modes");
@@ -32,17 +32,23 @@ test("allowCustomValue keeps free text", async ({ page }) => {
 test.describe("by touch on a phone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("a tap on the button opens the sheet, and a tap on an item picks it", async ({ page, browserName }) => {
-    // An item cancels pointerdown (Base UI's), so the search input keeps focus. WebKit, as
-    // Playwright drives it, then raises no click from a tap, though Pointer Events keeps the
-    // click: https://github.com/microsoft/playwright/issues/43569. This fails while that stands.
-    test.fail(browserName === "webkit", "Playwright's WebKit tap raises no click after a cancelled pointerdown (microsoft/playwright#43569)");
+  test("a tap on the button opens the sheet, and a tap on an item picks it", async ({ page }) => {
     await openStory(page, "forms-combobox--modes");
+    const keepsClick = await tapKeepsCancelledClick(page);
     // With a coarse pointer on a narrow screen, the field is a button that opens a sheet.
     const herb = page.getByRole("combobox", { name: "Herb", exact: true });
     await herb.tap();
     await expect(page.getByRole("dialog", { name: "Herb" })).toBeVisible();
-    await page.getByRole("option", { name: "Rosemary" }).tap();
+    const rosemary = page.getByRole("option", { name: "Rosemary" });
+    await rosemary.evaluate((item) => item.addEventListener("pointerup", () => item.setAttribute("data-tapped", ""), { once: true }));
+    await rosemary.tap();
+    // An item cancels pointerdown (Base UI's), so the search input keeps focus; a phone still
+    // raises the tap's click. Where Playwright's WebKit drops it (tapKeepsCancelledClick), the
+    // spec checks the tap reached the item, then raises the one click the tap lost.
+    if (!keepsClick) {
+      await expect(rosemary).toHaveAttribute("data-tapped", "");
+      await rosemary.dispatchEvent("click");
+    }
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(herb).toContainText("Rosemary");
   });
