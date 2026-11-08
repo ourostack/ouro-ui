@@ -1,4 +1,5 @@
 import { createRef, useState, type ReactNode, type SVGProps } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,6 +8,7 @@ import { Toolbar, type ToolbarEntry, type ToolbarProps } from "@/registry/ouro/c
 import { fitCount, splitEntries } from "@/registry/ouro/components/ouro/toolbar/toolbar-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -23,6 +25,8 @@ async function render(node: ReactNode, width?: number) {
   return {
     host,
     rerender: (next: ReactNode) => act(async () => root.render(next)),
+    // Commits at once and returns before any observer reports, so only the commit's own reads show.
+    commit: (next: ReactNode) => flushSync(() => root.render(next)),
     get toolbar() {
       return host.querySelector<HTMLElement>('[data-ouro="toolbar"]')!;
     },
@@ -344,6 +348,248 @@ describe("Toolbar", () => {
 });
 
 describe("Toolbar overflow", () => {
+  it("lays nothing out when it renders again with new items that look the same, and measures again when a label changes", async () => {
+    const same = () => formatting.map((entry) => (entry.type === "group" ? { ...entry, items: entry.items.map((item) => ({ ...item })) } : { ...entry }));
+    const { rerender, buttons } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
+    // The resize observer reports the row a frame later, and measures then, where layout is free.
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    for (let count = 0; count < 5; count++) {
+      const reads = watchLayoutReads();
+      await rerender(<Toolbar label="Formatting" size="sm" items={same().map((entry) => (entry.type === "toggle" ? { ...entry, pressed: count % 2 === 0, onPressedChange: () => {} } : entry))} />);
+      reads.stop();
+      expect(reads.names()).toEqual([]);
+    }
+    const before = names(buttons);
+    const renamed = same().map((entry) => (entry.type === "toggle" && entry.label === "Bold" ? { ...entry, label: "Strong text", hideLabel: false } : entry));
+    const reads = watchLayoutReads();
+    await rerender(<Toolbar label="Formatting" size="sm" items={renamed} />);
+    reads.stop();
+    expect(reads.names().length).toBeGreaterThan(0);
+    expect(names(buttons)).not.toEqual(before);
+  });
+
+  it("measures again for each thing that decides an entry's width: its type, label, label shown, icon, and a group's label and controls", async () => {
+    const base = (): ToolbarEntry[] => [
+      { type: "toggle", label: "Bold", icon: Icon, hideLabel: true },
+      { label: "Link", icon: Icon, hideLabel: true },
+      { type: "separator" },
+      { label: "Quote" },
+      { type: "group", label: "Lists", items: [{ label: "Bulleted", icon: Icon, hideLabel: true }, { label: "Numbered" }] },
+    ];
+    const edits: Record<string, (items: ToolbarEntry[]) => ToolbarEntry[]> = {
+      "a type": (items) => [{ label: "Bold", icon: Icon, hideLabel: true }, ...items.slice(1)],
+      "a label": (items) => [items[0]!, { label: "Hyperlink", icon: Icon, hideLabel: true }, ...items.slice(2)],
+      "a label shown": (items) => [items[0]!, { label: "Link", icon: Icon }, ...items.slice(2)],
+      "an icon": (items) => [items[0]!, { label: "Link", hideLabel: true }, ...items.slice(2)],
+      "a separator for a control": (items) => [items[0]!, items[1]!, { label: "Divide" }, ...items.slice(3)],
+      "a control for a separator": (items) => [...items.slice(0, 3), { type: "separator" }, items[4]!],
+      "a group's label": (items) => [...items.slice(0, 4), { type: "group", label: "Items", items: (items[4] as unknown as { items: Extract<ToolbarEntry, { type: "group" }>["items"] }).items }],
+      "a group's control": (items) => [...items.slice(0, 4), { type: "group", label: "Lists", items: [{ label: "Bulleted", icon: Icon, hideLabel: true }, { label: "Ordered" }] }],
+      "a group's control's icon": (items) => [...items.slice(0, 4), { type: "group", label: "Lists", items: [{ label: "Bulleted", hideLabel: true }, { label: "Numbered" }] }],
+    };
+    for (const [name, edit] of Object.entries(edits)) {
+      const { commit } = await render(<Toolbar label="Formatting" size="sm" items={base()} />, 400);
+      await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      // Only the measuring reads the More button's width inside a commit; entries that mount read for other reasons.
+      const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
+      commit(<Toolbar label="Formatting" size="sm" items={edit(base())} />);
+      const more = measured.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
+      measured.mockRestore();
+      expect(more, name).toBeGreaterThan(0);
+    }
+  });
+
+  const fontFace = (name: string, adjust: string) =>
+    new FontFace(name, 'local("DejaVu Sans"), local("Helvetica"), local("Arial"), local("Liberation Sans")', { sizeAdjust: adjust } as FontFaceDescriptors);
+
+  it("measures its entries again when a font loads, so a face that widens the labels moves the controls that no longer fit into More", async () => {
+    const face = fontFace("OuroToolbarWide", "300%");
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(
+      <div lang="zxx" style={{ fontFamily: "OuroToolbarWide, sans-serif" }}>
+        <Toolbar label="Formatting" size="sm" items={items} />
+      </div>,
+      560,
+    );
+    expect(view.more).toBeNull();
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    document.fonts.add(face);
+    try {
+      await act(async () => {
+        await face.load();
+        await document.fonts.ready;
+      });
+      await expect.poll(() => view.more).not.toBeNull();
+    } finally {
+      document.fonts.delete(face);
+    }
+  });
+
+  it("measures its entries again when a font loads that is narrower, so a control that was in More comes back into the row", async () => {
+    const face = fontFace("OuroToolbarNarrow", "40%");
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(
+      <div lang="zxx" style={{ fontFamily: "OuroToolbarNarrow, sans-serif" }}>
+        <Toolbar label="Formatting" size="sm" items={items} />
+      </div>,
+      230,
+    );
+    expect(view.more).not.toBeNull();
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    document.fonts.add(face);
+    try {
+      await act(async () => {
+        await face.load();
+        await document.fonts.ready;
+      });
+      await expect.poll(() => view.more).toBeNull();
+    } finally {
+      document.fonts.delete(face);
+    }
+  });
+
+  const frames = () => act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  // Only the measuring reads the More button's width, so these reads count the times the entries were measured.
+  const measuredWhile = async (change: () => Promise<void> | void) => {
+    const spy = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    try {
+      await change();
+      await frames();
+      return spy.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
+    } finally {
+      spy.mockRestore();
+    }
+  };
+
+  it("measures its entries again when a font starts loading, even when no entry changes size", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    await frames();
+    const measured = await measuredWhile(() => act(async () => {
+      document.fonts.dispatchEvent(new Event("loading"));
+      await document.fonts.ready;
+    }));
+    expect(measured).toBeGreaterThan(0);
+  });
+
+  it("measures its entries again when any one of them changes size, not only when all do", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    expect(view.more).toBeNull();
+    await frames();
+    const wide = view.host.querySelectorAll<HTMLElement>("[data-ouro-toolbar-entry]")[1]!;
+    wide.style.flexShrink = "0";
+    wide.style.minWidth = "500px";
+    await expect.poll(() => view.more).not.toBeNull();
+  });
+
+  it("does not measure again for an entry that changed by half a pixel, and does for more than that", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    await frames();
+    const entry = view.host.querySelector<HTMLElement>("[data-ouro-toolbar-entry]")!;
+    const width = entry.getBoundingClientRect().width;
+    entry.style.flexShrink = "0";
+    entry.style.boxSizing = "border-box";
+    const half = await measuredWhile(() => {
+      entry.style.width = `${width + 0.5}px`;
+    });
+    expect(half).toBe(0);
+    const more = await measuredWhile(() => {
+      entry.style.width = `${width + 2}px`;
+    });
+    expect(more).toBeGreaterThan(0);
+  });
+
+  it("measures its entries again when the text grows without the row resizing, as with a larger root font size", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    expect(view.more).toBeNull();
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    document.documentElement.style.fontSize = "48px";
+    try {
+      await expect.poll(() => view.more).not.toBeNull();
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
+  it("measures its entries again when the text shrinks without the row resizing, and shows the entries that fit again", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    document.documentElement.style.fontSize = "48px";
+    try {
+      const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+      await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      expect(view.more).not.toBeNull();
+      const shown = names(view.buttons.filter((button) => button !== view.more)).length;
+      document.documentElement.style.fontSize = "";
+      await expect.poll(() => view.more).toBeNull();
+      expect(view.buttons).toHaveLength(4);
+      expect(shown).toBeLessThan(4);
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
+  it("measures its entries again for every change in the text, not only the first", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    try {
+      document.documentElement.style.fontSize = "48px";
+      await expect.poll(() => view.more).not.toBeNull();
+      document.documentElement.style.fontSize = "";
+      await expect.poll(() => view.more).toBeNull();
+      document.documentElement.style.fontSize = "48px";
+      await expect.poll(() => view.more).not.toBeNull();
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
+  it("measures its entries again for every font that starts loading, not only the first", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    await frames();
+    for (let load = 0; load < 2; load++) {
+      const measured = await measuredWhile(() => act(async () => {
+        document.fonts.dispatchEvent(new Event("loading"));
+        await document.fonts.ready;
+      }));
+      expect(measured).toBeGreaterThan(0);
+    }
+  });
+
+  it("listens for fonts once, and lets go of its listener and its observer when it unmounts", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic"].map((label) => ({ label }));
+    const added = vi.spyOn(document.fonts, "addEventListener");
+    const removed = vi.spyOn(document.fonts, "removeEventListener");
+    const Native = window.ResizeObserver;
+    const made: ResizeObserver[] = [];
+    window.ResizeObserver = class extends Native {
+      constructor(callback: ResizeObserverCallback) {
+        super(callback);
+        made.push(this);
+      }
+    };
+    const disconnected = vi.spyOn(Native.prototype, "disconnect");
+    try {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      await act(async () => root.render(<Toolbar label="Formatting" size="sm" items={items} />));
+      await act(async () => root.render(<Toolbar label="Formatting" size="sm" items={[...items]} />));
+      expect(added.mock.calls.filter(([type]) => type === "loading")).toHaveLength(1);
+      await act(async () => root.unmount());
+      expect(removed.mock.calls.filter(([type]) => type === "loading")).toHaveLength(1);
+      expect(made.length).toBeGreaterThan(0);
+      for (const observer of made) expect(disconnected.mock.contexts).toContain(observer);
+    } finally {
+      window.ResizeObserver = Native;
+    }
+  });
+
   it("moves the controls that do not fit into a More menu at the end", async () => {
     const { buttons, more } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
     expect(more).not.toBeNull();
