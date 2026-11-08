@@ -362,7 +362,7 @@ const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${mi
  * list of events.
  *
  * @group Data
- * @see https://ui.ouro.bot/docs/time-grid
+ * @see https://ui.ouroboros.bot/docs/time-grid
  *
  * @example
  * <TimeGrid

@@ -8,9 +8,11 @@
 
 Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
-**[See it live: ui.ouro.bot](https://ui.ouro.bot/)**, with the [docs](https://ui.ouro.bot/docs/) and [Storybook](https://ui.ouro.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
+**[See it live: ui.ouroboros.bot](https://ui.ouroboros.bot/)**, with the [docs](https://ui.ouroboros.bot/docs/) and [Storybook](https://ui.ouroboros.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
-**Check what you built first.** Build your app, run `node lib/ouro/check/check.ts <built folder>` (from the `ouro-check` item) and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check stopped before it finished), `2` usage, `3` findings to fix.[^exit-codes]
+The site moved from ui.ouro.bot to ui.ouroboros.bot.[^host] Old addresses still land, forwarded to the same path on the new host, but new links use ui.ouroboros.bot.
+
+**Check what you built first.** Build your app, run `node lib/ouro/check/check.ts <built folder>` (from the `ouro-check` item) and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouroboros.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check stopped before it finished), `2` usage, `3` findings to fix.[^exit-codes]
 
 Ouro HX is the component library within Ouro UI. [Ouro AX](#ouro-ax), its counterpart for the interfaces agents use, is the other half. The repository, `@ouro` namespace and install addresses are unchanged.
 
@@ -20,7 +22,7 @@ npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.6' # read one item
 npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6    # install it
 ```
 
-A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.6`, `github:` and `/tree/` URLs don't work. The same commands and the item list, for agents: [llms.txt](https://ui.ouro.bot/llms.txt).
+A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.6`, `github:` and `/tree/` URLs don't work. The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
 
 Ouro HX is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes.[^tailwind-4] Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
@@ -102,10 +104,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 ### Details
 
 - Every install needs a release tag: `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.6`, or the `@ouro` namespace below.[^main-no-registry] The CLI reads `registry.json` at this repository's root at the ref you give, and only a [release](https://github.com/ourostack/ouro-ui/releases) commit has one: a tag such as `#v1.3.6` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag.[^release-pins] Without a ref, or with a branch or a commit, the CLI stops with "did not return a root registry.json file", because `main` commits none.[^main-no-registry]
-- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ui.ouro.bot/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/ouro-base @ouro/dialog` (`@ouro/ouro-base` once per app, as above). The namespace serves the newest release, the same code as `#v1.3.6`.[^namespace]
+- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ui.ouroboros.bot/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/ouro-base @ouro/dialog` (`@ouro/ouro-base` once per app, as above). The namespace serves the newest release, the same code as `#v1.3.6`.[^namespace]
 - Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the helpers they import in `lib/ouro/`, one file each: a component installs only the helpers it imports.[^lands] No component installs `ouro-base`; you add it once, as above.[^ouro-base-only] If you skip it, overlays have no backdrop or motion and fields no border, and in development the first Ouro HX component to mount logs the command to run.[^theme-check]
 - `init` is shadcn's: it writes `lib/utils.ts` and adds `cn`, `class-variance-authority`, `lucide-react` and `tw-animate-css`. Ouro HX doesn't use them; keep them for shadcn components. Ouro never writes to `components/ui/`, so don't pass `--overwrite` on a first install.[^not-ui]
-- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, with the tests of everything the component installs[^tests-closure]: `npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6 ourostack/ouro-ui/dialog-tests#v1.3.6`. CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union (the [Testing guide](https://ui.ouro.bot/docs/testing/) lists the forms set).[^subsets] Other items receive their full test dependency closure but are not measured individually. `ouro-tests` adds every component with all of its tests in one command.[^ouro-tests] The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
+- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, with the tests of everything the component installs[^tests-closure]: `npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6 ourostack/ouro-ui/dialog-tests#v1.3.6`. CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union (the [Testing guide](https://ui.ouroboros.bot/docs/testing/) lists the forms set).[^subsets] Other items receive their full test dependency closure but are not measured individually. `ouro-tests` adds every component with all of its tests in one command.[^ouro-tests] The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
 - The tests need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later.[^minimums] Ouro HX's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] A `-tests` item names those tools without a version, so the CLI installs one only when your app lacks it and never changes a version you have.[^test-versions] v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`).[^v0.7.0] [Testing](docs/guides/testing.md) has the requirements, what to do on Vitest 4, and how to find Ouro HX's fields in your own tests.[^testing-guide]
 - In a Vite or React Router app the components keep their `"use client";` line, which is harmless there. [Installing](docs/guides/installing.md#vite-and-react-router-apps-the-use-client-notice) says why, and how to drop Rollup's notice about it.
 - For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v1.3.6`. Skip it to keep your app's shadcn theme.
@@ -381,11 +383,12 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-work-event`,
 `ax-xray`.
 
-Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop, and `ouro-images`, which writes your pictures at the widths a srcset needs ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).
+Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop, and `ouro-images`, which writes your pictures at the widths a srcset needs ([Guardrails guide](https://ui.ouroboros.bot/docs/guardrails/)).
 
 Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):
 `lib-announce`,
 `lib-appearance-hints`,
+`lib-celebration-cap`,
 `lib-claims`,
 `lib-class-name-check`,
 `lib-cn`,
@@ -442,7 +445,7 @@ No component imports `lib-claims`: add it by name to mark your own copy's claims
 
 ## For agents
 
-Before you call a screen done, run `node lib/ouro/check/check.ts <built folder>` and fix what it reports ([the screen check](https://ui.ouro.bot/docs/guardrails/#the-screen-check)).
+Before you call a screen done, run `node lib/ouro/check/check.ts <built folder>` and fix what it reports ([the screen check](https://ui.ouroboros.bot/docs/guardrails/#the-screen-check)).
 
 Each component has a page in `docs/` with its purpose, an example, every prop, its modes and what to use instead.[^docs-pages] The same text is in the JSDoc, so your editor shows it on hover.
 
@@ -733,6 +736,7 @@ MIT
 [^not-ui]: scripts/install-check.mjs; .github/workflows/ci.yml verify:fileLine(scripts/install-check.mjs, /an Ouro item landed in components\/ui/) verify:ciJob(ci.yml#install)
 [^test-versions]: test:scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
 [^cn-wins]: test:registry/ouro/lib/ouro/cn.test.ts::lets a later class win over an earlier one that sets the same property verify:testExists(registry/ouro/lib/ouro/cn.test.ts::lets a later class win over an earlier one that sets the same property)
+[^host]: site/src/head.ts verify:fileLine(site/src/head.ts, /SITE = "https:\/\/ui\.ouroboros\.bot"/)
 [^spoonjoy]: site/scripts/spoonjoy.mts verify:fileLine(site/src/pages/docs.tsx, /<InSpoonjoy name=\{item\.name\} \/>/) verify:testExists(site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub)
 [^exit-codes]: test:scripts/check/check.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings verify:testExists(scripts/check/check.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings)
 [^long-lines]: test:scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements verify:testExists(scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements)

@@ -12,7 +12,7 @@
 export const TWO_SHIPS = {
   eyebrow: "Showcases",
   title: "Two ships, same parts.",
-  intro: "One is a story we made up to show the parts off. The other is a real recipe app you can open and X-ray.",
+  intro: "Two of the many in the harbour. One is a story we made up to show the parts off; the other is a real recipe app you can open and X-ray.",
   nautilus: {
     title: "The Nautilus: built for the story.",
     body: "Captain Nemo is building a submarine in secret. Help him get her ready to dive, with controls built from Ouro HX.",
@@ -21,10 +21,18 @@ export const TWO_SHIPS = {
   },
   spoonjoy: {
     title: "Spoonjoy: built for dinner.",
-    body: "A recipe app with a look of its own. Open its Test Kitchen, then turn on X-ray to see the Ouro HX parts inside.",
+    body: "A recipe app with a look of its own, already cooking in production. Open its Test Kitchen, then turn on X-ray to see the Ouro HX parts inside.",
     open: "Try the Test Kitchen",
     xray: "X-ray it",
     source: "Source",
+    /** The X-ray screenshot (site/showcase/provenance.json), its caption from ouroboros.bot/ouro-hx/, which this section replaced. */
+    shot: {
+      alt: {
+        light: "Spoonjoy's Crispy Lemon Chickpeas recipe with X-ray on: the navbar, a number field, a button and a checklist are outlined and labeled with their Ouro HX component names.",
+        dark: "Spoonjoy's Crispy Lemon Chickpeas recipe in dark mode with X-ray on: the navbar, a number field, a button and a checklist are outlined and labeled with their Ouro HX component names.",
+      },
+      caption: "The Test Kitchen with X-ray on: the outlined parts wear their Ouro HX name tags. Real app, real recipe, real chickpeas.",
+    },
   },
 } as const;
 

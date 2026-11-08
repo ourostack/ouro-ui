@@ -197,7 +197,7 @@ const arrows: readonly string[] = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowD
  * @claim "With reduced motion it jumps straight" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > jumps to its corner with reduced motion, with no lift and no rubberband)
  * @claim "Its agent side, `snapPipAx` in `snap-pip-styles.ts`," registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > declares no agent reads and one move only the person makes, on the picture)
  * @group Layout
- * @see https://ui.ouro.bot/docs/snap-pip
+ * @see https://ui.ouroboros.bot/docs/snap-pip
  *
  * @example
  * <div className="relative h-dvh">

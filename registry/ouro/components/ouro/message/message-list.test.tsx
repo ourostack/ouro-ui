@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -3376,6 +3376,44 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="mara" keyed={false} items={[]} />);
     await list.commit(<Switcher open="mara" keyed={false} count={60} />);
     expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
+  it("opens a conversation with its newest message in view in the first frame when its long messages fold shorter in the same task, as behind See more", async () => {
+    // A message that, once drawn, measures itself and folds to two lines when it is longer: a render that comes after the list
+    // opened at its end.
+    function Folding({ text }: { text: string }) {
+      const ref = useRef<HTMLDivElement>(null);
+      const [folded, setFolded] = useState(false);
+      useLayoutEffect(() => setFolded(ref.current!.offsetHeight > 40), []);
+      return (
+        <div ref={ref} style={folded ? { maxHeight: 40, overflow: "hidden" } : undefined}>
+          {text}
+        </div>
+      );
+    }
+    const items = conversation("mara", 20);
+    const list = mount();
+    // What the first frame after the press shows, read as an app's own frame callback reads it: before the browser lays out.
+    const first = new Promise<{ end: number; newest: boolean }>((resolve) =>
+      requestAnimationFrame(() => {
+        const view = list.scroller.getBoundingClientRect();
+        const newest = document.getElementById(String(items.at(-1)!.id))!.getBoundingClientRect();
+        const content = list.scroller.querySelector("[data-ouro-message-list-content]")!.getBoundingClientRect();
+        resolve({ end: content.bottom - view.bottom, newest: newest.top >= view.top && newest.bottom <= view.bottom });
+      }),
+    );
+    await list.commit(
+      <MessageList key="mara" label="Chat with mara" style={{ height: 300 }}>
+        {items.map((item) => (
+          <Message key={item.id} id={String(item.id)} role={item.role} name="mara">
+            <Folding text={`${item.text} ${"and more of it ".repeat(40)}`} />
+          </Message>
+        ))}
+      </MessageList>,
+    );
+    const frame = await first;
+    expect(Math.abs(frame.end)).toBeLessThanOrEqual(1);
+    expect(frame.newest).toBe(true);
   });
 
   /** Scrolls the list up from its end by `by`, as a reader does, and waits for it to settle. */

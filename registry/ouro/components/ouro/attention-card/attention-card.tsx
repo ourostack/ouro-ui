@@ -76,7 +76,7 @@ const open =
  * the app itself, and `Item` for a row in a plain list.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/attention-card
+ * @see https://ui.ouroboros.bot/docs/attention-card
  *
  * @example
  * <AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ana Lind" time="9:41" onOpen={open}>

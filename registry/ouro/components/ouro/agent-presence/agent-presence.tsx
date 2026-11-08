@@ -179,7 +179,7 @@ function Sparkle(): JSX.Element {
  * @claim "Stop on another agent's row and Stop" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
  * @claim "It offers no way to start listening" registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx verify:testExists(registry/ouro/components/ouro/agent-presence/agent-presence.test.tsx::AgentPresence agent side > declares one read, a stop an agent takes only on its own row, and Stop all as the person's, each on a control that names it, and nothing that starts listening)
  * @group Feedback
- * @see https://ui.ouro.bot/docs/agent-presence
+ * @see https://ui.ouroboros.bot/docs/agent-presence
  *
  * @example
  * <AgentPresence

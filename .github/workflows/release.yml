@@ -265,7 +265,7 @@ jobs:
             echo 'Or through the `@ouro` namespace, which serves the newest release: this one, once main is prepared for the next release. Add it to `components.json` once:'
             echo
             echo '```json'
-            echo '"registries": { "@ouro": "https://ui.ouro.bot/r/{name}.json" }'
+            echo '"registries": { "@ouro": "https://ui.ouroboros.bot/r/{name}.json" }'
             echo '```'
             echo
             echo '```sh'
@@ -277,7 +277,7 @@ jobs:
             cat "$RUNNER_TEMP/rehearsal.md"
             echo
             # By name only: with every description the list alone outgrew GitHub's limit.
-            echo "Items, by name. The [docs](https://ui.ouro.bot/docs/) describe each component, and the tag's [registry.json](https://github.com/$GITHUB_REPOSITORY/blob/$TAG/registry.json) holds every item's description:"
+            echo "Items, by name. The [docs](https://ui.ouroboros.bot/docs/) describe each component, and the tag's [registry.json](https://github.com/$GITHUB_REPOSITORY/blob/$TAG/registry.json) holds every item's description:"
             echo
             jq -r '[.items[] | "`\(.name)`"] | join(", ")' registry.json
           } > "$RUNNER_TEMP/notes.md"

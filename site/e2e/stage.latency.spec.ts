@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
-import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } from "./latency";
+import { LATENCY, expectWithinBudget, measure, measureCalmly, medianCeiling, type Presses } from "./latency";
 
 // Each stage control answers within budget, click to next paint, on a slower CPU: latency.ts holds
 // the budget (of 20 presses after two warm-ups at 4× throttle, the p95 within 100 ms and the median
@@ -83,8 +83,11 @@ test.describe("interaction latency", () => {
   for (const id of STAGE_CONTROLS) {
     test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
-      await open(page);
-      expectWithinBudget(id, await measure(page, id, controls[id](page)), BASELINE_MEDIAN[id]);
+      const take = async () => {
+        await open(page);
+        return measure(page, id, controls[id](page));
+      };
+      expectWithinBudget(id, await measureCalmly(id, take, BASELINE_MEDIAN[id]), BASELINE_MEDIAN[id]);
     });
   }
 });

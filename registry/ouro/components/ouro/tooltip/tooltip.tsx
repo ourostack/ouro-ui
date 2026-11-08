@@ -89,7 +89,7 @@ function essential(detail: string): readonly [string, string] {
  * ouro-base.css), like Dialog and Sheet.
  *
  * @group Overlays
- * @see https://ui.ouro.bot/docs/tooltip
+ * @see https://ui.ouroboros.bot/docs/tooltip
  *
  * On a button that opens a Popover, Dialog or Menu, put the Tooltip inside that
  * component's `trigger`, never around the component: the Tooltip passes the trigger

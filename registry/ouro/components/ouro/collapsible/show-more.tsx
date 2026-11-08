@@ -27,6 +27,11 @@ export interface ShowMoreBaseProps {
   /** Layout only: margins, width, grid placement (`mt-6`). Text classes go on a parent so the items inherit them. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
+  /**
+   * A stable name for what this shows (a message id), for `lines` and `maxHeight`. A row that mounts again with the
+   * same key starts from its last measured fit, so it does not mount folded and then unfold. Without it, a mount measures afresh. The browser still measures and corrects it, so a changed width costs one write.
+   */
+  measureKey?: string | number | undefined;
 
   /** Not a prop. Ouro UI uses `lines`: `<ShowMore lines={3}>`. */
   maxLines?: { 'Use <ShowMore lines={3}>': never };
@@ -342,7 +347,7 @@ const DEFAULT_HEIGHT = 240;
  * instead when people need to jump to a page or share its URL.
  *
  * @group Lists
- * @see https://ui.ouro.bot/docs/show-more
+ * @see https://ui.ouroboros.bot/docs/show-more
  *
  * @example
  * <ShowMore items={reviews.map((review) => <Review key={review.id} {...review} />)} initialCount={3} />
@@ -385,6 +390,7 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
   );
   if (items === undefined && maxHeight !== undefined) {
     const { children, showLessLabel = "Show less", open, onOpenChange } = props as ShowMoreHeightProps;
+    const { measureKey } = props;
     return (
       <ShowMoreHeight
         open={open}
@@ -394,6 +400,7 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
         showLessLabel={showLessLabel}
         className={className}
         rootRef={ref}
+        measureKey={measureKey}
       >
         {children}
       </ShowMoreHeight>
@@ -402,6 +409,7 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
   if (items === undefined) {
     // Text mode. A guessed maxLines (a type error) still clamps, as lines would.
     const { children, showLessLabel = "Show less", open, onOpenChange } = props as ShowMoreLinesProps;
+    const { measureKey } = props;
     const clamp = [lines, maxLines].find(isCount) ?? DEFAULT_LINES;
     return (
       <ShowMoreText
@@ -412,6 +420,7 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
         showLessLabel={showLessLabel}
         className={className}
         rootRef={ref}
+        measureKey={measureKey}
       >
         {children}
       </ShowMoreText>
@@ -419,6 +428,24 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
   }
   return <ShowMoreList {...(props as ShowMoreItemsProps | ShowMoreLoadProps)} showMoreLabel={showMoreLabel} />;
 }
+
+/**
+ * What an instance last measured, by its `measureKey`, so a row that mounts again (a list that scrolls, a chat that
+ * loads older messages) that has one starts with its last answer instead of folding and then undoing it. The resize
+ * observer still measures and corrects it, so a wrong guess (a new width) costs one correction.
+ */
+const fitCache = new Map<string, boolean>();
+const FIT_CACHE_SIZE = 1000;
+
+const remember = (key: string | undefined, value: boolean): void => {
+  // Stryker disable next-line ConditionalExpression: an unkeyed instance never reads the cache, so a stray entry is not observable
+  if (key === undefined) return;
+  // Stryker disable next-line all: only moves a key to the newest place; it matters one eviction later and not by a line's worth of behaviour
+  fitCache.delete(key);
+  fitCache.set(key, value);
+  // Stryker disable next-line EqualityOperator: one entry more or fewer is not observable
+  if (fitCache.size > FIT_CACHE_SIZE) fitCache.delete(fitCache.keys().next().value!);
+};
 
 const clampClass = "line-clamp-(--ouro-show-more-lines)";
 
@@ -431,6 +458,7 @@ function ShowMoreText({
   showLessLabel,
   className,
   rootRef,
+  measureKey,
 }: {
   lines: number;
   children: ReactNode;
@@ -438,11 +466,14 @@ function ShowMoreText({
   showLessLabel: string;
   className: string | undefined;
   rootRef: Ref<HTMLDivElement> | undefined;
+  measureKey: string | number | undefined;
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
   // Folded by CSS in the first commit and in server HTML, with no button and no guess: a ResizeObserver reads after the
   // browser lays the text out and adds the button to text that overflows, so no instance makes the page lay out again.
-  const [overflowing, setOverflowing] = useState(false);
+  const fitKey = measureKey === undefined ? undefined : `text:${lines}:${measureKey}`;
+  // Stryker disable next-line ConditionalExpression: an unkeyed instance has nothing cached, so reading by an undefined key gives the same answer
+  const [overflowing, setOverflowing] = useState(() => (fitKey === undefined ? undefined : fitCache.get(fitKey)) ?? false);
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
   useEffect(() => {
@@ -451,18 +482,23 @@ function ShowMoreText({
       // Clamped, whether it hides any; whole, whether it is taller than the lines it clamps to.
       const clamped = !expanded;
       const lineHeight = parseFloat(getComputedStyle(text).lineHeight);
-      // Stryker disable next-line EqualityOperator: a hidden line is many pixels, so > and >= differ only at a 1px rounding gap no text has
-      if (clamped) setOverflowing(text.scrollHeight > text.clientHeight + 1);
-      else {
+      if (clamped) {
+        // Stryker disable next-line EqualityOperator: a hidden line is many pixels, so > and >= differ only at a 1px rounding gap no text has
+        const over = text.scrollHeight > text.clientHeight + 1;
+        remember(fitKey, over);
+        setOverflowing(over);
+      } else {
         // A line height that is not a length (`normal`) cannot say, so the button stays: shown whole, it is the way back.
         // Stryker disable next-line EqualityOperator: as above, a line is many pixels.
-        if (lineHeight > 0) setOverflowing(text.clientHeight > lineHeight * lines + 1);
-        else setOverflowing(true);
+        const over = lineHeight > 0 ? text.clientHeight > lineHeight * lines + 1 : true;
+        // Stryker disable next-line all: a mount is always folded and measures again, so what an expanded one remembers only changes whether a later remount writes
+        remember(fitKey, over);
+        setOverflowing(over);
       }
     });
     observer.observe(text);
     return () => observer.disconnect();
-  }, [expanded, lines]);
+  }, [expanded, lines, fitKey]);
   return (
     <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       <div
@@ -502,6 +538,7 @@ function ShowMoreHeight({
   showLessLabel,
   className,
   rootRef,
+  measureKey,
 }: {
   maxHeight: number;
   children: ReactNode;
@@ -509,21 +546,28 @@ function ShowMoreHeight({
   showLessLabel: string;
   className: string | undefined;
   rootRef: Ref<HTMLDivElement> | undefined;
+  measureKey: string | number | undefined;
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
   // Unknown until the browser has laid the content out, so the first commit and server HTML are folded by CSS with no
   // button and no guess: the ResizeObserver reads after layout and says whether it fits.
-  const [fits, setFits] = useState<boolean | null>(null);
+  const fitKey = measureKey === undefined ? undefined : `height:${maxHeight}:${measureKey}`;
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: an unkeyed instance has nothing cached; a cached answer is a boolean and `&& null` differs only by folding first, which the remount tests hold through the keyed path
+  const [fits, setFits] = useState<boolean | null>(() => (fitKey === undefined ? undefined : fitCache.get(fitKey)) ?? null);
   const contentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const foldId = useId();
   useEffect(() => {
     const content = contentRef.current!;
     // The observer measures once as it starts, and again on every change of size.
-    const observer = new ResizeObserver(() => setFits(content.scrollHeight <= maxHeight * 1.2));
+    const observer = new ResizeObserver(() => {
+      const fit = content.scrollHeight <= maxHeight * 1.2;
+      remember(fitKey, fit);
+      setFits(fit);
+    });
     observer.observe(content);
     return () => observer.disconnect();
-  }, [maxHeight]);
+  }, [maxHeight, fitKey]);
   const folded = !expanded && fits !== true;
   const toggle = () => {
     if (expanded) {

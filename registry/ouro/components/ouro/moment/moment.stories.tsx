@@ -95,7 +95,7 @@ const meta = {
   parameters: { layout: "padded" },
   args: { title: "No messages yet", description: "Messages you send show up here.", art: <TrayArt /> },
   argTypes: {
-    kind: { control: "inline-radio", options: ["empty", "loading", "error", "welcome", "success"] },
+    kind: { control: "inline-radio", options: ["empty", "loading", "error", "first-run", "success"] },
     size: { control: "inline-radio", options: ["default", "inline"] },
     art: { control: false },
   },
@@ -118,7 +118,7 @@ export const Kinds: Story = {
           <Moment art={<TrayArt />} title="No messages yet" description="Messages you send show up here." action={<Button>New message</Button>} />
         </Panel>
         <Panel>
-          <Moment kind="welcome" art={<DoorwayArt />} title="Welcome in" description="Three short steps and you're set." action={<Button>Start</Button>} secondaryAction={<Button variant="plain">Later</Button>} />
+          <Moment kind="first-run" art={<DoorwayArt />} title="Welcome in" description="Three short steps and you're set." action={<Button>Start</Button>} secondaryAction={<Button variant="plain">Later</Button>} />
         </Panel>
         <Panel>
           <Moment kind="error" art={<BrokenLineArt />} title="Messages didn't load: you're offline" description="Check your connection, then try again." action={<Button variant="outline">Try again</Button>} />
@@ -163,7 +163,7 @@ export const Celebration: Story = {
       <Page width={480}>
         <Panel>
           {state === "idle" ? (
-            <Moment kind="welcome" art={<DoorwayArt />} title="Say hello" description="Your first message starts the conversation." action={<Button onClick={() => setState("sent")}>Send hello</Button>} />
+            <Moment kind="first-run" art={<DoorwayArt />} title="Say hello" description="Your first message starts the conversation." action={<Button onClick={() => setState("sent")}>Send hello</Button>} />
           ) : (
             <Moment kind="success" announce art={<TickArt />} title="Hello sent" description="Replies show up here." action={<Button variant="outline" onClick={() => setState("idle")}>Start over</Button>} />
           )}
@@ -179,7 +179,7 @@ export const Dismissible: Story = {
     const [open, setOpen] = useState(true);
     return (
       <Page width={480}>
-        <Panel>{open ? <Moment kind="welcome" art={<DoorwayArt />} title="Welcome in" description="Close this whenever you like." onDismiss={() => setOpen(false)} /> : <div style={{ padding: 16 }}>Closed.</div>}</Panel>
+        <Panel>{open ? <Moment kind="first-run" art={<DoorwayArt />} title="Welcome in" description="Close this whenever you like." onDismiss={() => setOpen(false)} /> : <div style={{ padding: 16 }}>Closed.</div>}</Panel>
         <Button variant="outline" onClick={() => setOpen(true)}>
           Show the welcome again
         </Button>
@@ -207,4 +207,47 @@ export const Hero: Story = {
       </Panel>
     </Page>
   ),
+};
+
+/** A small round head: the placeholder for whoever asks. */
+function AskerArt() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.18" />
+      <circle cx="12" cy="10" r="4" fill="currentColor" />
+      <path d="M5.5 19a7 7 0 0 1 13 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** An ask, docked in the conversation's header strip: one row in its own slot, never over the messages. Not now keeps it away for an hour. */
+export const Ask: Story = {
+  parameters: { screenshot: { name: "moment-ask" } },
+  render: function Render() {
+    const [shown, setShown] = useState(true);
+    return (
+      <Page width={640}>
+        <Panel>
+          <div style={{ display: "grid", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
+            <strong>Launch planning</strong>
+            {shown && (
+              <Moment
+                kind="ask"
+                size="inline"
+                art={<AskerArt />}
+                title="Planner wants to show you the launch plan"
+                action={<Button size="sm" onClick={() => setShown(false)}>Show me</Button>}
+                onDismiss={() => setShown(false)}
+                dismissLabel="Not now"
+              />
+            )}
+          </div>
+          <div style={{ padding: 16, color: "var(--muted-foreground)" }}>The conversation's messages stay where they are.</div>
+        </Panel>
+        <Button variant="outline" onClick={() => setShown(true)}>
+          Ask again
+        </Button>
+      </Page>
+    );
+  },
 };
