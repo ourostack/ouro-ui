@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { AUTHORS, COMMITTERS, GITHUB, MAINTAINER, main, problems, readCommits, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
+import { AUTHORS, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, problems, readCommits, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "attribution.mjs");
@@ -15,7 +15,7 @@ const commit = (fields = {}) => ({ sha: "a".repeat(40), authorName: MAINTAINER.n
 const fieldsOf = (commits) => problems(commits).map(({ field }) => field);
 
 test("attribution passes the maintainer's commits, GitHub's squash commits and release.yml's", () => {
-  assert.deepEqual(AUTHORS, [MAINTAINER.email, RELEASE_BOT]);
+  assert.deepEqual(AUTHORS, [MAINTAINER.email, RELEASE_BOT, DEPENDABOT]);
   assert.deepEqual(COMMITTERS, [MAINTAINER.email, RELEASE_BOT, GITHUB]);
   const passing = [
     commit(),
@@ -191,4 +191,21 @@ test("attribution never passes a range it cannot read: a missing or unknown end,
   assert.throws(() => readCommits("a", "b", failing), /bad object/);
   assert.equal(main(["a", "b"], { git: failing, log: (line) => lines.push(line), actions: false }), 1);
   assert.match(lines.join("\n"), /^attribution: fatal: bad object/);
+});
+
+test("attribution passes Dependabot's dependency-bump commit, and only that", () => {
+  const bump = (fields = {}) => commit({ authorName: "dependabot[bot]", authorEmail: DEPENDABOT, files: [".github/workflows/ci.yml", "pnpm-lock.yaml"], message: `chore(deps): bump pnpm/action-setup (#9)\n\nSigned-off-by: ${DEPENDABOT_TRAILER}`, ...fields });
+  assert.deepEqual(problems([bump(), bump({ files: ["package.json"] })]), []);
+  // Any other file, or no readable file, is not a dependency bump.
+  assert.deepEqual(fieldsOf([bump({ files: ["package.json", "registry/ouro/button/button.tsx"] })]), ["files"]);
+  assert.deepEqual(fieldsOf([bump({ files: [] })]), ["files"]);
+  assert.deepEqual(fieldsOf([bump({ files: undefined })]), ["files"]);
+  // Its own sign-off is the one bot trailer allowed; any other credit, or an AI line, still fails.
+  assert.deepEqual(fieldsOf([bump({ message: "chore(deps): bump\n\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>" })]), ["message line 3"]);
+  assert.deepEqual(fieldsOf([bump({ message: "chore(deps): bump\n\nSigned-off-by: Claude <noreply@anthropic.com>" })]), ["message line 3"]);
+  assert.deepEqual(fieldsOf([bump({ message: "chore(deps): bump\n\nGenerated with Claude Code" })]), ["message line 3"]);
+  // Dependabot may not commit: only GitHub or the maintainer do.
+  assert.deepEqual(fieldsOf([bump({ committerName: "dependabot[bot]", committerEmail: DEPENDABOT })]), ["committer"]);
+  // Nobody else gets the exemption.
+  assert.deepEqual(fieldsOf([commit({ authorEmail: "198982749+Copilot@users.noreply.github.com", files: ["package.json"] })]), ["author"]);
 });
