@@ -8,14 +8,19 @@ import { LATENCY } from "./latency";
 //
 // The stage's judge is shown slow frames by scaling its requestAnimationFrame timestamps, so it reaches its real verdict
 // while the page itself runs at its own speed and pays the switch's real cost. The frames are read from an unscaled
-// requestAnimationFrame, from the last frame before the verdict (the verdict is stamped after its own task, so a cost
-// inside that task ends before the stamp) until the scene has stood still for half a second.
+// requestAnimationFrame. The switch's frames are the frame the verdict lands in (the verdict is stamped after its own task,
+// so a cost inside that task ends before the stamp) and the next SWITCH_FRAMES - 1: its commit, effects and the captain's
+// line are drawn there. Frames before or after are the runner's: CI's WebKit drew 600 to 900 ms frames 1.2 to 1.5 s before
+// the verdict while the page loaded, and local WebKit under load paused 510 to 590 ms half a second after it, with the
+// scene long still (ourostack/ouro-ui#676).
 //
 // - Chromium, at the latency budget's 4x slower CPU: no frame of 50 ms or more.
-// - WebKit, which on CI draws without the GPU at 50 to 300 ms a frame from one runner to the next: no frame over 100 ms,
-//   or over two and a half times the page's own median frame in the 1.5 s before the verdict when that is more. The
-//   switch's old costs there were three to eight times the page's own frame; its frame now is at most about twice it
-//   (ten verdicts on CI, 1.3 to 2.1 times: ourostack/ouro-ui#676), which twice exactly failed at random.
+// - WebKit, which on CI draws without the GPU: no frame over 100 ms, over two and a half times the page's own median frame
+//   in the 1.5 s before the verdict, or over REPAINTS times what this runner takes to draw a frame that changes the whole
+//   viewport, whichever is most. On CI the switch's frame took 50 to 137 ms however fast the page's own frames were (24 to
+//   334 ms), so neither a flat budget nor the page's pace told it from the runner (ourostack/ouro-ui#676). The viewport
+//   frame is measured on the same page once the scene is still, by a veil of the test's own, so no change to the switch
+//   can widen it.
 //
 // A verdict counts only when the page drew at least `PACED` frames in the 1.5 s before it: CI's WebKit once drew none for
 // 6.7 s while its first page loaded, which says nothing of the switch. Such a page is judged again, afresh.
@@ -23,8 +28,19 @@ const CHROMIUM_BUDGET = 50;
 const WEBKIT_BUDGET = 100;
 /** In WebKit, the switch's frame may take this many of the page's own median frames. */
 const WEBKIT_PACES = 2.5;
+/** In WebKit, the switch's frame may take this many of the runner's whole-viewport frames (`repaint`). */
+const REPAINTS = 1.5;
+/** The frames that are the switch's: the one the verdict lands in and those after it. */
+const SWITCH_FRAMES = 3;
+/** Frames the veil is drawn in to measure a whole-viewport frame, the first one not counted. */
+const VEIL_FRAMES = 8;
 /** Fresh pages, each judged once. */
 const VERDICTS = 5;
+/**
+ * Verdicts that may go over budget: a cost of the switch's own is paid on every page, while a runner's stall lands in the
+ * switch's frames on one page now and then (under eight local WebKit workers, 3 runs in 20 had one, on one page each).
+ */
+const OUTLIERS = 1;
 /** Frames the page must have drawn in the 1.5 s before the verdict for it to count, and the pages tried for each. */
 const PACED = 4;
 const TRIES = 3;
@@ -34,6 +50,7 @@ interface Switch {
   at: number;
   pace: number;
   paced: number;
+  repaint: number;
   series: string;
 }
 
@@ -42,7 +59,8 @@ async function judge(page: Page): Promise<Switch> {
   await page.addInitScript(() => {
     const raw = window.requestAnimationFrame.bind(window);
     const frames: number[] = [];
-    (window as unknown as { __frames: number[] }).__frames = frames;
+    (window as unknown as { __frames: number[]; __raf: typeof raw }).__frames = frames;
+    (window as unknown as { __raf: typeof raw }).__raf = raw;
     window.requestAnimationFrame = (callback) => raw((now) => callback(now * 10));
     const count = () => {
       frames.push(performance.now());
@@ -62,15 +80,49 @@ async function judge(page: Page): Promise<Switch> {
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 15_000 });
   await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", "stop");
-  // real clock: half a second of frames with the scene still.
-  await page.waitForTimeout(500);
-  return page.evaluate(() => {
+  // The switch's frames, and one more so the last of them has ended: counted in frames, not time, so a slow runner
+  // waits as long as it needs and a pause after them is not read.
+  await page.waitForFunction(
+    (count) => {
+      const { __frames: frames, __paced: from } = window as unknown as { __frames: number[]; __paced: number };
+      return frames.filter((time) => time > from).length >= count;
+    },
+    SWITCH_FRAMES + 1,
+  );
+  // What this runner takes to draw a frame that changes the whole viewport: a veil over it, near clear, switched between
+  // two shades a frame at a time; the median gap, with the frame that adds it not counted.
+  const repaint = await page.evaluate(async (frames) => {
+    const raw = (window as unknown as { __raf: typeof requestAnimationFrame }).__raf;
+    const next = () => new Promise<number>((resolve) => raw(() => resolve(performance.now())));
+    const veil = document.createElement("div");
+    veil.style.cssText = "position: fixed; inset: 0; z-index: 2147483647; pointer-events: none; background: rgb(0 0 0 / 0.02)";
+    document.body.append(veil);
+    let last = await next();
+    const gaps: number[] = [];
+    for (let index = 1; index < frames; index += 1) {
+      veil.style.background = index % 2 ? "rgb(255 255 255 / 0.02)" : "rgb(0 0 0 / 0.02)";
+      const now = await next();
+      gaps.push(now - last);
+      last = now;
+    }
+    veil.remove();
+    return gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)]!;
+  }, VEIL_FRAMES);
+  const read = await page.evaluate((count) => {
     const from = (window as unknown as { __paced: number }).__paced;
     const all = (window as unknown as { __frames: number[] }).__frames;
-    // Every frame's gap from 1.5 s before the verdict, as "ms from the verdict:gap", for the record.
+    // The frame the verdict lands in: the last to begin before its stamp.
+    let first = 0;
+    while (first + 1 < all.length && all[first + 1]! <= from) first += 1;
+    const last = first + count;
+    // Every frame's gap from 1.5 s before the verdict, as "ms from the verdict:gap", the switch's in [brackets].
     const series = all
-      .map((time, index) => (index ? `${Math.round(all[index - 1]! - from)}:${Math.round(time - all[index - 1]!)}` : ""))
-      .filter((entry, index) => index && all[index - 1]! >= from - 1500)
+      .map((time, index) => {
+        if (!index || all[index - 1]! < from - 1500) return "";
+        const entry = `${Math.round(all[index - 1]! - from)}:${Math.round(time - all[index - 1]!)}`;
+        return index > first && index <= last ? `[${entry}]` : entry;
+      })
+      .filter(Boolean)
       .join(" ");
     // The page's own pace: the median gap between frames in the 1.5 s before the verdict.
     const before = all
@@ -78,16 +130,16 @@ async function judge(page: Page): Promise<Switch> {
       .filter((gap) => gap >= 0)
       .sort((a, b) => a - b);
     const pace = before.length ? before[Math.floor(before.length / 2)]! : 0;
-    const frames = all.slice(Math.max(0, all.findIndex((time) => time >= from - 50) - 1));
     let worst = 0;
     let at = 0;
-    for (let index = 1; index < frames.length; index += 1)
-      if (frames[index]! - frames[index - 1]! > worst) {
-        worst = frames[index]! - frames[index - 1]!;
-        at = frames[index - 1]! - from;
+    for (let index = first + 1; index <= last && index < all.length; index += 1)
+      if (all[index]! - all[index - 1]! > worst) {
+        worst = all[index]! - all[index - 1]!;
+        at = all[index - 1]! - from;
       }
     return { worst: Math.round(worst), at: Math.round(at), pace: Math.round(pace), paced: before.length, series };
-  });
+  }, SWITCH_FRAMES);
+  return { ...read, repaint: Math.round(repaint) };
 }
 
 test("the switch to still water draws no long frame", async ({ browser, browserName }) => {
@@ -110,10 +162,19 @@ test("the switch to still water draws no long frame", async ({ browser, browserN
       }
       unpaced.push(result);
     }
-  const budget = (result: Switch) => (browserName === "chromium" ? CHROMIUM_BUDGET : Math.max(WEBKIT_BUDGET, Math.round(WEBKIT_PACES * result.pace)));
+  const budget = (result: Switch) =>
+    browserName === "chromium" ? CHROMIUM_BUDGET : Math.max(WEBKIT_BUDGET, Math.round(WEBKIT_PACES * result.pace), Math.round(REPAINTS * result.repaint));
   // Printed every run, so CI's log keeps the switch's cost.
-  console.log(`switch to still water, ${browserName}: ${results.map((result) => `${result.worst} ms at ${result.at} (pace ${result.pace}, budget ${budget(result)})`).join("; ")}${unpaced.length ? `; judged again, with too few frames before the verdict: ${unpaced.map((result) => `${result.paced} frames, ${result.worst} ms at ${result.at}`).join("; ")}` : ""}`);
+  console.log(`switch to still water, ${browserName}: ${results.map((result) => `${result.worst} ms at ${result.at} (pace ${result.pace}, viewport frame ${result.repaint}, budget ${budget(result)})`).join("; ")}${unpaced.length ? `; judged again, with too few frames before the verdict: ${unpaced.map((result) => `${result.paced} frames, ${result.worst} ms at ${result.at}`).join("; ")}` : ""}`);
   expect(results, `every verdict, with ${PACED} frames or more in the 1.5 s before it`).toHaveLength(VERDICTS);
-  for (const result of results)
-    expect(result.worst, `the longest frame around the switch, ${result.at} ms from the verdict, against ${budget(result)} ms (the page's median frame before it, ${result.pace} ms); each frame from 1.5 s before it: ${result.series}`).toBeLessThan(budget(result));
+  const over = results.filter((result) => result.worst >= budget(result));
+  expect(
+    over.length,
+    `verdicts whose switch drew a frame over budget, of ${VERDICTS} (at most ${OUTLIERS}):\n${over
+      .map(
+        (result) =>
+          `- the longest of the switch's ${SWITCH_FRAMES} frames, ${result.worst} ms at ${result.at} ms from the verdict, against ${budget(result)} ms (the page's median frame before it, ${result.pace} ms; the runner's whole-viewport frame, ${result.repaint} ms); each frame from 1.5 s before it as "ms from the verdict:gap", the switch's in [brackets]: ${result.series}`,
+      )
+      .join("\n")}`,
+  ).toBeLessThanOrEqual(OUTLIERS);
 });
