@@ -72,7 +72,9 @@ const CEILINGS = { voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 // and the home page's showcase pictures and list of what comes with every component, which took over ouroboros.bot/ouro-hx/
 // (Ari, 2026-11-07: "let's unify"): 39,809 bytes with them, over main at a2b06627. The docs' rose with it, to 40.5 KiB:
 // its Tailwind build reads the same site files, and its heaviest page measured 41,047 bytes with them.
-const CSS_CEILINGS = { voyage: 40 * 1024 + 512, docs: 40 * 1024 + 512 } as const;
+// The docs' rose to 41 KiB for Porthole (registry/ouro/components/ouro/porthole and its docs demo, #556), whose classes
+// the docs' Tailwind build carries for every page: 41,719 bytes with it, over main at c9c06923 (the voyage leaves it out).
+const CSS_CEILINGS = { voyage: 40 * 1024 + 512, docs: 41 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
