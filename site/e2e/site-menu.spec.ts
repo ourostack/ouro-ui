@@ -625,13 +625,28 @@ test("on a phone the docs menu's folded lists hold no pages until they unfold, t
   const panel = group.locator("[data-ouro-collapsible-panel]");
   // Folded, the list is not in the page at all: nothing in it to style with the sheet.
   await expect(panel.locator("a")).toHaveCount(0);
-  // Each frame of the unfold, the panel's height: it grows through the frames between, not in one step.
+  // It slides open, not in one step: as its height transition starts, the panel held at the transition's midpoint is
+  // part-way open. Read that way, a runner that draws a frame a second still sees the slide, where a sample of each
+  // frame could miss all 200 ms of it (#684).
+  await group.evaluate((element) =>
+    element.addEventListener("transitionrun", (event) => {
+      const target = event.target as HTMLElement;
+      if (event.propertyName !== "height" || !target.matches("[data-ouro-collapsible-panel]") || element.dataset["midway"]) return;
+      const slide = target.getAnimations().find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "height")!;
+      slide.pause();
+      slide.currentTime = Number(slide.effect!.getComputedTiming().duration) / 2;
+      element.dataset["midway"] = String(target.getBoundingClientRect().height);
+      slide.play();
+    }),
+  );
   const heights = heightsUntilStill(panel);
   await group.locator('[aria-expanded="false"]').click();
-  const grown = await heights;
-  const full = grown.at(-1)!;
+  const full = (await heights).at(-1)!;
   expect(full).toBeGreaterThan(100);
-  expect(grown.some((height) => height > 0 && height < full)).toBe(true);
+  await expect(group).toHaveAttribute("data-midway", /./);
+  const midway = Number(await group.getAttribute("data-midway"));
+  expect(midway).toBeGreaterThan(0);
+  expect(midway).toBeLessThan(full);
   await expect(panel.getByRole("link").first()).toBeVisible();
   const pages = await panel.getByRole("link").count();
   await group.locator('[aria-expanded="true"]').click();
