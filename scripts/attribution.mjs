@@ -47,8 +47,8 @@ const AI_TOOL = new RegExp(String.raw`(?<![a-z0-9])(?:${tools})(?![a-z])|^\s+(?:
 /** A trailer, also as the squash message bullets a one-line commit message (`* Co-authored-by: …`). */
 const TRAILER = /^[\s*>-]*([a-z][a-z-]*-by)\s*:\s*(.+)$/i;
 /** Every line terminator, so no separator hides a trailer from the checks that read a line. */
-const LINE_TERMINATOR = /\r\n|[\n\r  \u0085]/;
-const GENERATED =/(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;
+const LINE_TERMINATOR = /\r\n|[\n\r\u2028\u2029\u0085]/;
+const GENERATED = /(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;
 const ROBOT_FOOTER = /🤖.*(?<![a-z])generated(?![a-z])/iu;
 
 const identity = `GIT_AUTHOR_NAME="${MAINTAINER.name}" GIT_AUTHOR_EMAIL=${MAINTAINER.email} GIT_COMMITTER_NAME="${MAINTAINER.name}" GIT_COMMITTER_EMAIL=${MAINTAINER.email}`;
