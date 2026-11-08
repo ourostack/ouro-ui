@@ -631,7 +631,7 @@ test("on a phone the docs menu's folded lists hold no pages until they unfold, t
   await group.evaluate((element) =>
     element.addEventListener("transitionrun", (event) => {
       const target = event.target as HTMLElement;
-      if (event.propertyName !== "height" || !target.matches("[data-ouro-collapsible-panel]") || element.dataset["midway"]) return;
+      if ((event as TransitionEvent).propertyName !== "height" || !target.matches("[data-ouro-collapsible-panel]") || element.dataset["midway"]) return;
       const slide = target.getAnimations().find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "height")!;
       slide.pause();
       slide.currentTime = Number(slide.effect!.getComputedTiming().duration) / 2;
