@@ -133,7 +133,9 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       const slowest = entries.find(([duration]) => duration === Math.max(...durations));
       if (slowest && slowest[0] > LATENCY.p95) {
         const { inputDelay, processing, presentation } = splitPress({ duration: slowest[0], startTime: slowest[1], processingStart: slowest[2], processingEnd: slowest[3] });
-        test.info().annotations.push({ type: "latency-slow", description: `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint` });
+        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint`;
+        test.info().annotations.push({ type: "latency-slow", description: split });
+        console.log(`latency-slow ${split}`);
       }
     }
     if (samples.length === LATENCY.samples && presses === LATENCY.warmUps + LATENCY.samples && more?.(samples)) {
