@@ -228,15 +228,16 @@ function Table({
   rows: string[][];
   link?: ((href: string) => string) | undefined;
 }) {
-  // From 640px up, a table that scrolls inside its own box if it must (a tab stop, so a
-  // keyboard can scroll it). On phones, one card per row: the first cell as its title,
-  // short cells as labeled lines, the last cell as a paragraph. The page never scrolls sideways.
+  // From 640px up, a table under hairlines that scrolls sideways on its own if it must (a tab
+  // stop, so a keyboard can scroll it), with a soft shadow at an edge that has more (styles.css). On phones, one block per row between hairlines: the first
+  // cell as its title, short cells as labeled lines, the last cell as a paragraph. Neither is boxed,
+  // and the page never scrolls sideways.
   const last = header.length - 1;
   return (
     <>
-    <dl aria-label={label} className="my-4 grid gap-0 overflow-hidden rounded-lg border border-border sm:hidden">
+    <dl aria-label={label} className="my-4 grid border-t border-border/70 sm:hidden">
       {rows.map((row, rowIndex) => (
-        <div key={rowIndex} className="grid gap-1.5 border-b border-border p-4 last:border-b-0">
+        <div key={rowIndex} className="grid gap-1.5 border-b border-border/70 py-4">
           <dt className="text-sm font-medium text-foreground">{inline(row[0] ?? "", link)}</dt>
           {row.slice(1).map((cell, cellIndex) =>
             cell === "" ? null : cellIndex + 1 === last && last > 1 ? (
@@ -256,13 +257,13 @@ function Table({
       role="region"
       aria-label={label}
       tabIndex={0}
-      className="my-4 hidden overflow-x-auto rounded-lg border border-border outline-ring focus-visible:outline-2 focus-visible:outline-offset-2 sm:block [&_code]:[overflow-wrap:normal]"
+      className="docs-scroll-x my-4 hidden overflow-x-auto rounded-sm outline-ring focus-visible:outline-2 focus-visible:outline-offset-4 sm:block [&_code]:[overflow-wrap:normal]"
     >
       <table className="w-full border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-border bg-muted/60">
+          <tr className="border-b border-border">
             {header.map((cell, index) => (
-              <th key={index} scope="col" className="px-3 py-2.5 align-bottom font-medium text-foreground">
+              <th key={index} scope="col" className="px-3 py-2.5 align-bottom font-medium text-foreground first:ps-0 last:pe-0">
                 {inline(cell, link)}
               </th>
             ))}
@@ -270,14 +271,14 @@ function Table({
         </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-b border-border last:border-b-0">
+            <tr key={rowIndex} className="border-b border-border/70 last:border-b-0">
               {row.map((cell, cellIndex) => (
                 <td
                   key={cellIndex}
                   className={
                     cellIndex === 0
-                      ? "px-3 py-2.5 align-top whitespace-nowrap text-foreground"
-                      : "px-3 py-2.5 align-top leading-6 text-muted-foreground"
+                      ? "py-2.5 pe-3 ps-0 align-top whitespace-nowrap text-foreground"
+                      : "px-3 py-2.5 align-top leading-6 text-muted-foreground last:pe-0"
                   }
                 >
                   {inline(cell, link)}

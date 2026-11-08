@@ -71,7 +71,7 @@
       text-decoration-thickness: 2px;
     }
   }
-  :root:not(.dark) .story-world-sky :where(.site-h1, .story-world-line) {
+  :root:not(.dark) .story-world-sky :where(.site-h1, .story-world-line, .story-world-title) {
     text-shadow: 0 1px 24px color-mix(in oklab, white 55%, transparent);
   }
   /* One line in the sky: what is going on in the scene below, told as a story. */
@@ -117,32 +117,64 @@
     inset: 0;
     pointer-events: none;
     opacity: 0.55;
+    /* Feathered like the picture, so its glow never draws a line across the sky above it. */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
     background: radial-gradient(circle at var(--story-sun-x) var(--story-sun-y), rgb(255 238 196 / 0.75), rgb(255 214 150 / 0.25) 9vw, transparent 18vw);
     mix-blend-mode: soft-light;
   }
 
-  /* A page's section scene opens a page that has its own hero below: a little shorter. */
+  /*
+   * A page's section scene opens a page that has its own hero below: a little shorter. On a very wide screen the
+   * cap grows with the width, so the scene never thins to a strip that cuts off its friends' heads.
+   */
   .story-world-short {
-    --story-max-h: min(48vh, 34rem);
+    --story-max-h: min(max(min(48vh, 34rem), 26vw), 62vh);
   }
   .story-world-band {
     --story-feather: 4.5rem;
   }
-  /* In a column (the docs), the sky and scene round off with the column's corners. */
-  .story-world-inset {
-    --story-feather: 2.5rem;
-    overflow: clip;
-    border-radius: calc(var(--radius) * 2.2);
+  /*
+   * A docs page's arrival (components/docs-shell.tsx): its title in a shorter sky, over the column it names, then a
+   * band of about half the scene, framed on the friends' faces (storybook.ts, `band`), so the page's own words and
+   * demo come within the first screen. Every docs scene holds still (`.story-world-still`): a reference page is read, not watched.
+   */
+  .story-world-docs {
+    --story-max-h: max(10rem, min(20.5vw, 30vh));
   }
-  .story-world-inset .story-world-sky {
-    padding-inline: clamp(1rem, 3vw, 2rem);
+  .story-world-docs .story-world-sky {
+    padding-top: clamp(1rem, 2.4vw, 2rem);
+  }
+  .story-world-docs .story-world-img {
+    object-position: 50% var(--story-band-y);
+  }
+  .story-world-still :is(.story-world-img, .story-world-sun) {
+    animation: none;
+  }
+  .story-world-eyebrow {
+    margin: 0 0 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--story-ink-soft);
+  }
+  .story-world-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: clamp(1.875rem, 1.2rem + 2.4vw, 3.5rem);
+    font-weight: var(--site-heading-weight, 600);
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    color: var(--story-ink);
+    text-wrap: balance;
+    overflow-wrap: break-word;
   }
 
   @media (max-width: 40rem) {
     .story-world {
       --story-feather: 2rem;
     }
-    .story-world-short {
+    .story-world-short,
+    .story-world-docs {
       --story-max-h: none;
     }
     /* The phone's crop is cut around Ouro and the product; the sun is out of it. */

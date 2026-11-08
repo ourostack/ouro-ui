@@ -330,6 +330,9 @@ async function linkBeside(page: Page, picker: ReturnType<Page["getByRole"]>): Pr
 test("on a phone a tap outside the theme picker closes it without pressing the link under the tap", async ({ page }) => {
   await open(page, "docs/button/");
   const url = page.url();
+  // The page's scene and its demo fill a phone's first screen: bring the first link in the page up to three quarters down
+  // it, below where the picker opens.
+  await page.locator("main a[href]").first().evaluate((link) => scrollBy(0, link.getBoundingClientRect().top - innerHeight * 0.75));
   const picker = await openPicker(page);
   const link = await linkBeside(page, picker);
   expect(link.href).not.toBe(url);
