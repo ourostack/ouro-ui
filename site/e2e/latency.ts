@@ -106,7 +106,7 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   const cdp = await page.context().newCDPSession(page);
   const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
   const unthrottled = async (work: () => Promise<unknown>) => {
-    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+    if (process.env.PROBE_VARIANT !== "noswitch") await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
     await work();
     await settle();
     if (process.env.PROBE_VARIANT === "noswitch") return;
