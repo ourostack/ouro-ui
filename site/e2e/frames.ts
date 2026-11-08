@@ -55,3 +55,18 @@ export function heightsUntilStill(target: Locator, still = 8, limit = 600): Prom
     { still, limit },
   );
 }
+
+/**
+ * Takes fresh reads until `wanted` of them count, from one pool of `attempts` shared by all of them. A page that draws too
+ * few frames says nothing of what it measures; on a loaded runner those pages cluster, so a pool lets a calm stretch
+ * make up for a bad one where a fixed number of tries for each read ran out on the first bad stretch.
+ */
+export async function pooled<T>(wanted: number, attempts: number, take: () => Promise<T>, counts: (read: T) => boolean): Promise<{ kept: T[]; discarded: T[] }> {
+  const kept: T[] = [];
+  const discarded: T[] = [];
+  for (let attempt = 0; attempt < attempts && kept.length < wanted; attempt += 1) {
+    const read = await take();
+    (counts(read) ? kept : discarded).push(read);
+  }
+  return { kept, discarded };
+}

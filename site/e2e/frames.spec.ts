@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { heightsUntilStill, quietFrames } from "./frames";
+import { heightsUntilStill, pooled, quietFrames } from "./frames";
 
 // The site's frame measurements count frames, not wall-clock time (ourostack/ouro-ui#684): on a loaded browser a press
 // comes late and frames come slowly, and a fixed window then ends before the thing it measures has begun.
@@ -57,4 +57,14 @@ test("a panel that never appears, or never stops moving, is rejected at the cap 
     move();
   });
   await expect(heightsUntilStill(page.locator("#m"), 8, 6)).rejects.toThrow(/6 frames, heights seen \[\d+/);
+});
+
+test("reads share one pool of attempts, so a bad stretch does not end them early", async () => {
+  const reads = [false, false, false, true, true, true];
+  const { kept, discarded } = await pooled(3, 6, async () => reads.shift()!, (read) => read);
+  expect(kept).toHaveLength(3);
+  expect(discarded).toHaveLength(3);
+  const short = await pooled(3, 2, async () => false, (read) => read);
+  expect(short.kept).toHaveLength(0);
+  expect(short.discarded).toHaveLength(2);
 });

@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContextOptions, type Page } from "@playwright/test";
+import { pooled } from "./frames";
 import { LATENCY } from "./latency";
 
 // The switch to still water draws no long frame: a visitor on a slow screen may reach for the menu just then
@@ -28,6 +29,7 @@ const VERDICTS = 5;
 /** Frames the page must have drawn in the 1.5 s before the verdict for it to count, and the pages tried for each. */
 const PACED = 4;
 const TRIES = 3;
+// The pages tried are one pool of VERDICTS times TRIES, so a bad stretch on the runner does not end the run early.
 
 interface Switch {
   worst: number;
@@ -92,24 +94,24 @@ async function judge(page: Page): Promise<Switch> {
 
 test("the switch to still water draws no long frame", async ({ browser, browserName }) => {
   test.setTimeout(VERDICTS * TRIES * 30_000);
-  const results: Switch[] = [];
-  const unpaced: Switch[] = [];
-  for (let run = 0; run < VERDICTS; run += 1)
-    for (let attempt = 0; attempt < TRIES; attempt += 1) {
-      // The project's own device and address, in a fresh context for each verdict.
-      const { baseURL, ignoreHTTPSErrors, viewport, deviceScaleFactor, userAgent, isMobile, hasTouch } = test.info().project.use;
-      const options = Object.fromEntries(Object.entries({ baseURL, ignoreHTTPSErrors, viewport, deviceScaleFactor, userAgent, isMobile, hasTouch }).filter(([, value]) => value !== undefined)) as BrowserContextOptions;
+  // One pool of attempts for all the verdicts, each on a fresh page in the project's own device and address.
+  const { baseURL, ignoreHTTPSErrors, viewport, deviceScaleFactor, userAgent, isMobile, hasTouch } = test.info().project.use;
+  const options = Object.fromEntries(Object.entries({ baseURL, ignoreHTTPSErrors, viewport, deviceScaleFactor, userAgent, isMobile, hasTouch }).filter(([, value]) => value !== undefined)) as BrowserContextOptions;
+  const { kept: results, discarded: unpaced } = await pooled(
+    VERDICTS,
+    VERDICTS * TRIES,
+    async () => {
       const context = await browser.newContext(options);
       const page = await context.newPage();
       if (browserName === "chromium") await (await context.newCDPSession(page)).send("Emulation.setCPUThrottlingRate", { rate: LATENCY.throttle });
       const result = await judge(page);
       await context.close();
-      if (result.paced >= PACED) {
-        results.push(result);
-        break;
-      }
-      unpaced.push(result);
-    }
+      return result;
+    },
+    (result) => result.paced >= PACED,
+  );
+  for (const result of [...results, ...unpaced])
+    test.info().annotations.push({ type: "switch", description: `${result.paced >= PACED ? "kept" : "judged again"}: ${result.paced} frames before the verdict, ${result.worst} ms at ${result.at}, pace ${result.pace}` });
   const budget = (result: Switch) => (browserName === "chromium" ? CHROMIUM_BUDGET : Math.max(WEBKIT_BUDGET, Math.round(WEBKIT_PACES * result.pace)));
   // Printed every run, so CI's log keeps the switch's cost.
   console.log(`switch to still water, ${browserName}: ${results.map((result) => `${result.worst} ms at ${result.at} (pace ${result.pace}, budget ${budget(result)})`).join("; ")}${unpaced.length ? `; judged again, with too few frames before the verdict: ${unpaced.map((result) => `${result.paced} frames, ${result.worst} ms at ${result.at}`).join("; ")}` : ""}`);
