@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, PARTS } from "../src/voyage/chapters/copy";
-import { LATENCY, expectWithinBudget, measure, medianCeiling, type Presses } from "./latency";
+import { LATENCY, expectPressesWithinBudget, medianCeiling, type Presses } from "./latency";
 
 // Each Chapter I control answers within budget, click to next paint, on a slower CPU, as
 // stage.latency.spec.ts holds the stage's: latency.ts holds the budget (of 20 presses after two
@@ -97,10 +97,10 @@ test.describe("Chapter I interaction latency", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
 
   for (const id of CHAPTER_ONE_CONTROLS) {
-    test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
+    test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples} or ${LATENCY.samples + LATENCY.more}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await open(page);
-      expectWithinBudget(id, await measure(page, id, presses(page, id)), BASELINE_MEDIAN[id]);
+      await expectPressesWithinBudget(page, id, presses(page, id), BASELINE_MEDIAN[id]);
     });
   }
 });

@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { calmer } from "./latency";
 import { heightsUntilStill, quietFrames } from "./frames";
 
 // The site's frame measurements count frames, not wall-clock time (ourostack/ouro-ui#684): on a loaded browser a press
@@ -58,17 +57,4 @@ test("a panel that never appears, or never stops moving, is rejected at the cap 
     move();
   });
   await expect(heightsUntilStill(page.locator("#m"), 8, 6)).rejects.toThrow(/6 frames, heights seen \[\d+/);
-});
-
-test("a retaken latency read keeps the calmer take, and a control slow in both stays slow", () => {
-  const spiked = [...Array(18).fill(40), 104, 104];
-  const calm = Array(20).fill(48);
-  expect(calmer(spiked, calm)).toEqual(calm);
-  expect(calmer(calm, spiked)).toEqual(calm);
-  expect(calmer(calm, calm.map((n) => n - 8))).toEqual(calm.map((n) => n - 8));
-  const slow = Array(20).fill(120);
-  expect(Math.min(...calmer(slow, slow))).toBe(120);
-  const sameP95 = [...Array(19).fill(40), 64];
-  const lowerMedian = [...Array(19).fill(32), 64];
-  expect(calmer(sameP95, lowerMedian)).toEqual(lowerMedian);
 });
