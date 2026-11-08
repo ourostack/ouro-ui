@@ -11,7 +11,8 @@ export function Container({ children, className }: { children: ReactNode; classN
 export function VoyageFooter(): JSX.Element {
   const links = [
     { label: "Docs", url: href("/docs/installing/") },
-    { label: "Components", url: href("/docs/") },
+    { label: "Ouro HX", url: href("/docs/") },
+    { label: "Ouro AX", url: href("/ax/") },
     { label: "GitHub", url: GITHUB },
     { label: "llms.txt", url: href("/llms.txt") },
   ];
@@ -20,7 +21,7 @@ export function VoyageFooter(): JSX.Element {
       <Container className="grid gap-6 py-12 text-sm text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="grid gap-2">
           <p className="m-0">
-            Ouro UI, in two halves: Ouro HX for people, Ouro AX for agents. Part of{" "}
+            Ouro UI: Ouro HX for people, Ouro AX for agents. Part of{" "}
             <a href="https://ouroboros.bot/" className="text-foreground underline underline-offset-4">
               Ouro
             </a>

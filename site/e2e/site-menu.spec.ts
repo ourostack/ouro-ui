@@ -181,7 +181,7 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await search.fill("segmented");
   await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Toggle", exact: true })).toHaveCount(0);
-  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "GitHub"], ["overview", "Components"], ["ouro ax guide", "Ouro AX guide"]] as const) {
+  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "GitHub"], ["overview", "Ouro HX"], ["ouro ax guide", "Ouro AX guide"]] as const) {
     await search.fill(query);
     await expect(sheet(page).getByRole("link", { name, exact: true })).toBeVisible();
   }
@@ -282,7 +282,7 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   // real clock: focus stays in the field until something moves it; no timer does.
   await expect(field).toBeFocused();
   // It finds what the menu lists, and every component and guide.
-  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Docs"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Components"]] as const) {
+  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Docs"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Ouro HX"]] as const) {
     await field.fill(query);
     await expect(page.getByRole("option", { name: new RegExp(`^${name}\\b`) }).first()).toBeVisible();
   }

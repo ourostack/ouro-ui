@@ -7,7 +7,7 @@
     "sha256": "7fdaabb2cc0717eccc9bca967891dcaef206ef4963109205b0e7e60675ce1f25"
   },
   "origin": "arimendelow/desk@3ab5eed1f9062895609ada2684a3774ff2475e8f:ouro-public-web/public-pages-holistic-plan/icons/final/",
-  "rules": "ouro-ui-hx-ax-handoff.md: byte-identical copies, never recoloured or redrawn; preserve the aspect ratio and transparency; alt=\"\" beside a visible \"Ouro HX\" label; the silhouette only for tiny placements such as the favicon.",
+  "rules": "ouro-ui-hx-ax-handoff.md: byte-identical copies, never recoloured or redrawn; preserve the aspect ratio and transparency; alt=\"\" beside a visible \"Ouro HX\" label (the site, Ouro UI, wears the Ouro HX mark beside its visible \"Ouro UI\" name, coordinator's ruling 2026-11-08; no Ouro UI or Ouro AX mark is approved); the silhouette only for tiny placements such as the favicon.",
   "files": [
     {
       "file": "ouro-hx-render.webp",

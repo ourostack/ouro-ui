@@ -183,7 +183,7 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
                 current={current}
               />
             ),
-            Components: <Folds groups={componentGroups("", true)} current={current} />,
+            "Ouro HX": <Folds groups={componentGroups("", true)} current={current} />,
           }}
         />
       )}
@@ -202,7 +202,7 @@ function findDocs(query: string): Array<{ label: string; links: Array<{ label: s
   // and their pages; a page met twice keeps its first name.
   const hint = (href: string) => SITE_SECTIONS.find((section) => section.href === href)?.hint ?? "";
   const candidates = [
-    ...startPages.map((page) => ({ label: page.href === "/docs/" ? "Components" : page.label, href: page.href, about: `${hint(page.href)} ${page.label}` })),
+    ...startPages.map((page) => ({ label: page.href === "/docs/" ? (SITE_SECTIONS.find((section) => section.href === "/docs/")?.label ?? page.label) : page.label, href: page.href, about: `${hint(page.href)} ${page.label}` })),
     ...SITE_SECTIONS.flatMap((section) => [
       { label: section.label, href: section.href, about: section.hint },
       ...(section.pages ?? []).flatMap((page) => ("links" in page ? page.links : [page])).map((page) => ({ ...page, about: "" })),

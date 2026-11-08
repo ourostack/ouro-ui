@@ -136,40 +136,39 @@ function Proof(): JSX.Element {
 }
 
 /**
- * Ouro UI's two halves, HX and AX, as two hairline rows (no cards): after the stage on a phone, so the
- * first screen keeps the porthole; on a wide screen, in the copy's column between the paint and the proof.
+ * Ouro UI's two halves, HX and AX, under a line that says so, as two hairline rows (no cards), each name a link to its
+ * half: after the stage on a phone, so the first screen keeps the porthole; on a wide screen, in the copy's column
+ * between the paint and the proof.
  */
 function Halves(): JSX.Element {
   const rows = [
-    { key: "hx", ...HALVES.hx, link: undefined },
+    { key: "hx", ...HALVES.hx },
     { key: "ax", ...HALVES.ax },
   ] as const;
   return (
-    <dl className="site-halves" aria-label={HALVES.label} data-site-halves="">
-      {rows.map((row) => (
-        <div key={row.key} className="site-halves-row" data-site-half={row.key}>
-          <dt className="site-halves-name">
-            <span className="site-halves-mark" aria-hidden="true">
-              {row.key.toUpperCase()}
-            </span>
-            <span>
-              {row.name} <span className="site-halves-expansion">· {row.expansion}</span>
-            </span>
-          </dt>
-          <dd className="site-halves-line">
-            {row.line}
-            {row.link ? (
-              <>
-                {" "}
-                <Link href={href("/ax/")} tone="secondary" inline className="text-nowrap">
-                  {row.link}
-                </Link>
-              </>
-            ) : null}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div role="group" aria-labelledby="site-halves-title" className="site-halves" data-site-halves="">
+      <p id="site-halves-title" className="site-halves-title">
+        {HALVES.title}
+      </p>
+      <dl className="site-halves-list">
+        {rows.map((row) => (
+          <div key={row.key} className="site-halves-row" data-site-half={row.key}>
+            <dt className="site-halves-name">
+              <span className="site-halves-mark" aria-hidden="true">
+                {row.key.toUpperCase()}
+              </span>
+              <span>
+                <Link href={href(row.href)} tone="secondary" inline>
+                  {row.name}
+                </Link>{" "}
+                <span className="site-halves-expansion">· {row.expansion}</span>
+              </span>
+            </dt>
+            <dd className="site-halves-line">{row.line}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 
@@ -179,8 +178,8 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
     <section aria-labelledby="hero-title" className="site-hero site-hero-storybook">
       {/*
         The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the
-        headline in its sky; the porthole, the showcase, follows. On a phone the header names Ouro UI
-        just above, so the eyebrow stays for screen readers only.
+        headline in its sky; the porthole, the showcase, follows. The eyebrow names Ouro UI's two halves (the
+        header names Ouro UI itself); on a phone the halves are named under the stage, so it stays for screen readers only.
       */}
       <StoryWorld scene="ouro-hx">
         <Container>

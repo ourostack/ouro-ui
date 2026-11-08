@@ -31,13 +31,13 @@ test("each claim on the hero's proof line comes from its source", () => {
   assert.equal(proof.stage, true);
   assert.equal(
     proof.line,
-    "From buttons and forms to calendars and chat · Typed, so editors and agents see every prop · Tested in Chrome and Safari engines, by mouse and by touch · Passes accessibility checks in all six looks, light and dark · Every line of code runs in a test · The porthole's controls are Ouro HX too",
+    "From buttons and forms to calendars and chat · Typed, so editors and agents see every prop · Tested in Chrome and Safari engines, by mouse and by touch · Passes accessibility checks in all six looks, light and dark · Every line of code runs in a test",
   );
   // No count of components: the line says what the kit covers.
   assert.doesNotMatch(proof.line, new RegExp(`\\b${ui.length}\\b`));
   assert.deepEqual(
     proof.claims.map((claim) => claim.href.replace(/#L\d+$/, "")),
-    [EVIDENCE.components, EVIDENCE.typescript, EVIDENCE.engines, EVIDENCE.themes, EVIDENCE.coverage, EVIDENCE.stage],
+    [EVIDENCE.components, EVIDENCE.typescript, EVIDENCE.engines, EVIDENCE.themes, EVIDENCE.coverage],
   );
 });
 
@@ -49,7 +49,7 @@ test("a line link lands on the line that makes its claim", () => {
   assert.match(line(files.vitestConfig, coverage.href), /thresholds: \{ lines: 100/);
 });
 
-test("the stage claim needs the stage built from registry components", () => {
+test("the stage check needs the stage built from registry components, and the line never claims it (the console does)", () => {
   const files = sources();
   const stage = files.stage.replaceAll("@/registry/ouro/components/ouro/", "@/elsewhere/");
   assert.equal(deriveProof({ ...files, stage }).stage, false);

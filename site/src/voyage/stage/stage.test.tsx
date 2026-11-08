@@ -77,9 +77,9 @@ describe("the drawings", () => {
 });
 
 describe("the hero", () => {
-  it("names the site, Ouro UI, first, and engraves the ship's name on the porthole's ring", async () => {
+  it("names Ouro UI's two halves first, and engraves the ship's name on the porthole's ring", async () => {
     await renderPage("/");
-    expect(EYEBROW).toBe("Ouro UI");
+    expect(EYEBROW).toBe("Ouro HX + Ouro AX");
     expect(document.querySelector("h1")!.textContent).toBe("Feels right to the people using it. Obvious to the agents building it.");
     expect(document.querySelector("[data-site-eyebrow]")!.textContent).toBe(EYEBROW);
     expect(document.querySelector(".stage-motto textPath")!.textContent).toBe("THE NAUTILUS");

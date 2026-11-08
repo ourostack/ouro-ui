@@ -281,14 +281,26 @@
     height: 1rem;
     color: var(--primary);
   }
-  /* Ouro UI's two halves (hero.tsx, Halves): two rows under hairlines, a small mark before each name. */
+  /* Ouro UI's two halves (hero.tsx, Halves): under one hairline, a line that names them, then a row each, a small mark before each name. */
   .site-halves {
     display: grid;
-    gap: 1rem;
+    gap: 0.875rem;
     max-width: 36rem;
-    margin: 0;
     padding: 1.25rem 0 0;
     border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  }
+  .site-halves-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--foreground);
+  }
+  .site-halves-list {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
   }
   .site-halves-row {
     position: relative;

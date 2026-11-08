@@ -12,7 +12,7 @@ const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;
 
 /**
  * The `<head>` tags of a prerendered page: its title and description, the canonical URL, the
- * icons (the Ouro HX silhouette, Ouro UI's mark, the touch icon and the web manifest, all from the storybook
+ * icons (the Ouro HX silhouette, which the site wears as Ouro UI's mark, the touch icon and the web manifest, all from the storybook
  * brand), and the Open Graph and Twitter tags link previews read, with the page's storybook card
  * (storybook.ts; site/scripts/og-cards.mts draws them into site/public/og/) as the image.
  */
@@ -25,7 +25,7 @@ export function headTags(route: Route, canonical: boolean): string[] {
   // site.test.tsx's head-tag test moves with them to the docs card (after the phone-menu pull request, #648).
   const card = CARDS[route.path];
   const image = card ? `${SITE}/og/${card.file}` : `${SITE}/og.png`;
-  const alt = card ? escape(cardAlt(card)) : "Ouro UI, in two halves: Ouro HX for the screens people use, Ouro AX for the tools agents use.";
+  const alt = card ? escape(cardAlt(card)) : "Ouro UI: Ouro HX for the screens people use, Ouro AX for the tools agents use.";
   return [
     // First, so the stored theme and dark mode are on <html> before anything paints.
     `<script>${prepaintScript}</script>`,

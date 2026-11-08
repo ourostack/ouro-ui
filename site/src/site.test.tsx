@@ -111,7 +111,7 @@ describe("home page", () => {
 
   it("keeps Ouro UI as the parent, with Ouro AX as the other half and its own page, and never says AX is still being defined", async () => {
     await renderPage("/");
-    // The site is Ouro UI; the bar names its two halves side by side, and the hero names them under the install.
+    // The site is Ouro UI; the bar names its two halves side by side, and the hero says so under the install, each name a link to its half.
     await expect.element(page.getByRole("link", { name: "Ouro UI", exact: true })).toBeVisible();
     expect(SITE_SECTIONS.map((section) => [section.label, section.href]).slice(1, 4)).toEqual([
       ["The Nautilus", "/nautilus/"],
@@ -120,7 +120,11 @@ describe("home page", () => {
     ]);
     const halves = document.querySelector("[data-site-halves]")!;
     expect([...halves.querySelectorAll("dt")].map((name) => name.textContent)).toEqual(["HXOuro HX · human experience", "AXOuro AX · agent experience"]);
-    expect(halves.querySelector("a")!.getAttribute("href")).toBe("/ax/");
+    expect(halves.querySelector("p")!.textContent).toBe("Ouro UI has a half for people and a half for agents");
+    expect([...halves.querySelectorAll("dt a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Ouro HX", "/docs/"],
+      ["Ouro AX", "/ax/"],
+    ]);
     await expect.element(page.getByRole("heading", { level: 2, name: AX_SECTION.title })).toBeVisible();
     await expect.element(page.getByText(AX_SECTION.intro, { exact: true })).toBeVisible();
     expect(page.getByRole("link", { name: "Be the agent" }).element().getAttribute("href")).toBe("/ax/#be-the-agent");
@@ -129,7 +133,7 @@ describe("home page", () => {
     for (const text of [document.body.innerText, readme, llms]) {
       expect(text).not.toMatch(/still being defined|coming soon/i);
     }
-    expect(document.body.innerText).toContain("Ouro UI, in two halves: Ouro HX for people, Ouro AX for agents.");
+    expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
     expect(routes[0]!.title).toBe("Ouro UI");
     // The README opens with the ourostack brand mark every repository shares, then its title.
     expect(readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "").startsWith("# Ouro HX\n")).toBe(true);
@@ -423,8 +427,8 @@ describe("head tags", () => {
       '<meta name="twitter:card" content="summary_large_image" />',
       '<meta name="twitter:image" content="https://ui.ouroboros.bot/og.png" />',
       '<meta property="og:site_name" content="Ouro UI" />',
-      '<meta property="og:image:alt" content="Ouro UI, in two halves: Ouro HX for the screens people use, Ouro AX for the tools agents use." />',
-      '<meta name="twitter:image:alt" content="Ouro UI, in two halves: Ouro HX for the screens people use, Ouro AX for the tools agents use." />',
+      '<meta property="og:image:alt" content="Ouro UI: Ouro HX for the screens people use, Ouro AX for the tools agents use." />',
+      '<meta name="twitter:image:alt" content="Ouro UI: Ouro HX for the screens people use, Ouro AX for the tools agents use." />',
     ]) {
       expect(tags).toContain(tag);
     }
