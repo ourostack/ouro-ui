@@ -109,7 +109,9 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
     await work();
     await settle();
+    if (process.env.PROBE_VARIANT === "noswitch") return;
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
+    if (process.env.PROBE_VARIANT === "wait") await page.waitForTimeout(400);
   };
   /** How many interactions the page has had (Event Timing's count, which has no duration floor). */
   const interactions = () => page.evaluate(() => (performance as Performance & { interactionCount: number }).interactionCount);

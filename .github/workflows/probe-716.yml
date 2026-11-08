@@ -13,6 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: [1, 2, 3]
+        variant: [base, wait, noswitch]
     container:
       image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
@@ -30,7 +31,10 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - run: pnpm site:build
       - name: Loop the stage latency spec, with a CPU benchmark before each pass
+        env:
+          PROBE_VARIANT: ${{ matrix.variant }}
         run: |
+          echo variant $PROBE_VARIANT
           nproc; cat /proc/cpuinfo | grep -m1 "model name"; cat /proc/loadavg
           for i in 1 2 3 4 5 6; do
             echo "=== pass $i $(date -u +%T) loadavg $(cat /proc/loadavg)"
