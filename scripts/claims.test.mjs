@@ -885,6 +885,7 @@ test("the tests that read the generated registry.json say how to make it when it
   mkdirSync(join(dir, "site/public"), { recursive: true });
   writeFileSync(join(dir, "site/public/llms.txt"), "");
   assert.doesNotThrow(() => requireRegistry(dir));
+});
 
 test("the lint sees a claim through Unicode format characters hidden in its words, and passes the same text without a claim", () => {
   const lint = (text) => lintPlain(text, { file: "pull request body" });
