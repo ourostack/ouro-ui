@@ -488,7 +488,7 @@ function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): 
   return isValidElement(child) ? child.key : null;
 }
 
-/** The children's keys as a set, built in render when the list's first or newest children change. */
+/** The children's keys as a set, built in render when the list's first or last children change. */
 function keySet(children: readonly ReturnType<typeof Children.toArray>[number][]): Set<Key | null> {
   return new Set(children.map(keyOf));
 }
