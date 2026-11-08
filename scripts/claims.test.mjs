@@ -548,6 +548,23 @@ test("the lint command reads a pull request's title and body from the environmen
   assert.match(failed.stderr, /pull request body:1: "Every test passes now\." makes a universal claim/);
 });
 
+test("the lint command lints only the title of a Dependabot pull request, whose body quotes its upstream's release notes", () => {
+  const run = (author, title, body) => spawnSync(process.execPath, [script, "lint", "--pr"], { encoding: "utf8", cwd: repo, env: { ...process.env, PR_AUTHOR: author, PR_TITLE: title, PR_BODY: body } });
+  const quoted = "Release notes: every test passes now.";
+  const bump = "chore(deps): bump pnpm/action-setup from 6.1.0 to 6.1.1";
+  assert.equal(run("dependabot[bot]", bump, quoted).status, 0);
+  // The title is still ours to check, and nobody else's body is skipped.
+  assert.equal(run("dependabot[bot]", "Build(deps): bump ourostack/flow-review from 0.3.0 to 0.5.3", quoted).status, 0);
+  assert.equal(run("dependabot[bot]", "Bump actions/checkout from 5.1.0 to 7.0.1", quoted).status, 0);
+  assert.equal(run("dependabot[bot]", "Bump actions/checkout from 5.1.0 to 7.0.1 and make every test pass", quoted).status, 1);
+  const title = run("dependabot[bot]", "Every test passes now.", quoted);
+  assert.equal(title.status, 1);
+  assert.match(title.stderr, /pull request title:1: "Every test passes now\." makes a universal claim/);
+  assert.equal(run("arimendelow", bump, quoted).status, 1);
+  assert.equal(run("dependabot-lookalike", bump, quoted).status, 1);
+  assert.equal(run("", bump, quoted).status, 1);
+});
+
 test("the lint command fetches a link that only a pull request's text cites, and leaves the URL cache alone", async () => {
   // The full check fails a cache entry no file cites, so a link cited only in the title, the
   // body or a draft is fetched when it is linted, and never written to the cache.

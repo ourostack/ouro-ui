@@ -79,3 +79,15 @@
     transform: rotate(0deg);
   }
 }
+
+/*
+ * A docs table that scrolls sideways (docs/markdown.tsx) has no frame, so a soft shadow shows at an edge that has more:
+ * the page-coloured covers scroll with the table and hide each shadow once that edge is reached.
+ */
+.docs-scroll-x {
+  background:
+    linear-gradient(to right, var(--background) 40%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--background) 40%, transparent) right / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, color-mix(in oklab, var(--foreground) 16%, transparent), transparent) left / 0.75rem 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in oklab, var(--foreground) 16%, transparent), transparent) right / 0.75rem 100% no-repeat;
+}

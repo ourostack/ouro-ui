@@ -57,6 +57,21 @@ export function checkClaims(options = {}) {
   return checkAt({ ...options, root, hooks: options.hooks ?? (root === repoRoot ? hooks : {}) });
 }
 
+/**
+ * A Dependabot pull request's body quotes its upstream's release notes and commits, which are not
+ * our words, and its title states the two versions it moves between. When the pull request's
+ * author (PR_AUTHOR, set by GitHub, so no one else can claim the name) is Dependabot, `lint --pr`
+ * skips the body, and skips the title only when it has Dependabot's one-bump shape; any other
+ * title is linted as written. Attribution holds such a pull request to dependency files
+ * (scripts/attribution.mjs).
+ */
+const bumpTitle = /^(?:build|chore|ci)?(?:\(deps(?:-dev)?\))?:? ?bump \S+ from \S+ to \S+$/i;
+export function vendorText(env) {
+  if (env.PR_AUTHOR !== "dependabot[bot]") return {};
+  return { PR_BODY: "", ...(bumpTitle.test(env.PR_TITLE ?? "") ? { PR_TITLE: "Bump a dependency" } : {}) };
+}
+Object.assign(process.env, vendorText(process.env));
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   process.exitCode = await main(process.argv.slice(2), { root: repoRoot, hooks, guide: "docs/guides/claims.md" });
 }
