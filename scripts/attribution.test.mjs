@@ -200,12 +200,39 @@ test("attribution passes Dependabot's dependency-bump commit, and only that", ()
   assert.deepEqual(fieldsOf([bump({ files: ["package.json", "registry/ouro/button/button.tsx"] })]), ["files"]);
   assert.deepEqual(fieldsOf([bump({ files: [] })]), ["files"]);
   assert.deepEqual(fieldsOf([bump({ files: undefined })]), ["files"]);
-  // Its own sign-off is the one bot trailer allowed; any other credit, or an AI line, still fails.
-  assert.deepEqual(fieldsOf([bump({ message: "chore(deps): bump\n\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>" })]), ["message line 3"]);
+  // Its own sign-off, and (next test) its own credit, are the bot trailers allowed; any other credit, or an AI line, still fails.
+  assert.deepEqual(fieldsOf([bump({ message: "chore(deps): bump\n\nCo-authored-by: Copilot <198982749+Copilot@users.noreply.github.com>" })]), ["message line 3"]);
   assert.deepEqual(fieldsOf([bump({ message: "chore(deps): bump\n\nSigned-off-by: Claude <noreply@anthropic.com>" })]), ["message line 3"]);
   assert.deepEqual(fieldsOf([bump({ message: "chore(deps): bump\n\nGenerated with Claude Code" })]), ["message line 3"]);
   // Dependabot may not commit: only GitHub or the maintainer do.
   assert.deepEqual(fieldsOf([bump({ committerName: "dependabot[bot]", committerEmail: DEPENDABOT })]), ["committer"]);
   // Nobody else gets the exemption.
   assert.deepEqual(fieldsOf([commit({ authorEmail: "198982749+Copilot@users.noreply.github.com", files: ["package.json"] })]), ["author"]);
+});
+
+test("attribution accepts Dependabot's own Co-authored-by trailer on its dependency-bump squash, and nowhere else", () => {
+  // The squash commit the merge queue built for #750 (37435f8ddfdb): Dependabot authors it, GitHub commits it.
+  const credit = "Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>";
+  const squash = (fields = {}) => commit({
+    authorName: "dependabot[bot]",
+    authorEmail: DEPENDABOT,
+    files: [".github/workflows/flow-review.yml"],
+    message: `Build(deps): bump ourostack/flow-review from 0.3.0 to 0.5.3 (#750)\n\nBumps [ourostack/flow-review](https://github.com/ourostack/flow-review) from 0.3.0 to 0.5.3.\n\n---\nupdated-dependencies:\n- dependency-name: ourostack/flow-review\n...\n\nSigned-off-by: ${DEPENDABOT_TRAILER}\n${credit}\nCo-authored-by: ${maintainer}`,
+    ...fields,
+  });
+  assert.deepEqual(problems([squash()]), []);
+  const message = (line) => `Build(deps): bump a from 1 to 2 (#1)\n\n${line}`;
+  // Not on a commit that changes more than dependency files, or none we could read, or that Dependabot did not author.
+  assert.deepEqual(fieldsOf([squash({ files: [".github/workflows/flow-review.yml", "README.md"] })]).sort(), ["files", "message line 11"]);
+  assert.deepEqual(fieldsOf([squash({ files: [] })]).sort(), ["files", "message line 11"]);
+  assert.deepEqual(fieldsOf([squash({ files: undefined })]).sort(), ["files", "message line 11"]);
+  assert.deepEqual(fieldsOf([commit({ files: ["package.json"], message: message(credit) })]), ["message line 3"]);
+  // No other bot or AI credit passes, whatever the files.
+  for (const line of [
+    "Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>",
+    "Co-authored-by: dependabot[bot] <someone-else@example.com>",
+    "Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com> and Claude",
+    "Co-authored-by: Claude <noreply@anthropic.com>",
+    "Assisted-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+  ]) assert.deepEqual(fieldsOf([squash({ message: message(line) })]), ["message line 3"], line);
 });

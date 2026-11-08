@@ -114,7 +114,7 @@ The checks read only the checkout, so they give the same answer on every machine
 
 ## Dependabot pull requests
 
-Dependabot's bumps merge as they come. The `pull request claims` check skips the body of a pull request whose author is Dependabot, because the body quotes the upstream's release notes, and skips its title when it has the form "Bump <name> from <version> to <version>". Any other title is still linted. The attribution check accepts Dependabot as the author of a commit that changes only `package.json`, `pnpm-lock.yaml`, workflows or actions, with only Dependabot's own sign-off line.
+Dependabot's bumps merge as they come. The `pull request claims` check skips the body of a pull request whose author is Dependabot, because the body quotes the upstream's release notes, and skips its title when it has the form "Bump <name> from <version> to <version>". Any other title is still linted. The attribution check accepts Dependabot as the author of a commit that changes only `package.json`, `pnpm-lock.yaml`, workflows or actions, with only Dependabot's own sign-off line, and the same Dependabot commit may carry Dependabot's own `Co-authored-by` line, which GitHub's squash adds.
 
 ## Surfaces and exemptions
 

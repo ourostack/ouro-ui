@@ -6,7 +6,8 @@
 //
 // - is authored by anyone but the maintainer, release.yml's github-actions[bot], which authors
 //   the "Prepare main for the next release" commits, or Dependabot, whose commit may change only
-//   dependency files (DEPENDENCY_FILES) and may carry only its own Signed-off-by trailer;
+//   dependency files (DEPENDENCY_FILES), may carry its own Signed-off-by trailer, and, as the squash's
+//   author, its own Co-authored-by trailer (DEPENDABOT_CREDIT);
 // - is committed by anyone but those two or GitHub (noreply@github.com, which commits the merge
 //   queue's squash commits and the web editor's);
 // - carries AI attribution in its message: a `*-by:` trailer (Co-authored-by, Assisted-by, ...)
@@ -29,6 +30,8 @@ export const GITHUB = "noreply@github.com";
 export const DEPENDABOT = "49699333+dependabot[bot]@users.noreply.github.com";
 /** The only trailer a bot may carry besides release.yml's: Dependabot's own sign-off. */
 export const DEPENDABOT_TRAILER = "dependabot[bot] <support@github.com>";
+/** The credit GitHub's squash adds for Dependabot, the author of a bump pull request's commits. */
+export const DEPENDABOT_CREDIT = `dependabot[bot] <${DEPENDABOT}>`;
 /** What a Dependabot commit may change: manifests, the lockfile and the workflows and actions it pins. */
 export const DEPENDENCY_FILES = /^(?:package\.json|pnpm-lock\.yaml|\.github\/(?:workflows|actions)\/.+)$/;
 export const AUTHORS = [MAINTAINER.email, RELEASE_BOT, DEPENDABOT];
@@ -64,6 +67,7 @@ export function problems(commits) {
     const report = (field, problem, fix) => found.push({ sha: commit.sha, field, problem, fix });
     const dependabot = commit.authorEmail.toLowerCase() === DEPENDABOT;
     const files = commit.files ?? [];
+    const bump = dependabot && files.length > 0 && files.every((file) => DEPENDENCY_FILES.test(file));
     const stray = files.filter((file) => !DEPENDENCY_FILES.test(file));
     if (dependabot && (files.length === 0 || stray.length > 0)) report("files", files.length === 0 ? "Dependabot's commit changes no file the check could read" : `Dependabot may change only dependency files (package.json, pnpm-lock.yaml, workflows and actions), not ${stray.join(", ")}`, REAUTHOR);
     if (!AUTHORS.includes(commit.authorEmail.toLowerCase())) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")})`, REAUTHOR);
@@ -71,7 +75,8 @@ export function problems(commits) {
     commit.message.split("\n").forEach((line, index) => {
       const field = `message line ${index + 1}`;
       const trailer = line.match(TRAILER);
-      if (trailer && ![RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER].includes(trailer[2].trim().toLowerCase()) && AI_OR_BOT.test(trailer[2])) return report(field, `"${line.trim()}" credits an AI tool or a bot`, UNCREDIT);
+      const own = (bump && trailer?.[1].toLowerCase() === "co-authored-by" && trailer[2].trim().toLowerCase() === DEPENDABOT_CREDIT) || (trailer && [RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER].includes(trailer[2].trim().toLowerCase()));
+      if (trailer && !own && AI_OR_BOT.test(trailer[2])) return report(field, `"${line.trim()}" credits an AI tool or a bot`, UNCREDIT);
       const generated = line.match(GENERATED);
       if ((generated && AI_TOOL.test(generated[1])) || ROBOT_FOOTER.test(line)) report(field, `"${line.trim()}" says an AI tool wrote it`, REWORD);
     });
