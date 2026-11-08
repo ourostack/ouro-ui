@@ -272,3 +272,11 @@ test("attribution sees through Unicode format characters hidden in a credit, and
   // A clean message, even with format characters in it, passes.
   assert.deepEqual(problems([commit({ message: "Button: a fix\u200B (#1) \u{1F468}\u200D\u{1F373}\n\nSigned-off-by: Ari\u00AD Mendelow <16390116+arimendelow@users.noreply.github.com>" })]), []);
 });
+
+test("attribution reads a blank-drawing filler as a space between words, so the line is still seen", () => {
+  const found = (message) => problems([{ sha: "c1", authorName: "Ari Mendelow", authorEmail: MAINTAINER.email, committerName: "Ari Mendelow", committerEmail: MAINTAINER.email, message, files: ["a.txt"] }]);
+  assert.equal(found("Fix\n\nGenerated\u2800with Claude").length, 1);
+  assert.equal(found("Fix\n\nGenerated\u3164with Claude").length, 1);
+  assert.equal(found("Fix\n\nCo-authored-by: Claude\u3164Code <a@b.c>").length, 1);
+  assert.equal(found("Fix\n\nCo-authored-by: Cl\u3164aude <a@b.c>").length, 1);
+});

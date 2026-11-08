@@ -50,6 +50,8 @@ const TRAILER = /^[\s*>-]*([a-z][a-z-]*-by)\s*:\s*(.+)$/i;
 const LINE_TERMINATOR = /\r\n|[\n\r\u2028\u2029\u0085]/;
 /** Characters that draw nothing (zero-width spaces and joiners, soft hyphens, byte order marks, variation selectors, fillers, the blank braille cell): a way to split a name the checks look for. */
 const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
+/** Fillers that draw a blank, so a line is read both with them taken out (they split a word) and with them as spaces (they separate two). */
+const FILLER = /[\u115F\u1160\u3164\uFFA0\u2800]/g;
 const GENERATED = /(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;
 const ROBOT_FOOTER = /🤖.*(?<![a-z])generated(?![a-z])/iu;
 
@@ -77,13 +79,14 @@ export function problems(commits) {
     if (!AUTHORS.includes(commit.authorEmail.toLowerCase())) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")})`, REAUTHOR);
     if (!COMMITTERS.includes(commit.committerEmail.toLowerCase())) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
     commit.message.split(LINE_TERMINATOR).forEach((raw, index) => {
-      const line = raw.replace(INVISIBLE, "");
       const field = `message line ${index + 1}`;
-      const trailer = line.match(TRAILER);
-      const own = (bump && trailer?.[1].toLowerCase() === "co-authored-by" && trailer[2].trim().toLowerCase() === DEPENDABOT_CREDIT) || (trailer && [RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER].includes(trailer[2].trim().toLowerCase()));
-      if (trailer && !own && AI_OR_BOT.test(trailer[2])) return report(field, `"${raw.trim()}" credits an AI tool or a bot`, UNCREDIT);
-      const generated = line.match(GENERATED);
-      if ((generated && AI_TOOL.test(generated[1])) || ROBOT_FOOTER.test(line)) report(field, `"${raw.trim()}" says an AI tool wrote it`, REWORD);
+      for (const line of [raw.replace(INVISIBLE, ""), raw.replace(FILLER, " ").replace(INVISIBLE, "")]) {
+        const trailer = line.match(TRAILER);
+        const own = (bump && trailer?.[1].toLowerCase() === "co-authored-by" && trailer[2].trim().toLowerCase() === DEPENDABOT_CREDIT) || (trailer && [RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER].includes(trailer[2].trim().toLowerCase()));
+        if (trailer && !own && AI_OR_BOT.test(trailer[2])) return report(field, `"${raw.trim()}" credits an AI tool or a bot`, UNCREDIT);
+        const generated = line.match(GENERATED);
+        if ((generated && AI_TOOL.test(generated[1])) || ROBOT_FOOTER.test(line)) return report(field, `"${raw.trim()}" says an AI tool wrote it`, REWORD);
+      }
     });
   }
   return found;

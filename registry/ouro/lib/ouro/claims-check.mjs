@@ -129,9 +129,11 @@ const HOW_TO = {
 
 /** Characters that draw nothing: a way to split a word the patterns look for. */
 const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
+/** Fillers that draw a blank may sit inside a word or between words, so text is read with them removed and with them as spaces. */
+const FILLER = /[\u115F\u1160\u3164\uFFA0\u2800]/g;
 
 /** Whether text has one of the claim words (not a number): a quotation with one is read, not masked. */
-const hasClaimWord = (text) => WORDS.some(([, pattern]) => pattern.test(text));
+const hasClaimWord = (text) => [text, text.replace(FILLER, " ")].some((view) => WORDS.some(([, pattern]) => pattern.test(view.replace(INVISIBLE, ""))));
 
 /**
  * A short quotation mentions text, such as a label or an example of output ("3 days ago"); it
@@ -142,14 +144,14 @@ const hasClaimWord = (text) => WORDS.some(([, pattern]) => pattern.test(text));
  */
 const QUOTED = /"([^"\n]{1,80})"|“([^”\n]{1,80})”/g;
 const maskQuote = (quote, plain, curly) => {
-  const inner = (plain ?? curly).replace(INVISIBLE, "");
+  const inner = plain ?? curly;
   return hasClaimWord(inner) || inner.trim().split(/\s+/).length > 6 ? quote : "§".repeat(quote.length);
 };
 
 /** Code spans, template substitutions, links' targets and addresses: their digits and words are not prose. */
-function maskCode(text) {
+function maskCode(text, fillersAsSpaces = false) {
   // Characters that draw nothing are a way to split a word the patterns look for, so they go first.
-  return text
+  return (fillersAsSpaces ? text.replace(FILLER, " ") : text)
     .replace(INVISIBLE, "")
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
     .replace(/\$\{[^}]*\}/g, (span) => "§".repeat(span.length))
@@ -160,7 +162,14 @@ function maskCode(text) {
 
 /** The kinds of claim a sentence makes, with the words that make it. */
 export function triggers(sentence) {
-  let text = maskCode(sentence);
+  const found = triggersOf(maskCode(sentence));
+  // A filler that draws a blank may stand between two words rather than inside one.
+  if (sentence.search(FILLER) >= 0) for (const entry of triggersOf(maskCode(sentence, true))) if (!found.some((other) => other.kind === entry.kind)) found.push(entry);
+  return found;
+}
+
+function triggersOf(masked) {
+  let text = masked;
   const found = [];
   const take = (kind, pattern) => {
     const words = [...text.matchAll(pattern)].map((match) => match[0]);
