@@ -13,8 +13,10 @@ import "./feel-reins.css";
 const GUIDE = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/README.md`;
 const SKILL = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/SKILL.md`;
 const REFLEX = "https://shopify.engineering/reflex";
-const PROTOCOL = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/PROTOCOL.md`;
-const ANY_MAC = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/README.md#reins-for-any-mac-app`;
+// Pinned here rather than through kit.main: the protocol is newer than the commit the other Apple pages link.
+const SPEC_COMMIT = "178bce5d5854d0e896fba34c4a241cabc8416dbb";
+const PROTOCOL = `https://github.com/ourostack/ouro-ui-apple/blob/${SPEC_COMMIT}/docs/ouro-reins/PROTOCOL.md`;
+const ANY_MAC = `https://github.com/ourostack/ouro-ui-apple/blob/${SPEC_COMMIT}/docs/ouro-reins/README.md#reins-for-any-mac-app`;
 
 /** The same reins on any app: what a second driver, for whole Macs, adds. */
 const ANY_MAC_PARTS: readonly { name: string; body: ReactNode }[] = [
