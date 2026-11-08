@@ -208,6 +208,8 @@
   /* Reins: the terminal. */
   .reins-terminal {
     display: grid;
+    /* One column no wider than the band: the input's own width never pushes the page sideways on a 320px phone. */
+    grid-template-columns: minmax(0, 1fr);
     gap: calc(var(--spacing) * 4);
     min-width: 0;
     max-width: 52rem;
