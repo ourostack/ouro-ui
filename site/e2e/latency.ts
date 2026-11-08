@@ -64,11 +64,23 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
  */
 export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle): Promise<number[]> {
   await page.evaluate(() => {
-    const store: number[] = [];
-    (window as unknown as { __latency: number[] }).__latency = store;
+    const w = window as unknown as Record<string, unknown>;
+    const store: unknown[] = [];
+    w.__latency = store;
     new PerformanceObserver((list) => {
-      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push(entry.duration);
+      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push({ name: entry.name, start: entry.startTime, ps: entry.processingStart, pe: entry.processingEnd, d: entry.duration });
     }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
+    const loaf: unknown[] = [];
+    w.__loaf = loaf;
+    try {
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries() as unknown as { startTime: number; duration: number; blockingDuration: number; renderStart: number; styleAndLayoutStart: number; scripts: { duration: number; sourceFunctionName: string; invoker: string }[] }[])
+          loaf.push({ start: e.startTime, d: e.duration, block: e.blockingDuration, render: e.renderStart, style: e.styleAndLayoutStart, scripts: e.scripts.map((x) => `${x.invoker}:${Math.round(x.duration)}`).join("|") });
+      }).observe({ type: "long-animation-frame", buffered: false });
+    } catch {}
+    const code = "let last=performance.timeOrigin+performance.now();const stalls=[];const n=()=>{const t=performance.timeOrigin+performance.now();if(t-last>20)stalls.push([last,t]);last=t};setInterval(n,4);onmessage=()=>{n();postMessage(stalls.splice(0))};";
+    const worker = new Worker(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
+    w.__stalls = () => new Promise((resolve) => { worker.onmessage = ({ data }) => resolve(data); worker.postMessage(0); });
   });
   const cdp = await page.context().newCDPSession(page);
   const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
@@ -85,14 +97,35 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   const samples: number[] = [];
   for (let index = 0; index < LATENCY.warmUps + LATENCY.samples; index++) {
     if (setUp) await unthrottled(() => setUp(index));
-    await page.evaluate(() => ((window as unknown as { __latency: number[] }).__latency.length = 0));
+    await page.evaluate(async () => {
+      const w = window as unknown as { __latency: unknown[]; __loaf: unknown[]; __stalls: () => Promise<unknown> };
+      w.__latency.length = 0;
+      w.__loaf.length = 0;
+      await w.__stalls();
+    });
     const before = await interactions();
     await press(index);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-    const durations = await page.evaluate(() => (window as unknown as { __latency: number[] }).__latency);
+    const got = await page.evaluate(async () => {
+      const w = window as unknown as { __latency: { name: string; start: number; ps: number; pe: number; d: number }[]; __loaf: { start: number; d: number }[]; __stalls: () => Promise<[number, number][]> };
+      const stalls = await w.__stalls();
+      const origin = performance.timeOrigin;
+      return { entries: [...w.__latency], loaf: [...w.__loaf], stalls: stalls.map(([a, b]) => [a - origin, b - origin] as [number, number]) };
+    });
+    const durations = got.entries.map((entry) => entry.d);
     const pressed = (await interactions()) > before;
     expect(durations.length > 0 || pressed, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
     if (index >= LATENCY.warmUps) samples.push(durations.length > 0 ? Math.max(...durations) : 16);
+    {
+      const top = got.entries.toSorted((a, b) => b.d - a.d)[0];
+      const r = (n: number) => Math.round(n);
+      const overlap = top ? got.stalls.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(top.start + top.d, b) - Math.max(top.start, a)), 0) : 0;
+      const loaf = top ? got.loaf.filter((f) => f.start < top.start + top.d && f.start + f.d > top.start) : [];
+      const line = top
+        ? `d=${r(top.d)} ${top.name} all=[${got.entries.map((e) => `${e.name}:${r(e.d)}@${r(e.start - top.start)}/${r(e.ps - top.start)}/${r(e.pe - top.start)}`).join(" ")}] in=${r(top.ps - top.start)} proc=${r(top.pe - top.ps)} pres=${r(top.start + top.d - top.pe)} stallOverlap=${r(overlap)} stalls=[${got.stalls.map(([a, b]) => `${r(a - top.start)}+${r(b - a)}`).join(" ")}] loaf=${JSON.stringify(loaf.map((f) => ({ ...f, start: r(f.start - top.start), d: r(f.d) })))}`
+        : `none stalls=${got.stalls.length}`;
+      console.log(`latency-trace ${label} #${index}: ${line}`);
+    }
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
