@@ -414,42 +414,60 @@ for (const path of ["./", "docs/button/"]) {
     }
     // Hydration and first paint have come to rest: the read below is of a page that is done loading, not of its load.
     await quietFrames(page);
-    // The longest gap, when in the read it fell, and whether the stage's verdict landed during the read.
+    // The page's longest gap of its own: each gap between frames, less the time in it that a worker in the page also
+    // stood still. A worker runs on its own thread, so the page's own work (a stage holding its main thread) leaves it
+    // ticking, while a runner that stops the whole browser stops it too (ourostack/ouro-ui#670). When in the read that
+    // gap fell, and whether the stage's verdict landed during the read.
     const read = () =>
       page.evaluate(
         () =>
-          new Promise<{ longest: number; at: number; paced: boolean }>((resolve) => {
+          new Promise<{ longest: number; gap: number; runner: number; at: number; paced: boolean }>((resolve) => {
             const stage = document.querySelector("[data-stage]");
             const pacedBefore = stage?.hasAttribute("data-paced") ?? true;
-            let last = 0;
-            let longest = 0;
-            let at = 0;
-            const start = performance.now();
+            // The worker starts, and has ticked, before the read: its start is work of the read's, not of the page's. It ticks
+            // once more as it answers, so a stall at the read's end, which it answers first on waking, is closed and counted.
+            const code = "const n=()=>t.push(performance.timeOrigin+performance.now());const t=[];setInterval(n,4);postMessage(0);onmessage=()=>{n();postMessage(t)};";
+            const worker = new Worker(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
+            const frames: number[] = [];
+            let start = 0;
             const tick = (now: number) => {
-              if (last && now - last > longest) {
-                longest = now - last;
-                at = Math.round(last - start);
-              }
-              last = now;
-              if (now - start < 1500) requestAnimationFrame(tick);
-              else resolve({ longest, at, paced: pacedBefore !== (stage?.hasAttribute("data-paced") ?? true) });
+              frames.push(performance.timeOrigin + now);
+              if (now - start < 1500) return void requestAnimationFrame(tick);
+              worker.onmessage = ({ data: ticks }: MessageEvent<number[]>) => {
+                worker.terminate();
+                // A worker's tick 20 ms late or more is the runner standing still: the page did not stop it.
+                const stalls: [number, number][] = [];
+                for (let index = 1; index < ticks.length; index++) if (ticks[index]! - ticks[index - 1]! > 20) stalls.push([ticks[index - 1]!, ticks[index]!]);
+                let worst = { longest: 0, gap: 0, runner: 0, at: 0 };
+                for (let index = 1; index < frames.length; index++) {
+                  const [from, to] = [frames[index - 1]!, frames[index]!];
+                  const runner = stalls.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(to, b) - Math.max(from, a)), 0);
+                  if (to - from - runner > worst.longest) worst = { longest: to - from - runner, gap: to - from, runner, at: Math.round(from - performance.timeOrigin - start) };
+                }
+                resolve({ ...worst, paced: pacedBefore !== (stage?.hasAttribute("data-paced") ?? true) });
+              };
+              worker.postMessage(0);
             };
-            requestAnimationFrame(tick);
+            worker.onmessage = () =>
+              requestAnimationFrame(() =>
+                requestAnimationFrame((now) => {
+                  start = now;
+                  tick(now);
+                }),
+              );
           }),
       );
     const longestGap = async () => (await read()).longest;
-    // A stall of the page's own comes back in every read; one that a neighbouring worker's burst put in a single read does not.
-    // So a read over the budget is taken again, and the page is held to the calmer of the two, under the same budget.
-    let first = await read();
-    const firstGap = first.longest;
-    let retaken: number | undefined;
-    if (first.longest >= FRAME_GAP_BUDGET) {
-      const again = await read();
-      retaken = again.longest;
-      if (again.longest < first.longest) first = again;
-    }
+    // A runner starved by its neighbours (CPU it shares, not a stop the worker sees) can spoil one read; a stall of the
+    // page's own is in most of them. So the page is held to the middle of three reads: two within the budget pass it, two
+    // over it fail it, and the third read is taken only when the first two disagree.
+    const reads: Awaited<ReturnType<typeof read>>[] = [];
+    const within = () => reads.filter((each) => each.longest < FRAME_GAP_BUDGET).length;
+    while (within() < 2 && reads.length - within() < 2) reads.push(await read());
+    const first = [...reads].sort((a, b) => a.longest - b.longest)[1]!;
     const gap = first.longest;
-    testInfo.annotations.push({ type: "frame gaps", description: `first read ${Math.round(firstGap)} ms, retaken ${retaken === undefined ? "not needed" : `${Math.round(retaken)} ms`}` });
+    const told = reads.map((each) => `${Math.round(each.longest)} of ${Math.round(each.gap)} ms`).join(", ");
+    testInfo.annotations.push({ type: "frame gaps", description: `each read's longest gap of the page's own, of the gap it fell in: ${told}` });
     // Over budget: say whether the page's running animations are what holds the frames, by pausing them and reading again.
     let paused = "";
     if (gap >= FRAME_GAP_BUDGET) {
@@ -460,10 +478,14 @@ for (const path of ["./", "docs/button/"]) {
       });
       paused = ` (with its ${names.length} running animations [${names.join(", ")}] paused: ${Math.round(await longestGap())} ms)`;
     }
-    expect(gap, `the longest gap between frames, in ms, ${first.at} ms into the read${first.paced ? ", as the stage judged the screen" : ""}${paused}`).toBeLessThan(FRAME_GAP_BUDGET);
-    await menuButton(page).click({ timeout: 1000 });
+    expect(
+      gap,
+      `the page's longest gap between frames of its own, in ms, ${first.at} ms into the read (a ${Math.round(first.gap)} ms gap, ${Math.round(first.runner)} ms of it the runner's)${first.paced ? ", as the stage judged the screen" : ""}, the middle of ${reads.length} reads [${told}]${paused}`,
+    ).toBeLessThan(FRAME_GAP_BUDGET);
+    // The press is taken; how soon it draws the sheet is the latency job's to judge, where no other worker shares the CPU.
+    await menuButton(page).click();
     // real clock: the sheet stays open until it is closed; no timer ends it.
-    await expect(sheet(page)).toBeVisible({ timeout: 1000 });
+    await expect(sheet(page)).toBeVisible();
   });
 }
 
