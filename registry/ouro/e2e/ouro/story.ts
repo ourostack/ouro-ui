@@ -88,6 +88,70 @@ export async function settledBox(element: Locator): Promise<{ x: number; y: numb
 }
 
 /**
+ * Films where the top edge of each of `parts` is on every frame while `act` runs (typing in a sheet's search, say), so a
+ * jump that lasts a single frame is seen (ourostack/ouro-ui#746). It waits for each part to settle first (`settledBox`),
+ * takes where each one is then, and films from the next frame. After `act` it waits for them to settle again and films
+ * ten frames more, so a move that comes late, as results arrive, is seen too. It returns how many frames it filmed in
+ * all and while `act` ran (a spec asks for enough of those that the film saw each step of it, not only the ten after),
+ * and one line for each part that was 0.5 px or more off where it settled on any frame, or gone from the page: a spec
+ * expects that list to be empty.
+ */
+export async function filmTops(parts: Record<string, Locator>, act: () => Promise<void>): Promise<{ frames: number; actFrames: number; moves: string[] }> {
+  const named = Object.entries(parts);
+  if (!named.length) throw new Error("filmTops: no parts to film");
+  for (const [, part] of named) await settledBox(part);
+  const handles = await Promise.all(
+    named.map(async ([name, part]) => {
+      const handle = await part.elementHandle();
+      if (!handle) throw new Error(`filmTops: ${name} is not on the page`);
+      return handle;
+    }),
+  );
+  const film = await named[0]![1].page().evaluateHandle((elements) => {
+    const state = { settled: elements.map((element) => element.getBoundingClientRect().y), frames: [] as number[][], filming: true };
+    const frame = () => {
+      if (!state.filming) return;
+      state.frames.push(elements.map((element) => (element.isConnected ? element.getBoundingClientRect().y : Number.NaN)));
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    return state;
+  }, handles);
+  try {
+    await act();
+    const actFrames = await film.evaluate((state) => state.frames.length);
+    // A part gone from the page or drawn anew has nothing to settle: its frames say so below, as moves.
+    for (const [, part] of named) {
+      if (!(await part.count())) continue;
+      await settledBox(part).catch((error: unknown) => {
+        if (!String(error).includes("not visible")) throw error;
+      });
+    }
+    const { settled, frames } = await film.evaluate(async (state) => {
+      await new Promise<void>((done) => {
+        let count = 0;
+        const tick = () => (++count >= 10 ? done() : requestAnimationFrame(tick));
+        requestAnimationFrame(tick);
+      });
+      state.filming = false;
+      return { settled: state.settled, frames: state.frames };
+    });
+    const round = (y: number) => Math.round(y * 100) / 100;
+    const moves = named.flatMap(([name], index) => {
+      // Not "≥ 0.5 off" but "not within 0.5", so a part gone from the page (NaN) counts as moved.
+      const off = frames.map((each) => each[index]!).filter((y) => !(Math.abs(y - settled[index]!) < 0.5));
+      return off.length ? [`${name}: ${off.length} of ${frames.length} frames off its settled y ${round(settled[index]!)}, at ${[...new Set(off.map(round))].slice(0, 8).join(", ")}`] : [];
+    });
+    return { frames: frames.length, actFrames, moves };
+  } finally {
+    // Stopped here too, so a film whose act failed does not run on for as long as the page does.
+    await film.evaluate((state) => void (state.filming = false)).catch(() => undefined);
+    await film.dispose();
+    await Promise.all(handles.map((handle) => handle.dispose()));
+  }
+}
+
+/**
  * Drags vertically with the real mouse over `durationMs`, slowly enough that the release
  * velocity does not count as a flick (Playwright's own `steps` moves have no delay).
  */
