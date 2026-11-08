@@ -6,6 +6,7 @@ import kit from "./kit.json";
 import { LayersBand } from "./layers";
 import { ReinsRace } from "./reins-race";
 import { ReinsTerminal } from "./reins-terminal";
+import { StoryOpener } from "../components/story-world";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 import "./feel-reins.css";
 
@@ -49,6 +50,7 @@ export default function AppleReins(): JSX.Element {
   return (
     <div id="apple-reins" className="apple">
       <AppleMenu current="/apple/reins/" />
+      <StoryOpener scene="ouro-ui-apple" line="No thumbs needed: the robot drives all three screens with ls and do." />
       <AppleHero
         id="apple-reins-title"
         eyebrow="Ouro Reins"

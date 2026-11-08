@@ -5,6 +5,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import {
   artFrameClass,
   haloClass,
+  dismissPeriods,
   isDismissed,
   keepDismissed,
   kindToneClass,
@@ -27,6 +28,7 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 
@@ -34,14 +36,20 @@ import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 export interface MomentOwnProps {
   /**
    * What the moment is about. `empty`: nothing here yet. `loading`: on its way, with a
-   * spinner when there is no art. `error`: something failed. `welcome`: a first run.
-   * `success`: something finished, which celebrates (see `celebrate`). The kind colours the
-   * art's `currentColor` from the theme and is on the root as `data-moment`.
+   * spinner when there is no art. `error`: something failed. `first-run`: a first run or a
+   * welcome (`welcome` is the same kind by its older name, and the root says `first-run`).
+   * `success`: something finished, which celebrates (see `celebrate`). `ask`: something the
+   * app, or an agent working for the person, asks them to look at; show it with
+   * `size="inline"` in a slot of its own, such as a header strip or a notices area, never over
+   * the content. The kind colours the art's `currentColor` from the theme and is on the root
+   * as `data-moment`.
+   * @claim "`ask`: something the app, or an" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment ask > docks in the slot it is given as one row, is heard when asked, and comes back after dismissFor)
    * @default "empty"
    * @claim "`loading`: on its way, with a" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > shows a spinner for a loading moment without art, sized to the layout)
+   * @claim "`welcome` is the same kind by" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > takes welcome as first-run's older name, and says first-run)
    * @claim "The kind colours the art's `currentColor`" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > names its kind in data-moment and colours the art from the theme by kind)
    */
-  kind?: "empty" | "loading" | "error" | "welcome" | "success" | (string & { 'Use "empty", "loading", "error", "welcome" or "success"; info is "empty"': never }) | undefined;
+  kind?: "empty" | "loading" | "error" | "first-run" | "welcome" | "success" | "ask" | (string & { 'Use "empty", "loading", "error", "first-run", "success" or "ask"; info is "empty"': never }) | undefined;
   /**
    * What happened or what is here, in a few words: "Inbox cleared". Required, because it is
    * what a screen reader finds.
@@ -51,7 +59,7 @@ export interface MomentOwnProps {
   description?: ReactNode;
   /**
    * The picture: any node, usually an inline SVG, which fills the art's height (160px, 96px
-   * when the moment is narrower than 24rem, 40px when quiet, 24px inline). It is decorative
+   * when the moment is narrower than 24rem, 24px inline; none when quiet). It is decorative
    * and hidden from screen readers unless you pass `artLabel`. Draw it with `currentColor`
    * and the theme's variables so it follows the kind, the theme and dark mode. With reduced
    * motion, its CSS animations stop and its SVG animations pause. Its motion has a budget too:
@@ -60,7 +68,7 @@ export interface MomentOwnProps {
    * views or filters arrives still.
    * @claim "Its motion has a budget too:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > settles the art's loops at the end of their turn within 5 s, SVG animations too, and leaves other motion alone)
    * @claim "Its motion has a budget too:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion budget > plays the art's entrance once a session for a moment with a key, and every time without one)
-   * @claim "which fills the art's height (160px," registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
+   * @claim "which fills the art's height (160px," registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, and 24px inline)
    * @claim "It is decorative and hidden from" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > hides the art from screen readers, or names it with artLabel)
    * @claim "With reduced motion, its CSS animations" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment motion > stops the art's CSS animations and pauses its SVG animations with reduced motion, and lets them run again after)
    */
@@ -92,18 +100,22 @@ export interface MomentOwnProps {
    * `default` stacks the art, title, line and actions in the space it is given. `hero` does too,
    * with art up to 220px tall, for the main state of a large, otherwise empty pane; narrower than
    * 24rem it holds at 96px, as `default` does. `inline` is a single row with 24px art, for a
-   * "working" row in a list or toolbar.
+   * "working" row in a list or toolbar; in a slot too narrow for its words and its actions, the
+   * actions move under the words.
    * @default "default"
    * @claim "`hero` does too, with art up" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives hero art 220px, and 96px in a pane narrower than 24rem)
-   * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
+   * @claim "in a slot too narrow for its" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment ask > moves its actions under its words in a slot too narrow for both, so the words keep their room)
+   * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, and 24px inline)
    * @claim "`inline` is a single row with" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > is one row inline, with a plain-text title unless given a heading level)
    */
   size?: "default" | "hero" | "inline" | (string & { 'Use "default", "hero" or "inline"; for a compact moment use quiet': never }) | undefined;
   /**
-   * A compact row: 40px art, the title and one line, no celebration. For dense panes, and for
-   * people who want less: set it for the whole app with `MomentProvider`.
-   * @default the nearest `MomentProvider`'s `quiet`, or `false`
-   * @claim "A compact row: 40px art, the" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > renders a compact row from the prop or from MomentProvider, and the prop wins)
+   * Words only, in a compact row: the title and one line, with no art and no celebration (a
+   * loading moment keeps its small spinner). For dense panes, and for people who want less:
+   * `OuroProvider`'s `quiet` sets it for the whole app, and `MomentProvider` for a part of it.
+   * @default the nearest `MomentProvider`'s `quiet`, else `OuroProvider`'s, else `false`
+   * @claim "Words only, in a compact row:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > keeps its words and drops its art and celebration under OuroProvider's quiet, unless MomentProvider or the prop says otherwise)
+   * @claim "Words only, in a compact row:" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > renders a compact row from the prop or from MomentProvider, and the prop wins)
    */
   quiet?: boolean | undefined;
   /**
@@ -135,6 +147,13 @@ export interface MomentOwnProps {
    */
   dismissKey?: string | undefined;
   /**
+   * How long a dismissal through `dismissKey` lasts: an hour, a day, a week or 30 days; then the
+   * moment may show again. Without it a dismissal lasts for good. For an ask that may come back
+   * later, but not straight away.
+   * @claim "How long a dismissal through `dismissKey`" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment ask > docks in the slot it is given as one row, is heard when asked, and comes back after dismissFor)
+   */
+  dismissFor?: "hour" | "day" | "week" | "month" | (string & { 'Use "hour", "day", "week" or "month"': never }) | undefined;
+  /**
    * Shows a quiet close button. Pressing it hides the moment, hands focus to what follows it,
    * and calls this.
    * @claim "Pressing it hides the moment, hands" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment dismissal > closes from the keyboard, calls onDismiss and hands focus on)
@@ -143,10 +162,10 @@ export interface MomentOwnProps {
   /** The close button's accessible name, for other languages. @default "Dismiss" */
   dismissLabel?: string | undefined;
   /**
-   * Speaks a `success` or `error` moment politely to screen readers when it appears: the title,
+   * Speaks a `success`, `error` or `ask` moment politely to screen readers when it appears: the title,
    * then the description when it is text. Other kinds are never spoken.
    * @claim "Other kinds are never spoken." registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > speaks a success or error moment politely only when asked)
-   * @claim "Speaks a `success` or `error` moment" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > speaks a success or error moment politely only when asked)
+   * @claim "Speaks a `success`, `error` or `ask`" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > speaks a success or error moment politely only when asked)
    */
   announce?: boolean | undefined;
   /** Layout only: margins, width, grid placement (`mt-6`). Appearance classes warn in development; use `kind` and `quiet`. */
@@ -176,7 +195,7 @@ export type MomentProps = Omit<HTMLAttributes<HTMLDivElement>, keyof MomentOwnPr
 export interface MomentProviderProps {
   /**
    * Renders every `Moment` inside quiet, unless the moment sets `quiet` itself.
-   * @default false
+   * @default `OuroProvider`'s `quiet`
    * @claim "Renders every `Moment` inside quiet, unless" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment quiet > renders a compact row from the prop or from MomentProvider, and the prop wins)
    */
   quiet?: boolean | undefined;
@@ -184,7 +203,7 @@ export interface MomentProviderProps {
   children: ReactNode;
 }
 
-const MomentContext = createContext(false);
+const MomentContext = createContext<boolean | undefined>(undefined);
 
 /**
  * Sets `quiet` for every `Moment` inside it, so an app can make its moments compact
@@ -203,13 +222,13 @@ const MomentContext = createContext(false);
  *   <App />
  * </MomentProvider>
  */
-export function MomentProvider({ quiet = false, children }: MomentProviderProps): JSX.Element {
+export function MomentProvider({ quiet, children }: MomentProviderProps): JSX.Element {
   return <MomentContext value={quiet}>{children}</MomentContext>;
 }
 
 const levels = [2, 3, 4, 5, 6] as const;
 const sizes = ["default", "hero", "inline"] as const;
-const spoken = new Set<MomentKind>(["success", "error"]);
+const spoken = new Set<MomentKind>(["success", "error", "ask"]);
 
 // A slot holds something to render unless it is undefined, null or false.
 const present = (node: ReactNode) => node !== undefined && node !== null && node !== false;
@@ -274,6 +293,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
     celebrate,
     cap,
     dismissKey,
+    dismissFor,
     onDismiss,
     dismissLabel = "Dismiss",
     announce,
@@ -289,9 +309,12 @@ export function Moment(props: MomentProps): JSX.Element | null {
     variant,
     ...rest
   } = props;
-  const kind: MomentKind = Object.hasOwn(kindToneClass, kindProp) ? (kindProp as MomentKind) : "empty";
+  // `welcome` is first-run's older name.
+  const named = kindProp === "welcome" ? "first-run" : kindProp;
+  const kind: MomentKind = Object.hasOwn(kindToneClass, named) ? (named as MomentKind) : "empty";
   const provided = useContext(MomentContext);
-  const quiet = quietProp ?? provided;
+  const ouro = useOuro();
+  const quiet = quietProp ?? provided ?? ouro.quiet === true;
   const layout = sizeProp === "inline" ? "inline" : quiet ? "quiet" : "default";
   const level = headingLevel === undefined ? (layout === "inline" ? undefined : 3) : (levels as readonly unknown[]).includes(headingLevel) ? (headingLevel as (typeof levels)[number]) : 3;
   const per: MomentPeriod = cap !== undefined && Object.hasOwn(periods, cap.per) ? (cap.per as MomentPeriod) : "day";
@@ -311,13 +334,15 @@ export function Moment(props: MomentProps): JSX.Element | null {
     process.env.NODE_ENV !== "production"
       ? () => [
           !title && ["title is required; it says what the moment is about", '<Moment title="No messages yet">'],
-          kind !== kindProp && [`kind="${String(kindProp)}" is not a kind; use "empty", "loading", "error", "welcome", "success"`, '<Moment kind="empty">'],
+          kind !== named && [`kind="${String(kindProp)}" is not a kind; use "empty", "loading", "error", "first-run", "success", "ask"`, '<Moment kind="empty">'],
           !(sizes as readonly string[]).includes(sizeProp) && [`size="${String(sizeProp)}" is not a size; use "default", "hero", "inline"`, "<Moment quiet>"],
           headingLevel !== undefined && level !== headingLevel && [`headingLevel must be 2, 3, 4, 5 or 6, got ${String(headingLevel)}`, "<Moment headingLevel={2}>"],
           cap !== undefined && per !== cap.per && [`cap per "${String(cap.per)}" is not a period; use "day", "week", "month", "ever"`, '<Moment cap={{ times: 1, per: "day" }}>'],
           cap !== undefined && times !== cap.times && [`cap times must be a whole number, 0 or more, got ${String(cap.times)}`, '<Moment cap={{ times: 1, per: "day" }}>'],
           cap !== undefined && key === undefined && ["cap counts showings under dismissKey or id, and this moment has neither", '<Moment dismissKey="caught-up" cap={{ times: 1, per: "day" }}>'],
-          announce === true && !spoken.has(kind) && [`announce speaks only success and error moments, not kind="${kind}"`, '<Moment kind="success" announce>'],
+          announce === true && !spoken.has(kind) && [`announce speaks only success, error and ask moments, not kind="${kind}"`, '<Moment kind="success" announce>'],
+          dismissFor !== undefined && !Object.hasOwn(dismissPeriods, dismissFor) && [`dismissFor="${String(dismissFor)}" is not a period; use "hour", "day", "week", "month"`, '<Moment dismissKey="ask" dismissFor="day">'],
+          dismissFor !== undefined && dismissKey === undefined && ["dismissFor keeps a dismissal through dismissKey, and this moment has none", '<Moment dismissKey="ask" dismissFor="day">'],
           (icon !== undefined || illustration !== undefined) && [`${icon !== undefined ? "icon" : "illustration"} is not a prop`, "<Moment art={<Illustration />}>"],
           heading !== undefined && ["heading is not a prop", `<Moment title="${String(heading)}">`],
           body !== undefined && ["body is not a prop", `<Moment description="${String(body)}">`],
@@ -328,10 +353,11 @@ export function Moment(props: MomentProps): JSX.Element | null {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
+  const forMs = dismissFor === undefined ? undefined : Object.hasOwn(dismissPeriods, dismissFor) ? dismissPeriods[dismissFor as keyof typeof dismissPeriods] : dismissPeriods.day;
   // A kept dismissal is read after hydration: until then a moment with a dismissKey renders nothing.
   const kept = useSyncExternalStore(
     subscribeMoments,
-    () => dismissKey !== undefined && isDismissed(dismissKey),
+    () => dismissKey !== undefined && isDismissed(dismissKey, forMs, Date.now()),
     () => dismissKey !== undefined,
   );
   const [closed, setClosed] = useState(false);
@@ -406,10 +432,10 @@ export function Moment(props: MomentProps): JSX.Element | null {
   const dismissible = onDismiss !== undefined || dismissKey !== undefined;
   const dismiss = () => {
     setClosed(true);
-    if (dismissKey !== undefined) keepDismissed(dismissKey);
+    if (dismissKey !== undefined) keepDismissed(dismissKey, forMs === undefined ? undefined : Date.now());
     onDismiss?.();
   };
-  const hasArt = present(art);
+  const hasArt = present(art) && !quiet;
   const spinner = !hasArt && kind === "loading";
 
   const titleNode =
@@ -449,7 +475,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
         </span>
       )}
       {hasArt && (
-        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout === "default" && sizeProp === "hero" ? "hero" : layout], kindToneClass[kind])}>
+        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout === "inline" ? "inline" : sizeProp === "hero" ? "hero" : "default"], kindToneClass[kind])}>
           {flourish && <span aria-hidden="true" data-ouro-part="halo" className={haloClass} />}
           {flourish &&
             sparkClasses.map((spark) => (
@@ -468,7 +494,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
           </div>
         </div>
       )}
-      <div className={layout === "default" ? "flex min-w-0 flex-col items-center gap-1.5" : layout === "quiet" ? "flex min-w-0 flex-1 flex-col" : "flex min-w-0 flex-1 items-baseline gap-2"}>
+      <div className={layout === "default" ? "flex min-w-0 flex-col items-center gap-1.5" : layout === "quiet" ? "flex min-w-0 flex-1 flex-col" : "flex min-w-0 flex-[1_1_12rem] items-baseline gap-2"}>
         {titleNode}
         {descriptionNode}
       </div>

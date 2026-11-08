@@ -1213,6 +1213,94 @@ export const restoreTouch: BrowserCommand<[]> = async (ctx) => {
   await (await chromiumSession(ctx))?.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
 };
 
+/** A layer Chromium's compositor draws on its own, and the element it draws. */
+export interface CompositedLayer {
+  /** The element, as `TAG[data-ouro="…"][data-ouro-part="…"]` (with the attributes it has), or null for a layer of the page's own. */
+  element: string | null;
+  width: number;
+  height: number;
+}
+
+/**
+ * The page's composited layers now, from Chromium's compositor (CDP `LayerTree`), with the
+ * element that each draws. An element gets one while it has `will-change: transform` or a running
+ * transform animation, or when it overlaps one; compare the count at rest, during motion and once
+ * it has settled. Chromium only: it throws elsewhere.
+ *
+ * @example
+ * const before = await commands.compositedLayers();
+ * // … scroll, then wait for the motion to settle …
+ * expect(await commands.compositedLayers()).toHaveLength(before.length);
+ * @claim "with the element that each draws" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /DOM\.describeNode/)
+ * @claim "An element gets one while it has `will-change: transform`" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /compositedLayers lists a layer for an element only while it has will-change: transform/)
+ * @claim "Chromium only: it throws elsewhere" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /compositedLayers throws outside Chromium/)
+ */
+export const compositedLayers: BrowserCommand<[]> = async (ctx) => {
+  const session = await chromiumSession(ctx);
+  if (!session) throw new Error("compositedLayers: CDP is Chromium only");
+  type Layer = { backendNodeId?: number; width: number; height: number };
+  const trees: Layer[][] = [];
+  const changed = (event: { layers?: Layer[] }) => {
+    if (event.layers) trees.push(event.layers);
+  };
+  // Chromium reports the tree only when it changes, so a probe of its own changes it: a layer off the page's top
+  // start, painted last, which overlaps nothing and so moves nothing else onto a layer. The tree that has it is the
+  // page's, less the probe.
+  // Runs in the page; written without DOM types, which an app's config for this file may lack.
+  type Page = {
+    document: { getElementById: (id: string) => { remove: () => void } | null; createElement: (tag: string) => { id: string; style: { cssText: string } }; body: { append: (node: object) => void } };
+    requestAnimationFrame: (callback: () => void) => number;
+  };
+  const frames = () =>
+    ctx.page.evaluate(() => {
+      const page = globalThis as unknown as Page;
+      return new Promise<void>((resolve) => page.requestAnimationFrame(() => page.requestAnimationFrame(resolve)));
+    });
+  const probe = (add: boolean) =>
+    ctx.page.evaluate((add) => {
+      const page = globalThis as unknown as Page;
+      page.document.getElementById("ouro-compositor-probe")?.remove();
+      if (!add) return;
+      const node = page.document.createElement("div");
+      node.id = "ouro-compositor-probe";
+      node.style.cssText = "position:fixed;top:-8px;left:-8px;width:1px;height:1px;will-change:transform;pointer-events:none";
+      page.document.body.append(node);
+    }, add);
+  session.on("LayerTree.layerTreeDidChange", changed);
+  let tree: Layer[] | undefined;
+  let probeId: number | undefined;
+  try {
+    await session.send("LayerTree.enable");
+    await probe(true);
+    const { result } = await session.send("Runtime.evaluate", { expression: 'document.getElementById("ouro-compositor-probe")' });
+    probeId = (await session.send("DOM.describeNode", { objectId: result.objectId! })).node.backendNodeId;
+    const probed = () => trees.filter((layers) => layers.some((layer) => layer.backendNodeId === probeId)).at(-1);
+    for (let attempt = 0; attempt < 30 && probed() === undefined; attempt++) await frames();
+    // Two frames more, so a change the page made just before the call is in the tree too.
+    await frames();
+    tree = probed();
+  } finally {
+    session.off("LayerTree.layerTreeDidChange", changed);
+    await session.send("LayerTree.disable");
+    await probe(false);
+  }
+  if (tree === undefined) throw new Error("compositedLayers: Chromium sent no layer tree");
+  return Promise.all(
+    tree
+      .filter((layer) => layer.backendNodeId !== probeId)
+      .map(async ({ backendNodeId, width, height }): Promise<CompositedLayer> => {
+        if (backendNodeId === undefined) return { element: null, width, height };
+        const { node } = await session.send("DOM.describeNode", { backendNodeId });
+        const attributes = node.attributes ?? [];
+        const named = ["data-ouro", "data-ouro-part"].flatMap((name) => {
+          const at = attributes.indexOf(name);
+          return at % 2 === 0 ? [`[${name}="${attributes[at + 1]}"]`] : [];
+        });
+        return { element: `${node.nodeName}${named.join("")}`, width, height };
+      }),
+  );
+};
+
 export type TouchStepOptions =
   | {
       /** `touchStart` puts the finger down and `touchMove` moves it. */
@@ -1341,7 +1429,7 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   }
 };
 
-export const commands = { emulateMedia, doubleTap, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
+export const commands = { compositedLayers, emulateMedia, doubleTap, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
@@ -1357,5 +1445,6 @@ declare module "vitest/browser" {
     resetPageZoom: () => Promise<void>;
     restoreTouch: () => Promise<void>;
     setPageZoom: (scale: number) => Promise<void>;
+    compositedLayers: () => Promise<CompositedLayer[]>;
   }
 }

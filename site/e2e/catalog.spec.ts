@@ -68,7 +68,11 @@ const CEILINGS = { voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 // The voyage's rose by 512 bytes for the phone's one menu (voyage/site-menu.tsx: its close button, X-ray beside it, a
 // heading you jump to landing below the sticky header, the fish waiting under the open menu) and for the layers that make
 // the stage's switch to still water cheap (stage.css, #667): together 489 bytes over main at d6059dc6, 37,834 there.
-const CSS_CEILINGS = { voyage: 37 * 1024 + 512, docs: 40 * 1024 } as const;
+// It rose to 40.5 KiB for the storybook world (components/story-world.css: the dawn sky, the feathered scene, the sunrise)
+// and the home page's showcase pictures and list of what comes with every component, which took over ouroboros.bot/ouro-hx/
+// (Ari, 2026-11-07: "let's unify"): 39,809 bytes with them, over main at a2b06627. The docs' rose with it, to 40.5 KiB:
+// its Tailwind build reads the same site files, and its heaviest page measured 41,047 bytes with them.
+const CSS_CEILINGS = { voyage: 40 * 1024 + 512, docs: 40 * 1024 + 512 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
@@ -147,9 +151,10 @@ test("real production hydration keeps label/control IDs while the uncached selec
     expect(before).not.toBeNull();
     await expect(page.locator(`label[for="${before}"]`)).toHaveText("Recipe name");
     await expect(page.locator("[data-site-demo-loading]")).toHaveCount(0);
-    await expect(name).toBeDisabled();
-    await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeDisabled();
+    // Never shown disabled: a tap or text before the chunk arrives is kept and answered then (early-input.spec.ts).
+    await expect(name).toBeEnabled();
+    await expect(page.getByRole("combobox", { name: "Course", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Save recipe", exact: true })).toBeEnabled();
     await expect(page.locator("[data-site-demo-ready]")).toHaveCount(0);
     release();
     // The demo goes live a render after its chunk arrives, and says so once its handlers are attached.
@@ -241,10 +246,13 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
   }
   // The voyage has a Tailwind build of its own (site/src/voyage/voyage-tailwind.css), without the
   // registry components and site files it never renders: it loads none of the docs' stylesheets but
-  // the theme presets (themes/presets.generated.css), which the header's picker switches on both.
+  // the theme presets (themes/presets.generated.css), which the header's picker switches on both, and
+  // the storybook world both open on (components/story-world.css), which Vite bundles with them.
+  const storyClasses = new Set(readFileSync(resolve("site/src/components/story-world.css"), "utf8").match(/\.(?:site|voyage|stage|chapter)-[\w-]+/g));
   const presetsOnly = (sheet: string) => {
     const css = readFileSync(resolve("site/dist", sheet), "utf8");
-    return css.includes("[data-theme=pearl]") && !css.includes("--tw-") && !/\.(?:site|voyage|stage|chapter)-/.test(css);
+    const own = (css.match(/\.(?:site|voyage|stage|chapter)-[\w-]+/g) ?? []).filter((name) => !storyClasses.has(name));
+    return css.includes("[data-theme=pearl]") && !css.includes("--tw-") && own.length === 0;
   };
   for (const name of ["home", "nautilus"]) {
     const shared = sheets[name]!.filter((sheet) => sheets["docs"]!.includes(sheet));

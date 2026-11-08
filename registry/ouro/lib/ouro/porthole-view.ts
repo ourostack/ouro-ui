@@ -17,7 +17,7 @@ export type {
 
 /**
  * How urgent an item is, most urgent first: `action` (it waits for the person), `error`, `working` and `rest` (news
- * that needs nothing, such as "Up to date"). The most urgent item is the one shown; on a tie, the newest `since` wins.
+ * that needs nothing, such as "Version 2.1 is installed"). The most urgent item is the one shown; on a tie, the newest `since` wins.
  *
  * @claim "How urgent an item is" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > shows an action over an error, an error over working and working over rest)
  * @claim "The most urgent item is" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > shows an action over an error, an error over working and working over rest)
@@ -52,7 +52,7 @@ interface PortholeItemAction {
  * - `detail`: the lines shown when the spot is open.
  * - `progress`: 0 to 1, for a `working` item.
  * - `since`: when the item began, in ms since the epoch; on a tie in priority the newest is shown.
- * - `dismissable`: the person may dismiss it, as with "Up to date". The window passes the dismissal to the service,
+ * - `dismissable`: the person may dismiss it, as with "Version 2.1 is installed". The window passes the dismissal to the service,
  *   which removes the item.
  *
  * @claim "0 to 1, for a" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeStatus > reads the rest state with no item, and an item's progress between 0 and 1)
@@ -80,6 +80,18 @@ interface PortholeArea {
   troubleSince: number | null;
   /** The area's name in the open spot's lines. @default its key */
   label?: string | undefined;
+  /**
+   * How long this area stays fresh after it was verified, in ms, in place of the view's `freshWithinMs`: for an area
+   * the service reads on an interval rather than hears pushed, the interval plus a margin measured from how long a read
+   * takes (`5 * 60_000 + margin` for one read every five minutes). A value that is not a finite number of 0 or more
+   * leaves the view's.
+   *
+   * @claim "in place of the view's `freshWithinMs`" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > an area's own freshWithinMs > replaces the view's for that area alone, up to and including the window itself)
+   * @claim "A value that is not a" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > an area's own freshWithinMs > falls back to the view's for a value it cannot use)
+   */
+  freshWithinMs?: number | undefined;
+  /** The service's few words on how it keeps this area current, such as `"every 5 min"` or `"live"`, for the area's line. */
+  note?: string | undefined;
 }
 
 /**
@@ -110,7 +122,7 @@ interface PortholeSource {
  * @claim "Each is optional and falls" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > takes words in another language for every line it writes)
  */
 interface PortholeLabels {
-  /** At rest and fresh. @default "Updated just now" */
+  /** At rest and fresh. @default "Up to date" */
   fresh?: string | undefined;
   /** At rest with an area past fresh, given the oldest area's age (`"4 min"`). @default (age) => `Updated ${age} ago` */
   stale?: ((age: string) => string) | undefined;
@@ -126,11 +138,19 @@ interface PortholeLabels {
   age?: ((ms: number) => string) | undefined;
   /**
    * A line in the open spot for an area past fresh, given its label, its age (null until verified, or when not
-   * checkable) and how long its trouble has lasted (null without trouble).
+   * checkable), how long its trouble has lasted (null without trouble) and the area's `note` (null without one).
+   * @default `${label}: verified ${age} ago`, or `not verified yet`, then `, in trouble for ${trouble}` and `, ${note}`
    */
-  area?: ((label: string, age: string | null, trouble: string | null) => string) | undefined;
-  /** A fresh area's line in the open spot, given its label. @default (label) => `${label}: verified just now` */
-  areaFresh?: ((label: string) => string) | undefined;
+  area?: ((label: string, age: string | null, trouble: string | null, note: string | null) => string) | undefined;
+  /**
+   * A fresh area's line in the open spot, given its label, its age (null while it was verified within the last minute,
+   * which reads as "just now") and the area's `note` (null without one). An area fresh for longer than a minute, by its
+   * own `freshWithinMs`, gives its age, so its line never says "just now" of a read minutes old.
+   * @default `${label}: verified just now`, or `verified ${age} ago`, then `, ${note}`
+   *
+   * @claim "so its line never says" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > an area's own freshWithinMs > gives a fresh area's age past a minute, and its note, in its line)
+   */
+  areaFresh?: ((label: string, age: string | null, note: string | null) => string) | undefined;
   /** The open spot's line when the heartbeat stopped, given how long ago the last beat was (null when not checkable). */
   silent?: ((age: string | null) => string) | undefined;
 }
@@ -138,7 +158,8 @@ interface PortholeLabels {
 /** Options for {@link portholeView}. */
 interface PortholeViewOptions {
   /**
-   * "Updated just now" only while every area was verified within this many ms. @default 60_000
+   * "Up to date" only while every area was verified within this many ms, or within its own `freshWithinMs`.
+   * @default 60_000
    *
   * @claim "only while every area was" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > takes its times from the options)
    */
@@ -170,6 +191,10 @@ interface PortholeAreaView {
   ageMs: number | null;
   /** `ageMs` as words, or null. */
   age: string | null;
+  /** How long this area stays fresh after it was verified: its own `freshWithinMs`, or the view's. */
+  freshWithinMs: number;
+  /** The service's words on how it keeps this area current, or null. */
+  note: string | null;
   troubleSince: number | null;
   /** Ms its trouble has lasted, null without trouble or when it began at a time too far ahead of this clock to time. */
   troubleMs: number | null;
@@ -245,11 +270,19 @@ interface PortholeStatusRead {
   heartbeatAt: number;
   /** Ms from the last beat to `asOf`, null when it cannot be checked. */
   heartbeatAgeMs: number | null;
+  /**
+   * Each area as the person reads it, with the window it was judged fresh by (`freshWithinMs`) and the service's
+   * `note`, null without one.
+   *
+   * @claim "with the window it was judged" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeStatus > gives each area the window it was judged fresh by and its note)
+   */
   areas: {
     id: string;
     lastVerifiedAt: number | null;
     age: string | null;
     ageMs: number | null;
+    freshWithinMs: number;
+    note: string | null;
     troubleSince: number | null;
     troubleMs: number | null;
   }[];
@@ -334,9 +367,9 @@ function compare(a: PortholeItem, b: PortholeItem): number {
  * so a window, a CLI and a test reach the same answer.
  *
  * One item at a time: the most urgent (`action`, then `error`, `working`, `rest`); on a tie, the newest `since`. At
- * rest it says "Updated just now" only while every area was verified within `freshWithinMs` and none has been in
- * trouble for `troubleAfterMs`; otherwise the real age of the area verified longest ago ("Updated 4 min ago"). A `rest`
- * item, such as "Up to date", shows over "Updated just now" only: past fresh, or unknown, the age line or "Status
+ * rest it says "Up to date" only while every area was verified within `freshWithinMs` (the area's own, for one
+ * the service reads on an interval) and none has been in trouble for `troubleAfterMs`; otherwise the real age of the area verified longest ago ("Updated 4 min ago"). A `rest`
+ * item, such as "Version 2.1 is installed", shows over "Up to date" only: past fresh, or unknown, the age line or "Status
  * unknown" wins and the item waits in the open spot's lines. It says "Status unknown" when an area has never been
  * verified, when the snapshot has no areas or another version, or when the heartbeat is older than
  * `heartbeatTimeoutMs` or too far ahead of this clock to check. A stopped heartbeat outranks every item, an `action`
@@ -348,12 +381,13 @@ function compare(a: PortholeItem, b: PortholeItem): number {
  * @group Feedback
  * @example
  * const view = portholeView(source.getSnapshot(), source.lastBeatAt(), Date.now());
- * view.text; // "Updated just now"
+ * view.text; // "Up to date"
  * @claim "One item at a time: the" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > shows an action over an error, an error over working and working over rest)
  * @claim "otherwise the real age of" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > at rest, says the real age of the area verified longest ago once any area is past fresh)
  * @claim "when an area has never been" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > says Status unknown at rest while any area has never been verified)
- * @claim "A `rest` item, such as" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a rest item shows over Updated just now only, and waits in the open lines while an area is past fresh or the status is unknown)
+ * @claim "A `rest` item, such as" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a rest item shows over Up to date only, and waits in the open lines while an area is past fresh or the status is unknown)
  * @claim "A stopped heartbeat outranks every" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a stopped heartbeat outranks every item, an action too, which waits in the open lines)
+ * @claim "the area's own, for one" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > an area's own freshWithinMs > replaces the view's for that area alone, up to and including the window itself)
  */
 function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: number, options: PortholeViewOptions = {}): PortholeView {
   const freshWithinMs = options.freshWithinMs ?? PORTHOLE_DEFAULTS.freshWithinMs;
@@ -363,14 +397,14 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
   const labels = options.labels ?? {};
   const age = labels.age ?? formatPortholeAge;
   const words = {
-    fresh: labels.fresh ?? "Updated just now",
+    fresh: labels.fresh ?? "Up to date",
     stale: labels.stale ?? ((a: string) => `Updated ${a} ago`),
     unknown: labels.unknown ?? "Status unknown",
     area:
       labels.area ??
-      ((label: string, a: string | null, trouble: string | null) =>
-        `${label}: ${a === null ? "not verified yet" : `verified ${a} ago`}${trouble === null ? "" : `, in trouble for ${trouble}`}`),
-    areaFresh: labels.areaFresh ?? ((label: string) => `${label}: verified just now`),
+      ((label: string, a: string | null, trouble: string | null, note: string | null) =>
+        `${label}: ${a === null ? "not verified yet" : `verified ${a} ago`}${trouble === null ? "" : `, in trouble for ${trouble}`}${noted(note)}`),
+    areaFresh: labels.areaFresh ?? ((label: string, a: string | null, note: string | null) => `${label}: verified ${a === null ? "just now" : `${a} ago`}${noted(note)}`),
     silent: labels.silent ?? ((a: string | null) => (a === null ? "No heartbeat this clock can check" : `No heartbeat for ${a}`)),
   };
 
@@ -388,12 +422,14 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
     const troubleSince = finite(area?.troubleSince) ? area.troubleSince : null;
     if (troubleSince === null && area?.troubleSince !== null && area?.troubleSince !== undefined) unreadableTrouble.add(id);
     const ageMs = since(lastVerifiedAt);
+    const window = finite(area?.freshWithinMs) && area.freshWithinMs >= 0 ? area.freshWithinMs : freshWithinMs;
+    const note = typeof area?.note === "string" && area.note !== "" ? area.note : null;
     // Trouble stamped too far ahead is trouble all the same, never waved away by skew, but no one measured how long
     // it has lasted, so its length is null.
     const troubleMs = since(troubleSince);
     if (troubleSince !== null && troubleMs === null) troubleAhead.add(id);
     const fresh =
-      ageMs !== null && ageMs <= freshWithinMs && !unreadableTrouble.has(id) && !troubleAhead.has(id) && (troubleMs === null || troubleMs < troubleAfterMs);
+      ageMs !== null && ageMs <= window && !unreadableTrouble.has(id) && !troubleAhead.has(id) && (troubleMs === null || troubleMs < troubleAfterMs);
     const label = typeof area?.label === "string" && area.label !== "" ? area.label : id;
     const ageText = ageMs === null ? null : age(ageMs);
     return {
@@ -401,11 +437,13 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
       label,
       lastVerifiedAt,
       ageMs,
-      age: ageMs === null ? null : age(ageMs),
+      age: ageText,
+      freshWithinMs: window,
+      note,
       troubleSince,
       troubleMs,
       fresh,
-      line: fresh ? words.areaFresh(label) : words.area(label, ageText, troubleMs === null ? null : age(troubleMs)),
+      line: fresh ? words.areaFresh(label, ageMs! > MINUTE ? ageText : null, note) : words.area(label, ageText, troubleMs === null ? null : age(troubleMs), note),
     };
   });
 
@@ -458,11 +496,21 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
     const allFresh = areas.every((area) => area.fresh);
     state = allFresh ? "rest-fresh" : "rest-stale";
     const troubled = areas.find((area) => troubleAhead.has(area.id) || (area.troubleMs !== null && area.troubleMs >= troubleAfterMs));
+    // Past fresh and in no trouble: the area past its window verified longest ago, which is the oldest area unless an
+    // older one is still within a longer window of its own.
+    const pastWhy = () => {
+      const past = areas.filter((area) => !area.fresh).reduce((a, b) => (b.ageMs! > a.ageMs! ? b : a));
+      return past === oldest
+        ? `"${oldest!.id}" was verified longest ago, past ${oldest!.freshWithinMs / 1000} s`
+        : `"${past.id}" is past its ${past.freshWithinMs / 1000} s, and "${oldest!.id}" was verified longest ago`;
+    };
     const restWhy = allFresh
-      ? `every area was verified within ${freshWithinMs / 1000} s`
+      ? areas.every((area) => area.freshWithinMs === freshWithinMs)
+        ? `every area was verified within ${freshWithinMs / 1000} s`
+        : `every area was verified within its window (${areas.map((area) => `"${area.id}" ${area.freshWithinMs / 1000} s`).join(", ")})`
       : troubled
         ? `"${troubled.id}" ${troubled.troubleMs === null ? "is in trouble since a time too far ahead of this clock to time" : `has been in trouble for ${age(troubled.troubleMs)}`}, and "${oldest!.id}" was verified longest ago`
-        : `"${oldest!.id}" was verified longest ago, past ${freshWithinMs / 1000} s`;
+        : pastWhy();
     if (top !== null && allFresh) {
       item = top;
       text = top.label;
@@ -497,8 +545,13 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
       if (area.troubleMs !== null && area.troubleMs < troubleAfterMs) moments.push(now + troubleAfterMs - area.troubleMs);
       if (area.troubleSince !== null && !area.fresh) aged(area.troubleSince);
       if (area.ageMs === null) continue;
-      if (area.fresh) moments.push(area.lastVerifiedAt! + freshWithinMs + 1);
-      else aged(Math.min(area.lastVerifiedAt!, now));
+      if (!area.fresh) aged(Math.min(area.lastVerifiedAt!, now));
+      else {
+        moments.push(area.lastVerifiedAt! + area.freshWithinMs + 1);
+        // A fresh line says "just now" up to a minute, then its age, which grows by the minute while it stays fresh.
+        if (area.ageMs > MINUTE) aged(area.lastVerifiedAt!);
+        else moments.push(area.lastVerifiedAt! + MINUTE + 1);
+      }
     }
   }
   const nextChangeAt = moments.length === 0 ? null : Math.min(...moments);
@@ -520,6 +573,10 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
     priority: { shown: item?.id ?? (state === "unknown" ? "unknown" : "rest"), why },
     nextChangeAt,
   };
+}
+
+function noted(note: string | null): string {
+  return note === null ? "" : `, ${note}`;
 }
 
 /** Ms from an age until its words next change: the next whole minute under an hour, hour under a day, then day. */
@@ -557,6 +614,8 @@ function portholeStatus(view: PortholeView): PortholeStatusRead {
       lastVerifiedAt: area.lastVerifiedAt,
       age: area.age,
       ageMs: area.ageMs,
+      freshWithinMs: area.freshWithinMs,
+      note: area.note,
       troubleSince: area.troubleSince,
       troubleMs: area.troubleMs,
     })),

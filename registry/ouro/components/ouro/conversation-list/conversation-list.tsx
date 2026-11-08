@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  memo,
+  useCallback,
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -266,6 +269,148 @@ function Chevron({ open }: { open: boolean }): JSX.Element {
   );
 }
 
+type RowProps = {
+  item: ConversationListItem;
+  rowKey: string;
+  density: ConversationListDensity;
+  unreadLabel: string;
+  draftLabel: string;
+  selected: boolean;
+  tabStop: boolean;
+  windowed: boolean;
+  top: number;
+  slotClass?: string | undefined;
+  position: number;
+  count: number;
+  register: (key: string, node: HTMLButtonElement | null) => void;
+  onPick: (id: string, event: MouseEvent<HTMLButtonElement>) => void;
+  onKey: (event: KeyboardEvent<HTMLButtonElement>, key: string) => void;
+  onActive: (key: string) => void;
+};
+
+// A row renders again only when its own conversation, place or state changes, so opening another conversation renders
+// the row that closes and the row that opens, not the list.
+const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive }: RowProps): JSX.Element {
+  const drafted = shown(item.draft);
+  const withPreview = density === "comfortable" && (drafted || shown(item.preview));
+  // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
+  const withContext = shown(item.context);
+  const endsTitle = !withPreview && !withContext && !item.subtitle;
+  const endsSubtitle = !withPreview && !withContext && !!item.subtitle;
+  const hasMark = shown(item.mark);
+  const end = (
+    <>
+      {hasMark && (
+        // As tall as the line, so a badge that is a little taller leaves the row the height of the others.
+        <span data-ouro-conversation-mark="" className={cn("flex h-5 shrink-0 items-center text-xs", quiet)}>
+          {item.mark}
+        </span>
+      )}
+      {item.unread && <Unread label={unreadLabel} dot={!hasMark} />}
+    </>
+  );
+  return (
+    <li
+      {...(windowed && { style: { top }, "aria-posinset": position, "aria-setsize": count })}
+      className={cn("m-0 p-0", windowed && slotClass)}
+    >
+      <button
+        ref={(node) => register(key, node)}
+        type="button"
+        data-ouro-control="conversation-list"
+        data-ouro-part="row"
+        tabIndex={tabStop ? 0 : -1}
+        aria-current={selected ? "true" : undefined}
+        onClick={(event) => onPick(item.id, event)}
+        onKeyDown={(event) => onKey(event, key)}
+        onFocus={() => onActive(key)}
+        className={cn(controlClass, rowClass, selected && currentClass, density === "compact" ? "py-1.5" : "py-2")}
+      >
+        {item.avatar === false ? null : typeof item.avatar === "object" ? (
+          <span data-ouro-conversation-avatar="" className="flex shrink-0">
+            {item.avatar}
+          </span>
+        ) : (
+          <Avatar name={item.name ?? (item.title as string)} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
+        )}
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="flex min-w-0 flex-1 items-center gap-1.5">
+              {shown(item.icon) && (
+                <span data-ouro-conversation-icon="" className={cn("flex shrink-0 items-center [&_svg]:size-4", quiet)}>
+                  {item.icon}
+                </span>
+              )}
+              <span data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
+                {item.name === undefined ? (
+                  item.title
+                ) : (
+                  <>
+                    <span aria-hidden="true">{item.title}</span>
+                    <span className="sr-only">{item.name}</span>
+                  </>
+                )}
+              </span>
+              {item.nameTag && (
+                <span data-ouro-conversation-name-tag="" className={cn("shrink-0 text-sm pointer-fine:text-xs", quiet)}>
+                  <span className="sr-only">, </span>
+                  {item.nameTag}
+                </span>
+              )}
+              {shown(item.where) && (
+                <span data-ouro-conversation-where="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-sm pointer-fine:text-xs", quiet)}>
+                  <span aria-hidden="true">· </span>
+                  {item.where}
+                </span>
+              )}
+              {item.badges}
+            </span>
+            {shown(item.time) && (
+              <span data-ouro-conversation-time="" className={cn("shrink-0 text-xs tabular-nums", quiet)}>
+                {item.time}
+              </span>
+            )}
+            {endsTitle && end}
+          </span>
+          {item.subtitle && (
+            <span className="flex min-w-0 items-center gap-2">
+              <span data-ouro-conversation-subtitle="" className={cn("min-w-0 flex-1 truncate text-xs", quiet)}>
+                {item.subtitle}
+              </span>
+              {endsSubtitle && end}
+            </span>
+          )}
+          {withContext && (
+            <span className="flex min-w-0 items-center gap-2">
+              <span data-ouro-conversation-context="" className="min-w-0 flex-1 truncate text-sm text-foreground">
+                {item.context}
+              </span>
+              {!withPreview && end}
+            </span>
+          )}
+          {withPreview && (
+            <span className="flex min-w-0 items-center gap-2">
+              <span data-ouro-conversation-preview="" className={cn("min-w-0 flex-1 truncate text-sm", item.unread ? "text-foreground" : quiet)}>
+                {drafted ? (
+                  <>
+                    <span data-ouro-conversation-draft="" className="font-medium text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
+                      {draftLabel}
+                    </span>{" "}
+                    {item.draft}
+                  </>
+                ) : (
+                  item.preview
+                )}
+              </span>
+              {end}
+            </span>
+          )}
+        </span>
+      </button>
+    </li>
+  );
+});
+
 /**
  * A list of conversations to choose from: each row shows the avatar, the title, when the
  * latest message arrived and a line of it, and marks unread conversations with a bold title
@@ -338,12 +483,22 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [measured, setMeasured] = useState<{ density: ConversationListDensity; heights: ReadonlyMap<string, number> } | null>(null);
   const [range, setRange] = useState<readonly [number, number] | null>(null);
   const [reach, setReach] = useState<string | null>(null);
+  // A short list's first render holds only the rows the first view reaches; the rest render once it has painted.
+  const [settled, setSettled] = useState(false);
+  useEffect(
+    () => queueMicrotask(() => setSettled(true)),
+    // Stryker disable next-line ArrayDeclaration: the effect reads nothing, so rerunning it only sets the state again.
+    [],
+  );
   const controls = useRef(new Map<string, HTMLButtonElement>());
   const latest = useRef<Laid | null>(null);
   const clips = useRef<HTMLElement[] | null>(null);
   const scroller = useRef<Element | null>(null);
   // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
   const sync = useRef<(() => void) | null>(null);
+  // What the last sync ran for, and the observer that reports a row's change of size once the page is laid out.
+  const synced = useRef<{ inputs: string; heights: ReadonlyMap<string, number> } | null>(null);
+  const rows = useRef<ResizeObserver | null>(null);
   const revealed = useRef<string | null>(null);
   const focusNext = useRef<string | null>(null);
   // The row to keep in view while the heights around it settle, and where in the view.
@@ -397,12 +552,14 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const heights = measured?.density === density ? measured.heights : noHeights;
   const { offsets, total } = place(keys, heights, estimates[density]);
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
-  const [start, end] = range ?? [0, offsets.filter((offset) => offset < firstView).length];
+  const firstRows = offsets.filter((offset) => offset < firstView).length;
+  const [start, end] = range ?? [0, firstRows];
   const indexes = new Map(keys.map((key, index) => [key, index]));
   const kept = new Set([tabStop, current, reach]);
   const rendered = (key: string) => {
     const index = indexes.get(key)!;
-    return !windowed || (index >= start && index < end) || kept.has(key);
+    if (!windowed) return settled || index < firstRows || kept.has(key);
+    return (index >= start && index < end) || kept.has(key);
   };
   // In a windowed list a control's slot is placed where it would be, with the gap before it as padding, and says
   // where it is in its list, since screen readers cannot count the rows that are not there.
@@ -410,10 +567,13 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const index = indexes.get(key)!;
     return { className: cn("absolute inset-x-0", index > 0 && (kindOf(key) === "section" ? "pt-2.5" : "pt-0.5")), style: { top: offsets[index] } };
   };
-  const controlRef = (key: string) => (node: HTMLButtonElement | null) => {
+  const register = useCallback((key: string, node: HTMLButtonElement | null) => {
     if (node) controls.current.set(key, node);
     else controls.current.delete(key);
-  };
+  },
+  // Stryker disable next-line ArrayDeclaration: the callback reads only a ref, so any constant list keeps it stable.
+  []);
+  const controlRef = (key: string) => (node: HTMLButtonElement | null) => register(key, node);
 
   // The list's view, from its top: the part no scrolling box around it, or the window, clips.
   const view = () => {
@@ -489,7 +649,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     addEventListener("resize", onResize);
     const resizes = new ResizeObserver(onResize);
     for (const clip of found) resizes.observe(clip);
+    rows.current = resizes;
     return () => {
+      rows.current = null;
+      synced.current = null;
       document.removeEventListener("scroll", onScroll, { capture: true });
       removeEventListener("resize", onResize);
       resizes.disconnect();
@@ -526,6 +689,13 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       if (!changed) keepInView.current = null;
       update();
     };
+    // A sync reads layout, which inside a commit lays the page out at once, so a render runs it only when what it
+    // places changed: the rows, the window, the heights, the open, reached or focusable row. A row that changes size otherwise
+    // (new text) is reported by the observer, once the page is laid out, where reads are free.
+    const inputs = JSON.stringify([keys, start, end, density, current, reach, tabStop]);
+    for (const control of controls.current.values()) rows.current!.observe(control.parentElement!);
+    if (synced.current?.inputs === inputs && synced.current.heights === heights) return;
+    synced.current = { inputs, heights };
     sync.current();
   });
 
@@ -535,127 +705,44 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     event.preventDefault();
     focusKey(keys[to(keys.indexOf(key), keys.length - 1)]!);
   };
+  // The rows are memoised, so they call the latest handlers through these stable ones.
+  // Stryker disable next-line ObjectLiteral: the layout effect below sets the handlers before any row can call them.
+  const handlers = useRef({ onSelect, move });
+  useLayoutEffect(() => {
+    handlers.current = { onSelect, move };
+  });
+  const onPick = useCallback((id: string, event: MouseEvent<HTMLButtonElement>) => {
+    const { onSelect: select } = handlers.current;
+    if (select.length > 1) select(id, event);
+    else (select as (id: string) => void)(id);
+  },
+  // Stryker disable next-line ArrayDeclaration: the callback reads only a ref, so any constant list keeps it stable.
+  []);
+  // Stryker disable next-line ArrayDeclaration: the callback reads only a ref, so any constant list keeps it stable.
+  const onKey = useCallback((event: KeyboardEvent<HTMLButtonElement>, key: string) => handlers.current.move(event, key), []);
 
   const rowFor = (item: ConversationListItem, position: number, count: number) => {
     const key = `row:${item.id}`;
-    const drafted = shown(item.draft);
-    const withPreview = density === "comfortable" && (drafted || shown(item.preview));
-    // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
-    const withContext = shown(item.context);
-    const endsTitle = !withPreview && !withContext && !item.subtitle;
-    const endsSubtitle = !withPreview && !withContext && !!item.subtitle;
-    const hasMark = shown(item.mark);
-    const end = (
-      <>
-        {hasMark && (
-          // As tall as the line, so a badge that is a little taller leaves the row the height of the others.
-          <span data-ouro-conversation-mark="" className={cn("flex h-5 shrink-0 items-center text-xs", quiet)}>
-            {item.mark}
-          </span>
-        )}
-        {item.unread && <Unread label={unreadLabel} dot={!hasMark} />}
-      </>
-    );
     return (
-      <li
+      <Row
         key={item.id}
-        {...(windowed && { ...slot(key), "aria-posinset": position, "aria-setsize": count })}
-        className={cn("m-0 p-0", windowed && slot(key).className)}
-      >
-        <button
-          ref={controlRef(key)}
-          type="button"
-          data-ouro-control="conversation-list"
-          data-ouro-part="row"
-          tabIndex={key === tabStop ? 0 : -1}
-          aria-current={item.id === selectedId ? "true" : undefined}
-          onClick={(event) => (onSelect.length > 1 ? onSelect(item.id, event) : (onSelect as (id: string) => void)(item.id))}
-          onKeyDown={(event) => move(event, key)}
-          onFocus={() => setActive(key)}
-          className={cn(controlClass, rowClass, item.id === selectedId && currentClass, density === "compact" ? "py-1.5" : "py-2")}
-        >
-          {item.avatar === false ? null : typeof item.avatar === "object" ? (
-            <span data-ouro-conversation-avatar="" className="flex shrink-0">
-              {item.avatar}
-            </span>
-          ) : (
-            <Avatar name={item.name ?? (item.title as string)} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
-          )}
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                {shown(item.icon) && (
-                  <span data-ouro-conversation-icon="" className={cn("flex shrink-0 items-center [&_svg]:size-4", quiet)}>
-                    {item.icon}
-                  </span>
-                )}
-                <span data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
-                  {item.name === undefined ? (
-                    item.title
-                  ) : (
-                    <>
-                      <span aria-hidden="true">{item.title}</span>
-                      <span className="sr-only">{item.name}</span>
-                    </>
-                  )}
-                </span>
-                {item.nameTag && (
-                  <span data-ouro-conversation-name-tag="" className={cn("shrink-0 text-sm pointer-fine:text-xs", quiet)}>
-                    <span className="sr-only">, </span>
-                    {item.nameTag}
-                  </span>
-                )}
-                {shown(item.where) && (
-                  <span data-ouro-conversation-where="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-sm pointer-fine:text-xs", quiet)}>
-                    <span aria-hidden="true">· </span>
-                    {item.where}
-                  </span>
-                )}
-                {item.badges}
-              </span>
-              {shown(item.time) && (
-                <span data-ouro-conversation-time="" className={cn("shrink-0 text-xs tabular-nums", quiet)}>
-                  {item.time}
-                </span>
-              )}
-              {endsTitle && end}
-            </span>
-            {item.subtitle && (
-              <span className="flex min-w-0 items-center gap-2">
-                <span data-ouro-conversation-subtitle="" className={cn("min-w-0 flex-1 truncate text-xs", quiet)}>
-                  {item.subtitle}
-                </span>
-                {endsSubtitle && end}
-              </span>
-            )}
-            {withContext && (
-              <span className="flex min-w-0 items-center gap-2">
-                <span data-ouro-conversation-context="" className="min-w-0 flex-1 truncate text-sm text-foreground">
-                  {item.context}
-                </span>
-                {!withPreview && end}
-              </span>
-            )}
-            {withPreview && (
-              <span className="flex min-w-0 items-center gap-2">
-                <span data-ouro-conversation-preview="" className={cn("min-w-0 flex-1 truncate text-sm", item.unread ? "text-foreground" : quiet)}>
-                  {drafted ? (
-                    <>
-                      <span data-ouro-conversation-draft="" className="font-medium text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
-                        {draftLabel}
-                      </span>{" "}
-                      {item.draft}
-                    </>
-                  ) : (
-                    item.preview
-                  )}
-                </span>
-                {end}
-              </span>
-            )}
-          </span>
-        </button>
-      </li>
+        item={item}
+        rowKey={key}
+        density={density}
+        unreadLabel={unreadLabel}
+        draftLabel={draftLabel}
+        selected={item.id === selectedId}
+        tabStop={key === tabStop}
+        windowed={windowed}
+        top={windowed ? offsets[indexes.get(key)!]! : 0}
+        slotClass={windowed ? slot(key).className : undefined}
+        position={position}
+        count={count}
+        register={register}
+        onPick={onPick}
+        onKey={onKey}
+        onActive={setActive}
+      />
     );
   };
 
@@ -683,7 +770,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
             const open = isOpen(section);
             const groupId = `${baseId}-section-${index}`;
             const shownRows = open ? rows.flatMap((item, at) => (rendered(`row:${item.id}`) ? [rowFor(item, at + 1, rows.length)] : [])) : [];
-            if (!rendered(key) && shownRows.length === 0) return null;
+            if (windowed && !rendered(key) && shownRows.length === 0) return null;
             const header = (
               <button
                 ref={controlRef(key)}

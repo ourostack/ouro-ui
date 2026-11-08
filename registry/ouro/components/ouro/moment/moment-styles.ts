@@ -1,6 +1,7 @@
 export {
   artFrameClass,
   dismissedKey,
+  dismissPeriods,
   haloClass,
   isDismissed,
   kindToneClass,
@@ -10,27 +11,25 @@ export {
   rootClass,
   SETTLE_MS,
   seenThisSession,
-  shownKey,
   sparkClasses,
   sparkleClass,
   subscribeMoments,
   takeShowing,
-  type MomentCap,
   type MomentKind,
   type MomentPeriod,
 };
+
+import { celebrationPeriods, takeCelebration, type CelebrationPeriod } from "@/registry/ouro/lib/ouro/celebration-cap";
 
 // Class strings, values and the stored-state helpers for Moment, apart from the component so
 // its file exports only components (React Fast Refresh). Class strings are literal so the
 // app's Tailwind finds them when it compiles.
 
 /** What a moment is about. @internal */
-type MomentKind = "empty" | "loading" | "error" | "welcome" | "success";
+type MomentKind = "empty" | "loading" | "error" | "first-run" | "success" | "ask";
 
-/** How long a celebration cap counts showings for. @internal */
-type MomentPeriod = "day" | "week" | "month" | "ever";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** How long a celebration cap counts showings for, shared with Celebrate. @internal */
+type MomentPeriod = CelebrationPeriod;
 
 /**
  * Each period in milliseconds; a month is 30 days.
@@ -38,13 +37,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * @internal
  * @claim "Each period in milliseconds; a month" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment cap > counts by id without a dismissKey, keeps ever for good, and never celebrates at times 0)
  */
-const periods: Record<MomentPeriod, number> = { day: DAY_MS, week: 7 * DAY_MS, month: 30 * DAY_MS, ever: Number.POSITIVE_INFINITY };
-
-/** At most `times` flourishes `per` period. @internal */
-interface MomentCap {
-  times: number;
-  per: MomentPeriod;
-}
+const periods = celebrationPeriods;
 
 /**
  * The prefix of every key Moment writes to `localStorage`.
@@ -58,8 +51,6 @@ const MOMENT_STORAGE_PREFIX = "ouro-moment:";
 /** The key that remembers a dismissal. @internal */
 const dismissedKey = (key: string) => `${MOMENT_STORAGE_PREFIX}dismissed:${key}`;
 
-/** The key that keeps when a celebration last showed. @internal */
-const shownKey = (key: string) => `${MOMENT_STORAGE_PREFIX}shown:${key}`;
 
 /** Values kept in memory, for a browser that refuses localStorage (a private window), so a dismissal still holds on the page. */
 const memory = new Map<string, string>();
@@ -125,10 +116,21 @@ function seenThisSession(key: string): boolean {
   }
 }
 
-/** Whether the moment with this key was dismissed. @internal */
-function isDismissed(key: string): boolean {
-  return read(dismissedKey(key)) !== null;
+/**
+ * Whether the moment with this key was dismissed: for good, or, with `forMs`, less than that
+ * long ago. A dismissal kept for good stays so.
+ *
+ * @internal
+ */
+function isDismissed(key: string, forMs: number | undefined, now: number): boolean {
+  const value = read(dismissedKey(key));
+  if (value === null) return false;
+  const at = Number(value);
+  return forMs === undefined || value === "1" || now - at < forMs;
 }
+
+/** How long a dismissal with `dismissFor` lasts, in milliseconds. @internal */
+const dismissPeriods = { hour: 60 * 60 * 1000, day: 24 * 60 * 60 * 1000, week: 7 * 24 * 60 * 60 * 1000, month: 30 * 24 * 60 * 60 * 1000 } as const;
 
 /**
  * Remembers that the moment with this key was dismissed, and tells every moment on the page.
@@ -136,32 +138,18 @@ function isDismissed(key: string): boolean {
  * @internal
  * @claim "Remembers that the moment with this" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment dismissal > closes every copy of a moment on the page at once)
  */
-function keepDismissed(key: string): void {
-  write(dismissedKey(key), "1");
+function keepDismissed(key: string, at: number | undefined): void {
+  write(dismissedKey(key), at === undefined ? "1" : String(at));
   for (const listener of [...listeners]) listener();
 }
 
 /**
- * Whether a celebration may show now under `cap`, and if so, records it. Only the showings
- * inside the period count, and only those are kept.
+ * Whether a celebration may show now under `cap`, and if so, records it, under the same keys
+ * as Celebrate's.
  *
  * @internal
  */
-function takeShowing(key: string, cap: MomentCap, now: number): boolean {
-  let stored: unknown;
-  try {
-    // Stryker disable next-line StringLiteral: an empty string fails to parse, which leaves no showings, as "[]" does.
-    stored = JSON.parse(read(shownKey(key)) ?? "[]");
-  } catch {
-    // A value that is no JSON counts as no showings.
-  }
-  const since = now - periods[cap.per];
-  // Stryker disable next-line ArrayDeclaration: an entry put in the empty list is no number, so the filter drops it.
-  const recent = (Array.isArray(stored) ? stored : []).filter((time): time is number => typeof time === "number" && time > since && time <= now);
-  if (recent.length >= cap.times) return false;
-  write(shownKey(key), JSON.stringify([...recent, now]));
-  return true;
-}
+const takeShowing = takeCelebration;
 
 /**
  * The colour each kind gives the art's `currentColor` and its celebration.
@@ -173,29 +161,29 @@ const kindToneClass: Record<MomentKind, string> = {
   empty: "text-muted-foreground",
   loading: "text-muted-foreground",
   error: "text-destructive",
-  welcome: "text-primary",
+  "first-run": "text-primary",
   success: "text-success",
+  ask: "text-primary",
 };
 
 /** The root, by layout. @internal */
 const rootClass = {
   default: "@container/moment relative box-border flex w-full min-w-0 flex-col items-center gap-4 px-6 py-8 text-center text-balance",
   quiet: "relative box-border flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-start",
-  inline: "relative box-border flex min-w-0 items-center gap-2 text-start",
+  inline: "relative box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-start",
 } as const;
 
 /**
  * The art's frame, by layout: up to 160px tall, 96px when the moment is narrower than 24rem
- * (its content box, inside the padding, narrower than 21rem), 40px when quiet and 24px inline.
+ * (its content box, inside the padding, narrower than 21rem), and 24px inline.
  * The art fills the frame's height.
  *
  * @internal
- * @claim "The art's frame, by layout: up" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, 40px quiet and 24px inline)
+ * @claim "The art's frame, by layout: up" registry/ouro/components/ouro/moment/moment.test.tsx verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment sizes > gives the art 160px, 96px in a pane narrower than 24rem, and 24px inline)
  */
 const artFrameClass = {
   default: "relative flex h-(--ouro-moment-art) max-w-full shrink-0 items-center justify-center [--ouro-moment-art:10rem] @max-[21rem]/moment:[--ouro-moment-art:6rem]",
   hero: "relative flex h-(--ouro-moment-art) max-w-full shrink-0 items-center justify-center [--ouro-moment-art:13.75rem] @max-[21rem]/moment:[--ouro-moment-art:6rem]",
-  quiet: "relative flex size-(--ouro-moment-art) shrink-0 items-center justify-center [--ouro-moment-art:2.5rem]",
   inline: "relative flex size-(--ouro-moment-art) shrink-0 items-center justify-center [--ouro-moment-art:1.5rem]",
 } as const;
 

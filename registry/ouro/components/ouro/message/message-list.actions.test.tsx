@@ -461,11 +461,14 @@ describe("MessageList actions", () => {
     const reaction = (name: string) => page.getByRole("menuitem", { name }).element();
     const press = async (key: string, expected: string) => {
       await userEvent.keyboard(key);
-      expect(document.activeElement).toBe(reaction(expected));
+      await expect.poll(() => document.activeElement === page.getByRole("menuitem", { name: expected }).query()).toBe(true);
     };
+    // Closed once the menu is out of the page, not only hidden: the menu gives focus back to the message after its exit,
+    // and a menu opened before that would lose its focus to the message and close (a slow WebKit, #689).
     const close = async () => {
       await userEvent.keyboard("{Escape}");
-      await expect.poll(() => menus()).toHaveLength(0);
+      await expect.poll(() => document.querySelector('[data-ouro="menu"]')).toBeNull();
+      await expect.poll(() => message("m1").contains(document.activeElement)).toBe(true);
     };
 
     await open();

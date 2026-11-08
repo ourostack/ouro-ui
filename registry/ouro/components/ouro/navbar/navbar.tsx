@@ -139,8 +139,11 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * render through `OuroProvider`'s `linkComponent`, so your router navigates.
  *
  * The phone menu opens once JavaScript has loaded (after hydration); the links are in the
- * server HTML from 640px up. Once the menu button shows, the sheet is built while the page is
- * idle and kept, hidden, between opens, so a press only shows it.
+ * server HTML from 640px up. A tap on the menu button before then does nothing unless your app
+ * keeps it: this site's head script keeps a tap on any control React has not yet hydrated, shows
+ * the control pressed, and presses it again once it has (`site/src/early-input.ts` in the
+ * repository). Once the menu button shows, the sheet is built while the page is idle and kept,
+ * hidden, between opens, so a press only shows it.
  *
  * Use `Sidebar` instead for more than a handful of destinations, or sections of them. Use
  * `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one
@@ -165,6 +168,7 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * @claim "Whenever the links do not fit" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
  * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > collapses the links into a sheet behind a menu button below 640px)
  * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
+ * @claim "this site's head script keeps a tap" site/e2e/early-input.spec.ts verify:fileLine(site/e2e/early-input.spec.ts, /a tap on the menu button before the page's script has run opens the menu/) verify:fileLine(site/src/early-input.ts, /export function keepEarlyInput/)
  * @claim "the sheet is built while the page is" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens)
  */
 export function Navbar(props: NavbarProps): JSX.Element {

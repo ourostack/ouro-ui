@@ -12,12 +12,12 @@ import { portholeView } from "@/registry/ouro/lib/ouro/porthole-view";
 
 ```tsx
 const view = portholeView(source.getSnapshot(), source.lastBeatAt(), Date.now());
-view.text; // "Updated just now"
+view.text; // "Up to date"
 ```
 
 ## Usage
 
-One item at a time: the most urgent (`action`, then `error`, `working`, `rest`); on a tie, the newest `since`. At rest it says "Updated just now" only while every area was verified within `freshWithinMs` and none has been in trouble for `troubleAfterMs`; otherwise the real age of the area verified longest ago ("Updated 4 min ago"). A `rest` item, such as "Up to date", shows over "Updated just now" only: past fresh, or unknown, the age line or "Status unknown" wins and the item waits in the open spot's lines. It says "Status unknown" when an area has never been verified, when the snapshot has no areas or another version, or when the heartbeat is older than `heartbeatTimeoutMs` or too far ahead of this clock to check. A stopped heartbeat outranks every item, an `action` too: nothing the service said can be trusted as live, and the action's button would reach a service that cannot answer, so the item waits in the open spot's lines. `nextChangeAt` is the one moment to look again.
+One item at a time: the most urgent (`action`, then `error`, `working`, `rest`); on a tie, the newest `since`. At rest it says "Up to date" only while every area was verified within `freshWithinMs` (the area's own, for one the service reads on an interval) and none has been in trouble for `troubleAfterMs`; otherwise the real age of the area verified longest ago ("Updated 4 min ago"). A `rest` item, such as "Version 2.1 is installed", shows over "Up to date" only: past fresh, or unknown, the age line or "Status unknown" wins and the item waits in the open spot's lines. It says "Status unknown" when an area has never been verified, when the snapshot has no areas or another version, or when the heartbeat is older than `heartbeatTimeoutMs` or too far ahead of this clock to check. A stopped heartbeat outranks every item, an `action` too: nothing the service said can be trusted as live, and the action's button would reach a service that cannot answer, so the item waits in the open spot's lines. `nextChangeAt` is the one moment to look again.
 
 ## Use instead when
 

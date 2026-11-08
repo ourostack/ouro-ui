@@ -59,6 +59,8 @@ async function judge(page: Page): Promise<Switch> {
   });
   await page.goto("./");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  // The page opens in Ouro's meadow, the porthole below it; the stage judges the screen only once it is on it.
+  await page.evaluate(() => document.querySelector("[data-stage]")!.scrollIntoView({ block: "center", behavior: "instant" }));
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 15_000 });
   await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", "stop");

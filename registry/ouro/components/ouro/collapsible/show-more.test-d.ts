@@ -8,6 +8,8 @@ type Items = string[];
 
 // Four modes: lines, maxHeight, items, and items that load more.
 expectTypeOf<{ lines: 3; children: "Long text" }>().toExtend<ShowMoreProps>();
+expectTypeOf<{ lines: 3; children: "Long text"; measureKey: string }>().toExtend<ShowMoreProps>();
+expectTypeOf<{ maxHeight: 180; children: "Long text"; measureKey: number }>().toExtend<ShowMoreProps>();
 expectTypeOf<{ maxHeight: 180; children: "Long post"; showMoreLabel: "More"; showLessLabel: "Less" }>().toExtend<ShowMoreProps>();
 expectTypeOf<{ items: Items; initialCount: 3; ordered: true; showLessLabel: "Less" }>().toExtend<ShowMoreProps>();
 expectTypeOf<{ items: Items; hasMore: true; loading: false; onShowMore: () => void; href: "?after=2" }>().toExtend<ShowMoreProps>();

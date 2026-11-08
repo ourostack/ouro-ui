@@ -27,4 +27,4 @@ Type: `MomentProviderProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The part of the app it applies to. |
-| `quiet` | `boolean` | `false` | Renders every `Moment` inside quiet, unless the moment sets `quiet` itself. |
+| `quiet` | `boolean` | `OuroProvider`'s `quiet` | Renders every `Moment` inside quiet, unless the moment sets `quiet` itself. |

@@ -17,7 +17,9 @@ interface Route {
   title: string;
   description: string;
 }
-const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, headTags, pageKind } = (await import(pathToFileURL(server).href)) as {
+const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, headTags, pageKind, sitemap, SITE } = (await import(pathToFileURL(server).href)) as {
+  sitemap: (routes: Route[]) => string;
+  SITE: string;
   render: (path: string) => Promise<string>;
   pageKind: (path: string) => string;
   headTags: (route: Route, canonical: boolean) => string[];
@@ -125,6 +127,9 @@ writeFileSync(
   join(dist, "404.html"),
   await page({ path: "/404/", title: "Lost at sea · Ouro HX", description: "This page has drifted off our charts. Head back to the surface, or search the docs." }, "/404/", false),
 );
+// Every page for crawlers, and robots.txt pointing to it (the routes, as built above).
+writeFileSync(join(dist, "sitemap.xml"), sitemap(routes));
+writeFileSync(join(dist, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 // The published Markdown shows installed paths (`@/components/ouro/...`), as the HTML pages
 // do, and parts.md is published beside it so each page's link to it resolves.
 // A link to another docs file names that file's published page (`Form.md` is `form.md`).
@@ -141,9 +146,11 @@ for (const item of docsItems) {
   const file = join(dist, "docs", item.name, "index.html");
   if (!existsSync(file) || !readFileSync(file, "utf8").includes(`>${item.title}</h1>`)) throw new Error(`no docs page for ${item.name}`);
 }
+/** The text of each h1 on a page, without tags and with `&amp;` read back as `&` (a platform page sets "for Apple" in smaller type, inside its h1). */
+const headings = (html: string) => [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)].map(([, inner]) => inner!.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&"));
 for (const page of docsPages) {
   const file = join(dist, "docs", page.name, "index.html");
-  if (!existsSync(file) || !readFileSync(file, "utf8").includes(`>${page.title}</h1>`)) throw new Error(`no docs page for ${page.file}`);
+  if (!existsSync(file) || !headings(readFileSync(file, "utf8")).includes(page.title)) throw new Error(`no docs page for ${page.file}`);
 }
 for (const file of [...docsItems.map((item) => `${item.name}.md`), ...docsPages.map((page) => `${page.name}.md`), "parts.md"]) {
   if (readFileSync(join(dist, "docs", file), "utf8").includes("@/registry/")) throw new Error(`docs/${file} still has registry paths`);

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { APPLE_PATHS } from "../src/paths";
+import { heightsUntilStill, quietFrames } from "./frames";
 
 // The site's one menu on a phone (src/voyage/site-menu.tsx): the header's menu button is the only control that opens
 // navigation, on every kind of page, and nothing inside the open menu opens another. It closes on a choice, a tap
@@ -55,16 +56,16 @@ async function openers(page: Page, root: string): Promise<string[]> {
   }, root);
 }
 
-/** Opens the menu and waits for it to slide into place. The docs' header is an island, so its button works once it has hydrated. */
+/**
+ * Opens the menu and waits for it to slide into place. `open` has waited for the page to be ready, and a press before
+ * that is answered too (#672), so one press opens it. It is pressed once, with the action's own timeout: a retry on a
+ * page drawing a frame a second or more (CI's WebKit) read the button before the last press had landed and pressed
+ * again, closing the menu it had just opened, until the test ran out (#681).
+ */
 async function openMenu(page: Page): Promise<void> {
-  await expect(async () => {
-    // Once the sheet is open its backdrop covers the button, and a second press would close it.
-    // A button that says open with no sheet to show for it is pressed again, closing it, and the next try opens it.
-    const expanded = (await menuButton(page).getAttribute("aria-expanded")) === "true";
-    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: 1000 });
-    // real clock: the menu stays open until it is closed; no timer ends it.
-    await expect(sheet(page)).toBeVisible({ timeout: 1000 });
-  }).toPass();
+  await menuButton(page).click();
+  // real clock: the menu stays open until it is closed; no timer ends it.
+  await expect(sheet(page)).toBeVisible();
   await settled(page);
 }
 
@@ -301,14 +302,12 @@ test("on a phone the menu opens on the section you are in, its row just under th
   expect(row.y - (under.y + under.height)).toBeLessThanOrEqual(24);
 });
 
-/** Opens the theme picker. The docs' header is an island, so its button works once it has hydrated. */
+/** Opens the theme picker with one press, as `openMenu` opens the menu: a retried press could close it again (#681). */
 async function openPicker(page: Page) {
   const picker = page.getByRole("dialog", { name: "Theme" });
-  await expect(async () => {
-    if ((await picker.count()) === 0) await page.locator("[data-site-theme-trigger]").click({ timeout: 1000 });
-    // real clock: the picker stays open until it is closed; no timer ends it.
-    await expect(picker).toBeVisible({ timeout: 1000 });
-  }).toPass();
+  await page.locator("[data-site-theme-trigger]").click();
+  // real clock: the picker stays open until it is closed; no timer ends it.
+  await expect(picker).toBeVisible();
   return picker;
 }
 
@@ -379,7 +378,7 @@ test("on a phone the menu closes on a choice, and Back returns to the page with 
 // job's (site-menu.latency.spec.ts): there no other worker shares the CPU.
 const FRAME_GAP_BUDGET = 100;
 for (const path of ["./", "docs/button/"]) {
-  test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press`, async ({ page }) => {
+  test(`on a phone /${path === "./" ? "" : path} stays free to take the menu's press`, async ({ page }, testInfo) => {
     await open(page, path);
     if (path === "./") {
       // The frames after the stage has judged the screen, and once its scene shows the speed the control chose: on a screen
@@ -388,32 +387,62 @@ for (const path of ["./", "docs/button/"]) {
       const stop = await page.getByRole("radio", { name: "Stop" }).isChecked();
       await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", stop ? "stop" : "half");
     }
-    // The longest gap, when in the read it fell, and whether the stage's verdict landed during the read.
+    // Hydration and first paint have come to rest: the read below is of a page that is done loading, not of its load.
+    await quietFrames(page);
+    // The page's longest gap of its own: each gap between frames, less the time in it that a worker in the page also
+    // stood still. A worker runs on its own thread, so the page's own work (a stage holding its main thread) leaves it
+    // ticking, while a runner that stops the whole browser stops it too (ourostack/ouro-ui#670). When in the read that
+    // gap fell, and whether the stage's verdict landed during the read.
     const read = () =>
       page.evaluate(
         () =>
-          new Promise<{ longest: number; at: number; paced: boolean }>((resolve) => {
+          new Promise<{ longest: number; gap: number; runner: number; at: number; paced: boolean }>((resolve) => {
             const stage = document.querySelector("[data-stage]");
             const pacedBefore = stage?.hasAttribute("data-paced") ?? true;
-            let last = 0;
-            let longest = 0;
-            let at = 0;
-            const start = performance.now();
+            // The worker starts, and has ticked, before the read: its start is work of the read's, not of the page's. It ticks
+            // once more as it answers, so a stall at the read's end, which it answers first on waking, is closed and counted.
+            const code = "const n=()=>t.push(performance.timeOrigin+performance.now());const t=[];setInterval(n,4);postMessage(0);onmessage=()=>{n();postMessage(t)};";
+            const worker = new Worker(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
+            const frames: number[] = [];
+            let start = 0;
             const tick = (now: number) => {
-              if (last && now - last > longest) {
-                longest = now - last;
-                at = Math.round(last - start);
-              }
-              last = now;
-              if (now - start < 1500) requestAnimationFrame(tick);
-              else resolve({ longest, at, paced: pacedBefore !== (stage?.hasAttribute("data-paced") ?? true) });
+              frames.push(performance.timeOrigin + now);
+              if (now - start < 1500) return void requestAnimationFrame(tick);
+              worker.onmessage = ({ data: ticks }: MessageEvent<number[]>) => {
+                worker.terminate();
+                // A worker's tick 20 ms late or more is the runner standing still: the page did not stop it.
+                const stalls: [number, number][] = [];
+                for (let index = 1; index < ticks.length; index++) if (ticks[index]! - ticks[index - 1]! > 20) stalls.push([ticks[index - 1]!, ticks[index]!]);
+                let worst = { longest: 0, gap: 0, runner: 0, at: 0 };
+                for (let index = 1; index < frames.length; index++) {
+                  const [from, to] = [frames[index - 1]!, frames[index]!];
+                  const runner = stalls.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(to, b) - Math.max(from, a)), 0);
+                  if (to - from - runner > worst.longest) worst = { longest: to - from - runner, gap: to - from, runner, at: Math.round(from - performance.timeOrigin - start) };
+                }
+                resolve({ ...worst, paced: pacedBefore !== (stage?.hasAttribute("data-paced") ?? true) });
+              };
+              worker.postMessage(0);
             };
-            requestAnimationFrame(tick);
+            worker.onmessage = () =>
+              requestAnimationFrame(() =>
+                requestAnimationFrame((now) => {
+                  start = now;
+                  tick(now);
+                }),
+              );
           }),
       );
     const longestGap = async () => (await read()).longest;
-    const first = await read();
+    // A runner starved by its neighbours (CPU it shares, not a stop the worker sees) can spoil one read; a stall of the
+    // page's own is in most of them. So the page is held to the middle of three reads: two within the budget pass it, two
+    // over it fail it, and the third read is taken only when the first two disagree.
+    const reads: Awaited<ReturnType<typeof read>>[] = [];
+    const within = () => reads.filter((each) => each.longest < FRAME_GAP_BUDGET).length;
+    while (within() < 2 && reads.length - within() < 2) reads.push(await read());
+    const first = [...reads].sort((a, b) => a.longest - b.longest)[1]!;
     const gap = first.longest;
+    const told = reads.map((each) => `${Math.round(each.longest)} of ${Math.round(each.gap)} ms`).join(", ");
+    testInfo.annotations.push({ type: "frame gaps", description: `each read's longest gap of the page's own, of the gap it fell in: ${told}` });
     // Over budget: say whether the page's running animations are what holds the frames, by pausing them and reading again.
     let paused = "";
     if (gap >= FRAME_GAP_BUDGET) {
@@ -424,10 +453,14 @@ for (const path of ["./", "docs/button/"]) {
       });
       paused = ` (with its ${names.length} running animations [${names.join(", ")}] paused: ${Math.round(await longestGap())} ms)`;
     }
-    expect(gap, `the longest gap between frames, in ms, ${first.at} ms into the read${first.paced ? ", as the stage judged the screen" : ""}${paused}`).toBeLessThan(FRAME_GAP_BUDGET);
-    await menuButton(page).click({ timeout: 1000 });
+    expect(
+      gap,
+      `the page's longest gap between frames of its own, in ms, ${first.at} ms into the read (a ${Math.round(first.gap)} ms gap, ${Math.round(first.runner)} ms of it the runner's)${first.paced ? ", as the stage judged the screen" : ""}, the middle of ${reads.length} reads [${told}]${paused}`,
+    ).toBeLessThan(FRAME_GAP_BUDGET);
+    // The press is taken; how soon it draws the sheet is the latency job's to judge, where no other worker shares the CPU.
+    await menuButton(page).click();
     // real clock: the sheet stays open until it is closed; no timer ends it.
-    await expect(sheet(page)).toBeVisible({ timeout: 1000 });
+    await expect(sheet(page)).toBeVisible();
   });
 }
 
@@ -593,19 +626,7 @@ test("on a phone the docs menu's folded lists hold no pages until they unfold, t
   // Folded, the list is not in the page at all: nothing in it to style with the sheet.
   await expect(panel.locator("a")).toHaveCount(0);
   // Each frame of the unfold, the panel's height: it grows through the frames between, not in one step.
-  const heights = panel.evaluate(
-    (element) =>
-      new Promise<number[]>((resolve) => {
-        const seen: number[] = [];
-        const start = performance.now();
-        const tick = () => {
-          seen.push(Math.round(element.getBoundingClientRect().height));
-          if (performance.now() - start < 900) requestAnimationFrame(tick);
-          else resolve(seen);
-        };
-        requestAnimationFrame(tick);
-      }),
-  );
+  const heights = heightsUntilStill(panel);
   await group.locator('[aria-expanded="false"]').click();
   const grown = await heights;
   const full = grown.at(-1)!;
@@ -739,6 +760,8 @@ test("on a phone the Nautilus's first chapter marker is styled before any script
   await page.setViewportSize(PHONE);
   await page.goto("nautilus/");
   const marker = page.locator("[data-chapter-marker]").first();
+  // The page opens in Ouro's meadow, the chapters below it: scroll to the first.
+  await marker.scrollIntoViewIfNeeded();
   await expect(marker).toBeInViewport();
   expect(await marker.evaluate((element) => getComputedStyle(element).position)).toBe("sticky");
 });

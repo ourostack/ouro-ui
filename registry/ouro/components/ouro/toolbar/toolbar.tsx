@@ -468,24 +468,70 @@ function countFits(root: HTMLElement, widths: readonly number[], moreWidth: numb
   return fits;
 }
 
-// Overflow: with a new `items` or `size`, every entry is shown and measured before paint; then
+/**
+ * What decides an entry's width: its type, label, whether it shows its label and has an icon, and a group's
+ * controls. Handlers, pressed states and shortcuts change none of it, nor does an app rendering the same items anew.
+ * @claim "Handlers, pressed states and shortcuts change none" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > lays nothing out when it renders again with new items that look the same, and measures again when a label changes)
+ */
+function widthInputs(items: readonly ToolbarEntry[]): string {
+  const shape = (entry: ToolbarEntry): unknown =>
+    // Stryker disable next-line ConditionalExpression,StringLiteral,EqualityOperator: equivalent; each part only has to tell its kinds apart in the key, and a separator's string, a flipped test of a boolean and an empty name all still do, since every other entry is an array.
+    entry.type === "separator" ? "separator" : entry.type === "group" ? [entry.label, entry.items.map(shape)] : [entry.type, entry.label, entry.hideLabel === true, entry.icon !== undefined];
+  return JSON.stringify(items.map(shape));
+}
+
+// Overflow: with new widths or a new `size`, every entry is shown and measured before paint; then
 // as many as fit stay in the row and the rest move into the More menu. The widths measured
-// then serve every later resize.
+// then serve every later resize, which the resize observer reports once the page is laid out, where
+// reads are free. A render of the same entries measures nothing: a read inside a commit lays the page out at once.
 function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly ToolbarEntry[], size: ToolbarSize) {
   const rootRef = useRef<HTMLDivElement>(null);
   const setRef = useMergedRef(ref, rootRef);
   const widths = useRef<readonly number[] | null>(null);
   const moreWidth = useRef(0);
-  const [layout, setLayout] = useState<{ items: readonly ToolbarEntry[]; size: ToolbarSize; shown: number } | null>(null);
-  const measuring = layout?.items !== items || layout.size !== size;
+  const inputs = widthInputs(items);
+  // Counts the times the entries' text changed under them (a font loading, a zoom), which measures them again.
+  const [epoch, setEpoch] = useState(0);
+  const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; epoch: number; shown: number } | null>(null);
+  const measuring = layout?.inputs !== inputs || layout.size !== size || layout.epoch !== epoch;
+  const entries = useRef<ResizeObserver | null>(null);
   const refocus = useRef(false);
 
   useLayoutEffect(() => {
     const root = rootRef.current!;
     widths.current = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].map((element) => element.getBoundingClientRect().width);
     moreWidth.current = root.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.getBoundingClientRect().width;
-    setLayout({ items, size, shown: countFits(root, widths.current!, moreWidth.current, refocus) });
-  }, [items, size]);
+    setLayout({ inputs, size, epoch, shown: countFits(root, widths.current!, moreWidth.current, refocus) });
+  }, [inputs, size, epoch]);
+
+  // A shown entry that is wider or narrower than measured means its text changed without the root resizing.
+  useLayoutEffect(() => {
+    const root = rootRef.current!;
+    const stale = new ResizeObserver(() => {
+      const measured = widths.current!;
+      const changed = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].some(
+        (element) => !(Math.abs(element.getBoundingClientRect().width - measured[Number(element.getAttribute("data-ouro-toolbar-entry"))]!) <= 0.5),
+      );
+      // Stryker disable next-line ArithmeticOperator: equivalent; the epoch is only compared for difference, so count - 1 forces a measure just as count + 1 does.
+      if (changed) setEpoch((count) => count + 1);
+    });
+    entries.current = stale;
+    // A font that loads changes the labels' widths, and maybe nothing the observers see, so the entries are measured
+    // again once the fonts are ready. (WebKit sends no loadingdone for a face it finds at once, only loading.)
+    const fonts = root.ownerDocument.fonts;
+    // Stryker disable next-line ArithmeticOperator: equivalent; the epoch is only compared for difference, so count - 1 forces a measure just as count + 1 does.
+    const loading = () => void fonts.ready.then(() => setEpoch((count) => count + 1));
+    fonts.addEventListener("loading", loading);
+    return () => {
+      stale.disconnect();
+      fonts.removeEventListener("loading", loading);
+    };
+  },
+  // Stryker disable next-line ArrayDeclaration: equivalent; a constant dependency list runs the effect once on mount and cleans up on unmount, exactly as an empty one does.
+  []);
+  useLayoutEffect(() => {
+    for (const element of rootRef.current!.querySelectorAll(":scope > [data-ouro-toolbar-entry]")) entries.current!.observe(element);
+  });
 
   const shown = measuring ? items.length : layout.shown;
   useLayoutEffect(() => {

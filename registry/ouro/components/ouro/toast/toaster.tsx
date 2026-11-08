@@ -155,7 +155,13 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
     [],
   );
   // Read the edge again when the layout classes change, as they may move the toasts to the other edge.
+  const classed = useRef(className);
   useLayoutEffect(() => {
+    // The mount's read comes from the viewport's observer, once the page is laid out, not from the commit.
+    // Stryker disable next-line ConditionalExpression: equivalent; the effect runs only when className changes, and on mount the viewport is not yet mounted, so viewportElement.current is null and nothing is read.
+    if (classed.current === className) return;
+    classed.current = className;
+    /* istanbul ignore else @preserve -- the viewport mounts once Connect reports active, in the first commit's passive effects, before any later className change */
     if (viewportElement.current) markEdge(viewportElement.current);
   }, [className]);
   const [active, setActive] = useState(false);
@@ -349,7 +355,10 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
 function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element[] {
   const { toasts } = Toast.useToastManager();
   // Read the edge again as toasts come and go: the app's own CSS may have moved the toaster since.
-  useLayoutEffect(() => markEdge(document.querySelector<HTMLElement>('[data-ouro="toaster"]')!), [toasts.length]);
+  useLayoutEffect(() => {
+    // With no toasts there is nothing to swipe or unfurl, and a read would lay the page out for nothing.
+    if (toasts.length > 0) markEdge(document.querySelector<HTMLElement>('[data-ouro="toaster"]')!);
+  }, [toasts.length]);
   return toasts.map((item) => <ToastItem key={item.id} item={item} closeLabel={closeLabel} />);
 }
 
@@ -386,10 +395,14 @@ function readEdge(viewport: HTMLElement | null): (() => void) | undefined {
   // Stryker disable next-line ConditionalExpression,BooleanLiteral: React 19 calls a ref that returns a cleanup only with the element.
   if (!viewport) return undefined;
   const read = () => markEdge(viewport);
-  // Stryker disable next-line CallExpression: Toaster's layout effect on className reads the edge again at mount, so the mark stays the same without this call.
-  read();
+  // An observer's first callback comes once the page is laid out, where reads are free.
+  const sizes = new ResizeObserver(read);
+  sizes.observe(viewport);
   window.addEventListener("resize", read);
-  return () => window.removeEventListener("resize", read);
+  return () => {
+    sizes.disconnect();
+    window.removeEventListener("resize", read);
+  };
 }
 
 /**
