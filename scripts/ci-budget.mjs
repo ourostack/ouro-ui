@@ -292,20 +292,44 @@ export function unzipOne(zip) {
 
 const minutes = (value) => `${(value / 60).toFixed(1)} min`;
 
-/** The answer of a GitHub API GET, retried up to three times: JSON, or with `raw` the bytes. */
-async function get(url, token, { raw = false } = {}) {
+/** GitHub would not answer: a 5xx or 429 on every try, or no answer at all. */
+export class ApiUnavailable extends Error {}
+
+export const retry = { tries: 6, baseSeconds: 10, maxSeconds: 60 };
+
+/** Seconds to wait before try `tries + 1`: the Retry-After header when GitHub sent one, else 10 s doubling to a 60 s cap. */
+export function backoffSeconds(tries, retryAfter, { baseSeconds, maxSeconds } = retry) {
+  const asked = Number(retryAfter);
+  if (retryAfter !== null && retryAfter !== undefined && retryAfter !== "" && Number.isFinite(asked) && asked >= 0) return Math.min(asked, 120);
+  return Math.min(baseSeconds * 2 ** (tries - 1), maxSeconds);
+}
+
+/**
+ * The answer of a GitHub API GET: JSON, or with `raw` the bytes. A 5xx, a 429 or a failed connection is
+ * retried with a growing wait; when GitHub still does not answer it throws ApiUnavailable. Any other
+ * status, a 4xx, throws at once.
+ */
+export async function get(url, token, { raw = false, fetch = globalThis.fetch, sleep = (seconds) => delay(seconds * 1000) } = {}) {
   let response;
   for (let tries = 1; ; tries += 1) {
-    // An artifact's download answers with a redirect to storage, which takes no GitHub token.
-    response = await globalThis.fetch(url, {
-      headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
-      redirect: raw ? "manual" : "follow",
-    });
-    if (raw && response.status >= 300 && response.status < 400) response = await globalThis.fetch(response.headers.get("location"));
-    if (response.ok || tries === 3) break;
-    await delay(2000 * tries);
+    try {
+      // An artifact's download answers with a redirect to storage, which takes no GitHub token.
+      response = await fetch(url, {
+        headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
+        redirect: raw ? "manual" : "follow",
+      });
+      if (raw && response.status >= 300 && response.status < 400) response = await fetch(response.headers.get("location"));
+    } catch (error) {
+      if (tries === retry.tries) throw new ApiUnavailable(`${url} did not answer: ${error.message}`);
+      await sleep(backoffSeconds(tries, null));
+      continue;
+    }
+    if (response.ok) break;
+    const transient = response.status >= 500 || response.status === 429;
+    if (!transient) throw new Error(`${url} answered ${response.status}: ${await response.text()}`);
+    if (tries === retry.tries) throw new ApiUnavailable(`${url} answered ${response.status} on ${tries} tries: ${await response.text()}`);
+    await sleep(backoffSeconds(tries, response.headers.get("retry-after")));
   }
-  if (!response.ok) throw new Error(`${url} answered ${response.status}: ${await response.text()}`);
   return raw ? Buffer.from(await response.arrayBuffer()) : response.json();
 }
 
@@ -377,6 +401,15 @@ async function fetchJobs({ repository, runId, attempt, token }) {
   }
 }
 
+/** What a run that GitHub would not answer for reports: a warning and a passing exit code, never a failure. Any other error is rethrown. */
+export function reportUnavailable(error, summaryPath, log = console.log) {
+  if (!(error instanceof ApiUnavailable)) throw error;
+  const note = `Budget unavailable: GitHub's API would not answer, so this run's time was not judged (${error.message}).`;
+  log(`::warning::${note}`);
+  if (summaryPath) appendFileSync(summaryPath, `## CI time\n\n${note}\n`);
+  return 0;
+}
+
 async function main(argv) {
   const out = argv[argv.indexOf("--out") + 1];
   const { GH_TOKEN: token, GITHUB_REPOSITORY: repository, RUN_ID: runId, RUN_ATTEMPT: attempt = "1", EVENT: event, HEAD_REF: branch } = process.env;
@@ -387,7 +420,12 @@ async function main(argv) {
     return 2;
   }
   const graph = jobGraph(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"));
-  const jobs = await fetchJobs({ repository, runId, attempt, token });
+  let jobs;
+  try {
+    jobs = await fetchJobs({ repository, runId, attempt, token });
+  } catch (error) {
+    return reportUnavailable(error, process.env["GITHUB_STEP_SUMMARY"]);
+  }
   const path = criticalPath(jobs, graph);
   const work = criticalPath(jobs, graph, { work: true });
   const wall = wallTime(jobs, graph);
