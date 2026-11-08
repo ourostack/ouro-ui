@@ -706,10 +706,12 @@ function LightboxViewer({
  * politely, once, when the image arrives. With one image the viewer shows neither
  * the position nor Previous and Next. Escape, Close or a press outside closes it, and focus goes
  * to the thumbnail of the image last shown. The viewer grows from the thumbnail pressed and
- * slides between images; with reduced motion it fades and jumps instead. Pressing a thumbnail
- * starts fetching its full image before the viewer opens (a finger's or pen's tap, as it lifts
- * without having moved, so a scroll that starts on a thumbnail fetches nothing), and the viewer
- * fetches the image shown first, then the ones a step either side, then the rest.
+ * slides between images; with reduced motion it fades and jumps instead. The thumbnails are
+ * fetched as they are drawn, not as they near the screen, so pictures below the fold are there
+ * when the reader scrolls to them. Pressing a thumbnail starts fetching its full image before the
+ * viewer opens (a finger's or pen's tap, as it lifts without having moved, so a scroll that starts
+ * on a thumbnail fetches nothing), and the viewer fetches the image shown first, then the ones a
+ * step either side, then the rest.
  * On a phone it runs edge to edge, and an image drawn smaller than its own size zooms to that
  * size with a double-tap or the zoom button, or as far as two fingers pinch it; zoomed, a swipe
  * moves around the image rather than to the next one.
@@ -750,6 +752,7 @@ function LightboxViewer({
  * @claim "so a scroll that starts on a" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox fetching > waits for a finger or pen to lift without moving, so a scroll that starts on a thumbnail fetches nothing)
  * @claim "Pressing a thumbnail starts fetching its" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox fetching > starts fetching the full image as its thumbnail is pressed, before the viewer opens)
  * @claim "the viewer fetches the image shown first" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox fetching > fetches the image shown first, then the ones a step either side, then the rest)
+ * @claim "The thumbnails are fetched as they" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox thumbnails > is a named list of thumbnail buttons, each named by its image and opening a dialog, fetched as they are drawn)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox navigation > steps with the arrow keys from anywhere in the viewer, in reading order)
  * @claim "Step through the images with the" registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.touch.test.tsx::Lightbox on a touch screen > moves to the next image with a swipe)
  * @claim "politely, once, when the image arrives" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > shows the position and announces it once when it changes)
@@ -965,7 +968,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       {/* With reduced motion an animated image's thumbnail shows its still frame: chosen by the browser under the device's setting, always under OuroProvider's motion="reduced", never under "full". */}
       <picture className="contents">
         {image.still !== undefined && motion !== "full" && <source media={motion === "reduced" ? "all" : "(prefers-reduced-motion: reduce)"} srcSet={image.still} />}
-        <img src={image.thumbnail ?? image.src} alt={image.alt} loading="lazy" decoding="async" className={mosaic ? mosaicImageClass : thumbnailImageClass} />
+        <img src={image.thumbnail ?? image.src} alt={image.alt} decoding="async" className={mosaic ? mosaicImageClass : thumbnailImageClass} />
       </picture>
       {more > 0 && (
         <>

@@ -97,8 +97,22 @@ test.describe("on a phone", () => {
     const sheet = page.getByRole("dialog", { name: "Command palette" });
     await settledBox(sheet);
     const before = (await settledBox(input)).y;
+    // Where the input is on every frame while the results filter, so a jump of even one frame counts.
+    await input.evaluate((el) => {
+      const film: number[] = [];
+      (window as unknown as { __inputFilm: number[] }).__inputFilm = film;
+      const frame = () => {
+        film.push(el.getBoundingClientRect().y);
+        if (el.isConnected) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
     await input.fill("bak");
     await expect(page.getByRole("option")).toHaveCount(1);
     expect((await settledBox(input)).y).toBe(before);
+    const film = await page.evaluate(() => (window as unknown as { __inputFilm: number[] }).__inputFilm);
+    expect(film.length).toBeGreaterThan(0);
+    const off = film.filter((y) => Math.abs(y - before) >= 0.5);
+    expect(off, `the input's y on each frame while filtering, against ${before} before it`).toEqual([]);
   });
 });

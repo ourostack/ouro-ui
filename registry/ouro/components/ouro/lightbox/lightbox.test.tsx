@@ -121,7 +121,7 @@ describe("Lightbox development messages", () => {
 });
 
 describe("Lightbox thumbnails", () => {
-  it("is a named list of thumbnail buttons, each named by its image and opening a dialog", async () => {
+  it("is a named list of thumbnail buttons, each named by its image and opening a dialog, fetched as they are drawn", async () => {
     const { host } = await render(lightbox());
     const root = host.querySelector('[data-ouro="lightbox"]')!;
     const list = root.querySelector("ul")!;
@@ -139,7 +139,8 @@ describe("Lightbox thumbnails", () => {
     // The thumbnail file when there is one, else the image itself.
     expect(images[0]!.getAttribute("src")).toBe(kitchen[0]!.src);
     expect(images[3]!.getAttribute("src")).toBe(kitchen[3]!.thumbnail);
-    expect(images[0]!.loading).toBe("lazy");
+    // Fetched as they are drawn, not as they near the screen.
+    for (const image of images) expect(image.hasAttribute("loading")).toBe(false);
     expect(popup()).toBeNull();
   });
 

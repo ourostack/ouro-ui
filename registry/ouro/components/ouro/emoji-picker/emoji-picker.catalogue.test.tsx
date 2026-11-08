@@ -282,6 +282,30 @@ describe("EmojiPicker with a catalogue", () => {
     await expect.poll(previewArt).toBe(wave.src);
   });
 
+  it("keeps the preview playing, without a still frame, as focus moves from emoji to emoji", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    onTestFinished(() => commands.emulateMedia({ reducedMotion: "reduce" }));
+    await open();
+    await userEvent.click(search());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(previewArt).toBe(smile.animatedSrc);
+    // Every picture the preview shows on the way, though each lasts only a frame.
+    const shown: (string | null)[] = [];
+    const note = (records: MutationRecord[]) => {
+      for (const record of records) {
+        if (record.type === "attributes") shown.push(record.oldValue);
+        for (const node of record.addedNodes) if (node instanceof Element) shown.push(art(node.parentElement!) ?? null);
+      }
+    };
+    const observer = new MutationObserver(note);
+    observer.observe(panel().lastElementChild!, { subtree: true, childList: true, attributes: true, attributeFilter: ["src"], attributeOldValue: true });
+    onTestFinished(() => observer.disconnect());
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(previewArt).toBe(wave.animatedSrc);
+    note(observer.takeRecords());
+    expect(shown.filter((src) => src === smile.src || src === wave.src)).toEqual([]);
+  });
+
   it("shows animated emoji still under reduced motion, under the mouse and in focus", async () => {
     await open();
     await userEvent.hover(cell("Party popper"));

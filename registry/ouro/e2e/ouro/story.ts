@@ -51,9 +51,37 @@ export async function holdClock(page: Page): Promise<void> {
   }
 }
 
-/** Waits for an element's transitions (opening, springing back) to finish, then returns its box. */
+/**
+ * Waits for the transitions that move an element (opening, springing back) to finish, then returns its box: its own and
+ * its contents', and those of what holds it, since a sheet sliding in carries its search input with it. A frame with none
+ * running is waited out first, as a sheet mounts a frame before its slide starts (ourostack/ouro-ui#696). Endless and
+ * paused animations, which never finish, move nothing here. It waits on frames, so not after `holdClock`, which holds
+ * them; and it gives up after 5 s of animations starting again, naming what they move.
+ */
 export async function settledBox(element: Locator): Promise<{ x: number; y: number; width: number; height: number }> {
-  await element.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished)));
+  const restless = await element.evaluate(async (el) => {
+    const moving = () =>
+      el.ownerDocument.getAnimations().filter((animation) => {
+        const target = (animation.effect as KeyframeEffect | null)?.target;
+        return target instanceof Element && (target.contains(el) || el.contains(target)) && (animation.playState === "running" || animation.pending) && Number.isFinite(animation.effect?.getComputedTiming().endTime);
+      });
+    const until = performance.now() + 5000;
+    while (performance.now() < until) {
+      await new Promise((frame) => requestAnimationFrame(() => requestAnimationFrame(frame)));
+      const running = moving();
+      if (!running.length) return null;
+      await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
+    }
+    // Past the deadline, what has finished in the meantime counts as settled: only what still moves fails it.
+    await new Promise((frame) => requestAnimationFrame(() => requestAnimationFrame(frame)));
+    const still = moving();
+    if (!still.length) return null;
+    return still.map((animation) => {
+      const target = (animation.effect as KeyframeEffect).target!;
+      return `${target.tagName.toLowerCase()}${target.getAttribute("data-ouro") ? `[data-ouro="${target.getAttribute("data-ouro")}"]` : ""}`;
+    });
+  });
+  if (restless) throw new Error(`settledBox: animations kept starting again for 5 s, on ${restless.join(", ")}`);
   const box = await element.boundingBox();
   if (!box) throw new Error("settledBox: the element is not visible");
   return box;

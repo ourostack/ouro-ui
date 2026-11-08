@@ -54,4 +54,24 @@ describe("EmojiPicker on a phone", () => {
     await userEvent.click(panel()!.querySelector<HTMLElement>('[aria-label="waving hand"]')!);
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ emoji: "👋🏼", skinTone: "medium-light" }), expect.anything());
   });
+
+  it("keeps its search field where it is as the first letter is typed, though the sheet is held at its foot", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    root = createRoot(host);
+    await act(async () => root!.render(<EmojiPicker label="Add a reaction" categories={categories} trigger={<Button aria-label="React">+</Button>} onSelect={() => {}} />));
+    await userEvent.click(host.querySelector("button")!);
+    const panel = () => document.querySelector<HTMLElement>('[data-ouro="emoji-picker"]');
+    await expect.poll(() => panel()?.closest('[data-ouro="sheet"]')).toBeTruthy();
+    const sheet = panel()!.closest<HTMLElement>('[data-ouro="sheet"]')!;
+    await expect.poll(() => !sheet.hasAttribute("data-starting-style") && sheet.getAnimations({ subtree: true }).length === 0).toBe(true);
+    const search = panel()!.querySelector<HTMLInputElement>('input[type="search"]')!;
+    const place = () => ({ sheet: sheet.getBoundingClientRect().top, search: search.getBoundingClientRect().top });
+    const before = place();
+    // It lost the category bar's height on the first letter, and with it the bar's 57px of the screen (ourostack/ouro-ui#696).
+    await userEvent.type(search, "w");
+    expect(panel()!.querySelectorAll('[data-ouro-part="category"]')).toHaveLength(0);
+    expect(place()).toEqual(before);
+  });
 });

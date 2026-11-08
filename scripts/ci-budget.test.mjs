@@ -5,7 +5,8 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
-import { baseline, budget, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
+import { scratchDir } from "./scratch.mjs";
+import { ApiUnavailable, main, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -395,4 +396,85 @@ test("an earlier attempt confirms only when this attempt ran its jobs afresh, as
   // Re-run failed jobs keeps the jobs that passed, with their times, so the attempt repeats the last.
   assert.equal(freshAttempt([ran(2), ran(1)], 2), false);
   assert.equal(freshAttempt([ran(1)], 1), true);
+});
+
+const answer = (status, body = "{}", headers = {}) => ({ ok: status >= 200 && status < 300, status, headers: new globalThis.Headers(headers), text: async () => body, json: async () => JSON.parse(body), arrayBuffer: async () => Buffer.from(body) });
+
+/** A fake fetch that answers from `answers` in turn (an Error is thrown), and the waits asked of `sleep`. */
+function fake(answers) {
+  const calls = [];
+  const waits = [];
+  return { calls, waits, fetch: async (url) => { calls.push(url); const next = answers[Math.min(calls.length - 1, answers.length - 1)]; if (next instanceof Error) throw next; return next; }, sleep: async (seconds) => { waits.push(seconds); } };
+}
+
+test("a 5xx or 429 is retried with a wait that grows to about a minute", async () => {
+  const api = fake([answer(503), answer(502), answer(429), answer(500), answer(504), answer(200, '{"ok":1}')]);
+  assert.deepEqual(await get("https://api.example/x", "t", api), { ok: 1 });
+  assert.equal(api.calls.length, retry.tries);
+  assert.deepEqual(api.waits, [10, 20, 40, 60, 60]);
+});
+
+test("Retry-After sets the wait, within two minutes", async () => {
+  const api = fake([answer(429, "{}", { "retry-after": "7" }), answer(503, "{}", { "retry-after": "900" }), answer(200, "{}")]);
+  await get("https://api.example/x", "t", api);
+  assert.deepEqual(api.waits, [7, 120]);
+  assert.equal(backoffSeconds(1, "soon"), 10);
+  assert.equal(backoffSeconds(1, ""), 10);
+  assert.equal(backoffSeconds(1, undefined), 10);
+});
+
+test("a GitHub that never answers throws ApiUnavailable, for a 5xx and for a failed connection", async () => {
+  const down = fake([answer(503, "busy")]);
+  await assert.rejects(get("https://api.example/x", "t", down), (error) => error instanceof ApiUnavailable && /503 on 6 tries: busy/.test(error.message));
+  assert.equal(down.calls.length, retry.tries);
+  const gone = fake([new Error("socket hang up")]);
+  await assert.rejects(get("https://api.example/x", "t", gone), (error) => error instanceof ApiUnavailable && /did not answer: socket hang up/.test(error.message));
+  assert.equal(gone.calls.length, retry.tries);
+});
+
+test("a 4xx other than 429 throws at once, as an ordinary error", async () => {
+  for (const status of [401, 403, 404, 422]) {
+    const api = fake([answer(status, "no")]);
+    await assert.rejects(get("https://api.example/x", "t", api), (error) => !(error instanceof ApiUnavailable) && error.message.includes(`answered ${status}: no`));
+    assert.equal(api.calls.length, 1);
+    assert.deepEqual(api.waits, []);
+  }
+});
+
+test("a download follows its redirect to storage and returns the bytes", async () => {
+  const api = fake([answer(302, "", { location: "https://storage.example/z" }), answer(200, "zip")]);
+  const bytes = await get("https://api.example/x", "t", { ...api, raw: true });
+  assert.equal(bytes.toString(), "zip");
+  assert.equal(api.calls[1], "https://storage.example/z");
+});
+
+test("a run GitHub will not answer for reports budget unavailable and passes; any other error still fails it", () => {
+  const logged = [];
+  const summary = join(scratchDir("budget-"), "summary.md");
+  assert.equal(reportUnavailable(new ApiUnavailable("x answered 503"), summary, (line) => logged.push(line)), 0);
+  assert.match(logged[0], /^::warning::Budget unavailable: .*x answered 503/);
+  assert.match(readFileSync(summary, "utf8"), /Budget unavailable/);
+  assert.equal(reportUnavailable(new ApiUnavailable("y"), undefined, () => {}), 0);
+  assert.throws(() => reportUnavailable(new Error("x answered 404"), summary), /404/);
+});
+
+test("jobs answer, then the baseline read gets 502s: the run reports budget unavailable and exits 0", async () => {
+  const saved = { fetch: globalThis.fetch, log: console.log, base: retry.baseSeconds, env: { ...process.env } };
+  const logged = [];
+  Object.assign(process.env, { GH_TOKEN: "t", GITHUB_REPOSITORY: "o/r", RUN_ID: "1", RUN_ATTEMPT: "1", EVENT: "pull_request", FALLBACK: "false" });
+  delete process.env["GITHUB_STEP_SUMMARY"];
+  retry.baseSeconds = 0;
+  console.log = (line) => logged.push(line);
+  globalThis.fetch = async (url) => String(url).includes("/jobs?")
+    ? new globalThis.Response(JSON.stringify({ total_count: 0, jobs: [] }), { status: 200 })
+    : new globalThis.Response("bad gateway", { status: 502 });
+  try {
+    assert.equal(await main(["--out", join(scratchDir("budget-"), "unused.json")]), 0);
+  } finally {
+    globalThis.fetch = saved.fetch;
+    console.log = saved.log;
+    retry.baseSeconds = saved.base;
+    process.env = saved.env;
+  }
+  assert.ok(logged.some((line) => line.startsWith("::warning::Budget unavailable")));
 });
