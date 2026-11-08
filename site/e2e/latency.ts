@@ -10,13 +10,14 @@ import { expect, test, type Page } from "@playwright/test";
 //
 // When those 20 are over budget but could still be within it with more presses (morePresses), the
 // control is pressed LATENCY.more times more, once, on the same page, and the same budget judges all
-// 40: the p95 is then the 38th, so at most two presses of 40 may be over 100 ms, the same one in
-// twenty. Every press counts, the first 20 too; no take is chosen over another. On CI's runners about
-// one press in a hundred runs half again slower or more than its control's median, the same work done
-// slower in every part of the frame (script, style, layout, paint), with the runner not stopping the
-// browser, no other thread holding the CPU and no garbage collection (ourostack/ouro-ui#463): nothing
-// the page can see tells it from a press the page made slow. Two such presses in 20 decided the p95 of
-// controls whose other 18 sat well within it; with 40 the p95 is decided by the control, not by them.
+// 40: the p95 is then the 38th, so at most two of 40 may be over 100 ms, the same one in twenty. Every
+// press counts, the first 20 too, and no take is chosen over another. On CI's runners about one press in
+// a hundred takes half again as long as its control's median or more: the same work, slower in every part
+// of the frame (script, style, layout, paint), while the browser was never stopped, no other thread held
+// its main thread off the CPU, and garbage collection was in 2 of 57 (ourostack/ouro-ui#463). Nothing we
+// could measure from the page told those presses from a press the page made slow, so none is excused:
+// two of them in 20 decided the p95 of controls whose other 18 sat well within it, and with 40 presses
+// the p95 is the control's, not theirs.
 //
 // Event Timing reports durations in 8 ms steps, so every sample is a multiple of 8 and a median of
 // 20 a multiple of 4: a bound sits between steps or it is really the step below it.
@@ -35,7 +36,7 @@ export const LATENCY = {
   throttle: 4,
 } as const;
 
-/** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1. */
+/** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1, or warmUps + samples + more - 1 when 20 more are pressed. */
 export interface Presses {
   /** Presses the control once. */
   press: (index: number) => Promise<unknown>;
@@ -138,14 +139,5 @@ export function expectWithinBudget(label: string, samples: readonly number[], ba
 
 /** Measures a control (with LATENCY.more presses more when its first samples call for them) and holds it to the budget. */
 export async function expectPressesWithinBudget(page: Page, label: string, presses: Presses, baseline: number): Promise<void> {
-  if (process.env["LATENCY_AB"]) {
-    const throttle = Number(process.env["LATENCY_AB"]);
-    const all = await measure(page, label, presses, throttle, () => true);
-    const first = all.slice(0, LATENCY.samples);
-    const old = summarise(first, baseline).within;
-    const now = old || (morePresses(first, baseline) && summarise(all, baseline).within);
-    console.log(`latency-ab ${label} throttle=${throttle} old=${old ? "pass" : "FAIL"} new=${now ? "pass" : "FAIL"} more=${!old && morePresses(first, baseline)} first: ${summarise(first, baseline).report} | all: ${summarise(all, baseline).report}`);
-    return;
-  }
   expectWithinBudget(label, await measure(page, label, presses, LATENCY.throttle, (samples) => morePresses(samples, baseline)), baseline);
 }
