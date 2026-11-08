@@ -360,7 +360,7 @@ const controlFix = "<EmojiPicker open={open} onOpenChange={setOpen} anchor={butt
  *
  * @claim "A closed picker makes nothing from its" registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx verify:testExists(registry/ouro/components/ouro/emoji-picker/emoji-picker.catalogue.test.tsx::EmojiPicker with a catalogue > reads none of its catalogue while closed, and builds what it shows once per catalogue as pickers open)
  * @group Chat
- * @see https://ui.ouro.bot/docs/emoji-picker
+ * @see https://ui.ouroboros.bot/docs/emoji-picker
  *
  * @example
  * <EmojiPicker

@@ -1,6 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import generated from "../generated/agent-messages.json";
@@ -237,7 +238,7 @@ export function OuroAx(): JSX.Element {
 
 const namespace = `{
   "registries": {
-    "@ouro": "https://ui.ouro.bot/r/{name}.json"
+    "@ouro": "https://ui.ouroboros.bot/r/{name}.json"
   }
 }`;
 
@@ -255,6 +256,16 @@ function Step({ number, title, children }: { number: number; title: string; chil
   );
 }
 
+/** One thing that comes with every component: open text under a hairline, no card. */
+function Perk({ name, children }: { name: string; children: ReactNode }): JSX.Element {
+  return (
+    <li>
+      <h3 className="site-h3 text-base">{name}</h3>
+      <p className="m-0 mt-1.5 text-sm text-muted-foreground">{children}</p>
+    </li>
+  );
+}
+
 const small = "m-0 text-sm text-muted-foreground";
 
 /** The install steps, from shadcn's init to the @ouro namespace, and the way over from shadcn/ui. */
@@ -267,23 +278,40 @@ export function InstallSteps(): JSX.Element {
           <h2 id="install-title" className="site-h2 mt-4">
             Copy it in, then make it yours
           </h2>
-          <p className="mt-5 mb-0 text-muted-foreground">
-            The shadcn CLI copies a component into <InlineCode>components/ouro/</InlineCode> with the helpers it imports.{" "}
-            {claim("Its tests and stories are an optional", {
-              source: { test: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" },
-              verify: { testExists: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" },
-            })}{" "}
-            <InlineCode>-tests</InlineCode>{" "}
-            {claim("item that never changes your test tools' versions.", {
-              source: { test: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
-              verify: { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
-            })}
-          </p>
-          <p className="mt-4 mb-0 text-muted-foreground">
-            Coming from shadcn/ui? Ouro HX reads the same theme variables, and installs beside your <InlineCode>components/ui</InlineCode>, so you can switch one
-            component at a time.
-          </p>
-          <div className="mt-6">
+          <p className="site-lede mt-5 mb-0">Designed down to the last tap. And down to the last prop.</p>
+          <ul className="site-perks">
+            <Perk name="Yours to keep">
+              The shadcn CLI copies a component into <InlineCode>components/ouro/</InlineCode> with the helpers it imports, and your app&rsquo;s own Tailwind CSS
+              compiles it.
+            </Perk>
+            <Perk name="Keeps your theme">
+              Components read shadcn&rsquo;s theme variables, such as <InlineCode>--primary</InlineCode>, and install beside your{" "}
+              <InlineCode>components/ui</InlineCode>, so you can switch one component at a time.
+            </Perk>
+            <Perk name="Phones get sheets">A dialog sits centered on a wide screen and turns into a bottom sheet you can drag away on a phone.</Perk>
+            <Perk name="Motion, minus the luggage">Motion is CSS, reduced motion included, so your components travel light.</Perk>
+            <Perk name="Tests, if you want them">
+              {claim("Its tests and stories are an optional", {
+                source: { test: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" },
+                verify: { testExists: "scripts/registry.test.mjs::each component has an opt-in -tests item with its tests, type tests, stories and spec" },
+              })}{" "}
+              <InlineCode>-tests</InlineCode>{" "}
+              {claim("item that never changes your test tools' versions.", {
+                source: { test: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
+                verify: { testExists: "scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has" },
+              })}
+            </Perk>
+            <Perk name="Agents read the manual too">
+              <Link href={href("/llms.txt")} tone="secondary" inline>
+                llms.txt
+              </Link>{" "}
+              {claim("lists every item and the commands that add it, so your coding agent installs without guessing.", {
+                source: { file: "scripts/registry.mts" },
+                verify: { fileLine: "site/llms.txt", pattern: "scripts/registry\\.mts lists every item here" },
+              })}
+            </Perk>
+          </ul>
+          <div className="mt-8">
             <Button href={href("/docs/switching-from-shadcn/")} variant="outline" tone="secondary">
               Switching from shadcn
             </Button>

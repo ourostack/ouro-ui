@@ -351,7 +351,7 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  * Use `AvatarGroup` instead to stack several, and `Badge` for a status label that isn't a person.
  *
  * @group Display
- * @see https://ui.ouro.bot/docs/avatar
+ * @see https://ui.ouroboros.bot/docs/avatar
  *
  * @example
  * <Avatar name="Ana Lind" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
@@ -506,7 +506,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
  * `moreLabel`, so a button that wraps the group and names itself shows no text its name must hold.
  *
  * @group Display
- * @see https://ui.ouro.bot/docs/avatar
+ * @see https://ui.ouroboros.bot/docs/avatar
  *
  * @example
  * <AvatarGroup label="Cooks" max={3} size="sm">

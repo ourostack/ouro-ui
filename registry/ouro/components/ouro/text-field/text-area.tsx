@@ -201,7 +201,7 @@ const owner = { name: "TextArea", data: "text-area" };
  * button, and `Field` with `FieldControl` for a control that is not text.
  *
  * @group Forms
- * @see https://ui.ouro.bot/docs/text-area
+ * @see https://ui.ouroboros.bot/docs/text-area
  *
  * @example
  * <TextArea label="Notes" name="notes" description="Only you see these." />

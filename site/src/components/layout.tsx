@@ -3,7 +3,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { GITHUB } from "../docs/items";
 import { href } from "../routes";
 
-export const STORYBOOK = "https://ui.ouro.bot/storybook/";
+export const STORYBOOK = "https://ui.ouroboros.bot/storybook/";
 
 /** Page width and side gutters: 16px on phones, as the house layout rule says. */
 export function Container({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
@@ -19,7 +19,7 @@ export function SiteFooter(): JSX.Element {
     { label: "GitHub", url: GITHUB },
     { label: "Storybook", url: STORYBOOK },
     { label: "Docs", url: href("/docs/") },
-    { label: "llms.txt", url: "https://ui.ouro.bot/llms.txt" },
+    { label: "llms.txt", url: "https://ui.ouroboros.bot/llms.txt" },
     { label: "Ouro", url: "https://ouroboros.bot/" },
   ];
   return (

@@ -183,7 +183,7 @@ function Strip({
  * `contextTrigger` for actions on something that is not a list row.
  *
  * @group Lists
- * @see https://ui.ouro.bot/docs/swipe-actions
+ * @see https://ui.ouroboros.bot/docs/swipe-actions
  *
  * @example
  * <ItemGroup label="Recipes">

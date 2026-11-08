@@ -498,7 +498,7 @@ function MenuSurface({
  * goes on from wherever focus went.
  *
  * @group Menus
- * @see https://ui.ouro.bot/docs/menu
+ * @see https://ui.ouroboros.bot/docs/menu
  *
  * @example
  * <Menu trigger={<Button variant="outline">Actions</Button>}>

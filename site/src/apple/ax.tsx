@@ -5,6 +5,7 @@ import { CodeBlock, Command } from "../components/code";
 import { href } from "../paths";
 import { Angler } from "./angler";
 import { LayersBand } from "./layers";
+import { StoryOpener } from "../components/story-world";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 import { XrayExplorer } from "./xray-explorer";
 
@@ -43,6 +44,7 @@ export default function AppleAx(): JSX.Element {
   return (
     <div id="apple-ax" className="apple">
       <AppleMenu current="/apple/ax/" />
+      <StoryOpener scene="ouro-ui-apple" line="Agents wander up the hill to ask the card what it can do. It tells them, in App Intents." />
       <AppleHero
         id="apple-ax-title"
         eyebrow="Ouro AX for Apple"

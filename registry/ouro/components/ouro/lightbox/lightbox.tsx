@@ -729,7 +729,7 @@ function LightboxViewer({
  * when the viewer holds more than images.
  *
  * @group Display
- * @see https://ui.ouro.bot/docs/lightbox
+ * @see https://ui.ouroboros.bot/docs/lightbox
  *
  * @example
  * <Lightbox

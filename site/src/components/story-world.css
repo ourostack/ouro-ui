@@ -1,0 +1,199 @@
+/*
+ * The storybook world (story-world.tsx): a dawn sky that carries on from the top of a scene, the
+ * scene below it, and every edge melting into the page, so there is no frame or card around it. The
+ * sky's colours are the scene's own (storybook.ts), the same in every theme; in dark mode the sky
+ * deepens into the page and the scene dims a touch, so a dawn picture never glares out of a dark page.
+ */
+@layer components {
+  .story-world {
+    --story-ink: #2a1d38;
+    --story-ink-soft: #4b3a59;
+    --story-feather: 3.5rem;
+    --story-max-h: none;
+    --story-sky-top: color-mix(in oklab, var(--background) 62%, transparent);
+    position: relative;
+    isolation: isolate;
+  }
+  .dark .story-world {
+    --story-feather: 5rem;
+    --story-ink: var(--foreground);
+    --story-ink-soft: color-mix(in oklab, var(--foreground) 86%, var(--background));
+    --story-sky-top: var(--background);
+  }
+
+  .story-world-sky {
+    position: relative;
+    z-index: 0;
+    padding-block: clamp(1.25rem, 3.6vw, 3rem) calc(var(--story-feather) + clamp(0.75rem, 2vw, 1.5rem));
+    background:
+      linear-gradient(to bottom, var(--story-sky-top), transparent 92%),
+      linear-gradient(to right, var(--story-sky-1), var(--story-sky-2) 25%, var(--story-sky-3) 50%, var(--story-sky-4) 75%, var(--story-sky-5));
+    color: var(--story-ink);
+  }
+  .dark .story-world-sky {
+    background:
+      linear-gradient(
+        to bottom,
+        var(--story-sky-top),
+        color-mix(in oklab, var(--background) 84%, transparent) calc(100% - var(--story-feather) - 0.75rem),
+        color-mix(in oklab, var(--background) 16%, transparent)
+      ),
+      linear-gradient(to right, var(--story-sky-1), var(--story-sky-2) 25%, var(--story-sky-3) 50%, var(--story-sky-4) 75%, var(--story-sky-5));
+  }
+  /* Words in the sky are inked for it, whatever the theme's own text colour. */
+  .story-world-sky :where(.site-h1, .site-h2, .site-eyebrow, p) {
+    color: var(--story-ink);
+  }
+  .story-world-sky .site-hero-line-second {
+    color: var(--story-ink-soft);
+  }
+  .story-world-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    color: var(--story-ink);
+    border-radius: 0.25rem;
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+  }
+  .story-world-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  @media (pointer: coarse) {
+    .story-world-link {
+      min-height: 2.75rem;
+    }
+  }
+  @media (hover: hover) {
+    .story-world-link:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+  :root:not(.dark) .story-world-sky :where(.site-h1, .story-world-line) {
+    text-shadow: 0 1px 24px color-mix(in oklab, white 55%, transparent);
+  }
+  /* One line in the sky: what is going on in the scene below, told as a story. */
+  .story-world-line {
+    margin: 0;
+    max-width: 46ch;
+    font-family: var(--font-heading);
+    font-size: clamp(1.0625rem, 1.6vw, 1.375rem);
+    line-height: 1.35;
+    font-weight: var(--site-heading-weight, 600);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .story-world-view {
+    position: relative;
+    z-index: 1;
+    overflow: clip;
+  }
+  .story-world-sky + .story-world-view {
+    margin-top: calc(-1 * var(--story-feather));
+  }
+  .story-world-picture {
+    display: block;
+  }
+  .story-world-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: var(--story-max-h);
+    object-fit: cover;
+    object-position: 50% 42%;
+    user-select: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
+  }
+  .dark .story-world-img {
+    filter: brightness(0.86) saturate(0.95);
+  }
+  /* The sunrise, glowing where the scene's sun is. */
+  .story-world-sun {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.55;
+    background: radial-gradient(circle at var(--story-sun-x) var(--story-sun-y), rgb(255 238 196 / 0.75), rgb(255 214 150 / 0.25) 9vw, transparent 18vw);
+    mix-blend-mode: soft-light;
+  }
+
+  /* A page's section scene opens a page that has its own hero below: a little shorter. */
+  .story-world-short {
+    --story-max-h: min(48vh, 34rem);
+  }
+  .story-world-band {
+    --story-feather: 4.5rem;
+  }
+  /* In a column (the docs), the sky and scene round off with the column's corners. */
+  .story-world-inset {
+    --story-feather: 2.5rem;
+    overflow: clip;
+    border-radius: calc(var(--radius) * 2.2);
+  }
+  .story-world-inset .story-world-sky {
+    padding-inline: clamp(1rem, 3vw, 2rem);
+  }
+
+  @media (max-width: 40rem) {
+    .story-world {
+      --story-feather: 2rem;
+    }
+    .story-world-short {
+      --story-max-h: none;
+    }
+    /* The phone's crop is cut around Ouro and the product; the sun is out of it. */
+    .story-world-sun {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .story-world-img {
+      transform-origin: 50% 62%;
+      animation: ouro-story-drift 56s ease-in-out infinite alternate;
+    }
+    .story-world-sun {
+      animation: ouro-story-sunrise 9s ease-in-out infinite alternate;
+    }
+  }
+  @keyframes ouro-story-drift {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.045);
+    }
+  }
+  @keyframes ouro-story-sunrise {
+    from {
+      opacity: 0.4;
+    }
+    to {
+      opacity: 0.85;
+    }
+  }
+
+  /*
+   * The home page's arrival (voyage/hero.tsx): the sky starts under the header, the headline sits in
+   * it one sentence a line where there is room, and the copy and the porthole follow the meadow.
+   */
+  .site-hero.site-hero-storybook {
+    padding-top: 0;
+  }
+  .story-world-sky .site-hero-title {
+    max-width: 22ch;
+    font-size: clamp(1.875rem, 4.4vw, 4rem);
+  }
+  @media (min-width: 64rem) {
+    .story-world-sky .site-hero-title {
+      max-width: none;
+    }
+  }
+  .site-hero-storybook > .site-hero-grid {
+    margin-top: clamp(0.25rem, 1.6vw, 1.5rem);
+  }
+}

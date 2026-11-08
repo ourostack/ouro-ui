@@ -7,6 +7,7 @@ import { GatefoldFlip } from "./feel-gatefold";
 import kit from "./kit.json";
 import genres from "./feel-genres.json";
 import { LayersBand } from "./layers";
+import { StoryOpener } from "../components/story-world";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 import "./feel-reins.css";
 
@@ -36,6 +37,7 @@ export default function AppleFeel(): JSX.Element {
   return (
     <div id="apple-feel" className="apple">
       <AppleMenu current="/apple/feel/" />
+      <StoryOpener scene="ouro-ui-apple" line="The robot double-taps every switch on the bench, hunting for jank. So far the meadow is clean." />
       <AppleHero
         id="apple-feel-title"
         eyebrow="Ouro Feel"

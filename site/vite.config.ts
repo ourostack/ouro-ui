@@ -6,7 +6,7 @@ import { colorMixFallbacks } from "./scripts/color-mix-fallbacks.mts";
 import { proofPlugin } from "./scripts/proof.mts";
 
 // The landing page and docs site, built from the repository's own dependencies (no
-// package of its own). Pages serves it at https://ui.ouro.bot/.
+// package of its own). Pages serves it at https://ui.ouroboros.bot/.
 // `pnpm site:build` builds the client, then a server bundle that prerenders every route
 // to static HTML (site/scripts/prerender.mts), so each docs URL is readable without
 // JavaScript, by people and by agents.
