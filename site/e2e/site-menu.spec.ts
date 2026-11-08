@@ -57,38 +57,15 @@ async function openers(page: Page, root: string): Promise<string[]> {
 }
 
 /**
- * The page's own frame, in ms: the median of five. A click waits for two frames in which its target holds still, and the
- * sheet shows a frame after the press; CI's WebKit draws the home page's first seconds at 0.4 to 1.8 s a frame (#681).
+ * Opens the menu and waits for it to slide into place. `open` has waited for the page to be ready, and a press before
+ * that is answered too (#672), so one press opens it. It is pressed once, with the action's own timeout: a retry on a
+ * page drawing a frame a second or more (CI's WebKit) read the button before the last press had landed and pressed
+ * again, closing the menu it had just opened, until the test ran out (#681).
  */
-async function framePace(page: Page): Promise<number> {
-  return page.evaluate(
-    () =>
-      new Promise<number>((done) => {
-        const gaps: number[] = [];
-        let last = 0;
-        const frame = (now: number) => {
-          if (last) gaps.push(now - last);
-          last = now;
-          if (gaps.length < 5) requestAnimationFrame(frame);
-          else done(gaps.sort((a, b) => a - b)[2]!);
-        };
-        requestAnimationFrame(frame);
-      }),
-  );
-}
-
-/** Opens the menu and waits for it to slide into place. The docs' header is an island, so its button works once it has hydrated. */
 async function openMenu(page: Page): Promise<void> {
-  await expect(async () => {
-    // A second, or three of the page's frames where it draws slower.
-    const within = Math.max(1000, 3 * (await framePace(page)));
-    // Once the sheet is open its backdrop covers the button, and a second press would close it.
-    // A button that says open with no sheet to show for it is pressed again, closing it, and the next try opens it.
-    const expanded = (await menuButton(page).getAttribute("aria-expanded")) === "true";
-    if (!expanded || (await sheet(page).count()) === 0) await menuButton(page).click({ timeout: within });
-    // real clock: the menu stays open until it is closed; no timer ends it.
-    await expect(sheet(page)).toBeVisible({ timeout: within });
-  }).toPass();
+  await menuButton(page).click();
+  // real clock: the menu stays open until it is closed; no timer ends it.
+  await expect(sheet(page)).toBeVisible();
   await settled(page);
 }
 
@@ -325,14 +302,12 @@ test("on a phone the menu opens on the section you are in, its row just under th
   expect(row.y - (under.y + under.height)).toBeLessThanOrEqual(24);
 });
 
-/** Opens the theme picker. The docs' header is an island, so its button works once it has hydrated. */
+/** Opens the theme picker with one press, as `openMenu` opens the menu: a retried press could close it again (#681). */
 async function openPicker(page: Page) {
   const picker = page.getByRole("dialog", { name: "Theme" });
-  await expect(async () => {
-    if ((await picker.count()) === 0) await page.locator("[data-site-theme-trigger]").click({ timeout: 1000 });
-    // real clock: the picker stays open until it is closed; no timer ends it.
-    await expect(picker).toBeVisible({ timeout: 1000 });
-  }).toPass();
+  await page.locator("[data-site-theme-trigger]").click();
+  // real clock: the picker stays open until it is closed; no timer ends it.
+  await expect(picker).toBeVisible();
   return picker;
 }
 
