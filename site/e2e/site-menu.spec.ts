@@ -458,12 +458,13 @@ for (const path of ["./", "docs/button/"]) {
           }),
       );
     const longestGap = async () => (await read()).longest;
-    // A stall of the page's own that comes again within a read's second and a half is in every read; a runner starved by
-    // its neighbours (CPU it shares, not a stop the worker sees) is in some and then passes. So the page is read until one
-    // read is within the budget, eight reads at most, and held to its calmest.
+    // A runner starved by its neighbours (CPU it shares, not a stop the worker sees) can spoil one read; a stall of the
+    // page's own is in most of them. So the page is held to the middle of three reads: two within the budget pass it, two
+    // over it fail it, and the third read is taken only when the first two disagree.
     const reads: Awaited<ReturnType<typeof read>>[] = [];
-    while (reads.length < 8 && !reads.some((each) => each.longest < FRAME_GAP_BUDGET)) reads.push(await read());
-    const first = reads.reduce((calmest, each) => (each.longest < calmest.longest ? each : calmest));
+    const within = () => reads.filter((each) => each.longest < FRAME_GAP_BUDGET).length;
+    while (within() < 2 && reads.length - within() < 2) reads.push(await read());
+    const first = [...reads].sort((a, b) => a.longest - b.longest)[1]!;
     const gap = first.longest;
     const told = reads.map((each) => `${Math.round(each.longest)} of ${Math.round(each.gap)} ms`).join(", ");
     testInfo.annotations.push({ type: "frame gaps", description: `each read's longest gap of the page's own, of the gap it fell in: ${told}` });
@@ -479,7 +480,7 @@ for (const path of ["./", "docs/button/"]) {
     }
     expect(
       gap,
-      `the page's longest gap between frames of its own, in ms, ${first.at} ms into the read (a ${Math.round(first.gap)} ms gap, ${Math.round(first.runner)} ms of it the runner's)${first.paced ? ", as the stage judged the screen" : ""}, the calmest of ${reads.length} reads [${told}]${paused}`,
+      `the page's longest gap between frames of its own, in ms, ${first.at} ms into the read (a ${Math.round(first.gap)} ms gap, ${Math.round(first.runner)} ms of it the runner's)${first.paced ? ", as the stage judged the screen" : ""}, the middle of ${reads.length} reads [${told}]${paused}`,
     ).toBeLessThan(FRAME_GAP_BUDGET);
     // The press is taken; how soon it draws the sheet is the latency job's to judge, where no other worker shares the CPU.
     await menuButton(page).click();
