@@ -34,14 +34,36 @@ function Lead({ children }: { children: ReactNode }): JSX.Element {
 }
 
 /**
- * The scene a page opens on, from the storybook (storybook.ts): components on the workbench where the
- * switch panel is built, guides by the shelf of scrolls, Ouro AX's pages in the morning the agents work
- * through, and the platforms in Ouro's whole world (Apple's on its own bench).
+ * The scene a component's page opens on, from the storybook (storybook.ts), by its catalog group, so moving
+ * between groups changes the view: controls on the workbench where the switch panel is built, what paints a
+ * screen by the jars of tokens, what opens over a screen on the bench of three, what reports back in the
+ * morning the agents work through, lists and data by the shelf of scrolls, and the app's setup in Ouro's whole world.
+ */
+const GROUP_SCENES: Record<string, SceneName> = {
+  Actions: "ouro-hx",
+  Forms: "ouro-hx",
+  Text: "ouro-ui-core",
+  Display: "ouro-ui-core",
+  Layout: "ouro-ui-core",
+  Overlays: "ouro-ui-apple",
+  Menus: "ouro-ui-apple",
+  Navigation: "ouro-ui-apple",
+  Feedback: "playwright-focus-proof",
+  Chat: "playwright-focus-proof",
+  Lists: "ouroboros-skills",
+  Data: "ouroboros-skills",
+  "App setup": "ourostack",
+};
+const groupScene = (group: string): SceneName => GROUP_SCENES[group] ?? "ouro-hx";
+
+/**
+ * The scene any other page opens on: guides by the shelf of scrolls, Ouro AX's pages in the morning the agents
+ * work through, the platforms in Ouro's whole world (Apple's on its own bench), and a part by its group's.
  */
 function sceneFor(page: DocsPage): SceneName {
   if (page.kind === "platform") return page.name === "platforms/apple" ? "ouro-ui-apple" : "ourostack";
   if (page.group === "Ouro AX" || /^ax(-|$)/.test(page.name)) return "playwright-focus-proof";
-  return page.kind === "guide" ? "ouroboros-skills" : "ouro-hx";
+  return page.kind === "guide" ? "ouroboros-skills" : groupScene(page.group);
 }
 
 /** The generated page's blocks, split into its purpose, its import line and the rest. */
@@ -75,11 +97,11 @@ function pageBlocks(item: DocsItem): { purpose: string; importLine: string; body
 export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
   const { purpose, importLine, body } = pageBlocks(item);
   return (
-    <DocsShell current={`/docs/${item.name}/`} opener={{ scene: "ouro-hx", eyebrow: item.group, title: item.title }}>
+    <DocsShell current={`/docs/${item.name}/`} opener={{ scene: groupScene(item.group), eyebrow: item.group, title: item.title }}>
       <Lead>{inline(purpose)}</Lead>
       <section
         aria-label="Live demo"
-        className="flex min-h-48 items-center justify-center rounded-3xl bg-muted/50 px-5 py-10 sm:px-10"
+        className="flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 py-10 sm:px-10 dark:bg-muted/80"
       >
         <LiveDemo name={item.name} title={item.title} />
       </section>
@@ -226,7 +248,7 @@ export function PlatformTitle({ title }: { title: string }): JSX.Element {
   return (
     <>
       {title.slice(0, at)}{" "}
-      <span data-platform-for="" className="text-[0.6em] font-medium text-muted-foreground">
+      <span data-platform-for="" className="text-[0.6em] font-medium text-(--story-ink-soft)">
         {title.slice(at + 1)}
       </span>
     </>
@@ -244,7 +266,7 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
   return (
     <DocsShell
       current={`/docs/${page.name}/`}
-      opener={{ scene: sceneFor(page), eyebrow: page.group, title: page.kind === "platform" ? <PlatformTitle title={page.title} /> : page.title }}
+      opener={{ scene: sceneFor(page), eyebrow: page.group, title: page.kind === "platform" ? <PlatformTitle title={page.title} /> : page.title, tall: page.kind === "platform" }}
     >
       <Lead>{inline(lead.text, link)}</Lead>
       <Markdown blocks={body} link={link} />
@@ -265,14 +287,14 @@ function DoorList({ children }: { children: ReactNode }): JSX.Element {
   return <ul className="m-0 grid list-none gap-x-10 p-0 sm:grid-cols-2">{children}</ul>;
 }
 
-/** One page's door: its name, an arrow that wakes as you point at it, and one line on what it is for. */
+/** One page's door: its name, an arrow that wakes as you point at it (and stays awake on a touch screen), and one line on what it is for. */
 function Door({ to, title, children }: { to: string; title: string; children: ReactNode }): JSX.Element {
   return (
     <li className="border-t border-border/70">
       <a href={href(to)} className="group grid gap-1 rounded-sm py-4 no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-4">
         <span className="font-medium text-foreground transition-colors group-hover:text-primary">
           {title}{" "}
-          <span aria-hidden="true" className="text-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span aria-hidden="true" className="text-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 pointer-coarse:opacity-100">
             →
           </span>
         </span>
@@ -422,7 +444,7 @@ Shadcn's prop names that Ouro HX doesn't use, and its Button variant and size va
 export function Switching(): JSX.Element {
   const example = agentExamples[0]!;
   return (
-    <DocsShell current="/docs/switching-from-shadcn/" opener={{ scene: "ouroboros-skills", eyebrow: "Guide", title: "Switching from shadcn" }}>
+    <DocsShell current="/docs/switching-from-shadcn/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "Switching from shadcn" }}>
       <Lead>{switchingIntro}</Lead>
       <Markdown blocks={parse(switchingCoexist)} />
       <CodeBlock code={`${example.code}\n\n${example.devMessage}`} />
@@ -432,7 +454,7 @@ export function Switching(): JSX.Element {
 
 export function Updating(): JSX.Element {
   return (
-    <DocsShell current="/docs/updating/" opener={{ scene: "ouroboros-skills", eyebrow: "Guide", title: "Updating installed components" }}>
+    <DocsShell current="/docs/updating/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "Updating installed components" }}>
       <Lead>Ouro HX components are copied into your project, so they're yours to edit. To take an upstream change, compare first, then decide.</Lead>
       <ol className="m-0 grid list-none gap-12 p-0">
         <li className="grid gap-3">

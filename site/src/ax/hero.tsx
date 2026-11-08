@@ -25,7 +25,7 @@ export function AxHero({ exhibit }: { exhibit: ReactNode }): JSX.Element {
             {"Here is one morning, seen from both sides: what you see, and what your agent sees."}
           </p>
           <p className="m-0 text-sm text-muted-foreground">
-            {claim("The tool here is the kit's own example; every line it prints is real kit output, checked in CI.", {
+            {claim("The tool here is the kit's own example; every line it prints is real output from the kit, checked in CI.", {
               source: [{ file: "site/src/ax/transcripts.json" }, { test: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" }],
               verify: { testExists: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" },
             })}

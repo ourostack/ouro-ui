@@ -26,13 +26,14 @@ export interface DocsOpener {
   scene: SceneName;
   eyebrow: ReactNode;
   title: ReactNode;
-  /** The docs' front door opens on a taller scene; every other page on a shorter one, so its words come soon. */
+  /** The docs' front door and the platform pages open on a taller scene; the rest on a band, so their words come soon. */
   tall?: boolean;
 }
 
 /**
  * Docs pages open the way the home page does: in Ouro's meadow, edge to edge, the title in the sky, with
  * nothing framed. Then the sidebar beside the page from 640px up; on smaller screens the header's menu holds its links.
+ * The title's scene is a named region of its own, so the sidebar stays a landmark beside <main>, not inside it.
  */
 export function DocsShell({ current, opener, children }: { current: string; opener?: DocsOpener; children: ReactNode }): JSX.Element {
   return (
@@ -40,31 +41,35 @@ export function DocsShell({ current, opener, children }: { current: string; open
       <Suspense>
         <DocsHeader current={current} />
       </Suspense>
-      <main>
-        {opener && (
-          <StoryWorld scene={opener.scene} className={opener.tall ? "story-world-short" : "story-world-docs"}>
+      {opener && (
+        <section aria-labelledby="page-title">
+          <StoryWorld scene={opener.scene} className={opener.tall ? "story-world-short" : "story-world-docs"} decorative>
             <Container className={COLUMNS}>
               <div className="max-sm:hidden" />
-              <header className="min-w-0 max-w-3xl">
+              <div className="min-w-0 max-w-3xl">
                 <p className="story-world-eyebrow">{opener.eyebrow}</p>
-                <h1 className="story-world-title">{opener.title}</h1>
-              </header>
+                <h1 id="page-title" className="story-world-title">
+                  {opener.title}
+                </h1>
+              </div>
             </Container>
           </StoryWorld>
-        )}
-        <Container className={COLUMNS}>
-          {/* Below 640px the header's one menu lists the docs too (voyage/site-menu.tsx), so the sidebar steps aside. */}
-          <div className="max-sm:hidden">
-            <Suspense>
-              <DocsSidebar current={current} />
-            </Suspense>
-          </div>
-          <div className="min-w-0">
-            <div className={opener ? "max-w-3xl pt-2 sm:pt-4" : "max-w-3xl pt-8 lg:pt-10"}>{children}</div>
-          </div>
-        </Container>
-        <Popups />
-      </main>
+        </section>
+      )}
+      <Container className={COLUMNS}>
+        {/* Below 640px the header's one menu lists the docs too (voyage/site-menu.tsx), so the sidebar steps aside. */}
+        <aside className={opener ? "max-sm:hidden sm:pt-2 lg:pt-4" : "max-sm:hidden"}>
+          <Suspense>
+            <DocsSidebar current={current} />
+          </Suspense>
+        </aside>
+        <div className="min-w-0">
+          <main className={opener ? "max-w-3xl pt-6 lg:pt-8" : "max-w-3xl pt-8 lg:pt-10"}>
+            {children}
+            <Popups />
+          </main>
+        </div>
+      </Container>
       <SiteFooter />
     </PopupsProvider>
   );

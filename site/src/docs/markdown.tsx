@@ -229,7 +229,7 @@ function Table({
   link?: ((href: string) => string) | undefined;
 }) {
   // From 640px up, a table under hairlines that scrolls sideways on its own if it must (a tab
-  // stop, so a keyboard can scroll it). On phones, one block per row between hairlines: the first
+  // stop, so a keyboard can scroll it), with a soft shadow at an edge that has more (styles.css). On phones, one block per row between hairlines: the first
   // cell as its title, short cells as labeled lines, the last cell as a paragraph. Neither is boxed,
   // and the page never scrolls sideways.
   const last = header.length - 1;
@@ -257,7 +257,7 @@ function Table({
       role="region"
       aria-label={label}
       tabIndex={0}
-      className="my-4 hidden overflow-x-auto rounded-sm outline-ring focus-visible:outline-2 focus-visible:outline-offset-4 sm:block [&_code]:[overflow-wrap:normal]"
+      className="docs-scroll-x my-4 hidden overflow-x-auto rounded-sm outline-ring focus-visible:outline-2 focus-visible:outline-offset-4 sm:block [&_code]:[overflow-wrap:normal]"
     >
       <table className="w-full border-collapse text-left text-sm">
         <thead>

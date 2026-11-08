@@ -74,7 +74,10 @@ const CEILINGS = { voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
 // its Tailwind build reads the same site files, and its heaviest page measured 41,047 bytes with them.
 // The docs' rose to 41 KiB for Porthole (registry/ouro/components/ouro/porthole and its docs demo, #556), whose classes
 // the docs' Tailwind build carries for every page: 41,719 bytes with it, over main at c9c06923 (the voyage leaves it out).
-const CSS_CEILINGS = { voyage: 40 * 1024 + 512, docs: 41 * 1024 } as const;
+// The docs' rose to 41.5 KiB when every docs page opened in the storybook world without boxes (Ari, 2026-11-08: "let
+// content BREATHE"): the title's sky and band, a scroll shadow for a table without its frame, and edges that Windows High
+// Contrast still draws where outlines went: 42,104 bytes with them, over main at 8459a4d8.
+const CSS_CEILINGS = { voyage: 40 * 1024 + 512, docs: 41 * 1024 + 512 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())

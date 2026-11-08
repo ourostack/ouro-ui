@@ -18,9 +18,10 @@ export default function DocsSidebar({ current }: { current: string }): JSX.Eleme
     const scroller = holder.current?.querySelector<HTMLElement>("[data-ouro-sidebar-scroll]");
     const link = scroller?.querySelector<HTMLElement>('[aria-current="page"]');
     if (!scroller || !link) return;
-    // Below the fold: scroll its group to the top, so the group's name shows above it.
+    // Below the fold (the sidebar's own, or the window's when the page's scene pushes it down): scroll its group
+    // to the top, so the group's name shows above it.
     const box = scroller.getBoundingClientRect();
-    if (link.getBoundingClientRect().bottom <= box.bottom) return;
+    if (link.getBoundingClientRect().bottom <= Math.min(box.bottom, innerHeight)) return;
     const group = link.closest("ul")?.parentElement ?? link;
     scroller.scrollTop += group.getBoundingClientRect().top - box.top - 8;
   }, []);
