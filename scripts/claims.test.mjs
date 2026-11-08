@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -28,6 +28,12 @@ import {
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(repo, "scripts/claims.mjs");
+
+/** registry.json and site/public/llms.txt are generated and not committed on main, so a fresh checkout has none: say how to make it instead of failing on a read. */
+const REGISTRY_MISSING = "registry.json missing: run pnpm registry";
+const requireRegistry = (root = repo) => {
+  for (const file of ["registry.json", "site/public/llms.txt"]) if (!existsSync(join(root, file))) throw new Error(REGISTRY_MISSING);
+};
 
 /** A throwaway repository holding `files`, removed after this file's tests. */
 function fixture(files) {
@@ -497,6 +503,7 @@ test("verify: sources must exist where they can be checked offline", async () =>
 });
 
 test("surfaces: every tracked prose file is linted or declared generated, evidence or input with a reason", () => {
+  requireRegistry();
   const listed = surfaces(repo);
   for (const entry of listed) assert.ok(entry.mode === "lint" || entry.reason, `${entry.file} is ${entry.mode} with no reason`);
   const mode = (file) => listed.find((entry) => entry.file === file)?.mode;
@@ -608,6 +615,7 @@ test("the lint command reads a draft from stdin under the name it is given", () 
 });
 
 test("checkClaims over the repository: every surface passes", async () => {
+  requireRegistry();
   const result = await checkClaims({ root: repo, network: false });
   assert.deepEqual(result.failures.map((failure) => failure.message).slice(0, 20), []);
 });
@@ -827,6 +835,7 @@ test("the repository's exemptions are narrow: a fixtures folder in shipped code 
 });
 
 test("the claims checker ships in lib-claims and runs in an app", () => {
+  requireRegistry();
   const registry = JSON.parse(readFileSync(join(repo, "registry.json"), "utf8"));
   const item = registry.items.find((entry) => entry.name === "lib-claims");
   assert.deepEqual(item.files.map((file) => file.target).sort(), ["@lib/ouro/claims-check.mjs", "@lib/ouro/claims.ts"]);
@@ -866,4 +875,14 @@ test("a release commit's registry.json lints as main's does: its docs messages n
   // `pnpm registry --check` holds the stamp to the registry's own version; any other version is a claim to source.
   const other = released.replace(/"version": "9\.9\.9"/, '"version": "9.9.8"');
   assert.ok(lint(other).some((message) => /names a version/.test(message)));
+});
+
+test("the tests that read the generated registry.json say how to make it when it is missing", () => {
+  const dir = scratchDir("ouro-registry-hint-");
+  assert.throws(() => requireRegistry(dir), { message: "registry.json missing: run pnpm registry" });
+  writeFileSync(join(dir, "registry.json"), "{}");
+  assert.throws(() => requireRegistry(dir), { message: "registry.json missing: run pnpm registry" });
+  mkdirSync(join(dir, "site/public"), { recursive: true });
+  writeFileSync(join(dir, "site/public/llms.txt"), "");
+  assert.doesNotThrow(() => requireRegistry(dir));
 });
