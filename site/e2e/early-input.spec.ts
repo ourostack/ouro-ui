@@ -170,23 +170,35 @@ test("a live example answers a tap and keeps text from before its own script arr
   await expect(name).toHaveValue("Soup");
 });
 
-test("a tap on the stage before the page's script has run is answered once the page hydrates, not when the stage's turn comes", async ({ page }) => {
-  // The stage hydrates in its turn, when the browser is next idle (src/hydrate.tsx); here that is 4 s away, so only the
-  // kept tap hurrying it along answers the press in time.
-  await page.addInitScript(() => {
-    window.requestIdleCallback = (callback: IdleRequestCallback) => window.setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 10 }), 4000);
+// A stall of the runner's, or the page's own, between the tap and its answer must not fail the test: what it holds is
+// that the kept tap hurries the stage's hydration, so it is answered on the page's own events, with no wall-clock limit
+// that a stall on a loaded runner could overrun (#734).
+for (const stall of [0, 2500]) {
+  test(`a tap on the stage before the page's script has run is answered once the page hydrates, not when the stage's turn comes, with a ${stall} ms stall after the tap`, async ({ page }) => {
+    // The stage hydrates in its turn, when the browser is next idle (src/hydrate.tsx). Here the browser is never idle, so
+    // only the kept tap hurrying it along can answer the press, however long that takes.
+    await page.addInitScript((ms) => {
+      window.requestIdleCallback = () => 0;
+      // A stall on the replayed tap, as a loaded runner makes between the tap and its answer.
+      if (ms) document.addEventListener("click", (event) => { if (event.isTrusted) return; const end = performance.now() + ms; while (performance.now() < end); }, true);
+    }, stall);
+    await recordTimeline(page);
+    const { release } = await hold(page, ENTRY);
+    await page.goto("./", { waitUntil: "commit" });
+    const speed = page.locator(".site-hero-stage").getByRole("radio").first();
+    await expect(speed).toHaveAttribute("aria-checked", "false");
+    await speed.click();
+    await releaseNoted(page, release);
+    await page.waitForFunction(() => Object.keys(document.getElementById("root")!).some((key) => key.startsWith("__reactContainer$")));
+    // The page's own event, not a clock: the radio's attribute changing. A tap never answered ends the test at its own timeout.
+    await explained(page, () => speed.evaluate((radio) => new Promise<void>((done) => {
+      const look = () => (radio.getAttribute("aria-checked") === "true" ? done() : undefined);
+      new MutationObserver(look).observe(radio, { attributes: true, attributeFilter: ["aria-checked"] });
+      look();
+    })));
+    await expect(speed).toHaveAttribute("aria-checked", "true");
   });
-  await recordTimeline(page);
-  const { release } = await hold(page, ENTRY);
-  await page.goto("./", { waitUntil: "commit" });
-  const speed = page.locator(".site-hero-stage").getByRole("radio").first();
-  await expect(speed).toHaveAttribute("aria-checked", "false");
-  await speed.click();
-  await releaseNoted(page, release);
-  await page.waitForFunction(() => Object.keys(document.getElementById("root")!).some((key) => key.startsWith("__reactContainer$")));
-  const within = await answerWithin(page);
-  await explained(page, () => expect(speed).toHaveAttribute("aria-checked", "true", { timeout: within }));
-});
+}
 
 test("a tap on a live slider before its own script arrived moves it there once it does", async ({ page }) => {
   await page.setViewportSize(PHONE);
