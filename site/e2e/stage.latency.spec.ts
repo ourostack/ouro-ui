@@ -81,7 +81,7 @@ test.describe("interaction latency", () => {
   };
 
   for (const id of STAGE_CONTROLS) {
-    test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
+    test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples} or ${LATENCY.samples + LATENCY.more}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await open(page);
       await expectPressesWithinBudget(page, id, controls[id](page), BASELINE_MEDIAN[id]);

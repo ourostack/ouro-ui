@@ -13,15 +13,16 @@ test("the p95 of 40 presses is the 38th: two of 40 over 100 ms pass, three fail"
   expect(summarise([...at(56, 37), 152, 112, 104], 64).within).toBe(false);
 });
 
-test("a control is pressed more only when its first 20 are over budget and all of them could still be within it", () => {
+test("a control is pressed more only when its first 20 fail on the p95 alone and all of them could still be within it", () => {
   // Within budget: no more presses.
   expect(morePresses([...at(56, 19), 112], 64)).toBe(false);
   // Two of 20 over 100 ms (ourostack/ouro-ui#463's radio-code): 20 more, and the 40 are judged together.
   expect(morePresses([88, 88, 80, 80, 80, 88, 88, 112, 80, 80, 80, 112, 80, 64, 88, 80, 80, 56, 72, 72], 64)).toBe(true);
   // Three over: the p95 of 40 allows two, so this already fails and is not pressed again.
   expect(morePresses([...at(56, 17), 104, 112, 120], 64)).toBe(false);
-  // A median over its ceiling, every press under 100 ms: pressed more, held to the same ceiling.
-  expect(morePresses(at(56, 20), 24)).toBe(true);
+  // A median over its ceiling: a slow press or two cannot move it, so it fails at once, every press under 100 ms or not.
+  expect(morePresses(at(56, 20), 24)).toBe(false);
+  expect(morePresses([...at(56, 18), 152, 112], 24)).toBe(false);
   // Only the first 20 are ever pressed more, once.
   expect(morePresses([...at(56, 38), 152, 112], 64)).toBe(false);
 });
@@ -62,6 +63,8 @@ test.describe("a page whose button is slow on purpose", () => {
   test("slow in one press of ten, it is pressed 20 more times and still fails", async ({ page }) => {
     const presses = await slowButton(page, (index) => index >= LATENCY.warmUps && (index - LATENCY.warmUps) % 10 === 9);
     const samples = await measure(page, "one in ten", presses, LATENCY.throttle, (first) => morePresses(first, 48));
+    // The two slow presses of the first 20 call for 20 more, unless the runner slowed a third, which fails as it is.
+    if (samples.slice(0, LATENCY.samples).filter((sample) => sample > LATENCY.p95).length === 2) expect(samples).toHaveLength(LATENCY.samples + LATENCY.more);
     expect(samples.filter((sample) => sample > LATENCY.p95).length).toBeGreaterThanOrEqual(3);
     expect(() => expectWithinBudget("one in ten", samples, 48)).toThrow();
   });

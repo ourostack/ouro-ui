@@ -45,7 +45,7 @@ test.describe("interaction latency", () => {
 
   for (const path of Object.keys(BASELINE_MEDIAN)) {
     const label = `menu on /${path === "./" ? "" : path}`;
-    test(`the ${label} opens within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(BASELINE_MEDIAN[path]!)} ms) on a phone with a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
+    test(`the ${label} opens within ${LATENCY.p95} ms (p95 of ${LATENCY.samples} or ${LATENCY.samples + LATENCY.more}, median within ${medianCeiling(BASELINE_MEDIAN[path]!)} ms) on a phone with a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
       await page.setViewportSize(PHONE);
       await page.goto(path);
       await expect(page.locator("html[data-site-ready]")).toBeAttached();

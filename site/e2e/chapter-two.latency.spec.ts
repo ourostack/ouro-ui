@@ -97,7 +97,7 @@ test.describe("Chapter II interaction latency", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
 
   for (const id of CHAPTER_TWO_CONTROLS) {
-    test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
+    test(`${id} answers within ${LATENCY.p95} ms (p95 of ${LATENCY.samples} or ${LATENCY.samples + LATENCY.more}, median within ${medianCeiling(BASELINE_MEDIAN[id])} ms) on a ${LATENCY.throttle}× slower CPU`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await open(page);
       await expectPressesWithinBudget(page, id, presses(page, id), BASELINE_MEDIAN[id]);

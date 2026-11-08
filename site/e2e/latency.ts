@@ -8,14 +8,14 @@ import { expect, test, type Page } from "@playwright/test";
 // for every control, and its median is within its own ceiling, set from the median it measures on CI
 // (medianCeiling): that catches a fast control that got much slower but stays under 100 ms.
 //
-// When those 20 are over budget but could still be within it with more presses (morePresses), the
+// When those 20 fail on the p95 alone and could still be within it with more presses (morePresses), the
 // control is pressed LATENCY.more times more, once, on the same page, and the same budget judges all
 // 40: the p95 is then the 38th, so at most two of 40 may be over 100 ms, the same one in twenty. Every
 // press counts, the first 20 too, and no take is chosen over another. On CI's runners about one press in
 // a hundred takes half again as long as its control's median or more: the same work, slower in every part
 // of the frame (script, style, layout, paint), while the browser was never stopped, no other thread held
-// its main thread off the CPU, and garbage collection was in 2 of 57 (ourostack/ouro-ui#463). Nothing we
-// could measure from the page told those presses from a press the page made slow, so none is excused:
+// its main thread off the CPU, and garbage collection was in 2 of 57 (the probes, posted on ourostack/ouro-ui#463). Nothing
+// we could measure from the page told those presses from a press the page made slow, so none is excused:
 // two of them in 20 decided the p95 of controls whose other 18 sat well within it, and with 40 presses
 // the p95 is the control's, not theirs.
 //
@@ -69,13 +69,15 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
 
 /**
  * Whether a control's first LATENCY.samples presses, judged over budget, are pressed LATENCY.more times more: only
- * when all of them together could still be within it, so at most as many of the first presses are over LATENCY.p95 as
- * the p95 of all of them allows (two of 40). Three or more over 100 ms already fail, and are not pressed again.
+ * when the p95 alone failed, with as many presses over LATENCY.p95 as the p95 of all of them allows (two of 40), and
+ * the median within its ceiling. A slow press or two cannot move a median, so a median over its ceiling fails at
+ * once, and so do three or more presses over 100 ms.
  */
 export function morePresses(samples: readonly number[], baseline: number): boolean {
   if (samples.length !== LATENCY.samples || summarise(samples, baseline).within) return false;
   const all = LATENCY.samples + LATENCY.more;
-  return samples.filter((sample) => sample > LATENCY.p95).length <= all - Math.ceil(all * 0.95);
+  const { median } = summarise(samples, baseline);
+  return median <= medianCeiling(baseline) && samples.filter((sample) => sample > LATENCY.p95).length <= all - Math.ceil(all * 0.95);
 }
 
 /**
