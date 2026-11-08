@@ -155,8 +155,8 @@ function maskCode(text) {
 
 /** The kinds of claim a sentence makes, with the words that make it. */
 export function triggers(sentence) {
-  // Format characters are invisible, and a way to split a word the patterns look for.
-  let text = maskCode(sentence).replace(/\p{Cf}/gu, "");
+  // Characters that draw nothing are a way to split a word the patterns look for.
+  let text = maskCode(sentence).replace(/[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu, "");
   const found = [];
   const take = (kind, pattern) => {
     const words = [...text.matchAll(pattern)].map((match) => match[0]);

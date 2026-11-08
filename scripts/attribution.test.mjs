@@ -251,20 +251,24 @@ test("attribution reads a message split by any line terminator, so no separator 
 
 test("attribution sees through Unicode format characters hidden in a credit, and passes a clean message", () => {
   const hidden = [
-    "Co-authored-by: Cl​aude <noreply@anthropic.com>",
-    "Co-authored-by: Cl­aude <noreply@example.com>",
-    "Co-authored-by: Claude <noreply@anthrop⁠ic.com>",
-    "Co​-authored-by: Claude <noreply@anthropic.com>",
-    "﻿Co-authored-by: Claude <noreply@anthropic.com>",
-    "Co-authored-by: Copi‍lot <noreply@example.com>",
-    "Assisted-by: Co​dex",
+    "Co-authored-by: Cl\u200Baude <noreply@anthropic.com>",
+    "Co-authored-by: Cl\u00ADaude <noreply@example.com>",
+    "Co-authored-by: Claude <noreply@anthrop\u2060ic.com>",
+    "Co\u200B-authored-by: Claude <noreply@anthropic.com>",
+    "\uFEFFCo-authored-by: Claude <noreply@anthropic.com>",
+    "Co-authored-by: Copi\u200Dlot <noreply@example.com>",
+    "Assisted-by: Co\u200Bdex",
+    "Co-authored-by: Cl\u034Faude <noreply@anthropic.com>",
+    "Co-authored-by: Cl\uFE0Faude <noreply@example.com>",
+    "Co-authored-by: Cl\u3164aude <noreply@example.com>",
+    "Co-authored-by: Cl\u2800aude <noreply@example.com>",
   ];
   for (const line of hidden) {
     const found = problems([commit({ message: `Button: a fix (#1)\n\n${line}` })]);
     assert.deepEqual(found.map(({ field }) => field), ["message line 3"], JSON.stringify(line));
     assert.match(found[0].problem, /credits an AI tool or a bot/);
   }
-  assert.deepEqual(fieldsOf([commit({ message: "Button: a fix (#1)\n\nGenerated w​ith Cl­aude Code" })]), ["message line 3"]);
+  assert.deepEqual(fieldsOf([commit({ message: "Button: a fix (#1)\n\nGenerated w\u200Bith Cl\u00ADaude Code" })]), ["message line 3"]);
   // A clean message, even with format characters in it, passes.
-  assert.deepEqual(problems([commit({ message: "Button: a fix​ (#1)\n\nSigned-off-by: Ari­ Mendelow <16390116+arimendelow@users.noreply.github.com>" })]), []);
+  assert.deepEqual(problems([commit({ message: "Button: a fix\u200B (#1) \u{1F468}\u200D\u{1F373}\n\nSigned-off-by: Ari\u00AD Mendelow <16390116+arimendelow@users.noreply.github.com>" })]), []);
 });

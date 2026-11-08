@@ -888,8 +888,8 @@ test("the tests that read the generated registry.json say how to make it when it
 
 test("the lint sees a claim through Unicode format characters hidden in its words, and passes the same text without a claim", () => {
   const lint = (text) => lintPlain(text, { file: "pull request body" });
-  for (const text of ["Ev​ery test passes now.", "All­ components pass axe.", "﻿No⁠ test fails.", "It always‍ works."]) {
+  for (const text of ["Ev\u200Bery test passes now.", "All\u00AD components pass axe.", "\uFEFFNo\u2060 test fails.", "It always\u200D works.", "Ev\u034Fery test passes.", "Ev\uFE0Fery test passes.", "Ev\u3164ery test passes.", "Ev\u2800ery test passes."]) {
     assert.equal(lint(text).length, 1, JSON.stringify(text));
   }
-  assert.equal(lint("Moves​ focus back to the­ trigger.").length, 0);
+  assert.equal(lint("Moves \u{1F468}\u200D\u{1F373}\u200B focus back to the\u00AD trigger.").length, 0);
 });
