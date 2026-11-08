@@ -1243,3 +1243,107 @@ describe("ShowMore in a long list", () => {
     await expect.poll(() => host.querySelectorAll("[data-ouro-show-more-toggle]").length).toBe(50);
   });
 });
+
+describe("ShowMore as a row mounts again", () => {
+  const tall = (index: number) => (
+    <ShowMore maxHeight={120} measureKey={`message-${index}`}>
+      <div style={{ height: 300 }} />
+    </ShowMore>
+  );
+  const clamped = (index: number) => (
+    <ShowMore lines={2} measureKey={`text-${index}`}>
+      {`${index}: ${longText}`}
+    </ShowMore>
+  );
+
+  /** Mounts `node` in a fresh host and counts the writes the page sees after the commit: attributes, text and buttons coming and going. */
+  async function writesAfterMount(node: ReactElement): Promise<{ writes: number; buttons: number; host: HTMLElement }> {
+    const host = document.createElement("div");
+    host.style.width = "360px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    flushSync(() => root.render(node));
+    const buttons = () => host.querySelectorAll("[data-ouro-show-more-toggle]").length;
+    const startedWith = buttons();
+    let writes = 0;
+    const watch = new MutationObserver((records) => {
+      writes += records.length;
+    });
+    watch.observe(host, { attributes: true, childList: true, subtree: true, characterData: true });
+    // Two frames are enough for the resize observer to have measured.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    watch.disconnect();
+    expect(startedWith).toBeLessThanOrEqual(1);
+    return { writes, buttons: buttons(), host };
+  }
+
+  it.each([
+    ["maxHeight", tall, 1],
+    ["lines", clamped, 2],
+  ])("with %s, a row that mounts again with its measureKey makes no write after its first commit, and a first mount makes some", async (_, row, index) => {
+    const first = await writesAfterMount(row(index));
+    expect(first.buttons).toBe(1);
+    expect(first.writes).toBeGreaterThan(0);
+    const again = await writesAfterMount(row(index));
+    expect(again.buttons).toBe(1);
+    expect(again.writes).toBe(0);
+  });
+
+  it("starts a remounted row with its toggle already in the first commit", async () => {
+    await writesAfterMount(tall(7));
+    const host = document.createElement("div");
+    host.style.width = "360px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    flushSync(() => root.render(tall(7)));
+    expect(host.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+    expect(host.querySelector("[data-ouro-show-more-fold]")!.hasAttribute("data-folded")).toBe(true);
+  });
+
+  it("measures every mount when it has no measureKey, and a different key measures again", async () => {
+    const body = <div style={{ height: 300 }} />;
+    await writesAfterMount(<ShowMore maxHeight={120}>{body}</ShowMore>);
+    expect((await writesAfterMount(<ShowMore maxHeight={120}>{body}</ShowMore>)).writes).toBeGreaterThan(0);
+    await writesAfterMount(<ShowMore lines={2}>{longText}</ShowMore>);
+    expect((await writesAfterMount(<ShowMore lines={2}>{longText}</ShowMore>)).writes).toBeGreaterThan(0);
+    const other = await writesAfterMount(<ShowMore maxHeight={120} measureKey="never-seen">{body}</ShowMore>);
+    expect(other.writes).toBeGreaterThan(0);
+  });
+
+  it("corrects a remembered answer that is wrong now, with the new width", async () => {
+    const node = (width: number) => (
+      <div style={{ width }}>
+        <ShowMore lines={2} measureKey="resized">{longText}</ShowMore>
+      </div>
+    );
+    const wide = await writesAfterMount(node(2000));
+    expect(wide.buttons).toBe(0);
+    const narrow = await writesAfterMount(node(120));
+    expect(narrow.buttons).toBe(1);
+  });
+
+  it("forgets the oldest answers once a thousand more have been measured, and keeps the newest", async () => {
+    await writesAfterMount(clamped(900));
+    const many = document.createElement("div");
+    document.body.append(many);
+    mounted.push(many);
+    const root = createRoot(many);
+    roots.push(root);
+    flushSync(() => root.render(<>{Array.from({ length: 1000 }, (_, index) => <ShowMore key={index} lines={2} measureKey={`bulk-${index}`}>{`${index}: ${longText}`}</ShowMore>)}</>));
+    await expect.poll(() => many.querySelectorAll("[data-ouro-show-more-toggle]").length).toBe(1000);
+    expect((await writesAfterMount(clamped(900))).writes).toBeGreaterThan(0);
+    const newest = document.createElement("div");
+    newest.style.width = "360px";
+    document.body.append(newest);
+    mounted.push(newest);
+    const again = createRoot(newest);
+    roots.push(again);
+    flushSync(() => again.render(<ShowMore lines={2} measureKey="bulk-999">{`999: ${longText}`}</ShowMore>));
+    expect(newest.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
+  });
+});
