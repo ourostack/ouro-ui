@@ -6,7 +6,7 @@
 
 # Ouro HX
 
-**React components designed down to the last tap and the last prop.** Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
+**React components for people and the agents who build with them.** Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
 **[See it live: ui.ouroboros.bot](https://ui.ouroboros.bot/)**, with the [docs](https://ui.ouroboros.bot/docs/) and [Storybook](https://ui.ouroboros.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
@@ -52,7 +52,12 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6
 
 ### Check what you built
 
-Build your app, run `node lib/ouro/check/check.ts <built folder>` (from the `ouro-check` item) and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouroboros.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check stopped before it finished), `2` usage, `3` findings to fix.[^exit-codes]
+```sh
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.6
+node lib/ouro/check/check.ts dist   # your built folder
+```
+
+Build your app, run the check on the built folder and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouroboros.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check stopped before it finished), `2` usage, `3` findings to fix.[^exit-codes]
 
 ### Next.js
 
