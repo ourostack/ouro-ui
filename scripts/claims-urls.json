@@ -171,6 +171,14 @@
     "status": 200,
     "checked": "2026-11-08"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/PROTOCOL.md": {
+    "status": 200,
+    "checked": "2026-11-08"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/README.md": {
+    "status": 200,
+    "checked": "2026-11-08"
+  },
   "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L11-L13": {
     "status": 200,
     "checked": "2026-11-06"
@@ -349,7 +357,7 @@
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-08"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0": {
     "status": 200,

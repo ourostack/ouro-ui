@@ -58,12 +58,15 @@ const ANY_MAC_PARTS: readonly { name: string; body: ReactNode }[] = [
 ];
 
 const ANY_MAC_LS = `$ ls Calculator
-{"focus":"Calculator","state":{"layer":"ax", "elements":[
+{"focus":"Calculator","path":["mac","studio","Calculator"],
+ "state":{"layer":"ax","elements":[
    {"i":3,  "ref":"statictext[Edit field]", "value":"0"},
    {"i":8,  "ref":"button[7]",              "can":["click"]},
    {"i":11, "ref":"button[Multiply]",       "can":["click"]},
    {"i":23, "ref":"button[Equals]",         "can":["click"]} …]},
- "actions":[{"name":"click","input":{"element":{"enum":["button[7]", …]}}}, …],
+ "context":{"person":{"active":false,"idle_s":312}, …},
+ "actions":[{"name":"click","title":"press it","from":"Calculator",
+             "input":{"properties":{"element":{"enum":["button[7]", …]}, …}}}, …],
  "rev":"6c64…"}`;
 
 const ANY_MAC_BATCH = `$ batch '[{"action":"click","input":{"element":"button[7]"}},
@@ -71,7 +74,9 @@ const ANY_MAC_BATCH = `$ batch '[{"action":"click","input":{"element":"button[7]
          {"action":"click","input":{"element":"button[6]"}},
          {"action":"click","input":{"element":"button[Equals]"},
           "until":{"@statictext[Edit field].value":"42"}}]'
-{"ok":true,"steps":[{"n":0,"ok":true}, … {"n":3,"ok":true}],
+{"ok":true,
+ "steps":[{"n":0,"action":"click","ok":true,"ms":25}, …
+          {"n":3,"action":"click","ok":true,"ms":36}],
  "screen":{"rev":"b81c…","since":"6c64…",
            "put":[{"ref":"statictext[Edit field]","role":"statictext",
                    "value":"42"}]}}`;
@@ -257,12 +262,12 @@ export default function AppleReins(): JSX.Element {
         lede={
           <p>
             {claim("Reins is a protocol as well as a package: the screen, the requests and replies, every refusal with its exit code, journeys, and the batches and diffs a remote driver uses, written down on their own.", {
-              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/0c611fe9d881ce3b0b93c0ffba2b758191f37913/docs/ouro-reins/PROTOCOL.md" },
-              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/0c611fe9d881ce3b0b93c0ffba2b758191f37913/docs/ouro-reins/PROTOCOL.md" },
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/PROTOCOL.md" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/PROTOCOL.md" },
             })}{" "}
             {claim("A second driver speaks it for whole Macs: Finder, System Settings or anyone's app, as state and actions, with no model in the loop and no clicking by guesswork.", {
-              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/0c611fe9d881ce3b0b93c0ffba2b758191f37913/docs/ouro-reins/README.md#reins-for-any-mac-app" },
-              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/0c611fe9d881ce3b0b93c0ffba2b758191f37913/docs/ouro-reins/README.md" },
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/README.md#reins-for-any-mac-app" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/README.md" },
             })}
           </p>
         }
