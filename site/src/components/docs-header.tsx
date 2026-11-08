@@ -5,7 +5,7 @@ import { VoyageHeader } from "../voyage/header";
 import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { comparisons, componentGroups, guides, helpers, isAxPart, startPages, type DocsLink } from "./docs-sections";
+import { comparisons, componentGroups, guides, helpers, isAxPart, platforms, startPages, type DocsLink } from "./docs-sections";
 import { setXray, useXray } from "../voyage/xray-store";
 
 // The docs pages' header: the same one the home page and the Nautilus have. docs-shell.tsx loads
@@ -178,6 +178,7 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
                   { label: "Guides", links: guides.filter((link) => !isAxPart(link)).map((link) => ({ ...link, label: guideLabel(link.label) })) },
                   { label: "Ouro AX, part by part", links: guides.filter(isAxPart) },
                   { label: "Skill comparisons", links: comparisons },
+                  { label: "Platforms", links: platforms },
                 ]}
                 current={current}
               />
@@ -190,7 +191,7 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
   );
 }
 
-/** The pages whose names hold `query`: the site's and the docs' first pages, then components, then guides; undefined while it is empty. */
+/** The pages whose names hold `query`: the site's and the docs' first pages, then components, then guides, then platforms; undefined while it is empty. */
 function findDocs(query: string): Array<{ label: string; links: Array<{ label: string; href: string }> }> | undefined {
   const wanted = query.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (wanted === "") return undefined;
@@ -218,6 +219,7 @@ function findDocs(query: string): Array<{ label: string; links: Array<{ label: s
       label: "Guides",
       links: [...guides.map((link) => ({ ...link, label: guideLabel(link.label) })), ...comparisons].filter((link) => holds(link.label, slug(link.path))).map(asPage),
     },
+    { label: "Platforms", links: platforms.filter((link) => holds(link.label, slug(link.path))).map(asPage) },
   ].filter((group) => group.links.length > 0);
 }
 

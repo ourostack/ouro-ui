@@ -58,9 +58,9 @@ test("generating is deterministic and matches the committed files", () => {
   const out = scratchDir("ouro-docs-");
   assert.equal(run("--out", out).status, 0);
   const files = readdirSync(join(out, "docs")).filter((name) => name.endsWith(".md")).sort();
-  // docs/guides and docs/decisions are hand-written; everything else in docs/ is generated, docs/ax too.
+  // docs/guides, docs/platforms and docs/decisions are hand-written; everything else in docs/ is generated, docs/ax too.
   const committed = readdirSync(join(root, "docs"), { withFileTypes: true });
-  assert.deepEqual(committed.filter((entry) => entry.isDirectory()).map((entry) => entry.name), ["ax", "decisions", "guides"]);
+  assert.deepEqual(committed.filter((entry) => entry.isDirectory()).map((entry) => entry.name), ["ax", "decisions", "guides", "platforms"]);
   const ax = readdirSync(join(out, "docs/ax")).sort();
   assert.deepEqual(ax, readdirSync(join(root, "docs/ax")).sort());
   for (const file of ax) assert.equal(readFileSync(join(out, "docs/ax", file), "utf8"), readFileSync(join(root, "docs/ax", file), "utf8"), file);
@@ -86,6 +86,24 @@ test("the eager page index retains routing text without Markdown-only metadata",
   for (const page of index) assert.deepEqual(Object.keys(page).sort(), ["group", "kind", "name", "summary", "title"]);
   assert.ok(index.some((page) => page.kind === "guide"));
   assert.ok(index.some((page) => page.kind === "export"));
+});
+
+test("the Platforms pages are listed under docs/platforms: the index, Apple, the others by name, then your platform and the contributor guide", () => {
+  const out = scratchDir("ouro-docs-platforms-");
+  const result = run("--out", out);
+  assert.equal(result.status, 0, result.stderr);
+  const pages = JSON.parse(readFileSync(join(out, "site/src/docs/pages.json"), "utf8")).filter((page) => page.kind === "platform");
+  const files = readdirSync(join(root, "docs/platforms")).filter((file) => file.endsWith(".md"));
+  assert.equal(pages.length, files.length, "every Markdown file in docs/platforms has a page");
+  assert.deepEqual(pages.slice(0, 2).map((page) => page.name), ["platforms", "platforms/apple"]);
+  assert.deepEqual(pages.slice(-2).map((page) => page.name), ["platforms/your-platform", "platforms/contributing"]);
+  const middle = pages.slice(2, -2).map((page) => page.name);
+  assert.deepEqual(middle, [...middle].sort());
+  for (const page of pages) {
+    assert.equal(page.group, "Platforms");
+    assert.equal(page.markdown, page.name === "platforms" ? "docs/platforms/README.md" : `docs/${page.name}.md`);
+    assert.ok(page.summary.length > 0, `${page.markdown} has a summary`);
+  }
 });
 
 test("each mode of a union gets its own heading, so a reader can tell the modes apart", () => {
