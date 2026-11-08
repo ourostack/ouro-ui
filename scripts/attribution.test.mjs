@@ -239,7 +239,7 @@ test("attribution accepts Dependabot's own Co-authored-by trailer on its depende
 
 test("attribution reads a message split by any line terminator, so no separator hides an AI credit", () => {
   const credit = "Co-authored-by: Claude <noreply@anthropic.com>";
-  for (const [name, separator] of [["CRLF", "\r\n"], ["CR", "\r"], ["line separator", " "], ["paragraph separator", " "], ["next line", "\u0085"], ["LF", "\n"]]) {
+  for (const [name, separator] of [["CRLF", "\r\n"], ["CR", "\r"], ["line separator", "\u2028"], ["paragraph separator", "\u2029"], ["next line", "\u0085"], ["LF", "\n"]]) {
     const found = problems([commit({ message: `Button: a fix (#1)${separator}${separator}${credit}${separator}` })]);
     assert.deepEqual(found.map(({ field }) => field), ["message line 3"], name);
     assert.match(found[0].problem, /credits an AI tool or a bot/, name);
