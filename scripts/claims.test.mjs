@@ -885,4 +885,11 @@ test("the tests that read the generated registry.json say how to make it when it
   mkdirSync(join(dir, "site/public"), { recursive: true });
   writeFileSync(join(dir, "site/public/llms.txt"), "");
   assert.doesNotThrow(() => requireRegistry(dir));
+
+test("the lint sees a claim through Unicode format characters hidden in its words, and passes the same text without a claim", () => {
+  const lint = (text) => lintPlain(text, { file: "pull request body" });
+  for (const text of ["Ev​ery test passes now.", "All­ components pass axe.", "﻿No⁠ test fails.", "It always‍ works."]) {
+    assert.equal(lint(text).length, 1, JSON.stringify(text));
+  }
+  assert.equal(lint("Moves​ focus back to the­ trigger.").length, 0);
 });

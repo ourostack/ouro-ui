@@ -48,6 +48,8 @@ const AI_TOOL = new RegExp(String.raw`(?<![a-z0-9])(?:${tools})(?![a-z])|^\s+(?:
 const TRAILER = /^[\s*>-]*([a-z][a-z-]*-by)\s*:\s*(.+)$/i;
 /** Every line terminator, so no separator hides a trailer from the checks that read a line. */
 const LINE_TERMINATOR = /\r\n|[\n\r\u2028\u2029\u0085]/;
+/** Unicode format characters (zero-width spaces and joiners, soft hyphens, byte order marks): invisible, and a way to split a name the checks look for. */
+const FORMAT_CHARACTERS = /\p{Cf}/gu;
 const GENERATED = /(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;
 const ROBOT_FOOTER = /🤖.*(?<![a-z])generated(?![a-z])/iu;
 
@@ -74,7 +76,8 @@ export function problems(commits) {
     if (dependabot && (files.length === 0 || stray.length > 0)) report("files", files.length === 0 ? "Dependabot's commit changes no file the check could read" : `Dependabot may change only dependency files (package.json, pnpm-lock.yaml, workflows and actions), not ${stray.join(", ")}`, REAUTHOR);
     if (!AUTHORS.includes(commit.authorEmail.toLowerCase())) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")})`, REAUTHOR);
     if (!COMMITTERS.includes(commit.committerEmail.toLowerCase())) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
-    commit.message.split(LINE_TERMINATOR).forEach((line, index) => {
+    commit.message.split(LINE_TERMINATOR).forEach((raw, index) => {
+      const line = raw.replace(FORMAT_CHARACTERS, "");
       const field = `message line ${index + 1}`;
       const trailer = line.match(TRAILER);
       const own = (bump && trailer?.[1].toLowerCase() === "co-authored-by" && trailer[2].trim().toLowerCase() === DEPENDABOT_CREDIT) || (trailer && [RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER].includes(trailer[2].trim().toLowerCase()));

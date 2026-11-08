@@ -248,3 +248,23 @@ test("attribution reads a message split by any line terminator, so no separator 
   assert.deepEqual(fieldsOf([commit({ message: "Button: a fix (#1)\r\n\r\nGenerated with Claude Code\r\n" })]), ["message line 3"]);
   assert.deepEqual(problems([commit({ message: "Button: a fix (#1)\r\n\r\nSigned-off-by: Ari Mendelow <16390116+arimendelow@users.noreply.github.com>\r\n" })]), []);
 });
+
+test("attribution sees through Unicode format characters hidden in a credit, and passes a clean message", () => {
+  const hidden = [
+    "Co-authored-by: Cl​aude <noreply@anthropic.com>",
+    "Co-authored-by: Cl­aude <noreply@example.com>",
+    "Co-authored-by: Claude <noreply@anthrop⁠ic.com>",
+    "Co​-authored-by: Claude <noreply@anthropic.com>",
+    "﻿Co-authored-by: Claude <noreply@anthropic.com>",
+    "Co-authored-by: Copi‍lot <noreply@example.com>",
+    "Assisted-by: Co​dex",
+  ];
+  for (const line of hidden) {
+    const found = problems([commit({ message: `Button: a fix (#1)\n\n${line}` })]);
+    assert.deepEqual(found.map(({ field }) => field), ["message line 3"], JSON.stringify(line));
+    assert.match(found[0].problem, /credits an AI tool or a bot/);
+  }
+  assert.deepEqual(fieldsOf([commit({ message: "Button: a fix (#1)\n\nGenerated w​ith Cl­aude Code" })]), ["message line 3"]);
+  // A clean message, even with format characters in it, passes.
+  assert.deepEqual(problems([commit({ message: "Button: a fix​ (#1)\n\nSigned-off-by: Ari­ Mendelow <16390116+arimendelow@users.noreply.github.com>" })]), []);
+});
