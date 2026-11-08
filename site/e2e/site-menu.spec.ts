@@ -626,24 +626,38 @@ test("on a phone the docs menu's folded lists hold no pages until they unfold, t
   // Folded, the list is not in the page at all: nothing in it to style with the sheet.
   await expect(panel.locator("a")).toHaveCount(0);
   // It slides open, not in one step: as its height transition starts, the panel held at the transition's midpoint is
-  // part-way open. Read that way, a runner that draws a frame a second still sees the slide, where a sample of each
-  // frame could miss all 200 ms of it (#684).
-  await group.evaluate((element) =>
+  // part-way open, and the transition then runs to its end rather than being cut short. Read that way, a runner that
+  // draws a frame a second still sees the slide, where a sample of each frame could miss all of it (#684). The seek
+  // halves the slide's length in this test only.
+  await group.evaluate((element) => {
+    const height = (event: Event) => (event as TransitionEvent).propertyName === "height" && (event.target as Element).matches("[data-ouro-collapsible-panel]");
     element.addEventListener("transitionrun", (event) => {
+      if (!height(event) || element.dataset["midway"]) return;
       const target = event.target as HTMLElement;
-      if ((event as TransitionEvent).propertyName !== "height" || !target.matches("[data-ouro-collapsible-panel]") || element.dataset["midway"]) return;
-      const slide = target.getAnimations().find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "height")!;
+      const slide = target.getAnimations().find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "height");
+      if (!slide) {
+        element.dataset["midway"] = "no height transition";
+        return;
+      }
+      const duration = Number(slide.effect!.getComputedTiming().duration);
+      element.dataset["duration"] = String(duration);
       slide.pause();
-      slide.currentTime = Number(slide.effect!.getComputedTiming().duration) / 2;
+      slide.currentTime = duration / 2;
       element.dataset["midway"] = String(target.getBoundingClientRect().height);
       slide.play();
-    }),
-  );
+    });
+    for (const [type, end] of [["transitionend", "ended"], ["transitioncancel", "cancelled"]] as const)
+      element.addEventListener(type, (event) => {
+        if (height(event) && element.dataset["midway"] && !element.dataset["slide"]) element.dataset["slide"] = end;
+      });
+  });
   const heights = heightsUntilStill(panel);
   await group.locator('[aria-expanded="false"]').click();
   const full = (await heights).at(-1)!;
   expect(full).toBeGreaterThan(100);
-  await expect(group).toHaveAttribute("data-midway", /./);
+  await expect(group).toHaveAttribute("data-slide", "ended");
+  // Long enough to be seen as a slide.
+  expect(Number(await group.getAttribute("data-duration"))).toBeGreaterThanOrEqual(100);
   const midway = Number(await group.getAttribute("data-midway"));
   expect(midway).toBeGreaterThan(0);
   expect(midway).toBeLessThan(full);
