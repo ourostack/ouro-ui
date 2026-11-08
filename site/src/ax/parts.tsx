@@ -13,7 +13,8 @@ export function artMarkup(source: string, attributes = ""): string {
     .replace("<svg ", `<svg aria-hidden="true" focusable="false" ${attributes}`);
 }
 
-const MARKS = { person: artMarkup(personSource), agent: artMarkup(agentSource) } as const;
+// Sized in the markup too (ax.css's sizes win once it loads), so the server's HTML never draws them column-wide before the AX chunk's CSS arrives.
+const MARKS = { person: artMarkup(personSource, 'width="40" height="40"'), agent: artMarkup(agentSource, 'width="64" height="64"') } as const;
 
 /** Who says each line, for screen readers: on the story's pages the reader is the person; in the playground, the agent. */
 export const SPEAKERS = { person: { person: "You: ", agent: "Your agent: " }, agent: { person: "The person: ", agent: "You: " } } as const;

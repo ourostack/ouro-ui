@@ -53,7 +53,7 @@ describe("home page", () => {
     expect(heading.element().textContent).toBe(VOYAGE_HERO.title.join(" "));
     expect(page.getByRole("link", { name: "Come aboard", exact: true }).first().element().getAttribute("href")).toBe("/nautilus/");
     expect(document.body.innerText).not.toContain("compliant");
-    expect(page.getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
+    expect(page.getByRole("navigation", { name: "Footer" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
   it("shows two ships, the Nautilus and Spoonjoy, as showcases, each with its way in and its X-ray", async () => {
@@ -82,11 +82,12 @@ describe("home page", () => {
       ["Source", "https://github.com/spoonjoy/spoonjoy-v2"],
     ]);
     expect(spoonjoy.element().textContent).toContain(TWO_SHIPS.spoonjoy.body);
-    // Side by side on a wide screen.
+    // One showcase a row on a wide screen, each with its art: the Nautilus beside its words, Spoonjoy's shot across the row under them, wide enough to read its name tags.
     await page.viewport(1280, 800);
     const [a, b] = [nautilus.element().getBoundingClientRect(), spoonjoy.element().getBoundingClientRect()];
-    expect(a.top).toBe(b.top);
-    expect(a.right).toBeLessThan(b.left);
+    expect(a.bottom).toBeLessThanOrEqual(b.top);
+    const shot = spoonjoy.element().querySelector("picture:not([hidden]) img, img")!.getBoundingClientRect();
+    expect(shot.width).toBeGreaterThan(b.width * 0.9);
   });
 
   it("has no live catalog of examples behind Show buttons", async () => {
@@ -166,6 +167,31 @@ describe("home page", () => {
     await expect.element(page.getByText(/Without it the install fails: main has no registry\.json\./)).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/ouro-base @ouro/sheet", { exact: true })).toBeVisible();
     expect(page.getByRole("link", { name: "Switching from shadcn" }).element().getAttribute("href")).toBe("/docs/switching-from-shadcn/");
+  });
+
+  it("shows Spoonjoy's X-ray shot across its showcase row, AVIF first at each width", async () => {
+    await renderPage("/");
+    const showcase = document.querySelector("[data-site-ship='ship-spoonjoy']")!;
+    const pictures = [...showcase.querySelectorAll("picture")];
+    expect(pictures.map((picture) => picture.className)).toEqual(["site-ship-shot-light", "site-ship-shot-dark"]);
+    for (const picture of pictures) {
+      expect([...picture.querySelectorAll("source")].map((source) => source.type)).toEqual(["image/avif", "image/webp"]);
+      expect(picture.querySelector("source")!.srcset).toMatch(/-640\.avif 640w, .*-1600\.avif 1600w$/);
+      const image = picture.querySelector("img")!;
+      expect([image.getAttribute("width"), image.getAttribute("height"), image.loading]).toEqual(["1600", "863", "lazy"]);
+      expect(image.alt).toMatch(/^Spoonjoy's Crispy Lemon Chickpeas recipe/);
+    }
+    // Not a link of its own: the row's "X-ray it" already opens the Test Kitchen with X-ray on.
+    expect(pictures[0]!.closest("a")).toBeNull();
+    await expect.element(page.getByText(/Real app, real recipe, real chickpeas\.$/)).toBeVisible();
+  });
+
+  it("lists what comes with every component beside the install steps, under hairlines", async () => {
+    await renderPage("/");
+    const install = document.getElementById("install")!;
+    const names = [...install.querySelectorAll(".site-perks > li > h3")].map((heading) => heading.textContent);
+    expect(names).toEqual(["Yours to keep", "Keeps your theme", "Phones get sheets", "Motion, minus the luggage", "Tests, if you want them", "Agents read the manual too"]);
+    expect(install.querySelector(".site-perks a")!.getAttribute("href")).toBe("/llms.txt");
   });
 
   it("adds ouro-base once, before the first component", async () => {

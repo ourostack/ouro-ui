@@ -2,12 +2,15 @@ import type { JSX } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { NAUTILUS_PAGE } from "./copy";
+import { StoryOpener } from "../components/story-world";
 import { Container } from "./layout";
 
 /** The story's opening on /nautilus/: what it is, who Nemo is and where he comes from, and its chapters, with the ones still being built marked so. */
 export function StoryOpening(): JSX.Element {
   return (
-    <section aria-labelledby="story-title" className="site-story pt-14 pb-6 lg:pt-24 lg:pb-10">
+    <>
+    <StoryOpener scene="ouroboros-skills" line="Every voyage starts with someone opening the book. The robots have found a good one." />
+    <section aria-labelledby="story-title" className="site-story pt-10 pb-6 lg:pt-14 lg:pb-10">
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-7">
           <p className="site-eyebrow" data-site-story-eyebrow="">
@@ -52,5 +55,6 @@ export function StoryOpening(): JSX.Element {
         </nav>
       </Container>
     </section>
+    </>
   );
 }

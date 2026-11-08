@@ -174,6 +174,56 @@
       "file": "registry/ouro/check/check.ts",
       "sentence": "Exit codes: 0 ok, 1 error (the check stopped before it finished, as when the browser would not start), 2 usage, 3 findings to fix.`;",
       "reason": "Ouro check's --help names its exit codes, every Ouro tool's table, which scripts/check/check.test.mts asserts (Ouro check's command > exits as every Ouro tool does: …)"
+    },
+    {
+      "file": "site/src/apple/feel.tsx",
+      "sentence": "The robot double-taps every switch on the bench, hunting for jank.",
+      "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
+    },
+    {
+      "file": "site/src/apple/home.tsx",
+      "sentence": "The robot checked: it feels the same on all three.",
+      "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
+    },
+    {
+      "file": "site/src/apple/reins.tsx",
+      "sentence": "No thumbs needed: the robot drives all three screens with ls and do.",
+      "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
+    },
+    {
+      "file": "site/src/apple/start.tsx",
+      "sentence": "One bench, three screens, one Swift package.",
+      "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
+    },
+    {
+      "file": "site/src/pages/docs.tsx",
+      "sentence": "Six jars of tokens, one pour, and every screen comes out painted to match.",
+      "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
+    },
+    {
+      "file": "site/src/voyage/nautilus.tsx",
+      "sentence": "Every voyage starts with someone opening the book.",
+      "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "A little white robot leans over a phone, a tablet and a laptop on a garden bench, each showing the same green card with a switch, while Ouro smiles beside them.",
+      "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.",
+      "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
     }
   ],
   "instructionVerbs": [

@@ -147,6 +147,7 @@ const namedButUnread = {
       ["chapter-one", "chapter-three", "chapter-two", "stage"].map((spec) => [`site/scripts/stage-census.mts site/e2e/${spec}.spec.ts`, "the control census, which only its Node test runs, not the site build"]),
     ),
     "site/src/pages/docs.tsx site/src/site.test.tsx": "a claim's source and check, read by the claims check",
+    "site/src/storybook.ts site/src/site.test.tsx": "a claim's source and check, read by the claims check",
     "site/src/routes.ts site/src/site.test.tsx": "a claim's source and check, read by the claims check",
     "site/src/voyage/stage/copy.ts site/e2e/stage.spec.ts": "a claim's source and check, read by the claims check",
     "site/src/pages/docs.tsx test/install-fixture/package.json": "a claim's source and check, read by the claims check",
