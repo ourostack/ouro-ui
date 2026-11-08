@@ -28,7 +28,7 @@ export const LATENCY = {
   p95: 100,
   /** Presses that count. */
   samples: 20,
-  /** Presses that count added, once, when the first `samples` are over budget and could be within it with them (morePresses). */
+  /** Presses that count added, once, when the first `samples` fail on the p95 alone and could be within it with them (morePresses). */
   more: 20,
   /** Presses before them that don't. */
   warmUps: 2,
@@ -74,9 +74,9 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
  * once, and so do three or more presses over 100 ms.
  */
 export function morePresses(samples: readonly number[], baseline: number): boolean {
-  if (samples.length !== LATENCY.samples || summarise(samples, baseline).within) return false;
+  const { within, median } = summarise(samples, baseline);
+  if (samples.length !== LATENCY.samples || within) return false;
   const all = LATENCY.samples + LATENCY.more;
-  const { median } = summarise(samples, baseline);
   return median <= medianCeiling(baseline) && samples.filter((sample) => sample > LATENCY.p95).length <= all - Math.ceil(all * 0.95);
 }
 
