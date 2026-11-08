@@ -114,6 +114,10 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     }
     return out;
   };
+  const windows: { index: number; from: number; to: number; d: number }[] = [];
+  const browser = page.context().browser()!;
+  await browser.startTracing(page, { categories: ["devtools.timeline", "v8", "blink.user_timing", "disabled-by-default-devtools.timeline", "disabled-by-default-v8.gc"] });
+  const markAt = await page.evaluate(() => (performance.mark("latency-sync"), performance.getEntriesByName("latency-sync").at(-1)!.startTime));
   const metrics = async () => Object.fromEntries(((await cdp.send("Performance.getMetrics")) as { metrics: { name: string; value: number }[] }).metrics.filter((m) => /ThreadTime|ProcessTime|TaskDuration|ScriptDuration|LayoutDuration|RecalcStyleDuration|JSHeapUsedSize/.test(m.name)).map((m) => [m.name, m.value]));
   const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
   const unthrottled = async (work: () => Promise<unknown>) => {
@@ -139,11 +143,8 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     const m0 = await metrics();
     const s0 = snap();
     const t0 = Date.now();
-    const series: { t: number; v: Record<string, number> }[] = [];
-    const sampler = setInterval(() => series.push({ t: performance.timeOrigin + performance.now(), v: snap() }), 2);
     await press(index);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-    clearInterval(sampler);
     const s1 = snap();
     const t1 = Date.now();
     const m1 = await metrics();
@@ -165,13 +166,8 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       const line = top
         ? `d=${r(top.d)} ${top.name} all=[${got.entries.map((e) => `${e.name}:${r(e.d)}@${r(e.start - top.start)}/${r(e.ps - top.start)}/${r(e.pe - top.start)}`).join(" ")}] in=${r(top.ps - top.start)} proc=${r(top.pe - top.ps)} pres=${r(top.start + top.d - top.pe)} stallOverlap=${r(overlap)} stalls=[${got.stalls.map(([a, b]) => `${r(a - top.start)}+${r(b - a)}`).join(" ")}] loaf=${JSON.stringify(loaf.map((f) => ({ ...f, start: r(f.start - top.start), d: r(f.d) })))}`
         : `none stalls=${got.stalls.length}`;
-      let win = "";
-      if (top && series.length > 1) {
-        const from = got.origin + top.start, to = got.origin + top.start + top.d;
-        const a = series.filter((x) => x.t <= from).at(-1) ?? series[0]!;
-        const b = series.find((x) => x.t >= to) ?? series.at(-1)!;
-        win = `span=${r(b.t - a.t)} n=${series.length} ` + Object.entries(b.v).map(([k, v]) => [k, v - (a.v[k] ?? 0)] as const).filter(([, v]) => v >= 1).map(([k, v]) => `${k}=${r(v)}`).join(" ");
-      }
+      const win = "";
+      if (top && index >= LATENCY.warmUps) windows.push({ index, from: top.start, to: top.start + top.d, d: top.d });
       const ds = Object.entries(s1).map(([k, v]) => [k, v - (s0[k] ?? 0)] as const).filter(([, v]) => v >= 1).map(([k, v]) => `${k}=${r(v)}`).join(" ");
       const dm = Object.entries(m1).map(([k, v]) => `${k}=${k === "JSHeapUsedSize" ? r((v - (m0[k] ?? 0)) / 1024) + "k" : r((v - (m0[k] ?? 0)) * 1000)}`).join(" ");
       console.log(`latency-trace ${label} #${index}: ${line} win{${win}} wall=${t1 - t0} metrics{${dm}} sched{${ds}}`);
@@ -179,6 +175,29 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+  try {
+    const trace = JSON.parse((await browser.stopTracing()).toString()) as { traceEvents: { name: string; ph: string; ts: number; dur?: number; pid: number; tid: number; args?: { name?: string } }[] };
+    const ev = trace.traceEvents;
+    const sync = ev.find((e) => e.name === "latency-sync");
+    const mains = new Set(ev.filter((e) => e.ph === "M" && e.name === "thread_name" && e.args?.name === "CrRendererMain").map((e) => `${e.pid}:${e.tid}`));
+    const main = sync ? `${sync.pid}:${sync.tid}` : [...mains][0];
+    const offset = sync ? sync.ts / 1000 - markAt : 0;
+    const xs = ev.filter((e) => e.ph === "X" && `${e.pid}:${e.tid}` === main && e.dur);
+    for (const w of windows) {
+      const from = w.from + offset, to = w.to + offset;
+      const by: Record<string, number> = {};
+      for (const e of xs) {
+        const a = e.ts / 1000, b = (e.ts + e.dur!) / 1000;
+        const o = Math.min(b, to) - Math.max(a, from);
+        if (o > 0.05) by[e.name] = (by[e.name] ?? 0) + o;
+      }
+      const gc = Object.entries(by).filter(([k]) => /GC|Scavenge|MarkCompact/i.test(k) && !/V8\.GC_/.test(k)).reduce((t, [, v]) => t + v, 0);
+      const top = Object.entries(by).sort((x, y) => y[1] - x[1]).slice(0, 14).map(([k, v]) => `${k}:${Math.round(v)}`).join(" ");
+      console.log(`latency-tracing ${label} #${w.index}: d=${Math.round(w.d)} gc=${Math.round(gc)} ${top}`);
+    }
+  } catch (error) {
+    console.log(`latency-tracing ${label}: failed ${String(error)}`);
+  }
   return samples;
 }
 
