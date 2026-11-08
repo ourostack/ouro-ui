@@ -6,19 +6,17 @@
 
 # Ouro HX
 
-**Designed down to the last tap and the last prop.** Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
-
-Ouro HX is the half of Ouro UI for the interfaces people use: React components you copy in with the shadcn CLI. **[Ouro AX](#ouro-ax)** is the other half, for the interfaces agents use.
+**React components designed down to the last tap and the last prop.** Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
 **[See it live: ui.ouroboros.bot](https://ui.ouroboros.bot/)**, with the [docs](https://ui.ouroboros.bot/docs/) and [Storybook](https://ui.ouroboros.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
+Ouro HX is the half of Ouro UI for the interfaces people use: React components you copy in with the shadcn CLI. **[Ouro AX](#ouro-ax)** is the other half, for the interfaces agents use.
+
 ```sh
-npx shadcn@latest search 'ourostack/ouro-ui#v1.3.6'     # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.6' # read one item
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6    # install it
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6    # install a component
 ```
 
-A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.6`, `github:` and `/tree/` URLs don't work. The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
+Browse first with `npx shadcn@latest search 'ourostack/ouro-ui#v1.3.6'` (list the items) and `npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.6'` (read one). The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
 
 Ouro HX is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes.[^tailwind-4] Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
@@ -50,6 +48,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6
 - Pass `--base base`: Ouro HX is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
 - New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias, and `"paths": { "@/*": ["./src/*"] }` in both `tsconfig.json` and `tsconfig.app.json` (no `baseUrl` on TypeScript 6) before `init`. shadcn reads the root file, and `tsc -b` builds the app one.
 - `--preset nova` lets `init` run without prompts. It sets shadcn's starting theme, font and icons (nova adds the Geist font, `lucide-react` and `tw-animate-css`), which Ouro components read like any shadcn theme. The install test runs `nova` and `vega`; other presets are untested.
+- A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.6`, `github:` and `/tree/` URLs don't work.
 
 ### Check what you built
 
