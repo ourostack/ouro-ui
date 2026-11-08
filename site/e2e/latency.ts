@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync, readdirSync } from "node:fs";
+
 
 // Click-to-paint latency for the voyage's controls, shared by every *.latency.spec.ts (run alone by
 // `pnpm test:latency`, playwright.latency.config.ts, and CI's latency job). Each control is pressed
@@ -83,6 +85,36 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     w.__stalls = () => new Promise((resolve) => { worker.onmessage = ({ data }) => resolve(data); worker.postMessage(0); });
   });
   const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Performance.enable");
+  const pids: { type: string; id: number }[] = [];
+  try {
+    const bcdp = await page.context().browser()!.newBrowserCDPSession();
+    const info = (await bcdp.send("SystemInfo.getProcessInfo")) as { processInfo: { type: string; id: number }[] };
+    pids.push(...info.processInfo.filter((p) => p.type === "renderer" || p.type === "GPU"));
+    await bcdp.detach();
+  } catch {}
+  /** Per process: main thread exec/wait ns, other threads exec/wait by name; and /proc/stat cpu. */
+  const snap = () => {
+    const out: Record<string, number> = {};
+    if (process.platform !== "linux") return out;
+    try {
+      const cpu = readFileSync("/proc/stat", "utf8").split("\n")[0]!.trim().split(/\s+/).slice(1).map(Number);
+      ["user", "nice", "system", "idle", "iowait", "irq", "softirq", "steal"].forEach((k, i) => (out[`cpu.${k}`] = cpu[i]! * 10));
+    } catch {}
+    for (const { type, id } of pids) {
+      try {
+        for (const tid of readdirSync(`/proc/${id}/task`)) {
+          const [exec, wait] = readFileSync(`/proc/${id}/task/${tid}/schedstat`, "utf8").trim().split(/\s+/).map(Number);
+          const name = Number(tid) === id ? "main" : readFileSync(`/proc/${id}/task/${tid}/comm`, "utf8").trim().replace(/\s+/g, "_");
+          const key = `${type === "GPU" ? "gpu" : `r${id}`}.${name}`;
+          out[`${key}.run`] = (out[`${key}.run`] ?? 0) + exec! / 1e6;
+          out[`${key}.wait`] = (out[`${key}.wait`] ?? 0) + wait! / 1e6;
+        }
+      } catch {}
+    }
+    return out;
+  };
+  const metrics = async () => Object.fromEntries(((await cdp.send("Performance.getMetrics")) as { metrics: { name: string; value: number }[] }).metrics.filter((m) => /ThreadTime|ProcessTime|TaskDuration|ScriptDuration|LayoutDuration|RecalcStyleDuration|JSHeapUsedSize/.test(m.name)).map((m) => [m.name, m.value]));
   const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
   const unthrottled = async (work: () => Promise<unknown>) => {
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
@@ -104,13 +136,22 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       await w.__stalls();
     });
     const before = await interactions();
+    const m0 = await metrics();
+    const s0 = snap();
+    const t0 = Date.now();
+    const series: { t: number; v: Record<string, number> }[] = [];
+    const sampler = setInterval(() => series.push({ t: performance.timeOrigin + performance.now(), v: snap() }), 2);
     await press(index);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
+    clearInterval(sampler);
+    const s1 = snap();
+    const t1 = Date.now();
+    const m1 = await metrics();
     const got = await page.evaluate(async () => {
       const w = window as unknown as { __latency: { name: string; start: number; ps: number; pe: number; d: number }[]; __loaf: { start: number; d: number }[]; __stalls: () => Promise<[number, number][]> };
       const stalls = await w.__stalls();
       const origin = performance.timeOrigin;
-      return { entries: [...w.__latency], loaf: [...w.__loaf], stalls: stalls.map(([a, b]) => [a - origin, b - origin] as [number, number]) };
+      return { origin, entries: [...w.__latency], loaf: [...w.__loaf], stalls: stalls.map(([a, b]) => [a - origin, b - origin] as [number, number]) };
     });
     const durations = got.entries.map((entry) => entry.d);
     const pressed = (await interactions()) > before;
@@ -124,7 +165,16 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       const line = top
         ? `d=${r(top.d)} ${top.name} all=[${got.entries.map((e) => `${e.name}:${r(e.d)}@${r(e.start - top.start)}/${r(e.ps - top.start)}/${r(e.pe - top.start)}`).join(" ")}] in=${r(top.ps - top.start)} proc=${r(top.pe - top.ps)} pres=${r(top.start + top.d - top.pe)} stallOverlap=${r(overlap)} stalls=[${got.stalls.map(([a, b]) => `${r(a - top.start)}+${r(b - a)}`).join(" ")}] loaf=${JSON.stringify(loaf.map((f) => ({ ...f, start: r(f.start - top.start), d: r(f.d) })))}`
         : `none stalls=${got.stalls.length}`;
-      console.log(`latency-trace ${label} #${index}: ${line}`);
+      let win = "";
+      if (top && series.length > 1) {
+        const from = got.origin + top.start, to = got.origin + top.start + top.d;
+        const a = series.filter((x) => x.t <= from).at(-1) ?? series[0]!;
+        const b = series.find((x) => x.t >= to) ?? series.at(-1)!;
+        win = `span=${r(b.t - a.t)} n=${series.length} ` + Object.entries(b.v).map(([k, v]) => [k, v - (a.v[k] ?? 0)] as const).filter(([, v]) => v >= 1).map(([k, v]) => `${k}=${r(v)}`).join(" ");
+      }
+      const ds = Object.entries(s1).map(([k, v]) => [k, v - (s0[k] ?? 0)] as const).filter(([, v]) => v >= 1).map(([k, v]) => `${k}=${r(v)}`).join(" ");
+      const dm = Object.entries(m1).map(([k, v]) => `${k}=${k === "JSHeapUsedSize" ? r((v - (m0[k] ?? 0)) / 1024) + "k" : r((v - (m0[k] ?? 0)) * 1000)}`).join(" ");
+      console.log(`latency-trace ${label} #${index}: ${line} win{${win}} wall=${t1 - t0} metrics{${dm}} sched{${ds}}`);
     }
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
