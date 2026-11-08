@@ -274,7 +274,7 @@ describe("the Nautilus's page", () => {
     expect(document.getElementById("chapter-one")).not.toBeNull();
     // The porthole stage is the home page's; the Nautilus's page starts with the story.
     expect(document.querySelector("[data-stage-crew]")).toBeNull();
-    expect(page.getByRole("link", { name: "Ouro HX", exact: true }).element().getAttribute("href")).toBe("/");
+    expect(page.getByRole("link", { name: "Ouro UI", exact: true }).element().getAttribute("href")).toBe("/");
   });
 
   it("reads cold: it says who Nemo is and where he comes from, with no untranslated Latin or unexplained crew", async () => {

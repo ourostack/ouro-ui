@@ -266,7 +266,7 @@ export function DocsIndex(): JSX.Element {
         </p>
       </StoryWorld>
       <PageTitle
-        eyebrow="Docs"
+        eyebrow="Ouro HX"
         title="Components"
         lead={claim("Every Ouro HX component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too.", {
           source: [{ file: "site/src/site.test.tsx" }, { file: "scripts/gen-docs.mts" }],

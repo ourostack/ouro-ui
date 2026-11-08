@@ -40,15 +40,26 @@ function Showcase({ id, title, body, art, wide = false, children }: { id: string
 
 const shots = images as Record<string, { width: number; height: number; src: string; sources: { type: string; srcset: string }[] }>;
 
-/** One theme's X-ray screenshot, AVIF then WebP at each width (site/public/showcase/images.json, made by Ouro images). */
+/** Below the `sm` breakpoint the row is a phone's width, so it shows the phone capture, not the wide one shrunk to a strip. */
+const PHONE = "(max-width: 639.98px)";
+
+/**
+ * One theme's X-ray screenshot, AVIF then WebP at each width (site/public/showcase/images.json, made by Ouro images):
+ * Spoonjoy at a phone's width on a phone, at a laptop's elsewhere.
+ */
 function Shot({ theme, className }: { theme: "light" | "dark"; className: string }): JSX.Element {
   const shot = shots[`spoonjoy-xray-${theme}.webp`]!;
+  const phone = shots[`spoonjoy-xray-phone-${theme}.webp`]!;
   const url = (path: string) => href(path);
+  const srcSet = (srcset: string) => srcset.replace(/(^|, )\//g, (_, lead: string) => `${lead}${url("/")}`);
   const sizes = "(min-width: 72rem) 72rem, 100vw";
   return (
     <picture className={className}>
+      {phone.sources.map((source) => (
+        <source key={`phone-${source.type}`} media={PHONE} type={source.type} srcSet={srcSet(source.srcset)} sizes="100vw" width={phone.width} height={phone.height} />
+      ))}
       {shot.sources.map((source) => (
-        <source key={source.type} type={source.type} srcSet={source.srcset.replace(/(^|, )\//g, (_, lead: string) => `${lead}${url("/")}`)} sizes={sizes} />
+        <source key={source.type} type={source.type} srcSet={srcSet(source.srcset)} sizes={sizes} />
       ))}
       <img
         src={url(shot.src)}
@@ -111,11 +122,11 @@ export function TwoShips(): JSX.Element {
           </Showcase>
         </div>
       </Container>
-      {/* Past the two showcases, the rest of Ouro's world: HX is one corner of it. */}
+      {/* Past the two showcases, the rest of Ouro's world: Ouro UI is one corner of it. */}
       <StoryWorld scene="ourostack" variant="band" className="mt-16 lg:mt-24">
         <Container>
           <p className="story-world-line" data-story-line="">
-            Ouro HX is one corner of Ouro's meadow. There's a desk, a toy factory and a picnic going on just over the hill.
+            Ouro UI is one corner of Ouro's meadow. There's a desk, a toy factory and a picnic going on just over the hill.
           </p>
           <p className="mt-3 mb-0">
             <a href={OURO_HOME} className="story-world-link font-medium">

@@ -220,12 +220,12 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   const trigger = page.locator("[data-site-theme-trigger]");
   await page.locator("body").focus();
   for (const [role, name] of [
-    ["link", "Ouro HX"],
+    ["link", "Ouro UI"],
     ["link", "The Nautilus"],
-    ["link", "Ouro AX"],
     ["link", "For Apple"],
     ["link", "Docs"],
-    ["link", "Components"],
+    ["link", "Ouro HX"],
+    ["link", "Ouro AX"],
     ["link", "GitHub"],
   ] as const) {
     await pressTab(page);
