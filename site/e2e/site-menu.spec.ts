@@ -671,7 +671,8 @@ test.describe("by touch", () => {
       await expect(sheet(page).getByRole("link", { name: "Tooltip", exact: true })).toHaveCount(0);
     });
     expect(await links.count()).toBeLessThan(all);
-    expect(film.frames).toBeGreaterThan(0);
+    // A frame or more for each key typed, so the film saw the typing and not only the frames after it.
+    expect(film.actFrames).toBeGreaterThanOrEqual(3);
     expect(film.moves).toEqual([]);
   });
 });

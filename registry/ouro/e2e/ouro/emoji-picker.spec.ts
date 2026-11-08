@@ -73,7 +73,8 @@ test.describe("by touch on a phone", () => {
       await expect(sheet.getByRole("toolbar", { name: "Categories" })).toHaveCount(0);
       await expect(sheet.getByRole("grid", { name: /^\d+ emoji$/ }).getByRole("button", { name: "red heart" })).toBeVisible();
     });
-    expect(film.frames).toBeGreaterThan(0);
+    // A frame or more for each key typed, so the film saw the typing and not only the frames after it.
+    expect(film.actFrames).toBeGreaterThanOrEqual(3);
     expect(film.moves).toEqual([]);
   });
 });

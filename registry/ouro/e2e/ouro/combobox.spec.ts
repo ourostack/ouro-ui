@@ -65,14 +65,14 @@ test.describe("by touch on a phone", () => {
     const search = sheet.getByRole("combobox", { name: "Herb" });
     const options = sheet.getByRole("option");
     await expect(options.first()).toBeVisible();
-    const all = await options.count();
+    expect(await options.count()).toBeGreaterThan(1);
     const film = await filmTops({ input: search, panel: sheet.locator("[data-ouro-sheet-content]"), sheet }, async () => {
       await search.tap();
       await search.pressSequentially("ros", { delay: 120 });
       await expect(options).toHaveText(["Rosemary"]);
     });
-    expect(all).toBeGreaterThan(1);
-    expect(film.frames).toBeGreaterThan(0);
+    // A frame or more for each key typed, so the film saw the typing and not only the frames after it.
+    expect(film.actFrames).toBeGreaterThanOrEqual(3);
     expect(film.moves).toEqual([]);
   });
 });

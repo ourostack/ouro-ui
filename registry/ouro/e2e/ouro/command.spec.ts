@@ -1,3 +1,4 @@
+import type { Locator } from "@playwright/test";
 import { expect, test } from "../ouro-fixtures";
 import { filmTops, openStory, settledBox } from "./story";
 
@@ -87,24 +88,28 @@ test.describe("on a desktop", () => {
   });
 });
 
-test.describe("by touch on a phone", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+// The sheet comes with a narrow screen, whatever the pointer: filmed with a mouse and by touch.
+for (const touch of [false, true]) {
+  test.describe(touch ? "by touch on a phone" : "on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: touch });
 
-  test("opens a full-height sheet whose search input, panel and top stay put on every frame while filtering", async ({ page }) => {
-    await openStory(page, "menus-command--playground");
-    await page.getByRole("button", { name: "Search…" }).tap();
-    const sheet = page.getByRole("dialog", { name: "Command palette" });
-    const input = sheet.getByRole("combobox", { name: "Search commands" });
-    const options = sheet.getByRole("option");
-    await expect(options.first()).toBeVisible();
-    const all = await options.count();
-    const film = await filmTops({ input, panel: sheet.locator('[data-ouro="command"]'), sheet }, async () => {
-      await input.tap();
-      await input.pressSequentially("bak", { delay: 120 });
-      await expect(options).toHaveCount(1);
+    test("opens a full-height sheet whose search input, panel and top stay put on every frame while filtering", async ({ page }) => {
+      await openStory(page, "menus-command--playground");
+      const press = (target: Locator) => (touch ? target.tap() : target.click());
+      await press(page.getByRole("button", { name: "Search…" }));
+      const sheet = page.getByRole("dialog", { name: "Command palette" });
+      const input = sheet.getByRole("combobox", { name: "Search commands" });
+      const options = sheet.getByRole("option");
+      await expect(options.first()).toBeVisible();
+      expect(await options.count()).toBeGreaterThan(1);
+      const film = await filmTops({ input, panel: sheet.locator('[data-ouro="command"]'), sheet }, async () => {
+        await press(input);
+        await input.pressSequentially("bak", { delay: 120 });
+        await expect(options).toHaveCount(1);
+      });
+      // A frame or more for each key typed, so the film saw the typing and not only the frames after it.
+      expect(film.actFrames).toBeGreaterThanOrEqual(3);
+      expect(film.moves).toEqual([]);
     });
-    expect(all).toBeGreaterThan(1);
-    expect(film.frames).toBeGreaterThan(0);
-    expect(film.moves).toEqual([]);
   });
-});
+}
