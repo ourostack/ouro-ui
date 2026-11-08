@@ -1,1 +1,0 @@
-- Link-preview cards now print ui.ouroboros.bot, the site's new host, in their corner.

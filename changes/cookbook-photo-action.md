@@ -1,1 +1,0 @@
-- Changed: the Cookbook theme [carries Spoonjoy's photo-action colours and its own Ouro action, card and heading mappings, synced from spoonjoy-v2 493f42d7](site/src/themes/cookbook.css "verify:fileLine(site/src/themes/cookbook.css, /--sj-photo-action: #d6a46a;/)").
