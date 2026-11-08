@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectWithinBudget, measure, morePresses, summarise } from "./latency";
+import { LATENCY, expectWithinBudget, measure, morePresses, splitPress, summarise } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -75,4 +75,12 @@ test.describe("a page whose button is slow on purpose", () => {
     expect(samples).toHaveLength(LATENCY.samples);
     expect(() => expectWithinBudget("every press", samples, 48)).toThrow();
   });
+});
+
+test("a slow press's time is split into the page's input delay, its handlers and the wait for the next paint", () => {
+  // From an Event Timing entry: when it began, when its handlers ran, and its duration to the next paint (ms).
+  const press = splitPress({ startTime: 1000, processingStart: 1004, processingEnd: 1011, duration: 176 });
+  expect(press).toEqual({ inputDelay: 4, processing: 7, presentation: 165 });
+  expect(press.inputDelay + press.processing + press.presentation).toBe(176);
+  expect(summarise([...at(56, 17), 104, 104, 104], 64).report).toContain("104, 104, 104");
 });

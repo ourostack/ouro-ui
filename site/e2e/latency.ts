@@ -56,6 +56,13 @@ export function medianCeiling(baseline: number): number {
   return Math.max(2 * baseline, baseline + 24);
 }
 
+/** Where a press's time went, from its Event Timing entry: waiting for the page's thread, its handlers, and the wait for the next paint (ms). */
+export function splitPress(entry: { startTime: number; processingStart: number; processingEnd: number; duration: number }): { inputDelay: number; processing: number; presentation: number } {
+  const inputDelay = Math.round(entry.processingStart - entry.startTime);
+  const processing = Math.round(entry.processingEnd - entry.processingStart);
+  return { inputDelay, processing, presentation: Math.round(entry.duration) - inputDelay - processing };
+}
+
 /** The 95th percentile and the median of a control's samples, and whether they are within budget. */
 export function summarise(samples: readonly number[], baseline: number): { p95: number; median: number; within: boolean; report: string } {
   const sorted = samples.toSorted((a, b) => a - b);
@@ -90,10 +97,10 @@ export function morePresses(samples: readonly number[], baseline: number): boole
  */
 export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle, more?: (samples: readonly number[]) => boolean): Promise<number[]> {
   await page.evaluate(() => {
-    const store: number[] = [];
-    (window as unknown as { __latency: number[] }).__latency = store;
+    const store: Array<[number, number, number, number]> = [];
+    (window as unknown as { __latency: typeof store }).__latency = store;
     new PerformanceObserver((list) => {
-      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push(entry.duration);
+      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration, entry.startTime, entry.processingStart, entry.processingEnd]);
     }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
   });
   const cdp = await page.context().newCDPSession(page);
@@ -112,14 +119,23 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   let presses = LATENCY.warmUps + LATENCY.samples;
   for (let index = 0; index < presses; index++) {
     if (setUp) await unthrottled(() => setUp(index));
-    await page.evaluate(() => ((window as unknown as { __latency: number[] }).__latency.length = 0));
+    await page.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
     const before = await interactions();
     await press(index);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-    const durations = await page.evaluate(() => (window as unknown as { __latency: number[] }).__latency);
+    const entries = await page.evaluate(() => (window as unknown as { __latency: Array<[number, number, number, number]> }).__latency);
+    const durations = entries.map(([duration]) => duration);
     const pressed = (await interactions()) > before;
     expect(durations.length > 0 || pressed, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
-    if (index >= LATENCY.warmUps) samples.push(durations.length > 0 ? Math.max(...durations) : 16);
+    if (index >= LATENCY.warmUps) {
+      samples.push(durations.length > 0 ? Math.max(...durations) : 16);
+      // Where an over-budget press's time went, so the next failure says whether it was the page's thread or the wait for the paint.
+      const slowest = entries.find(([duration]) => duration === Math.max(...durations));
+      if (slowest && slowest[0] > LATENCY.p95) {
+        const { inputDelay, processing, presentation } = splitPress({ duration: slowest[0], startTime: slowest[1], processingStart: slowest[2], processingEnd: slowest[3] });
+        test.info().annotations.push({ type: "latency-slow", description: `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint` });
+      }
+    }
     if (samples.length === LATENCY.samples && presses === LATENCY.warmUps + LATENCY.samples && more?.(samples)) {
       presses += LATENCY.more;
       test.info().annotations.push({ type: "latency-more", description: `${label}: ${LATENCY.more} presses more after the first ${LATENCY.samples}: ${samples.join(", ")}` });
