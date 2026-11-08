@@ -45,7 +45,7 @@ try {
 </style></head><body>
   <div class="card"><div class="wash"></div>
     <div class="words"><div class="kicker">${escape(card.kicker)}</div><div class="title">${escape(card.title)}</div></div>
-    <div class="site">ui.ouro.bot</div>
+    <div class="site">ui.ouroboros.bot</div>
   </div>
 </body></html>`);
     await page.evaluate(() => document.fonts.ready);
