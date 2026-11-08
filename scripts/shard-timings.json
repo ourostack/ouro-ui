@@ -495,6 +495,7 @@
     "registry/ouro/e2e/ouro/page-header.spec.ts": 4142,
     "registry/ouro/e2e/ouro/pagination.spec.ts": 9386,
     "registry/ouro/e2e/ouro/popover.spec.ts": 20167,
+    "registry/ouro/e2e/ouro/porthole.spec.ts": 10463,
     "registry/ouro/e2e/ouro/progress.spec.ts": 2313,
     "registry/ouro/e2e/ouro/radio-group.spec.ts": 6400,
     "registry/ouro/e2e/ouro/reaction-bar.spec.ts": 15720,

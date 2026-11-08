@@ -175,7 +175,7 @@ interface PortholeViewOptions {
 
 /**
  * What the status spot shows, as `data-porthole-state` names it: at rest and fresh (`rest-fresh`) or past fresh
- * (`rest-stale`), `unknown`, or the priority of the item shown.
+ * (`rest-stale`), `unknown`, or the priority of the item shown, with `action` too for news that offers an action.
  */
 type PortholeState = "rest-fresh" | "rest-stale" | "unknown" | "action" | "error" | "working";
 
@@ -370,7 +370,8 @@ function compare(a: PortholeItem, b: PortholeItem): number {
  * rest it says "Up to date" only while every area was verified within `freshWithinMs` (the area's own, for one
  * the service reads on an interval) and none has been in trouble for `troubleAfterMs`; otherwise the real age of the area verified longest ago ("Updated 4 min ago"). A `rest`
  * item, such as "Version 2.1 is installed", shows over "Up to date" only: past fresh, or unknown, the age line or "Status
- * unknown" wins and the item waits in the open spot's lines. It says "Status unknown" when an area has never been
+ * unknown" wins and the item waits in the open spot's lines; shown with an action, it reads as `action`, since the
+ * person has something to press. It says "Status unknown" when an area has never been
  * verified, when the snapshot has no areas or another version, or when the heartbeat is older than
  * `heartbeatTimeoutMs` or too far ahead of this clock to check. A stopped heartbeat outranks every item, an `action`
  * too: nothing the service said can be trusted as live, and the action's button would reach a service that cannot
@@ -385,6 +386,7 @@ function compare(a: PortholeItem, b: PortholeItem): number {
  * @claim "One item at a time: the" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > shows an action over an error, an error over working and working over rest)
  * @claim "otherwise the real age of" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > at rest, says the real age of the area verified longest ago once any area is past fresh)
  * @claim "when an area has never been" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > says Status unknown at rest while any area has never been verified)
+ * @claim "shown with an action, it reads" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a rest item that offers an action reads as an action, for the person, and as needs-person to an agent)
  * @claim "A `rest` item, such as" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a rest item shows over Up to date only, and waits in the open lines while an area is past fresh or the status is unknown)
  * @claim "A stopped heartbeat outranks every" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > a stopped heartbeat outranks every item, an action too, which waits in the open lines)
  * @claim "the area's own, for one" registry/ouro/lib/ouro/porthole-view.test.ts verify:testExists(registry/ouro/lib/ouro/porthole-view.test.ts::portholeView > an area's own freshWithinMs > replaces the view's for that area alone, up to and including the window itself)
@@ -515,6 +517,11 @@ function portholeView(snapshot: PortholeSnapshot, heartbeatAt: number, now: numb
       item = top;
       text = top.label;
       why = `"${top.id}" ${whyOf.rest}${ties(top.priority) > 1 ? `, and is the newest of ${ties(top.priority)} rest items` : ""}; ${restWhy}`;
+      // News that offers the person something to press reads as an action, never as plain rest.
+      if (top.action !== undefined) {
+        state = "action";
+        why += `; it offers "${top.action.label}"`;
+      }
     } else {
       text = allFresh ? words.fresh : words.stale(age(oldestAgeMs!));
       why = top === null ? `Nothing is under way, and ${restWhy}` : `The age line outranks "${top.id}" while not every area is fresh: ${restWhy}`;

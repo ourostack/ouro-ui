@@ -304,6 +304,22 @@ describe("portholeView", () => {
     expect(view(snap([], { chats: { lastVerifiedAt: NOW - SECOND } as unknown as PortholeArea })).state).toBe("rest-fresh");
   });
 
+  it("a rest item that offers an action reads as an action, for the person, and as needs-person to an agent", () => {
+    const news = item("current", "rest", NOW, { label: "Version 2 is installed", action: { id: "notes", label: "See what's new" } });
+    const result = view(snap([news]));
+    expect(result).toMatchObject({
+      state: "action",
+      status: "needs-person",
+      item: news,
+      text: "Version 2 is installed",
+      priority: { shown: "current", why: '"current" is news that needs nothing, and nothing else is under way; every area was verified within 60 s; it offers "See what\'s new"' },
+    });
+    expect(portholeStatus(result)).toMatchObject({ state: "needs-person", shown: { action: "notes", actionLabel: "See what's new" } });
+    // Without the action it is plain rest; past fresh it waits like any rest item.
+    expect(view(snap([{ ...news, action: undefined }])).state).toBe("rest-fresh");
+    expect(view(snap([news], { chats: area(NOW - 2 * MINUTE) }))).toMatchObject({ state: "rest-stale", item: null, waiting: news });
+  });
+
   it("ignores items it cannot rank: an unknown priority, a missing id or label, or no since", () => {
     const bad = [
       null,

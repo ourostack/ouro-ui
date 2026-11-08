@@ -56,14 +56,15 @@ for (const [path, module] of Object.entries(storyModules).sort(([a], [b]) => (pa
  *   syntax (`"{Meta>}k{/Meta}"` holds Meta while pressing K).
  * - `screenshot`: the story is a screenshot subject (test/screenshots.visual.test.tsx), under
  *   this baseline name, with its overlay open when `open` is set, or with its first control
- *   focused from the keyboard when `focus` is set (which shows a Tooltip or HoverCard).
+ *   focused from the keyboard when `focus` is set (which shows a Tooltip or HoverCard), and
+ *   with one more shot under forced colours, light, at each width, when `forcedColors` is set.
  * - `conformance`: what the conformance matrix (test/conformance/, `pnpm conformance`) must
  *   know about the story that it cannot see: see `ConformanceParameters`.
  */
 export interface OuroStoryParameters {
   plainOpeners?: string[];
   openShortcut?: string;
-  screenshot?: { name: string; open?: boolean; focus?: boolean };
+  screenshot?: { name: string; open?: boolean; focus?: boolean; forcedColors?: boolean };
   mode?: string;
   conformance?: ConformanceParameters;
 }

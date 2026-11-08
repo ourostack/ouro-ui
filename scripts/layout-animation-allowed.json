@@ -10,5 +10,8 @@
   },
   "registry/ouro/components/ouro/composer/composer.tsx": {
     "transition-[height]": "an in-flow growth: the box's height moves the messages above and below it as a long message makes it taller, which a transform would overlap; it is off with reduced motion"
+  },
+  "registry/ouro/components/ouro/porthole/porthole.tsx": {
+    "transition-[width,background-color,border-color]": "an in-flow pill: its width eases as its words change, moving what sits beside it in a header or toolbar, which a transform would overlap or leave a gap beside; it is off with reduced motion"
   }
 }

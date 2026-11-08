@@ -1,0 +1,24 @@
+{
+  "order": 2660,
+  "components": ["porthole"],
+  "controls": {
+    "porthole": [
+      {"part": "spot", "role": "button", "portal": false},
+      {"part": "act", "role": "button", "portal": false},
+      {"part": "dismiss", "role": "button", "portal": false}
+    ]
+  },
+  "motion": {
+    "porthole": {
+      "states": {
+        "data-open": {
+          "kind": "motion",
+          "parts": {
+            "panel": {"properties": ["opacity"], "reduced": ["opacity"]}
+          },
+          "tests": ["registry/ouro/components/ouro/porthole/porthole.test.tsx::Porthole > fades the detail lines in as it opens, faster with reduced motion, and moves nothing"]
+        }
+      }
+    }
+  }
+}
