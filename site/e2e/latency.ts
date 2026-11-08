@@ -138,5 +138,14 @@ export function expectWithinBudget(label: string, samples: readonly number[], ba
 
 /** Measures a control (with LATENCY.more presses more when its first samples call for them) and holds it to the budget. */
 export async function expectPressesWithinBudget(page: Page, label: string, presses: Presses, baseline: number): Promise<void> {
+  if (process.env["LATENCY_AB"]) {
+    const throttle = Number(process.env["LATENCY_AB"]);
+    const all = await measure(page, label, presses, throttle, () => true);
+    const first = all.slice(0, LATENCY.samples);
+    const old = summarise(first, baseline).within;
+    const now = old || (morePresses(first, baseline) && summarise(all, baseline).within);
+    console.log(`latency-ab ${label} throttle=${throttle} old=${old ? "pass" : "FAIL"} new=${now ? "pass" : "FAIL"} more=${!old && morePresses(first, baseline)} first: ${summarise(first, baseline).report} | all: ${summarise(all, baseline).report}`);
+    return;
+  }
   expectWithinBudget(label, await measure(page, label, presses, LATENCY.throttle, (samples) => morePresses(samples, baseline)), baseline);
 }
