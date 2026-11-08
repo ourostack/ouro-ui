@@ -12,6 +12,7 @@ import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
+import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
 import shipComponents from "./docs/ship-components.json";
 import { SHIP_PAGES } from "./docs/ships";
@@ -110,7 +111,19 @@ describe("home page", () => {
 
   it("keeps Ouro UI as the parent, with Ouro AX as the other half and its own page, and never says AX is still being defined", async () => {
     await renderPage("/");
-    await expect.element(page.getByRole("link", { name: "Ouro HX", exact: true })).toBeVisible();
+    // The site is Ouro UI; the bar names its two halves side by side, and the hero says so under the install, each name a link to its half.
+    await expect.element(page.getByRole("link", { name: "Ouro UI", exact: true })).toBeVisible();
+    expect(SITE_SECTIONS.map((section) => [section.label, section.href]).slice(4, 6)).toEqual([
+      ["Ouro HX", "/docs/"],
+      ["Ouro AX", "/ax/"],
+    ]);
+    const halves = document.querySelector("[data-site-halves]")!;
+    expect([...halves.querySelectorAll("dt")].map((name) => name.textContent)).toEqual(["HXOuro HX · human experience", "AXOuro AX · agent experience"]);
+    expect(halves.querySelector("p")!.textContent).toBe("Ouro UI has a half for people and a half for agents");
+    expect([...halves.querySelectorAll("dt a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Ouro HX", "/docs/"],
+      ["Ouro AX", "/ax/"],
+    ]);
     await expect.element(page.getByRole("heading", { level: 2, name: AX_SECTION.title })).toBeVisible();
     await expect.element(page.getByText(AX_SECTION.intro, { exact: true })).toBeVisible();
     expect(page.getByRole("link", { name: "Be the agent" }).element().getAttribute("href")).toBe("/ax/#be-the-agent");
@@ -119,8 +132,8 @@ describe("home page", () => {
     for (const text of [document.body.innerText, readme, llms]) {
       expect(text).not.toMatch(/still being defined|coming soon/i);
     }
-    expect(document.body.innerText).toContain("Ouro HX is part of Ouro UI");
-    expect(routes[0]!.title).toBe("Ouro HX");
+    expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
+    expect(routes[0]!.title).toBe("Ouro UI");
     // The README opens with the ourostack brand mark every repository shares, then its title.
     expect(readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "").startsWith("# Ouro HX\n")).toBe(true);
     expect(llms.startsWith("# Ouro HX\n")).toBe(true);
@@ -132,7 +145,7 @@ describe("home page", () => {
 
   it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
     await renderPage("/");
-    const home = page.getByRole("link", { name: "Ouro HX", exact: true }).element();
+    const home = page.getByRole("link", { name: "Ouro UI", exact: true }).element();
     expect(home.getAttribute("href")).toBe("/");
     const image = home.querySelector("img");
     expect(image).not.toBeNull();
@@ -175,8 +188,17 @@ describe("home page", () => {
     const pictures = [...showcase.querySelectorAll("picture")];
     expect(pictures.map((picture) => picture.className)).toEqual(["site-ship-shot-light", "site-ship-shot-dark"]);
     for (const picture of pictures) {
-      expect([...picture.querySelectorAll("source")].map((source) => source.type)).toEqual(["image/avif", "image/webp"]);
-      expect(picture.querySelector("source")!.srcset).toMatch(/-640\.avif 640w, .*-1600\.avif 1600w$/);
+      const sources = [...picture.querySelectorAll("source")];
+      // A phone gets the phone capture, at its own size; every other width the wide one.
+      expect(sources.map((source) => [source.type, source.media])).toEqual([
+        ["image/avif", "(max-width: 639.98px)"],
+        ["image/webp", "(max-width: 639.98px)"],
+        ["image/avif", ""],
+        ["image/webp", ""],
+      ]);
+      expect(sources[0]!.srcset).toMatch(/xray-phone-(light|dark)-640\.avif 640w, .*-780\.avif 780w$/);
+      expect([sources[0]!.getAttribute("width"), sources[0]!.getAttribute("height")]).toEqual(["780", "1324"]);
+      expect(sources[2]!.srcset).toMatch(/-640\.avif 640w, .*-1600\.avif 1600w$/);
       const image = picture.querySelector("img")!;
       expect([image.getAttribute("width"), image.getAttribute("height"), image.loading]).toEqual(["1600", "863", "lazy"]);
       expect(image.alt).toMatch(/^Spoonjoy's Crispy Lemon Chickpeas recipe/);
@@ -403,9 +425,9 @@ describe("head tags", () => {
       '<meta property="og:image:height" content="630" />',
       '<meta name="twitter:card" content="summary_large_image" />',
       '<meta name="twitter:image" content="https://ui.ouroboros.bot/og.png" />',
-      '<meta property="og:site_name" content="Ouro HX" />',
-      '<meta property="og:image:alt" content="Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it." />',
-      '<meta name="twitter:image:alt" content="Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it." />',
+      '<meta property="og:site_name" content="Ouro UI" />',
+      '<meta property="og:image:alt" content="Ouro UI: Ouro HX for the screens people use, Ouro AX for the tools agents use." />',
+      '<meta name="twitter:image:alt" content="Ouro UI: Ouro HX for the screens people use, Ouro AX for the tools agents use." />',
     ]) {
       expect(tags).toContain(tag);
     }

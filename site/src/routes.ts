@@ -19,7 +19,7 @@ export interface Route {
 /** Old addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
 export const redirects: Array<{ from: string; to: string }> = [{ from: "/voyage/", to: "/" }];
 
-const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro HX is the component library within Ouro UI.`;
+const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro AX is Ouro UI's other half, for the tools agents use.`;
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
 const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on a far-off island. Help him get her ready, then sail with him. A story told with Ouro HX components: build the Nautilus, plan her voyage, and meet a very friendly squid.`;
 
@@ -27,8 +27,8 @@ const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on
 const AX_DESCRIPTION = "Ouro AX is for the tools agents use: a command line, an HTTP API, an MCP server. Spend a morning with a person and their agent, seen from both sides, then be the agent yourself.";
 
 export const routes: Route[] = [
-  { path: "/", title: "Ouro HX", description: DESCRIPTION },
-  { path: "/nautilus/", title: "The Nautilus · Ouro HX", description: NAUTILUS_DESCRIPTION },
+  { path: "/", title: "Ouro UI", description: DESCRIPTION },
+  { path: "/nautilus/", title: "The Nautilus · Ouro UI", description: NAUTILUS_DESCRIPTION },
   { path: "/ax/", title: "A morning with an agent · Ouro AX", description: AX_DESCRIPTION },
   // The Ouro UI for Apple pages (paths.ts lists them; each page's hero says the same).
   { path: "/apple/", title: "Ouro UI for Apple", description: "Ouro HX and Ouro AX in Swift: the springs, haptics and colours people feel, and the App Intents Siri reads. One package for iPhone, iPad and Mac." },

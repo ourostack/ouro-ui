@@ -5,7 +5,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
-import { VOYAGE_HERO } from "../copy";
+import { HALVES, VOYAGE_HERO } from "../copy";
 import { GITHUB, href } from "../paths";
 import { HydrateInTurn } from "../hydrate";
 import { latestRelease } from "../latest-release";
@@ -135,14 +135,51 @@ function Proof(): JSX.Element {
   );
 }
 
+/**
+ * Ouro UI's two halves, HX and AX, under a line that says so, as two hairline rows (no cards), each name a link to its
+ * half: after the stage on a phone, so the first screen keeps the porthole; on a wide screen, in the copy's column
+ * between the paint and the proof.
+ */
+function Halves(): JSX.Element {
+  const rows = [
+    { key: "hx", ...HALVES.hx },
+    { key: "ax", ...HALVES.ax },
+  ] as const;
+  return (
+    <div role="group" aria-labelledby="site-halves-title" className="site-halves" data-site-halves="">
+      <p id="site-halves-title" className="site-halves-title">
+        {HALVES.title}
+      </p>
+      <dl className="site-halves-list">
+        {rows.map((row) => (
+          <div key={row.key} className="site-halves-row" data-site-half={row.key}>
+            <dt className="site-halves-name">
+              <span className="site-halves-mark" aria-hidden="true">
+                {row.key.toUpperCase()}
+              </span>
+              <span>
+                <Link href={href(row.href)} tone="secondary" inline>
+                  {row.name}
+                </Link>{" "}
+                <span className="site-halves-expansion">· {row.expansion}</span>
+              </span>
+            </dt>
+            <dd className="site-halves-line">{row.line}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 /** The first viewport: Ouro's meadow with the headline in its sky, then how to add HX, beside the porthole stage. */
 export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
   return (
     <section aria-labelledby="hero-title" className="site-hero site-hero-storybook">
       {/*
         The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the
-        headline in its sky; the porthole, the showcase, follows. On a phone the header names Ouro HX
-        just above, so the eyebrow stays for screen readers only.
+        headline in its sky; the porthole, the showcase, follows. The eyebrow names Ouro UI's two halves (the
+        header names Ouro UI itself); on a phone the halves are named under the stage, so it stays for screen readers only.
       */}
       <StoryWorld scene="ouro-hx">
         <Container>
@@ -186,6 +223,7 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
             <Stage onXray={onXray} />
           </HydrateInTurn>
         </div>
+        <Halves />
         {/* After the stage on a phone; on a wide screen, at the foot of the copy, level with the console's. */}
         <Proof />
       </Container>

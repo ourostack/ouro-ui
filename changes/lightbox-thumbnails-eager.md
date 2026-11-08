@@ -1,1 +1,0 @@
-- Lightbox: thumbnails are fetched as they are drawn; the `loading="lazy"` on them is gone, so pictures below the fold, in the grid or in `layout="mosaic"`, are there when the reader scrolls to them. (A list that draws only what is near its view, such as a long MessageList, draws them, and so fetches them, as they come near.)

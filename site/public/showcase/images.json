@@ -30,5 +30,37 @@
       }
     ],
     "made": "c8067abe88210d5c6680a78fe52d4d081f8d7eb9969cd405ed93efe02058fc01"
+  },
+  "spoonjoy-xray-phone-dark.webp": {
+    "width": 780,
+    "height": 1324,
+    "src": "/showcase/spoonjoy-xray-phone-dark-780.webp",
+    "sources": [
+      {
+        "type": "image/avif",
+        "srcset": "/showcase/spoonjoy-xray-phone-dark-640.avif 640w, /showcase/spoonjoy-xray-phone-dark-780.avif 780w"
+      },
+      {
+        "type": "image/webp",
+        "srcset": "/showcase/spoonjoy-xray-phone-dark-640.webp 640w, /showcase/spoonjoy-xray-phone-dark-780.webp 780w"
+      }
+    ],
+    "made": "e96418389ebed4fb4ebfe408d5481c03b8161f572ef1766e1534edc824184ee3"
+  },
+  "spoonjoy-xray-phone-light.webp": {
+    "width": 780,
+    "height": 1324,
+    "src": "/showcase/spoonjoy-xray-phone-light-780.webp",
+    "sources": [
+      {
+        "type": "image/avif",
+        "srcset": "/showcase/spoonjoy-xray-phone-light-640.avif 640w, /showcase/spoonjoy-xray-phone-light-780.avif 780w"
+      },
+      {
+        "type": "image/webp",
+        "srcset": "/showcase/spoonjoy-xray-phone-light-640.webp 640w, /showcase/spoonjoy-xray-phone-light-780.webp 780w"
+      }
+    ],
+    "made": "02e354e95b92e1816eed819bd62cde5f1b158738d6d67d956cc0a8ff697b0c78"
   }
 }

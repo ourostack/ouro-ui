@@ -95,7 +95,7 @@ const APPLE = "Ouro UI for Apple";
 
 /** Every card, by the page that shows it. A docs page shows the docs card. */
 export const CARDS: Record<string, Card> = {
-  "/": { file: "home.jpg", scene: "ouro-hx", kicker: "Ouro HX", title: "Feels right to the people using it. Obvious to the agents building it.", side: "right" },
+  "/": { file: "home.jpg", scene: "ouro-hx", kicker: "Ouro UI", title: "Feels right to the people using it. Obvious to the agents building it.", side: "right" },
   "/nautilus/": { file: "nautilus.jpg", scene: "ouroboros-skills", kicker: "A story in chapters", title: "The Nautilus", side: "right" },
   "/ax/": { file: "ax.jpg", scene: "playwright-focus-proof", kicker: "Ouro AX", title: "A morning with an agent", side: "left" },
   "/apple/": { file: "apple.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Same manners, now in Swift.", side: "left", width: 400 },

@@ -281,13 +281,70 @@
     height: 1rem;
     color: var(--primary);
   }
+  /* Ouro UI's two halves (hero.tsx, Halves): under one hairline, a line that names them, then a row each, a small mark before each name. */
+  .site-halves {
+    display: grid;
+    gap: 0.875rem;
+    max-width: 36rem;
+    padding: 1.25rem 0 0;
+    border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  }
+  .site-halves-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--foreground);
+  }
+  .site-halves-list {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+  }
+  .site-halves-row {
+    position: relative;
+    min-height: 2.5rem;
+    padding-inline-start: 3.25rem;
+  }
+  .site-halves-name {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .site-halves-mark {
+    position: absolute;
+    inset-block-start: 0.125rem;
+    inset-inline-start: 0;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: calc(var(--radius) * 0.9);
+    /* The theme's own ink on a wash of its primary, so the letters hold contrast under every preset. */
+    background: color-mix(in oklab, var(--primary) 14%, transparent);
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .site-halves-expansion {
+    font-weight: 400;
+    color: var(--muted-foreground);
+  }
+  .site-halves-line {
+    margin: 0.125rem 0 0;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    color: var(--muted-foreground);
+  }
   @media (min-width: 64rem) {
     .site-hero {
       padding-block: 1.5rem 5rem;
     }
     .site-hero-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto 1fr auto;
       column-gap: 3.5rem;
       row-gap: 2rem;
     }
@@ -299,11 +356,17 @@
     }
     .site-hero-stage {
       grid-column: 2;
-      grid-row: 1 / span 2;
+      grid-row: 1 / span 3;
+    }
+    /* The halves fill the copy's column between the paint and the proof, so it has no hole beside the console. */
+    .site-halves {
+      grid-column: 1;
+      grid-row: 2;
+      align-self: center;
     }
     .site-proof {
       grid-column: 1;
-      grid-row: 2;
+      grid-row: 3;
       align-self: end;
       /* Level with the foot of the console's last row. */
       margin-bottom: 1.125rem;

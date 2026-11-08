@@ -28,8 +28,8 @@ export const TWO_SHIPS = {
     /** The X-ray screenshot (site/showcase/provenance.json), its caption from ouroboros.bot/ouro-hx/, which this section replaced. */
     shot: {
       alt: {
-        light: "Spoonjoy's Crispy Lemon Chickpeas recipe with X-ray on: the navbar, a number field, a button and a checklist are outlined and labeled with their Ouro HX component names.",
-        dark: "Spoonjoy's Crispy Lemon Chickpeas recipe in dark mode with X-ray on: the navbar, a number field, a button and a checklist are outlined and labeled with their Ouro HX component names.",
+        light: "Spoonjoy's Crispy Lemon Chickpeas recipe with X-ray on: its parts, such as the number field and the Start cooking button, are outlined and labeled with their Ouro HX component names.",
+        dark: "Spoonjoy's Crispy Lemon Chickpeas recipe in dark mode with X-ray on: its parts, such as the number field and the Start cooking button, are outlined and labeled with their Ouro HX component names.",
       },
       caption: "The Test Kitchen with X-ray on: the outlined parts wear their Ouro HX name tags. Real app, real recipe, real chickpeas.",
     },

@@ -10,7 +10,8 @@
 //     light and dark, each expected to pass the audit kit's strict audit (site/e2e/audit.ts);
 //   - "Every line of code runs in a test": the coverage thresholds vitest.config.ts holds over
 //     registry/, all 100;
-//   - "The porthole's controls are Ouro HX too": the stage's source imports its controls from registry/.
+// (Whether the stage's source imports its controls from registry/ is still computed, as `stage`, but is not a
+// claim here: the console under the porthole says it already, "Every control here is a real Ouro HX component".)
 // Each links to its evidence (EVIDENCE): the component inventory, CI's runs on main (the browser
 // matrix), the line of voyage-presets.spec.ts that runs axe over every preset, the line of vitest.config.ts
 // that holds the thresholds, and the stage's own source. A line link is computed from the source it
@@ -104,7 +105,6 @@ export function deriveProof(files: { registry: string; testProjects: string; vit
     { text: tested, href: EVIDENCE.engines },
     ...(themes ? [{ text: `Passes accessibility checks in all ${inWords(themes)} looks, light and dark`, href: `${EVIDENCE.themes}#L${themesLine}` }] : []),
     { text: coverage === 100 ? "Every line of code runs in a test" : `${coverage}% of lines run in a test`, href: `${EVIDENCE.coverage}#L${coverageLine}` },
-    ...(stage ? [{ text: "The porthole's controls are Ouro HX too", href: EVIDENCE.stage }] : []),
   ];
   return { components, typescript, engines, touch, coverage, themes, stage, claims, line: claims.map((claim) => claim.text).join(" · ") };
 }
