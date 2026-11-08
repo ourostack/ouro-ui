@@ -104,15 +104,23 @@ export async function tapKeepsCancelledClick(page: Page): Promise<boolean> {
       probe.textContent = cancels ? "Cancelled probe" : "Plain probe";
       probe.dataset["ouroTapProbe"] = cancels ? "cancelled" : "plain";
       probe.dataset["clicks"] = "0";
-      Object.assign(probe.style, { position: "fixed", top: "0", left: cancels ? "0" : "60px", width: "48px", height: "48px", zIndex: "2147483647" });
+      // Apart, so the two taps do not read as one double tap.
+      Object.assign(probe.style, { position: "fixed", top: "0", ...(cancels ? { left: "0" } : { right: "0" }), width: "48px", height: "48px", zIndex: "2147483647" });
       if (cancels) probe.addEventListener("pointerdown", (event) => event.preventDefault());
-      probe.addEventListener("click", () => (probe.dataset["clicks"] = String(Number(probe.dataset["clicks"]) + 1)));
+      probe.addEventListener("click", (event) => {
+        event.stopPropagation();
+        probe.dataset["clicks"] = String(Number(probe.dataset["clicks"]) + 1);
+      });
       document.body.append(probe);
     }
   });
   await page.locator('[data-ouro-tap-probe="cancelled"]').tap();
   await page.locator('[data-ouro-tap-probe="plain"]').tap();
-  await page.waitForFunction(() => document.querySelector<HTMLElement>('[data-ouro-tap-probe="plain"]')?.dataset["clicks"] === "1");
+  try {
+    await page.waitForFunction(() => document.querySelector<HTMLElement>('[data-ouro-tap-probe="plain"]')?.dataset["clicks"] === "1", undefined, { timeout: 5000 });
+  } catch (error) {
+    throw new Error("tapKeepsCancelledClick: the plain probe's tap raised no click, so the probe cannot tell", { cause: error });
+  }
   return page.evaluate(() => {
     const probes = [...document.querySelectorAll<HTMLElement>("[data-ouro-tap-probe]")];
     const kept = probes.find((probe) => probe.dataset["ouroTapProbe"] === "cancelled")?.dataset["clicks"] === "1";

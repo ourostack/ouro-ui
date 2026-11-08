@@ -38,16 +38,21 @@ test.describe("by touch on a phone", () => {
     // With a coarse pointer on a narrow screen, the field is a button that opens a sheet.
     const herb = page.getByRole("combobox", { name: "Herb", exact: true });
     await herb.tap();
-    await expect(page.getByRole("dialog", { name: "Herb" })).toBeVisible();
+    const sheet = page.getByRole("dialog", { name: "Herb" });
+    await expect(sheet).toBeVisible();
     const rosemary = page.getByRole("option", { name: "Rosemary" });
-    await rosemary.evaluate((item) => item.addEventListener("pointerup", () => item.setAttribute("data-tapped", ""), { once: true }));
+    // The item the tap's pointerup reached, read on the document, so an item drawn again keeps it.
+    await page.evaluate(() =>
+      document.addEventListener("pointerup", (event) => (document.documentElement.dataset["tappedOption"] = (event.target as Element).closest('[role="option"]')?.textContent ?? ""), { capture: true, once: true }),
+    );
     await rosemary.tap();
     // An item cancels pointerdown (Base UI's), so the search input keeps focus; a phone still
     // raises the tap's click. Where Playwright's WebKit drops it (tapKeepsCancelledClick), the
-    // spec checks the tap reached the item, then raises the one click the tap lost.
+    // spec checks the tap reached the item, then raises the one click the tap lost, while the
+    // sheet is still open to take it.
     if (!keepsClick) {
-      await expect(rosemary).toHaveAttribute("data-tapped", "");
-      await rosemary.dispatchEvent("click");
+      await expect(page.locator("html")).toHaveAttribute("data-tapped-option", "Rosemary");
+      if (await sheet.count()) await rosemary.dispatchEvent("click");
     }
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(herb).toContainText("Rosemary");
