@@ -55,7 +55,7 @@ export const SHADCN_LINE =
  */
 export const HALVES = {
   title: "Ouro UI has a half for people and a half for agents",
-  hx: { name: "Ouro HX", href: "/docs/", expansion: "human experience", line: "For the screens people use. You're poking at it right now." },
+  hx: { name: "Ouro HX", href: "/docs/", expansion: "human experience", line: "For the screens people use, like this one." },
   ax: { name: "Ouro AX", href: "/ax/", expansion: "agent experience", line: "For the tools agents use, like a CLI or an MCP server." },
 } as const;
 

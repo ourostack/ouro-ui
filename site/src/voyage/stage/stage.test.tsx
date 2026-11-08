@@ -108,7 +108,7 @@ describe("the hero", () => {
       await renderPage("/");
       expect(install.release).toBe(latestRelease);
       expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
-      expect(INSTALL_CAPTION).toBe(`Installs with the shadcn CLI. This adds ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)}; add any other part the same way.`);
+      expect(INSTALL_CAPTION).toBe(`Adds ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)}. Any other part installs the same way.`);
       // No count of components on the home page (Ari, 2026-10-30).
       expect(INSTALL_CAPTION).not.toMatch(/\d/);
       // real clock: the hero's install command, which stays.

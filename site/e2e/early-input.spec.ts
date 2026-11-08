@@ -196,6 +196,8 @@ test("a tap on a live slider before its own script arrived moves it there once i
   const spice = page.getByRole("slider", { name: "Spice level" });
   await expect(spice).toHaveAttribute("aria-valuenow", "2");
   const track = page.locator('[data-ouro="slider"]').filter({ has: spice }).locator("[data-ouro-slider-control]");
+  // The page's scene comes first, so on a phone the demo may start at the foot of the screen, where a tap at its spot misses.
+  await track.scrollIntoViewIfNeeded();
   const box = (await track.boundingBox())!;
   // Near the end of the track: 4 of 0 to 5, past the thumb at 2.
   await page.mouse.click(box.x + box.width * 0.8, box.y + box.height / 2);
@@ -213,6 +215,7 @@ test("a drag of a live slider's thumb before its own script arrived moves it to 
   const spice = page.getByRole("slider", { name: "Spice level" });
   const track = page.locator('[data-ouro="slider"]').filter({ has: spice }).locator("[data-ouro-slider-control]");
   const thumb = track.locator("[data-ouro-slider-thumb]");
+  await track.scrollIntoViewIfNeeded();
   const [from, box] = [(await thumb.boundingBox())!, (await track.boundingBox())!];
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();
