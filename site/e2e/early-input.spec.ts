@@ -139,13 +139,16 @@ test("a tap on the theme picker or Search before the page's script has run is an
 });
 
 test("text typed into the docs filter before the page's script has run stays, and filters", async ({ page }) => {
+  await recordTimeline(page);
   const { release } = await hold(page, ENTRY);
   await page.goto("docs/toggle/", { waitUntil: "commit" });
   const filter = page.getByPlaceholder("Filter components");
   await filter.fill("tabs");
-  release();
+  await releaseNoted(page, release);
   await hydrated(filter);
-  await expect(page.getByRole("link", { name: "Toggle", exact: true })).toBeHidden({ timeout: ANSWERED });
+  const within = await answerWithin(page);
+  // real clock: the list stays filtered once it is; no timer ends it.
+  await explained(page, () => expect(page.getByRole("link", { name: "Toggle", exact: true })).toBeHidden({ timeout: within }));
   await expect(page.getByRole("link", { name: "Tabs", exact: true })).toBeVisible();
   await expect(filter).toHaveValue("tabs");
 });
