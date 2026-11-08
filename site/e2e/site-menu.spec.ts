@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { APPLE_PATHS } from "../src/paths";
 import { heightsUntilStill, quietFrames } from "./frames";
@@ -725,9 +725,10 @@ test("on a phone choosing the page you are on closes the menu and stays put", as
 });
 
 /**
- * Waits for the browser to open a new tab and commit `url` in it, and gives back that URL; `failure` makes the error if no
- * tab does within 10 s. It is watching before it returns, so the press comes after (`opened` is wrapped in an object
- * because an async function's returned promise would be awaited along with it).
+ * Starts watching for the browser to open a new tab from `page`'s context and commit `url` in it. `opened` gives back
+ * that URL, or fails with `failure()` if no tab does within 10 s; `stop` ends the watch, so call it once the press is
+ * done with, whether or not it opened a tab. (`opened` is wrapped in an object because an async function's returned
+ * promise would be awaited along with it.)
  *
  * Chromium is asked over CDP for its tabs. Playwright reports a new tab only once its first real navigation commits, as
  * a Page.frameNavigated on its session, and Chromium sometimes sends none: the tab opens, commits the page and runs its
@@ -735,21 +736,33 @@ test("on a phone choosing the page you are on closes the menu and stays put", as
  * runs under load). The browser's own record of the tab and its URL does not depend on that event. WebKit has no CDP,
  * so there it is Playwright's event.
  */
-async function nextTab(browser: Browser, context: BrowserContext, browserName: string, url: RegExp, failure: () => Promise<Error>): Promise<{ opened: Promise<string> }> {
+async function nextTab(
+  page: Page,
+  browser: Browser,
+  browserName: string,
+  url: RegExp,
+  failure: () => Promise<Error>,
+): Promise<{ opened: Promise<string>; stop: () => void }> {
   const fail = (): Promise<never> => failure().then((error) => Promise.reject(error));
-  if (browserName !== "chromium")
-    return {
-      opened: context.waitForEvent("page", { timeout: 10_000 }).then(
-        async (tab) => (await tab.waitForURL(url), tab.url()),
-        fail,
-      ),
-    };
+  if (browserName !== "chromium") {
+    const opened = page
+      .context()
+      .waitForEvent("page", { timeout: 10_000 })
+      .then(async (tab) => (await tab.waitForURL(url), tab.url()), fail);
+    // Handled here too, so a press that throws first leaves no rejection unhandled; awaiting `opened` still sees it.
+    opened.catch(() => {});
+    return { opened, stop: () => {} };
+  }
+  const own = await page.context().newCDPSession(page);
+  const { targetInfo: mine } = await own.send("Target.getTargetInfo");
+  await own.detach();
   const cdp = await browser.newBrowserCDPSession();
   const { targetInfos } = await cdp.send("Target.getTargets");
   const before = new Set(targetInfos.map((target) => target.targetId));
   const shown = new Promise<string>((resolve) => {
-    const seen = ({ targetInfo }: { targetInfo: { targetId: string; type: string; url: string } }) => {
-      if (targetInfo.type === "page" && !before.has(targetInfo.targetId) && url.test(targetInfo.url)) resolve(targetInfo.url);
+    const seen = ({ targetInfo }: { targetInfo: { targetId: string; type: string; url: string; browserContextId?: string } }) => {
+      if (targetInfo.type === "page" && targetInfo.browserContextId === mine.browserContextId && !before.has(targetInfo.targetId) && url.test(targetInfo.url))
+        resolve(targetInfo.url);
     };
     cdp.on("Target.targetCreated", seen);
     cdp.on("Target.targetInfoChanged", seen);
@@ -759,15 +772,16 @@ async function nextTab(browser: Browser, context: BrowserContext, browserName: s
   const late = new Promise<never>((_, reject) => {
     timer = setTimeout(() => void fail().catch(reject), 10_000);
   });
-  return {
-    opened: Promise.race([shown, late]).finally(() => {
-      clearTimeout(timer);
-      void cdp.detach().catch(() => {});
-    }),
+  const stop = () => {
+    clearTimeout(timer);
+    void cdp.detach().catch(() => {});
   };
+  const opened = Promise.race([shown, late]).finally(stop);
+  opened.catch(() => {});
+  return { opened, stop };
 }
 
-test("on a phone the page you are on, chosen with a modifier key held, opens in a new tab and the menu stays", async ({ page, context, browser, browserName }) => {
+test("on a phone the page you are on, chosen with a modifier key held, opens in a new tab and the menu stays", async ({ page, browser, browserName }) => {
   await open(page, "ax/");
   await openMenu(page);
   // What the press did, read back if no tab opens (ourostack/ouro-ui#664): each pointer and click event, its target, its
@@ -783,9 +797,13 @@ test("on a phone the page you are on, chosen with a modifier key held, opens in 
       });
   });
   // The tab opens on about:blank and then loads the page.
-  const tab = await nextTab(browser, context, browserName, /\/ax\/$/, async () => new Error(`no tab opened; the press: ${JSON.stringify(await page.evaluate(() => (window as unknown as { __press: string[] }).__press))}`));
-  await sheet(page).locator('[aria-current="page"]').click({ modifiers: ["ControlOrMeta"] });
-  expect(await tab.opened).toMatch(/\/ax\/$/);
+  const tab = await nextTab(page, browser, browserName, /\/ax\/$/, async () => new Error(`no tab opened; the press: ${JSON.stringify(await page.evaluate(() => (window as unknown as { __press: string[] }).__press))}`));
+  try {
+    await sheet(page).locator('[aria-current="page"]').click({ modifiers: ["ControlOrMeta"] });
+    await tab.opened;
+  } finally {
+    tab.stop();
+  }
   await expect(sheet(page)).toBeVisible();
 });
 
