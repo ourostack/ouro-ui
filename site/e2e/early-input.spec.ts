@@ -190,13 +190,10 @@ for (const stall of [0, 2500]) {
     await speed.click();
     await releaseNoted(page, release);
     await page.waitForFunction(() => Object.keys(document.getElementById("root")!).some((key) => key.startsWith("__reactContainer$")));
-    // The page's own event, not a clock: the radio's attribute changing. A tap never answered ends the test at its own timeout.
-    await explained(page, () => speed.evaluate((radio) => new Promise<void>((done) => {
-      const look = () => (radio.getAttribute("aria-checked") === "true" ? done() : undefined);
-      new MutationObserver(look).observe(radio, { attributes: true, attributeFilter: ["aria-checked"] });
-      look();
-    })));
-    await expect(speed).toHaveAttribute("aria-checked", "true");
+    // The answer is the page's own state, not a clock: the radio's attribute turning true, however long a stall takes.
+    // real clock: only a tap never answered ends this, after a cap far past any stall; it is no latency bar, and it
+    // throws, so the page's timeline (`explained`) is attached to the failure.
+    await explained(page, () => page.waitForFunction(() => document.querySelector(".site-hero-stage [role='radio']")?.getAttribute("aria-checked") === "true", undefined, { timeout: 20_000 }).then(() => undefined));
   });
 }
 
