@@ -629,6 +629,8 @@ test("on a phone the docs menu's folded lists hold no pages until they unfold, t
   // part-way open, and the transition then runs to its end rather than being cut short. Read that way, a runner that
   // draws a frame a second still sees the slide, where a sample of each frame could miss all of it (#684). The seek
   // halves the slide's length in this test only.
+  // It assumes the Collapsible slides with a CSS transition on `height`, with no delay past half its length and no
+  // easing that overshoots: a slide moved to `max-height`, a Web Animation or script fails it and needs this test changed.
   await group.evaluate((element) => {
     const height = (event: Event) => (event as TransitionEvent).propertyName === "height" && (event.target as Element).matches("[data-ouro-collapsible-panel]");
     element.addEventListener("transitionrun", (event) => {
