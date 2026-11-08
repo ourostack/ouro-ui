@@ -43,7 +43,7 @@ export function DocsShell({ current, opener, children }: { current: string; open
       </Suspense>
       {opener && (
         <section aria-labelledby="page-title">
-          <StoryWorld scene={opener.scene} className={opener.tall ? "story-world-short" : "story-world-docs"} decorative>
+          <StoryWorld scene={opener.scene} className={opener.tall ? "story-world-short story-world-still" : "story-world-docs story-world-still"} decorative>
             <Container className={COLUMNS}>
               <div className="max-sm:hidden" />
               <div className="min-w-0 max-w-3xl">

@@ -12,7 +12,7 @@ import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
 import type { SceneName } from "../storybook";
 import { LiveDemo } from "../components/live-demo";
-import { siteGroups } from "../../../scripts/catalog-groups.mts";
+import { siteGroups, type SiteGroup } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown, markdown } from "../docs/content";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
 import { inline, Markdown, parse, type Block } from "../docs/markdown";
@@ -39,7 +39,7 @@ function Lead({ children }: { children: ReactNode }): JSX.Element {
  * screen by the jars of tokens, what opens over a screen on the bench of three, what reports back in the
  * morning the agents work through, lists and data by the shelf of scrolls, and the app's setup in Ouro's whole world.
  */
-const GROUP_SCENES: Record<string, SceneName> = {
+const GROUP_SCENES: Record<SiteGroup, SceneName> = {
   Actions: "ouro-hx",
   Forms: "ouro-hx",
   Text: "ouro-ui-core",
@@ -54,7 +54,7 @@ const GROUP_SCENES: Record<string, SceneName> = {
   Data: "ouroboros-skills",
   "App setup": "ourostack",
 };
-const groupScene = (group: string): SceneName => GROUP_SCENES[group] ?? "ouro-hx";
+const groupScene = (group: string): SceneName => GROUP_SCENES[group as SiteGroup] ?? "ouro-hx";
 
 /**
  * The scene any other page opens on: guides by the shelf of scrolls, Ouro AX's pages in the morning the agents
@@ -101,7 +101,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       <Lead>{inline(purpose)}</Lead>
       <section
         aria-label="Live demo"
-        className="flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 py-10 sm:px-10 dark:bg-muted/80"
+        className="flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 py-10 sm:px-10 dark:bg-muted/65"
       >
         <LiveDemo name={item.name} title={item.title} />
       </section>

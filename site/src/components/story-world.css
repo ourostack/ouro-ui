@@ -137,7 +137,7 @@
   /*
    * A docs page's arrival (components/docs-shell.tsx): its title in a shorter sky, over the column it names, then a
    * band of about half the scene, framed on the friends' faces (storybook.ts, `band`), so the page's own words and
-   * demo come within the first screen. It holds still: a reference page is read, not watched.
+   * demo come within the first screen. Every docs scene holds still (`.story-world-still`): a reference page is read, not watched.
    */
   .story-world-docs {
     --story-max-h: max(10rem, min(20.5vw, 30vh));
@@ -148,7 +148,7 @@
   .story-world-docs .story-world-img {
     object-position: 50% var(--story-band-y);
   }
-  .story-world-docs :is(.story-world-img, .story-world-sun) {
+  .story-world-still :is(.story-world-img, .story-world-sun) {
     animation: none;
   }
   .story-world-eyebrow {

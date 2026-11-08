@@ -41,7 +41,7 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 576,
     phoneHeight: 432,
     sun: [86, 30],
-    band: 30,
+    band: 32,
   },
   "ouro-ui-apple": {
     alt: "A little white robot leans over a phone, a tablet and a laptop on a garden bench, each showing the same green card with a switch, while Ouro smiles beside them.",
@@ -57,7 +57,7 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 576,
     phoneHeight: 576,
     sun: [86, 13],
-    band: 30,
+    band: 20,
   },
   "playwright-focus-proof": {
     alt: "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
