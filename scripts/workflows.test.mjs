@@ -1319,6 +1319,9 @@ test("every required check is still a job that reports, under the name the rules
   assert.equal(jobs["heavy-queued"].match(/^ {4}if: (.+)$/m)?.[1], heavyQueued);
   assert.match(jobs["heavy-queued"], /^ {4}needs: \[plan\]$/m);
   assert.deepEqual(checkNames(jobs["heavy-queued"], "heavy-queued"), checkNames(jobs.themes, "themes"));
+  // GitHub reports a skipped job whose name is only an expression under the bare expression
+  // ("matrix.check"), which no job's name matches, so the budget would fail it as unmatched.
+  for (const [id, block] of Object.entries(jobs)) assert.doesNotMatch(block.match(/^ {4}name: (.+)$/m)?.[1] ?? id, /^\$\{\{[^}]*\}\}$/, `${id}'s name has text besides an expression`);
   assert.match(jobs.plan, /^ {6}heavy: \$\{\{ steps\.plan\.outputs\.heavy \}\}$/m);
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {

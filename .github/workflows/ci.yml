@@ -1546,13 +1546,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        check: [themes (1/3), themes (2/3), themes (3/3)]
-    name: ${{ matrix.check }}
+        shard: [1, 2, 3]
+    # The themes job's own name: a name that is only an expression is reported skipped as its bare
+    # expression ("matrix.check"), which no job pattern in ci-budget matches.
+    name: themes (${{ matrix.shard }}/3)
     steps:
       - name: The heavy tier runs in the merge queue
         env:
-          CHECK: ${{ matrix.check }}
-        run: echo "::notice::$CHECK runs in the merge queue, not on this pull request (the plan's heavy=queue)."
+          SHARD: ${{ matrix.shard }}
+        run: echo "::notice::themes ($SHARD/3) runs in the merge queue, not on this pull request (the plan's heavy=queue)."
   ci-budget:
     # Records this run's critical path, the longest chain of jobs that wait on one another, each
     # counted from its start to its end so a queue for a free runner does not count, and its wall
