@@ -110,6 +110,8 @@ describe("Ouro AX page", () => {
     expect(lines.map((line) => line.querySelector(".ax-bubble")?.textContent)).toEqual(["You: Tell Design sync I'm running late.", cast("Your agent: Posted in Design sync on your word. {replier} and {other} can see it.")]);
     expect(lines[0]!.querySelector(".ax-avatar-person svg")?.getAttribute("viewBox")).toBe("0 0 48 48");
     expect(lines[1]!.querySelector(".ax-avatar-agent svg")?.getAttribute("viewBox")).toBe("0 0 96 96");
+    // Sized in the markup, so the server's HTML draws them small before ax.css arrives with the AX chunk.
+    expect(lines.map((line) => line.querySelector("svg")?.getAttribute("width"))).toEqual(["40", "64"]);
     for (const line of lines) expect(line.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     const replies = MORNING.flatMap((beat) => beat.seen).filter((item) => item.kind === "agent").map((item) => item.text);
     for (const reply of replies) expect(reply, "the agent's replies never say I").not.toMatch(/\b(I|I'm|I'll|I've|me|my)\b/);

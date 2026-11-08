@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { Command, type CommandEntry } from "@/registry/ouro/components/ouro/command/command";
-import { comparisons, componentGroups, guides } from "../components/docs-sections";
+import { comparisons, componentGroups, guides, platforms } from "../components/docs-sections";
 import { href } from "../paths";
 import { choiceList } from "./presets";
 import { guideLabel, sectionHref, SITE_SECTIONS } from "./site-menu";
@@ -47,6 +47,7 @@ export default function SitePalette({ open, onOpenChange }: { open: boolean; onO
         ...comparisons.map((link) => ({ label: link.label, description: "Skill comparison", onSelect: go(href(link.path)) })),
       ],
     },
+    { label: "Platforms", items: platforms.map((link) => ({ label: link.label, description: "Platforms", onSelect: go(href(link.path)) })) },
     {
       label: "Repaint",
       items: [

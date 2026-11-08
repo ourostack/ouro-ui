@@ -197,7 +197,7 @@ function Bar({ className }: { className: string | undefined }): JSX.Element {
  * far along the work is.
  *
  * @group Display
- * @see https://ui.ouro.bot/docs/skeleton
+ * @see https://ui.ouroboros.bot/docs/skeleton
  *
  * @example
  * <>

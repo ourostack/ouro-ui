@@ -534,7 +534,7 @@ function AuthorName({ name, content, loading }: { name: string; content: ReactNo
  * `toast()` for a passing confirmation.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/message
+ * @see https://ui.ouroboros.bot/docs/message
  *
  * @example
  * <Message role="user" name={user.name} avatar={user.photoUrl}>How long do I rest the dough?</Message>

@@ -394,7 +394,7 @@ const ChevronIcon = () => (
  * free text with no suggestions.
  *
  * @group Forms
- * @see https://ui.ouro.bot/docs/combobox
+ * @see https://ui.ouroboros.bot/docs/combobox
  *
  * @example
  * <Combobox label="Herb" name="herb" items={["Basil", "Dill", "Thyme"]} />

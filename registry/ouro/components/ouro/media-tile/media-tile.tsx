@@ -368,7 +368,7 @@ function useTileObservers(
  * @claim "`onVisibilityChange` tells you whether the" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > reports its size rounded up once a frame, never twice with the same values, whatever the callback)
  * @claim "Its agent side, `mediaTileAx` in" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile > declares its agent side: a participant read anyone may take, and a private pin an agent may take)
  * @group Display
- * @see https://ui.ouro.bot/docs/media-tile
+ * @see https://ui.ouroboros.bot/docs/media-tile
  *
  * @example
  * <MediaTile name="Mara Lind" speaking={isSpeaking} muted={isMuted} avatar={{ src: photoUrl }} onVisibilityChange={subscribe}>

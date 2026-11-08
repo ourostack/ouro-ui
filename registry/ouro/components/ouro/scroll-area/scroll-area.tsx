@@ -113,7 +113,7 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  * which scroll their own bodies, for long content in an overlay.
  *
  * @group Layout
- * @see https://ui.ouro.bot/docs/scroll-area
+ * @see https://ui.ouroboros.bot/docs/scroll-area
  *
  * @example
  * <ScrollArea className="h-72" label="Method">

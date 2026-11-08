@@ -681,13 +681,30 @@ const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
     if (!title) throw new Error(`docs/guides/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
     return { name: file.slice(0, -3), title: title[1]!, kind: "guide" as const, group: "Guides", markdown: `docs/guides/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
   });
+// The Platforms section (docs/platforms/, written by hand): README.md is its index at docs/platforms,
+// and each other file is one platform's page, or the contributor guide, at docs/platforms/<file>.
+// The index comes first, then Apple, the platforms that shipped first, then the others by name,
+// with "your platform" and the contributor guide last. A page starts as a guide does.
+const platformsDir = join(root, "docs/platforms");
+const platformLast = ["your-platform.md", "contributing.md"];
+const platformRank = (file: string) => (file === "README.md" ? 0 : file === "apple.md" ? 1 : platformLast.includes(file) ? 3 + platformLast.indexOf(file) : 2);
+const platformPages = (existsSync(platformsDir) ? readdirSync(platformsDir) : [])
+  .filter((file) => file.endsWith(".md"))
+  .sort((a, b) => platformRank(a) - platformRank(b) || a.localeCompare(b))
+  .map((file) => {
+    const text = readFileSync(join(platformsDir, file), "utf8");
+    const title = /^# (.+)\n\n(.+)\n/.exec(text);
+    if (!title) throw new Error(`docs/platforms/${file} must start with "# Title", a blank line and a one-paragraph summary.`);
+    const name = file === "README.md" ? "platforms" : `platforms/${file.slice(0, -3)}`;
+    return { name, title: title[1]!, kind: "platform" as const, group: "Platforms", markdown: `docs/platforms/${file}`, summary: summary(text.replace(/^# .*$/m, "")) };
+  });
 // Ouro AX's page per ax item (docs/ax/, scripts/ax-docs.mts), published at docs/<item> as a component's page is.
 const axOutputs = axDocs(root, latestRelease(root));
 const axPages = [...axOutputs.keys()].sort().map((path) => {
   const name = path.slice("docs/ax/".length, -3);
   return { name, title: name, kind: "guide" as const, group: "Ouro AX", markdown: path, summary: summary(axOutputs.get(path)!.replace(/^# .*$/m, "")) };
 });
-const sitePages = [...guidePages, ...axPages, ...exportPages];
+const sitePages = [...guidePages, ...axPages, ...exportPages, ...platformPages];
 const taken = new Map<string, string>(siteItems.map((item) => [item.name, `the ${item.name} item`]));
 for (const page of sitePages) {
   if (taken.has(page.name)) throw new Error(`${page.markdown} would be published at docs/${page.name}, the address of ${taken.get(page.name)}. Rename one.`);
@@ -748,7 +765,7 @@ const readmeItems = [
   "",
   `Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool \`ax-example\`, \`ouro-ax-tests\` with their \`<name>-tests\` items, and \`ouro-ax\`, which is:\n${axItemNames.map(code).join(",\n")}.`,
   "",
-  "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop, and `ouro-images`, which writes your pictures at the widths a srcset needs ([Guardrails guide](https://ui.ouro.bot/docs/guardrails/)).",
+  "Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop, and `ouro-images`, which writes your pictures at the widths a srcset needs ([Guardrails guide](https://ui.ouroboros.bot/docs/guardrails/)).",
   "",
   `${claim("Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):", { source: { test: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }, verify: { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" } })}\n${helperItems.map(code).join(",\n")}.\n${claim(
     "No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.",

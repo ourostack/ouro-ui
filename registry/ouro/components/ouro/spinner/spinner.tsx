@@ -71,7 +71,7 @@ function spinnerHint(token: string): string {
  * wait follows a press, and `Progress` when you know how far along the work is.
  *
  * @group Feedback
- * @see https://ui.ouro.bot/docs/spinner
+ * @see https://ui.ouroboros.bot/docs/spinner
  *
  * @example
  * <TextField label="Find" endAdornment={<Spinner size="sm" label="Searching" />} />

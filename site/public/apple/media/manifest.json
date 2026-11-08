@@ -29,7 +29,7 @@
         "hx-spring-poster.jpg": 11825,
         "hx-spring-still.jpg": 10184
       },
-      "siteCrop": "crop=590:710:0:310; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
+      "siteCrop": "crop=590:710:0:310; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouroboros.bot"
     },
     {
       "name": "hx-spring-dark",
@@ -53,7 +53,7 @@
         "hx-spring-dark-poster.jpg": 11999,
         "hx-spring-dark-still.jpg": 10454
       },
-      "siteCrop": "crop=590:710:0:310; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
+      "siteCrop": "crop=590:710:0:310; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouroboros.bot"
     },
     {
       "name": "hx-press",
@@ -77,7 +77,7 @@
         "hx-press-poster.jpg": 11910,
         "hx-press-still.jpg": 11951
       },
-      "siteCrop": "crop=590:330:0:487; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
+      "siteCrop": "crop=590:330:0:487; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouroboros.bot"
     },
     {
       "name": "hx-themes",
@@ -101,7 +101,7 @@
         "hx-themes-poster.jpg": 17163,
         "hx-themes-still.jpg": 17163
       },
-      "siteCrop": "crop=590:564:0:372; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
+      "siteCrop": "crop=590:564:0:372; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouroboros.bot"
     },
     {
       "name": "hx-themes-dark",
@@ -125,7 +125,7 @@
         "hx-themes-dark-poster.jpg": 17410,
         "hx-themes-dark-still.jpg": 17410
       },
-      "siteCrop": "crop=590:564:0:372; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
+      "siteCrop": "crop=590:564:0:372; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouroboros.bot"
     },
     {
       "name": "hx-reduce-motion",
@@ -149,7 +149,7 @@
         "hx-reduce-motion-poster.jpg": 15268,
         "hx-reduce-motion-still.jpg": 15126
       },
-      "siteCrop": "crop=590:722:0:291; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
+      "siteCrop": "crop=590:722:0:291; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouroboros.bot"
     },
     {
       "name": "hx-haptics",
@@ -173,7 +173,7 @@
         "hx-haptics-poster.jpg": 14117,
         "hx-haptics-still.jpg": 22515
       },
-      "siteCrop": "crop=590:656:0:330; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
+      "siteCrop": "crop=590:656:0:330; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouroboros.bot"
     },
     {
       "name": "spoonjoy-add-recipe",
@@ -199,7 +199,7 @@
         "spoonjoy-add-recipe-poster.jpg": 114634,
         "spoonjoy-add-recipe-still.jpg": 43328
       },
-      "siteCrop": "crop=590:1142:0:8; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouro.bot"
+      "siteCrop": "crop=590:1142:0:8; re-encoded with libx265 crf 24 (hvc1) and libvpx-vp9 crf 36 for ui.ouroboros.bot"
     }
   ]
 }

@@ -274,7 +274,7 @@ function keysOf(entry: ToolbarButtonEntry | ToolbarToggleEntry): readonly string
  * application's menus.
  *
  * @group Actions
- * @see https://ui.ouro.bot/docs/toolbar
+ * @see https://ui.ouroboros.bot/docs/toolbar
  *
  * @example
  * <Toolbar

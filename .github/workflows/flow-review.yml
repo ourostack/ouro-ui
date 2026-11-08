@@ -1,7 +1,7 @@
 name: flow-review
 # Ouro UI's flows (flows/*.flow.json) through ourostack/flow-review, report-only: every check reports in the run's
 # summary and its flow-review-ouro-ui artifact, and no finding fails the run. Daily, and when the flows or this file
-# change, they review the published site (https://ui.ouro.bot/, built from main). Dispatched with a release tag, they
+# change, they review the published site (https://ui.ouroboros.bot/, built from main). Dispatched with a release tag, they
 # review that tag's site and Storybook, built as Pages builds them and served on one origin.
 on:
   schedule:
@@ -55,7 +55,7 @@ jobs:
           cache-dependency-path: release/pnpm-lock.yaml
       - id: target
         run: |
-          if [ "$REF" = main ]; then echo "url=https://ui.ouro.bot/" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$REF" = main ]; then echo "url=https://ui.ouroboros.bot/" >> "$GITHUB_OUTPUT"; exit 0; fi
           cd release
           pnpm i --frozen-lockfile
           pnpm site:build

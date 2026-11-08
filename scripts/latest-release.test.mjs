@@ -64,7 +64,7 @@ test("unpinnedAddresses finds an item address with no ref or a ref other than a 
   assert.deepEqual(unpinnedAddresses("Update with `add ourostack/ouro-ui/<item> --dry-run`."), ["ourostack/ouro-ui/<item>"]);
   assert.deepEqual(unpinnedAddresses("add ourostack/ouro-ui/${item.name}"), ["ourostack/ouro-ui/${item.name}"]);
   assert.deepEqual(unpinnedAddresses("Pinned: ourostack/ouro-ui/dialog#v0.3.0, ourostack/ouro-ui#v0.3.0, @ouro/dialog."), []);
-  assert.deepEqual(unpinnedAddresses("See https://github.com/ourostack/ouro-ui/releases and ui.ouro.bot/docs/."), []);
+  assert.deepEqual(unpinnedAddresses("See https://github.com/ourostack/ouro-ui/releases and ui.ouroboros.bot/docs/."), []);
   assert.deepEqual(unpinnedAddresses("Install a release. Without a ref, ourostack/ouro-ui/dialog installs main, which is for contributors. Next."), []);
   // An action takes its ref after an @.
   assert.deepEqual(unpinnedAddresses("uses: ourostack/ouro-ui/.github/actions/check@v1.3.2"), []);

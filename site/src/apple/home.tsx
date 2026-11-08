@@ -6,6 +6,7 @@ import { Container } from "../voyage/layout";
 import kit from "./kit.json";
 import { LayersBand } from "./layers";
 import { Loop } from "./loop";
+import { StoryOpener } from "../components/story-world";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 import ouroMd from "./xray/ouro-md.json";
 import spoonjoy from "./xray/spoonjoy.json";
@@ -15,6 +16,7 @@ export default function AppleHome(): JSX.Element {
   return (
     <div id="apple-home" className="apple">
       <AppleMenu current="/apple/" />
+      <StoryOpener scene="ouro-ui-apple" line="One green card on a phone, a tablet and a laptop. The robot checked: it feels the same on all three." />
       <AppleHero
         id="apple-home-title"
         eyebrow="Ouro UI for Apple"

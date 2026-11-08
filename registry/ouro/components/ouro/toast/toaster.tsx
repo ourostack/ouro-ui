@@ -119,7 +119,7 @@ export interface ToasterProps {
  *
  * @claim "Put it at the top with layout" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > hangs from the top and unfurls downward when its layout classes put it at the top)
  * @group Feedback
- * @see https://ui.ouro.bot/docs/toaster
+ * @see https://ui.ouroboros.bot/docs/toaster
  *
  * @example
  * <OuroProvider>

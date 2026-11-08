@@ -55,10 +55,18 @@ export const isAxPart = ({ path, label }: DocsLink): boolean => path === `/docs/
 export const comparisons: DocsLink[] = guidePages
   .filter((page) => isComparison(page.name))
   .map((page) => ({ path: `/docs/${page.name}/`, label: page.title.replace("Comparison results: ", "") }));
+/** A platform page's label: a product page's part from "for" ("For Apple"), so a platform's name only ever follows "for"; the section's index is its Overview, and the guide keeps its title. */
+const platformLabel = (page: { name: string; title: string }) => {
+  if (page.name === "platforms") return "Overview";
+  const at = page.title.startsWith("Ouro ") ? page.title.indexOf(" for ") : -1;
+  return at === -1 ? page.title : `For ${page.title.slice(at + " for ".length)}`;
+};
+/** The Platforms section's pages (docs/platforms), in the order `pnpm run docs` lists them. */
+export const platforms: DocsLink[] = pageIndex.filter((page) => page.kind === "platform").map((page) => ({ path: `/docs/${page.name}/`, label: platformLabel(page) }));
 
 /**
  * The docs sidebar's sections: Start, then each catalog group's components under its own
- * label, then the guides. With a filter, only the components whose name matches remain.
+ * label, then the guides, then the platforms. With a filter, only the components whose name matches remain.
  */
 export function docsSections(filter = ""): SidebarSection[] {
   const link = ({ path, label }: DocsLink) => ({ href: href(path), label });
@@ -68,5 +76,6 @@ export function docsSections(filter = ""): SidebarSection[] {
     { label: "Start", items: startPages.map((page) => link({ path: page.href, label: page.label })) },
     ...groups,
     { label: "Guides", items: [...guides.map(link), { label: "Skill comparisons", items: comparisons.map(link) }] },
+    { label: "Platforms", items: platforms.map(link) },
   ];
 }

@@ -117,7 +117,7 @@ async function crop(image: HTMLImageElement, natural: Size, frame: Size, scale: 
  * for files that need no cropping.
  *
  * @group Forms
- * @see https://ui.ouro.bot/docs/image-cropper
+ * @see https://ui.ouroboros.bot/docs/image-cropper
  *
  * @example
  * <ImageCropper open={file !== null} onOpenChange={(open) => !open && setFile(null)} image={file} shape="circle" onCrop={upload} />

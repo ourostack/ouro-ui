@@ -5,6 +5,7 @@ import { href } from "../paths";
 import { Container } from "../voyage/layout";
 import kit from "./kit.json";
 import { Loop } from "./loop";
+import { StoryOpener } from "../components/story-world";
 import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
 
 const FIRST_SCREEN = `import OuroHX
@@ -48,6 +49,7 @@ export default function AppleStart(): JSX.Element {
   return (
     <div id="apple-start" className="apple">
       <AppleMenu current="/apple/start/" />
+      <StoryOpener scene="ouro-ui-apple" line="One bench, three screens, one Swift package. Pull up a seat." />
       <AppleHero id="apple-start-title" eyebrow="Get started" title="One line of Swift.">
         <p>Add the package in Xcode under File, Add Package Dependencies, or put this in your Package.swift:</p>
         <CodeBlock code={kit.packageLine} label="Package.swift" wrap copy />
