@@ -6,23 +6,21 @@
 
 # Ouro HX
 
-Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
+**React components for people, and for the agents who build them.** Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
 **[See it live: ui.ouroboros.bot](https://ui.ouroboros.bot/)**, with the [docs](https://ui.ouroboros.bot/docs/) and [Storybook](https://ui.ouroboros.bot/storybook/). [Spoonjoy](https://spoonjoy.app/), a recipe app, is built with it ([source](https://github.com/spoonjoy/spoonjoy-v2)); each component's docs page links to where Spoonjoy shows it.[^spoonjoy]
 
-The site moved from ui.ouro.bot to ui.ouroboros.bot.[^host] Old addresses still land, forwarded to the same path on the new host, but new links use ui.ouroboros.bot.
-
-**Check what you built first.** Build your app, run `node lib/ouro/check/check.ts <built folder>` (from the `ouro-check` item) and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouroboros.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check stopped before it finished), `2` usage, `3` findings to fix.[^exit-codes]
-
-Ouro HX is the component library within Ouro UI. [Ouro AX](#ouro-ax), its counterpart for the interfaces agents use, is the other half. The repository, `@ouro` namespace and install addresses are unchanged.
+Ouro HX is the half of Ouro UI for the interfaces people use: React components you copy in with the shadcn CLI. **[Ouro AX](#ouro-ax)** is the other half, for the interfaces agents use.
 
 ```sh
-npx shadcn@latest search 'ourostack/ouro-ui#v1.3.6'     # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.6' # read one item
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6    # install it
+# In an app set up with shadcn init (see Quick start):
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.6  # once per app: the tokens
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6     # then any component
 ```
 
-A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.6`, `github:` and `/tree/` URLs don't work. The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
+New to shadcn? [Quick start](#quick-start) has the `init` line.
+
+Browse first with `npx shadcn@latest search 'ourostack/ouro-ui#v1.3.6'` (list the items) and `npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.6'` (read one). The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
 
 Ouro HX is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes.[^tailwind-4] Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
@@ -54,6 +52,16 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.6
 - Pass `--base base`: Ouro HX is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
 - New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias, and `"paths": { "@/*": ["./src/*"] }` in both `tsconfig.json` and `tsconfig.app.json` (no `baseUrl` on TypeScript 6) before `init`. shadcn reads the root file, and `tsc -b` builds the app one.
 - `--preset nova` lets `init` run without prompts. It sets shadcn's starting theme, font and icons (nova adds the Geist font, `lucide-react` and `tw-animate-css`), which Ouro components read like any shadcn theme. The install test runs `nova` and `vega`; other presets are untested.
+- A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.6`, `github:` and `/tree/` URLs don't work.
+
+### Check what you built
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.6
+node lib/ouro/check/check.ts dist   # your built folder
+```
+
+Build your app, run the check on the built folder and fix what it reports: it opens every page at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where you declare a measure ([Guardrails guide](https://ui.ouroboros.bot/docs/guardrails/#the-screen-check)). Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in `ouro-check.json` only where your design or the request sets it, and don't cap text width just to quiet the check. It exits as every Ouro tool does: `0` ok, `1` error (the check stopped before it finished), `2` usage, `3` findings to fix.[^exit-codes]
 
 ### Next.js
 
@@ -693,6 +701,8 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.6   # with their node
 Guides: [Ouro AX](docs/guides/ax.md), [make your CLI conformant](docs/guides/ax-adopt.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
 
 ## Where things live
+
+The site moved from ui.ouro.bot to ui.ouroboros.bot.[^host] Old addresses still land, forwarded to the same path on the new host, but new links use ui.ouroboros.bot. The repository, `@ouro` namespace and install addresses are unchanged.
 
 - **[ourostack/ouro-ui-core](https://github.com/ourostack/ouro-ui-core):** the tokens, the decision records and the Ouro AX for Apple claims, with the design language, the Ouro AX standard and the site to follow.
 - **[ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple):** the Swift package (`OuroHX`, `OuroAX`, `ouro-ax-xray`).

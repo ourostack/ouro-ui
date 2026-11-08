@@ -87,7 +87,10 @@ test("sameSteps tells a README whose Next.js steps changed from one whose catalo
   assert.ok(sameSteps(readme, readme.replace(/#v\d+\.\d+\.\d+/g, "#v99.0.0")), "a release moves the tag, not the steps");
   const steps = readmeSteps(readme);
   const [first] = steps.adds[0];
-  assert.ok(!sameSteps(readme, readme.replace(`ourostack/ouro-ui/${first}#`, "ourostack/ouro-ui/other#")), "an add command's items");
+  // Change the add inside Quick start: the same item can appear earlier on the page, outside the steps.
+  const quickStart = readme.indexOf("\n### Quick start\n");
+  const changedAdd = readme.slice(0, quickStart) + readme.slice(quickStart).replace(`ourostack/ouro-ui/${first}#`, "ourostack/ouro-ui/other#");
+  assert.ok(!sameSteps(readme, changedAdd), "an add command's items");
   assert.ok(!sameSteps(readme, readme.replace(steps.files["app/layout.tsx"], `${steps.files["app/layout.tsx"]}// changed\n`)), "a file");
   assert.ok(!sameSteps(readme, readme.replace("\n### Next.js\n", "\n### Next\n")), "steps that cannot be read");
 });
