@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory, pressTab, tapKeepsCancelledClick } from "./story";
+import { filmTops, openStory, pressTab, tapKeepsCancelledClick } from "./story";
 
 test("typing filters the list, and Enter picks the highlighted item", async ({ page }) => {
   await openStory(page, "forms-combobox--modes");
@@ -56,5 +56,23 @@ test.describe("by touch on a phone", () => {
     }
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(herb).toContainText("Rosemary");
+  });
+
+  test("the sheet's search field, panel and top stay put on every frame while typing filters the list", async ({ page }) => {
+    await openStory(page, "forms-combobox--modes");
+    await page.getByRole("combobox", { name: "Herb", exact: true }).tap();
+    const sheet = page.getByRole("dialog", { name: "Herb" });
+    const search = sheet.getByRole("combobox", { name: "Herb" });
+    const options = sheet.getByRole("option");
+    await expect(options.first()).toBeVisible();
+    const all = await options.count();
+    const film = await filmTops({ input: search, panel: sheet.locator("[data-ouro-sheet-content]"), sheet }, async () => {
+      await search.tap();
+      await search.pressSequentially("ros", { delay: 120 });
+      await expect(options).toHaveText(["Rosemary"]);
+    });
+    expect(all).toBeGreaterThan(1);
+    expect(film.frames).toBeGreaterThan(0);
+    expect(film.moves).toEqual([]);
   });
 });

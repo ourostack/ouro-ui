@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory } from "./story";
+import { filmTops, openStory } from "./story";
 
 test("searches, moves through the grid with the keyboard and reacts with the emoji chosen", async ({ page }) => {
   await openStory(page, "chat-emojipicker--reactions");
@@ -55,4 +55,25 @@ test("offers an image catalogue's emoji, finds one by shortcode and gives its to
   await page.keyboard.press("Enter");
   await expect(picker).toBeHidden();
   await expect(page.getByText("Reacted with Party popper (:party:)")).toBeVisible();
+});
+
+test.describe("by touch on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("the sheet's search field, panel and top stay put on every frame as a search starts and narrows", async ({ page }) => {
+    await openStory(page, "chat-emojipicker--reactions");
+    await page.getByRole("button", { name: "Add a reaction" }).tap();
+    const sheet = page.getByRole("dialog", { name: "Add a reaction" });
+    const searchbox = sheet.getByRole("searchbox", { name: "Search emoji" });
+    // The category bar goes as the first letter is typed, and its row with it took the field down 57 px (#696).
+    await expect(sheet.getByRole("toolbar", { name: "Categories" })).toBeVisible();
+    const film = await filmTops({ input: searchbox, panel: sheet.locator('[data-ouro="emoji-picker"]'), sheet }, async () => {
+      await searchbox.tap();
+      await searchbox.pressSequentially("hea", { delay: 120 });
+      await expect(sheet.getByRole("toolbar", { name: "Categories" })).toHaveCount(0);
+      await expect(sheet.getByRole("grid", { name: /^\d+ emoji$/ }).getByRole("button", { name: "red heart" })).toBeVisible();
+    });
+    expect(film.frames).toBeGreaterThan(0);
+    expect(film.moves).toEqual([]);
+  });
 });

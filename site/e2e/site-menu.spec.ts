@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { pressTab } from "../../registry/ouro/e2e/ouro/story";
+import { filmTops, pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { APPLE_PATHS } from "../src/paths";
 import { heightsUntilStill, quietFrames } from "./frames";
 
@@ -651,6 +651,29 @@ test("on a phone the docs menu's search holds still as a search shortens the lis
   await sheet(page).getByRole("searchbox", { name: "Find a page or component" }).fill("tool");
   await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(0);
   expect((await field.boundingBox())!.y).toBe(stuck);
+});
+
+test.describe("by touch", () => {
+  test.use({ hasTouch: true });
+
+  test("on a phone the docs menu's search field, panel and top stay put on every frame while a search narrows the list", async ({ page }) => {
+    await open(page, "docs/tooltip/");
+    await menuButton(page).tap();
+    const search = sheet(page).getByRole("searchbox", { name: "Find a page or component" });
+    const links = sheet(page).getByRole("link");
+    // The list is drawn, at the page you are on, before it is counted.
+    await expect(sheet(page).getByRole("link", { name: "Tooltip", exact: true })).toHaveAttribute("aria-current", "page");
+    const all = await links.count();
+    const film = await filmTops({ input: search, panel: sheet(page).locator("[data-ouro-sheet-content]"), sheet: sheet(page) }, async () => {
+      await search.tap();
+      await search.pressSequentially("tab", { delay: 120 });
+      await expect(sheet(page).getByRole("link", { name: "Tabs", exact: true })).toBeVisible();
+      await expect(sheet(page).getByRole("link", { name: "Tooltip", exact: true })).toHaveCount(0);
+    });
+    expect(await links.count()).toBeLessThan(all);
+    expect(film.frames).toBeGreaterThan(0);
+    expect(film.moves).toEqual([]);
+  });
 });
 
 test("on a phone the docs menu's search starts each search at the top of what it found, and clearing it goes back to the page you are on", async ({ page }) => {
