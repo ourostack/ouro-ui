@@ -12,7 +12,7 @@ const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;
 
 /**
  * The `<head>` tags of a prerendered page: its title and description, the canonical URL, the
- * icons (the Ouro HX silhouette, the touch icon and the web manifest, all from the storybook
+ * icons (the Ouro HX silhouette, Ouro UI's mark, the touch icon and the web manifest, all from the storybook
  * brand), and the Open Graph and Twitter tags link previews read, with the page's storybook card
  * (storybook.ts; site/scripts/og-cards.mts draws them into site/public/og/) as the image.
  */
@@ -25,7 +25,7 @@ export function headTags(route: Route, canonical: boolean): string[] {
   // site.test.tsx's head-tag test moves with them to the docs card (after the phone-menu pull request, #648).
   const card = CARDS[route.path];
   const image = card ? `${SITE}/og/${card.file}` : `${SITE}/og.png`;
-  const alt = card ? escape(cardAlt(card)) : "Ouro HX, part of Ouro UI. Feels right to the people using it. Obvious to the agents building it.";
+  const alt = card ? escape(cardAlt(card)) : "Ouro UI, in two halves: Ouro HX for the screens people use, Ouro AX for the tools agents use.";
   return [
     // First, so the stored theme and dark mode are on <html> before anything paints.
     `<script>${prepaintScript}</script>`,
@@ -39,7 +39,7 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<link rel="apple-touch-icon" href="${STORYBOOK}icons/ouro-hx-180.png" sizes="180x180" />`,
     `<link rel="manifest" href="/manifest.webmanifest" />`,
     `<meta property="og:type" content="website" />`,
-    `<meta property="og:site_name" content="Ouro HX" />`,
+    `<meta property="og:site_name" content="Ouro UI" />`,
     `<meta property="og:title" content="${title}" />`,
     `<meta property="og:description" content="${description}" />`,
     canonical ? `<meta property="og:url" content="${SITE}${route.path}" />` : "",
@@ -80,7 +80,7 @@ export function redirectPage(to: string): string {
     '<html lang="en">',
     "<head>",
     '<meta charset="utf-8" />',
-    `<title>Moved · Ouro HX</title>`,
+    `<title>Moved · Ouro UI</title>`,
     `<meta http-equiv="refresh" content="0; url=${url}" />`,
     `<link rel="canonical" href="${SITE}${url}" />`,
     '<meta name="robots" content="noindex" />',

@@ -125,7 +125,7 @@ for (const { from, to } of redirects) {
 }
 writeFileSync(
   join(dist, "404.html"),
-  await page({ path: "/404/", title: "Lost at sea · Ouro HX", description: "This page has drifted off our charts. Head back to the surface, or search the docs." }, "/404/", false),
+  await page({ path: "/404/", title: "Lost at sea · Ouro UI", description: "This page has drifted off our charts. Head back to the surface, or search the docs." }, "/404/", false),
 );
 // Every page for crawlers, and robots.txt pointing to it (the routes, as built above).
 writeFileSync(join(dist, "sitemap.xml"), sitemap(routes));

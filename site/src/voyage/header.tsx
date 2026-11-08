@@ -242,7 +242,7 @@ export function VoyageHeader({
           data-site-brand=""
         >
           <HxLogo size={32} className="size-8" />
-          Ouro HX
+          Ouro UI
         </a>
       }
       // The brand is the way home, so the bar starts at the Nautilus.

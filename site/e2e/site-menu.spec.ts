@@ -547,11 +547,11 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
   await page.goto("docs/button/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("navigation", { name: "Docs" })).toBeVisible();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Components", exact: true })).toHaveAttribute("aria-current", "page");
-  // A helper's page is under Components too.
+  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "page");
+  // A helper's page is under Ouro HX too.
   await page.goto("docs/use-timer/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Components", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
 test("on a phone the menu holds X-ray, which the bar has no room for, and closes to show it", async ({ page }) => {

@@ -27,7 +27,7 @@ export function SiteFooter(): JSX.Element {
       <Container className="flex flex-col gap-6 py-10 sm:flex-row sm:items-center sm:justify-between">
         <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground">
           <span>
-            Ouro HX is part of Ouro UI, the interface family within{" "}
+            Ouro UI, in two halves: Ouro HX for people, Ouro AX for agents. Part of{" "}
             <a href="https://ouroboros.bot/" className="text-foreground underline underline-offset-4">Ouro</a>.
             {" "}MIT license.
           </span>

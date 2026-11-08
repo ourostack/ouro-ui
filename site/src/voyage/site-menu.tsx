@@ -26,6 +26,8 @@ export interface MenuSection {
 export const SITE_SECTIONS: readonly MenuSection[] = [
   { label: "Home", href: "/", hint: "Peek through the porthole" },
   { label: "The Nautilus", href: "/nautilus/", hint: "Build a submarine, then sail her" },
+  // Ouro UI's two halves, side by side: HX's components, then AX.
+  { label: "Ouro HX", href: "/docs/", hint: "Every component: levers, dials and portholes" },
   { label: "Ouro AX", href: "/ax/", hint: "A morning with an agent" },
   {
     label: "For Apple",
@@ -42,7 +44,6 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
       { label: "Updating installed components", href: "/docs/updating/" },
     ],
   },
-  { label: "Components", href: "/docs/", hint: "Levers, dials and portholes" },
   { label: "GitHub", href: GITHUB, hint: "The blueprints, out in the open" },
 ];
 

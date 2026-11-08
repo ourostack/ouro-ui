@@ -20,7 +20,7 @@ export function VoyageFooter(): JSX.Element {
       <Container className="grid gap-6 py-12 text-sm text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="grid gap-2">
           <p className="m-0">
-            Ouro HX is part of Ouro UI, the interface family within{" "}
+            Ouro UI, in two halves: Ouro HX for people, Ouro AX for agents. Part of{" "}
             <a href="https://ouroboros.bot/" className="text-foreground underline underline-offset-4">
               Ouro
             </a>
