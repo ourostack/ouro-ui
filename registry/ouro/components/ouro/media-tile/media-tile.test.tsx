@@ -795,6 +795,19 @@ describe("MediaTile visibility", () => {
       expect(held[1]!.intersectionRatio).toBeLessThan(0.1);
       await act(async () => deliver());
       await expect.poll(() => report.mock.calls).toEqual([[false, 320, 180]]);
+      // Back on screen, a sliver again and back on screen once more, in one batch: the newest wins
+      // even when an older entry says unseen.
+      for (const top of ["0px", `${innerHeight - 8}px`, "0px"]) {
+        const count = held.length;
+        host.style.top = top;
+        await expect.poll(() => held.length).toBe(count + 1);
+      }
+      expect(held.map((entry) => entry.intersectionRatio >= 0.1)).toEqual([true, false, true]);
+      await act(async () => deliver());
+      await expect.poll(() => report.mock.calls).toEqual([
+        [false, 320, 180],
+        [true, 320, 180],
+      ]);
     } finally {
       window.IntersectionObserver = Real;
     }
