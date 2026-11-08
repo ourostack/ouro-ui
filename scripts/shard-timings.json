@@ -543,6 +543,7 @@
     "site/e2e/chapter-three.spec.ts": 149219,
     "site/e2e/chapter-two.spec.ts": 161310,
     "site/e2e/dive.spec.ts": 45833,
+    "site/e2e/frames.spec.ts": 10000,
     "site/e2e/site-menu.spec.ts": 120000,
     "site/e2e/stage.spec.ts": 235336,
     "site/e2e/voyage-live.spec.ts": 257000,
