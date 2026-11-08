@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { pressTab } from "../../registry/ouro/e2e/ouro/story";
+import { filmTops, pressTab } from "../../registry/ouro/e2e/ouro/story";
 import { APPLE_PATHS } from "../src/paths";
 import { heightsUntilStill, quietFrames } from "./frames";
 
@@ -330,6 +330,9 @@ async function linkBeside(page: Page, picker: ReturnType<Page["getByRole"]>): Pr
 test("on a phone a tap outside the theme picker closes it without pressing the link under the tap", async ({ page }) => {
   await open(page, "docs/button/");
   const url = page.url();
+  // The page's scene and its demo fill a phone's first screen: bring the first link in the page up to three quarters down
+  // it, below where the picker opens.
+  await page.locator("main a[href]").first().evaluate((link) => scrollBy(0, link.getBoundingClientRect().top - innerHeight * 0.75));
   const picker = await openPicker(page);
   const link = await linkBeside(page, picker);
   expect(link.href).not.toBe(url);
@@ -625,13 +628,44 @@ test("on a phone the docs menu's folded lists hold no pages until they unfold, t
   const panel = group.locator("[data-ouro-collapsible-panel]");
   // Folded, the list is not in the page at all: nothing in it to style with the sheet.
   await expect(panel.locator("a")).toHaveCount(0);
-  // Each frame of the unfold, the panel's height: it grows through the frames between, not in one step.
+  // It slides open, not in one step: as its height transition starts, the panel held at the transition's midpoint is
+  // part-way open, and the transition then runs to its end rather than being cut short. Read that way, a runner that
+  // draws a frame a second still sees the slide, where a sample of each frame could miss all of it (#684). The seek
+  // halves the slide's length in this test only.
+  // It assumes the Collapsible slides with a CSS transition on `height`, with no delay past half its length and no
+  // easing that overshoots: a slide moved to `max-height`, a Web Animation or script fails it and needs this test changed.
+  await group.evaluate((element) => {
+    const height = (event: Event) => (event as TransitionEvent).propertyName === "height" && (event.target as Element).matches("[data-ouro-collapsible-panel]");
+    element.addEventListener("transitionrun", (event) => {
+      if (!height(event) || element.dataset["midway"]) return;
+      const target = event.target as HTMLElement;
+      const slide = target.getAnimations().find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "height");
+      if (!slide) {
+        element.dataset["midway"] = "no height transition";
+        return;
+      }
+      const duration = Number(slide.effect!.getComputedTiming().duration);
+      element.dataset["duration"] = String(duration);
+      slide.pause();
+      slide.currentTime = duration / 2;
+      element.dataset["midway"] = String(target.getBoundingClientRect().height);
+      slide.play();
+    });
+    for (const [type, end] of [["transitionend", "ended"], ["transitioncancel", "cancelled"]] as const)
+      element.addEventListener(type, (event) => {
+        if (height(event) && element.dataset["midway"] && !element.dataset["slide"]) element.dataset["slide"] = end;
+      });
+  });
   const heights = heightsUntilStill(panel);
   await group.locator('[aria-expanded="false"]').click();
-  const grown = await heights;
-  const full = grown.at(-1)!;
+  const full = (await heights).at(-1)!;
   expect(full).toBeGreaterThan(100);
-  expect(grown.some((height) => height > 0 && height < full)).toBe(true);
+  await expect(group).toHaveAttribute("data-slide", "ended");
+  // Long enough to be seen as a slide.
+  expect(Number(await group.getAttribute("data-duration"))).toBeGreaterThanOrEqual(100);
+  const midway = Number(await group.getAttribute("data-midway"));
+  expect(midway).toBeGreaterThan(0);
+  expect(midway).toBeLessThan(full);
   await expect(panel.getByRole("link").first()).toBeVisible();
   const pages = await panel.getByRole("link").count();
   await group.locator('[aria-expanded="true"]').click();
@@ -651,6 +685,30 @@ test("on a phone the docs menu's search holds still as a search shortens the lis
   await sheet(page).getByRole("searchbox", { name: "Find a page or component" }).fill("tool");
   await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(0);
   expect((await field.boundingBox())!.y).toBe(stuck);
+});
+
+test.describe("by touch", () => {
+  test.use({ hasTouch: true });
+
+  test("on a phone the docs menu's search field, panel and top stay put on every frame while a search narrows the list", async ({ page }) => {
+    await open(page, "docs/tooltip/");
+    await menuButton(page).tap();
+    const search = sheet(page).getByRole("searchbox", { name: "Find a page or component" });
+    const links = sheet(page).getByRole("link");
+    // The list is drawn, at the page you are on, before it is counted.
+    await expect(sheet(page).getByRole("link", { name: "Tooltip", exact: true })).toHaveAttribute("aria-current", "page");
+    const all = await links.count();
+    const film = await filmTops({ input: search, panel: sheet(page).locator("[data-ouro-sheet-content]"), sheet: sheet(page) }, async () => {
+      await search.tap();
+      await search.pressSequentially("tab", { delay: 120 });
+      await expect(sheet(page).getByRole("link", { name: "Tabs", exact: true })).toBeVisible();
+      await expect(sheet(page).getByRole("link", { name: "Tooltip", exact: true })).toHaveCount(0);
+    });
+    expect(await links.count()).toBeLessThan(all);
+    // A frame or more for each key typed, so the film saw the typing and not only the frames after it.
+    expect(film.actFrames).toBeGreaterThanOrEqual(3);
+    expect(film.moves).toEqual([]);
+  });
 });
 
 test("on a phone the docs menu's search starts each search at the top of what it found, and clearing it goes back to the page you are on", async ({ page }) => {

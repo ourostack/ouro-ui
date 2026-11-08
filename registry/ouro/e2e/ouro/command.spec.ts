@@ -1,5 +1,6 @@
+import type { Locator } from "@playwright/test";
 import { expect, test } from "../ouro-fixtures";
-import { openStory, settledBox } from "./story";
+import { filmTops, openStory, settledBox } from "./story";
 
 test.describe("on a desktop", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -87,32 +88,28 @@ test.describe("on a desktop", () => {
   });
 });
 
-test.describe("on a phone", () => {
-  test.use({ viewport: { width: 390, height: 844 } });
+// The sheet comes with a narrow screen, whatever the pointer: filmed with a mouse and by touch.
+for (const touch of [false, true]) {
+  test.describe(touch ? "by touch on a phone" : "on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: touch });
 
-  test("opens a full-height sheet whose search input stays put while filtering", async ({ page }) => {
-    await openStory(page, "menus-command--playground");
-    await page.getByRole("button", { name: "Search…" }).click();
-    const input = page.getByRole("combobox", { name: "Search commands" });
-    const sheet = page.getByRole("dialog", { name: "Command palette" });
-    await settledBox(sheet);
-    const before = (await settledBox(input)).y;
-    // Where the input is on every frame while the results filter, so a jump of even one frame counts.
-    await input.evaluate((el) => {
-      const film: number[] = [];
-      (window as unknown as { __inputFilm: number[] }).__inputFilm = film;
-      const frame = () => {
-        film.push(el.getBoundingClientRect().y);
-        if (el.isConnected) requestAnimationFrame(frame);
-      };
-      requestAnimationFrame(frame);
+    test("opens a full-height sheet whose search input, panel and top stay put on every frame while filtering", async ({ page }) => {
+      await openStory(page, "menus-command--playground");
+      const press = (target: Locator) => (touch ? target.tap() : target.click());
+      await press(page.getByRole("button", { name: "Search…" }));
+      const sheet = page.getByRole("dialog", { name: "Command palette" });
+      const input = sheet.getByRole("combobox", { name: "Search commands" });
+      const options = sheet.getByRole("option");
+      await expect(options.first()).toBeVisible();
+      expect(await options.count()).toBeGreaterThan(1);
+      const film = await filmTops({ input, panel: sheet.locator('[data-ouro="command"]'), sheet }, async () => {
+        await press(input);
+        await input.pressSequentially("bak", { delay: 120 });
+        await expect(options).toHaveCount(1);
+      });
+      // A frame or more for each key typed, so the film saw the typing and not only the frames after it.
+      expect(film.actFrames).toBeGreaterThanOrEqual(3);
+      expect(film.moves).toEqual([]);
     });
-    await input.fill("bak");
-    await expect(page.getByRole("option")).toHaveCount(1);
-    expect((await settledBox(input)).y).toBe(before);
-    const film = await page.evaluate(() => (window as unknown as { __inputFilm: number[] }).__inputFilm);
-    expect(film.length).toBeGreaterThan(0);
-    const off = film.filter((y) => Math.abs(y - before) >= 0.5);
-    expect(off, `the input's y on each frame while filtering, against ${before} before it`).toEqual([]);
   });
-});
+}

@@ -255,15 +255,73 @@ describe("docs", () => {
     const labels = docsSections().map((section) => section.label);
     expect(labels).toEqual(["Start", ...groups, "Guides", "Platforms"]);
     await expect.element(nav.getByRole("link", { name: "Checklist", exact: true })).toHaveAttribute("aria-current", "page");
-    // The sidebar scrolls on its own, opened where the current page and its group's label show.
+    // The sidebar scrolls on its own, opened where the current page shows: within its box, and above the window's foot,
+    // which cuts the box off while the page's scene sits above it.
     const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
     expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
+    const shows = () => {
+      const box = scroller.getBoundingClientRect();
+      return (element: Element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.top >= box.top && rect.bottom <= Math.min(box.bottom, innerHeight);
+      };
+    };
+    expect(shows()(nav.getByRole("link", { name: "Checklist", exact: true }).element())).toBe(true);
+  });
+
+  it("on a window too short to show the sidebar below a platform page's scene, opens it on the current page's group, never past its top", async () => {
+    await page.viewport(1280, 640);
+    await renderPage("/docs/platforms/windows/");
+    await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
+    await expect.poll(() => scroller.scrollTop).toBeGreaterThan(0);
     const box = scroller.getBoundingClientRect();
+    for (const element of [nav.getByText("Platforms", { exact: true }).element(), nav.getByRole("link", { name: "For Windows", exact: true }).element()]) {
+      const rect = element.getBoundingClientRect();
+      expect(rect.top, element.textContent ?? "").toBeGreaterThanOrEqual(box.top);
+      expect(rect.bottom, element.textContent ?? "").toBeLessThanOrEqual(box.bottom);
+    }
+  });
+
+  it("starts a filtered sidebar at its first match, without the room the current page's group needed", async () => {
+    await page.viewport(1280, 800);
+    await renderPage("/docs/platforms/windows/");
+    await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
+    await expect.poll(() => scroller.scrollTop).toBeGreaterThan(0);
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "in");
+    await expect.poll(() => scroller.scrollTop).toBe(0);
+    expect(scroller.style.paddingBottom).toBe("");
+    const first = nav.getByRole("link").elements()[0]!;
+    expect(first.getBoundingClientRect().top).toBeGreaterThanOrEqual(scroller.getBoundingClientRect().top);
+  });
+
+  it("opens the sidebar with the current page's group label in view too, where the window leaves room for the whole group", async () => {
+    await page.viewport(1280, 1100);
+    await renderPage("/docs/checklist/");
+    await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const box = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!.getBoundingClientRect();
     for (const element of [nav.getByText("Lists", { exact: true }).element(), nav.getByRole("link", { name: "Checklist", exact: true }).element()]) {
       const rect = element.getBoundingClientRect();
-      expect(rect.top).toBeGreaterThanOrEqual(box.top);
-      expect(rect.bottom).toBeLessThanOrEqual(box.bottom);
+      expect(rect.top, element.textContent ?? "").toBeGreaterThanOrEqual(box.top);
+      expect(rect.bottom, element.textContent ?? "").toBeLessThanOrEqual(Math.min(box.bottom, innerHeight));
     }
+  });
+
+  it("opens the sidebar with the current page in view on a platform page, though its taller scene pushes the sidebar below the window", async () => {
+    await page.viewport(1280, 800);
+    await renderPage("/docs/platforms/windows/");
+    await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const current = nav.getByRole("link", { name: "For Windows", exact: true });
+    await expect.element(current).toHaveAttribute("aria-current", "page");
+    // Platforms is the sidebar's last group, so only room under the list lets it scroll up into the part that shows.
+    const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
+    await expect.poll(() => current.element().getBoundingClientRect().bottom).toBeLessThanOrEqual(innerHeight);
+    expect(current.element().getBoundingClientRect().top).toBeGreaterThanOrEqual(scroller.getBoundingClientRect().top);
   });
 
   it("narrows the sidebar to the components a filter names, and says when none is called that", async () => {

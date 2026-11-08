@@ -4,8 +4,9 @@
 // whose messages GitHub writes from the commits' messages plus a Co-authored-by trailer for every
 // commit author other than the pull request's. It fails on any commit that:
 //
-// - is authored by anyone but the maintainer, or release.yml's github-actions[bot], which authors
-//   the "Prepare main for the next release" commits;
+// - is authored by anyone but the maintainer, release.yml's github-actions[bot], which authors
+//   the "Prepare main for the next release" commits, or Dependabot, whose commit may change only
+//   dependency files (DEPENDENCY_FILES) and may carry only its own Signed-off-by trailer;
 // - is committed by anyone but those two or GitHub (noreply@github.com, which commits the merge
 //   queue's squash commits and the web editor's);
 // - carries AI attribution in its message: a `*-by:` trailer (Co-authored-by, Assisted-by, ...)
@@ -24,7 +25,13 @@ export const MAINTAINER = { name: "Ari Mendelow", email: "16390116+arimendelow@u
 export const RELEASE_BOT = "41898282+github-actions[bot]@users.noreply.github.com";
 /** GitHub, which commits the merge queue's squash commits. */
 export const GITHUB = "noreply@github.com";
-export const AUTHORS = [MAINTAINER.email, RELEASE_BOT];
+/** Dependabot: it authors dependency-bump commits, and only those. */
+export const DEPENDABOT = "49699333+dependabot[bot]@users.noreply.github.com";
+/** The only trailer a bot may carry besides release.yml's: Dependabot's own sign-off. */
+export const DEPENDABOT_TRAILER = "dependabot[bot] <support@github.com>";
+/** What a Dependabot commit may change: manifests, the lockfile and the workflows and actions it pins. */
+export const DEPENDENCY_FILES = /^(?:package\.json|pnpm-lock\.yaml|\.github\/(?:workflows|actions)\/.+)$/;
+export const AUTHORS = [MAINTAINER.email, RELEASE_BOT, DEPENDABOT];
 /** The trailer GitHub adds to the squash of a pull request release.yml opened: no AI, so the one bot a trailer may name. */
 export const RELEASE_BOT_TRAILER = `github-actions[bot] <${RELEASE_BOT}>`;
 export const COMMITTERS = [MAINTAINER.email, RELEASE_BOT, GITHUB];
@@ -55,12 +62,16 @@ export function problems(commits) {
   const found = [];
   for (const commit of commits) {
     const report = (field, problem, fix) => found.push({ sha: commit.sha, field, problem, fix });
+    const dependabot = commit.authorEmail.toLowerCase() === DEPENDABOT;
+    const files = commit.files ?? [];
+    const stray = files.filter((file) => !DEPENDENCY_FILES.test(file));
+    if (dependabot && (files.length === 0 || stray.length > 0)) report("files", files.length === 0 ? "Dependabot's commit changes no file the check could read" : `Dependabot may change only dependency files (package.json, pnpm-lock.yaml, workflows and actions), not ${stray.join(", ")}`, REAUTHOR);
     if (!AUTHORS.includes(commit.authorEmail.toLowerCase())) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")})`, REAUTHOR);
     if (!COMMITTERS.includes(commit.committerEmail.toLowerCase())) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
     commit.message.split("\n").forEach((line, index) => {
       const field = `message line ${index + 1}`;
       const trailer = line.match(TRAILER);
-      if (trailer && trailer[2].trim().toLowerCase() !== RELEASE_BOT_TRAILER && AI_OR_BOT.test(trailer[2])) return report(field, `"${line.trim()}" credits an AI tool or a bot`, UNCREDIT);
+      if (trailer && ![RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER].includes(trailer[2].trim().toLowerCase()) && AI_OR_BOT.test(trailer[2])) return report(field, `"${line.trim()}" credits an AI tool or a bot`, UNCREDIT);
       const generated = line.match(GENERATED);
       if ((generated && AI_TOOL.test(generated[1])) || ROBOT_FOOTER.test(line)) report(field, `"${line.trim()}" says an AI tool wrote it`, REWORD);
     });
@@ -80,14 +91,14 @@ export function readCommits(base, head, git = runGit) {
       throw new Error(`the ${end} commit ${ref} is not in this checkout, so the range cannot be read: fetch it (CI checks out with fetch-depth: 0).`);
     }
   }
-  const log = git(["-c", "log.showSignature=false", "log", "--format=%H%x1f%an%x1f%ae%x1f%cn%x1f%ce%x1f%B%x1e", `${base}..${head}`]);
+  const log = git(["-c", "log.showSignature=false", "log", "--name-only", "--format=%x1e%H%x1f%an%x1f%ae%x1f%cn%x1f%ce%x1f%B%x1f", `${base}..${head}`]);
   const commits = log
     .split("\x1e")
     .map((record) => record.replace(/^\n/, ""))
     .filter(Boolean)
     .map((record) => {
-      const [sha, authorName, authorEmail, committerName, committerEmail, message] = record.split("\x1f");
-      return { sha, authorName, authorEmail, committerName, committerEmail, message: message.trimEnd() };
+      const [sha, authorName, authorEmail, committerName, committerEmail, message, names] = record.split("\x1f");
+      return { sha, authorName, authorEmail, committerName, committerEmail, message: message.trimEnd(), files: names.split("\n").filter(Boolean) };
     });
   if (commits.length === 0) throw new Error(`${base}..${head} holds no commits, so there is nothing that could pass.`);
   return commits;
@@ -105,7 +116,7 @@ export function main([base, head] = [], { git = runGit, log = console.log, actio
   }
   const found = problems(commits);
   for (const { sha, field, problem, fix } of found) log(`${prefix}attribution: commit ${sha.slice(0, 12)}, ${field}: ${problem}. Fix: ${fix}`);
-  if (found.length === 0) log(`attribution: ${base}..${head} holds ${commits.length} commit${commits.length === 1 ? "" : "s"}, with no AI attribution, all written by the maintainer, release.yml or GitHub.`);
+  if (found.length === 0) log(`attribution: ${base}..${head} holds ${commits.length} commit${commits.length === 1 ? "" : "s"}, with no AI attribution, all written by the maintainer, release.yml, Dependabot (dependency files only) or GitHub.`);
   return found.length === 0 ? 0 : 1;
 }
 
