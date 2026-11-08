@@ -353,7 +353,7 @@ function usePictureReady(root: { current: HTMLElement | null }, image: { current
  * app that uses the platform's emoji font.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/emoji
+ * @see https://ui.ouroboros.bot/docs/emoji
  *
  * @example
  * <Emoji item={party} />
@@ -484,7 +484,7 @@ export type EmojiTextProps = Omit<HTMLAttributes<HTMLSpanElement>, keyof EmojiTe
  * platform's emoji font.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/emoji-text
+ * @see https://ui.ouroboros.bot/docs/emoji-text
  *
  * @example
  * <Message author={author} time={sentAt}>

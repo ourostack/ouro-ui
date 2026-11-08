@@ -75,7 +75,7 @@ const headerCell =
  * `AuthLayout` for the sign-in pages.
  *
  * @group Navigation
- * @see https://ui.ouro.bot/docs/sidebar-layout
+ * @see https://ui.ouroboros.bot/docs/sidebar-layout
  *
  * @example
  * <SidebarLayout

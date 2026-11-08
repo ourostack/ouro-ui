@@ -74,7 +74,7 @@ const levels = [2, 3, 4, 5, 6] as const;
  * celebrates, or one the person can dismiss.
  *
  * @group Display
- * @see https://ui.ouro.bot/docs/empty
+ * @see https://ui.ouroboros.bot/docs/empty
  *
  * @example
  * <Empty

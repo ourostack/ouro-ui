@@ -70,7 +70,7 @@ export interface HoverCardProps {
  * ouro-base.css), like Dialog and Sheet.
  *
  * @group Overlays
- * @see https://ui.ouro.bot/docs/hover-card
+ * @see https://ui.ouroboros.bot/docs/hover-card
  *
  * @example
  * <HoverCard trigger={<Link href="/cooks/ari">Ari Mendelow</Link>}>

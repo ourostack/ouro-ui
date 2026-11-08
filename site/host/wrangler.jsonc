@@ -1,0 +1,7 @@
+// Deploy from this folder: npx wrangler deploy (Cloudflare account of the ouroboros.bot zone).
+{
+  "name": "ouro-ui-host",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-07-02",
+  "routes": [{ "pattern": "ui.ouroboros.bot/*", "zone_name": "ouroboros.bot" }]
+}

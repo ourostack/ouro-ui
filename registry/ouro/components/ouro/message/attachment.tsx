@@ -146,7 +146,7 @@ function kindOf(contentType: string | undefined, name: string): AttachmentKind {
  * Use `Link` instead for a link that is not a file, and `Avatar` for a person's picture.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/attachment
+ * @see https://ui.ouroboros.bot/docs/attachment
  *
  * @example
  * <Attachment name="menu.pdf" size={file.size} contentType={file.type} href={file.url} />

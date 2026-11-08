@@ -1,6 +1,6 @@
 # Make your CLI conformant
 
-Ouro AX checks the interface an agent uses from outside, the way an agent calls it ([Ouro AX](ax.md)). To make your own CLI conform, copy in the kit, move your commands onto its declarations one at a time, and run the X-ray until it says the CLI conforms; then keep it that way in CI. Try the whole idea first in your browser: the [Ouro AX page](https://ui.ouro.bot/ax/) lets you be the agent, and shows the X-ray's report on a real app before and after it adopted the kit.
+Ouro AX checks the interface an agent uses from outside, the way an agent calls it ([Ouro AX](ax.md)). To make your own CLI conform, copy in the kit, move your commands onto its declarations one at a time, and run the X-ray until it says the CLI conforms; then keep it that way in CI. Try the whole idea first in your browser: the [Ouro AX page](https://ui.ouroboros.bot/ax/) lets you be the agent, and shows the X-ray's report on a real app before and after it adopted the kit.
 
 ## 1. Copy in the kit
 

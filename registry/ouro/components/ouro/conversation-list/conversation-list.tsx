@@ -429,7 +429,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
  * views that switch in place.
  *
  * @group Chat
- * @see https://ui.ouro.bot/docs/conversation-list
+ * @see https://ui.ouroboros.bot/docs/conversation-list
  *
  * @example
  * <ConversationList label="Conversations" items={conversations} selectedId={openId} onSelect={setOpenId} />

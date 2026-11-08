@@ -347,7 +347,7 @@ const DEFAULT_HEIGHT = 240;
  * instead when people need to jump to a page or share its URL.
  *
  * @group Lists
- * @see https://ui.ouro.bot/docs/show-more
+ * @see https://ui.ouroboros.bot/docs/show-more
  *
  * @example
  * <ShowMore items={reviews.map((review) => <Review key={review.id} {...review} />)} initialCount={3} />

@@ -238,7 +238,7 @@ export function OuroAx(): JSX.Element {
 
 const namespace = `{
   "registries": {
-    "@ouro": "https://ui.ouro.bot/r/{name}.json"
+    "@ouro": "https://ui.ouroboros.bot/r/{name}.json"
   }
 }`;
 

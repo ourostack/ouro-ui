@@ -179,7 +179,7 @@ function ownedPaths(items: readonly TabBarItem[]): Array<{ path: string; index: 
  * views of one page.
  *
  * @group Navigation
- * @see https://ui.ouro.bot/docs/tab-bar
+ * @see https://ui.ouroboros.bot/docs/tab-bar
  *
  * @example
  * <TabBar

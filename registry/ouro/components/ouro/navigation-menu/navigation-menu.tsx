@@ -190,7 +190,7 @@ const example =
  * for a column of links.
  *
  * @group Navigation
- * @see https://ui.ouro.bot/docs/navigation-menu
+ * @see https://ui.ouroboros.bot/docs/navigation-menu
  *
  * @example
  * <NavigationMenu
