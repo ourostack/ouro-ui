@@ -116,7 +116,7 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   };
   const windows: { index: number; from: number; to: number; d: number }[] = [];
   const browser = page.context().browser()!;
-  await browser.startTracing(page, { categories: ["devtools.timeline", "v8", "blink.user_timing", "disabled-by-default-devtools.timeline", "disabled-by-default-v8.gc"] });
+  if (process.env["LATENCY_TRACE"]) await browser.startTracing(page, { categories: ["devtools.timeline", "v8", "blink.user_timing", "disabled-by-default-devtools.timeline", "disabled-by-default-v8.gc"] });
   const markAt = await page.evaluate(() => (performance.mark("latency-sync"), performance.getEntriesByName("latency-sync").at(-1)!.startTime));
   const metrics = async () => Object.fromEntries(((await cdp.send("Performance.getMetrics")) as { metrics: { name: string; value: number }[] }).metrics.filter((m) => /ThreadTime|ProcessTime|TaskDuration|ScriptDuration|LayoutDuration|RecalcStyleDuration|JSHeapUsedSize/.test(m.name)).map((m) => [m.name, m.value]));
   const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
@@ -140,6 +140,18 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       await w.__stalls();
     });
     const before = await interactions();
+    const pace = () => page.evaluate(() => {
+      const runs: number[] = [];
+      for (let k = 0; k < 3; k++) {
+        const start = performance.now();
+        let x = 0;
+        for (let i = 0; i < 2_000_000; i++) x = (x * 31 + i) | 0;
+        runs.push(performance.now() - start + (x === 0.5 ? 1 : 0));
+      }
+      return runs.sort((a, b) => a - b)[1]!;
+    });
+    if (index === 0) for (let k = 0; k < 5; k++) await pace();
+    const c0 = await pace();
     const m0 = await metrics();
     const s0 = snap();
     const t0 = Date.now();
@@ -148,6 +160,7 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     const s1 = snap();
     const t1 = Date.now();
     const m1 = await metrics();
+    const c1 = await pace();
     const got = await page.evaluate(async () => {
       const w = window as unknown as { __latency: { name: string; start: number; ps: number; pe: number; d: number }[]; __loaf: { start: number; d: number }[]; __stalls: () => Promise<[number, number][]> };
       const stalls = await w.__stalls();
@@ -170,12 +183,12 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       if (top && index >= LATENCY.warmUps) windows.push({ index, from: top.start, to: top.start + top.d, d: top.d });
       const ds = Object.entries(s1).map(([k, v]) => [k, v - (s0[k] ?? 0)] as const).filter(([, v]) => v >= 1).map(([k, v]) => `${k}=${r(v)}`).join(" ");
       const dm = Object.entries(m1).map(([k, v]) => `${k}=${k === "JSHeapUsedSize" ? r((v - (m0[k] ?? 0)) / 1024) + "k" : r((v - (m0[k] ?? 0)) * 1000)}`).join(" ");
-      console.log(`latency-trace ${label} #${index}: ${line} win{${win}} wall=${t1 - t0} metrics{${dm}} sched{${ds}}`);
+      console.log(`latency-trace ${label} #${index}: ${line} calib{${c0.toFixed(1)} ${c1.toFixed(1)}} win{${win}} wall=${t1 - t0} metrics{${dm}} sched{${ds}}`);
     }
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-  try {
+  if (process.env["LATENCY_TRACE"]) try {
     const trace = JSON.parse((await browser.stopTracing()).toString()) as { traceEvents: { name: string; ph: string; ts: number; dur?: number; pid: number; tid: number; args?: { name?: string } }[] };
     const ev = trace.traceEvents;
     const sync = ev.find((e) => e.name === "latency-sync");
