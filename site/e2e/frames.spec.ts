@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { calmer } from "./latency";
 import { heightsUntilStill, pooled, quietFrames } from "./frames";
 
 // The site's frame measurements count frames, not wall-clock time (ourostack/ouro-ui#684): on a loaded browser a press
@@ -67,4 +68,17 @@ test("reads share one pool of attempts, so a bad stretch does not end them early
   const short = await pooled(3, 2, async () => false, (read) => read);
   expect(short.kept).toHaveLength(0);
   expect(short.discarded).toHaveLength(2);
+});
+
+test("a retaken latency read keeps the calmer take, and a control slow in both stays slow", () => {
+  const spiked = [...Array(18).fill(40), 104, 104];
+  const calm = Array(20).fill(48);
+  expect(calmer(spiked, calm)).toEqual(calm);
+  expect(calmer(calm, spiked)).toEqual(calm);
+  expect(calmer(calm, calm.map((n) => n - 8))).toEqual(calm.map((n) => n - 8));
+  const slow = Array(20).fill(120);
+  expect(Math.min(...calmer(slow, slow))).toBe(120);
+  const sameP95 = [...Array(19).fill(40), 64];
+  const lowerMedian = [...Array(19).fill(32), 64];
+  expect(calmer(sameP95, lowerMedian)).toEqual(lowerMedian);
 });
