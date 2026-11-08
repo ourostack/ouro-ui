@@ -16,16 +16,21 @@ import { LATENCY } from "./latency";
 //
 // - Chromium, at the latency budget's 4x slower CPU: no frame of 50 ms or more.
 // - WebKit, which on CI draws without the GPU: no frame over 100 ms, or over REPAINTS times what this runner takes to draw
-//   a frame that changes the whole viewport when that is more. On CI the switch's frame took 50 to 137 ms however fast the
+//   a frame that changes the whole viewport when that is more. On CI the switch's frame took 50 to 139 ms however fast the
 //   page's own frames were (24 to 334 ms), so neither a flat budget nor the page's pace told it from the runner, and two
 //   and a half paces let a 160 ms busy task in the switch through where the page was slow (ourostack/ouro-ui#676). The
 //   viewport frame is measured on the same page once the scene is still, by a veil of the test's own, so no change to the
 //   switch can widen it: CI's runners drew it in 51 to 73 ms, local WebKit in 15 to 18.
+//   It is capped at WEBKIT_CEILING all the same: a slow runner's three viewport frames (204 to 213 ms on one) would let a
+//   switch that added 100 ms through about one time in five, while on CI a healthy switch drew 139 ms at most and one
+//   with a 160 ms task in it 194 ms at least. A runner too slow for the cap fails, and says so, rather than loosening it.
 //
 // A verdict counts only when the page drew at least `PACED` frames in the 1.5 s before it: CI's WebKit once drew none for
 // 6.7 s while its first page loaded, which says nothing of the switch. Such a page is judged again, afresh.
 const CHROMIUM_BUDGET = 50;
 const WEBKIT_BUDGET = 100;
+/** The most a WebKit budget may be, however slow the runner's viewport frame. */
+const WEBKIT_CEILING = 170;
 /** In WebKit, the switch's frame may take this many of the runner's whole-viewport frames (`repaint`). */
 const REPAINTS = 3;
 /** The frames that are the switch's: the one the verdict lands in and those after it. */
@@ -164,7 +169,7 @@ test("the switch to still water draws no long frame", async ({ browser, browserN
       unpaced.push(result);
     }
   const budget = (result: Switch) =>
-    browserName === "chromium" ? CHROMIUM_BUDGET : Math.max(WEBKIT_BUDGET, Math.round(REPAINTS * result.repaint));
+    browserName === "chromium" ? CHROMIUM_BUDGET : Math.min(WEBKIT_CEILING, Math.max(WEBKIT_BUDGET, Math.round(REPAINTS * result.repaint)));
   // Printed every run, so CI's log keeps the switch's cost.
   console.log(`switch to still water, ${browserName}: ${results.map((result) => `${result.worst} ms at ${result.at} (frames ${result.frames.join("/")}, pace ${result.pace}, viewport frame ${result.repaint}, budget ${budget(result)})`).join("; ")}${unpaced.length ? `; judged again, with too few frames before the verdict: ${unpaced.map((result) => `${result.paced} frames, ${result.worst} ms at ${result.at}`).join("; ")}` : ""}`);
   expect(results, `every verdict, with ${PACED} frames or more in the 1.5 s before it`).toHaveLength(VERDICTS);
