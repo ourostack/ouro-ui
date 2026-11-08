@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -486,6 +486,18 @@ const loadLayer = () => (layerModule ??= import("@/registry/ouro/components/ouro
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
 function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): Key | null {
   return isValidElement(child) ? child.key : null;
+}
+
+/** The children's keys as a set, built in render when the list's first or last children change. */
+function keySet(children: readonly ReturnType<typeof Children.toArray>[number][]): Set<Key | null> {
+  return new Set(children.map(keyOf));
+}
+
+// Each key's index, rebuilt only when the keys change; the keys are text, so they compare by what they say.
+function useIndexByKey(keys: readonly string[]): Map<string, number> {
+  // Joined by NUL, which no key holds.
+  const text = keys.join("\0");
+  return useMemo(() => new Map(text.split("\0").map((key, index) => [key, index])), [text]);
 }
 
 function boxOf(element: Element): { top: number; bottom: number; height: number } {
@@ -1072,9 +1084,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const estimate = measured.estimate;
   const sizeOf = (index: number) => measured.heights.get(keys[index]!) ?? cache.get(`${keys[index]!}\0${measured.bucket}`) ?? estimate;
+  // Each child's index by its key, built when the keys change, not on every render (the keys are text, so they compare by what they say).
+  const indexes = useIndexByKey(keys);
   let draws: (index: number) => boolean = () => true;
   if (windowed) {
-    const indexes = new Map(keys.map((key, index) => [key, index]));
     const last = keys.length - 1;
     let range: readonly [number, number];
     if (band !== null) {
@@ -1091,18 +1104,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
     } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
-    const kept = new Set<number | undefined>([last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)]);
+    const kept: (number | undefined)[] = [last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)];
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!) ?? last;
     // Stryker disable next-line EqualityOperator: the newest is kept as the last child anyway.
-    for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.add(index);
-    for (const key of waitingKeys.split("\n")) kept.add(indexes.get(key));
+    for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.push(index);
+    for (const key of waitingKeys.split("\n")) kept.push(indexes.get(key));
     all.forEach((child, index) => {
       if (!isValidElement(child)) return;
       const props = child.props as { streaming?: unknown; "aria-busy"?: unknown };
-      if (props.streaming === true || props["aria-busy"] === true || props["aria-busy"] === "true") kept.add(index);
+      if (props.streaming === true || props["aria-busy"] === true || props["aria-busy"] === "true") kept.push(index);
     });
-    draws = (index) => (index >= range[0] && index <= range[1]) || kept.has(index);
+    draws = (index) => (index >= range[0] && index <= range[1]) || kept.includes(index);
   }
   // The slots, with space kept for each run of children not drawn: their heights and the gaps between them, less the gap the
   // list puts before the space itself.
@@ -1200,14 +1213,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     setTrack({
       first: top,
       recent,
-      keys: new Set(all.map(keyOf)),
+      keys: keySet(all),
       conversation: named,
       pending,
       // Confirmed again by a new name or switch, and by any change under the same name but a wholesale one, which may be the
       // next conversation's messages come ahead of its name.
       confirmed:
         // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: not equivalent for the two LogicalOperator mutants; "confirms nothing for messages that come back to a list emptied under the same name" and "adopts a name that comes after its messages" (message-list.test.tsx) fail on both, but per-test coverage attributes this expression to other tests, so the shard never runs them. A new name comes only with no pending name, so the last clause confirms it as well; with no keys held, or none now, every key is a stranger or nothing changes, so the set kept is the one that would be read.
-        named !== track.conversation || fresh || (pending === null && all.length > 0 && track.keys.size > 0 && !strangers(track.keys)) ? new Set(all.map(keyOf)) : track.confirmed,
+        named !== track.conversation || fresh || (pending === null && all.length > 0 && track.keys.size > 0 && !strangers(track.keys)) ? keySet(all) : track.confirmed,
       // Stryker disable next-line ConditionalExpression,EqualityOperator: a list that holds nothing is empty at its first commit, and its first messages open it either way.
       held: track.held || all.length > 0,
       // Stryker disable next-line ArithmeticOperator: only a change of the count runs the layout effect, and a count that goes down by one each switch changes as a count that goes up does; it is never compared with another.

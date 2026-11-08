@@ -6,6 +6,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type HTMLAttributes,
@@ -205,6 +206,8 @@ const firstView = 1000;
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
 const noHeights: ReadonlyMap<string, number> = new Map();
+// The default for sections: one array, so the rows are put in order again only when they or their sections change.
+const noSections: readonly ConversationListSection[] = [];
 
 // What a windowed list's last render laid out, for the scroll, resize and measuring that follow it.
 interface Laid {
@@ -235,6 +238,11 @@ function place(keys: readonly string[], heights: ReadonlyMap<string, number>, es
     total += heights.get(key) ?? (count ? sum / count : estimate);
   }
   return { offsets, total };
+}
+
+// Whether a section shows its rows: as the app says, else as the person left it, else as it starts.
+function openOf(section: ConversationListSection, opened: Readonly<Record<string, boolean>>): boolean {
+  return section.open ?? opened[section.id] ?? section.defaultOpen ?? true;
 }
 
 // Scrolls a control into view: as little as it takes, or to the middle of the view.
@@ -453,7 +461,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const {
     label,
     items,
-    sections = [],
+    sections = noSections,
     onSectionOpenChange,
     selectedId,
     onSelect,
@@ -503,7 +511,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const focusNext = useRef<string | null>(null);
   // The row to keep in view while the heights around it settle, and where in the view.
   const keepInView = useRef<{ key: string; block: "nearest" | "center" } | null>(null);
-  const known = new Set<string | undefined>(sections.map((section) => section.id));
+  const known = useMemo(() => new Set<string | undefined>(sections.map((section) => section.id)), [sections]);
   const stray = items.find((item) => item.section !== undefined && !known.has(item.section));
   useAppearanceClassNameCheck(
     "ConversationList",
@@ -533,29 +541,33 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  const isOpen = (section: ConversationListSection) => section.open ?? opened[section.id] ?? section.defaultOpen ?? true;
+  const isOpen = (section: ConversationListSection) => openOf(section, opened);
   const toggle = (section: ConversationListSection, next: boolean) => {
     setOpened({ ...opened, [section.id]: next });
     onSectionOpenChange?.(section.id, next);
   };
 
-  // The rows in the order they show: those with no section first, then each section's under its header.
-  const loose = items.filter((item) => !known.has(item.section));
-  const groupsShown = sections.map((section) => ({ section, rows: items.filter((item) => item.section === section.id) })).filter((group) => group.rows.length > 0);
-  const keys = [
-    ...loose.map((item) => `row:${item.id}`),
-    ...groupsShown.flatMap(({ section, rows }) => [`section:${section.id}`, ...(isOpen(section) ? rows : []).map((item) => `row:${item.id}`)]),
-  ];
+  // The rows in the order they show: those with no section first, then each section's under its header. Worked out
+  // once per change to the rows, the sections or what is open, not on every scroll's render of a long list.
+  const { loose, groupsShown, keys } = useMemo(() => {
+    const loose = items.filter((item) => !known.has(item.section));
+    const groupsShown = sections.map((section) => ({ section, rows: items.filter((item) => item.section === section.id) })).filter((group) => group.rows.length > 0);
+    const keys = [
+      ...loose.map((item) => `row:${item.id}`),
+      ...groupsShown.flatMap(({ section, rows }) => [`section:${section.id}`, ...(openOf(section, opened) ? rows : []).map((item) => `row:${item.id}`)]),
+    ];
+    return { loose, groupsShown, keys };
+  }, [items, sections, known, opened]);
   const current = `row:${String(selectedId)}`;
   const tabStop = keys.includes(active) ? active : keys.includes(current) ? current : keys[0];
 
   const heights = measured?.density === density ? measured.heights : noHeights;
-  const { offsets, total } = place(keys, heights, estimates[density]);
+  const { offsets, total } = useMemo(() => place(keys, heights, estimates[density]), [keys, heights, density]);
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
   const firstRows = offsets.filter((offset) => offset < firstView).length;
   const [start, end] = range ?? [0, firstRows];
-  const indexes = new Map(keys.map((key, index) => [key, index]));
-  const kept = new Set([tabStop, current, reach]);
+  const indexes = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
+  const kept = useMemo(() => new Set([tabStop, current, reach]), [tabStop, current, reach]);
   const rendered = (key: string) => {
     const index = indexes.get(key)!;
     if (!windowed) return settled || index < firstRows || kept.has(key);

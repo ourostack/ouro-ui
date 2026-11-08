@@ -205,6 +205,22 @@ describe("Chart", () => {
     expect(getComputedStyle(bars(chart, "other")[0]!).fill).toBe(resolved("var(--chart-3)"));
   });
 
+  it("follows a new config: its labels in the table and the legend, and its tones in the colors", async () => {
+    const { chart, rerender } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    await drawn(chart);
+    const renamed = {
+      month: { label: "Month" },
+      cooked: { label: "Dishes cooked", tone: "destructive" },
+      saved: { label: "Dishes saved", tone: "chart-2" },
+    } satisfies ChartConfig<(typeof rows)[number]>;
+    await rerender(<Chart title="Cooking" data={rows} categoryKey="month" config={renamed} />);
+    await drawn(chart);
+    const header = [...chart.querySelector<HTMLTableElement>("[data-ouro-chart-table] table")!.rows[0]!.cells].map((cell) => cell.textContent);
+    expect(header).toEqual(["Month", "Dishes cooked", "Dishes saved"]);
+    await expect.poll(() => [...chart.querySelectorAll("[data-ouro-chart-legend] li")].map((item) => item.textContent)).toEqual(["Dishes cooked", "Dishes saved"]);
+    expect(resolved("var(--color-cooked)", chart)).toBe(resolved("var(--destructive)"));
+  });
+
   it("labels each series in a legend with a marker shape, so color is not the only cue", async () => {
     const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);

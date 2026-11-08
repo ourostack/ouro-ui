@@ -615,3 +615,11 @@ test("no component or theme file animates a layout property unless layoutAnimati
     }
   }
 });
+
+test("no component, helper or kit file builds an index in render: each is memoised on its inputs or built at module scope", () => {
+  const shipped = tracked("registry/**/*.ts", "registry/**/*.tsx").filter((path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\//.test(path));
+  const found = shipped
+    .map(read)
+    .flatMap(({ path, text }) => findOffendersInSource(path, text).filter((offender) => offender.category === "render-index").map((offender) => `${offender.file}:${offender.line}`));
+  assert.deepEqual(found, [], "Build the index where its data changes: useMemo on its inputs (useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows])), or a constant at module scope.");
+});

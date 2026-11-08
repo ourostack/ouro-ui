@@ -250,6 +250,16 @@ describe("ImageCropper", () => {
     expect(area().getAttribute("aria-busy")).toBe("true");
   });
 
+  it("reads its labels again when the app gives others", async () => {
+    const image = await photo();
+    const { root } = await render(<Harness image={image} onCropped={() => {}} labels={{ save: "Use photo" }} />);
+    await loaded();
+    await expect.element(page.getByRole("button", { name: "Use photo" })).toBeVisible();
+    await act(async () => root.render(<Harness image={image} onCropped={() => {}} labels={{ save: "Utiliser" }} />));
+    await expect.element(page.getByRole("button", { name: "Utiliser" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "Use photo" })).not.toBeInTheDocument();
+  });
+
   it("closes on Cancel without cropping", async () => {
     const onCropped = vi.fn();
     const onOpen = vi.fn();

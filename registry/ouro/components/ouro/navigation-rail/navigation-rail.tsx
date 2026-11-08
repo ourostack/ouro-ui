@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent, type ReactElement, type ReactNode, type Ref } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
@@ -680,9 +680,8 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
   const navRef = useMergedRef(ref, nav);
   const list = useRef<HTMLUListElement>(null);
   const fit = useFit(list, items, current, fitInputs(items, current, hideLabels, moreLabel, className));
-  const hidden = new Set(fit.hidden);
-  const truncated = new Set(fit.truncated);
-  const squeezed = new Set(fit.squeezed);
+  // Indexed once per measure, which keeps its last result while nothing moves.
+  const { hidden, truncated, squeezed } = useMemo(() => ({ hidden: new Set(fit.hidden), truncated: new Set(fit.truncated), squeezed: new Set(fit.squeezed) }), [fit]);
 
   // Roving tab stop: the item focused last, else the current one, else the first.
   const [focused, setFocused] = useState<string | null>(null);
