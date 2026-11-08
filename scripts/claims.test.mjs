@@ -897,3 +897,9 @@ test("the lint sees a claim through Unicode format characters hidden in its word
   assert.equal(lint('The report says "Ev\u3164ery test passes now."').length, 1);
   assert.equal(lint("Moves \u{1F468}\u200D\u{1F373}\u200B focus back to the\u00AD trigger.").length, 0);
 });
+
+test("TypeScript copy: a claim word split by a hidden character in a short string is still read", () => {
+  const copy = (text) => lintTypeScript(`const a = ${JSON.stringify(text)};`, { file: "site/src/copy.tsx", copy: true }).findings;
+  assert.equal(copy("Every test").length, 1);
+  assert.equal(copy("Ev\u200Bery test").length, 1);
+});

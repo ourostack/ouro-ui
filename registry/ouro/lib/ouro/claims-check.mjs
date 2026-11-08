@@ -685,12 +685,13 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
     }
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       if (isLookup(node)) return;
-      if (isMarkdown(node.text) || isProse(node.text) || statesNumber(node.text)) prose(node.text, node);
-      else if (saysSomething(node.text)) prose(node.text, node, true);
+      const text = node.text.replace(INVISIBLE, "");
+      if (isMarkdown(text) || isProse(text) || statesNumber(text)) prose(text, node);
+      else if (saysSomething(text)) prose(text, node, true);
       return;
     }
     if (ts.isTemplateExpression(node)) {
-      const text = [node.head.text, ...node.templateSpans.map((span) => `\${${span.expression.getText(tree)}}${span.literal.text}`)].join("");
+      const text = [node.head.text, ...node.templateSpans.map((span) => `\${${span.expression.getText(tree)}}${span.literal.text}`)].join("").replace(INVISIBLE, "");
       if (isMarkdown(text) || isProse(text) || statesNumber(text)) prose(text, node);
       else if (saysSomething(text)) prose(text, node, true);
     }
