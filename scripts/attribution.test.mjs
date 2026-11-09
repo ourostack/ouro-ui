@@ -295,3 +295,10 @@ test("attribution sees through control characters hidden in a credit, and keeps 
   assert.equal(found("Fix\n\n\u0001Co-authored-by: Claude <a@b.c>\u0001").length, 1);
   assert.equal(found("Fix\r\n\nCo-authored-by: Claude <a@b.c>").length, 1);
 });
+
+test("attribution sees through the vertical tab, form feed and NEL hidden in a credit", () => {
+  for (const separator of ["\u000B", "\u000C", "\u0085"]) {
+    assert.ok(problems([commit({ message: `Button: a fix (#1)\n\nCo-authored-by: Cl${separator}aude <noreply@anthropic.com>` })]).length > 0, JSON.stringify(separator));
+    assert.ok(problems([commit({ message: `Button: a fix (#1)\n\nCo-auth${separator}ored-by: Claude <noreply@anthropic.com>` })]).length > 0, JSON.stringify(separator));
+  }
+});
