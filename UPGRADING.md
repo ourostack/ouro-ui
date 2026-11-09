@@ -34,6 +34,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.9:** Ouro check has new gated rules (`giant-picture`, `cramped-heading`, `nested-frame`, `baked-corner`, `type-scale`, `shadow-scale`, `grey-on-colour`, `heading-hierarchy`, `jank`, `repaint` and, for a site on the web, `https`), and `blurry-image` covers videos, so a run that passed can now report findings.[^upgrade-design-checks] Fix them, or let a rule report without failing while you do: waive it in `ouro-check.json` with the reason, and remove the waiver once its findings are fixed. `jank` walks every page at one size and theme; `"walk": false` turns it off.[^upgrade-design-checks]
 
+- **After v1.3.10:** Ouro check has two new gated rules, `leaked-value` (`undefined`, `NaN`, `[object Object]`, an id, a translation key or a `TODO` on screen) and `odd-timestamp` (`Invalid Date`, 1 January 1970, a raw or machine timestamp, a negative age), so a run that passed can now report findings.[^upgrade-text-checks] Fix them, or mark people's own words, such as a message list, with `data-ouro-allow="leaked-value odd-timestamp"` and a reason.[^upgrade-text-checks]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -119,6 +121,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-axe-core]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests)
 [^upgrade-toast-announcer]: registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > renders an empty Notifications landmark in a portal, which holds its own live regions)
 [^upgrade-audit-leaves]: registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails, naming what changed, when its Tab walk closes a popup that focus leaving closes, which it cannot open again)
+[^upgrade-text-checks]: registry/ouro/check/text-check.ts verify:fileLine(registry/ouro/check/check.ts, /^  "odd-timestamp": "odd timestamp",$/) verify:testExists(test/check-text-in-page.test.ts::findTextIssues: leaked-value > finds each kind of value the program meant for itself, quoting what it shows)
 [^upgrade-design-checks]: registry/ouro/check/check.ts verify:fileLine(registry/ouro/check/check.ts, /^  "giant-picture": "giant picture",$/) verify:testExists(scripts/check/check.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why)
 [^upgrade-avatar-colors]: registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--avatar-8:/) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
 [^upgrade-avatar-dot]: registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar shapes and icons > clips a square's picture to its corners)
