@@ -120,7 +120,7 @@ describe("FamilyBar", () => {
     expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
     await expect.poll(() => row.hasAttribute("data-ouro-scroll-fade")).toBe(true);
-    expect(getComputedStyle(row).maskImage).toContain("gradient");
+    await expect.poll(() => getComputedStyle(row).maskImage).toContain("gradient");
   });
 
   it("keeps a thin scroll bar on the row for a mouse, whose wheel scrolls up and down", async () => {
@@ -233,11 +233,12 @@ describe("FamilyBar", () => {
     expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
     // Firefox has no scroll-driven animations yet: there the row fades once it hydrates.
     if (!CSS.supports("animation-timeline", "scroll()")) return;
-    expect(getComputedStyle(row).maskImage).toContain("gradient");
+    await expect.poll(() => getComputedStyle(row).maskImage).toContain("gradient");
     // Which ramps show: the left one once its layer is no longer pushed off the box, the right one once its layer is
     // the box's width.
     const ramps = (box: HTMLElement) => {
       const style = getComputedStyle(box);
+      if (style.maskImage === "none") return { left: false, right: false };
       return { left: !style.maskPosition.trim().startsWith("-"), right: style.maskSize.split(",")[1]!.trim().startsWith("100%") };
     };
     await expect.poll(() => ramps(row)).toEqual({ left: false, right: true });
@@ -250,6 +251,20 @@ describe("FamilyBar", () => {
     await page.viewport(1280, 800);
     // A row that fits from the start. (One that widens to fit after it scrolled: family-bar.touch.test.tsx.)
     await expect.poll(() => ramps(serverRow())).toEqual({ left: false, right: false });
+  });
+
+  it("draws no scroll-driven fade under reduced motion, where the script's fade shows once the page hydrates", async () => {
+    await page.viewport(320, 640);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      host.innerHTML = renderToString(<FamilyBar links={sites} />);
+      expect(host.querySelector("[data-ouro-family-row]")!.getAnimations()).toEqual([]);
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
   });
 
   it("keeps no scroll bar on a row that fits", async () => {

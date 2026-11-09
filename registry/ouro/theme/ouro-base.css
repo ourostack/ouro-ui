@@ -157,16 +157,24 @@
 }
 
 /*
- * The scroll fade with no script (scrollFadeStaticClass): a box's scroll timeline slides its left ramp in, by
- * mask-position, and its right ramp in, by mask-size, each over the 2rem it scrolls toward that side.
+ * The scroll fade with no script (scrollFadeStaticClass): a box's scroll timeline draws a ramp at each side, from the
+ * gradients the class sets in --ouro-scroll-fade-ramps, and slides the left one in, by mask-position, and the right one
+ * in, by mask-size, each over the 2rem the box scrolls toward that side. A box with nothing to scroll has no mask.
  */
 @keyframes ouro-scroll-fade-left {
   from {
+    animation-timing-function: linear;
+    mask-image: var(--ouro-scroll-fade-ramps);
+    mask-repeat: no-repeat;
+    mask-composite: intersect;
     mask-position:
       -2rem 0,
       0 0;
   }
   to {
+    mask-image: var(--ouro-scroll-fade-ramps);
+    mask-repeat: no-repeat;
+    mask-composite: intersect;
     mask-position:
       0 0,
       0 0;
@@ -174,6 +182,7 @@
 }
 @keyframes ouro-scroll-fade-right {
   from {
+    animation-timing-function: linear;
     mask-size:
       calc(100% + 2rem) 100%,
       calc(100% + 2rem) 100%;

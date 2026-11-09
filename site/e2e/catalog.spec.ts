@@ -79,7 +79,7 @@ const CEILINGS = { voyage: 274 * 1024, docs: 167_396 + 1024 } as const;
 // The docs' rose to 41.5 KiB when every docs page opened in the storybook world without boxes (Ari, 2026-11-08: "let
 // content BREATHE"): the title's sky and band, a scroll shadow for a table without its frame, and edges that Windows High
 // Contrast still draws where outlines went: 42,104 bytes with them, over main at 8459a4d8.
-const CSS_CEILINGS = { voyage: 40 * 1024 + 512, docs: 41 * 1024 + 512 } as const;
+const CSS_CEILINGS = { voyage: 40 * 1024 + 512, docs: 42 * 1024 + 512 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())

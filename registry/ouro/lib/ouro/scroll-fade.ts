@@ -26,8 +26,8 @@ export const scrollFadeClass =
  * right one out over the last 2rem, in reverse in a right-to-left box. A box that fits from the start has no scroll
  * timeline, so nothing fades. Chromium holds the last fade of a box that scrolled and then widened to fit, so where that
  * matters keep the box's content at least a pixel wider than the box. Once {@link useScrollFade} runs on the box, its mask takes over and this one stands down, so a hydrated page has no
- * scroll-driven animation that a wait for every animation to finish would wait on forever. Its keyframes
- * are in ouro-base.css.
+ * scroll-driven animation that a wait for every animation to finish would wait on forever. It stands down under reduced
+ * motion too, where the script's fade still shows once the page hydrates. Its keyframes are in ouro-base.css.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  * @claim "so a hydrated page has no scroll-driven animation" registry/ouro/lib/ouro/scroll-fade.test.tsx verify:testExists(registry/ouro/lib/ouro/scroll-fade.test.tsx::useScrollFade > stands the no-script fade down once it runs, so a hydrated box has no scroll-driven animation to wait on)
@@ -36,16 +36,9 @@ export const scrollFadeClass =
  * @claim "it fades each side that hides more from the first paint" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits)
  */
 export const scrollFadeStaticClass =
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[mask-image:linear-gradient(to_right,transparent,#000_2rem),linear-gradient(to_left,transparent,#000_2rem)] " + // fade-ok: fades a scrolling row of text or controls, not a picture
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[mask-repeat:no-repeat] supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[mask-composite:intersect] " +
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[mask-position:-2rem_0,0_0] " +
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[mask-size:calc(100%+2rem)_100%,calc(100%+2rem)_100%] " +
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[animation-name:ouro-scroll-fade-left,ouro-scroll-fade-right] " +
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:rtl:[animation-name:ouro-scroll-fade-right,ouro-scroll-fade-left] " +
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[animation-direction:normal,reverse] " +
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[animation-fill-mode:both] supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[animation-timing-function:linear] " +
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[animation-timeline:scroll(self_inline)] " +
-  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade-js:[animation-range:0_2rem,calc(100%-2rem)_100%]";
+  "[--ouro-scroll-fade-ramps:linear-gradient(to_right,transparent,#000_2rem),linear-gradient(to_left,transparent,#000_2rem)] " + // fade-ok: fades a scrolling row of text or controls, not a picture
+  "supports-[animation-timeline:scroll()]:motion-safe:not-data-ouro-scroll-fade-js:[animation-name:ouro-scroll-fade-left,ouro-scroll-fade-right] supports-[animation-timeline:scroll()]:motion-safe:not-data-ouro-scroll-fade-js:rtl:[animation-name:ouro-scroll-fade-right,ouro-scroll-fade-left] " +
+  "[animation-direction:normal,reverse] [animation-fill-mode:both] [animation-timeline:scroll(self_inline)] [animation-range:0_2rem,calc(100%-2rem)_100%]";
 
 /**
  * Shows that a box scrolls sideways: while its content is wider than it, the box gets

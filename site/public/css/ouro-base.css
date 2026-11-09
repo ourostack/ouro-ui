@@ -129,15 +129,23 @@
 
 @keyframes ouro-scroll-fade-left {
   from {
+    animation-timing-function: linear;
+    mask-image: var(--ouro-scroll-fade-ramps);
+    mask-repeat: no-repeat;
+    mask-composite: intersect;
     mask-position: -2rem 0, 0 0;
   }
   to {
+    mask-image: var(--ouro-scroll-fade-ramps);
+    mask-repeat: no-repeat;
+    mask-composite: intersect;
     mask-position: 0 0, 0 0;
   }
 }
 
 @keyframes ouro-scroll-fade-right {
   from {
+    animation-timing-function: linear;
     mask-size: calc(100% + 2rem) 100%, calc(100% + 2rem) 100%;
   }
   to {
