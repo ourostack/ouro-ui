@@ -43,3 +43,4 @@ jobs:
             echo "=== pass $i variant ${{ matrix.variant }}"
             pnpm exec playwright test --config playwright.latency.config.ts --project=site-latency stage.latency 2>&1 | grep -E "^latency |latency-slow|passed|failed" || true
           done
+# rerun on the final change
