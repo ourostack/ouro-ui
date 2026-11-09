@@ -119,15 +119,27 @@ describe("Avatar", () => {
 
   it("draws a picture already in the cache at full strength on its first frame, with no fade", async () => {
     const cached = new Image();
-    cached.src = photo;
-    await cached.decode();
-    // Read as React commits, before any frame runs: Base UI marks it starting, which must draw nothing different.
-    const { avatar } = await render(<Avatar name="Ana Lind" src={photo} />);
-    const img = avatar.querySelector("img");
-    expect(img).not.toBeNull();
-    expect(getComputedStyle(img!).opacity).toBe("1");
-    expect(getComputedStyle(img!).transitionDuration).toBe("0s");
-    expect(img!.getAnimations()).toHaveLength(0);
+    await new Promise((resolve) => {
+      cached.onload = resolve;
+      cached.src = photo;
+    });
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    // Read as the picture goes into the page, before the browser paints it.
+    const inserted = new Promise<{ opacity: string; duration: string; animations: number }>((resolve) => {
+      const watch = new MutationObserver(() => {
+        const img = host.querySelector("img");
+        if (!img) return;
+        watch.disconnect();
+        resolve({ opacity: getComputedStyle(img).opacity, duration: getComputedStyle(img).transitionDuration, animations: img.getAnimations().length });
+      });
+      watch.observe(host, { childList: true, subtree: true });
+    });
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Avatar name="Ana Lind" src={photo} />));
+    expect(await inserted).toEqual({ opacity: "1", duration: "0s", animations: 0 });
   });
 
   it("falls back to initials when the image fails", async () => {
