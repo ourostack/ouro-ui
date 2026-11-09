@@ -96,7 +96,7 @@ function findRepaints(): { ref: string; rule: string; element: string; detail: s
     if (!effect || !target || animation.playState !== "running" || effect.getTiming().iterations !== Infinity || seen.has(target)) continue;
     const allow = target.closest("[data-ouro-allow~=repaint], [data-ouro-allow~=all]");
     if (allow && (allow.getAttribute("data-ouro-allow-why") ?? "").trim()) continue;
-    const painted = [...new Set(effect.getKeyframes().flatMap((frame) => Object.keys(frame)))].filter((key) => !cheap.has(key));
+    const painted = [...new Set(effect.getKeyframes().flatMap((frame) => Object.keys(frame)))].filter((key) => !cheap.has(key)).sort();
     const inSvg = target instanceof SVGElement && target.ownerSVGElement !== null;
     if (!painted.length && !inSvg) continue;
     seen.add(target);

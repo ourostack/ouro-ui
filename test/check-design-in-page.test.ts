@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "@/registry/ouro/check/design-check";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion } from "@/registry/ouro/check/motion-check";
 
@@ -334,7 +334,11 @@ describe("mediaDrawn", () => {
     if (played.readyState < 1) await new Promise((done) => played.addEventListener("loadedmetadata", done, { once: true }));
     played.currentTime = 1;
     await new Promise((done) => played.addEventListener("seeked", done, { once: true }));
-    await played.play();
+    // WebKit plays only from a person's press, so a click starts it.
+    const playing = new Promise((done) => played.addEventListener("playing", done, { once: true }));
+    played.addEventListener("click", () => void played.play(), { once: true });
+    await userEvent.click(played);
+    await playing;
     await mediaDrawn("c2");
     expect(played.paused).toBe(true);
     expect(played.currentTime).toBe(0);
@@ -449,7 +453,8 @@ describe("listenForMotion", () => {
     expect(readMotion().longestFrameMs).toBe(longestFrameMs);
   });
 
-  it("adds up the layout shifts once armed, and none while unarmed", async () => {
+  // Ouro check runs in Chromium; WebKit has no Layout Instability API, so it reports no shifts to add up.
+  it.skipIf(!PerformanceObserver.supportedEntryTypes.includes("layout-shift"))("adds up the layout shifts once armed, and none while unarmed", async () => {
     render(`<div id="top"></div><p style="margin:0">Moves down</p>`);
     const top = document.getElementById("top")!;
     await frames(2);

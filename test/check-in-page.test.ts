@@ -201,8 +201,10 @@ describe("findSizeIssues: blurry-image, for a video", () => {
   const stream = () => {
     const canvas = document.createElement("canvas");
     [canvas.width, canvas.height] = [64, 48];
+    const captured = canvas.captureStream();
+    // WebKit only sends frames drawn once the capture has started.
     canvas.getContext("2d")!.fillRect(0, 0, 64, 48);
-    return canvas.captureStream();
+    return captured;
   };
 
   it("finds a video drawn larger than its frames at the density, by how it fits (contain unless the page says)", async () => {
