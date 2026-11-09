@@ -112,15 +112,13 @@
 
 /*
  * Press feedback for controls: the scale arrives and releases in 160ms on the ease-out
- * token, and colors ease quickly. Each control adds the scale itself with a `motion-safe:` class,
- * so reduced motion never scales.
+ * token. Colors change at once: a pressed, selected or current control is drawn so on the
+ * frame it becomes so, and the one it took over from loses its color on that same frame.
+ * Each control adds the scale itself with a `motion-safe:` class, so reduced motion never scales.
  */
 @utility press {
   transition:
     scale var(--ouro-duration-press) var(--ouro-ease-out),
-    background-color var(--ouro-duration-fast) ease,
-    border-color var(--ouro-duration-fast) ease,
-    color var(--ouro-duration-fast) ease,
     opacity var(--ouro-duration-fast) ease;
 }
 

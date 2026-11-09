@@ -830,7 +830,7 @@ describe("NavigationRail labels", () => {
 });
 
 describe("NavigationRail motion", () => {
-  it("grows the new current link's bar and eases its colour, and with reduced motion only fades and eases", async () => {
+  it("grows the new current link's bar and changes its colour at once, and with reduced motion only fades the bar", async () => {
     const { root, items: links } = await render(<NavigationRail label="Main" items={items} currentPath="/chat" />);
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
@@ -847,8 +847,10 @@ describe("NavigationRail motion", () => {
           </OuroProvider>,
         ),
       );
+      // The current item's colour is there on the frame it becomes current: nothing eases it.
+      expect(link.getAnimations()).toHaveLength(0);
+      expect(getComputedStyle(link).transitionProperty.split(", ")).not.toContain("color");
       await Promise.all([
-        expectMotion(link, { stem: "navigation-rail", state: "data-selected", properties: { color: token("--ouro-duration-fast") }, reduced }),
         expectMotion(bar, {
           stem: "navigation-rail",
           state: "data-selected",
@@ -859,7 +861,7 @@ describe("NavigationRail motion", () => {
     }
   });
 
-  it("eases a button item's colour and grows its bar when it becomes current, and with reduced motion only fades and eases", async () => {
+  it("changes a button item's colour at once and grows its bar when it becomes current, and with reduced motion only fades the bar", async () => {
     const views = (current: string): NavigationRailEntry[] => ["Chat", "Calendar", "Files"].map((label) => ({ label, icon: icon(label), onClick: () => {}, current: label === current }));
     const { root, items: buttons } = await render(<NavigationRail label="Main" items={views("Chat")} />);
     for (const reduced of [false, true]) {
@@ -875,8 +877,10 @@ describe("NavigationRail motion", () => {
           </OuroProvider>,
         ),
       );
+      // The current item's colour is there on the frame it becomes current: nothing eases it.
+      expect(button.getAnimations()).toHaveLength(0);
+      expect(getComputedStyle(button).transitionProperty.split(", ")).not.toContain("color");
       await Promise.all([
-        expectMotion(button, { stem: "navigation-rail", state: "data-selected", properties: { color: token("--ouro-duration-fast") }, reduced }),
         expectMotion(bar, {
           stem: "navigation-rail",
           state: "data-selected",
