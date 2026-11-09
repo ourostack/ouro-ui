@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type JSX } from "react";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { href } from "../paths";
@@ -79,7 +79,12 @@ export function Loop({ clip, caption, className, size = "md" }: { clip: ClipName
   }, [near, playing]);
 
   return (
-    <figure className={cn("apple-loop", `apple-loop-${size}`, className)} data-apple-clip={clip} data-apple-playing={playing ? "" : undefined}>
+    <figure
+      className={cn("apple-loop", `apple-loop-${size}`, className)}
+      style={{ "--apple-loop-native": `${info.width}px` } as CSSProperties}
+      data-apple-clip={clip}
+      data-apple-playing={playing ? "" : undefined}
+    >
       <div ref={frame} className="apple-loop-frame" data-apple-dark={info.dark ? "" : undefined} style={{ aspectRatio: `${info.width} / ${info.height}` }}>
         <Variant name={clip} scheme="light" label={info.label} hevc={info.hevc} />
         {info.dark ? <Variant name={`${clip}-dark`} scheme="dark" label={info.label} hevc={info.hevc} /> : null}

@@ -27,7 +27,7 @@
     background: var(--ax-term-bg);
     color: var(--ax-term-ink);
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     line-height: 1.6;
     font-feature-settings: normal;
   }
@@ -163,7 +163,7 @@
     border-radius: calc(var(--radius) * 1.4);
     background: var(--card);
     color: var(--card-foreground);
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
   .ax-screen > .ax-card-head:first-child,
   .ax-screen > .ax-chat:first-child > .ax-card-head:first-child {
@@ -322,8 +322,8 @@
     height: 1.5rem;
     flex: none;
     border-radius: 999px;
-    font-size: 0.8125rem;
-    font-weight: 700;
+    font-size: 0.875rem;
+    font-weight: 600;
     line-height: 1;
   }
   .ax-mark-holds {

@@ -42,7 +42,7 @@
   .feel-report {
     margin: 0;
     min-height: 3.75rem;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     line-height: 1.25rem;
   }
   .feel-contender[data-verdict="fail"] .feel-report {
@@ -54,7 +54,7 @@
   .feel-quip {
     margin: 0;
     font-family: var(--font-heading, inherit);
-    font-size: 0.9375rem;
+    font-size: 1rem;
     font-style: italic;
   }
   .feel-tally {
@@ -62,7 +62,7 @@
     gap: calc(var(--spacing) * 4);
     margin: 0;
     color: var(--muted-foreground);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-variant-numeric: tabular-nums;
   }
   .feel-tally strong {
@@ -88,11 +88,20 @@
     gap: var(--apple-gap);
     width: 100%;
   }
+  /* The captures are 675px wide: no wider than that allows at the screen's density, so they are never upscaled. */
+  .feel-flip {
+    --feel-flip-width: min(22rem, 675px);
+  }
+  @media (resolution > 1dppx) {
+    .feel-flip {
+      --feel-flip-width: min(22rem, 337px);
+    }
+  }
   .feel-flip-figure {
     display: grid;
     gap: calc(var(--spacing) * 2);
     margin: 0;
-    max-width: 22rem;
+    max-width: var(--feel-flip-width);
   }
   .feel-flip-screen {
     display: grid;
@@ -243,7 +252,7 @@
     border-radius: calc(var(--radius) * 2);
     background: var(--site-code);
     list-style: none;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     line-height: 1.25rem;
     overscroll-behavior: contain;
     outline-color: var(--ring);
@@ -345,7 +354,7 @@
     border-radius: 999px;
     background: transparent;
     color: var(--foreground);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     text-align: start;
     white-space: nowrap;
     cursor: pointer;
@@ -438,7 +447,7 @@
   .reins-verdict {
     grid-area: 1 / 1;
     margin: 0;
-    font-size: 1.0625rem;
+    font-size: 1.125rem;
     visibility: hidden;
   }
   .reins-verdict[data-shown] {
@@ -494,7 +503,7 @@
   }
   @media (min-width: 56rem) {
     .feel-flip-pair {
-      grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+      grid-template-columns: minmax(0, var(--feel-flip-width)) minmax(0, 1fr);
     }
     .reins-chips {
       min-height: calc(2.75rem * 2 + var(--spacing) * 2);

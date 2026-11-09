@@ -90,7 +90,7 @@ export function PageLink({ label, to, current }: { label: string; to: string; cu
         href={sectionHref(to)}
         aria-current={here ? "page" : undefined}
         onClick={here ? stay : undefined}
-        className={cn(row, "py-2 text-[0.9375rem] leading-5 text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground")}
+        className={cn(row, "py-2 text-base leading-5 text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground")}
       >
         <span>
           {label}
@@ -225,7 +225,7 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
                 className={cn(row, "py-1.5")}
               >
                 <span className="grid min-w-0 flex-1 gap-0.5">
-                  <span className="flex items-center gap-2 font-[family-name:var(--font-heading)] text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em] text-foreground">
+                  <span className="flex items-center gap-2 font-[family-name:var(--font-heading)] text-lg leading-6 font-semibold tracking-[-0.01em] text-foreground">
                     <span>
                       {section.label}
                       {away && (
@@ -271,7 +271,7 @@ function FamilyLinks(): JSX.Element {
               <a
                 href={site.href}
                 aria-current={here ? "true" : undefined}
-                className={cn(row, "py-2 text-[0.9375rem] leading-5 text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
+                className={cn(row, "py-2 text-base leading-5 text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
               >
                 <span>
                   {site.label}

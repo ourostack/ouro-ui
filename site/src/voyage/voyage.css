@@ -69,7 +69,7 @@
     padding-inline: 1rem;
     border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
     background: color-mix(in oklab, var(--muted) 60%, var(--card));
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     color: var(--muted-foreground);
   }
   .site-window-dots {
@@ -84,7 +84,7 @@
   }
   .site-mono {
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-feature-settings: normal;
   }
 
@@ -298,7 +298,7 @@
   .site-halves-title {
     margin: 0;
     font-family: var(--font-heading);
-    font-size: 1.0625rem;
+    font-size: 1.125rem;
     font-weight: 600;
     line-height: 1.4;
     color: var(--foreground);
@@ -330,7 +330,7 @@
     background: color-mix(in oklab, var(--primary) 14%, transparent);
     color: var(--foreground);
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 600;
     letter-spacing: 0.04em;
   }
@@ -340,7 +340,7 @@
   }
   .site-halves-line {
     margin: 0.125rem 0 0;
-    font-size: 0.9375rem;
+    font-size: 1rem;
     line-height: 1.45;
     color: var(--muted-foreground);
   }
@@ -559,6 +559,13 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] {
   width: 100%;
   height: auto;
   border-radius: calc(var(--radius) * 1.4);
+}
+/* The phone capture is 780px wide: on a dense screen it draws no wider than 390px, so it is never upscaled. */
+@media (max-width: 639.98px) and (resolution > 1dppx) {
+  .site-ship-shot-img {
+    max-width: 390px;
+    margin-inline: auto;
+  }
 }
 .site-ship-shot-dark,
 .dark .site-ship-shot-light {

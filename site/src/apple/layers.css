@@ -49,12 +49,12 @@
   }
   .apple-layer-asks {
     font-family: var(--font-heading, inherit);
-    font-size: 1.0625rem;
+    font-size: 1.125rem;
     font-style: italic;
   }
   .apple-layer-body {
     color: var(--muted-foreground);
-    font-size: 0.9375rem;
+    font-size: 1rem;
   }
 
   @media (min-width: 56rem) {

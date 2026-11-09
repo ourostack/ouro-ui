@@ -6,7 +6,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 /** Code inside running text. */
 export function InlineCode({ children }: { children: ReactNode }): JSX.Element {
   return (
-    <code className="rounded-[0.3rem] bg-muted px-[0.3em] py-[0.1em] font-mono text-[0.86em] text-foreground [overflow-wrap:anywhere]">
+    <code className="rounded-[0.3rem] bg-muted px-[0.3em] py-[0.1em] font-mono [font-size-adjust:0.46] text-foreground [overflow-wrap:anywhere]">
       {children}
     </code>
   );
@@ -37,7 +37,7 @@ export function CodeBlock({ code, label, wrap, copy, className }: { code: string
       <pre
         style={copy && !label ? { paddingInlineEnd: "5rem" } : undefined}
         tabIndex={0}
-        className={cn("m-0 overflow-x-auto rounded-xl border border-transparent bg-(--site-code) px-4 py-3.5 font-mono text-[0.8125rem] leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
+        className={cn("m-0 overflow-x-auto rounded-xl border border-transparent bg-(--site-code) px-4 py-3.5 font-mono text-sm leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
       >
         <code>{code}</code>
       </pre>
@@ -81,11 +81,11 @@ export function Command({ command, className }: { command: string; className?: s
         className,
       )}
     >
-      <span aria-hidden="true" className="py-1.5 font-mono text-[0.8125rem] leading-5 text-muted-foreground select-none">
+      <span aria-hidden="true" className="py-1.5 font-mono text-sm leading-5 text-muted-foreground select-none">
         $
       </span>
       {/* Long commands wrap on phones instead of scrolling; Copy takes the exact text. */}
-      <code className="min-w-0 flex-1 py-1.5 font-mono text-[0.8125rem] leading-5 text-foreground [overflow-wrap:anywhere]">
+      <code className="min-w-0 flex-1 py-1.5 font-mono text-sm leading-5 text-foreground [overflow-wrap:anywhere]">
         {command}
       </code>
       <CopyButton text={command} label={`Copy: ${command}`} />
