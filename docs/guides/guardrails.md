@@ -157,7 +157,7 @@ The screen check (`ouro-check`) opens every page of your built app in headless C
 
 | Rule | What it finds |
 | --- | --- |
-| `overlap` | A line of text drawn over another line, or over a picture, in the same section. |
+| `overlap` | A line of text drawn over another line, or over a picture, in the same section. The part of a picture a clipping box cuts away doesn't count, and a label on an opaque backing of its own, such as a chip on a picture, reads.[^check-overlap-picture] |
 | `sideways-scroll` | A page wider than the screen, naming the outermost elements that stick out. |
 | `clipped-text` | Text cut off by its box. An ellipsis or a line clamp is truncation on purpose and passes while the whole text is still there: in a `title`, an `aria-label`, or the text itself in the accessibility tree.[^check-truncate] |
 | `long-lines` | Off unless `ouro-check.json` declares a measure; then the elements it names whose lines run past it. Columns side by side are lines of their own, and a run of short items set apart by middle dots, bullets or bars is a list, not prose.[^check-measure] |
@@ -220,6 +220,20 @@ It presses each listed control 5 times, or as often as `pressRepeat` says, and p
   "budgets": { "inp": 150, "layout-shift": 0.05, "first-content": 2000 }
 }
 ```
+
+### States reached by presses
+
+To check an app in views it reaches by presses, such as an open chat or a call, list them under `states` in `ouro-check.json`: for a page, as the check names it, each state's name and the controls to press in turn to reach it, as Playwright selectors. The check presses its way to each state and checks it as a page of its own, named after the page and the state.[^check-states] A press that finds nothing to press makes the state a page that did not load. As with `press`, list presses that only change what the page shows, and point the check at made-up data.
+
+```json
+{
+  "states": {
+    "/?mock=1": { "a chat open": ["text=Launch planning"], "the calendar": ["role=button[name=Calendar]"] }
+  }
+}
+```
+
+Each page loads afresh, a route in its address's hash included, and its finite animations run to their end, up to 2 s, before the rules judge it.[^check-settle]
 
 `layout-shift` and `first-content` read one load of each page at each size, and `inp` a few presses, so a result just over its budget can be the runner rather than the page. Check a borderline finding before you fix it: run the check on that page again, or raise `pressRepeat`. A finding well over its budget, or one that shows at several sizes, is the page.[^check-measured]
 
@@ -399,6 +413,9 @@ const hero = images["hero.png"];
 [^images-kept]: test:scripts/images/images.test.mts::Ouro images > keeps a picture's files while its bytes and options are the same, and writes them again when either changes verify:testExists(scripts/images/images.test.mts::Ouro images > keeps a picture's files while its bytes and options are the same, and writes them again when either changes)
 [^images-upright]: test:scripts/images/images.test.mts::Ouro images > turns a photo upright as its EXIF orientation says, and percent-encodes an address with a space or a #; test:scripts/images/images.test.mts::Ouro images > reads a source folder inside the out folder, and leaves out an animated picture verify:testExists(scripts/images/images.test.mts::Ouro images > turns a photo upright as its EXIF orientation says, and percent-encodes an address with a space or a #) verify:testExists(scripts/images/images.test.mts::Ouro images > reads a source folder inside the out folder, and leaves out an animated picture)
 [^check-corner-frame]: test:test/check-design-in-page.test.ts::listCornerMedia > lists pictures, videos and canvases, with the radius of the frame they fill (past a wrapper that draws no box) and the colour behind it verify:testExists(test/check-design-in-page.test.ts::listCornerMedia > lists pictures, videos and canvases, with the radius of the frame they fill (past a wrapper that draws no box) and the colour behind it)
+[^check-states]: test:scripts/check/check.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing verify:testExists(scripts/check/check.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing)
+[^check-settle]: test:scripts/check/check.test.mts::Ouro check > judges a page once its animations have run, as a person sees it after a moment; test:scripts/check/check.test.mts::Ouro check > names a page by site and path across several sites, a URL by its host and path, and the home page home verify:testExists(scripts/check/check.test.mts::Ouro check > judges a page once its animations have run, as a person sees it after a moment) verify:testExists(scripts/check/check.test.mts::Ouro check > names a page by site and path across several sites, a URL by its host and path, and the home page home)
+[^check-overlap-picture]: test:test/check-in-page.test.ts::findOverlaps > leaves out the part of a picture a clipping box cuts away, and a label on an opaque backing of its own, but not one on a see-through backing verify:testExists(test/check-in-page.test.ts::findOverlaps > leaves out the part of a picture a clipping box cuts away, and a label on an opaque backing of its own, but not one on a see-through backing)
 [^check-measure]: test:scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements; test:test/check-in-page.test.ts::findSizeIssues: long-lines > counts columns side by side as lines of their own, and a run of short items as a list, not prose; test:test/check-in-page.test.ts::findSizeIssues: long-lines > finds nothing without a declared measure, however long the lines run; test:test/check-in-page.test.ts::findSizeIssues: long-lines > holds the elements a selector names to a measure in px, and leaves the rest alone; test:test/check-in-page.test.ts::findSizeIssues: long-lines > holds prose to a measure in ch, the width of so many zeros in its own font verify:testExists(scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > finds nothing without a declared measure, however long the lines run) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > holds the elements a selector names to a measure in px, and leaves the rest alone) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > holds prose to a measure in ch, the width of so many zeros in its own font) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > counts columns side by side as lines of their own, and a run of short items as a list, not prose)
 [^check-chars]: test:test/check-in-page.test.ts::findSizeIssues: long-lines > with 100 chars on the prose, finds prose whose lines average more than 100 characters, as the rule always counted, and marks an element once per finding verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > with 100 chars on the prose, finds prose whose lines average more than 100 characters, as the rule always counted, and marks an element once per finding)
 [^not-bare]: test:scripts/kits/source-rules.test.mjs::vague-failure-copy > keeps the detector Ouro AX shares: six phrases and the bare failure pattern verify:testExists(scripts/kits/source-rules.test.mjs::vague-failure-copy > keeps the detector Ouro AX shares: six phrases and the bare failure pattern)

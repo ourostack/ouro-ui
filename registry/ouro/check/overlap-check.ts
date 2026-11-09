@@ -7,7 +7,8 @@ import type { PageIssue } from "./size-check.ts";
 // the page and reports any line of text that collides with another line of text, or with a picture, inside the same
 // section. Sticky headings are checked where they sit at each scroll position. Text that belongs to one block (its own
 // lines, or a block and the blocks inside it) never counts against itself; text a line clamp or overflow cuts away
-// doesn't count; and an opaque sticky or fixed bar covers what scrolls under it rather than colliding with it.
+// doesn't count, nor does the part of a picture a clipping box cuts away; an opaque sticky or fixed bar covers what
+// scrolls under it rather than colliding with it; and a label on an opaque backing of its own (a chip on a picture) reads.
 // An element opts out with data-ouro-allow="overlap" and data-ouro-allow-why="<reason>", or, in an app whose own rules
 // keep data-ouro-* for Ouro's components, data-overlap-ignore="<reason>", which stays; art drawn as a backdrop behind
 // words needs it.
@@ -102,13 +103,26 @@ function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIs
     for (const el of document.querySelectorAll("img, svg")) {
       if (el.tagName.toLowerCase() === "svg" && el.parentElement?.closest("svg")) continue;
       if (!visible(el)) continue;
-      const rect = el.getBoundingClientRect();
-      if (rect.width < 40 || rect.height < 40) continue;
-      items.push({ kind: "image", el, block: el, section: sectionOf(el), rect, cover: coverOf(el) });
+      const box = el.getBoundingClientRect();
+      if (box.width < 40 || box.height < 40) continue;
+      // As drawn: what a clipping box around it (a scroller, a collapsed "see more") cuts away doesn't count.
+      const clip = clipOf(el.parentElement!);
+      const rect = { left: Math.max(box.left, clip.left), right: Math.min(box.right, clip.right), top: Math.max(box.top, clip.top), bottom: Math.min(box.bottom, clip.bottom) };
+      if (rect.right - rect.left > 1 && rect.bottom - rect.top > 1) items.push({ kind: "image", el, block: el, section: sectionOf(el), rect, cover: coverOf(el) });
     }
     return items;
   };
   const related = (a: Element, b: Element) => a === b || a.contains(b) || b.contains(a);
+  // Whether text sits on a backing of its own over a picture, as a label's chip does: a box between the text and the
+  // picture with a nearly opaque fill. Such a label reads, whatever is under it.
+  const backed = (text: Element, picture: Element) => {
+    for (let node: Element | null = text; node && !node.contains(picture); node = node.parentElement) {
+      // A colour's channels and alpha, in any syntax the browser computes: rgb(r, g, b), rgba(r, g, b, a), oklch(l c h / a).
+      const [, , , alpha = "1"] = getComputedStyle(node).backgroundColor.replace(/^[a-z]+\(|\)$/g, "").split(/[\s,/]+/);
+      if (Number(alpha) >= 0.9) return true;
+    }
+    return false;
+  };
   const found = new Map<string, PageIssue>();
   const counter = window as unknown as { __ouroCheckRef?: number };
   const total = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
@@ -126,6 +140,8 @@ function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIs
         if (a.kind === "image" && b.kind === "image") continue;
         if (a.section !== b.section || related(a.block, b.block) || related(a.el, b.el)) continue;
         if (a.cover !== b.cover) continue;
+        // Text is collected before pictures, so a pair of the two is the text, then the picture.
+        if (b.kind === "image" && backed(a.el, b.el)) continue;
         const x = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left);
         const h = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top);
         if (x <= slack || h <= slack) continue;

@@ -409,6 +409,17 @@ describe("findOverlaps", () => {
     expect(scrollY).toBe(0);
   });
 
+  it("leaves out the part of a picture a clipping box cuts away, and a label on an opaque backing of its own, but not one on a see-through backing", async () => {
+    const url = await picture(100, 100);
+    render(`
+      <section style="position:relative"><div style="height:60px;overflow:hidden"><img src="${url}" alt="cut short" style="width:100px;height:100px;display:block"></div><p style="margin:0">See more</p></section>
+      <section style="position:relative"><div style="height:0;overflow:hidden"><img src="${url}" alt="cut away" style="width:100px;height:100px;display:block"></div><p style="margin:0">Under nothing</p></section>
+      <section style="position:relative"><img src="${url}" alt="under a chip" style="width:100px;height:100px;display:block"><span style="position:absolute;bottom:4px;left:4px;background:#eee;padding:2px">GIF</span><span style="position:absolute;top:4px;left:4px;background:oklch(0.9 0.02 250 / 0.95);padding:2px">New</span></section>
+      <section style="position:relative"><img src="${url}" alt="under a see-through label" style="width:100px;height:100px;display:block"><span style="position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.5);color:white;padding:2px">Caption</span></section>`);
+    await decodeImages();
+    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Caption" × img "under a see-through label"']);
+  });
+
   it("passes text of one block, nested blocks, different sections, covered rows, hidden, clipped and allowed text", async () => {
     const url = await picture(100, 100);
     render(`
