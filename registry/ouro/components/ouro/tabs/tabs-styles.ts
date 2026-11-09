@@ -71,9 +71,9 @@ const listClass =
   "relative z-0 m-0 box-border flex shrink-0 p-0 " +
   "data-[orientation=horizontal]:overflow-x-auto data-[orientation=horizontal]:[scrollbar-width:none] " +
   "data-[orientation=horizontal]:shadow-[inset_0_-1px_0_0_var(--border)] " +
-  "data-[fade=right]:[mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] " +
-  "data-[fade=left]:[mask-image:linear-gradient(to_left,#000_calc(100%-2rem),transparent)] " +
-  "data-[fade=both]:[mask-image:linear-gradient(to_right,transparent,#000_2rem,#000_calc(100%-2rem),transparent)] " +
+  "data-[fade=right]:[mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] " + // fade-ok: fades the hidden end of a row of tabs, not a picture
+  "data-[fade=left]:[mask-image:linear-gradient(to_left,#000_calc(100%-2rem),transparent)] " + // fade-ok: fades the hidden end of a row of tabs, not a picture
+  "data-[fade=both]:[mask-image:linear-gradient(to_right,transparent,#000_2rem,#000_calc(100%-2rem),transparent)] " + // fade-ok: fades the hidden end of a row of tabs, not a picture
   "data-[orientation=vertical]:flex-col data-[orientation=vertical]:shadow-[inset_-1px_0_0_0_var(--border)] " +
   "rtl:data-[orientation=vertical]:shadow-[inset_1px_0_0_0_var(--border)]";
 

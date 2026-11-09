@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Browser, BrowserType, Page } from "playwright";
+import { findImageFades } from "./fade-check.ts";
 import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findOverlaps } from "./overlap-check.ts";
@@ -153,6 +154,7 @@ const LABELS: Record<string, string> = {
   "clipped-text": "clipped text",
   "long-lines": "long lines",
   "blurry-image": "blurry picture",
+  "image-fade": "picture fades",
   axe: "accessibility (axe)",
   "broken-image": "broken picture",
   "http-error": "page did not load",
@@ -168,6 +170,7 @@ const EXIT = Object.freeze({ ok: 0, error: 1, usage: 2, findings: 3 });
 // What usually causes a finding, for the person who fixes it.
 const HINTS: Record<string, string> = {
   "blurry-image": "often a wrong `sizes` on a cropped, height-driven image",
+  "image-fade": "end the picture on a hard edge, or put it on a solid band",
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
 // calls good, a 0.1 layout shift, 2500 ms to the largest content and 200 ms from a press to its paint.
@@ -395,6 +398,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       issues.push(...(await page.evaluate(findOverlaps, {})));
       await page.evaluate(decodeImages);
       issues.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
+      issues.push(...(await page.evaluate(findImageFades)));
       if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
@@ -649,10 +653,10 @@ const USAGE = `Usage: node lib/ouro/check/check.ts <url | built folder>… [opti
        node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config <file>]
 
 Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken and blurry
-pictures, pages that fail to load or draw, and serious accessibility problems, and long lines only where ouro-check.json
-declares a measure. It measures layout shift, first content and the presses the app lists against their budgets, and
-writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins the out
-folders of a sharded run into one.
+pictures, pictures that fade into the page, pages that fail to load or draw, and serious accessibility problems, and
+long lines only where ouro-check.json declares a measure. It measures layout shift, first content and the presses the
+app lists against their budgets, and writes report.json, summary.md, a contact sheet per page and a captioned close-up
+per finding. merge joins the out folders of a sharded run into one.
 
   --pages <glob>           only the built folder's pages the glob matches, such as "docs/**"
   --out <folder>           where the report goes (default ouro-check)

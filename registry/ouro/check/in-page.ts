@@ -28,6 +28,7 @@ const ALIASES: Record<string, string> = {
   "data-clip-ok": "clipped-text",
   "data-scroll-x": "sideways-scroll",
   "data-size-ignore": "sideways-scroll clipped-text long-lines blurry-image",
+  "data-image-fade-ok": "image-fade",
 };
 
 interface AxeIssue extends PageIssue {

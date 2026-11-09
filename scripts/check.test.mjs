@@ -5,9 +5,10 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
-// Ouro check's Node side (registry/ouro/check/check.ts and serve.ts) drives headless Chromium, so its node:test tests
-// (scripts/check/check.test.mts) run under node --test with Node's own coverage, held to 100% like the components, in
-// the scripts (browser) job. Its in-page side is covered by test/check-in-page.test.ts in Vitest.
+// Ouro check's Node side (registry/ouro/check/check.ts and serve.ts, which drive headless Chromium, and fades.ts, which
+// reads source) has node:test tests (scripts/check/check.test.mts and fades.test.mts) that run under node --test with
+// Node's own coverage, held to 100% like the components, in the scripts (browser) job. Its in-page side is covered by
+// test/check-in-page.test.ts in Vitest.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -20,10 +21,12 @@ test("the Ouro check tests pass and cover every line, branch and function of its
       "--experimental-test-coverage",
       "--test-coverage-include=registry/ouro/check/check.ts",
       "--test-coverage-include=registry/ouro/check/serve.ts",
+      "--test-coverage-include=registry/ouro/check/fades.ts",
       "--test-coverage-lines=100",
       "--test-coverage-branches=100",
       "--test-coverage-functions=100",
       "scripts/check/check.test.mts",
+      "scripts/check/fades.test.mts",
     ],
     {
       cwd: root,
