@@ -121,6 +121,44 @@ describe("catalogueIndex", () => {
     expect(warnings()).toEqual([]);
   });
 
+  it("makes no WeakMap per emoji, however many the catalogue holds", () => {
+    // A WeakMap per emoji chains them, and a collector that marks WeakMaps a level at a time walks the chain in every collection.
+    let weakMaps = 0;
+    const Native = globalThis.WeakMap;
+    vi.stubGlobal(
+      "WeakMap",
+      class extends Native<object, unknown> {
+        constructor(entries?: readonly (readonly [object, unknown])[] | null) {
+          super(entries);
+          weakMaps += 1;
+        }
+      },
+    );
+    try {
+      const items = freshEmoji(2000);
+      const index = catalogueIndex(wrap([{ id: "all", label: "All", items }]));
+      expect(catalogueIndex(wrap([{ id: "all", label: "All", items: [...items] }]))).toBe(index);
+      // Catalogues with no emoji share one index too.
+      expect(catalogueIndex(wrap([]))).toBe(catalogueIndex(wrap([{ id: "none", label: "None", items: [] }])));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(weakMaps).toBe(0);
+  });
+
+  it("keeps the lists of the 8 catalogues indexed most recently that start with the same emoji", () => {
+    const [first] = freshEmoji(1);
+    const catalogueOf = (rest: EmojiItem[]) => wrap([{ id: "all", label: "All", items: [first!, ...rest] }]);
+    const kept = freshEmoji(2);
+    const index = catalogueIndex(catalogueOf(kept));
+    for (let other = 0; other < 7; other++) catalogueIndex(catalogueOf(freshEmoji(2)));
+    // Seven others since, each starting with the same emoji: still kept.
+    expect(catalogueIndex(catalogueOf([...kept]))).toBe(index);
+    for (let other = 0; other < 8; other++) catalogueIndex(catalogueOf(freshEmoji(2)));
+    // Eight others since: let go, so it is built again.
+    expect(catalogueIndex(catalogueOf([...kept]))).not.toBe(index);
+  });
+
   it("builds a new index for a catalogue whose emoji changed", () => {
     const items = freshEmoji();
     const before = wrap([{ id: "all", label: "All", items }]);
