@@ -82,7 +82,6 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const root = useRef<HTMLDivElement>(null);
   const [offscreen, setOffscreen] = useState(false);
 
-  const band = bandAt(depth);
   const full = TANKS.filter((tank) => tanks[tank.id]).length;
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
@@ -255,7 +254,9 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
 
   // The picture follows the controls once the press has painted (useAfterPaint), so no press waits
   // on the porthole's repaint.
-  const scene = useAfterPaint(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
+  const seen = useCalmDepth(depth);
+  const seenBand = bandAt(seen);
+  const scene = useAfterPaint(useMemo(() => ({ depth: seen, band: seenBand, tanks: full, dived, lights, speed, dives: stream, rings }), [seen, seenBand, full, dived, lights, speed, stream, rings]));
 
   return (
     <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined} data-paced={paced ? "" : undefined}>
@@ -299,6 +300,31 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       </div>
     </div>
   );
+}
+
+/** The picture follows the depth lever at most this often while it moves in small steps, so a run of presses is not followed by a picture's worth of work after each. */
+const CALM_MS = 150;
+/** A change of this many fathoms or more (a dive, a surfacing) is followed at once, so its fade is not held back. */
+const CALM_JUMP = 30;
+
+/**
+ * The depth the picture shows: the lever's depth, but a small step waits until CALM_MS have passed
+ * since the picture last changed, so a run of presses or a drag costs the porthole one change per
+ * CALM_MS, not one after every step (site/e2e/stage.latency.spec.ts).
+ */
+function useCalmDepth(depth: number): number {
+  const [shown, setShown] = useState(depth);
+  const at = useRef({ shown: depth, time: 0 });
+  useEffect(() => {
+    if (depth === at.current.shown) return;
+    const wait = Math.abs(depth - at.current.shown) >= CALM_JUMP ? 0 : Math.max(0, at.current.time + CALM_MS - performance.now());
+    const timer = window.setTimeout(() => {
+      at.current = { shown: depth, time: performance.now() };
+      setShown(depth);
+    }, wait);
+    return () => clearTimeout(timer);
+  }, [depth]);
+  return shown;
 }
 
 /**
