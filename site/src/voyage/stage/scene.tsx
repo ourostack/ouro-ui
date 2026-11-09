@@ -22,8 +22,6 @@ const STEP = 30;
 /** How long a change fades in the picture (stage.css --stage-fade is the slow duration), with some to spare. */
 const FADE_MS = 700;
 
-/** Whether two states differ in nothing but the depth: the same water, so no band fades in or out. */
-const sameBesidesDepth = (a: SceneState, b: SceneState): boolean => a.band === b.band && a.tanks === b.tanks && a.dived === b.dived && a.lights === b.lights && a.speed === b.speed && a.dives === b.dives && a.rings === b.rings;
 
 /** A drawing from site/src/nautilus/art at a place and width in the scene, its height from its own proportions. */
 function Drawing({ of, x, y, width, className, inner = of.inner }: { of: Art; x: number; y: number; width: number; className?: string; inner?: string }): JSX.Element {
@@ -125,11 +123,11 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
     const last = before.current;
     if (last.state === state) return;
     const now = performance.now();
-    const small = state.depth !== last.state.depth && Math.abs(state.depth - last.state.depth) < STEP && sameBesidesDepth(last.state, state);
+    const gap = Math.abs(state.depth - last.state.depth);
+    const small = gap > 0 && gap < STEP && Object.keys(state).every((key) => key === "depth" || state[key as keyof SceneState] === last.state[key as keyof SceneState]);
     // A small step that waits out an earlier fade starts no fade of its own, so it does not extend the wait.
-    const step = small && now >= last.fadingUntil;
     before.current = { state, fadingUntil: small ? last.fadingUntil : now + FADE_MS };
-    root.current?.toggleAttribute("data-stepping", step);
+    root.current?.toggleAttribute("data-stepping", small && now >= last.fadingUntil);
   }, [state]);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
   useEffect(() => {
