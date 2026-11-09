@@ -4,6 +4,12 @@
       "inp": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners.",
       "layout-shift": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners.",
       "first-content": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners."
+    },
+    "/docs/chart/": {
+      "overlap": "Chart's legend is Recharts' HTML legend, set in the space its SVG keeps for it, so the check reads it over the SVG's box: ourostack/ouro-ui#826."
+    },
+    "/docs/skeleton/": {
+      "repaint": "Skeleton's shimmer animates its background without end, as the component ships: ourostack/ouro-ui#827."
     }
   }
 }

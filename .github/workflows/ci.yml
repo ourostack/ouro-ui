@@ -571,14 +571,83 @@ jobs:
             # A push to main and a dispatched run add no commit the queue did not check.
             *) echo "::notice::No commits to check on $EVENT: the pull request and the merge queue checked them." ;;
           esac
+  design:
+    # Ouro check (registry/ouro/check/, through .github/actions/check) on the site as it builds, at a
+    # phone's, a laptop's and a 4K screen's size, light and dark, in shards side by side: the design
+    # rules (type scale, blurry or upscaled pictures, overlap, repaints at rest and the rest), axe-core
+    # and the size rules, with the waivers and their reasons in .github/ouro-check.json. A gated
+    # finding fails it, and it is part of the ci check. Screens runs the same check at every size and
+    # only reports. A pull request that changes nothing the site build or the check reads passes
+    # without building (scripts/ci-relevance.mjs screens).
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: design (${{ matrix.shard }}/3)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - id: relevance
+        name: Can the change reach the site?
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
+            # This job's own file is one Screens' list leaves out; a change to it runs the check.
+            if git diff --name-only HEAD^1 HEAD | grep -qx ".github/workflows/ci.yml"; then
+              echo "This workflow changed: the design check runs."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+            else
+              node scripts/ci-relevance.mjs screens HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "Design check run: $EVENT."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.relevance.outputs.run != 'false'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - if: steps.relevance.outputs.run != 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - if: steps.relevance.outputs.run != 'false'
+        run: pnpm i --frozen-lockfile
+      - if: steps.relevance.outputs.run != 'false'
+        run: pnpm site:build
+      - if: steps.relevance.outputs.run != 'false'
+        uses: ./.github/actions/check
+        with:
+          targets: site/dist
+          sizes: 390x844,1440x900,3840x2160
+          shard: ${{ matrix.shard }}/3
+          script: registry/ouro/check/check.ts
+          config: .github/ouro-check.json
+          artifact: design-check
+          install-browser: "false"
   ci:
-    # Passes when every part of it passed (checks, attribution, every browser shard, the coverage
+    # Passes when every part of it passed (checks, attribution, every design shard, every browser shard, the coverage
     # job and every script test job) and the browser shards' merged coverage reached 100%; or, on a
     # reduced pull request whose merged coverage fell short, when every browser-fallback shard passed
     # too and their merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs); or,
     # when the plan skipped the browser shards because nothing they read changed, without them. Its
     # outputs tell motion-coverage which shards' motion evidence to read, if any.
-    needs: [plan, checks, attribution, browser, scripts, scripts-browser, coverage, browser-fallback]
+    needs: [plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -596,6 +665,7 @@ jobs:
         env:
           CHECKS: ${{ needs.checks.result }}
           ATTRIBUTION: ${{ needs.attribution.result }}
+          DESIGN: ${{ needs.design.result }}
           BROWSER: ${{ needs.browser.result }}
           SCRIPTS: ${{ needs.scripts.result }}
           SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
@@ -605,7 +675,7 @@ jobs:
           failed=0
           # Skipped by the plan, the browser shards count as passed; skipped for any other reason, they do not.
           if [ "$BROWSER_RUN" = false ] && [ "$BROWSER" = skipped ]; then BROWSER=success; fi
-          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE"; do
+          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
               failed=1
