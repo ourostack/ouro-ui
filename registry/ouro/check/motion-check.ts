@@ -31,11 +31,12 @@ interface Motion {
   shift: number;
   frames: number[];
   armed: boolean;
+  wake: () => void;
 }
 
 // An init script: counts forced layouts and layout shifts, and times frames once armed, from the page's start.
 function listenForMotion(): void {
-  const m: Motion = { forced: 0, shift: 0, frames: [], armed: false };
+  const m: Motion = { forced: 0, shift: 0, frames: [], armed: false, wake: () => {} };
   (window as unknown as { __ouroMotion: Motion }).__ouroMotion = m;
   let pending = false;
   const observer = new MutationObserver(() => {
@@ -68,13 +69,24 @@ function listenForMotion(): void {
       return original.apply(this, args);
     };
   }
-  // A frame painted: whatever changed before it is laid out.
+  // A frame painted: whatever changed before it is laid out. Only while armed, so a page at rest draws no frame of the
+  // listener's own, and Ouro check can trace what the page itself draws there.
+  let ticking = false;
   const tick = (at: number) => {
     pending = false;
-    if (m.armed) m.frames.push(at);
+    ticking = m.armed;
+    if (!ticking) return;
+    m.frames.push(at);
     requestAnimationFrame(tick);
   };
-  requestAnimationFrame(tick);
+  // Armed: frames are timed from now, so a long task the step starts before the next frame still counts.
+  m.wake = () => {
+    observer.takeRecords();
+    pending = false;
+    m.frames.push(performance.now());
+    if (!ticking) requestAnimationFrame(tick);
+    ticking = true;
+  };
   new PerformanceObserver((list) => {
     for (const entry of list.getEntries() as unknown as { value: number; hadRecentInput: boolean }[]) if (m.armed && !entry.hadRecentInput) m.shift += entry.value;
   }).observe({ type: "layout-shift", buffered: false });
@@ -115,6 +127,7 @@ function findRepaints(): { ref: string; rule: string; element: string; detail: s
 function resetMotion(): void {
   const m = (window as unknown as { __ouroMotion: Motion }).__ouroMotion;
   Object.assign(m, { forced: 0, shift: 0, frames: [], armed: true });
+  m.wake();
 }
 
 // Ends a step: its measures, read without counting the reading.

@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "@/registry/ouro/check/design-check";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion } from "@/registry/ouro/check/motion-check";
@@ -506,6 +506,21 @@ describe("listenForMotion", () => {
     expect(longestFrameMs).toBeGreaterThan(0);
     await frames(2);
     expect(readMotion().longestFrameMs).toBe(longestFrameMs);
+  });
+
+  it("asks for frames only while armed, so a page at rest draws none of its own", async () => {
+    readMotion();
+    await frames(2);
+    const asked = vi.spyOn(window, "requestAnimationFrame");
+    await new Promise((done) => setTimeout(done, 100));
+    expect(asked).not.toHaveBeenCalled();
+    resetMotion();
+    resetMotion();
+    await new Promise((done) => setTimeout(done, 100));
+    expect(asked.mock.calls.length).toBeGreaterThan(0);
+    const reading = readMotion();
+    asked.mockRestore();
+    expect(reading.longestFrameMs).toBeGreaterThan(0);
   });
 
   // Ouro check runs in Chromium; WebKit has no Layout Instability API, so it reports no shifts to add up.

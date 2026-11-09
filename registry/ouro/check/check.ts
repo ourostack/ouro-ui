@@ -231,6 +231,9 @@ const WALK_RUNS = 3;
 const HSTS_MIN = 31536000;
 // How long a page's finite animations may run before the rules judge it anyway.
 const SETTLE_MS = 2000;
+// How long the walk watches a page at rest, and how many frames it lets the page draw there (a blinking caret draws a few).
+const REST_MS = 1500;
+const MAX_REST_FRAMES = 10;
 // inp presses at most this many controls a page, each PRESS_REPEAT times unless ouro-check.json says otherwise, at one
 // size and theme: a laptop's, or the widest given.
 const MAX_PRESSES = 24;
@@ -411,6 +414,101 @@ function listenForRuntime(page: Page, url: string): () => PageIssue[] {
   return () => [...found.values()];
 }
 
+// What the page draws at rest, from a Chromium trace over REST_MS with the pointer parked: the frames its main thread
+// renders. A still page renders none and a blinking caret a few, where a timer, a canvas loop, an animation of a painted
+// property, an SVG's own <animate> or a frame loop that changes nothing renders one a frame. null at MAX_REST_FRAMES or fewer, or when what
+// changes opts out of repaint with a reason. Otherwise the script that ran most, by function, file and line, and the
+// smallest element holding all that changed between two screenshots, marked `ref` for the close-up: the page
+// itself when nothing it shows changes.
+// A trace is the whole browser's, so pages walked at once take turns at it.
+type TraceEvent = { name: string; args?: { data?: { frame?: string; functionName?: string; url?: string; lineNumber?: number } } };
+type RestDrawing = { frames: number; element: string; script: string | null };
+let traceTurn: Promise<unknown> = Promise.resolve();
+function drawsAtRest(page: Page, ref: string): Promise<RestDrawing | null> {
+  const turn = traceTurn.then(() => traceRest(page, ref));
+  traceTurn = Promise.allSettled([turn]);
+  return turn;
+}
+// Names the element drawing at rest from two screenshots, in the page: the smallest box holding every pixel that
+// changed between them, whatever its pointer-events, or the root when none changed but a script ran each frame. "" when
+// nothing changed and no script ran (the frames were the page's own animations, which findRepaints judges), or when it,
+// or an ancestor, opts out of repaint with a reason.
+const CHANGED = `async (a, b, ref, script) => {
+  const read = async (src) => {
+    const picture = new Image();
+    picture.src = src;
+    await picture.decode();
+    const canvas = document.createElement("canvas");
+    [canvas.width, canvas.height] = [picture.naturalWidth, picture.naturalHeight];
+    const pen = canvas.getContext("2d", { willReadFrequently: true });
+    pen.drawImage(picture, 0, 0);
+    return pen.getImageData(0, 0, canvas.width, canvas.height);
+  };
+  const [p, q] = await Promise.all([read(a), read(b)]);
+  let [x0, y0, x1, y1] = [Infinity, Infinity, -1, -1];
+  for (let y = 0; y < p.height; y++)
+    for (let x = 0; x < p.width; x++) {
+      const i = (y * p.width + x) * 4;
+      if (p.data[i] !== q.data[i] || p.data[i + 1] !== q.data[i + 1] || p.data[i + 2] !== q.data[i + 2]) [x0, y0, x1, y1] = [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x), Math.max(y1, y)];
+    }
+  if (x1 < 0 && !script) return "";
+  let el = document.documentElement;
+  if (x1 >= 0) {
+    let least = Infinity;
+    for (const n of document.body.querySelectorAll("*")) {
+      const r = n.getBoundingClientRect();
+      const area = r.width * r.height;
+      if (area > 0 && area < least && r.left - 1 <= x0 && x1 + 1 <= r.right + 1 && r.top - 1 <= y0 && y1 + 1 <= r.bottom + 1) [least, el] = [area, n];
+    }
+  }
+  for (let n = el; n; n = n.parentElement) {
+    const rules = (n.getAttribute("data-ouro-allow") ?? "").split(/\\s+/);
+    if ((rules.includes("repaint") || rules.includes("all")) && (n.getAttribute("data-ouro-allow-why") ?? "").trim()) return "";
+  }
+  el.setAttribute("data-ouro-check-ref", ((el.getAttribute("data-ouro-check-ref") ?? "") + " " + ref).trim());
+  return x1 < 0 ? "the page" : el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + (el.classList.length ? "." + [...el.classList].slice(0, 3).join(".") : "");
+}`;
+async function traceRest(page: Page, ref: string): Promise<RestDrawing | null> {
+  const cdp = await page.context().newCDPSession(page);
+  const events: TraceEvent[] = [];
+  let frame: string;
+  try {
+    await page.mouse.move(0, 0);
+    ({ frameTree: { frame: { id: frame } } } = (await cdp.send("Page.getFrameTree")) as { frameTree: { frame: { id: string } } });
+    cdp.on("Tracing.dataCollected", ({ value }) => events.push(...(value as unknown as TraceEvent[])));
+    const complete = new Promise((done) => cdp.once("Tracing.tracingComplete", done));
+    await cdp.send("Tracing.start", { traceConfig: { includedCategories: ["devtools.timeline"] }, transferMode: "ReportEvents" });
+    await page.waitForTimeout(REST_MS);
+    await cdp.send("Tracing.end");
+    await complete;
+  } finally {
+    await cdp.detach();
+  }
+  const own = events.filter((e) => e.args?.data?.frame === frame);
+  const frames = own.filter((e) => e.name === "PrePaint").length;
+  if (frames <= MAX_REST_FRAMES) return null;
+  const calls = new Map<string, number>();
+  for (const { name, args } of own) {
+    const data = args!.data!;
+    if (name !== "FunctionCall" || !data.url) continue;
+    const key = `${data.functionName || "a function"} in ${new URL(data.url).pathname}:${data.lineNumber}`;
+    calls.set(key, (calls.get(key) ?? 0) + 1);
+  }
+  const script = [...calls].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  // The page's own animations held still while it is photographed: findRepaints has judged them, and one it allows, or a
+  // spinner on the compositor, would otherwise read as drawing.
+  await page.evaluate(`window.__ouroHeld = document.getAnimations().filter((a) => a.playState === "running"); for (const a of window.__ouroHeld) a.pause()`);
+  try {
+    const shot = async () => `data:image/png;base64,${(await page.screenshot({ scale: "css", animations: "allow" })).toString("base64")}`;
+    const before = await shot();
+    await page.waitForTimeout(250);
+    const element = (await page.evaluate(`(${CHANGED})(${JSON.stringify(before)}, ${JSON.stringify(await shot())}, ${JSON.stringify(ref)}, ${JSON.stringify(script)})`)) as string;
+    return element ? { frames, element, script } : null;
+  } finally {
+    await page.evaluate(`for (const a of window.__ouroHeld) a.play(); delete window.__ouroHeld`);
+  }
+}
+
 // Lets the page's finite animations run to their end, for up to 2 s, so no rule judges it part way through one: a toast
 // fading in would read as low contrast, and a panel sliding in as out of place.
 async function settle(page: Page): Promise<void> {
@@ -574,10 +672,17 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   // run on a busy machine does not make a finding.
   const walk = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
-    // At rest first, before anything is hovered or opened.
+    // At rest first, before anything is hovered or opened: an endless animation a style sheet shows, or failing that,
+    // anything the page keeps painting.
     for (const issue of await page.evaluate(findRepaints)) {
       found++;
       await record(page, target, issue, width, height, theme);
+    }
+    const drawing = found ? null : await drawsAtRest(page, "rest");
+    if (drawing) {
+      found++;
+      const detail = `${drawing.frames} frames drawn in ${REST_MS / 1000} s with nothing moving${drawing.script ? `, driven by ${drawing.script}` : ""}: stop what keeps drawing (a timer, a canvas loop, a frame loop) once it has said what it says`;
+      await record(page, target, { ref: "rest", rule: "repaint", element: `${drawing.element} (draws at rest)`, detail }, width, height, theme);
     }
     const settle = () => page.waitForTimeout(400);
     for (const step of await page.evaluate(markWalkables, { limit: WALK_EACH, never: NEVER_PRESS })) {

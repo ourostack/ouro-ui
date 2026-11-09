@@ -277,6 +277,34 @@ describe("Ouro check", () => {
     }
   };
 
+  test("finds a page that keeps drawing at rest from a trace, a script's loop or an SVG's own animation included, named by what changes and the script that drives it", async () => {
+    const loop = (id: string, allow = "") => `<canvas id="${id}" width="100" height="100" ${allow}></canvas><script>{ const pen = document.getElementById("${id}").getContext("2d"); let n = 0; const draw = () => { pen.fillStyle = "hsl(" + (n++ % 360) + " 60% 50%)"; pen.fillRect(0, 0, 100, 100); requestAnimationFrame(draw); }; draw(); }</script>`;
+    const app = site("drawing", {
+      "loop.html": page(`<h1>Loop</h1>${loop("loop")}`),
+      "ticker.html": page('<h1>Ticker</h1><p id="count">0</p><script>{ let n = 0; setInterval(() => { document.getElementById("count").textContent = String(n++); }, 50); setInterval(function rarely() {}, 400); }</script>'),
+      "smil.html": page('<h1>Pulse</h1><svg width="100" height="100"><circle id="dot" cx="50" cy="50" r="30" fill="#c33"><animate attributeName="fill" values="#c33;#33c;#c33" dur="1s" repeatCount="indefinite"/></circle></svg>'),
+      "idle.html": page('<h1>Idle</h1><script>(function spin() { requestAnimationFrame(spin); })();</script>'),
+      "still.html": page('<h1>Still</h1><canvas width="100" height="100"></canvas>'),
+      "allowed.html": page(`<h1>Allowed</h1>${loop("allowed", 'data-ouro-allow="repaint" data-ouro-allow-why="a live meter"')}`),
+    });
+    const result = await check({ targets: [app], out: dir("drawing"), sizes: [[390, 844]], themes: ["light"], chromium, log: quiet });
+    const repaints = result.findings.filter((f) => f.rule === "repaint").sort((a, b) => a.page.localeCompare(b.page));
+    assert.deepEqual(
+      repaints.map((f) => [f.page, f.element]),
+      [
+        ["/idle.html", "the page (draws at rest)"],
+        ["/loop.html", "canvas#loop (draws at rest)"],
+        ["/smil.html", "circle#dot (draws at rest)"],
+        ["/ticker.html", "p#count (draws at rest)"],
+      ],
+    );
+    assert.match(repaints[0]!.detail, /^\d+ frames drawn in 1\.5 s with nothing moving, driven by spin in \/idle\.html:\d+: /);
+    assert.match(repaints[1]!.detail, /, driven by draw in \/loop\.html:\d+: /);
+    assert.match(repaints[2]!.detail, /^\d+ frames drawn in 1\.5 s with nothing moving: /);
+    assert.match(repaints[3]!.detail, /, driven by a function in \/ticker\.html:\d+: /);
+    for (const f of repaints) assert.ok(f.closeUp);
+  });
+
   test("judges a page once its animations have run, as a person sees it after a moment", async () => {
     // A label that slides over the words in a second and a half: still on its way when the page has loaded.
     const sliding = site("sliding", {
