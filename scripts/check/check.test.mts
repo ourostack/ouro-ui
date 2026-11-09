@@ -242,6 +242,29 @@ describe("Ouro check", () => {
     assert.deepEqual(result.findings.map((f) => [f.rule, f.width, f.dpr]), [["blurry-image", 3072, 2]]);
   });
 
+  // How many pure blue pixels a picture has, read in the browser.
+  const bluePixels = async (file: string) => {
+    const reader = await chromium.launch({ executablePath: browser });
+    try {
+      const tab = await reader.newPage();
+      return await tab.evaluate(async (src) => {
+        const img = new Image();
+        img.src = src;
+        await img.decode();
+        const canvas = document.createElement("canvas");
+        [canvas.width, canvas.height] = [img.naturalWidth, img.naturalHeight];
+        const pen = canvas.getContext("2d")!;
+        pen.drawImage(img, 0, 0);
+        const data = pen.getImageData(0, 0, canvas.width, canvas.height).data;
+        let blue = 0;
+        for (let i = 0; i < data.length; i += 4) if (data[i]! < 40 && data[i + 1]! < 40 && data[i + 2]! > 215) blue++;
+        return blue;
+      }, `data:image/png;base64,${readFileSync(file).toString("base64")}`);
+    } finally {
+      await reader.close();
+    }
+  };
+
   test("photographs a finding on the screen, wherever on or off the page it sits", async () => {
     // Clipped sideways by the root, so a full-page shot ends at the screen's right edge; the screen scrolls to it.
     const right = site("right", { "page.html": page('<h1>Right</h1><p style="position:absolute;left:1500px;top:20px;width:60px;overflow:hidden;white-space:nowrap">Text cut off by its box, off to the right</p>', "<style>html{overflow-x:clip}</style>") });
@@ -255,6 +278,15 @@ describe("Ouro check", () => {
     const cut = result.findings.find((f) => f.rule === "clipped-text")!;
     assert.deepEqual([cut.box!.x, cut.box!.y], [0, 0]);
     assert.ok(existsSync(join(out, cut.closeUp!)));
+    // Far down a page with a bar stuck to the top of the screen: the close-up is of the text, not the bar over it.
+    const barred = site("barred", {
+      "page.html": page('<h1>Barred</h1><div style="height:3000px"></div><p style="width:60px;overflow:hidden;white-space:nowrap">Text cut off by its box, far down</p><div style="height:3000px"></div>').replace("<main>", '<div style="position:sticky;top:0;z-index:1"><header style="height:120px;background:#00f"></header></div><main>'),
+    });
+    const barredOut = dir("barred");
+    const down = await check({ targets: [barred], out: barredOut, sizes: [[390, 844]], themes: ["light"], chromium, log: quiet });
+    const deep = down.findings.find((f) => f.rule === "clipped-text")!;
+    assert.ok(deep.box!.y > 3000 && deep.box!.height > 10, JSON.stringify(deep.box));
+    assert.equal(await bluePixels(join(barredOut, deep.closeUp!.replace(/\.png$/, "-raw.png"))), 0);
   });
 
   test("fails a page that answers an error or does not answer, and checks nothing else on it", async () => {

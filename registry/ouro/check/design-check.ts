@@ -6,24 +6,26 @@ import type { PageIssue } from "./size-check.ts";
 // Runs in the page (page.evaluate), so nothing in it may close over anything outside its function. Design rules that
 // measurement decides, after Refactoring UI (Wathan and Schoger) and the craft findings they came from:
 //
-//   giant-picture      a banner-shaped picture (scenery, 1.8 times as wide as tall or wider) leads a content item (a card
-//                      or entry with its own heading) and outweighs the words it introduces: it fills the item's width,
-//                      is over `pictureShare` of the item's height, and over `pictureRatio` times the height of
-//                      everything else in it
+//   giant-picture      a banner-shaped picture (scenery, 1.8 times as wide as tall or wider), in the flow, leads a
+//                      content item (a card or entry with its own heading, not a figure, whose picture is its subject)
+//                      and outweighs the words it introduces: it fills the item's width, is over `pictureShare` of the
+//                      item's height, and over `pictureRatio` times the height of everything else in it
 //   cramped-heading    a heading sits closer to a picture or a filled or framed box above it than half its own font
 //                      size (a quarter, for its own item's picture, as a card's title under the card's picture): no room
 //                      to breathe between a title and the art before it. What follows a heading belongs to it, so the
 //                      space below isn't judged
 //   nested-frame       a frame drawn inside a frame: a framed box hugging another within a few pixels on every side (a
-//                      double border), or a rounded, filled or framed box whose filled child sits in its corner (under
-//                      half the radius in) with a radius that isn't the outer radius less the inset, so the corners
-//                      don't nest
+//                      double border), or a rounded, filled or framed box whose child, with an edge of its own (a fill,
+//                      a frame, or a picture that runs to its corner, not an icon or a clear logo), sits in its corner
+//                      (under half the radius in) with a radius that isn't the outer radius less the inset, so the
+//                      corners don't nest
 //   baked-corner       (readCorners) a picture or video whose own pixels draw a corner of another colour, such as a
 //                      screen recording of a window with its dark corner, inside the page's frame
 //   type-scale         more text sizes, or more font weights, than a type scale holds
 //   shadow-scale       more distinct shadows than an elevation scale holds
 //   grey-on-colour     grey text on a coloured background, which reads washed out: use a shade of the background's hue
-//   heading-hierarchy  a heading drawn larger than the heading it sits under
+//   heading-hierarchy  a heading drawn larger than the heading it sits under, each at the largest size its text is drawn
+//                      at (a title's span may set it)
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element the same way at every size; `detail` has this size's numbers.
@@ -137,13 +139,36 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     return matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? [18, 18, 18, 1] : [255, 255, 255, 1];
   };
   const pictureLike = (el: Element) => el.matches("img, video, canvas, picture, svg, [role=img]") || (getComputedStyle(el).backgroundImage.includes("url(") && !el.textContent!.trim());
-  const filled = (el: Element) => {
-    const s = getComputedStyle(el);
-    if (pictureLike(el)) return true;
+  const fillDiffers = (el: Element) => {
     const page = backgroundOf(document.body)!;
-    const fill = rgba(s.backgroundColor);
-    const differs = fill[3] >= 0.5 && Math.abs(fill[0] - page[0]) + Math.abs(fill[1] - page[1]) + Math.abs(fill[2] - page[2]) > 12;
-    return differs || frameOf(el) !== null;
+    const fill = rgba(getComputedStyle(el).backgroundColor);
+    return fill[3] >= 0.5 && Math.abs(fill[0] - page[0]) + Math.abs(fill[1] - page[1]) + Math.abs(fill[2] - page[2]) > 12;
+  };
+  const filled = (el: Element) => pictureLike(el) || fillDiffers(el) || frameOf(el) !== null;
+  // Whether a picture's top-left pixel is opaque. A picture from another site can't be read, so only a JPEG, which
+  // has no clear pixels, counts.
+  const opaqueCorner = (img: HTMLImageElement) => {
+    if (!img.complete || !img.naturalWidth) return false;
+    const canvas = document.createElement("canvas");
+    [canvas.width, canvas.height] = [1, 1];
+    const pen = canvas.getContext("2d")!;
+    pen.drawImage(img, 0, 0, 1, 1, 0, 0, 1, 1);
+    try {
+      return pen.getImageData(0, 0, 1, 1).data[3]! >= 128;
+    } catch {
+      return /\.jpe?g(?:[?#]|$)/i.test(img.currentSrc);
+    }
+  };
+  // A box with an edge of its own: a fill or a frame, or a picture that runs to its corner (a video, a canvas, a
+  // background photo, or a picture with an opaque corner that fills its box). A drawing (an svg, an icon) or a logo
+  // with clear corners has no corner to nest.
+  const edged = (el: Element) => {
+    if (fillDiffers(el) || frameOf(el) !== null) return true;
+    const media = el.matches("picture") ? el.querySelector("img") : el;
+    if (media instanceof HTMLVideoElement || media instanceof HTMLCanvasElement) return true;
+    if (media instanceof HTMLImageElement) return !/contain|scale-down|none/.test(getComputedStyle(media).objectFit) && opaqueCorner(media);
+    const art = /url\(\s*["']?([^"')]*)/.exec(getComputedStyle(el).backgroundImage);
+    return art !== null && !el.textContent!.trim() && !/\.svg(?:[?#]|$)|^data:image\/svg/i.test(art[1]!);
   };
   // A box's frame: a border on every side, an outline, or a ring (a shadow with a spread and no blur). The width it draws.
   const frameOf = (el: Element): number | null => {
@@ -161,12 +186,14 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   // giant-picture: a picture that leads a content item and outweighs its words. A page's own banner (in a header, or
   // above an h1) is a hero, not an item, and is left alone.
   for (const pic of visible.filter((el) => el.matches("img, video, canvas, svg, [role=img]") || (getComputedStyle(el).backgroundImage.includes("url(") && !el.textContent!.trim()))) {
-    if (pic.closest("header, [role=banner], button, a[href] > *:only-child") || pic.parentElement?.closest("svg") || optedOut(pic, "giant-picture")) continue;
+    // A picture out of the flow is a layer drawn under or over its item (a backdrop, a map's lines), not one leading it.
+    if (pic.closest("header, [role=banner], button, a[href] > *:only-child") || pic.parentElement?.closest("svg") || /absolute|fixed/.test(getComputedStyle(pic).position) || optedOut(pic, "giant-picture")) continue;
     const p = pic.getBoundingClientRect();
     if (p.height < pictureMin) continue;
     let item: Element | null = pic.parentElement;
     while (item && item !== document.body && !item.matches("main") && !headings.some((h) => item!.contains(h) && !h.contains(pic))) item = item.parentElement;
-    if (!item || item === document.body || item.matches("main")) continue;
+    // A figure's picture is its subject (a comic panel, a chart), however large; its caption describes it.
+    if (!item || item === document.body || item.matches("main, figure")) continue;
     const titles = headings.filter((h) => item!.contains(h));
     const title = titles.find((h) => pic.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING);
     if (!title || titles.some((h) => headingLevel(h) === 1)) continue;
@@ -250,7 +277,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     if (radius < 6 || /hidden|clip/.test(os.overflow) || !filled(outer) || optedOut(outer, "nested-frame")) continue;
     const o = outer.getBoundingClientRect();
     for (const inner of outer.children) {
-      if (reported.has(inner) || !shown(inner) || !filled(inner)) continue;
+      if (reported.has(inner) || !shown(inner) || !edged(inner)) continue;
       const i = inner.getBoundingClientRect();
       const inset = Math.max(0, Math.min(i.top - o.top, i.left - o.left));
       if (inset >= radius / 2) continue;
@@ -306,11 +333,12 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   }
 
   // heading-hierarchy: each heading against the nearest heading above it of a higher rank.
+  const drawnSize = (heading: Element) => Math.max(...[heading, ...heading.querySelectorAll("*")].filter((el) => el === heading || (hasText(el) && shown(el))).map((el) => px(getComputedStyle(el).fontSize)));
   for (const [at, heading] of headings.entries()) {
     const level = headingLevel(heading);
     const above = headings.slice(0, at).reverse().find((h) => headingLevel(h) < level);
     if (!above || optedOut(heading, "heading-hierarchy")) continue;
-    const [mine, theirs] = [px(getComputedStyle(heading).fontSize), px(getComputedStyle(above).fontSize)];
+    const [mine, theirs] = [drawnSize(heading), drawnSize(above)];
     if (mine > theirs + 1) {
       issues.push({
         ref: ref(heading),
@@ -344,6 +372,8 @@ function listCornerMedia(limit = 12): CornerMedia[] {
     let frame: Element = el;
     for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
       const box = n.getBoundingClientRect();
+      // A wrapper that draws no box of its own (display: contents, as a picture element often is) is passed over.
+      if (!box.width || !box.height) continue;
       if (Math.abs(box.left - r.left) > 2 || Math.abs(box.top - r.top) > 2 || Math.abs(box.width - r.width) > 4) break;
       const ns = getComputedStyle(n);
       if (/hidden|clip/.test(ns.overflow) && (parseFloat(ns.borderTopLeftRadius) || 0) > radius) [radius, frame] = [parseFloat(ns.borderTopLeftRadius), n];

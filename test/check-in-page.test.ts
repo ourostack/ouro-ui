@@ -336,6 +336,19 @@ describe("findSizeIssues: long-lines", () => {
     expect(issues[0]!.detail).toMatch(/^lines up to \d+px wide \(measure 75ch\)$/);
   });
 
+  it("counts columns side by side as lines of their own, and a run of short items as a list, not prose", async () => {
+    const items = Array.from({ length: 6 }, (_, i) => `${i + 3} customers with a note`).join(" · ");
+    render(`
+      <p style="width:1800px;columns:3;column-gap:48px;font-size:16px">${LONG} ${LONG} ${LONG} ${LONG} ${LONG} ${LONG}</p>
+      <p style="width:2000px;white-space:nowrap">${items}</p>
+      <p id="prose" style="width:2000px;white-space:nowrap">${items} · ${LONG}</p>`);
+    const issues = (await findSizeIssues(prose("100 chars"))).filter((issue) => issue.rule === "long-lines");
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#prose"]);
+    host.remove();
+    render(`<p style="width:1800px;columns:3;column-gap:48px;font-size:16px">${LONG} ${LONG} ${LONG} ${LONG} ${LONG} ${LONG}</p>`);
+    expect((await findSizeIssues({ measures: [{ selector: null, measure: "640px" }] })).filter((issue) => issue.rule === "long-lines")).toEqual([]);
+  });
+
   it("checks an element two measures hold against the first only", async () => {
     render(`<p id="wide" style="width:1800px">${LONG} ${LONG}</p>`);
     const issues = await findSizeIssues({ measures: [{ selector: "#wide", measure: "1900px" }, { selector: null, measure: "100 chars" }] });

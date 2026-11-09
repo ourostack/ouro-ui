@@ -33,13 +33,15 @@ function render(html: string): HTMLDivElement {
 }
 
 /** A PNG of `width`×`height` pixels, as a blob: URL. */
-async function picture(width: number, height: number): Promise<string> {
+async function picture(width: number, height: number, fill: string | null = "#3a7"): Promise<string> {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d")!;
-  context.fillStyle = "#3a7";
-  context.fillRect(0, 0, width, height);
+  if (fill) {
+    context.fillStyle = fill;
+    context.fillRect(0, 0, width, height);
+  }
   const blob = await new Promise<Blob>((done) => canvas.toBlob((b) => done(b!), "image/png"));
   const url = URL.createObjectURL(blob);
   urls.push(url);
@@ -71,7 +73,7 @@ describe("findDesignIssues: giant-picture", () => {
     expect(host.querySelector('[role="img"]')!.getAttribute("data-ouro-check-ref")).toBe("d1");
   });
 
-  it("passes a page's own banner, squarer pictures, short ones, pictures in a control, and pictures that lead no item", async () => {
+  it("passes a page's own banner, squarer pictures, short ones, pictures in a control, layers out of the flow, a figure's own picture, and pictures that lead no item", async () => {
     const svg = `<svg width="540" height="280"><svg width="540" height="280"></svg></svg>`;
     render(`
       <header><img alt="Hero" style="${BANNER}"><h2>In the header</h2></header>
@@ -84,6 +86,8 @@ describe("findDesignIssues: giant-picture", () => {
       <article><button><img alt="In a button" style="${BANNER}"></button><h2>Button</h2></article>
       <article><a href="#x"><img alt="Only child of a link" style="${BANNER}"></a><h2>Link</h2></article>
       <article>${svg}<h2>Nested svg</h2></article>
+      <figure><img alt="A panel" style="${BANNER}"><figcaption><h2>A captioned panel</h2></figcaption></figure>
+      <article style="position:relative"><img alt="A layer" style="${BANNER};position:absolute;inset:0"><h2>Drawn over</h2></article>
       <article><img alt="Allowed" data-ouro-allow="giant-picture" data-ouro-allow-why="a gallery" style="${BANNER}"><h2>Gallery</h2></article>
       <main><img alt="No item" style="${BANNER}"><p>Nothing but words</p></main>
       <div><img alt="No heading at all" style="${BANNER}"></div>
@@ -154,6 +158,46 @@ describe("findDesignIssues: nested-frame", () => {
       ["div#flat in div#card", "corner radius 4px, 4px inside a 24px corner: the corners nest at 20px"],
       ["div#square in div", "corner radius 0px, 4px inside a 20px corner: the corners nest at 16px"],
     ]);
+  });
+
+  it("judges a picture's corner only where the picture runs to it: a video, a canvas, a background photo, or an opaque or JPEG corner", async () => {
+    const [opaque, clear] = [await picture(200, 60), await picture(200, 60, null)];
+    // The same file from another loopback name the test server answers on: another site, whose pixels the page can't read.
+    const away = async (path: string) => {
+      for (const name of ["127.0.0.1", "[::1]", "localhost"]) {
+        const there = new URL(path, location.href);
+        if (there.hostname === name) continue;
+        there.hostname = name;
+        const probe = new Image();
+        probe.src = there.href;
+        if (await probe.decode().then(() => true, () => false)) return there.href;
+      }
+      throw new Error("The test server answers on no other loopback name");
+    };
+    const [JPEG, PNG] = [await away("/site/public/apple/media/hx-haptics-poster.jpg"), await away("/scripts/check/fixtures/picture-160.png")];
+    const corner = (inner: string) => `<div style="background:#eef;border-radius:24px;padding:4px;margin-top:8px">${inner}</div>`;
+    const sized = "display:block;width:200px;height:60px";
+    render(
+      [
+        `<video id="clip" style="${sized}"></video>`,
+        `<canvas id="board" style="${sized}"></canvas>`,
+        `<div id="photo" style="${sized};background:url(${opaque})"></div>`,
+        `<img id="opaque" src="${opaque}" alt="" style="${sized}">`,
+        `<picture id="framed"><img src="${opaque}" alt="" style="${sized}"></picture>`,
+        `<img id="poster" src="${JPEG}" alt="" style="${sized}">`,
+        `<svg width="200" height="60"><circle cx="30" cy="30" r="20"/></svg>`,
+        `<img src="${clear}" alt="A clear logo" style="${sized}">`,
+        `<img src="${opaque}" alt="Contained" style="${sized};object-fit:contain">`,
+        `<img src="data:image/png;base64,broken" alt="Broken" style="${sized}">`,
+        `<img src="${PNG}" alt="Unreadable" style="${sized}">`,
+        `<div style="${sized};background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22/>')"></div>`,
+        `<div style="${sized};background:url(${opaque})">Words on a photo</div>`,
+      ]
+        .map(corner)
+        .join(""),
+    );
+    await Promise.all([...host.querySelectorAll("img")].map((img) => img.decode().catch(() => undefined)));
+    expect(of("nested-frame").map((issue) => issue.element.split(" in ")[0])).toEqual(["video#clip", "canvas#board", "div#photo", "img#opaque", "picture#framed", "img#poster"]);
   });
 
   it("passes frames apart, small frames, half frames, faint frames, nested corners, clipped, unfilled and allowed boxes", () => {
@@ -258,6 +302,15 @@ describe("findDesignIssues: heading-hierarchy", () => {
       ['div "A level 2 bigger than the page"', '36px, larger than the h1 "Page" it sits under at 32px'],
     ]);
   });
+
+  it("measures each heading at the largest size its shown text is drawn at, a title's span included", () => {
+    render(`
+      <h1 style="font-size:20px"><span style="font-size:12px">Captain and Stoker</span> <span style="font-size:80px">The Long Way</span></h1>
+      <h2 style="font-size:48px">Under a large title</h2>
+      <h3 style="font-size:16px"><span style="font-size:60px">A span outgrows its section</span><span style="display:none;font-size:90px">Hidden</span></h3>
+      <h3 style="font-size:16px">Plain<span style="font-size:90px;display:none">Hidden</span></h3>`);
+    expect(of("heading-hierarchy").map(({ element, detail }) => [element, detail])).toEqual([['h3 "A span outgrows its sectionHidden"', '60px, larger than the h2 "Under a large title" it sits under at 48px']]);
+  });
 });
 
 describe("findDesignIssues: the whole page", () => {
@@ -274,7 +327,7 @@ describe("findDesignIssues: the whole page", () => {
 });
 
 describe("listCornerMedia", () => {
-  it("lists pictures, videos and canvases, with the radius of the frame they fill and the colour behind it", async () => {
+  it("lists pictures, videos and canvases, with the radius of the frame they fill (past a wrapper that draws no box) and the colour behind it", async () => {
     const url = await picture(200, 150);
     render(`
       <div style="background:#f0e8d8;padding:8px"><div style="border-radius:14px;overflow:hidden;width:200px"><div style="border-radius:20px;width:200px"><img src="${url}" alt="framed" style="display:block;width:200px;height:150px"></div></div></div>
@@ -291,7 +344,8 @@ describe("listCornerMedia", () => {
       <img src="${url}" alt="invisible" style="display:block;width:200px;height:150px;visibility:hidden">
       <img src="${url}" alt="faded" style="display:block;width:200px;height:150px;opacity:0">
       <img src="${url}" alt="avatar" style="display:block;width:120px;height:120px;border-radius:50%">
-      <div style="overflow:hidden;width:200px"><img src="${url}" alt="square crop" style="display:block;width:200px;height:150px;border-radius:6px"></div>`);
+      <div style="overflow:hidden;width:200px"><img src="${url}" alt="square crop" style="display:block;width:200px;height:150px;border-radius:6px"></div>
+      <div style="background:#f0e8d8;padding:8px"><div style="border-radius:14px;overflow:hidden;background:#051024;width:200px"><span style="display:block;overflow:hidden;background:#051024"><picture style="display:contents"><img src="${url}" alt="in a picture with no box" style="display:block;width:200px;height:150px"></picture></span></div></div>`);
     const found = listCornerMedia();
     expect(found.map(({ element, radius, behind }) => ({ element, radius, behind }))).toEqual([
       { element: "img", radius: 14, behind: [240, 232, 216] },
@@ -301,6 +355,7 @@ describe("listCornerMedia", () => {
       { element: "img", radius: 10, behind: [255, 255, 255] },
       { element: "img", radius: 0, behind: [255, 255, 255] },
       { element: "img", radius: 6, behind: [255, 255, 255] },
+      { element: "img", radius: 14, behind: [240, 232, 216] },
     ]);
     const img = host.querySelector("img")!.getBoundingClientRect();
     expect(found[0]!).toMatchObject({ ref: "c1", box: { x: img.left + scrollX, y: img.top + scrollY, width: 200, height: 150 } });
