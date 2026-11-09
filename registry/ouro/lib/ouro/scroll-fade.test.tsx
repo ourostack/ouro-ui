@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { scrollFadeClass, useScrollFade } from "@/registry/ouro/lib/ouro/scroll-fade";
+import { scrollFadeClass, scrollFadeStaticClass, useScrollFade } from "@/registry/ouro/lib/ouro/scroll-fade";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -35,11 +35,11 @@ async function render(node: ReactNode) {
 // WebKit delivers ResizeObserver after the frame's animation callbacks, so wait two frames.
 const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
-function Box({ width = 200, content = 600, style, tabIndex }: { width?: number; content?: number; style?: CSSProperties; tabIndex?: number }) {
+function Box({ width = 200, content = 600, style, tabIndex, className }: { width?: number; content?: number; style?: CSSProperties; tabIndex?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useScrollFade(ref);
   return (
-    <div ref={ref} data-box="" tabIndex={tabIndex} className={cn("overflow-x-auto", scrollFadeClass)} style={{ width, ...style }}>
+    <div ref={ref} data-box="" tabIndex={tabIndex} className={cn("overflow-x-auto", scrollFadeClass, className)} style={{ width, ...style }}>
       <div style={{ width: content, height: 20 }}>Waiting on the final copy of the brief</div>
     </div>
   );
@@ -94,6 +94,14 @@ describe("useScrollFade", () => {
     } finally {
       document.documentElement.classList.remove("dark");
       await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("stands the no-script fade down once it runs, so a hydrated box has no scroll-driven animation to wait on", async () => {
+    for (const content of [200, 600]) {
+      const { box } = await render(<Box content={content} className={scrollFadeStaticClass} />);
+      expect(box.hasAttribute("data-ouro-scroll-fade-js")).toBe(true);
+      expect(box.getAnimations()).toEqual([]);
     }
   });
 
