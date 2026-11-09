@@ -6,6 +6,7 @@ import { commands, page } from "vitest/browser";
 import { FamilyBar, type FamilyBarProps, type FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -114,6 +115,35 @@ describe("FamilyBar", () => {
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
     await expect.poll(() => row.hasAttribute("data-ouro-scroll-fade")).toBe(true);
     expect(getComputedStyle(row).maskImage).toContain("gradient");
+  });
+
+  it("keeps a thin scroll bar on the row for a mouse, whose wheel scrolls up and down", async () => {
+    await page.viewport(320, 640);
+    const { row } = await render(<FamilyBar links={sites} />);
+    expect(matchMedia("(pointer: fine)").matches).toBe(true);
+    expect(getComputedStyle(row).scrollbarWidth).toBe("thin");
+  });
+
+  it("brings each link the keyboard focuses clear of the row's fade, outline and all", async () => {
+    await page.viewport(320, 640);
+    const { host, row } = await render(<FamilyBar links={sites} />);
+    const before = document.createElement("button");
+    host.before(before);
+    mounted.push(before);
+    before.focus();
+    for (const site of sites) {
+      await pressTab();
+      const link = document.activeElement as HTMLElement;
+      expect(link.textContent).toBe(site.label);
+      await expect
+        .poll(() => {
+          const box = row.getBoundingClientRect();
+          const at = link.getBoundingClientRect();
+          const fade = (side: "left" | "right") => Math.min(parseFloat(row.style.getPropertyValue(`--ouro-scroll-fade-${side}`) || "0"), 32);
+          return at.left - box.left >= fade("left") - 1 && box.right - at.right >= fade("right") - 1;
+        })
+        .toBe(true);
+    }
   });
 
   it("brings the current site's link to the middle of the row, and again when current changes", async () => {

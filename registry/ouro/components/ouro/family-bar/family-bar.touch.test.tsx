@@ -28,6 +28,7 @@ async function render(node: ReactNode) {
 const sites: FamilyLink[] = [
   { id: "home", label: "Lantern", href: "https://example.com/" },
   { id: "docs", label: "Docs", href: "https://docs.example.com/" },
+  { id: "go", label: "Go", href: "https://go.example.com/" },
   { id: "guides", label: "Guides", href: "https://example.com/guides/" },
   { id: "blog", label: "Blog", href: "https://blog.example.com/" },
   { id: "status", label: "Status", href: "https://status.example.com/" },
@@ -36,7 +37,7 @@ const sites: FamilyLink[] = [
 ];
 
 describe("FamilyBar and FamilyFooter on a phone", () => {
-  it("keep 44px targets with 16px text, also in landscape, and the page never scrolls sideways", async () => {
+  it("keep 44px targets with 16px text, a two-letter name too, also in landscape, and the page never scrolls sideways", async () => {
     const host = await render(
       <>
         <FamilyBar links={sites} current="blog" />
@@ -59,5 +60,10 @@ describe("FamilyBar and FamilyFooter on a phone", () => {
       }
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
     }
+  });
+
+  it("hides the FamilyBar row's scroll bar from a finger, which swipes it", async () => {
+    const host = await render(<FamilyBar links={sites} current="blog" />);
+    expect(getComputedStyle(host.querySelector("[data-ouro-family-row]")!).scrollbarWidth).toBe("none");
   });
 });
