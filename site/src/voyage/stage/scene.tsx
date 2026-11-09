@@ -180,12 +180,7 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
           </g>
         </g>
       </svg>
-      <div
-        className="stage-glass-layer"
-        aria-hidden="true"
-        data-ouro-allow="overlap"
-        data-ouro-allow-why="The ship's layers ride below the glass and this layer clips them to its circle; Ouro check measures their unclipped boxes, which reach under the crew's line."
-      >
+      <div className="stage-glass-layer" aria-hidden="true">
         <Ship />
         <Bubbles dives={state.dives} />
         <Ripples rings={state.rings} />
