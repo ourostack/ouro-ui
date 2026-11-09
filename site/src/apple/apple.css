@@ -426,9 +426,15 @@
     margin: 0;
     max-width: 40rem;
     font-family: var(--font-heading);
-    font-size: clamp(1.25rem, 2.6vw, 1.5rem);
+    /* Steps on the page's scale, not a size between them. */
+    font-size: 1.25rem;
     line-height: 1.3;
     letter-spacing: -0.015em;
+  }
+  @media (width >= 64rem) {
+    .apple-soon-line {
+      font-size: 1.5rem;
+    }
   }
 
   .apple-next {
@@ -447,9 +453,14 @@
   }
   .apple-next-title {
     font-family: var(--font-heading);
-    font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+    font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: -0.025em;
+  }
+  @media (width >= 64rem) {
+    .apple-next-title {
+      font-size: 2.25rem;
+    }
   }
   .apple-next-link:hover .apple-next-title {
     color: var(--primary);
@@ -1147,7 +1158,7 @@
     }
     .apple-showcase:nth-child(2) > .apple-loop {
       order: 2;
-      max-width: 26rem;
+      max-width: min(26rem, var(--apple-loop-pixels));
     }
     .apple-quad {
       grid-template-columns: repeat(4, minmax(0, 1fr));
