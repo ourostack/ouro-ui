@@ -198,12 +198,16 @@ describe("findSizeIssues: blurry-image, for a video", () => {
   const sized = (video: HTMLVideoElement) => (video.readyState >= 1 ? Promise.resolve() : new Promise((done) => video.addEventListener("loadedmetadata", done, { once: true })));
   const videos = () => [...host.querySelectorAll("video")];
   // A stream of 64×48 frames from a canvas: a video with no address at all.
+  // WebKit only sends frames drawn once the capture has started, so each canvas keeps drawing until the test ends.
+  const painters: number[] = [];
+  afterEach(() => painters.splice(0).forEach((painter) => clearInterval(painter)));
   const stream = () => {
     const canvas = document.createElement("canvas");
     [canvas.width, canvas.height] = [64, 48];
     const captured = canvas.captureStream();
-    // WebKit only sends frames drawn once the capture has started.
-    canvas.getContext("2d")!.fillRect(0, 0, 64, 48);
+    const paint = () => canvas.getContext("2d")!.fillRect(0, 0, 64, 48);
+    paint();
+    painters.push(window.setInterval(paint, 50));
     return captured;
   };
 
