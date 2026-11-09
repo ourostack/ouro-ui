@@ -241,6 +241,7 @@ describe("NavigationMenu", () => {
     mounted.splice(0).forEach((node) => node.remove());
     await render(<NavigationMenu label="Main" items={items} currentPath="/recipes/drafts/4" />);
     await expect.element(page.getByRole("link", { name: "Pricing" })).not.toHaveAttribute("aria-current");
+    await expect.element(page.getByRole("link", { name: "Pricing" })).not.toHaveAttribute("data-active");
     const trigger = page.getByRole("button", { name: "Recipes" });
     await expect.element(trigger).toHaveAttribute("data-current");
     await expect.element(page.getByRole("button", { name: "Cookbooks" })).not.toHaveAttribute("data-current");
