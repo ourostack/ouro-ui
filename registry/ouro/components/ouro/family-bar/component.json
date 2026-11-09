@@ -1,0 +1,12 @@
+{
+  "order": 2660,
+  "components": ["family-bar", "family-footer"],
+  "controls": {
+    "family-bar": [
+      {"part": "link", "role": "link", "portal": false}
+    ],
+    "family-footer": [
+      {"part": "link", "role": "link", "portal": false}
+    ]
+  }
+}
