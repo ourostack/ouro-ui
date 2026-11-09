@@ -324,7 +324,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
             data-site-menu-close=""
             // Out of the way while the sheet's own Close shows, under keyboard focus, in the same corner. Asked of the
             // sheet, not of any element: a bare :has() makes Chrome restyle the whole page on each focus and insertion.
-            className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-2 z-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent active:bg-accent"
+            className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-0.5 z-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent active:bg-accent"
           />
         }
       >
@@ -333,7 +333,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
         </svg>
       </SheetClose>
       <div ref={edge} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-2 border-0 border-b border-solid border-border bg-popover" />
-      {tools && <div className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-2 z-3 flex gap-1 sm:hidden">{tools}</div>}
+      {tools && <div className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-0.5 z-3 flex gap-1 sm:hidden">{tools}</div>}
       {children}
     </>
   );
