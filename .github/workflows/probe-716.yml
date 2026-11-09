@@ -35,9 +35,9 @@ jobs:
           PROBE_VARIANT: ${{ matrix.variant }}
         run: |
           echo variant $PROBE_VARIANT
+          for b in 1 2; do (while :; do :; done) & done
           nproc; cat /proc/cpuinfo | grep -m1 "model name"; cat /proc/loadavg
-          for i in 1 2 3 4 5 6; do
+          for i in 1 2 3 4; do
             echo "=== pass $i $(date -u +%T) loadavg $(cat /proc/loadavg)"
-            pnpm exec playwright test --config playwright.latency.config.ts --project=site-latency probe716 2>&1 | grep -E "PROBE" || true
             pnpm exec playwright test --config playwright.latency.config.ts --project=site-latency stage.latency 2>&1 | grep -E "^latency |latency-slow|passed|failed" || true
           done
