@@ -764,15 +764,16 @@ describe("ShowMore with maxHeight", () => {
   });
 
   it("measures again when maxHeight changes, and stops measuring once gone", async () => {
-    const disconnect = vi.spyOn(ResizeObserver.prototype, "disconnect");
+    // Every ShowMore shares one observer, which stops watching a ShowMore that is gone.
+    const unobserve = vi.spyOn(ResizeObserver.prototype, "unobserve");
     const r = await render(<ShowMore maxHeight={120}><div style={{ height: 200 }} /></ShowMore>);
     await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
     await r.rerender(<ShowMore maxHeight={300}><div style={{ height: 200 }} /></ShowMore>);
     await expect.poll(() => r.root.querySelector("[data-ouro-show-more-toggle]")).toBeNull();
     expect(fold(r.root).getBoundingClientRect().height).toBeCloseTo(200, 0);
-    const before = disconnect.mock.calls.length;
+    const before = unobserve.mock.calls.length;
     await r.rerender(null);
-    expect(disconnect.mock.calls.length).toBe(before + 1);
+    expect(unobserve.mock.calls.length).toBe(before + 1);
   });
 
   it("keeps a focused element that ends right at the fold folded", async () => {
@@ -1120,6 +1121,22 @@ describe("ShowMore in its first frame", () => {
     expect(painted).toEqual([true, true, true, false, false, false]);
   });
 
+  it("measures many folds with one observer, every one's button in the same first painted frame", async () => {
+    committed(<ShowMore maxHeight={120}><Opaque /></ShowMore>);
+    const made = vi.spyOn(window, "ResizeObserver");
+    const hosts = Array.from({ length: 20 }, (_, i) => committed(i % 2 ? <ShowMore lines={2}>{longText}</ShowMore> : <ShowMore maxHeight={120}><Opaque /></ShowMore>));
+    expect(made).not.toHaveBeenCalled();
+    made.mockRestore();
+    const painted = await new Promise<number>((resolve) => {
+      const probe = new ResizeObserver(() => {
+        probe.disconnect();
+        resolve(hosts.filter((host) => toggle(host)).length);
+      });
+      probe.observe(document.body);
+    });
+    expect(painted).toBe(20);
+  });
+
   it("gives text that wraps more in a narrow box its button, once measured", async () => {
     const narrow = committed(
       <div style={{ width: 80 }}>
@@ -1174,34 +1191,22 @@ describe("ShowMore as its app renders again", () => {
     }
   });
 
-  it("starts its observer again only when it opens or closes or its lines change", async () => {
-    let observers = 0;
-    vi.stubGlobal(
-      "ResizeObserver",
-      class {
-        constructor() {
-          observers += 1;
-        }
-        observe() {}
-        disconnect() {}
-      },
-    );
-    try {
-      const host = document.createElement("div");
-      document.body.append(host);
-      mounted.push(host);
-      const root = createRoot(host);
-      roots.push(root);
-      const render = (node: ReactElement) => act(async () => root.render(node));
-      await render(<ShowMore lines={4}>{"Hi"}</ShowMore>);
-      const first = observers;
-      await render(<ShowMore lines={4}>{"word ".repeat(100)}</ShowMore>);
-      expect(observers).toBe(first);
-      await render(<ShowMore lines={3}>{"word ".repeat(100)}</ShowMore>);
-      expect(observers).toBe(first + 1);
-    } finally {
-      vi.unstubAllGlobals();
-    }
+  it("starts watching again only when it opens or closes or its lines change", async () => {
+    // Every ShowMore shares one observer: what counts is how often this one asks it to watch.
+    const observe = vi.spyOn(ResizeObserver.prototype, "observe");
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const render = (node: ReactElement) => act(async () => root.render(node));
+    await render(<ShowMore lines={4}>{"Hi"}</ShowMore>);
+    const first = observe.mock.calls.length;
+    await render(<ShowMore lines={4}>{"word ".repeat(100)}</ShowMore>);
+    expect(observe.mock.calls.length).toBe(first);
+    await render(<ShowMore lines={3}>{"word ".repeat(100)}</ShowMore>);
+    expect(observe.mock.calls.length).toBe(first + 1);
+    observe.mockRestore();
   });
 });
 

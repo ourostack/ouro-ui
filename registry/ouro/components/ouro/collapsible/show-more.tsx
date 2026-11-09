@@ -448,6 +448,29 @@ const remember = (key: string | undefined, value: boolean): void => {
   if (fitCache.size > FIT_CACHE_SIZE) fitCache.delete(fitCache.keys().next().value!);
 };
 
+/**
+ * One ResizeObserver for every ShowMore: its callback runs after the browser lays the page out and before it paints, reads
+ * each instance's size while the layout is still clean, and then commits every answer in one render. So the button and
+ * the fade are in the first frame the browser paints, a list of many folds costs one layout, and no read is forced.
+ *
+ * @claim "One ResizeObserver for every ShowMore" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in its first frame > measures many folds with one observer, every one's button in the same first painted frame)
+ * @claim "So the button and the fade are in the first frame the browser paints" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in its first frame > has its button and fade in the first frame the browser paints, and nothing for what fits)
+ */
+type Fit = () => () => void;
+// Weak, so an element that is gone needs no clean-up: the observer delivers only the elements it watches.
+const fitReaders = new WeakMap<Element, Fit>();
+let fitObserver: ResizeObserver | undefined;
+function observeFit(element: Element, fit: Fit): () => void {
+  fitObserver ??= new ResizeObserver((entries) => {
+    // Every read first, then every write, so no read lays the page out again.
+    const answers = entries.map((entry) => fitReaders.get(entry.target)!());
+    flushSync(() => answers.forEach((answer) => answer()));
+  });
+  fitReaders.set(element, fit);
+  fitObserver.observe(element);
+  return () => fitObserver!.unobserve(element);
+}
+
 const clampClass = "line-clamp-(--ouro-show-more-lines)";
 
 function ShowMoreText({
@@ -472,7 +495,7 @@ function ShowMoreText({
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
   // Folded by CSS in the first commit and in server HTML, with no button and no guess: a ResizeObserver reads after the
   // browser lays the text out and adds the button to text that overflows, so no instance makes the page lay out again.
-  // It starts in a layout effect and commits its answer at once, so the button is in the first frame the browser paints.
+  // It starts in a layout effect and commits with every other ShowMore's answer before paint (observeFit).
   const fitKey = measureKey === undefined ? undefined : `text:${lines}:${measureKey}`;
   // Stryker disable next-line ConditionalExpression: an unkeyed instance has nothing cached, so reading by an undefined key gives the same answer
   const [overflowing, setOverflowing] = useState(() => (fitKey === undefined ? undefined : fitCache.get(fitKey)) ?? false);
@@ -480,7 +503,7 @@ function ShowMoreText({
   const textId = useId();
   useLayoutEffect(() => {
     const text = textRef.current!;
-    const observer = new ResizeObserver(() => {
+    return observeFit(text, () => {
       // Clamped, whether it hides any; whole, whether it is taller than the lines it clamps to.
       const clamped = !expanded;
       const lineHeight = parseFloat(getComputedStyle(text).lineHeight);
@@ -488,18 +511,15 @@ function ShowMoreText({
         // Stryker disable next-line EqualityOperator: a hidden line is many pixels, so > and >= differ only at a 1px rounding gap no text has
         const over = text.scrollHeight > text.clientHeight + 1;
         remember(fitKey, over);
-        flushSync(() => setOverflowing(over));
-      } else {
-        // A line height that is not a length (`normal`) cannot say, so the button stays: shown whole, it is the way back.
-        // Stryker disable next-line EqualityOperator: as above, a line is many pixels.
-        const over = lineHeight > 0 ? text.clientHeight > lineHeight * lines + 1 : true;
-        // Stryker disable next-line all: a mount is always folded and measures again, so what an expanded one remembers only changes whether a later remount writes
-        remember(fitKey, over);
-        flushSync(() => setOverflowing(over));
+        return () => setOverflowing(over);
       }
+      // A line height that is not a length (`normal`) cannot say, so the button stays: shown whole, it is the way back.
+      // Stryker disable next-line EqualityOperator: as above, a line is many pixels.
+      const over = lineHeight > 0 ? text.clientHeight > lineHeight * lines + 1 : true;
+      // Stryker disable next-line all: a mount is always folded and measures again, so what an expanded one remembers only changes whether a later remount writes
+      remember(fitKey, over);
+      return () => setOverflowing(over);
     });
-    observer.observe(text);
-    return () => observer.disconnect();
   }, [expanded, lines, fitKey]);
   return (
     <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
@@ -553,7 +573,7 @@ function ShowMoreHeight({
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
   // Unknown until the browser has laid the content out, so the first commit and server HTML are folded by CSS with no
   // button and no guess: the ResizeObserver reads after layout and says whether it fits. It starts in a layout effect and
-  // commits its answer at once, so the fade and the button are in the first frame the browser paints.
+  // commits with every other ShowMore's answer before paint (observeFit).
   const fitKey = measureKey === undefined ? undefined : `height:${maxHeight}:${measureKey}`;
   // Stryker disable next-line ConditionalExpression,LogicalOperator: an unkeyed instance has nothing cached; a cached answer is a boolean and `&& null` differs only by folding first, which the remount tests hold through the keyed path
   const [fits, setFits] = useState<boolean | null>(() => (fitKey === undefined ? undefined : fitCache.get(fitKey)) ?? null);
@@ -562,14 +582,12 @@ function ShowMoreHeight({
   const foldId = useId();
   useLayoutEffect(() => {
     const content = contentRef.current!;
-    // The observer measures once as it starts, and again on every change of size.
-    const observer = new ResizeObserver(() => {
+    // Measured once as it starts, and again on every change of size.
+    return observeFit(content, () => {
       const fit = content.scrollHeight <= maxHeight * 1.2;
       remember(fitKey, fit);
-      flushSync(() => setFits(fit));
+      return () => setFits(fit);
     });
-    observer.observe(content);
-    return () => observer.disconnect();
   }, [maxHeight, fitKey]);
   const folded = !expanded && fits !== true;
   const toggle = () => {
