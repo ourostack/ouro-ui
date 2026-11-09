@@ -57,7 +57,7 @@ declare global {
 
 // The first app gate's definitions, under its names, so it reads the same numbers.
 // `jumps`: the reader's row moving 100 px or more in one frame, net of the input's own movement.
-// `shifts`: the same, 8 px or more. `blankFrames`: none of 5 points down the list hits a row.
+// `shifts`: the same, 8 px or more. `blankFrames`: none of 5 points down the list falls in a row's box.
 const JUMP_PX = 100;
 const SHIFT_PX = 8;
 const BLANK_PROBES = 5;
@@ -257,13 +257,17 @@ function install(): OuroFeel {
     for (const resolve of paintWaiters.splice(0)) resolve();
   };
 
+  /** The list's rows and their boxes, read once a frame: a large list's rows are many, and reading them again is the probe's own cost. */
+  function rowBoxes(options: WatchOptions): [Element, DOMRect][] {
+    return [...options.scroller.querySelectorAll(options.rows)].map((row) => [row, row.getBoundingClientRect()]);
+  }
+
   /** The row nearest the middle of the list's view, and its top in the view. */
-  function middleRow(options: WatchOptions, box: DOMRect): [Element, number] | undefined {
+  function middleRow(rows: [Element, DOMRect][], box: DOMRect): [Element, number] | undefined {
     const middle = box.top + box.height / 2;
     let best: [Element, number] | undefined;
     let distance = Infinity;
-    for (const row of options.scroller.querySelectorAll(options.rows)) {
-      const rect = row.getBoundingClientRect();
+    for (const [row, rect] of rows) {
       if (rect.bottom < box.top || rect.top > box.bottom) continue;
       const away = Math.abs((rect.top + rect.bottom) / 2 - middle);
       if (away < distance) [best, distance] = [[row, rect.top - box.top], away];
@@ -274,6 +278,8 @@ function install(): OuroFeel {
   /** Measures the frame just painted; true when the reader's row moved. */
   function sample(options: WatchOptions): boolean {
     const box = options.scroller.getBoundingClientRect();
+    const rows = rowBoxes(options);
+    const boxOf = new Map(rows);
     const now = performance.now();
     const recent = wheels.filter((wheel) => now - wheel.at <= INPUT_WINDOW_MS);
     const recentInput = recent.reduce((sum, wheel) => sum + wheel.deltaY, 0);
@@ -281,7 +287,7 @@ function install(): OuroFeel {
 
     // The anchor: the row at the middle of the view, followed into this frame by element.
     if (anchor?.isConnected) {
-      const move = anchor.getBoundingClientRect().top - box.top - anchorTop;
+      const move = (boxOf.get(anchor) ?? anchor.getBoundingClientRect()).top - box.top - anchorTop;
       moved = move !== 0;
       // Scrolling down (a positive delta) moves content up the screen.
       const net = move + inputSinceSample;
@@ -302,7 +308,7 @@ function install(): OuroFeel {
       anchorMovePx = Math.max(anchorMovePx, Math.abs(drift));
     }
     inputSinceSample = 0;
-    const next = middleRow(options, box);
+    const next = middleRow(rows, box);
     anchor = next?.[0];
     anchorTop = next?.[1] ?? 0;
 
@@ -321,21 +327,20 @@ function install(): OuroFeel {
     wheels.length = 0;
     wheels.push(...keep);
 
-    // Blank frames, only while the list holds rows.
-    if (options.scroller.querySelector(options.rows) !== null) {
+    // Blank frames, only while the list holds rows. Read from the rows' boxes, not hit testing: a list that turns off
+    // pointer events while it scrolls still shows its rows.
+    if (rows.length > 0) {
+      const x = box.left + box.width / 2;
       let blank = true;
       for (let probe = 1; probe <= BLANK_PROBES && blank; probe++) {
-        const element = document.elementFromPoint(box.left + box.width / 2, box.top + (box.height * probe) / (BLANK_PROBES + 1));
-        blank = element?.closest(options.rows) == null;
+        const y = box.top + (box.height * probe) / (BLANK_PROBES + 1);
+        blank = !rows.some(([, rect]) => rect.width > 0 && rect.left <= x && x < rect.right && rect.top <= y && y < rect.bottom);
       }
       if (blank) blankFrames += 1;
       const inset = { top: box.top + BLANK_INSET_PX, bottom: box.bottom - BLANK_INSET_PX, left: box.left + BLANK_INSET_PX, right: box.right - BLANK_INSET_PX };
-      const inside = (element: Element) => {
-        const rect = element.getBoundingClientRect();
-        return rect.bottom > inset.top && rect.top < inset.bottom && rect.right > inset.left && rect.left < inset.right;
-      };
-      const placeholder = [...options.scroller.querySelectorAll(options.skeleton ?? '[data-ouro="skeleton"]')].some(inside);
-      if (placeholder || ![...options.scroller.querySelectorAll(options.rows)].some(inside)) blankFramesInset += 1;
+      const inside = (rect: DOMRect) => rect.bottom > inset.top && rect.top < inset.bottom && rect.right > inset.left && rect.left < inset.right;
+      const placeholder = [...options.scroller.querySelectorAll(options.skeleton ?? '[data-ouro="skeleton"]')].some((element) => inside(element.getBoundingClientRect()));
+      if (placeholder || !rows.some(([, rect]) => inside(rect))) blankFramesInset += 1;
     }
     return moved;
   }
@@ -350,7 +355,7 @@ function install(): OuroFeel {
       longestFrame = 0;
       inputSinceSample = 0;
       wheels.length = 0;
-      const start = quietly(() => middleRow(options, options.scroller.getBoundingClientRect()));
+      const start = quietly(() => middleRow(rowBoxes(options), options.scroller.getBoundingClientRect()));
       anchor = start?.[0];
       anchorTop = start?.[1] ?? 0;
       writePending();

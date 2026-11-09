@@ -21,7 +21,7 @@ A count or a distance fails when any one run is over its limit. A time, whose na
 | `anchorShiftPx` | The jumps added up. |
 | `anchorMovePx` | How far the reader's row got from where it started, net of the input, at its farthest. |
 | `jumpsStrict` | Moves of over 2 px with no input in the last 300 ms, against the wheel, or beyond the wheel's movement.[^strict] |
-| `blankFrames` | Frames where none of 5 points down the list lands on a row.[^blank] |
+| `blankFrames` | Frames where none of 5 points down the list lands in a row's box, read from the rows' boxes, so a list that turns off pointer events while it scrolls still shows its rows.[^blank][^blank-boxes] |
 | `blankFramesInset` | Frames with no row inside the list's view inset 40 px, or a loading placeholder in view.[^inset] |
 | `deadInput` | Wheel events that moved nothing for 100 ms, away from the list's ends.[^dead] |
 | `forcedLayouts` | Layout reads, such as `offsetHeight` or `getBoundingClientRect()`, made while a change to the page was still waiting to be laid out. |
@@ -59,6 +59,7 @@ An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.j
 [^jumps]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const JUMP_PX = 100;$/)
 [^shifts]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const SHIFT_PX = 8;$/)
 [^strict]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const STRICT_JUMP_PX = 2;$/) verify:fileLine(feel/probe/probe.ts, /^const INPUT_WINDOW_MS = 300;$/)
+[^blank-boxes]: test:scripts/feel.test.mjs::Ouro Feel's probe counts a blank frame by the rows' boxes, so a list that turns off pointer events while it scrolls is not blank, and a gap is verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe counts a blank frame by the rows' boxes, so a list that turns off pointer events while it scrolls is not blank, and a gap is)
 [^blank]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const BLANK_PROBES = 5;$/)
 [^inset]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const BLANK_INSET_PX = 40;$/)
 [^dead]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const DEAD_INPUT_MS = 100;$/)
