@@ -91,6 +91,14 @@
 .stage-vignette-edge {
   transition: stop-color var(--stage-fade), stop-opacity var(--stage-fade);
 }
+/*
+ * A step of the depth lever changes the water's colour and the layers' opacity by a few percent,
+ * which needs no fade, so only the movement keeps its transition (scene.tsx: data-stepping). A
+ * dive or a surfacing is no step and fades as before.
+ */
+.stage-scene[data-stepping] * {
+  transition-property: transform, translate !important;
+}
 .stage-sea-top {
   stop-color: var(--sea-top);
 }
