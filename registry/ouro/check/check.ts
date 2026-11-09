@@ -527,7 +527,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       ].filter(Boolean);
       if (!over.length) continue;
       found++;
-      const verb = { hover: "hovering", open: "opening and closing", scroll: "scrolling", pan: "panning" }[step.kind];
+      const verb = { "hover": "hovering", open: "opening and closing", scroll: "scrolling", pan: "panning" }[step.kind];
       await record(page, target, { ref: step.ref, rule: "jank", element: `${verb} ${step.element}`, detail: over.join("; "), value: frame, budget: budgets.jank, unit: "ms", samples: runs.map((r) => r.longestFrameMs) }, width, height, theme);
     }
     return found;

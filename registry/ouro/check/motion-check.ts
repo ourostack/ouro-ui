@@ -132,7 +132,7 @@ function readMotion(): MotionReading {
 function markWalkables({ limit, never }: { limit: number; never: string }): Walkable[] {
   const counter = window as unknown as { __ouroCheckRef?: number };
   const walkables: Walkable[] = [];
-  const counts = { hover: 0, open: 0, scroll: 0, pan: 0 };
+  const counts = { "hover": 0, open: 0, scroll: 0, pan: 0 };
   const describe = (el: Element) => {
     const name = (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40);
     return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${name ? ` "${name}"` : ""}`;
