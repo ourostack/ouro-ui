@@ -331,8 +331,9 @@ test("on a phone a tap outside the theme picker closes it without pressing the l
   await open(page, "docs/button/");
   const url = page.url();
   // The page's scene and its demo fill a phone's first screen: bring the first link in the page up to three quarters down
-  // it, below where the picker opens.
-  await page.locator("main a[href]").first().evaluate((link) => scrollBy(0, link.getBoundingClientRect().top - innerHeight * 0.75));
+  // it, below where the picker opens. The page's CSS scrolls smoothly, and a scroll still under way when the picker opens
+  // is cut short, leaving the link below the screen (#765), so this one is made at once.
+  await page.locator("main a[href]").first().evaluate((link) => scrollBy({ top: link.getBoundingClientRect().top - innerHeight * 0.75, behavior: "instant" }));
   const picker = await openPicker(page);
   const link = await linkBeside(page, picker);
   expect(link.href).not.toBe(url);
