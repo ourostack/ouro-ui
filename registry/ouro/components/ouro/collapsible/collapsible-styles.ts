@@ -104,7 +104,7 @@ const itemClass = "m-0 rounded-sm p-0 outline-ring outline-offset-2 focus-visibl
  * @internal
  * @claim "its last 3rem fades out" registry/ouro/components/ouro/collapsible/collapsible-styles.ts verify:fileLine(registry/ouro/components/ouro/collapsible/collapsible-styles.ts, /mask-image:linear-gradient\(to_bottom,#000_calc\(100%-3rem\),transparent\)/)
  */
-const foldClass = "relative w-full min-w-0 data-folded:[mask-image:linear-gradient(to_bottom,#000_calc(100%-3rem),transparent)]";
+const foldClass = "relative w-full min-w-0 data-folded:[mask-image:linear-gradient(to_bottom,#000_calc(100%-3rem),transparent)]"; // fade-ok: fades folded text, not a picture
 
 /**
  * Text clamped to `--ouro-show-more-lines` lines while collapsed.

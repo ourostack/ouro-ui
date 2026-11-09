@@ -279,7 +279,7 @@ const kits = [
     title: "Ouro check",
     description:
       `Optional: the screen check. ${claim(
-        "It opens every page of a built folder or a URL in headless Chromium at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, and long lines only where ouro-check.json declares a measure, each with a captioned close-up and a contact sheet per page.",
+        "It opens every page of a built folder or a URL in headless Chromium at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures, pictures that fade into the page and serious axe-core violations, and long lines only where ouro-check.json declares a measure, each with a captioned close-up and a contact sheet per page.",
         {
           source: [{ test: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" }, { file: "registry/ouro/check/check.ts" }],
           verify: [
@@ -291,8 +291,8 @@ const kits = [
       )} ${claim("It measures layout shift while loading, the time to the first content and each press's time to paint, each against a budget, and records each number in its report.", {
         source: { test: "scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number" },
         verify: { testExists: "scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number" },
-      })} ${claim("A run split with --shard k/n and joined with merge finds what one run does.", { source: { test: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" }, verify: { testExists: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" } })} It installs lib/ouro/check/.`,
-    docs: `Ouro check is in lib/ouro/check/. Build your app, run node lib/ouro/check/check.ts <built folder | URL> and fix what it reports. Docs: ${DOCS_URL}/guardrails.md`,
+      })} ${claim("A run split with --shard k/n and joined with merge finds what one run does.", { source: { test: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" }, verify: { testExists: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" } })} ${claim("Its fades.ts finds every gradient used as a mask in your source, so no picture fades into the page.", { source: { test: "scripts/check/fades.test.mts::the fade check > finds a gradient mask in a stylesheet: mask-image, -webkit-mask-image, mask and -webkit-mask, over several lines too" }, verify: { testExists: "scripts/check/fades.test.mts::the fade check > finds a gradient mask in a stylesheet: mask-image, -webkit-mask-image, mask and -webkit-mask, over several lines too" } })} It installs lib/ouro/check/.`,
+    docs: `Ouro check is in lib/ouro/check/. Build your app, run node lib/ouro/check/check.ts <built folder | URL> and fix what it reports. Run node lib/ouro/check/fades.ts src to find a picture that fades into the page in your source. Docs: ${DOCS_URL}/guardrails.md`,
     uses: ["axe-core", "playwright"],
   },
   {

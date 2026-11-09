@@ -1,6 +1,7 @@
 import axe from "axe-core";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
+import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
 
@@ -343,6 +344,112 @@ describe("findOverlaps", () => {
   });
 });
 
+describe("findImageFades", () => {
+  const box = "width:200px;height:100px;display:block";
+  it("finds a picture faded by a gradient mask on itself or a box around it, by either mask property", async () => {
+    const url = await picture(200, 100);
+    render(`
+      <img id="own" src="${url}" alt="own" style="${box};mask-image:linear-gradient(#000,transparent)">
+      <div class="hero frame" style="-webkit-mask-image:radial-gradient(#000,transparent)"><img src="${url}" alt="inside" style="${box}"></div>
+      <div style="${box};background:url(${url}) center/cover;mask-image:linear-gradient(to top,transparent,#000)"></div>
+      <svg width="200" height="100" style="display:block;mask-image:linear-gradient(#000,transparent)"><image href="${url}" width="200" height="100"></image></svg>
+      <img src="${new URL("../scripts/check/fixtures/picture-160.png", import.meta.url).href}" alt="named" style="${box};mask-image:linear-gradient(#000,transparent)">`);
+    const issues = findImageFades();
+    expect(issues).toEqual([
+      { ref: "f1", rule: "image-fade", element: "img#own", detail: "faded by a gradient mask on the picture itself" },
+      { ref: "f2", rule: "image-fade", element: "img", detail: "faded by a gradient mask on div.hero.frame" },
+      { ref: "f3", rule: "image-fade", element: "div", detail: "faded by a gradient mask on the picture itself" },
+      { ref: "f4", rule: "image-fade", element: "image", detail: "faded by a gradient mask on svg" },
+      { ref: "f5", rule: "image-fade", element: "fixtures/picture-160.png", detail: "faded by a gradient mask on the picture itself" },
+    ]);
+    // A second run marks each picture again, beside its first mark.
+    findImageFades();
+    expect(document.getElementById("own")!.getAttribute("data-ouro-check-ref")).toBe("f1 f6");
+  });
+
+  it("finds a picture that a gradient to transparent covers: an overlay, or a ::before or ::after of the picture or a box around it", async () => {
+    const url = await picture(200, 100);
+    render(`
+      <style>
+        .scrim { position: relative; width: 200px }
+        .scrim::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent, #fff) }
+        .wash { position: relative; background: url(${url}) center / cover }
+        .wash::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: linear-gradient(rgba(0, 0, 0, 0), rgb(0, 0, 0)) }
+        .outer { position: relative; width: 200px }
+        .inner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(oklch(1 0 0 / 0), oklch(1 0 0)) }
+        .lid { position: relative; width: 200px }
+        .lid::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 30px; background: linear-gradient(#fff, transparent) }
+      </style>
+      <div class="scrim"><img src="${url}" alt="scrim" style="${box}"></div>
+      <div class="wash" style="${box}"></div>
+      <div class="outer"><div class="inner"><img src="${url}" alt="inner" style="${box}"></div></div>
+      <div style="position:relative;width:200px"><img id="under" src="${url}" alt="under" style="${box}"><div class="shade" style="position:absolute;inset:0 0 50px 0;background:linear-gradient(to top,rgba(255,255,255,0),#fff)"></div></div>
+      <div style="position:relative;width:200px"><img id="vignette" src="${url}" alt="vignette" style="${box}"><div class="edge" style="position:absolute;inset:0;background:radial-gradient(circle,transparent 40%,#000)"></div></div>
+      <div class="lid"><img src="${url}" alt="lid" style="${box}"></div>
+      <div id="layered" style="${box};background:linear-gradient(transparent,#fff),url(${url}) center/cover"></div>
+      <div style="position:relative;width:200px"><div class="late" style="position:absolute;inset:0"></div><img src="${url}" alt="after" style="${box};position:relative"><div class="cover" style="position:absolute;inset:0;background:linear-gradient(transparent,#000)"></div></div>`);
+    expect(findImageFades().map(({ element, detail }) => [element, detail])).toEqual([
+      ["img", "100% covered by the gradient to transparent of div.scrim::after"],
+      ["div.wash", "40% covered by the gradient to transparent of div.wash::before"],
+      ["img", "100% covered by the gradient to transparent of div.inner::after"],
+      ["img#under", "50% covered by the gradient to transparent of div.shade"],
+      ["img#vignette", "100% covered by the gradient to transparent of div.edge"],
+      ["img", "30% covered by the gradient to transparent of div.lid::before"],
+      ["div#layered", "faded by a gradient layered over its own background"],
+      ["img", "100% covered by the gradient to transparent of div.cover"],
+    ]);
+  });
+
+  it("finds a picture under a fixed ::before or ::after, placed on the screen", async () => {
+    const url = await picture(200, 100);
+    render(`<style>.veil::after { content: ""; position: fixed; inset: 0; background: linear-gradient(transparent, #000) }</style><div class="veil"><img src="${url}" alt="veiled" style="${box}"></div>`);
+    expect(findImageFades()).toMatchObject([{ rule: "image-fade", detail: "100% covered by the gradient to transparent of div.veil::after" }]);
+  });
+
+  it("passes a picture with a hard edge, on a solid band, beside or under a gradient, hidden, or allowed with a reason", async () => {
+    const url = await picture(200, 100);
+    render(`
+      <style>
+        .flow::after { content: ""; display: block; height: 20px; background: linear-gradient(transparent, #000) }
+        .sky { position: relative }
+        .sky::before { content: ""; position: absolute; inset: 0; background: linear-gradient(#9cf, #fde) }
+        .thin { position: relative; width: 200px }
+        .backdrop { position: relative; isolation: isolate }
+        .backdrop::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(transparent, #fff) }
+        .under { position: relative }
+        .under::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent, #fff) }
+        .thin::after { content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 5px; background: linear-gradient(transparent, #000) }
+      </style>
+      <div style="background:#eee;padding:8px"><img src="${url}" alt="band" style="${box}"></div>
+      <div class="flow"><img src="${url}" alt="flow" style="${box}"></div>
+      <div class="sky"><img src="${url}" alt="sky" style="${box}"></div>
+      <div class="thin"><img src="${url}" alt="thin" style="${box}"></div>
+      <div class="backdrop"><img src="${url}" alt="backdrop" style="${box}"></div>
+      <div class="under"><img src="${url}" alt="positioned" style="${box};position:relative"></div>
+      <div style="${box};background:url(${url}) center/cover,linear-gradient(transparent,#fff)"></div>
+      <div style="${box};background:linear-gradient(rgb(0 0 0 / 0.2),rgb(0 0 0 / 0.2)),url(${url}) center/cover"></div>
+      <div style="position:relative;width:200px"><div style="position:absolute;inset:0;z-index:-1;background:linear-gradient(transparent,#000)"></div><img src="${url}" alt="behind" style="${box}"></div>
+      <div style="position:relative;width:200px"><div style="position:absolute;inset:0;background:linear-gradient(transparent,#000)"></div><img src="${url}" alt="earlier" style="${box};position:relative"></div>
+      <div style="position:absolute;top:0;left:400px;background:linear-gradient(transparent,#fff)"><img src="${url}" alt="inside an overlay" style="${box}"></div>
+      <div style="position:relative;width:200px"><img src="${url}" alt="overlay allowed" style="${box}"><div data-image-fade-ok="a caption band over a cropped picture" style="position:absolute;inset:0;background:linear-gradient(transparent,#000)"></div></div>
+      <div style="position:relative;width:200px"><img src="${url}" alt="opaque" style="${box}"><div style="position:absolute;inset:0;background:linear-gradient(#000,#fff)"></div></div>
+      <div style="position:relative;width:200px"><img src="${url}" alt="glow" style="${box}"><div style="position:absolute;inset:0;background:radial-gradient(circle,rgb(255 238 196 / 0.75),transparent 70%),conic-gradient(from 90deg,rgba(255,255,255,0.4),transparent)"></div></div>
+      <div style="position:relative;width:200px"><img src="${url}" alt="clear" style="${box}"><div style="position:absolute;inset:0;background:linear-gradient(transparent,rgba(0,0,0,0))"></div></div>
+      <img src="${url}" alt="hidden" hidden style="${box};mask-image:linear-gradient(#000,transparent)">
+      <img src="${url}" alt="invisible" style="${box};visibility:hidden;mask-image:linear-gradient(#000,transparent)">
+      <img src="${url}" alt="empty" style="width:0;height:0;mask-image:linear-gradient(#000,transparent)">
+      <div data-image-fade-ok="a cut-out on purpose"><img src="${url}" alt="alias" style="${box};mask-image:linear-gradient(#000,transparent)"></div>
+      <img src="${url}" alt="allowed" data-ouro-allow="image-fade" data-ouro-allow-why="a cut-out on purpose" style="${box};mask-image:linear-gradient(#000,transparent)">
+      <img src="${url}" alt="all" data-ouro-allow="all" data-ouro-allow-why="a cut-out on purpose" style="${box};mask-image:linear-gradient(#000,transparent)">
+      <img src="${url}" alt="shape" style="${box};mask-image:url(${url})">
+      <p style="mask-image:linear-gradient(to right,#000 80%,transparent)">Text may fade at its end; it is no picture.</p>
+      <div style="width:200px;height:40px;background:linear-gradient(transparent,#000)"></div>
+      <img id="no-reason" src="${url}" alt="no reason" data-ouro-allow="image-fade" style="${box};mask-image:linear-gradient(#000,transparent)">
+      <img id="spaces" src="${url}" alt="spaces" data-image-fade-ok="  " style="${box};mask-image:linear-gradient(#000,transparent)">`);
+    expect(findImageFades().map((issue) => issue.element)).toEqual(["img#no-reason", "img#spaces"]);
+  });
+});
+
 describe("aliases", () => {
   it("counts a plain alias only with its reason as its value, as data-ouro-allow does only with data-ouro-allow-why", async () => {
     for (const [name, rule] of [["data-clip-ok", "clipped-text"], ["data-size-ignore", "clipped-text"]]) {
@@ -373,7 +480,8 @@ describe("aliases", () => {
       <span data-clip-ok="   ">Spaces are no reason</span>
       <p data-ouro-allow="overlap" data-ouro-allow-why="  ">Spaces are no reason</p>
       <span data-clip-ok="a code"></span>
-      <div data-scroll-x="a timeline"></div>`);
+      <div data-scroll-x="a timeline"></div>
+      <img data-image-fade-ok="a cut-out on purpose" alt="Cut-out">`);
     const allowances = listAllowances(ALIASES);
     // Read, never rewritten: the page keeps its own attributes.
     expect(host.querySelector("[data-overlap-ignore]")!.getAttribute("data-overlap-ignore")).toBe("  a stamp ");
@@ -383,6 +491,7 @@ describe("aliases", () => {
       { rules: "clipped-text", element: "span [data-clip-ok]", reason: "a code" },
       { rules: "sideways-scroll", element: "div [data-scroll-x]", reason: "a timeline" },
       { rules: "sideways-scroll clipped-text long-lines blurry-image", element: 'img "Backdrop" [data-size-ignore]', reason: "a soft backdrop" },
+      { rules: "image-fade", element: 'img "Cut-out" [data-image-fade-ok]', reason: "a cut-out on purpose" },
     ]);
   });
 });

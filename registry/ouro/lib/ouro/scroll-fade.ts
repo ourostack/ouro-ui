@@ -16,7 +16,7 @@ import { useEffect, type RefObject } from "react";
  * @claim "A gradient mask is read for its alpha" https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/CSS/mask-mode)
  */
 export const scrollFadeClass =
-  "data-ouro-scroll-fade:[mask-image:linear-gradient(to_right,transparent,#000_min(var(--ouro-scroll-fade-left),2rem),#000_calc(100%-min(var(--ouro-scroll-fade-right),2rem)),transparent)]";
+  "data-ouro-scroll-fade:[mask-image:linear-gradient(to_right,transparent,#000_min(var(--ouro-scroll-fade-left),2rem),#000_calc(100%-min(var(--ouro-scroll-fade-right),2rem)),transparent)]"; // fade-ok: fades a scrolling row of text or controls, not a picture
 
 /**
  * Shows that a box scrolls sideways: while its content is wider than it, the box gets
