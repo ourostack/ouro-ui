@@ -255,7 +255,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
 
   // The picture follows the controls once the press has painted (useAfterPaint), so no press waits
   // on the porthole's repaint.
-  const scene = useAfterPaint(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
+  const scene = useAfterPaint(useMemo(() => ({ depth: 0, band: "sunlit" as const, tanks: full, dived, lights, speed, dives: stream, rings }), [full, dived, lights, speed, stream, rings]));
 
   return (
     <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined} data-paced={paced ? "" : undefined}>
