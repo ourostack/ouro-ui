@@ -571,11 +571,27 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
   await page.goto("docs/button/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("navigation", { name: "Docs" })).toBeVisible();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "page");
+  // The bar marks the section you are in; the sidebar alone marks the page, so a screen reader hears one current page.
+  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
   // A helper's page is under Ouro HX too.
   await page.goto("docs/use-timer/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).toHaveAttribute("aria-current", "true");
+  // An Ouro AX docs page is under Ouro AX, though its address is under the docs.
+  await page.goto("docs/ax-terminal/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro AX", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Ouro HX", exact: true })).not.toHaveAttribute("aria-current");
+  // A section's own page, where its row marks the page, is the section in the bar too.
+  await page.goto("apple/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await expect(page.getByRole("banner").getByRole("link", { name: "For Apple", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(page.locator('[aria-current="page"]')).toHaveCount(1);
+  // With no other navigation, a section's own page is the page.
+  await page.goto("nautilus/");
+  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await expect(page.getByRole("banner").getByRole("link", { name: "The Nautilus", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
 test("on a phone the menu holds X-ray, which the bar has no room for, and closes to show it", async ({ page }) => {

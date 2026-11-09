@@ -211,6 +211,17 @@ function XrayPill(): JSX.Element {
 }
 
 /**
+ * The path the bar marks from. On a page with its own navigation that marks it (the docs sidebar, the Apple pages'
+ * row), the bar marks only the section you are in (`aria-current="true"`), so a screen reader hears one current page:
+ * the page is put under its section's link even where its address is not (an Ouro AX docs page, under /ax/'s link).
+ * Elsewhere a section's own page is the page.
+ */
+function sectionPage(path: string, page: string, pageNav: boolean): string {
+  if (path === "" || (page === path ? !pageNav : page.startsWith(path))) return page;
+  return page === path ? `${path}~` : `${path}${page.replace(/^\//, "")}`;
+}
+
+/**
  * The site's one header, on the voyage pages and the docs alike, built from Ouro HX: FamilyBar over Navbar, Popover,
  * RadioGroup, SegmentedControl, Switch, Command and Kbd. The family bar links the Ouro family's sites (family.ts), this
  * one marked, and scrolls away with the page; the site's own bar under it sticks. `path` is the bar's current link;
@@ -224,9 +235,12 @@ export function VoyageHeader({
   menu,
   gutters = "voyage",
   skipTo = "main",
+  pageNav = false,
 }: {
   path: string;
   page?: string;
+  /** Whether the page has its own navigation that marks it as the current page: the docs sidebar, the Apple pages' row. */
+  pageNav?: boolean;
   menu?: ReactNode;
   gutters?: keyof typeof GUTTERS;
   /** The id the skip link jumps to: the page's <main>, or a docs page's title, which comes before it. */
@@ -258,7 +272,7 @@ export function VoyageHeader({
         }
         // The brand is the way home, so the bar starts at the Nautilus.
         items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
-        currentPath={href(path)}
+        currentPath={href(sectionPage(path, page, pageNav))}
         menu={
           <SiteMenuFrame
             tools={
