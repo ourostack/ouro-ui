@@ -27,7 +27,7 @@ export function rehome(location) {
 /** Plain HTTP gets a 301 to the same path and query on https (Ari, 2026-11-09: "why doesn't http
     forward to https on all these sites?"), before anything is fetched from Pages. */
 export function secure(url) {
-  return url.protocol === "http:" ? `https://${url.host}${url.pathname}${url.search}` : null;
+  return url.protocol === "http:" ? `https://${url.hostname}${url.pathname}${url.search}` : null;
 }
 
 export default {

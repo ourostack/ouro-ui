@@ -44,6 +44,8 @@ test("plain HTTP gets a 301 to the same path and query on https, with HSTS, and 
     assert.equal(response.headers.get("strict-transport-security"), hsts, from);
   }
   assert.equal(fetched.mock.callCount(), 0);
+  // Cloudflare also takes plain HTTP on ports like 8080, which have no TLS, so the port is dropped.
+  assert.equal(secure(new URL("http://ui.ouroboros.bot:8080/a?b=1")), `${host}/a?b=1`);
   assert.equal(secure(new URL("https://ui.ouroboros.bot/docs/?x=1")), null);
 });
 
