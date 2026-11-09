@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, type CSSProperties, type JSX, type ReactNode } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, type CSSProperties, type JSX, type ReactNode } from "react";
 import { art, partsOf, type Art } from "./art";
 import { MAX_DEPTH, type Band, type Speed } from "./copy";
 
@@ -15,6 +15,9 @@ export interface SceneState {
   /** Bumped by each ring of the bell, so ripples spread again. */
   rings: number;
 }
+
+/** The small-step marker, once the first press of the depth lever has loaded it (stepping.ts). */
+let markStep: typeof import("./stepping").markStep | undefined;
 
 /** A drawing from site/src/nautilus/art at a place and width in the scene, its height from its own proportions. */
 function Drawing({ of, x, y, width, className, inner = of.inner }: { of: Art; x: number; y: number; width: number; className?: string; inner?: string }): JSX.Element {
@@ -109,6 +112,11 @@ const PLAYBACK: Record<Speed, number> = { stop: 1, half: 1, full: 2.4 };
 export const Scene = memo(function Scene({ state, label, description, motto }: { state: SceneState; label: string; description: string; motto: string }): JSX.Element {
   const d = state.depth / MAX_DEPTH;
   const root = useRef<HTMLDivElement>(null);
+  // A small step of the depth lever is drawn without fading (stepping.ts, loaded with the lever's first press).
+  useLayoutEffect(() => {
+    if (markStep) markStep(root.current, state);
+    else if (state.depth) void import("./stepping").then((module) => (markStep = module.markStep));
+  }, [state]);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
   useEffect(() => {
     for (const animation of root.current?.getAnimations({ subtree: true }) ?? []) {
