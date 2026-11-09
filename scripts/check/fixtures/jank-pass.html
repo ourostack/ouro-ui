@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jank: passes</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:60rem;margin:0 auto}</style>
+<style>.cards{display:flex;flex-wrap:wrap;gap:16px}.card{display:block;width:240px;min-height:100px;padding:16px;border-radius:12px;background:#eef;color:inherit;text-decoration:none;transition:transform .15s}.card:hover{transform:translateY(-2px)}.cover{position:relative}.cover::after{content:"";position:absolute;inset:0}.wrap{position:relative}#panel{position:absolute;top:100%;left:0;background:#fff;border:1px solid #ccc;padding:8px}.pan{height:200px;width:320px;cursor:grab;background:#f4f4f4;margin:16px 0}.across{width:320px;height:160px;overflow-x:auto;white-space:nowrap}.across span{display:inline-block;width:200px;height:120px;background:#eee;margin-right:8px}.down{width:320px;height:160px;overflow-y:auto}.down p{height:400px;margin:0}.spacer{height:1200px}</style>
+<main><h1>Jank</h1><p>Cards that lift, a menu over the page, a surface to pan and regions that scroll.</p>
+<div class="cards"><a class="card" href="#one">Lifts on hover</a><span class="cover"><a class="card" href="#covered">Covered</a></span><a class="card" id="allowed" href="#allowed" data-ouro-allow="jank" data-ouro-allow-why="a slow card on purpose">Allowed</a></div>
+<div class="wrap"><button id="open" type="button" aria-haspopup="menu" aria-expanded="false">Menu</button><div id="panel" hidden>An item</div></div>
+<form><button type="submit" aria-expanded="false">Send</button></form>
+<a href="/elsewhere" aria-expanded="false">Away</a>
+<div class="pan" role="region" aria-label="A surface to pan"></div>
+<div class="across" tabindex="0"><span></span><span></span><span></span></div>
+<div class="down" tabindex="0"><p>Long content</p></div>
+<div class="spacer"></div></main>
+<script>
+const open = document.getElementById("open");
+const panel = document.getElementById("panel");
+open.addEventListener("click", () => {
+  const shown = open.getAttribute("aria-expanded") === "true";
+  open.setAttribute("aria-expanded", String(!shown));
+  panel.hidden = shown;
+});
+addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    open.setAttribute("aria-expanded", "false");
+    panel.hidden = true;
+  }
+});
+const allowed = document.getElementById("allowed");
+allowed.addEventListener("mouseenter", () => {
+  for (let i = 0; i < 120; i++) {
+    allowed.style.paddingTop = `${16 + (i % 2)}px`;
+    void allowed.offsetHeight;
+  }
+});
+</script>

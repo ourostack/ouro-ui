@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
+import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 
@@ -57,18 +57,19 @@ describe("Ouro check", () => {
     const out = dir("rules");
     // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
     const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet });
-    // http-error and not-ready are about the page, not its content, and have tests of their own.
-    for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready")) {
+    // http-error and not-ready are about the page, not its content, and https about a site on the web: each has tests
+    // of its own.
+    for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https")) {
       assert.ok(result.findings.some((f) => f.page === `/${rule}-fail.html` && f.rule === rule), `${rule} fires on its fail page`);
       assert.deepEqual(result.findings.filter((f) => f.page === `/${rule}-pass.html`), [], `nothing fires on the ${rule} pass page`);
     }
     // axe runs only at the phone and laptop sizes.
     assert.ok(result.findings.some((f) => f.rule === "axe" && f.width === 390) && result.findings.some((f) => f.rule === "axe" && f.width === 1440));
     assert.equal(result.gated.length, result.findings.length);
-    assert.equal(result.shots.length, 22 * 2);
+    assert.equal(result.shots.length, 42 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 22);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 22 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 42);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 42 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -89,7 +90,7 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 11);
+    assert.equal(merged.pages.length, 21);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
@@ -552,5 +553,103 @@ describe("Ouro check's server", () => {
     assert.ok(globToRegExp("/**/x.html").test("/x.html") && globToRegExp("/**/x.html").test("/docs/deep/x.html"));
     assert.ok(globToRegExp("/?.html").test("/b.html") && !globToRegExp("/?.html").test("/bb.html"));
     assert.ok(globToRegExp("/a+(b).html").test("/a+(b).html") && !globToRegExp("/a.html").test("/aXhtml"));
+  });
+});
+
+describe("Ouro check's design rules", () => {
+  // Ari's findings of 2026-11-09, each as a fixture page that reproduces it: the check fails on each and passes once it
+  // is fixed (each rule's pass page, in the test above).
+  test("fails each seed case where a person saw it, with numbers that say why", async () => {
+    const pages = ["giant-picture", "cramped-heading", "baked-corner", "jank", "type-scale"].map((rule) => `${rule}-fail.html`);
+    const folder = site("seeds", Object.fromEntries(pages.map((file) => [file, readFileSync(join(fixtures, file), "utf8")])));
+    for (const file of ["picture-960.png", "picture-160.png"]) copyFileSync(join(fixtures, file), join(folder, file));
+    const result = await check({ targets: [folder], out: dir("seeds"), sizes: two, themes: ["light"], chromium, log: quiet });
+    const of = (rule: string) => result.findings.filter((f) => f.rule === rule);
+    // mendelow.me's giant photo: a banner leading a work entry fails on a laptop, not on a phone, where it is small.
+    assert.deepEqual(of("giant-picture").map((f) => `${f.width} ${f.element}`), ['1440 img "A scene of a workshop at dawn" in article.card "Ouro UI"']);
+    assert.match(of("giant-picture")[0]!.detail, /^the picture is \d+×\d+, \d+% of its item's height and [\d.]+ times its words'$/);
+    // Ouro MD's header: the title row 6px under the hero art.
+    assert.deepEqual(of("cramped-heading").map((f) => f.detail), ["6px below img.hero; a 48px heading needs 24px", "6px below img.hero; a 48px heading needs 24px"]);
+    // Ouro MD's recording: the window's own dark corners inside the page's rounded frame.
+    assert.ok(of("baked-corner").length > 0 && of("baked-corner").every((f) => /^the (top left|top right|bottom left|bottom right)(, (top right|bottom left|bottom right))+ corners draw a colour/.test(f.detail)), JSON.stringify(of("baked-corner")));
+    // The plan map's jank: walked at one size and theme, each step three times.
+    const jank = of("jank");
+    assert.deepEqual(jank.map((f) => `${f.width} ${f.element}`).sort(), ['1440 hovering a#growing "Grows on hover"', '1440 hovering a#thrash "Measures every card on hover"', '1440 opening and closing button#open "Show the plan"']);
+    assert.match(jank.find((f) => f.element.includes("thrash"))!.detail, /it forced \d+ layouts in its best run \(keep to 50\)/);
+    assert.match(jank.find((f) => f.element.includes("growing"))!.detail, /it moved the page by a layout shift of [\d.]+ in its best run \(keep to 0.01\)/);
+    const slow = jank.find((f) => f.element.includes("open"))!;
+    assert.match(slow.detail, /^its longest frame took \d+ ms \(median of 3; budget 250 ms\)$/);
+    assert.ok(slow.value! > BUDGETS.jank && slow.budget === BUDGETS.jank && slow.unit === "ms" && slow.samples!.length === 3, slow.detail);
+    assert.ok(jank.every((f) => f.closeUp));
+    // Refactoring UI's limited type scale: eleven sizes and five weights.
+    assert.deepEqual(of("type-scale").map((f) => f.element), ["the page's text sizes", "the page's font weights", "the page's text sizes", "the page's font weights"]);
+    // The walk is off with walk: false, and with the measured rules.
+    const quietly = await check({ targets: [folder], out: dir("unwalked"), sizes: [[1440, 900]], themes: ["light"], config: { walk: false }, chromium, log: quiet });
+    assert.deepEqual(quietly.findings.filter((f) => f.rule === "jank"), []);
+  });
+
+  test("https: a site moves http:// to https:// with a 301 and asks for HSTS for a year, and so does its www. name", async () => {
+    const calls: string[] = [];
+    // A stand-in for the web: each address answers with a status and headers, or throws as fetch does when a name
+    // doesn't resolve or a certificate fails.
+    const web = (answers: Record<string, [number, Record<string, string>] | Error>) =>
+      (async (url: string | URL | Request) => {
+        calls.push(String(url));
+        const answer = answers[String(url)];
+        if (answer === undefined) throw Object.assign(new TypeError("fetch failed"), { cause: new Error("getaddrinfo ENOTFOUND") });
+        if (answer instanceof Error) throw answer;
+        return new Response(null, { status: answer[0], headers: answer[1] });
+      }) as typeof fetch;
+    const year = { "strict-transport-security": "max-age=31536000; includeSubDomains" };
+    assert.deepEqual(await transportIssues("127.0.0.1:5173", web({})), []);
+    assert.deepEqual(await transportIssues("app.localhost", web({})), []);
+    assert.deepEqual(calls, []);
+    const good = web({
+      "http://good.test/": [301, { location: "https://good.test/" }],
+      "https://good.test/": [200, year],
+      "http://www.good.test/": [308, { location: "https://good.test/" }],
+      "https://www.good.test/": [301, { location: "https://good.test/" }],
+    });
+    assert.deepEqual(await transportIssues("good.test", good), []);
+    const bad = web({
+      "http://bad.test/": [200, {}],
+      "https://bad.test/": [200, {}],
+      "http://www.bad.test/": [301, { location: "http://bad.test" }],
+      "https://www.bad.test/": Object.assign(new TypeError("fetch failed"), { cause: new Error("certificate has expired") }),
+    });
+    assert.deepEqual(await transportIssues("bad.test", bad), [
+      { element: "http://bad.test/", detail: "answers 200 over plain HTTP instead of moving to https://" },
+      { element: "https://bad.test/", detail: "sends no Strict-Transport-Security" },
+      { element: "http://www.bad.test/", detail: "moves to http://bad.test with 301, not to https:// with a 301" },
+      { element: "https://www.bad.test/", detail: "does not answer over HTTPS: Error: certificate has expired" },
+    ]);
+    // A www. site's twin is its bare name; a site that doesn't listen on http:// serves nothing over it; a subdomain has
+    // no twin.
+    calls.length = 0;
+    const short = web({ "http://short.test/": [302, {}], "https://www.short.test/": [200, { "strict-transport-security": "max-age=300" }], "https://ui.short.test/": new Error("refused") });
+    assert.deepEqual(await transportIssues("www.short.test", short), [
+      { element: "https://www.short.test/", detail: "Strict-Transport-Security max-age=300, under a year" },
+      { element: "http://short.test/", detail: "moves to nowhere with 302, not to https:// with a 301" },
+      { element: "https://short.test/", detail: "does not answer over HTTPS: Error: getaddrinfo ENOTFOUND" },
+    ]);
+    calls.length = 0;
+    assert.deepEqual(await transportIssues("ui.short.test", short), [{ element: "https://ui.short.test/", detail: "does not answer over HTTPS: refused" }]);
+    assert.deepEqual(calls, ["http://ui.short.test/", "https://ui.short.test/"]);
+
+    // In a run: once a site, at the first size and theme, in the first shard only, gated as any finding is.
+    const out = dir("https");
+    const result = await check({ targets: ["https://bad.test/"], out, sizes: two, themes: ["dark", "light"], fetch: bad, chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "https").map((f) => `${f.site} ${f.width}x${f.height} ${f.theme} ${f.element}`), [
+      "bad.test 390x844 dark http://bad.test/",
+      "bad.test 390x844 dark https://bad.test/",
+      "bad.test 390x844 dark http://www.bad.test/",
+      "bad.test 390x844 dark https://www.bad.test/",
+    ]);
+    assert.ok(result.findings.filter((f) => f.rule === "https").every((f) => f.gated && !f.closeUp));
+    assert.match(summary(JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report), /no HTTPS/);
+    const second = await check({ targets: ["https://bad.test/"], out: dir("https-2"), sizes: two, themes: ["light"], shard: [2, 2], fetch: bad, chromium, log: quiet });
+    assert.deepEqual(second.findings.filter((f) => f.rule === "https"), []);
+    const waived = await check({ targets: ["https://bad.test/"], out: dir("https-3"), sizes: [[390, 844]], themes: ["light"], fetch: bad, config: { waive: { "/": { https: "a staging site" } } }, chromium, log: quiet });
+    assert.ok(waived.findings.some((f) => f.rule === "https") && waived.gated.every((f) => f.rule !== "https"));
   });
 });
