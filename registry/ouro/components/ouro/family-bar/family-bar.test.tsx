@@ -143,6 +143,22 @@ describe("FamilyBar", () => {
     expect(at.right).toBeLessThanOrEqual(box.right + 1);
   });
 
+  it("brings the current site's link to the middle by script where CSS does not place it", async () => {
+    await page.viewport(320, 640);
+    const style = document.createElement("style");
+    style.textContent = "[data-ouro-family-row] a { scroll-initial-target: none !important; scroll-snap-align: none !important; }";
+    document.head.append(style);
+    try {
+      const { row, root, link } = await render(<FamilyBar links={sites} current="blog" />);
+      expect(offCentre(row, link("Blog"))).toBeLessThan(1);
+      row.scrollLeft = 0;
+      await act(async () => root.render(<FamilyBar links={sites} current="status" />));
+      expect(offCentre(row, link("Status"))).toBeLessThan(1);
+    } finally {
+      style.remove();
+    }
+  });
+
   it("brings the current site's link to the middle of a right-to-left row", async () => {
     await page.viewport(320, 640);
     const { row, link } = await render(<FamilyBar links={sites} current="blog" />, "rtl");
