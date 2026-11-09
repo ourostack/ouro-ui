@@ -54,7 +54,7 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 576,
     phoneHeight: 432,
     sun: [87, 11],
-    band: 29,
+    band: 8,
     shortY: 20,
   },
   "ouro-ui-core": {
