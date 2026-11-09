@@ -220,7 +220,11 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await open(page);
   const trigger = page.locator("[data-site-theme-trigger]");
   await page.locator("body").focus();
-  // First the family bar's sites, in the family's order, then the site's own bar.
+  // First the skip link, then the family bar's sites, in the family's order, then the site's own bar.
+  await pressTab(page);
+  await expect(page.getByRole("link", { name: "Skip to main content", exact: true })).toBeFocused();
+  await expect(page.getByRole("link", { name: "Skip to main content", exact: true })).toHaveAttribute("href", "#main");
+  await expect(page.locator("main#main")).toHaveCount(1);
   for (const site of family.links) {
     await pressTab(page);
     await expect(page.getByRole("navigation", { name: "Sites", exact: true }).getByRole("link", { name: site.label, exact: true })).toBeFocused();

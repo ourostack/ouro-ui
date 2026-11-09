@@ -100,6 +100,13 @@ export interface Card {
   side: "left" | "right";
   /** How wide the words may run, in pixels of the 1200px card: no further than the clear sky. */
   width?: number;
+  /** The title's size in pixels, where the default would run the words into a drawn figure. */
+  size?: number;
+  /**
+   * Which stretch of the wide 1536px header to show, left to right, when the og crop cuts a figure off: it is drawn
+   * across the card's width under a band of the scene's own sky, which meets it on a hard edge.
+   */
+  crop?: { from: number; to: number };
 }
 
 const APPLE = "Ouro UI for Apple";
@@ -108,8 +115,8 @@ const APPLE = "Ouro UI for Apple";
 export const CARDS: Record<string, Card> = {
   "/": { file: "home.jpg", scene: "ouro-hx", kicker: "Ouro UI", title: "Feels right to the people using it. Obvious to the agents building it.", side: "right" },
   "/nautilus/": { file: "nautilus.jpg", scene: "ouroboros-skills", kicker: "A story in chapters", title: "The Nautilus", side: "right" },
-  "/ax/": { file: "ax.jpg", scene: "playwright-focus-proof", kicker: "Ouro AX", title: "A morning with an agent", side: "left" },
-  "/apple/": { file: "apple.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Same manners, now in Swift.", side: "left", width: 400 },
+  "/ax/": { file: "ax.jpg", scene: "playwright-focus-proof", kicker: "Ouro AX", title: "A morning with an agent", side: "right", width: 640, size: 46, crop: { from: 40, to: 1440 } },
+  "/apple/": { file: "apple.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Same manners, now in Swift.", side: "left", width: 330, size: 44 },
   "/apple/hx/": { file: "apple-hx.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro HX for Apple", side: "left", width: 400 },
   "/apple/feel/": { file: "apple-feel.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro Feel", side: "left", width: 400 },
   "/apple/ax/": { file: "apple-ax.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro AX for Apple", side: "left", width: 400 },
@@ -124,6 +131,8 @@ export const CARDS: Record<string, Card> = {
       verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" },
     }),
     side: "left",
+    width: 860,
+    size: 40,
   },
 };
 
@@ -134,7 +143,7 @@ export function cardFor(path: string): Card {
 
 /** What a card shows, for its alt text: its words, then its scene. */
 export function cardAlt(card: Card): string {
-  return `${card.kicker}: ${card.title} ${SCENES[card.scene].alt}`;
+  return `${card.kicker}: ${card.title}${/[.!?]$/.test(card.title) ? "" : "."} ${SCENES[card.scene].alt}`;
 }
 
 /** The srcsets a scene's picture offers: the phone crop, and the wide scene, each in AVIF and WebP. */

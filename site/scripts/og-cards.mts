@@ -30,16 +30,23 @@ try {
     // The sky's own colour along the side the words sit on: the halo the words carry, so they read on the clouds.
     const near = card.side === "left" ? sky[0] : sky[4];
     const halo = `0 0 2px color-mix(in oklab, ${near} 60%, white), 0 0 12px color-mix(in oklab, ${near} 70%, white), 0 1px 28px ${near}`;
-    const scene = dataUrl(`site/public/brand/storybook/og/${card.scene}.jpg`, "image/jpeg");
+    // The og crop, whole; or a stretch of the wide header under a band of the sky's own colours, meeting it on a hard edge.
+    let background = `url(${dataUrl(`site/public/brand/storybook/og/${card.scene}.jpg`, "image/jpeg")}) center / cover`;
+    if (card.crop) {
+      const scale = 1200 / (card.crop.to - card.crop.from);
+      const band = 630 - 576 * scale;
+      const header = dataUrl(`site/public/brand/storybook/headers/${card.scene}.webp`, "image/webp");
+      background = `url(${header}) ${-card.crop.from * scale}px ${band}px / ${1536 * scale}px auto no-repeat, linear-gradient(90deg, ${sky.join(", ")})`;
+    }
     await page.setContent(`<!doctype html>
 <html><head><style>
   @font-face { font-family: Geist; src: url(${font}) format("woff2"); font-weight: 100 900; }
   * { margin: 0; box-sizing: border-box; }
   body { width: 1200px; height: 630px; overflow: hidden; font-family: Geist, sans-serif; }
-  .card { position: relative; width: 1200px; height: 630px; background: url(${scene}) center / cover; }
+  .card { position: relative; width: 1200px; height: 630px; background: ${background}; }
   .words { position: absolute; top: 46px; ${card.side}: 60px; width: ${card.width ?? 560}px; text-align: ${card.side}; color: #2a1d38; text-shadow: ${halo}; }
   .kicker { font-size: 26px; font-weight: 600; letter-spacing: 0.01em; color: #4b3a59; }
-  .title { margin-top: 10px; font-size: ${card.title.length > 32 ? 48 : (card.width ?? 560) < 500 ? 54 : 60}px; line-height: 1.04; font-weight: 700; letter-spacing: -0.03em; text-wrap: balance; }
+  .title { margin-top: 10px; font-size: ${card.size ?? (card.title.length > 32 ? 48 : (card.width ?? 560) < 500 ? 54 : 60)}px; line-height: 1.04; font-weight: 700; letter-spacing: -0.03em; text-wrap: balance; }
   .site { position: absolute; bottom: 26px; ${card.side}: 60px; font-size: 22px; font-weight: 600; color: white; text-shadow: 0 1px 12px rgb(42 29 56 / 0.7); }
 </style></head><body>
   <div class="card">

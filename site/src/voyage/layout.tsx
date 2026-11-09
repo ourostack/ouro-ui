@@ -26,11 +26,7 @@ export function VoyageFooter(): JSX.Element {
         <div className="grid basis-full gap-6 pt-4 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <div className="grid gap-2">
             <p className="m-0">
-              Ouro UI: Ouro HX for people, Ouro AX for agents. Part of{" "}
-              <a href="https://ouroboros.bot/" className="text-foreground underline underline-offset-4">
-                Ouro
-              </a>
-              . MIT license.
+              Ouro UI: Ouro HX for people, Ouro AX for agents. Part of Ouro. MIT license.
             </p>
             <p className="m-0">
               {claim("The story is Jules Verne’s", { source: { spec: "https://www.gutenberg.org/ebooks/164" }, verify: { urlOk: "https://www.gutenberg.org/ebooks/164" } })}{" "}

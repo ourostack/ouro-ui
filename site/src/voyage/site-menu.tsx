@@ -209,6 +209,7 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
   });
   return (
     <>
+      <FamilyLinks />
       <ol ref={list} className="m-0 grid list-none gap-2 p-0">
         {SITE_SECTIONS.map((section, index) => {
           const here = section.href === current;
@@ -247,18 +248,20 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
           );
         })}
       </ol>
-      <FamilyLinks />
     </>
   );
 }
 
-/** The Ouro family's sites, as the family bar lists them, with this one marked: on a phone, the menu is where they are. */
+/**
+ * The Ouro family's sites, as the family bar lists them, with this one marked and the others marked as leaving the site:
+ * first in the menu below 640px, where the bar is hidden, and gone from 640px up, where the bar shows them.
+ */
 function FamilyLinks(): JSX.Element {
   const id = useId();
   return (
-    <div data-site-menu-family="" className="mt-4 grid gap-0.5 border-0 border-t border-solid border-border pt-3">
+    <div data-site-menu-family="" className="mb-4 grid gap-0.5 border-0 border-b border-solid border-border pb-3 sm:hidden">
       <h2 id={id} className="m-0 px-3 py-1 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase">
-        Sites
+        Ouro family
       </h2>
       <ul aria-labelledby={id} className="m-0 grid list-none gap-0.5 p-0">
         {FAMILY.map((site) => {
@@ -270,7 +273,14 @@ function FamilyLinks(): JSX.Element {
                 aria-current={here ? "true" : undefined}
                 className={cn(row, "py-2 text-[0.9375rem] leading-5 text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
               >
-                <span>{site.label}</span>
+                <span>
+                  {site.label}
+                  {!here && (
+                    <span aria-hidden="true" className="ms-1 text-muted-foreground">
+                      ↗
+                    </span>
+                  )}
+                </span>
                 {here && <Here />}
               </a>
             </li>
