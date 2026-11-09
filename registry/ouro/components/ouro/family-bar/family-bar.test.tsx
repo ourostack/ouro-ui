@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server } from "vitest/browser";
 import { FamilyBar, type FamilyBarProps, type FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -157,7 +157,12 @@ describe("FamilyBar", () => {
     row.scrollLeft += community.getBoundingClientRect().right - row.getBoundingClientRect().right + 8;
     const at = row.scrollLeft;
     expect(at).toBeGreaterThan(0);
-    await userEvent.click(community);
+    // A press at the link's place, not userEvent.click, which first scrolls the link into view by the row's padding.
+    const box = community.getBoundingClientRect();
+    const middle: [number, number] = [box.left + box.width / 2, box.top + box.height / 2];
+    await commands.drag({ from: middle, to: middle, steps: 0, durationMs: 0 });
+    // WebKit does not focus a link a click lands on.
+    if (server.browser === "chromium") expect(document.activeElement).toBe(community);
     expect(row.scrollLeft).toBe(at);
   });
 
