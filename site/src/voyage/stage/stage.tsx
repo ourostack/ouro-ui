@@ -338,7 +338,7 @@ const DepthReadout = memo(function DepthReadout({ depth }: { depth: number }): J
 
 const DepthControl = memo(function DepthControl({ depth, onChange, onCommitted }: { depth: number; onChange: (value: number) => void; onCommitted: (value: number) => void }): JSX.Element {
   return (
-    <div className="stage-depth" data-stage-control="depth">
+    <div className="stage-depth" data-stage-control="depth" style={{ "--p": depth / MAX_DEPTH } as CSSProperties}>
       <Slider
         label={STAGE_COPY.depth}
         hideLabel

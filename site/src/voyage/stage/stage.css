@@ -1302,6 +1302,22 @@
   /* The slider's thumb starts on the label's edge. */
   margin-inline: -0.625rem;
 }
+/*
+ * The depth thumb and fill are placed with a transform and a clip, not the slider's inline
+ * left and width, so a press moves them without the page laying out again (the slider sets
+ * those inline, hence the important marks).
+ */
+.stage-depth [data-ouro-slider-control] > div {
+  container-type: inline-size;
+}
+.stage-depth [data-ouro-slider-thumb] {
+  inset-inline-start: 0 !important;
+  transform: translateX(calc(var(--p) * 100cqw));
+}
+.stage-depth [data-ouro-slider-indicator] {
+  width: 100% !important;
+  clip-path: inset(0 calc((1 - var(--p)) * 100%) 0 0 round 9999px);
+}
 .stage-speed {
   grid-area: speed;
   align-self: center;
