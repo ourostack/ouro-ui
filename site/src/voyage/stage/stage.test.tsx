@@ -1,3 +1,4 @@
+import { createElement, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import proof, { install } from "virtual:site-proof";
@@ -9,6 +10,13 @@ import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt, partsOf } from "./art";
+
+// Every state the stage hands the picture, recorded by a stand-in that draws the real one.
+const shown = vi.hoisted(() => [] as unknown[]);
+vi.mock("./scene", async (importOriginal) => {
+  const real = await importOriginal<typeof import("./scene")>();
+  return { ...real, Scene: (props: ComponentProps<typeof real.Scene>) => (shown.push(props.state), createElement(real.Scene, props)) };
+});
 
 await loadPageCode("/");
 
@@ -202,6 +210,18 @@ describe("the stage's controls", () => {
     await userEvent.click(page.getByRole("switch", { name: STAGE_COPY.lights }));
     await expect.poll(() => scene().hasAttribute("data-lights")).toBe(true);
     expect(stepping()).toBe(false);
+  });
+
+  it("hands the picture a state of primitive values only, which is how a small step is told from another change", async () => {
+    await renderPage("/");
+    (page.getByRole("slider", { name: "Depth" }).element() as HTMLElement).focus();
+    await userEvent.keyboard("{ArrowRight}{End}");
+    await userEvent.click(page.getByRole("switch", { name: STAGE_COPY.lights }));
+    await expect.poll(() => scene().hasAttribute("data-lights")).toBe(true);
+    expect(shown.length).toBeGreaterThan(1);
+    for (const state of shown) {
+      for (const [key, value] of Object.entries(state as object)) expect(["string", "number", "boolean"], key).toContain(typeof value);
+    }
   });
 
   it("dives only once all three tanks are full, then surfaces and empties them", async () => {
