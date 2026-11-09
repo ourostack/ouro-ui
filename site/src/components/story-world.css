@@ -1,21 +1,21 @@
 /*
- * The storybook world (story-world.tsx): a dawn sky that carries on from the top of a scene, the
- * scene below it, and every edge melting into the page, so there is no frame or card around it. The
- * sky's colours are the scene's own (storybook.ts), the same in every theme; in dark mode the sky
- * deepens into the page and the scene dims a touch, so a dawn picture never glares out of a dark page.
+ * The storybook world (story-world.tsx): a dawn sky that carries on from the top of a scene, then the
+ * scene below it, full width and ending on its own hard edges, with no frame or card around it. The
+ * sky's colours are the scene's own (storybook.ts), the same in every theme, so the sky meets the
+ * picture's top edge in the picture's own colours. In dark mode the sky is the page's own dark, only
+ * tinted by the scene's colours, and the scene dims a touch, so a dawn picture never glares out of a
+ * dark page.
  */
 @layer components {
   .story-world {
     --story-ink: #2a1d38;
     --story-ink-soft: #4b3a59;
-    --story-feather: 3.5rem;
     --story-max-h: none;
     --story-sky-top: color-mix(in oklab, var(--background) 62%, transparent);
     position: relative;
     isolation: isolate;
   }
   .dark .story-world {
-    --story-feather: 5rem;
     --story-ink: var(--foreground);
     --story-ink-soft: color-mix(in oklab, var(--foreground) 86%, var(--background));
     --story-sky-top: var(--background);
@@ -24,7 +24,7 @@
   .story-world-sky {
     position: relative;
     z-index: 0;
-    padding-block: clamp(1.25rem, 3.6vw, 3rem) calc(var(--story-feather) + clamp(0.75rem, 2vw, 1.5rem));
+    padding-block: clamp(1.25rem, 3.6vw, 3rem) clamp(1rem, 2.4vw, 2rem);
     background:
       linear-gradient(to bottom, var(--story-sky-top), transparent 92%),
       linear-gradient(to right, var(--story-sky-1), var(--story-sky-2) 25%, var(--story-sky-3) 50%, var(--story-sky-4) 75%, var(--story-sky-5));
@@ -32,12 +32,7 @@
   }
   .dark .story-world-sky {
     background:
-      linear-gradient(
-        to bottom,
-        var(--story-sky-top),
-        color-mix(in oklab, var(--background) 84%, transparent) calc(100% - var(--story-feather) - 0.75rem),
-        var(--story-dusk, color-mix(in oklab, var(--background) 16%, transparent))
-      ),
+      linear-gradient(to bottom, var(--story-sky-top), color-mix(in oklab, var(--background) 84%, transparent)),
       linear-gradient(to right, var(--story-sky-1), var(--story-sky-2) 25%, var(--story-sky-3) 50%, var(--story-sky-4) 75%, var(--story-sky-5));
   }
   /* Words in the sky are inked for it, whatever the theme's own text colour. */
@@ -77,7 +72,6 @@
   /* One line in the sky: what is going on in the scene below, told as a story. */
   .story-world-line {
     margin: 0;
-    max-width: 46ch;
     font-family: var(--font-heading);
     font-size: clamp(1.0625rem, 1.6vw, 1.375rem);
     line-height: 1.35;
@@ -91,9 +85,6 @@
     z-index: 1;
     overflow: clip;
   }
-  .story-world-sky + .story-world-view {
-    margin-top: calc(-1 * var(--story-feather));
-  }
   .story-world-picture {
     display: block;
   }
@@ -105,27 +96,22 @@
     object-fit: cover;
     object-position: 50% 42%;
     user-select: none;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
   }
   .dark .story-world-img {
     filter: brightness(0.86) saturate(0.95);
   }
   /*
    * A docs page's scene at night is dusk (`.story-world-still`, components/docs-shell.tsx): dimmer and cooler, its sun
-   * low and its sky's colours deep, so it sits behind a dark page's words instead of glowing out of it. The home page
-   * keeps its brighter dawn: it is the arrival, read once, not a page read every day.
+   * low, so it sits behind a dark page's words instead of glowing out of it. The home page keeps its brighter dawn: it
+   * is the arrival, read once, not a page read every day.
    */
-  .dark .story-world-still {
-    --story-dusk: color-mix(in oklab, var(--background) 52%, transparent);
-  }
   .dark .story-world-still .story-world-img {
     filter: brightness(0.78) saturate(0.84);
   }
   .dark .story-world-still .story-world-sun {
     opacity: 0.12;
   }
-  /* The dusk itself: a blue-violet evening laid over the dawn, feathered like the picture so it has no edge. */
+  /* The dusk itself: a blue-violet evening laid over the dawn, over exactly the picture's box (the view clips it). */
   .dark .story-world-still .story-world-view::after {
     content: "";
     position: absolute;
@@ -134,18 +120,13 @@
     background: linear-gradient(to bottom, rgb(58 62 128), rgb(40 44 96));
     mix-blend-mode: multiply;
     opacity: 0.5;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
   }
-  /* The sunrise, glowing where the scene's sun is. */
+  /* The sunrise, glowing where the scene's sun is, over exactly the picture's box (the view clips it). */
   .story-world-sun {
     position: absolute;
     inset: 0;
     pointer-events: none;
     opacity: 0.55;
-    /* Feathered like the picture, so its glow never draws a line across the sky above it. */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--story-feather), #000 calc(100% - var(--story-feather)), transparent 100%);
     background: radial-gradient(circle at var(--story-sun-x) var(--story-sun-y), rgb(255 238 196 / 0.75), rgb(255 214 150 / 0.25) 9vw, transparent 18vw);
     mix-blend-mode: soft-light;
   }
@@ -156,9 +137,6 @@
    */
   .story-world-short {
     --story-max-h: min(max(min(48vh, 34rem), 26vw), 62vh);
-  }
-  .story-world-band {
-    --story-feather: 4.5rem;
   }
   /*
    * A docs page's arrival (components/docs-shell.tsx): its title in a shorter sky, over the column it names, then a
@@ -196,9 +174,6 @@
   }
 
   @media (max-width: 40rem) {
-    .story-world {
-      --story-feather: 2rem;
-    }
     .story-world-short,
     .story-world-docs {
       --story-max-h: none;
