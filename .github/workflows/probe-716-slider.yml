@@ -1,0 +1,45 @@
+name: Probe 716 slider
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths: [".github/workflows/probe-716-slider.yml"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [main, slider]
+        runner: [1, 2, 3, 4, 5, 6]
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Put the stage files of main back for the main variant
+        if: matrix.variant == 'main'
+        run: git checkout origin/main -- site/src/voyage/stage/stage.tsx site/src/voyage/stage/stage.css
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm site:build
+      - name: Loop the stage latency spec beside two busy neighbours
+        run: |
+          grep -c "p)" site/src/voyage/stage/stage.css >/dev/null; grep -n "stage-depth \[data" site/src/voyage/stage/stage.css | head -2 || true
+          (while :; do :; done) &
+          (while :; do :; done) &
+          for i in 1 2 3 4; do
+            echo "=== pass $i variant ${{ matrix.variant }}"
+            pnpm exec playwright test --config playwright.latency.config.ts --project=site-latency stage.latency 2>&1 | grep -E "^latency |latency-slow|passed|failed" || true
+          done
