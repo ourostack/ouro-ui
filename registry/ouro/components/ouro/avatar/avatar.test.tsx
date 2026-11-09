@@ -117,6 +117,31 @@ describe("Avatar", () => {
     expect(getComputedStyle(img).objectFit).toBe("cover");
   });
 
+  it("draws a picture already in the cache at full strength on its first frame, with no fade", async () => {
+    const cached = new Image();
+    await new Promise((resolve) => {
+      cached.onload = resolve;
+      cached.src = photo;
+    });
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    // Read as the picture goes into the page, before the browser paints it.
+    const inserted = new Promise<{ opacity: string; duration: string; animations: number }>((resolve) => {
+      const watch = new MutationObserver(() => {
+        const img = host.querySelector("img");
+        if (!img) return;
+        watch.disconnect();
+        resolve({ opacity: getComputedStyle(img).opacity, duration: getComputedStyle(img).transitionDuration, animations: img.getAnimations().length });
+      });
+      watch.observe(host, { childList: true, subtree: true });
+    });
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Avatar name="Ana Lind" src={photo} />));
+    expect(await inserted).toEqual({ opacity: "1", duration: "0s", animations: 0 });
+  });
+
   it("falls back to initials when the image fails", async () => {
     const { avatar } = await render(<Avatar name="Ana Lind" src={broken} />);
     await expect.poll(() => avatar.getAttribute("data-image")).toBe("error");

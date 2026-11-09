@@ -337,8 +337,9 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  * from the name. `name` is required: screen readers hear it, and the initials come from it.
  * `presence` adds a status dot that says what it shows (`presenceLabel`), and
  * `shape="square"` marks a team, a channel, an app or a bot, and `shape="hexagon"` an AI
- * agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in
- * once it loads.
+ * agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture replaces
+ * them at full strength the moment it loads, with no fade: a picture already in the browser's
+ * cache is there on the avatar's first frame.
  *
  * The initials are drawn, not written: CSS generated content from a data attribute, which
  * paints exactly as text did but is no text in the page. So a link or button that wraps the
@@ -350,6 +351,7 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  *
  * Use `AvatarGroup` instead to stack several, and `Badge` for a status label that isn't a person.
  *
+ * @claim "with no fade" registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > draws a picture already in the cache at full strength on its first frame, with no fade)
  * @group Display
  * @see https://ui.ouroboros.bot/docs/avatar
  *
@@ -460,7 +462,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
           src={src}
           alt=""
           onLoadingStatusChange={setImage}
-          className="size-full rounded-[inherit] object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
+          className="size-full rounded-[inherit] object-cover"
         />
       )}
       <BaseAvatar.Fallback
