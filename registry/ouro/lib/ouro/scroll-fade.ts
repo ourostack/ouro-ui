@@ -72,6 +72,7 @@ export function useScrollFade(ref: RefObject<HTMLElement | null>): void {
     () => {
       const element = ref.current!;
       // The script fades this box from here on: scrollFadeStaticClass stands down.
+      // Stryker disable next-line StringLiteral: the attribute's presence is what the class reads, not its value.
       element.setAttribute("data-ouro-scroll-fade-js", "");
       const update = () => {
         const style = getComputedStyle(element);
