@@ -3,7 +3,7 @@ import { pageKind } from "./paths";
 import { earlyInputScript } from "./early-input";
 import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
-import { CARDS, cardAlt, STORYBOOK } from "./storybook";
+import { cardAlt, cardFor, STORYBOOK } from "./storybook";
 
 /** Where Pages serves the site. */
 export const SITE = "https://ui.ouroboros.bot";
@@ -21,11 +21,10 @@ export function headTags(route: Route, canonical: boolean): string[] {
   canonical = canonical && !route.noindex;
   const title = escape(route.title);
   const description = escape(route.description);
-  // A page with a card of its own shows it; the component pages keep og.png, the site-wide card, until
-  // site.test.tsx's head-tag test moves with them to the docs card (after the phone-menu pull request, #648).
-  const card = CARDS[route.path];
-  const image = card ? `${SITE}/og/${card.file}` : `${SITE}/og.png`;
-  const alt = card ? escape(cardAlt(card)) : "Ouro UI: Ouro HX for the screens people use, Ouro AX for the tools agents use.";
+  // A page with a card of its own shows it; every other page (a component, a guide, the 404) shows the docs card.
+  const card = cardFor(route.path);
+  const image = `${SITE}/og/${card.file}`;
+  const alt = escape(cardAlt(card));
   return [
     // First, so the stored theme and dark mode are on <html> before anything paints.
     `<script>${prepaintScript}</script>`,

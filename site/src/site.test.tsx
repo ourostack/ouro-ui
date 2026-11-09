@@ -471,29 +471,38 @@ it("the Updating page's note has the tag filled in and no raw-file hint", () => 
 });
 
 describe("head tags", () => {
-  it("give every page Open Graph and Twitter tags with the 1200x630 og.png", async () => {
+  it("give a component page Open Graph and Twitter tags with the docs card, a 1200x630 storybook scene", async () => {
     const route = { path: "/docs/sheet/", title: "Sheet · Ouro HX", description: 'Install "sheet" & go' };
     const tags = headTags(route, true);
+    const alt = "Ouro HX docs: Every component, with a live demo to poke. Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.";
     for (const tag of [
       '<meta property="og:title" content="Sheet · Ouro HX" />',
       '<meta property="og:description" content="Install &quot;sheet&quot; &amp; go" />',
       '<meta property="og:url" content="https://ui.ouroboros.bot/docs/sheet/" />',
-      '<meta property="og:image" content="https://ui.ouroboros.bot/og.png" />',
+      '<meta property="og:image" content="https://ui.ouroboros.bot/og/docs.jpg" />',
       '<meta property="og:image:width" content="1200" />',
       '<meta property="og:image:height" content="630" />',
       '<meta name="twitter:card" content="summary_large_image" />',
-      '<meta name="twitter:image" content="https://ui.ouroboros.bot/og.png" />',
+      '<meta name="twitter:image" content="https://ui.ouroboros.bot/og/docs.jpg" />',
       '<meta property="og:site_name" content="Ouro UI" />',
-      '<meta property="og:image:alt" content="Ouro UI: Ouro HX for the screens people use, Ouro AX for the tools agents use." />',
-      '<meta name="twitter:image:alt" content="Ouro UI: Ouro HX for the screens people use, Ouro AX for the tools agents use." />',
+      `<meta property="og:image:alt" content="${alt}" />`,
+      `<meta name="twitter:image:alt" content="${alt}" />`,
     ]) {
       expect(tags).toContain(tag);
     }
     expect(headTags(route, false).some((tag) => tag.includes("og:url") || tag.includes("canonical"))).toBe(false);
     const image = new Image();
-    image.src = href("/og.png");
+    image.src = href("/og/docs.jpg");
     await image.decode();
     expect([image.naturalWidth, image.naturalHeight]).toEqual([1200, 630]);
+  });
+
+  it("give every route a storybook card under og/, never the old landing-page screenshot", () => {
+    for (const route of routes) {
+      const image = headTags(route, true).find((tag) => tag.startsWith('<meta property="og:image" '));
+      expect(image, route.path).toMatch(/content="https:\/\/ui\.ouroboros\.bot\/og\/[a-z-]+\.jpg"/);
+      expect(headTags(route, true), route.path).toContain(image!.replace('<meta property="og:image"', '<meta name="twitter:image"'));
+    }
   });
 
   it("pin each docs route's install command to the newest release", () => {
