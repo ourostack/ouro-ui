@@ -126,3 +126,21 @@
     background-position: -100% 0;
   }
 }
+
+@keyframes ouro-scroll-fade-left {
+  from {
+    mask-position: -2rem 0, 0 0;
+  }
+  to {
+    mask-position: 0 0, 0 0;
+  }
+}
+
+@keyframes ouro-scroll-fade-right {
+  from {
+    mask-size: calc(100% + 2rem) 100%, calc(100% + 2rem) 100%;
+  }
+  to {
+    mask-size: calc(100% + 2rem) 100%, 100% 100%;
+  }
+}

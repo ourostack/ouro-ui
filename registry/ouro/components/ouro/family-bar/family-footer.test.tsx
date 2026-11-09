@@ -104,7 +104,9 @@ describe("FamilyFooter", () => {
     const columns = new Set(boxes.map((box) => Math.round(box.left)));
     expect(columns.size).toBeGreaterThan(1);
     expect(columns.size).toBeLessThan(boxes.length);
-    expect(new Set(boxes.map((box) => Math.round(box.width))).size).toBe(1);
+    // The current site's bar stays under its name, not across its column.
+    const docs = footer.querySelector('[aria-current="true"]')!;
+    expect(docs.getBoundingClientRect().width).toBeLessThan(boxes[1]!.left - boxes[0]!.left);
     for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
   });
 

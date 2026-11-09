@@ -59,7 +59,7 @@ const familyScrollerClass =
  */
 const familyFooterLinkClass =
   "underline decoration-border decoration-1 underline-offset-4 pointer-fine:hover:decoration-current aria-[current=true]:no-underline " +
-  "max-sm:min-h-11 max-sm:pointer-fine:min-h-11 max-sm:w-full max-sm:justify-start max-sm:whitespace-normal max-sm:text-start";
+  "max-sm:min-h-11 max-sm:pointer-fine:min-h-11 max-sm:max-w-full max-sm:justify-start max-sm:whitespace-normal max-sm:text-start";
 
 /**
  * The FamilyFooter's list of links: even columns in a narrow footer, one row that wraps in a wide one.
