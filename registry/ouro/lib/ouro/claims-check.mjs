@@ -129,8 +129,8 @@ const HOW_TO = {
 
 /** Characters that draw nothing: a way to split a word the patterns look for. */
 const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
-/** Fillers that draw a blank may sit inside a word or between words, so text is read with them removed and with them as spaces. */
-const FILLER = /[\u115F\u1160\u3164\uFFA0\u2800\u200B]/g;
+/** A hidden character may sit inside a word or stand between words, so text is read with them removed and with them as spaces. */
+const FILLER = INVISIBLE;
 
 /** Whether text has one of the claim words (not a number): a quotation with one is read, not masked. */
 const hasClaimWord = (text) => [text, text.replace(FILLER, " ")].some((view) => WORDS.some(([, pattern]) => pattern.test(view.replace(INVISIBLE, ""))));
