@@ -28,9 +28,16 @@ async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   // Where the stage is, it has judged the screen first, so a slow screen's still water is in place before the presses
-  // (the press before that has its own test below).
-  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
-  if (await page.locator("[data-stage]").count()) await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  // (the press before that has its own test below). It judges only while it is in view, and on a phone it starts at the
+  // fold, where a few pixels decide whether it shows (#731): it is brought into view for that, and the page goes back
+  // to its top. Its verdict takes a beat and a second of frames, and on a starved screen two tries of two seconds.
+  const stage = page.locator("[data-stage]");
+  if (await stage.count()) {
+    await stage.scrollIntoViewIfNeeded();
+    // real clock: the stage judges the screen on its real frames, a beat and then a second of them, or twice two seconds.
+    await expect(stage).toHaveAttribute("data-paced", "", { timeout: 10_000 });
+    await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+  }
 }
 
 /** The menu's sheet: the dialog that holds the site's navigation. */

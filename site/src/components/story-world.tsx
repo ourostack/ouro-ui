@@ -29,7 +29,7 @@ function ScenePicture({ scene, priority, sizes, decorative }: { scene: SceneName
         className="story-world-img"
         draggable={false}
         // The canonical brand files, served byte for byte: the widest published is 1536px (768px for the phone crop),
-        // so on a dense screen a painted scene is drawn up to twice its pixels, its edges already feathered soft.
+        // so on a dense screen a painted scene is drawn up to twice its pixels, which its soft painted style carries.
         data-ouro-allow="blurry-image"
         data-ouro-allow-why="The storybook brand's canonical scene files, served unchanged: the widest published is 1536px, 768px for the phone crop."
         {...(priority ? { fetchPriority: "high" as const } : { loading: "lazy" as const, decoding: "async" as const })}
@@ -40,8 +40,8 @@ function ScenePicture({ scene, priority, sizes, decorative }: { scene: SceneName
 
 /**
  * A page's way into the storybook world: an open dawn sky that carries on from the top of the scene,
- * with the page's first words in it, then the scene, its edges melting into the page. No frame and no
- * card: the picture is the place, and the page continues below it.
+ * with the page's first words in it, then the scene, full width, ending on its own hard edges. No frame
+ * and no card: the picture is the place, and the page continues below it.
  *
  * - `arrival`: the first thing on the page, full width, fetched first (the page's largest paint).
  * - `band`: further down a page, full width, fetched as it nears the screen.
