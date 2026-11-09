@@ -382,12 +382,14 @@ describe("findImageFades", () => {
       <div class="wash" style="${box}"></div>
       <div class="outer"><div class="inner"><img src="${url}" alt="inner" style="${box}"></div></div>
       <div style="position:relative;width:200px"><img id="under" src="${url}" alt="under" style="${box}"><div class="shade" style="position:absolute;inset:0 0 50px 0;background:linear-gradient(to top,rgba(255,255,255,0),#fff)"></div></div>
+      <div style="position:relative;width:200px"><img id="vignette" src="${url}" alt="vignette" style="${box}"><div class="edge" style="position:absolute;inset:0;background:radial-gradient(circle,transparent 40%,#000)"></div></div>
       <div style="position:relative;width:200px"><div class="late" style="position:absolute;inset:0"></div><img src="${url}" alt="after" style="${box};position:relative"><div class="cover" style="position:absolute;inset:0;background:linear-gradient(transparent,#000)"></div></div>`);
     expect(findImageFades().map(({ element, detail }) => [element, detail])).toEqual([
       ["img", "100% covered by the gradient to transparent of div.scrim::after"],
       ["div.wash", "40% covered by the gradient to transparent of div.wash::before"],
       ["img", "100% covered by the gradient to transparent of div.inner::after"],
       ["img#under", "50% covered by the gradient to transparent of div.shade"],
+      ["img#vignette", "100% covered by the gradient to transparent of div.edge"],
       ["img", "100% covered by the gradient to transparent of div.cover"],
     ]);
   });
@@ -417,6 +419,8 @@ describe("findImageFades", () => {
       <div style="position:absolute;top:0;left:400px;background:linear-gradient(transparent,#fff)"><img src="${url}" alt="inside an overlay" style="${box}"></div>
       <div style="position:relative;width:200px"><img src="${url}" alt="overlay allowed" style="${box}"><div data-image-fade-ok="a caption band over a cropped picture" style="position:absolute;inset:0;background:linear-gradient(transparent,#000)"></div></div>
       <div style="position:relative;width:200px"><img src="${url}" alt="opaque" style="${box}"><div style="position:absolute;inset:0;background:linear-gradient(#000,#fff)"></div></div>
+      <div style="position:relative;width:200px"><img src="${url}" alt="glow" style="${box}"><div style="position:absolute;inset:0;background:radial-gradient(circle,rgb(255 238 196 / 0.75),transparent 70%),conic-gradient(from 90deg,rgba(255,255,255,0.4),transparent)"></div></div>
+      <div style="position:relative;width:200px"><img src="${url}" alt="clear" style="${box}"><div style="position:absolute;inset:0;background:linear-gradient(transparent,rgba(0,0,0,0))"></div></div>
       <img src="${url}" alt="hidden" hidden style="${box};mask-image:linear-gradient(#000,transparent)">
       <img src="${url}" alt="invisible" style="${box};visibility:hidden;mask-image:linear-gradient(#000,transparent)">
       <img src="${url}" alt="empty" style="width:0;height:0;mask-image:linear-gradient(#000,transparent)">

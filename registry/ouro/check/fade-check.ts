@@ -6,10 +6,11 @@ import type { PageIssue } from "./size-check.ts";
 // to it at every size:
 //
 //   image-fade  a picture that fades into the page: an <img>, an SVG <image> or an element with a url() background
-//               whose own box or a box around it has a gradient mask, or that a gradient reaching transparent covers,
-//               a tenth of it or more: an absolutely positioned element over it, or an absolutely positioned
-//               ::before or ::after of the picture or of a box around it. A picture ends on a hard edge, or sits on a
-//               solid band.
+//               whose own box or a box around it has a gradient mask, or that a gradient between transparent and a
+//               colour covers, a tenth of it or more: an absolutely positioned element over it, or an absolutely
+//               positioned ::before or ::after of the picture or of a box around it. A radial or conic gradient counts
+//               only when it is opaque at its outer edge, as a vignette is: a glow that fades out adds light, and stays.
+//               A picture ends on a hard edge, or sits on a solid band.
 //
 // A picture opts out with data-ouro-allow="image-fade" and data-ouro-allow-why="<reason>", or the plain alias
 // data-image-fade-ok="<reason>", on itself or a box around it, and an overlay does on itself; an allow without a reason
@@ -44,9 +45,18 @@ function findImageFades(): PageIssue[] {
     }
     return true;
   };
-  // A gradient with a fully transparent stop, however the browser writes the colour: `transparent`, rgba(…, 0) or a
-  // colour function's `/ 0`.
-  const fadesOut = (image: string) => /gradient\(/.test(image) && /transparent|rgba\([^()]*,\s*0(?:\.0*)?\s*\)|\/\s*0(?:\.0*)?%?\s*\)/.test(image);
+  // Whether a background fades what is under it into the page: a gradient between a fully transparent stop and one
+  // that is not, however the browser writes the colour (`transparent`, rgba(…, 0) or a colour function's `/ 0`). A
+  // linear gradient does at whichever end is opaque; a radial or conic one only when its outer stop is opaque, as a
+  // vignette is, and not when it fades out, as a glow of light does.
+  const fadesOut = (image: string) => {
+    for (const [, kind, inner] of image.matchAll(/(linear|radial|conic)-gradient\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)/g)) {
+      const stops = inner!.split(/,(?![^()]*\))/).filter((part) => /transparent|rgba?\(|hsla?\(|oklch\(|oklab\(|lab\(|lch\(|color\(|#[\da-f]/i.test(part));
+      const clear = stops.map((stop) => /transparent|rgba\([^()]*,\s*0(?:\.0*)?\s*\)|\/\s*0(?:\.0*)?%?\s*\)/.test(stop));
+      if (clear.includes(true) && clear.includes(false) && (kind === "linear" || !clear.at(-1))) return true;
+    }
+    return false;
+  };
   // The fraction of `picture`'s area that `box` covers.
   const covered = (picture: DOMRect, box: { left: number; top: number; width: number; height: number }) => {
     const x = Math.max(0, Math.min(picture.right, box.left + box.width) - Math.max(picture.left, box.left));
