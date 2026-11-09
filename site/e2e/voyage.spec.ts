@@ -220,10 +220,10 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await open(page);
   const trigger = page.locator("[data-site-theme-trigger]");
   await page.locator("body").focus();
-  // First the family bar's sites, in the family's order (its mark is for a pointer, out of the tab order), then the site's own bar.
+  // First the family bar's sites, in the family's order, then the site's own bar.
   for (const site of family.links) {
     await pressTab(page);
-    await expect(page.getByRole("navigation", { name: "Ouro sites" }).getByRole("link", { name: site.label, exact: true })).toBeFocused();
+    await expect(page.getByRole("navigation", { name: "Sites", exact: true }).getByRole("link", { name: site.label, exact: true })).toBeFocused();
   }
   for (const [role, name] of [
     ["link", "Ouro UI"],
@@ -232,7 +232,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
     ["link", "Docs"],
     ["link", "Ouro HX"],
     ["link", "Ouro AX"],
-    ["link", "GitHub"],
+    ["link", "Ouro UI on GitHub"],
   ] as const) {
     await pressTab(page);
     await expect(page.getByRole("banner").getByRole(role, { name, exact: true })).toBeFocused();

@@ -24,11 +24,3 @@ export function HxLogo({ size, className }: { size: number; className?: string }
     />
   );
 }
-
-/**
- * Ouro's mark, the one-colour silhouette (site/public/brand/storybook/icons/ouro.svg, a byte-for-byte copy of the
- * storybook brand's), for a tiny placement: the family bar's way to Ouro's home. Decorative, beside a link that names Ouro.
- */
-export function OuroMark({ size, className }: { size: number; className?: string }): JSX.Element {
-  return <img src={href("/brand/storybook/icons/ouro.svg")} width={size} height={size} alt="" decoding="async" draggable={false} className={cn("shrink-0 select-none", className)} />;
-}

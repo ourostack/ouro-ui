@@ -20,14 +20,14 @@ const navLink =
 /** The docs' footer: the Ouro family's sites (FamilyFooter, this one marked), then the site's own words and links. */
 export function SiteFooter(): JSX.Element {
   const links = [
-    { label: "GitHub", url: GITHUB },
+    { label: "Ouro UI on GitHub", url: GITHUB },
     { label: "Storybook", url: STORYBOOK },
     { label: "Docs", url: href("/docs/") },
     { label: "llms.txt", url: "https://ui.ouroboros.bot/llms.txt" },
   ];
   return (
     <footer className="mt-24">
-      <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} label="Ouro family" className={`pt-6 pb-10 ${GUTTERS.docs}`}>
+      <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} className={`pt-6 pb-10 ${GUTTERS.docs}`}>
         <div className="flex basis-full flex-col gap-6 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground">
             <span>

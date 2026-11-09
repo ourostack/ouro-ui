@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { filmTops, pressTab } from "../../registry/ouro/e2e/ouro/story";
+import family from "../src/family.json" with { type: "json" };
 import { APPLE_PATHS } from "../src/paths";
 import { heightsUntilStill, quietFrames } from "./frames";
 
@@ -10,10 +11,11 @@ import { heightsUntilStill, quietFrames } from "./frames";
 const PHONE = { width: 390, height: 844 };
 
 /**
- * Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one: the family
- * bar's row of sites over the header ("Ouro sites"), the page's own, then the family footer's ("Ouro family") and the site's.
+ * Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one: the page's
+ * own, then the family footer's ("All sites") and the site's. The family bar ("Sites") is hidden on a phone, where the
+ * menu lists the family's sites.
  */
-const framed = (...own: string[]) => ["Ouro sites", ...own, "Ouro family", "Footer"];
+const framed = (...own: string[]) => [...own, "All sites", "Footer"];
 const PAGES: ReadonlyArray<{ path: string; navs: string[] }> = [
   { path: "./", navs: framed() },
   { path: "nautilus/", navs: framed("Chapters") },
@@ -45,7 +47,7 @@ async function open(page: Page, path: string): Promise<void> {
 }
 
 /** The menu's sheet: the dialog that holds the site's navigation. */
-const sheet = (page: Page) => page.locator("[role='dialog']", { has: page.getByRole("navigation", { name: "Site" }) });
+const sheet = (page: Page) => page.locator("[role='dialog']", { has: page.getByRole("navigation", { name: "Primary" }) });
 const menuButton = (page: Page) => page.getByRole("banner").getByRole("button", { name: "Menu", exact: true });
 
 /**
@@ -130,6 +132,10 @@ for (const { path, navs } of PAGES) {
     // The page you are on is marked, once.
     await expect(sheet(page).locator('[aria-current="page"]')).toHaveCount(1);
     await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
+    // The family's sites, under their heading in the menu rather than a landmark of their own, with this one marked.
+    await expect(sheet(page).getByRole("heading", { name: "Sites", exact: true })).toHaveCount(1);
+    await expect(sheet(page).getByRole("list", { name: "Sites", exact: true }).getByRole("link")).toHaveText(family.links.map((site) => new RegExp(`^${site.label}`)));
+    await expect(sheet(page).locator('[aria-current="true"]')).toHaveAttribute("href", family.links.find((site) => site.id === "ouro-ui")!.href);
     // Nothing sticks out of the window sideways.
     const box = (await sheet(page).boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(0);
@@ -192,16 +198,16 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await search.fill("segmented");
   await expect(sheet(page).getByRole("link", { name: "SegmentedControl", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Toggle", exact: true })).toHaveCount(0);
-  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "GitHub"], ["overview", "Ouro HX"], ["ouro ax guide", "Ouro AX guide"]] as const) {
+  for (const [query, name] of [["install", "Installing"], ["shadcn", "Switching from shadcn"], ["nautilus", "The Nautilus"], ["github", "Ouro UI on GitHub"], ["overview", "Ouro HX"], ["ouro ax guide", "Ouro AX guide"]] as const) {
     await search.fill(query);
     await expect(sheet(page).getByRole("link", { name, exact: true })).toBeVisible();
   }
   // A link off the site keeps its own address, and its address is not a name to find it by.
   await search.fill("github");
-  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toHaveAttribute("href", "https://github.com/ourostack/ouro-ui");
-  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toContainText("↗");
+  await expect(sheet(page).getByRole("link", { name: "Ouro UI on GitHub", exact: true })).toHaveAttribute("href", "https://github.com/ourostack/ouro-ui");
+  await expect(sheet(page).getByRole("link", { name: "Ouro UI on GitHub", exact: true })).toContainText("↗");
   await search.fill("ourostack");
-  await expect(sheet(page).getByRole("link", { name: "GitHub", exact: true })).toHaveCount(0);
+  await expect(sheet(page).getByRole("link", { name: "Ouro UI on GitHub", exact: true })).toHaveCount(0);
   // The guide and the section it shares a name with are told apart, as in the menu.
   await search.fill("ouro ax");
   await expect(sheet(page).getByRole("link", { name: "Ouro AX", exact: true })).toHaveCount(1);

@@ -18,7 +18,7 @@ import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-cont
 import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
-import { HxLogo, OuroMark } from "../components/brand";
+import { HxLogo } from "../components/brand";
 import { FAMILY, FAMILY_CURRENT } from "../family";
 import { GUTTERS } from "../gutters";
 import { href } from "../paths";
@@ -234,25 +234,11 @@ export function VoyageHeader({
       <FamilyBar
         links={FAMILY}
         current={FAMILY_CURRENT}
-        // Named apart from the site's own bar ("Site") and from a docs page's demo of the component ("Sites").
-        label="Ouro sites"
-        className={GUTTERS[gutters]}
-        brand={
-          // The family's home, by its mark: the bar's first link says "Ouro" and goes there too, so the mark is for a
-          // pointer only, out of the tab order and unheard.
-          <a
-            href={FAMILY[0]!.href}
-            tabIndex={-1}
-            aria-hidden="true"
-            data-site-family-mark=""
-            className="-ms-1 inline-flex size-9 items-center justify-center rounded-md pointer-coarse:size-11"
-          >
-            <OuroMark size={20} />
-          </a>
-        }
+        // Not on a phone: there the site's menu lists the family's sites, under the site's own.
+        className={`max-sm:hidden ${GUTTERS[gutters]}`}
       />
       <Navbar
-        label="Site"
+        label="Primary"
         // Sticky, but on the docs only on a phone: from 640px the docs sidebar sticks to the top itself, and would sit under it.
         className={`${gutters === "voyage" ? "sticky top-0 z-40" : "relative z-40 max-sm:sticky max-sm:top-0"} ${GUTTERS[gutters]}`}
         brand={

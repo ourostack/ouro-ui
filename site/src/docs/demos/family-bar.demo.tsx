@@ -1,7 +1,8 @@
 import { type JSX } from "react";
 import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 
-// The live demo at the top of docs/family-bar/: the component as an app would use it, with its props, nothing else.
+// The live demo at the top of docs/family-bar/: the component as an app would use it, with its props, nothing else. It is
+// named for Lantern, apart from this site's own family bar above it, which keeps the default name.
 
 const sites = [
   { id: "home", label: "Lantern", href: "#lantern" },
@@ -14,5 +15,5 @@ const sites = [
 ];
 
 export default function FamilyBarDemo(): JSX.Element {
-  return <FamilyBar links={sites} current="docs" />;
+  return <FamilyBar links={sites} current="docs" label="Lantern's sites" />;
 }
