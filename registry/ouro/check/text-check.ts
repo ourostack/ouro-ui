@@ -7,8 +7,9 @@ import type { PageIssue } from "./size-check.ts";
 // and aria-label. Code (code, pre, kbd, samp, var), scripts, editable text and anything not drawn are left out.
 //
 //   leaked-value   a value the program meant for itself: [object Object], an unfilled template ({{name}}, ${name}), a
-//                  GUID or a hex id of 24 characters or more (one in a monospace font, or a hash of 40 or 64 after its
-//                  label, "commit", "SHA-256", "digest", "build", "@", or in a link's text, is shown on purpose), a translation key
+//                  GUID or a hex id of 24 characters or more (one in a monospace font, or a GUID or a hash of 40 or 64
+//                  after its label, "Tenant", "ID", "commit", "SHA-256", "digest", "@", or in a link's text, is shown on
+//                  purpose), a translation key
 //                  (settings.profile.saveButton), lorem ipsum, a developer's note (TODO:, TODO(, FIXME, XXX:; a bare
 //                  TODO is a board's column), console.log, NaN, and undefined or null where a value goes: alone, after a
 //                  label ("Owner: null"), twice ("undefined undefined"), after a greeting's comma ("Hello, undefined"),
@@ -88,13 +89,13 @@ function findTextIssues(): PageIssue[] {
     for (const name of ["title", "aria-label"]) sources.push({ el, text: el.getAttribute(name) ?? "", where: ` in its ${name}` });
   }
   const skip = 'code, pre, kbd, samp, var, script, style, noscript, template, textarea, [contenteditable]:not([contenteditable="false"])';
-  // An id shown on purpose: in a monospace font, as data is; or a hash of 40 or 64 characters in a link's text, or after
-  // its label in the same text or the text just before it.
-  const label = /(?:\b(?:commit|sha(?:-?(?:1|256|512))?|hash|digest|checksum|build|revision|rev)\b:?|@) ?$/i;
+  // An id shown on purpose: in a monospace font, as data is; or a GUID or a hash of 40 or 64 characters in a link's text,
+  // or after its label ("Tenant", "SHA-256") in the same text or the text just before it.
+  const label = /(?:\b(?:commit|sha(?:-?(?:1|256|512))?|hash|digest|checksum|build|revision|rev|tenant|id|guid|uuid)\b:?|@) ?$/i;
   const onPurpose = (index: number, words: string, el: Element) => {
     if (/mono|courier|consolas|menlo/i.test(getComputedStyle(el).fontFamily)) return true;
-    const hash = /\b(?:[0-9a-f]{40}|[0-9a-f]{64})\b/i.exec(words);
-    if (!hash || words.match(/\b[0-9a-f]{24,}\b/gi)!.length > 1) return false;
+    const hash = /\b(?:[0-9a-f]{40}|[0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i.exec(words);
+    if (!hash || words.match(/\b(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,})\b/gi)!.length > 1) return false;
     const before = words.slice(0, hash.index);
     const previous = sources.slice(0, index).reduce((last, source) => (source.where || !source.text.trim() ? last : source.text.trim()), "");
     return Boolean(el.closest("a")) || label.test(before) || (!before && label.test(previous));

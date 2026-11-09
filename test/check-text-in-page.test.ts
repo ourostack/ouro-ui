@@ -127,6 +127,7 @@ describe("findTextIssues: leaked-value", () => {
       <p>sha: ${H64}</p>
       <p>Exact prefix · SHA-256 ${H64}</p>
       <p>digest ${H}</p>
+      <p>Tenant 3f2504e0-4f89-11d3-9a0c-0305e82c3301 (made up) · prepared Nov 3</p>
       <p>Fetched <span style="font-family:ui-monospace, Menlo, monospace">${H}</span> and tenant <span style="font-family:monospace">3f2504e0-4f89-11d3-9a0c-0305e82c3301</span></p>
       <p>@${H}</p>
       <dl><dt>Build</dt>
