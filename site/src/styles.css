@@ -69,6 +69,12 @@
   }
 }
 
+/* The site's own words and links under the family's row take the footer's whole width, so its links end on the
+   column's right edge rather than wherever the words stop. */
+[data-ouro="family-footer"] > [data-ouro-family-extras] {
+  flex-basis: 100%;
+}
+
 /* The 404 page's compass (components/lost-at-sea.tsx): its needle hunts for north, then settles. */
 .lost-needle {
   transform-origin: 60px 60px;
