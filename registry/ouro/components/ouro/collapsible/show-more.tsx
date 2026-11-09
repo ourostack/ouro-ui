@@ -457,20 +457,18 @@ const remember = (key: string | undefined, value: boolean): void => {
  * @claim "So the button and the fade are in the first frame the browser paints" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in its first frame > has its button and fade in the first frame the browser paints, and nothing for what fits)
  */
 type Fit = () => () => void;
-const fits = new Map<Element, Fit>();
+// Weak, so an element that is gone needs no clean-up: the observer delivers only the elements it watches.
+const fitReaders = new WeakMap<Element, Fit>();
 let fitObserver: ResizeObserver | undefined;
 function observeFit(element: Element, fit: Fit): () => void {
   fitObserver ??= new ResizeObserver((entries) => {
     // Every read first, then every write, so no read lays the page out again.
-    const answers = entries.map((entry) => fits.get(entry.target)?.());
-    flushSync(() => answers.forEach((answer) => answer?.()));
+    const answers = entries.map((entry) => fitReaders.get(entry.target)!());
+    flushSync(() => answers.forEach((answer) => answer()));
   });
-  fits.set(element, fit);
+  fitReaders.set(element, fit);
   fitObserver.observe(element);
-  return () => {
-    fits.delete(element);
-    fitObserver!.unobserve(element);
-  };
+  return () => fitObserver!.unobserve(element);
 }
 
 const clampClass = "line-clamp-(--ouro-show-more-lines)";
