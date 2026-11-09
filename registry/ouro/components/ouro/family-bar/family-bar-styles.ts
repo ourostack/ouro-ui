@@ -45,7 +45,7 @@ const familyFooterClass =
   "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
 
 /**
- * The development messages FamilyBar and FamilyFooter share: a `current` that matches no link, and a repeated link id.
+ * The development messages FamilyBar and FamilyFooter share: a `current` that is not a link's id, and a repeated link id.
  *
  * @internal
  */

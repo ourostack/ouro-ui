@@ -290,6 +290,8 @@ Components:
 `emoji`,
 `emoji-picker`,
 `empty`,
+`family-bar`,
+`family-footer`,
 `field`,
 `fieldset`,
 `file-field`,
@@ -622,6 +624,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **AuthLayout** — The page for signing in, signing up or resetting a password: one `Card` in the middle of the screen, with your brand, the title as the page's `<h1>`, the form, and a line under the card. [Docs](docs/AuthLayout.md)
 - **Breadcrumb** — The trail from the top of the site to the current page: a labelled `<nav>` with an ordered list of links, the last item marked `aria-current="page"`. [Docs](docs/Breadcrumb.md)
+- **FamilyBar** — The slim strip above a site's own header that links every site of a family, the same links in the same order on each, with the site being shown marked `aria-current="true"`, in heavier text with a bar under it. [Docs](docs/FamilyBar.md)
+- **FamilyFooter** — The foot of a family's site: the `FamilyBar`'s links, in the same order, in a quiet row that wraps, with the site being shown marked the same way, and the site's own extras (`children`) after them. [Docs](docs/FamilyFooter.md)
 - **Navbar** — The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. [Docs](docs/Navbar.md)
 - **NavigationMenu** — A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. [Docs](docs/NavigationMenu.md)
 - **NavigationRail** — The vertical bar of the app's top-level pages on the start edge of a wide screen, as in a chat or mail app or an editor's activity bar: each item an icon over a short label, the current one with its `currentIcon`, a bar on the rail's edge and `aria-current="page"`. [Docs](docs/NavigationRail.md)

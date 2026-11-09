@@ -125,6 +125,24 @@ describe("FamilyBar", () => {
     expect(offCentre(row, link("Status"))).toBeLessThan(1);
   });
 
+  it("starts the row with the current site's link in view from the server HTML alone, where the browser supports scroll-initial-target", async () => {
+    await page.viewport(320, 640);
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    host.innerHTML = renderToString(<FamilyBar links={sites} current="community" />);
+    const row = host.querySelector<HTMLElement>("[data-ouro-family-row]")!;
+    const link = row.querySelector<HTMLElement>('[aria-current="true"]')!;
+    expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
+    // WebKit has no scroll-initial-target yet: there the row starts at its start until it hydrates.
+    if (!CSS.supports("scroll-initial-target", "nearest")) return;
+    await expect.poll(() => row.scrollLeft).toBeGreaterThan(0);
+    const box = row.getBoundingClientRect();
+    const at = link.getBoundingClientRect();
+    expect(at.left).toBeGreaterThanOrEqual(box.left - 1);
+    expect(at.right).toBeLessThanOrEqual(box.right + 1);
+  });
+
   it("brings the current site's link to the middle of a right-to-left row", async () => {
     await page.viewport(320, 640);
     const { row, link } = await render(<FamilyBar links={sites} current="blog" />, "rtl");

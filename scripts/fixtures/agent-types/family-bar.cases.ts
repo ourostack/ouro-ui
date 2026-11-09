@@ -16,7 +16,7 @@ export const agentCases: AgentCase[] = [
     id: "familyBar03",
     habit: "the links as children",
     tsc: [
-      "error TS2747: 'FamilyBar' components don't accept text as child elements. Text in JSX has the type 'string', but the expected type of 'children' is '{ 'Use links={[{ id, label, href }]} and brand={...}': never; } | undefined'.",
+      `error TS2747: 'FamilyBar' components don't accept text as child elements. Text in JSX has the type 'string', but the expected type of 'children' is '{ "Use links={[{ id, label, href }]} and brand={...}": never; } | undefined'.`,
     ],
     dev: fix,
     names: ["tsc", "dev"],
