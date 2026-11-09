@@ -128,7 +128,7 @@ const HOW_TO = {
 };
 
 /** Characters that draw nothing: a way to split a word the patterns look for. */
-const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800\u0000-\u0008\u000E-\u001F\u007F-\u0084\u0086-\u009F]/gu;
+const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t-\r\u0085])\p{Cc}/gu;
 /** A hidden character may sit inside a word or stand between words, so text is read with them removed and with them as spaces. */
 const FILLER = INVISIBLE;
 
