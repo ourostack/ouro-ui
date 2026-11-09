@@ -1,7 +1,7 @@
 /* global URL, Request, Response */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import worker, { host, pages, rehome, upstream } from "../host/worker.mjs";
+import worker, { host, hsts, pages, rehome, secure, upstream } from "../host/worker.mjs";
 
 test("every path and query is fetched from the same place on Pages", () => {
   assert.equal(upstream(new URL("https://ui.ouroboros.bot/")), `${pages}/`);
@@ -32,4 +32,30 @@ test("the Worker proxies, keeps the status and rewrites Location", async (t) => 
   assert.equal(response.status, 301);
   assert.equal(response.headers.get("location"), `${host}/docs/`);
   assert.equal(response.headers.get("x-ouro-ui-host"), "ui.ouroboros.bot");
+});
+
+test("plain HTTP gets a 301 to the same path and query on https, with HSTS, and Pages is never asked", async (t) => {
+  const fetched = t.mock.method(globalThis, "fetch", async () => new Response("pages"));
+  for (const from of ["http://ui.ouroboros.bot/", "http://ui.ouroboros.bot/docs/dialog/?a=1&b=2", "http://ui.ouroboros.bot/r/registry.json"]) {
+    const url = new URL(from);
+    const response = await worker.fetch(new Request(from));
+    assert.equal(response.status, 301, from);
+    assert.equal(response.headers.get("location"), `${host}${url.pathname}${url.search}`, from);
+    assert.equal(response.headers.get("strict-transport-security"), hsts, from);
+  }
+  assert.equal(fetched.mock.callCount(), 0);
+  // Cloudflare also takes plain HTTP on ports like 8080, which have no TLS, so the port is dropped.
+  assert.equal(secure(new URL("http://ui.ouroboros.bot:8080/a?b=1")), `${host}/a?b=1`);
+  assert.equal(secure(new URL("https://ui.ouroboros.bot/docs/?x=1")), null);
+});
+
+test("every HTTPS response carries HSTS, whether or not Pages sent it", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => new Response("page", { headers: { "content-type": "text/html" } }));
+  const bare = await worker.fetch(new Request("https://ui.ouroboros.bot/"));
+  assert.equal(bare.status, 200);
+  assert.equal(bare.headers.get("strict-transport-security"), hsts);
+
+  t.mock.method(globalThis, "fetch", async () => new Response("page", { headers: { "strict-transport-security": "max-age=600" } }));
+  const sent = await worker.fetch(new Request("https://ui.ouroboros.bot/"));
+  assert.equal(sent.headers.get("strict-transport-security"), "max-age=600");
 });
