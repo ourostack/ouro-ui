@@ -199,9 +199,11 @@ describe("home page", () => {
       ]);
       expect(sources[0]!.srcset).toMatch(/xray-phone-(light|dark)-640\.avif 640w, .*-780\.avif 780w$/);
       expect([sources[0]!.getAttribute("width"), sources[0]!.getAttribute("height")]).toEqual(["780", "1324"]);
-      expect(sources[2]!.srcset).toMatch(/-640\.avif 640w, .*-1600\.avif 1600w$/);
+      expect(sources[2]!.srcset).toMatch(/-640\.avif 640w, .*-2560\.avif 2560w$/);
+      // The row's width as the root type grows on a 4K screen, so the browser picks a file with enough pixels.
+      expect(sources[2]!.getAttribute("sizes")).toBe("(min-width: 200rem) 1500px, (min-width: 150rem) 1350px, (min-width: 79rem) 1200px, calc(100vw - 4rem)");
       const image = picture.querySelector("img")!;
-      expect([image.getAttribute("width"), image.getAttribute("height"), image.loading]).toEqual(["1600", "863", "lazy"]);
+      expect([image.getAttribute("width"), image.getAttribute("height"), image.loading]).toEqual(["2560", "1380", "lazy"]);
       expect(image.alt).toMatch(/^Spoonjoy's Crispy Lemon Chickpeas recipe/);
     }
     // Not a link of its own: the row's "X-ray it" already opens the Test Kitchen with X-ray on.
