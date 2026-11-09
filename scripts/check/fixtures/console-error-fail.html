@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Console error: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}</style>
+<main><h1>Console error</h1><p>The page warns, logs an error and throws while it loads.</p></main>
+<script>
+  console.warn("Each child in a list should have a unique \"key\" prop.");
+  console.error("Cannot update a component while rendering a different component");
+  throw new TypeError("Cannot read properties of undefined (reading 'name')");
+</script>

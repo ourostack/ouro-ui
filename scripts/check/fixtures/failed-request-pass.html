@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Failed request: passes</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}</style>
+<main><h1>Failed request</h1><p>The page's own requests answer; one to another origin and one it cancels are not its server's failures.</p></main>
+<script>
+  fetch("/picture-160.png").then((r) => r.ok);
+  fetch("http://127.0.0.1:9/elsewhere.json").catch(() => undefined);
+  const stop = new AbortController();
+  fetch("/picture-960.png?cancelled", { signal: stop.signal }).catch(() => undefined);
+  stop.abort();
+</script>

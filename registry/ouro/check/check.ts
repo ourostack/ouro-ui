@@ -7,7 +7,7 @@ import { appendFile, copyFile, mkdir, readFile, rm, stat, writeFile } from "node
 import { createRequire } from "node:module";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { Browser, BrowserType, Page } from "playwright";
+import type { Browser, BrowserType, Page, Request } from "playwright";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
 import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
@@ -189,6 +189,8 @@ const LABELS: Record<string, string> = {
   repaint: "repaints at rest",
   "leaked-value": "leaked value",
   "odd-timestamp": "odd timestamp",
+  "console-error": "console error",
+  "failed-request": "failed request",
   https: "no HTTPS",
 };
 const RULES = Object.keys(LABELS);
@@ -211,6 +213,8 @@ const HINTS: Record<string, string> = {
   repaint: "animate transform or opacity, outside SVG, or let the animation end",
   "leaked-value": "show a person's words for the value, or nothing, never what the program holds for itself",
   "odd-timestamp": "check the time was set before formatting it, and format it for a person: a date, a time or an age",
+  "console-error": "fix what threw or warned; a warning a library prints is fixed by using it as it asks",
+  "failed-request": "point the request at an address that answers, or don't make it",
   https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
@@ -368,6 +372,43 @@ async function open(page: Page, url: string, readyTimeout: number): Promise<{ fa
   await page.evaluate("document.fonts.ready.then(() => undefined)");
   await settle(page);
   return { failed: null, ready };
+}
+
+// console-error and failed-request: what went wrong in the page while it loaded and was checked, heard from the browser
+// from before the page opens. console-error is an uncaught error, or console.error or console.warn, React's warnings
+// among them. failed-request is a request to the page's own origin that answered 400 or more, or got no answer; the
+// page's own document is http-error's and a picture is broken-image's, and Chromium's own "Failed to load resource" line
+// is the request's, so one failure makes one finding. An aborted request (a navigation away, a media preload) is no
+// failure. Named by its path, without the server's address, which changes each run, or its query, so each size finds the
+// same thing and a page that polls finds it once.
+function listenForRuntime(page: Page, url: string): () => PageIssue[] {
+  const origin = new URL(url).origin;
+  const local = (text: string) => text.split(origin).join("");
+  // A request is named by its path, without its query, so a page that polls a missing address makes one finding.
+  const path = (address: string) => new URL(address).pathname;
+  const found = new Map<string, PageIssue>();
+  const add = (rule: string, element: string, detail: string) => {
+    if (!found.has(rule + element)) found.set(rule + element, { ref: "", rule, element, detail });
+  };
+  const skip = (request: Request) =>
+    new URL(request.url()).origin !== origin || request.resourceType() === "image" || (request.isNavigationRequest() && request.frame() === page.mainFrame());
+  page.on("pageerror", (problem) => add("console-error", `uncaught ${problem.name}: ${local(problem.message.split("\n")[0]!)}`.slice(0, 160), "thrown and not caught"));
+  page.on("console", (message) => {
+    const kind = message.type();
+    if ((kind !== "error" && kind !== "warning") || message.text().startsWith("Failed to load resource")) return;
+    const { url: at, lineNumber } = message.location();
+    add("console-error", `console.${kind === "error" ? "error" : "warn"}: ${local(message.text().split("\n")[0]!)}`.slice(0, 160), `at ${local(at)} line ${lineNumber + 1}`);
+  });
+  page.on("response", (response) => {
+    if (response.status() < 400 || skip(response.request())) return;
+    add("failed-request", `${response.request().method()} ${path(response.url())}`, `answered ${response.status()}`);
+  });
+  page.on("requestfailed", (request) => {
+    const why = request.failure()!.errorText;
+    if (why.includes("ERR_ABORTED") || skip(request)) return;
+    add("failed-request", `${request.method()} ${path(request.url())}`, `no answer (${why})`);
+  });
+  return () => [...found.values()];
 }
 
 // Lets the page's finite animations run to their end, for up to 2 s, so no rule judges it part way through one: a toast
@@ -585,6 +626,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     return found;
   };
   const checkPage = async (page: Page, target: Target, width: number, height: number, theme: string) => {
+    const runtime = listenForRuntime(page, target.url);
     const { failed, ready } = await reach(page, target);
     const issues: PageIssue[] = [];
     if (failed) issues.push({ ref: "", rule: "http-error", element: "the page", detail: failed });
@@ -605,6 +647,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       issues.push(...(await page.evaluate(findTextIssues)));
       issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
       if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
+      issues.push(...runtime());
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
         if (allowed.has(key)) continue;
@@ -879,7 +922,8 @@ pictures and videos, pictures that fade into the page, pages that fail to load o
 and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own
 corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one
 above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no
-one should read (Invalid Date, 1 January 1970, a raw timestamp); and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
+one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to
+the page's own server that fail; and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
 and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page
 (hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a
 contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.
