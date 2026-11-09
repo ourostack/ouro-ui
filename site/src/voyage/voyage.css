@@ -105,6 +105,12 @@
     --site-sea: color-mix(in oklab, var(--primary) 7%, var(--background));
     --site-sea-light: color-mix(in oklab, var(--primary) 14%, transparent);
   }
+  /* On a very wide screen the scene is a window in the page, so the glow behind the porthole goes: the sea alone. */
+  @media (width >= 100rem) {
+    .site-hero {
+      background: linear-gradient(to bottom, var(--site-sea), var(--background) 92%);
+    }
+  }
   @media (max-width: 63.99rem) {
     .site-hero {
       background: linear-gradient(to bottom, var(--site-sea), var(--background) 60%);

@@ -180,7 +180,6 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
               <Folds
                 groups={[
                   { label: "More guides", links: guides.filter((link) => !isAxPart(link)).map((link) => ({ ...link, label: guideLabel(link.label) })) },
-                  { label: "Ouro AX, part by part", links: guides.filter(isAxPart) },
                   { label: "Skill comparisons", links: comparisons },
                   { label: "Platforms", links: platforms },
                 ]}
@@ -188,6 +187,8 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
               />
             ),
             "Ouro HX": <Folds groups={componentGroups("", true)} current={current} />,
+            // Ouro AX's parts sit under Ouro AX, the section the header marks on their pages.
+            "Ouro AX": <Folds groups={[{ label: "Ouro AX, part by part", links: guides.filter(isAxPart) }]} current={current} />,
           }}
         />
       )}

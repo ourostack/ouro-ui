@@ -259,7 +259,7 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
 function FamilyLinks(): JSX.Element {
   const id = useId();
   return (
-    <div data-site-menu-family="" className="mb-4 grid gap-0.5 border-0 border-b border-solid border-border pb-3 sm:hidden">
+    <div data-site-menu-family="" className="mt-2 mb-4 grid gap-0.5 border-0 border-b border-solid border-border pb-3 sm:hidden">
       <h2 id={id} className="m-0 px-3 py-1 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase">
         Ouro family
       </h2>
