@@ -19,6 +19,9 @@ function render(html: string): HTMLDivElement {
   return host;
 }
 
+// A commit's hash, 40 and 64 characters.
+const H = "9fceb02d0ae598e95dc970b74767f19372d61af8";
+const H64 = `${H}${H.slice(0, 24)}`;
 const of = (rule: string) => findTextIssues().filter((issue) => issue.rule === rule);
 // Each line in a paragraph of its own; the details the rule gives, in order.
 const details = (rule: string, lines: string[]) => {
@@ -38,8 +41,12 @@ describe("findTextIssues: leaked-value", () => {
         "settings.profile.saveButton",
         "chat:list.empty_state.title",
         "Lorem ipsum dolor sit amet",
-        "TODO wire this up",
+        "TODO: wire this up",
+        "TODO(avery) wire this up",
+        "XXX: later",
         "FIXME",
+        H,
+        `commit ${H} and ${H}`,
         "console.log(here)",
         "3 of NaN done",
       ]),
@@ -52,8 +59,12 @@ describe("findTextIssues: leaked-value", () => {
       `shows a translation key: "settings.profile.saveButton"`,
       `shows a translation key: "chat:list.empty_state.title"`,
       `shows lorem ipsum: "Lorem ipsum"`,
-      `shows a TODO: "TODO"`,
-      `shows a TODO: "FIXME"`,
+      `shows a developer's note: "TODO"`,
+      `shows a developer's note: "TODO("`,
+      `shows a developer's note: "XXX"`,
+      `shows a developer's note: "FIXME"`,
+      `shows an id: "${H}"`,
+      `shows an id: "${H}"`,
       `shows debug output: "console.log"`,
       `shows NaN: "NaN"`,
     ]);
@@ -111,6 +122,16 @@ describe("findTextIssues: leaked-value", () => {
       <p>Its short hash is 3f2504e and its order is 4815162342.</p>
       <p>{ name } and $5 and 50%</p>
       <p>Bring the slides todo list</p>
+      <ul><li>TODO</li><li>Status: TODO</li><li>Doing</li></ul>
+      <p>Built from commit ${H}.</p>
+      <p>sha: ${H64}</p>
+      <p>Exact prefix · SHA-256 ${H64}</p>
+      <p>digest ${H}</p>
+      <p>Fetched <span style="font-family:ui-monospace, Menlo, monospace">${H}</span> and tenant <span style="font-family:monospace">3f2504e0-4f89-11d3-9a0c-0305e82c3301</span></p>
+      <p>@${H}</p>
+      <dl><dt>Build</dt>
+        <dd>${H}</dd></dl>
+      <p>See <a href="#c">${H}</a>.</p>
       <p><code>format(undefined)</code> <kbd>{{x}}</kbd> <samp>NaN</samp> <var>null</var></p>
       <pre>[object Object]</pre>
       <textarea>TODO</textarea>
@@ -124,7 +145,7 @@ describe("findTextIssues: leaked-value", () => {
       <p data-ouro-allow="leaked-value">NaN</p>
       <span title="">Untitled</span>
       <p>   </p>`);
-    expect(of("leaked-value").map((issue) => issue.detail)).toEqual([`shows a TODO: "FIXME"`, `shows NaN: "NaN"`]);
+    expect(of("leaked-value").map((issue) => issue.detail)).toEqual([`shows a developer's note: "FIXME"`, `shows NaN: "NaN"`]);
   });
 });
 
@@ -145,7 +166,9 @@ describe("findTextIssues: odd-timestamp", () => {
         "Since 0001-01-01",
         "Born 1/1/0001",
         "Ends Dec 31, 9999",
+        "1731186000",
         "Updated 1731186000",
+        "Last seen: 1731186000000",
         "Updated 1731186000000",
         "Edited 2026-11-09T13:17:00.000Z",
         "Mon Nov 09 2026 13:17:00 GMT-0800 (Pacific Standard Time)",
@@ -168,7 +191,9 @@ describe("findTextIssues: odd-timestamp", () => {
       `shows a year no one lives in: "1/1/0001"`,
       `shows a year no one lives in: "Dec 31, 9999"`,
       `shows a raw epoch number: "1731186000"`,
-      `shows a raw epoch number: "1731186000000"`,
+      `shows a raw epoch number: "Updated 1731186000"`,
+      `shows a raw epoch number: "seen: 1731186000000"`,
+      `shows a raw epoch number: "Updated 1731186000000"`,
       `shows a machine timestamp: "2026-11-09T13:17"`,
       `shows Date's own string: "GMT-0800 (Pacific Standard Time)"`,
       `shows a negative age: "-3 minutes ago"`,
@@ -193,6 +218,7 @@ describe("findTextIssues: odd-timestamp", () => {
       <p>Sent 9 November 2026 at 1:17 PM, 2026-11-09, 11/9/2026</p>
       <p>Seen 3 minutes ago, due in 2 days, -3 °C, page 3-5</p>
       <p>Call 1-800-555-0100, quote order 4815162342, or ref 1731186000.5 and 17311860001234</p>
+      <p>Order 1731186000 shipped; message nxrlt3#1700002700000 is pinned.</p>
       <p>Since 1970, in 2000, the year 9999 BC</p>
       <p><code>2026-11-09T13:17:00Z</code></p>
       <p data-ouro-allow="odd-timestamp" data-ouro-allow-why="a page about the Unix epoch">Unix time starts at 1 January 1970.</p>`);

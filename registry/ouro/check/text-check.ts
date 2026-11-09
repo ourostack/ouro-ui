@@ -7,13 +7,16 @@ import type { PageIssue } from "./size-check.ts";
 // and aria-label. Code (code, pre, kbd, samp, var), scripts, editable text and anything not drawn are left out.
 //
 //   leaked-value   a value the program meant for itself: [object Object], an unfilled template ({{name}}, ${name}), a
-//                  GUID or a hex id of 24 characters or more, a translation key (settings.profile.saveButton), lorem
-//                  ipsum, TODO or FIXME, console.log, NaN, and undefined or null where a value goes: alone, after a
+//                  GUID or a hex id of 24 characters or more (one in a monospace font, or a hash of 40 or 64 after its
+//                  label, "commit", "SHA-256", "digest", "build", "@", or in a link's text, is shown on purpose), a translation key
+//                  (settings.profile.saveButton), lorem ipsum, a developer's note (TODO:, TODO(, FIXME, XXX:; a bare
+//                  TODO is a board's column), console.log, NaN, and undefined or null where a value goes: alone, after a
 //                  label ("Owner: null"), twice ("undefined undefined"), after a greeting's comma ("Hello, undefined"),
 //                  or beside a number or a currency ("$null", "undefined%"); in a sentence ("returns null") it is a word
 //   odd-timestamp  a time no person should read: Invalid Date, the Unix epoch (1 January 1970, or 31 December 1969 west
-//                  of Greenwich), year 0000, 0001 or 9999, a raw epoch number (10 or 13 digits, 2017 to 2033), a
-//                  machine timestamp (2026-11-09T13:17), Date's own string (GMT+0000 (…)), or a negative age ("-3
+//                  of Greenwich), year 0000, 0001 or 9999, a raw epoch number (10 or 13 digits, 2017 to 2033) as the
+//                  whole text or after a time's label ("Updated", "at", "Last seen"; elsewhere it is an order or a
+//                  message number), a machine timestamp (2026-11-09T13:17), Date's own string (GMT+0000 (…)), or a negative age ("-3
 //                  minutes ago", "in -2 days"). No date is judged against the clock, so a run gives the same answer on
 //                  any day.
 //
@@ -62,7 +65,7 @@ function findTextIssues(): PageIssue[] {
       // The whole text is the key: dotted names, with a capital or an underscore that a domain or a file name lacks.
       ["a translation key", new RegExp(`^(?!.*\\.(?:${files})$)(?=[\\w:.]*[A-Z_])(?:[a-z]\\w*:)?[a-z]\\w*(?:\\.\\w+){2,}$`)],
       ["lorem ipsum", /\blorem ipsum\b/i],
-      ["a TODO", /\b(?:TODO|FIXME)\b/],
+      ["a developer's note", /\b(?:TODO|XXX)[:(]|\bFIXME\b/],
       ["debug output", /\bconsole\.(?:log|debug)\b/],
       ["NaN", /\bNaN\b/],
       ["undefined", slot("undefined")],
@@ -72,7 +75,7 @@ function findTextIssues(): PageIssue[] {
       ["an invalid date", /\binvalid date\b/i],
       ["the Unix epoch", /\b(?:0?1 Jan(?:uary)? 1970|Jan(?:uary)? 0?1,? 1970|31 Dec(?:ember)? 1969|Dec(?:ember)? 31,? 1969|1970-01-01|1969-12-31|0?1\/0?1\/1970|12\/31\/1969|31\/12\/1969)\b/],
       ["a year no one lives in", /\b(?:0000|0001|9999)-\d\d-\d\d\b|\b\d{1,2}\/\d{1,2}\/(?:0000|0001|9999)\b|\b[A-Z][a-z]{2,8}\.? \d{1,2},? (?:0000|0001|9999)\b/],
-      ["a raw epoch number", /(?:^|[^\w.,])1[5-9]\d{8}(?:\d{3})?(?![\w.,])/],
+      ["a raw epoch number", /^1[5-9]\d{8}(?:\d{3})?$|\b(?:updated|edited|created|modified|changed|sent|seen|posted|joined|started|ended|due|since|at|on)\b:? 1[5-9]\d{8}(?:\d{3})?(?![\w.,])/i],
       ["a machine timestamp", /\b\d{4}-\d\d-\d\dT\d\d:\d\d/],
       ["Date's own string", /GMT[+-]\d{4} \([^)]*\)/],
       ["a negative age", new RegExp(`(?:^|[^\\w])[-−]\\d+(?:\\.\\d+)? ?(?:${units}) ago\\b|\\bin [-−]\\d`)],
@@ -85,14 +88,28 @@ function findTextIssues(): PageIssue[] {
     for (const name of ["title", "aria-label"]) sources.push({ el, text: el.getAttribute(name) ?? "", where: ` in its ${name}` });
   }
   const skip = 'code, pre, kbd, samp, var, script, style, noscript, template, textarea, [contenteditable]:not([contenteditable="false"])';
+  // An id shown on purpose: in a monospace font, as data is; or a hash of 40 or 64 characters in a link's text, or after
+  // its label in the same text or the text just before it.
+  const label = /(?:\b(?:commit|sha(?:-?(?:1|256|512))?|hash|digest|checksum|build|revision|rev)\b:?|@) ?$/i;
+  const onPurpose = (index: number, words: string, el: Element) => {
+    if (/mono|courier|consolas|menlo/i.test(getComputedStyle(el).fontFamily)) return true;
+    const hash = /\b(?:[0-9a-f]{40}|[0-9a-f]{64})\b/i.exec(words);
+    if (!hash || words.match(/\b[0-9a-f]{24,}\b/gi)!.length > 1) return false;
+    const before = words.slice(0, hash.index);
+    const previous = sources.slice(0, index).reduce((last, source) => (source.where || !source.text.trim() ? last : source.text.trim()), "");
+    return Boolean(el.closest("a")) || label.test(before) || (!before && label.test(previous));
+  };
   const found = new Map<Element, Set<string>>();
-  for (const { el, text, where } of sources) {
+  const drawn = new Map<Element, boolean>();
+  for (const [index, { el, text, where }] of sources.entries()) {
     const words = text.trim().replace(/\s+/g, " ");
-    if (!words || el.closest(skip) || !el.getClientRects().length || getComputedStyle(el).visibility === "hidden") continue;
+    if (!words || el.closest(skip)) continue;
+    if (!drawn.has(el)) drawn.set(el, el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden");
+    if (!drawn.get(el)) continue;
     const done = found.get(el) ?? new Set<string>();
     for (const [rule, list] of Object.entries(kinds)) {
       if (done.has(rule) || optedOut(el, rule)) continue;
-      const hit = list.find(([, pattern]) => pattern.test(words));
+      const hit = list.find(([kind, pattern]) => pattern.test(words) && !((kind === "an id" || kind === "a GUID") && onPurpose(index, words, el)));
       if (!hit) continue;
       done.add(rule);
       found.set(el, done);
