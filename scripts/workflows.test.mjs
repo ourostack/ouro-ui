@@ -83,7 +83,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "e2e-shard", "install-latest", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -101,7 +101,8 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   // The script tests that drive a browser run in the image; the others need none.
   assert.doesNotMatch(jobs.scripts, /container:|playwright-browsers/);
   assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser\)/);
-  assert.match(jobs.ci, /needs: \[plan, checks, attribution, browser, scripts, scripts-browser, coverage, browser-fallback\]/);
+  assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback\]/);
+  assert.match(jobs.ci, /"design=\$DESIGN"/);
   assert.match(jobs.ci, /"scripts-browser=\$SCRIPTS_BROWSER"/);
 });
 
@@ -1417,15 +1418,33 @@ test("the full-suite fallback runs in shards, in the same Playwright image, runn
   assert.match(stepScript(coverage, "Browser test coverage"), /node scripts\/test-impact\.mjs coverage /);
 });
 
+test("the design shards run Ouro check on the site at a phone's, a laptop's and a 4K screen's size, light and dark, and a gated finding fails the ci check", () => {
+  const jobs = ciJobs();
+  const block = jobs.design;
+  assert.match(block, /^ {4}needs: \[plan\]$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/3\)$/m);
+  assert.match(block, /^ {8}shard: \[1, 2, 3\]$/m);
+  // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/3\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.doesNotMatch(block, /continue-on-error|themes:/);
+  assert.match(block, /^ {6}- if: steps\.relevance\.outputs\.run != 'false'\n {8}run: pnpm site:build$/m);
+  // Off a pull request (the merge queue, main, a dispatch) it always runs.
+  for (const event of ["merge_group", "push", "workflow_dispatch"]) assert.deepEqual(runStep(stepScript(block, "Can the change reach the site?"), { EVENT: event }).output, { run: "true" }, event);
+  // Each waiver gives its reason.
+  const { waive } = JSON.parse(readFileSync(join(root, ".github/ouro-check.json"), "utf8"));
+  for (const [glob, rules] of Object.entries(waive)) for (const [rule, why] of Object.entries(rules)) assert.ok(why.trim().length > 20, `${glob} ${rule}`);
+  assert.match(jobs.ci, /"design=\$DESIGN"/);
+});
+
 test("the ci check passes only when its parts passed and the browser shards' merged coverage reaches 100%, or the full suite decides", () => {
   const jobs = ciJobs();
   const block = jobs.ci;
-  assert.match(block, /^ {4}needs: \[plan, checks, attribution, browser, scripts, scripts-browser, coverage, browser-fallback\]$/m);
+  assert.match(block, /^ {4}needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback\]$/m);
   const parts = stepScript(block, "Every part passed");
-  const passed = { CHECKS: "success", ATTRIBUTION: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "false" };
+  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "false" };
   assert.equal(runStep(parts, passed).status, 0);
   assert.equal(runStep(parts, { ...passed, FALLBACK: "true", BROWSER_FALLBACK: "success" }).status, 0);
-  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {
+  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { DESIGN: "failure" }, { DESIGN: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {
     const result = runStep(parts, { ...passed, ...failed });
     assert.equal(result.status, 1, JSON.stringify(failed));
     assert.match(result.stdout, /^::error::The [\w-]+ jobs did not pass/m);
@@ -2362,7 +2381,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   assert.match(jobs.ci, /^ {6}browser: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   assert.match(jobs.ci, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   const parts = stepScript(jobs.ci, "Every part passed");
-  const ok = { CHECKS: "success", ATTRIBUTION: "success", BROWSER: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "" };
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "" };
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false" }).status, 0);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "true" }).status, 1);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", BROWSER: "failure" }).status, 1);
