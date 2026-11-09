@@ -38,6 +38,14 @@
     "date-picker": [
       "/nautilus/"
     ],
+    "family-bar": [
+      "/nautilus/",
+      "/"
+    ],
+    "family-footer": [
+      "/nautilus/",
+      "/"
+    ],
     "form": [
       "/nautilus/"
     ],

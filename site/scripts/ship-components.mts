@@ -22,9 +22,9 @@ export const OUT = join(repo, "site/src/docs/ship-components.json");
 
 /**
  * Components a page renders that X-ray never shows there: the Toaster's region is empty until a
- * toast appears, and X-ray is X-ray's own.
+ * toast appears, the skip link is off the screen until it has focus, and X-ray is X-ray's own.
  */
-export const UNSEEN = new Set(["toaster", "inspector"]);
+export const UNSEEN = new Set(["toaster", "skip-link", "inspector"]);
 
 export interface ShipComponents {
   $comment: string;

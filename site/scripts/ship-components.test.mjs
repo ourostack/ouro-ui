@@ -11,6 +11,7 @@ test("a page shows an item when its HTML holds a root marker X-ray reads as that
   const html = '<div data-ouro="button"></div><span data-ouro="dialog-portal"></span><i data-ouro="radio"></i><b data-ouro="toast"></b><p data-ouro-control="checkbox"></p><i data-ouro="nope"></i><i data-ouro="inspector"></i>';
   assert.deepEqual([...shown(html, items)].sort(), ["button", "radio-group"]);
   assert.ok(UNSEEN.has("toaster"));
+  assert.ok(UNSEEN.has("skip-link"));
 });
 
 test("leaves out what a page keeps hidden, like a closed Collapsible's panel, until it opens", () => {
