@@ -1418,6 +1418,24 @@ test("the full-suite fallback runs in shards, in the same Playwright image, runn
   assert.match(stepScript(coverage, "Browser test coverage"), /node scripts\/test-impact\.mjs coverage /);
 });
 
+test("the design shards run Ouro check on the site at a phone's, a laptop's and a 4K screen's size, light and dark, and a gated finding fails the ci check", () => {
+  const jobs = ciJobs();
+  const block = jobs.design;
+  assert.match(block, /^ {4}needs: \[plan\]$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/3\)$/m);
+  assert.match(block, /^ {8}shard: \[1, 2, 3\]$/m);
+  // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/3\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.doesNotMatch(block, /continue-on-error|themes:/);
+  assert.match(block, /^ {6}- if: steps\.relevance\.outputs\.run != 'false'\n {8}run: pnpm site:build$/m);
+  // Off a pull request (the merge queue, main, a dispatch) it always runs.
+  for (const event of ["merge_group", "push", "workflow_dispatch"]) assert.deepEqual(runStep(stepScript(block, "Can the change reach the site?"), { EVENT: event }).output, { run: "true" }, event);
+  // Each waiver gives its reason.
+  const { waive } = JSON.parse(readFileSync(join(root, ".github/ouro-check.json"), "utf8"));
+  for (const [glob, rules] of Object.entries(waive)) for (const [rule, why] of Object.entries(rules)) assert.ok(why.trim().length > 20, `${glob} ${rule}`);
+  assert.match(jobs.ci, /"design=\$DESIGN"/);
+});
+
 test("the ci check passes only when its parts passed and the browser shards' merged coverage reaches 100%, or the full suite decides", () => {
   const jobs = ciJobs();
   const block = jobs.ci;
@@ -2363,7 +2381,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   assert.match(jobs.ci, /^ {6}browser: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   assert.match(jobs.ci, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   const parts = stepScript(jobs.ci, "Every part passed");
-  const ok = { CHECKS: "success", ATTRIBUTION: "success", BROWSER: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "" };
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "" };
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false" }).status, 0);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "true" }).status, 1);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", BROWSER: "failure" }).status, 1);
