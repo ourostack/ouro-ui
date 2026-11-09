@@ -47,7 +47,7 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
   // phone its long folded list of components sits far down the menu, which opens scrolled to the page you are on.
   { label: "Ouro HX", href: "/docs/", hint: "Levers, dials and portholes" },
   { label: "Ouro AX", href: "/ax/", hint: "A morning with an agent" },
-  { label: "GitHub", href: GITHUB, hint: "The blueprints, out in the open" },
+  { label: "Ouro UI on GitHub", href: GITHUB, hint: "The blueprints, out in the open" },
 ];
 
 /** A guide's name wherever the site lists it: a guide that shares a section's name ("Ouro AX") says it is the guide, so no two links are named alike. */
@@ -257,9 +257,9 @@ function FamilyLinks(): JSX.Element {
   const id = useId();
   return (
     <div data-site-menu-family="" className="mt-4 grid gap-0.5 border-0 border-t border-solid border-border pt-3">
-      <p id={id} className="m-0 px-3 py-1 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase">
-        Ouro family
-      </p>
+      <h2 id={id} className="m-0 px-3 py-1 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase">
+        Sites
+      </h2>
       <ul aria-labelledby={id} className="m-0 grid list-none gap-0.5 p-0">
         {FAMILY.map((site) => {
           const here = site.id === FAMILY_CURRENT;

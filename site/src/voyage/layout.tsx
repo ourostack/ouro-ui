@@ -17,12 +17,12 @@ export function VoyageFooter(): JSX.Element {
     { label: "Docs", url: href("/docs/installing/") },
     { label: "Ouro HX", url: href("/docs/") },
     { label: "Ouro AX", url: href("/ax/") },
-    { label: "GitHub", url: GITHUB },
+    { label: "Ouro UI on GitHub", url: GITHUB },
     { label: "llms.txt", url: href("/llms.txt") },
   ];
   return (
     <footer>
-      <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} label="Ouro family" className={`pt-6 pb-12 ${GUTTERS.voyage}`}>
+      <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} className={`pt-6 pb-12 ${GUTTERS.voyage}`}>
         <div className="grid basis-full gap-6 pt-4 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <div className="grid gap-2">
             <p className="m-0">

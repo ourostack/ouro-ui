@@ -119,7 +119,7 @@ for (const path of ["./", "docs/tooltip/", "ax/"]) {
     // real clock: the menu stays open until it is closed; no timer ends it.
     await explained(page, () => expect(page.getByRole("dialog", { name: "Menu" })).toBeVisible({ timeout: within }));
     // real clock: the menu stays open until it is closed; no timer ends it.
-    await expect(page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Site" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Primary" })).toBeVisible();
   });
 }
 

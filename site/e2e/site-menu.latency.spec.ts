@@ -8,7 +8,7 @@ import { LATENCY, expectPressesWithinBudget, medianCeiling } from "./latency";
 
 const PHONE = { width: 390, height: 844 };
 const menuButton = (page: Page) => page.getByRole("banner").getByRole("button", { name: "Menu", exact: true });
-const sheet = (page: Page) => page.locator("[role='dialog']", { has: page.getByRole("navigation", { name: "Site" }) });
+const sheet = (page: Page) => page.locator("[role='dialog']", { has: page.getByRole("navigation", { name: "Primary" }) });
 
 /**
  * Each page's baseline: the highest median, in ms, the press measured in CI's latency job (PR #648's runs, 2026-11-06;

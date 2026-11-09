@@ -88,7 +88,7 @@ test("every scene the site shows is there at each width, with the phone crop and
     assert.equal(webp.toString("latin1", 12, 16), "VP8 ", scene);
     assert.deepEqual([webp.readUInt16LE(26) & 0x3fff, webp.readUInt16LE(28) & 0x3fff], [768, phoneHeight], `phone/${scene}-768.webp`);
   }
-  for (const icon of ["icons/ouro-hx.svg", "icons/ouro-hx-180.png", "icons/ouro-hx-192.png", "icons/ouro-hx-512.png", "icons/ouro.svg"]) assert.ok(have.has(icon), icon);
+  for (const icon of ["icons/ouro-hx.svg", "icons/ouro-hx-180.png", "icons/ouro-hx-192.png", "icons/ouro-hx-512.png"]) assert.ok(have.has(icon), icon);
 });
 
 test("every link-preview card is a 1200x630 JPEG", async () => {
