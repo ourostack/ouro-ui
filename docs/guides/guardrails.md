@@ -162,7 +162,7 @@ The screen check (`ouro-check`) opens every page of your built app in headless C
 | `clipped-text` | Text cut off by its box. An ellipsis or a line clamp is truncation on purpose and passes while the whole text is still there: in a `title`, an `aria-label`, or the text itself in the accessibility tree.[^check-truncate] |
 | `long-lines` | Off unless `ouro-check.json` declares a measure; then the elements it names whose lines run past it.[^check-measure] |
 | `blurry-image` | A picture drawn larger than its file's own pixels allow at the screen's density, often a wrong `sizes` on a cropped, height-driven image. |
-| `image-fade` | A picture that fades into the page: an `<img>`, an SVG `<image>` or a `url()` background with a gradient mask on it or on a box around it, or with a gradient that reaches transparent over a tenth of it or more, from an absolutely positioned overlay or a `::before` or `::after` of the picture or a box around it.[^check-image-fade] See [No picture fades into the page](#no-picture-fades-into-the-page). |
+| `image-fade` | A picture that fades into the page: an `<img>`, an SVG `<image>` or a `url()` background with a gradient mask on it or on a box around it, or with a gradient that reaches transparent over a tenth of it or more, from an absolutely positioned overlay or a `::before` or `::after` of the picture or a box around it.[^check-image-fade] See [Pictures end on a hard edge](#pictures-end-on-a-hard-edge). |
 | `axe` | Serious and critical axe-core violations, at a phone and a laptop size. |
 | `broken-image` | A picture that loaded empty: a missing file, or one that is no picture.[^check-pages] |
 | `http-error` | A page that answered with a status other than 2xx, or did not answer.[^check-pages] |
@@ -278,9 +278,9 @@ jobs:
           merge: "true"
 ```
 
-### No picture fades into the page
+### Pictures end on a hard edge
 
-A picture ends on a hard edge, or sits on a solid band: it never fades into the page or into nothing at any edge, by a mask, an overlay or a pseudo-element's wash. Light painted into the picture itself stays, and so does a gradient that fades no picture, such as a painted sky band or a skeleton's shimmer. The screen check's `image-fade` rule finds a fade the browser draws. `fades.ts`, which `ouro-check` installs beside `check.ts`, finds one in the source before anything is built: every gradient used as a mask in a stylesheet, a style attribute, a Tailwind class (an arbitrary `mask-image` property or `mask` value, or one of Tailwind's gradient mask utilities) or a style object.[^fades]
+End a picture on a hard edge, or put it on a solid band. Don't fade it into the page, or into nothing, at any edge, by a mask, an overlay or a pseudo-element's wash. Keep light painted into the picture itself, and gradients that are not over a picture, such as a painted sky band or a skeleton's shimmer. The screen check's `image-fade` rule finds a fade the browser draws. `fades.ts`, which `ouro-check` installs beside `check.ts`, finds one in the source before anything is built: every gradient used as a mask in a stylesheet, a style attribute, a Tailwind class (an arbitrary `mask-image` property or `mask` value, or one of Tailwind's gradient mask utilities) or a style object.[^fades]
 
 ```sh
 node lib/ouro/check/fades.ts src
