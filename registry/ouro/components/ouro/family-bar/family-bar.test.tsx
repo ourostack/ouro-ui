@@ -142,6 +142,9 @@ describe("FamilyBar", () => {
       expect(document.activeElement!.textContent).toBe(site.label);
       await expect.poll(() => clear(document.activeElement!)).toBe(true);
     }
+    expect(row.scrollLeft).toBeCloseTo(row.scrollWidth - row.clientWidth, -1);
+    const last = document.activeElement!.getBoundingClientRect();
+    expect(last.right).toBeLessThanOrEqual(row.getBoundingClientRect().right);
     for (const site of sites.slice(0, -1).reverse()) {
       await pressTab({ shift: true });
       expect(document.activeElement!.textContent).toBe(site.label);

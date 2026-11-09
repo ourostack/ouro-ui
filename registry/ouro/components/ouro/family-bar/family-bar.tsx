@@ -141,7 +141,9 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
         </div>
       )}
       <div ref={scroller} data-ouro-family-row="" className={cn(familyScrollerClass, scrollFadeClass)}>
-        <ul onFocus={clearOfFade} className="m-0 flex w-max list-none items-center gap-0.5 p-0">
+        {/* Room after the last link: the row's scroll width rounds the list's down, which would clip the last link and
+            its outline by a fraction of a pixel when the row is scrolled to its end. */}
+        <ul onFocus={clearOfFade} className="m-0 flex w-max list-none items-center gap-0.5 p-0 pe-1">
           {links.map((link, index) => (
             <li key={index} className="flex">
               <RouterLink
