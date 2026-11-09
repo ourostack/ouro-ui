@@ -3,7 +3,7 @@
 import { startTransition, useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { currentHref } from "@/registry/ouro/lib/ouro/current-path";
+import { currentHref, samePath } from "@/registry/ouro/lib/ouro/current-path";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
@@ -60,8 +60,10 @@ export interface NavbarProps {
   items: readonly NavbarItem[];
   /**
    * The path of the page being shown, from your router (`useLocation().pathname`, or
-   * `usePathname()` in Next.js). The link to that path, or else the longest link above it
-   * (`/recipes` for `/recipes/12`), gets `aria-current="page"` and the current look.
+   * `usePathname()` in Next.js). The link to that path gets `aria-current="page"` and the
+   * current look. On a deeper page, the longest link above it, the section
+   * (`/recipes` for `/recipes/12`), gets the same look and `aria-current="true"`, so a
+   * screen reader hears one current page.
    */
   currentPath?: string | undefined;
   /** Your logo or product name, at the start of the bar. Link it to the home page. */
@@ -116,13 +118,13 @@ const bar =
   "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
 
 // A link: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
-// fine one. The current page has a bar at the start edge, not a hover highlight.
+// fine one. The current page, or the section it is in, is underlined in the primary colour as in the bar's row and in
+// FamilyBar, not given a hover highlight; forced colours keep the underline.
 const link_ =
   "relative m-0 box-border items-center rounded-md px-3 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
   "text-base pointer-fine:text-sm leading-5 [-webkit-tap-highlight-color:transparent] " +
-  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground " +
-  "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-0.5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
-  "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
+  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground " +
+  "aria-[current=page]:underline aria-[current=true]:underline decoration-primary decoration-2 underline-offset-5 [text-decoration-skip-ink:none] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 // In the sheet a link is a full-width row, which highlights while pressed instead of scaling.
 const sheetLink = "flex min-h-11 pointer-fine:min-h-9 py-2 transition-colors duration-(--ouro-duration-fast) ease-[ease] active:bg-accent active:text-accent-foreground";
@@ -132,7 +134,7 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
 
 /**
  * The bar across the top of an app: your brand, the main links and a few controls, with
- * the current page marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. A group of links (`{ label, links }`)
+ * the current page marked `aria-current="page"`, and the link of the section it is in `aria-current="true"`, both underlined in the primary colour as in `FamilyBar`, distinct from hover and press highlights. A group of links (`{ label, links }`)
  * opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below 640px and on
  * a narrow tablet, they collapse behind a menu button into a `Sheet` that slides in from
  * the side, with each group under its name; the brand and `actions` stay in the bar. Links
@@ -271,7 +273,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
     <li key={key}>
       <RouterLink
         href={link.href}
-        aria-current={link.current || link.href === marked ? "page" : undefined}
+        aria-current={link.current || (link.href === marked && samePath(link.href, currentPath)) ? "page" : link.href === marked ? "true" : undefined}
         data-ouro-control="navbar"
         data-ouro-part="sheet-link"
         className={cn(link_, sheetLink)}

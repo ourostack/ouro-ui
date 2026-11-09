@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server } from "vitest/browser";
 import { FamilyBar, type FamilyBarProps, type FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
+import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -79,21 +80,52 @@ describe("FamilyBar", () => {
     expect(getComputedStyle(link("Guides")).fontWeight).toBe("400");
     expect(getComputedStyle(link("Docs")).color).toBe(getComputedStyle(nav).color);
     expect(getComputedStyle(link("Guides")).color).not.toBe(getComputedStyle(nav).color);
-    const bar = getComputedStyle(link("Docs"), "::after");
-    expect(bar.borderBottomWidth).toBe("2px");
-    expect(bar.borderBottomStyle).toBe("solid");
-    expect(getComputedStyle(link("Guides"), "::after").borderBottomWidth).toBe("0px");
+    // The bar under it is the current page's underline in Navbar too: one mark across Ouro's navigation.
+    const mark = getComputedStyle(link("Docs"));
+    expect(mark.textDecorationLine).toBe("underline");
+    expect(mark.textDecorationThickness).toBe("2px");
+    expect(mark.textDecorationColor).not.toBe(mark.color);
+    expect(getComputedStyle(link("Guides")).textDecorationLine).toBe("none");
   });
 
   it("keeps the current site's bar under forced colours, which drop colour", async () => {
     const { link } = await render(<FamilyBar links={sites} current="docs" />);
     await commands.emulateMedia({ forcedColors: "active" });
     try {
-      expect(getComputedStyle(link("Docs"), "::after").borderBottomWidth).toBe("2px");
-      expect(getComputedStyle(link("Docs"), "::after").borderBottomStyle).toBe("solid");
+      expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("underline");
+      expect(getComputedStyle(link("Docs")).textDecorationThickness).toBe("2px");
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }
+  });
+
+  it("starts its first link's text where the FamilyFooter's does, at the padding's edge, with the same padding, or after its brand", async () => {
+    const textStart = (a: Element) => {
+      const range = document.createRange();
+      range.selectNodeContents(a);
+      return Math.round(range.getBoundingClientRect().left);
+    };
+    const first = (host: HTMLElement, root: string) => host.querySelector(`[data-ouro="${root}"] a`)!;
+    const padded = await render(
+      <>
+        <FamilyBar links={sites} className="px-6" />
+        <FamilyFooter links={sites} className="px-6" />
+      </>,
+    );
+    expect(textStart(first(padded.host, "family-bar"))).toBe(textStart(first(padded.host, "family-footer")));
+    expect(textStart(first(padded.host, "family-bar")) - Math.round(padded.nav.getBoundingClientRect().left)).toBe(24);
+    // With no className, the bar and the footer keep the same padding too.
+    const plain = await render(
+      <>
+        <FamilyBar links={sites} />
+        <FamilyFooter links={sites} />
+      </>,
+    );
+    expect(textStart(first(plain.host, "family-bar"))).toBe(textStart(first(plain.host, "family-footer")));
+    expect(textStart(first(plain.host, "family-bar")) - Math.round(plain.nav.getBoundingClientRect().left)).toBe(16);
+    // After a brand, the row keeps its gap: the first link's box starts clear of the brand.
+    const branded = await render(<FamilyBar links={sites} brand={<span data-testid="brand">Lantern</span>} />);
+    expect(first(branded.host, "family-bar").getBoundingClientRect().left).toBeGreaterThanOrEqual(page.getByTestId("brand").element().getBoundingClientRect().right);
   });
 
   it("renders the whole bar in the server HTML", () => {
