@@ -852,12 +852,20 @@ describe("MessageList springs at rest", () => {
     const messageLayers = (layers: { element: string | null }[]) => layers.filter((layer) => layer.element?.startsWith('ARTICLE[data-ouro="message"]'));
     const before = await commands.compositedLayers();
     expect(messageLayers(before)).toEqual([]);
-    await fling(scroller, () => new Promise((resolve) => requestAnimationFrame(resolve)));
+    // The springs settle in about half a second of real time, less than reading the layers can take on a slow runner, so with
+    // real frames the read could find them already at rest (#733). Held frames keep them mid-spring, however long it takes.
+    const frames = holdFrames();
+    await fling(scroller, async () => frames.step(16));
+    expect(scroller.querySelectorAll("[data-ouro-settling]").length).toBeGreaterThan(3);
     const moving = await commands.compositedLayers();
     expect(messageLayers(moving).length).toBeGreaterThan(3);
-    await expect.poll(() => scroller.querySelector("[data-ouro-settling]")).toBeNull();
+    frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    frames.release();
+    // Off the list's end, the jump button fades in, on a layer of its own until its fade ends: wait for that, not for a frame.
+    const jump = scroller.closest('[data-ouro="message-list"]')!.querySelector('[data-ouro-part="jump"]')!;
+    await Promise.all(jump.getAnimations().map((animation) => animation.finished));
     const after = await commands.compositedLayers();
     expect(messageLayers(after)).toEqual([]);
-    expect(after).toHaveLength(before.length);
+    expect(after).toEqual(before);
   });
 });
