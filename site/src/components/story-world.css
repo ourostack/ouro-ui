@@ -201,10 +201,10 @@
     /* The sun comes up and the meadow leans in once, as the page arrives, then both hold: nothing keeps moving beside the words. */
     .story-world-img {
       transform-origin: 50% 62%;
-      animation: ouro-story-drift 24s ease-out both;
+      animation: ouro-story-drift 3.6s cubic-bezier(0.2, 0, 0, 1) both;
     }
     .story-world-sun {
-      animation: ouro-story-sunrise 6s ease-out both;
+      animation: ouro-story-sunrise 3s ease-out both;
     }
   }
   @keyframes ouro-story-drift {
