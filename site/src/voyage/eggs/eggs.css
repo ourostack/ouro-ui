@@ -141,12 +141,7 @@
 }
 
 /* The ship's log: the leagues traveled, small, at the screen's bottom start corner, only where the margin beside the
-   column can hold it, so it never sits over the story's words. The toast at twenty thousand comes at any width. */
-@media (width < 100rem) {
-  .egg-leagues {
-    display: none;
-  }
-}
+   column can hold it, clear of the story's words. The toast at twenty thousand comes at any width. */
 .egg-leagues {
   position: fixed;
   inset-inline-start: max(1rem, env(safe-area-inset-left));
@@ -165,6 +160,11 @@
   opacity: 0;
   transition: opacity 300ms ease-out;
   backdrop-filter: blur(6px);
+}
+@media (width < 100rem) {
+  .egg-leagues {
+    display: none;
+  }
 }
 .egg-leagues[data-open] {
   opacity: 1;
