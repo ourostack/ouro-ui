@@ -929,6 +929,10 @@ test("the lint sees a claim through control characters and invisible HTML entiti
   // Prose between two in-word comments, or between a bare < and >, is still read.
   assert.equal(markdown("a<!-- x --> always works <!-- y -->b."), 1);
   assert.equal(markdown("Run<br>Next sentence. Always works."), 1);
+  // A long run of unclosed comments does not stall the lint.
+  const started = Date.now();
+  markdown("a<!--".repeat(20000));
+  assert.ok(Date.now() - started < 2000, "unclosed comments are read in linear time");
   // A visible tag between words, and a clean sentence, are not changed.
   assert.equal(markdown("It works.<br>Run `pnpm test`."), 0);
   assert.equal(markdown("The tab\tand line\nbreaks stay: run it."), 0);
