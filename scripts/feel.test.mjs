@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { stripTypeScriptTypes } from "node:module";
 import { join } from "node:path";
 import { test } from "node:test";
+import { chromium } from "playwright";
 import { conversation, random } from "../feel/data/seed.ts";
 import { cases } from "../feel/cases.ts";
 import { html, judge, markdown, median, passLine, unitOf } from "../feel/report.ts";
@@ -108,5 +110,37 @@ test("Ouro Feel's probe service puts the probe first in the page's head and driv
     assert.deepEqual(await second, { ok: false, error: "x" });
   } finally {
     service.close();
+  }
+});
+
+test("Ouro Feel's probe counts a blank frame by the rows' boxes, so a list that turns off pointer events while it scrolls is not blank, and a gap is", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    // Rows that take no pointer events, as a list does while it scrolls; then a gap of 2000 px with no rows in it.
+    const rows = Array.from({ length: 40 }, (_, i) => `<div class="row" style="height:48px;pointer-events:none">Row ${i}</div>`).join("");
+    await page.setContent(`<div id="list" style="height:400px;overflow:auto"><div style="pointer-events:none">${rows}</div><div style="height:2000px"></div></div>`);
+    await page.addScriptTag({ content: probe });
+    const scroll = (to) =>
+      page.evaluate(async (to) => {
+        const { document, ouroFeel } = globalThis;
+        const list = document.getElementById("list");
+        ouroFeel.watch({ case: "scroll", scroller: list, rows: ".row" });
+        for (let y = list.scrollTop; y !== to; ) {
+          y += Math.sign(to - y) * Math.min(Math.abs(to - y), 40);
+          list.scrollTop = y;
+          await ouroFeel.painted();
+        }
+        await ouroFeel.rest(5);
+        return ouroFeel.stop(true).measures;
+      }, to);
+    const rowsOnly = await scroll(1200);
+    assert.ok(rowsOnly.frames > 10, `${rowsOnly.frames} frames`);
+    assert.equal(rowsOnly.blankFrames, 0);
+    const intoTheGap = await scroll(2600);
+    assert.ok(intoTheGap.blankFrames > 0, `${intoTheGap.blankFrames} blank frames scrolled into the gap`);
+  } finally {
+    await browser.close();
   }
 });
