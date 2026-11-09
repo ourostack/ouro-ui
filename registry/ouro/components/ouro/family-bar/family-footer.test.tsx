@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import type { FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { FamilyFooter, type FamilyFooterProps } from "@/registry/ouro/components/ouro/family-bar/family-footer";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -109,6 +109,17 @@ describe("FamilyFooter", () => {
     const docs = footer.querySelector('[aria-current="true"]')!;
     expect(docs.getBoundingClientRect().width).toBeLessThan(boxes[1]!.left - boxes[0]!.left);
     for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
+  });
+
+  it("keeps only the current site's underline under forced colours, which drop colour, as the bar does", async () => {
+    const { link } = await render(<FamilyFooter links={sites} current="docs" />);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("underline");
+      expect(getComputedStyle(link("Guides")).textDecorationLine).toBe("none");
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("lets the site's extras fill the rest of the row, or a row of their own, to its end edge", async () => {
