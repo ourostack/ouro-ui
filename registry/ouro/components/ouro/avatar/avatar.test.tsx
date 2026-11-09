@@ -117,6 +117,19 @@ describe("Avatar", () => {
     expect(getComputedStyle(img).objectFit).toBe("cover");
   });
 
+  it("draws a picture already in the cache at full strength on its first frame, with no fade", async () => {
+    const cached = new Image();
+    cached.src = photo;
+    await cached.decode();
+    // Read as React commits, before any frame runs: Base UI marks it starting, which must draw nothing different.
+    const { avatar } = await render(<Avatar name="Ana Lind" src={photo} />);
+    const img = avatar.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(getComputedStyle(img!).opacity).toBe("1");
+    expect(getComputedStyle(img!).transitionDuration).toBe("0s");
+    expect(img!.getAnimations()).toHaveLength(0);
+  });
+
   it("falls back to initials when the image fails", async () => {
     const { avatar } = await render(<Avatar name="Ana Lind" src={broken} />);
     await expect.poll(() => avatar.getAttribute("data-image")).toBe("error");

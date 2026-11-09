@@ -2,7 +2,7 @@
 
 # Avatar
 
-A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), and `shape="square"` marks a team, a channel, an app or a bot, and `shape="hexagon"` an AI agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in once it loads.
+A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), and `shape="square"` marks a team, a channel, an app or a bot, and `shape="hexagon"` an AI agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture replaces them at full strength the moment it loads, with no fade: a picture already in the browser's cache is there on the avatar's first frame.
 
 ```tsx
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
