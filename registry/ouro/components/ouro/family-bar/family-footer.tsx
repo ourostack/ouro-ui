@@ -6,17 +6,21 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import type { FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
-import { familyFooterClass, familyFooterLinkClass, familyFooterListClass, familyLinkClass, familyWarnings } from "@/registry/ouro/components/ouro/family-bar/family-bar-styles";
+import { familyExtrasClass, familyFooterClass, familyFooterLinkClass, familyFooterListClass, familyLinkClass, familyWarnings } from "@/registry/ouro/components/ouro/family-bar/family-bar-styles";
 
 /** Props for {@link FamilyFooter}. */
 export interface FamilyFooterProps {
   /** The family's sites, in order: the list the site's `FamilyBar` takes. */
   links: readonly FamilyLink[];
-  /** The `id` of the site being shown, marked as in the `FamilyBar`: `aria-current="true"`, the text colour and a bar under it. */
+  /** The `id` of the site being shown, marked as in the `FamilyBar`: `aria-current="true"`, the text colour and a primary underline. */
   current?: string | undefined;
   /** Names the footer's navigation for screen readers, apart from the bar's. It is not shown. @default "All sites" */
   label?: string | undefined;
-  /** The site's own extras, after the family's links: its Privacy and Terms links, a line about who makes it. */
+  /**
+   * The site's own extras, after the family's links: its Privacy and Terms links, a line about who makes it. They fill
+   * the rest of the row, or a row of their own, and sit at its end (at its start on a phone) until you spread them:
+   * `me-auto` on the first.
+   */
   children?: ReactNode;
   /** Layout only: margins, grid placement (`mt-auto`). Appearance classes warn in development. */
   className?: string | undefined;
@@ -95,7 +99,7 @@ export function FamilyFooter(props: FamilyFooterProps): JSX.Element {
         </ul>
       </nav>
       {children !== undefined && (
-        <div data-ouro-family-extras="" className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-base pointer-fine:text-sm">
+        <div data-ouro-family-extras="" className={familyExtrasClass}>
           {children}
         </div>
       )}

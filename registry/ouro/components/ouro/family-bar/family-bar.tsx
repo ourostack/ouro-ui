@@ -32,7 +32,7 @@ export interface FamilyBarProps {
   /** The family's sites, in order. Give every site the same list in the same order, so the bar reads the same on each. */
   links: readonly FamilyLink[];
   /**
-   * The `id` of the site being shown. Its link gets `aria-current="true"`, the text colour and a bar under it, so the mark
+   * The `id` of the site being shown. Its link gets `aria-current="true"`, the text colour and a primary underline, so the mark
    * is not colour alone.
    */
   current?: string | undefined;
@@ -56,7 +56,7 @@ const example = '<FamilyBar links={[{ id: "docs", label: "Docs", href: "/" }]} /
 
 /**
  * The slim strip above a site's own header that links every site of a family, the same links in the same order on each,
- * with the site being shown marked `aria-current="true"`, in the text colour with a bar under it. A labelled `<nav>` of
+ * with the site being shown marked `aria-current="true"`, in the text colour, underlined in the primary colour as Navbar marks the current page. A labelled `<nav>` of
  * plain links: the server HTML is the whole bar, so a page that never hydrates shows it as is. On a narrow screen the
  * row scrolls inside itself, never the page, and fades at the side that hides more links, so a name cut at the edge
  * reads as more to come. In browsers that support it the fade and the current site's link in view need no script.

@@ -2,7 +2,7 @@
 
 # NavigationMenu
 
-A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. Panels open on hover or click, move between each other without closing, and close on Escape, on an outside press and when a link is chosen. The current page is marked `aria-current="page"` and a bar at the start edge, distinct from hover and press highlights. Built on Base UI's Navigation Menu.
+A row of links where some open a panel of further links, each with a line of description: the navigation of a site with more pages than fit in a bar. Panels open on hover or click, move between each other without closing, and close on Escape, on an outside press and when a link is chosen. The current page is marked `aria-current="page"`, and the link of the section it is in `aria-current="true"`, both underlined in the primary colour, distinct from hover and press highlights. Built on Base UI's Navigation Menu.
 
 ```tsx
 import { NavigationMenu } from "@/registry/ouro/components/ouro/navigation-menu/navigation-menu";
@@ -42,7 +42,7 @@ Type: `NavigationMenuProps`.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `className` | `string` | Layout only: margins, grid placement (`ms-4`). Appearance classes warn in development. |
-| `currentPath` | `string` | The path of the page being shown, from your router (`useLocation().pathname`, or `usePathname()` in Next.js). The link to that path, or else the longest link above it, gets `aria-current="page"`, in the row or in a panel. |
+| `currentPath` | `string` | The path of the page being shown, from your router (`useLocation().pathname`, or `usePathname()` in Next.js). The link to that path gets `aria-current="page"`, in the row or in a panel; else the longest link above it, the section the page is in, gets `aria-current="true"`, so a screen reader hears one current page. |
 | `items` (required) | `readonly NavigationMenuItem[]` | The row's items, in order: links, and buttons that open a panel of links. |
 | `label` (required) | `string` | Names the navigation for screen readers ("Main"). It is not shown. |
 | `ref` | `Ref<HTMLElement>` | Reaches the rendered element. |

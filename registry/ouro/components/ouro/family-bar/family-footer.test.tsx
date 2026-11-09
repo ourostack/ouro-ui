@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import type { FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { FamilyFooter, type FamilyFooterProps } from "@/registry/ouro/components/ouro/family-bar/family-footer";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -64,11 +64,12 @@ describe("FamilyFooter", () => {
     expect([...footer.querySelectorAll("[aria-current]")]).toEqual([link("Docs")]);
     expect(link("Docs").getAttribute("aria-current")).toBe("true");
     expect(getComputedStyle(link("Docs")).color).not.toBe(getComputedStyle(link("Guides")).color);
-    expect(getComputedStyle(link("Docs"), "::after").borderBottomWidth).toBe("2px");
-    // A link at rest is underlined in the border colour; the current one carries its bar instead.
+    // A link at rest is underlined in the border colour, 1px; the current one in the primary colour, 2px, as in the bar.
     expect(getComputedStyle(link("Guides")).textDecorationLine).toBe("underline");
-    expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("none");
-    expect(getComputedStyle(link("Docs"), "::after").borderBottomWidth).toBe("2px");
+    expect(getComputedStyle(link("Guides")).textDecorationThickness).toBe("1px");
+    expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("underline");
+    expect(getComputedStyle(link("Docs")).textDecorationThickness).toBe("2px");
+    expect(getComputedStyle(link("Docs")).textDecorationColor).not.toBe(getComputedStyle(link("Guides")).textDecorationColor);
     const extras = footer.querySelector("[data-ouro-family-extras]")!;
     expect(nav.contains(link("Privacy"))).toBe(false);
     expect(extras.contains(link("Privacy"))).toBe(true);
@@ -108,6 +109,38 @@ describe("FamilyFooter", () => {
     const docs = footer.querySelector('[aria-current="true"]')!;
     expect(docs.getBoundingClientRect().width).toBeLessThan(boxes[1]!.left - boxes[0]!.left);
     for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
+  });
+
+  it("keeps only the current site's underline under forced colours, which drop colour, as the bar does", async () => {
+    const { link } = await render(<FamilyFooter links={sites} current="docs" />);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("underline");
+      expect(getComputedStyle(link("Guides")).textDecorationLine).toBe("none");
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("lets the site's extras fill the rest of the row, or a row of their own, to its end edge", async () => {
+    for (const [width, ownRow] of [[1024, false], [390, true]] as const) {
+      await page.viewport(width, 640);
+      const { footer } = await render(
+        <FamilyFooter links={sites.slice(0, 3)}>
+          <span className="me-auto">Made by Lantern</span>
+          <a href="/privacy">Privacy</a>
+        </FamilyFooter>,
+      );
+      const extras = footer.querySelector<HTMLElement>("[data-ouro-family-extras]")!.getBoundingClientRect();
+      const inner = footer.getBoundingClientRect().right - parseFloat(getComputedStyle(footer).paddingRight);
+      expect(Math.round(extras.right)).toBe(Math.round(inner));
+      // The site spreads its extras across the area: its last one reaches the end edge.
+      expect(Math.round(footer.querySelector('a[href="/privacy"]')!.getBoundingClientRect().right)).toBe(Math.round(inner));
+      const nav = footer.querySelector("nav")!.getBoundingClientRect();
+      expect(extras.top >= nav.bottom).toBe(ownRow);
+      if (ownRow) expect(Math.round(extras.left)).toBe(Math.round(nav.left));
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
   });
 
   it("routes a link to the site's own path through OuroProvider's linkComponent", async () => {

@@ -55,10 +55,10 @@ function RecipeForm() {
 function photo(sky: string, sun: string, land: string, water: string): string {
   return `data:image/svg+xml,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240">` +
-      `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky}"/><stop offset="1" stop-color="${sun}" stop-opacity="0.55"/></linearGradient></defs>` +
+      `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky}"/><stop offset="1" stop-color="${sun}"/></linearGradient></defs>` +
       `<rect width="320" height="240" fill="url(#s)"/><circle cx="218" cy="72" r="26" fill="${sun}"/>` +
       `<path d="M0 149 L70 86 L134 149 L192 106 L320 149 V240 H0 Z" fill="${land}"/>` +
-      `<rect y="149" width="320" height="91" fill="${water}" opacity="0.8"/></svg>`,
+      `<rect y="149" width="320" height="91" fill="${water}"/></svg>`,
   )}`;
 }
 

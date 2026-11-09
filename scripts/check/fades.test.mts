@@ -4,10 +4,10 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { EXIT } from "../../registry/ouro/check/check.ts";
-import { FADE_FIX, findFades, main, SCANNED, SKIPPED, scan } from "../../registry/ouro/check/fades.ts";
+import { FADE_FIX, findFades, main, SCANNED, SKIPPED, scan, WASH_FIX } from "../../registry/ouro/check/fades.ts";
 
-// The fade check (registry/ouro/check/fades.ts): every syntax a gradient mask is written in fails, the masks that fade
-// no picture pass with a reason, and the command exits as check.ts does. scripts/check.test.mjs runs this file under
+// The fade check (registry/ouro/check/fades.ts): every syntax a gradient mask is written in fails, and so does a wash over
+// a picture; the masks that fade no picture pass with a reason, and gradients with no overlay role pass, and the command exits as check.ts does. scripts/check.test.mjs runs this file under
 // Node's coverage with check.test.mts and holds fades.ts to 100%.
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -43,7 +43,7 @@ describe("the fade check", () => {
       '<img src="hero.jpg" alt="" style="mask-image: linear-gradient(to top, transparent, #000 40%)">',
     ];
     for (const text of planted) assert.deepEqual(lines(text), [1], text);
-    assert.deepEqual(findFades(planted[0]!, "app.css"), [{ file: "app.css", line: 1, declaration: "mask-image: linear-gradient(to bottom, #000 70%, transparent)" }]);
+    assert.deepEqual(findFades(planted[0]!, "app.css"), [{ file: "app.css", line: 1, kind: "mask", declaration: "mask-image: linear-gradient(to bottom, #000 70%, transparent)" }]);
   });
 
   test("finds a gradient mask in Tailwind: an arbitrary property or value, and every gradient mask utility, under any variant", () => {
@@ -138,6 +138,101 @@ describe("the fade check", () => {
     assert.deepEqual(lines(`/* fade-ok: fades text */\n.a { color: red; }\n${mask}`), [3]);
   });
 
+  test("finds a wash over a picture: a gradient that reaches transparent on a pseudo-element or a positioned layer, in a file with a picture", () => {
+    const planted: [string, number][] = [
+      ['.hero { background: url(hero.jpg) center / cover; }\n.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, #000a, transparent); }', 2],
+      ['<div><img src="a.jpg" alt="" /><div className="absolute inset-0 bg-gradient-to-t from-black/60" /></div>\n', 1],
+      ['<figure className="before:absolute before:inset-0 before:bg-linear-to-t before:from-black/50 before:to-transparent"><img src="a.jpg" alt="" /></figure>\n', 1],
+      ['<picture><img src="a.jpg" alt="" /></picture>\n<div className="absolute bg-radial from-white via-transparent to-white" />', 2],
+      ['<picture><img src="a.jpg" alt="" /></picture>\n<div className="absolute bg-linear-45 from-white to-black/0" />', 2],
+      ['<picture><img src="a.jpg" alt="" /></picture>\n<div className="absolute bg-linear-to-r to-white" />', 2],
+      ['<video src="a.mp4" />\n<div style={{ position: "absolute", inset: 0, background: "radial-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0))" }} />', 2],
+      ['<img src="a.jpg" alt="" className="peer" /><div className="absolute inset-0 bg-[linear-gradient(to_top,#0008,#0000)]" />\n', 1],
+      [".card { background-image: url(a.png); }\n.card::before { background: linear-gradient(#000, #00000000); }", 2],
+      ['<Image src={a} />\n<div className="absolute" style={{ background: "linear-gradient(hsla(0, 0%, 0%, 0.4), hsla(0,0%,0%,0))" }} />', 2],
+      ['<img src="a.jpg" />\n<style>.layer { position: fixed; background: conic-gradient(red, transparent); }</style>', 2],
+      ['<img src="a.jpg" />\n.hero::after { @apply absolute bg-linear-to-t from-black; }', 2],
+      ['<img src="a.jpg" />\n<div className="fixed inset-0 bg-linear-to-t from-black" />', 2],
+      ['<img src="a.jpg" />\n<div className="md:fixed inset-0 bg-linear-to-t from-black" />', 2],
+      ['<img src="a.jpg" />\nconst css = `.hero::after { inset: ${inset}px; background: repeating-linear-gradient(#000, transparent 4px); }`;', 2],
+    ];
+    for (const [text, line] of planted) assert.deepEqual(findFades(text, "x").map((fade) => [fade.line, fade.kind]), [[line, "wash"]], text);
+    assert.equal(findFades(planted[1]![0], "x")[0]!.declaration, "bg-gradient-to-t from-black/60");
+    assert.equal(findFades(planted[3]![0], "x")[0]!.declaration, "bg-radial from-white via-transparent to-white");
+    assert.equal(findFades(planted[0]![0], "x")[0]!.declaration, "linear-gradient(to top, #000a, transparent)");
+  });
+
+  test("finds a gradient named a wash, scrim, fade, veil or haze, with a picture in the file or without: the link-preview card's wash", () => {
+    // The wash that slipped through once: a positioned layer over a card whose picture is a url() background, in a script.
+    const card = [
+      "await page.setContent(`<style>",
+      "  .card { position: relative; background: url(${scene}) center / cover; }",
+      "  .wash { position: absolute; inset: 0; background:",
+      "    linear-gradient(to bottom, color-mix(in oklab, ${near} 88%, white) 0%, color-mix(in oklab, ${near} 62%, transparent) 22%, transparent 42%),",
+      '    linear-gradient(to ${card.side === "left" ? "right" : "left"}, color-mix(in oklab, ${near} 45%, transparent) 0%, transparent 45%); }',
+      '</style><div class="card"><div class="wash"></div></div>`);',
+    ].join("\n");
+    assert.deepEqual(lines(card), [4, 5]);
+    assert.deepEqual(lines(card.replace("url(${scene})", "${scene}")), [4, 5]);
+    const named = [
+      'const scrim = "linear-gradient(to top, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0))";',
+      ":root { --hero-haze: radial-gradient(white, transparent 70%); }",
+      ".photoVeil { background: linear-gradient(#fff0, #fff); }",
+      '<div className="fade-edge bg-linear-to-r from-transparent to-white" />',
+      "const style = { washes: 'linear-gradient(#000, transparent)' };",
+      ".wash { background: linear-gradient(#000, transparent)",
+      'const scrim = "linear-gradient(#000, transparent)',
+    ];
+    for (const text of named) assert.deepEqual(lines(text), [1], text);
+  });
+
+  test("passes a gradient with no overlay role or no clear stop: a painted sky, a glow, an opaque scrim, a layer on a page with no picture", () => {
+    const allowed = [
+      ".sky { background: linear-gradient(to bottom, #9cf, transparent); }",
+      '<img src="a.jpg" alt="" />\n<div className="bg-radial from-amber-200/60 to-transparent" />',
+      '<img src="a.jpg" alt="" />\n.glow { background: radial-gradient(circle, #fc6, transparent 70%); }',
+      '<img src="a.jpg" />\n<div className="absolute inset-0 bg-linear-to-t from-black/60 to-black/20" />',
+      ".badge::before { position: absolute; background: linear-gradient(red, transparent); }",
+      '<svg><use href="#a" /></svg>\n.x::after { background: linear-gradient(red, transparent); fill: url(#grad); }',
+      '<img src="a.jpg" />\n.bar::after { background: linear-gradient(red, blue); }',
+      '<img src="a.jpg" />\n.x::after { background: linear-gradient(rgb(10, 20, 0), red); }',
+      '<img src="a.jpg" />\n.faded-text { background: linear-gradient(#000, transparent); }',
+      '<div className="absolute bg-linear-to-t from-black" />',
+      // A file whose only url() is a font, a stylesheet or a cursor draws no picture.
+      '@import url("https://fonts.example.com/inter.css");\n.divider::after { position: absolute; background: linear-gradient(to right, transparent, #ccc, transparent); }',
+      "@font-face { font-family: Inter; src: url(inter.woff2); }\n.shimmer::after { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #fff8, transparent); }",
+      ".grab { cursor: url(hand.png), grab; }\n.x::after { background: linear-gradient(red, transparent); }",
+      // A hairline covers no picture.
+      '<img src="a.jpg" />\n.divider::after { position: absolute; inset-inline: 0; bottom: 0; height: 1px; background: linear-gradient(to right, transparent, #ccc, transparent); }',
+      '<img src="a.jpg" />\n<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-border to-transparent" />',
+      // A background fixed to the viewport is no layer over anything.
+      '<img src="a.jpg" />\n.sky { background: linear-gradient(#9cf, transparent) fixed; background-attachment: fixed; }',
+    ];
+    for (const text of allowed) assert.deepEqual(lines(text), [], text);
+  });
+
+  test("passes a wash that says why, on its line, in the comment above it, or at its rule's start, and only with a reason", () => {
+    assert.deepEqual(lines('<img src="a.jpg" />\n.hero::after { /* fade-ok: fades the caption band, not the picture */ background: linear-gradient(#000, transparent); }'), []);
+    assert.deepEqual(lines('<img src="a.jpg" />\n/* fade-ok: a glow over the caption, not the picture */\n.hero::after {\n  position: absolute;\n  background: linear-gradient(#000, transparent);\n}'), []);
+    assert.deepEqual(lines(".wash { /* fade-ok: tints a text panel */\n  background: linear-gradient(#000, transparent);\n}"), []);
+    assert.deepEqual(lines('<img src="a.jpg" />\n{/* fade-ok: fades the caption\'s backdrop */}\n<div className="absolute bg-linear-to-t from-black" />'), []);
+    assert.deepEqual(lines('<img src="a.jpg" />\n.hero::after { background: linear-gradient(#000, transparent); } /* fade-ok: */'), [2]);
+    assert.deepEqual(lines('<img src="a.jpg" />\n<div className="absolute bg-linear-to-t from-black" /> {/* fade-ok: */}'), [2]);
+  });
+
+  test("reads a mask's gradient as the mask's alone, on its own line too, opted out or not", () => {
+    assert.deepEqual(findFades(".fade {\n  mask-image:\n    linear-gradient(#000, transparent);\n}", "x").map((fade) => [fade.line, fade.kind]), [[2, "mask"]]);
+    const optedOut = '<img src="a.jpg" />\n.row::after {\n  position: absolute;\n  /* fade-ok: fades a scrolling row, not the picture */\n  mask-image:\n    linear-gradient(to right, #000 80%, transparent);\n}';
+    assert.deepEqual(lines(optedOut), []);
+  });
+
+  test("reports a line once, and a mask before a wash on it", () => {
+    assert.deepEqual(findFades('<img className="mask-b-from-50% absolute bg-linear-to-t from-black" />', "x").map((fade) => fade.kind), ["mask"]);
+    assert.deepEqual(findFades("<img src=\"a.jpg\" style=\"mask-image: linear-gradient(#000, transparent)\" />", "x").map((fade) => fade.kind), ["mask"]);
+    assert.deepEqual(findFades(".wash { background: linear-gradient(#000, transparent), linear-gradient(red, transparent); }", "x").length, 1);
+    assert.deepEqual(findFades('<img src="a.jpg" />\n<div className="absolute bg-[linear-gradient(#000,transparent)] bg-linear-to-t from-black" />', "x").map((fade) => fade.line), [2]);
+  });
+
   test("reports a line once, however many masks it holds, in line order, and shortens a long declaration", () => {
     const text = [
       ".a { color: red; }",
@@ -182,19 +277,26 @@ describe("the fade check's command", () => {
     const folder = tree({ "src/hero.css": ".hero {\n  mask-image: linear-gradient(to bottom, #000 70%, transparent);\n}\n", "src/ok.css": ".ok { color: red; }" });
     const result = await run(["src"], folder);
     assert.equal(result.code, EXIT.findings);
-    assert.equal(result.out, `src/hero.css:2: mask-image: linear-gradient(to bottom, #000 70%, transparent)\n  Fix: ${FADE_FIX}.\n\n1 gradient mask to fix.`);
+    assert.equal(result.out, `src/hero.css:2: mask-image: linear-gradient(to bottom, #000 70%, transparent)\n  Fix: ${FADE_FIX}.\n\n1 picture fade to fix.`);
     assert.match(FADE_FIX, /^end the picture on a hard edge, or put it on a solid band; if this mask fades text or controls rather than a picture, mark it `fade-ok: <why>`$/);
-    const two = tree({ "a.css": ".a { mask: linear-gradient(#000, transparent); }", "b.tsx": '<img className="mask-b-from-50%" />' });
+    assert.match(WASH_FIX, /^take the wash off the picture, and put words that need it on a solid band; if this gradient lies over no picture, mark it `fade-ok: <why>`$/);
+    const two = tree({
+      "a.css": ".a { mask: linear-gradient(#000, transparent); }",
+      "b.tsx": '<img className="mask-b-from-50%" />',
+      "c.mts": "const wash = `linear-gradient(#000, transparent)`;",
+    });
     const annotated = await run(["."], two, { GITHUB_ACTIONS: "true" });
     assert.equal(annotated.code, EXIT.findings);
     assert.match(annotated.out, /^::error file=a\.css,line=1,title=Picture fade::mask: linear-gradient\(#000, transparent\): end the picture/m);
     assert.match(annotated.out, /^::error file=b\.tsx,line=1,title=Picture fade::mask-b-from-50%: /m);
-    assert.match(annotated.out, /\n2 gradient masks to fix\.$/);
+    assert.match(annotated.out, /^c\.mts:1: linear-gradient\(#000, transparent\)\n {2}Fix: take the wash off the picture/m);
+    assert.match(annotated.out, /^::error file=c\.mts,line=1,title=Picture fade::linear-gradient\(#000, transparent\): take the wash off/m);
+    assert.match(annotated.out, /\n3 picture fades to fix\.$/);
   });
 
   test("exits 0 with nothing to fix", async () => {
     const folder = tree({ "a.css": ".a { mask-image: linear-gradient(#000, transparent); } /* fade-ok: fades a scrolling row */" });
-    assert.deepEqual(await run([folder]), { code: EXIT.ok, out: "No gradient masks without a fade-ok reason.", err: "" });
+    assert.deepEqual(await run([folder]), { code: EXIT.ok, out: "No picture fades without a fade-ok reason.", err: "" });
   });
 
   test("prints its usage for --help, exits 2 on a usage problem, and 1 when a file cannot be read", async () => {

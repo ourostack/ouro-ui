@@ -55,44 +55,40 @@ describe("Navbar current-page marks", () => {
     await commands.emulateMedia({ forcedColors: "none" });
   });
 
-  function assertMark(direction: "ltr" | "rtl", scope: Pick<typeof page, "getByRole"> = page) {
+  function assertMark(scope: Pick<typeof page, "getByRole"> = page) {
     const current = scope.getByRole("link", { name: "Recipes", exact: true }).element();
     const other = scope.getByRole("link", { name: "Cookbooks", exact: true }).element();
-    const marker = getComputedStyle(current, "::before");
-    expect(marker.content).toBe('""');
-    expect(parseFloat(marker.width)).toBe(2);
-    expect(parseFloat(marker.height)).toBeGreaterThan(0);
-    expect(marker.opacity).toBe("1");
-    expect(marker.visibility).toBe("visible");
-    expect(marker[direction === "rtl" ? "right" : "left"]).toBe("0px");
-    expect(getComputedStyle(other, "::before").content).toBe("none");
-    expect(isTransparent(getComputedStyle(current).backgroundColor)).toBe(true);
+    const mark = getComputedStyle(current);
+    expect(mark.textDecorationLine).toBe("underline");
+    expect(mark.textDecorationThickness).toBe("2px");
+    expect(mark.textDecorationColor).not.toBe(mark.color);
+    expect(mark.fontWeight).toBe("600");
+    expect(getComputedStyle(other).textDecorationLine).toBe("none");
+    expect(isTransparent(mark.backgroundColor)).toBe(true);
   }
 
+  it("keeps its underline in the system palette", async () => {
+    await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }]} currentPath="/recipes" />);
+    await commands.emulateMedia({ forcedColors: "active" });
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
+    const mark = getComputedStyle(page.getByRole("link", { name: "Recipes", exact: true }).element());
+    expect(mark.textDecorationLine).toBe("underline");
+    expect(mark.textDecorationThickness).toBe("2px");
+  });
+
   for (const direction of ["ltr", "rtl"] as const) {
-    it(`keeps its ${direction} start-edge mark visible in the system palette`, async () => {
-      document.documentElement.dir = direction;
-      await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }]} currentPath="/recipes" />);
-      await commands.emulateMedia({ forcedColors: "active" });
-      expect(matchMedia("(forced-colors: active)").matches).toBe(true);
-      const current = page.getByRole("link", { name: "Recipes", exact: true }).element();
-      const marker = getComputedStyle(current, "::before");
-      expect(marker[direction === "rtl" ? "borderRightWidth" : "borderLeftWidth"]).toBe("2px");
-      expect(marker.borderInlineStartColor).toBe(getComputedStyle(current).color);
-      expect(marker.borderInlineStartColor).not.toBe(getComputedStyle(current).backgroundColor);
-    });
-    it(`shows the ${direction} start-edge mark in its bar`, async () => {
+    it(`underlines the current page in its ${direction} bar, as FamilyBar marks the current site`, async () => {
       document.documentElement.dir = direction;
       await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }, { label: "Cookbooks", href: "/cookbooks" }]} currentPath="/recipes" />);
-      assertMark(direction);
+      assertMark();
     });
-    it(`keeps the ${direction} mark in its phone drawer`, async () => {
+    it(`keeps the ${direction} underline in its phone drawer`, async () => {
       document.documentElement.dir = direction;
       await page.viewport(390, 844);
       await render(<Navbar label="Main" items={[{ label: "Recipes", href: "/recipes" }, { label: "Cookbooks", href: "/cookbooks" }]} currentPath="/recipes" />);
       await userEvent.click(page.getByRole("button", { name: "Menu", exact: true }));
       await expect.element(page.getByRole("dialog")).toBeVisible();
-      assertMark(direction, page.getByRole("dialog"));
+      assertMark(page.getByRole("dialog"));
     });
   }
 });
@@ -137,12 +133,14 @@ describe("Navbar", () => {
     await expect.element(nav.getByRole("link", { name: "Cookbooks" })).toHaveAttribute("data-router");
   });
 
-  it("marks the current page from currentPath, also for a page under an item", async () => {
-    const { rerender } = await render(<Navbar label="Main" items={items} currentPath="/cookbooks" />);
+  it("marks the current page from currentPath, and the section a page under an item is in as current but not the page", async () => {
+    const { rerender } = await render(<Navbar label="Main" items={items} currentPath="/cookbooks/" />);
     await expect.element(page.getByRole("link", { name: "Cookbooks" })).toHaveAttribute("aria-current", "page");
     await expect.element(page.getByRole("link", { name: "Recipes" })).not.toHaveAttribute("aria-current");
     await rerender(<Navbar label="Main" items={items} currentPath="/recipes/12?step=2" />);
-    await expect.element(page.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "page");
+    // A screen reader hears one current page: the page itself, which a deeper page's own navigation marks.
+    await expect.element(page.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "true");
+    expect(getComputedStyle(page.getByRole("link", { name: "Recipes" }).element()).textDecorationLine).toBe("underline");
     await expect.element(page.getByRole("link", { name: "Cookbooks" })).not.toHaveAttribute("aria-current");
   });
 
@@ -192,6 +190,25 @@ describe("Navbar", () => {
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["Recipes", "Cookbooks", "Shopping list"]);
     await expect.element(nav.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "page");
     await expect.poll(() => Math.round(sheet.element().getBoundingClientRect().left)).toBe(0);
+  });
+
+  it("marks the section a page is in as current but not the page in the sheet too, and no other link", async () => {
+    await page.viewport(390, 844);
+    const { menuButton } = await render(<Navbar label="Main" items={items} currentPath="/recipes/12" />);
+    await userEvent.click(press(menuButton));
+    const nav = page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Main" });
+    await expect.element(nav.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "true");
+    await expect.element(nav.getByRole("link", { name: "Cookbooks" })).not.toHaveAttribute("aria-current");
+    await expect.element(nav.getByRole("link", { name: "Shopping list" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("lets an item's own current win over currentPath in the sheet too", async () => {
+    await page.viewport(390, 844);
+    const { menuButton } = await render(<Navbar label="Main" items={[items[0]!, { ...items[1]!, current: true }]} currentPath="/recipes" />);
+    await userEvent.click(press(menuButton));
+    const nav = page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Main" });
+    await expect.element(nav.getByRole("link", { name: "Cookbooks" })).toHaveAttribute("aria-current", "page");
+    await expect.element(nav.getByRole("link", { name: "Recipes" })).not.toHaveAttribute("aria-current");
   });
 
   it("builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens", async () => {

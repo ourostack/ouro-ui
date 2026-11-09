@@ -1,13 +1,13 @@
-export { familyBarClass, familyFooterClass, familyFooterLinkClass, familyFooterListClass, familyLinkClass, familyScrollerClass, familyWarnings };
+export { familyBarClass, familyExtrasClass, familyFooterClass, familyFooterLinkClass, familyFooterListClass, familyLinkClass, familyScrollerClass, familyWarnings };
 
 import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /**
  * A link in a FamilyBar or a FamilyFooter: regular weight in the muted foreground, so the family's chrome never
- * outweighs a site's own navigation. The current site's link is in the foreground with a bar under its text in the
- * primary colour, drawn as a border so that forced colours keep it. The focus outline is inset, inside the row that
- * scrolls. On a coarse pointer a link is at least 44px each way, so a site with a two-letter name is as easy to tap as
- * the rest.
+ * outweighs a site's own navigation. The current site's link is in the foreground, underlined in the primary colour:
+ * the mark Navbar and NavigationMenu give the current page, which forced colours keep. The focus outline is inset,
+ * inside the row that scrolls. On a coarse pointer a link is at least 44px each way, so a site with a two-letter name is
+ * as easy to tap as the rest.
  *
  * @claim "so the family's chrome never outweighs a site's own navigation" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > renders a labelled nav of the family's links in order, at regular weight, the current site marked with aria-current, the text colour and a bar under it)
  * @claim "On a coarse pointer a link is at least 44px each way, so a site with a two-letter name is as easy to tap as the rest." registry/ouro/components/ouro/family-bar/family-bar.touch.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.touch.test.tsx::FamilyBar and FamilyFooter on a phone > keep 44px targets with 16px text, a two-letter name too, also in landscape, and the page never scrolls sideways)
@@ -18,24 +18,28 @@ const familyLinkClass =
   "relative m-0 box-border inline-flex min-h-11 min-w-11 pointer-fine:min-h-8 pointer-fine:min-w-0 items-center justify-center rounded-md px-2.5 whitespace-nowrap no-underline select-none touch-manipulation " +
   "text-base pointer-fine:text-sm leading-5 font-normal text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:text-foreground active:text-foreground " +
-  "aria-[current=true]:text-foreground " +
-  "aria-[current=true]:after:pointer-events-none aria-[current=true]:after:absolute aria-[current=true]:after:inset-x-2.5 aria-[current=true]:after:bottom-1 " +
-  "aria-[current=true]:after:border-0 aria-[current=true]:after:border-b-2 aria-[current=true]:after:border-solid aria-[current=true]:after:border-primary aria-[current=true]:after:content-[''] " +
+  "aria-[current=true]:text-foreground aria-[current=true]:underline aria-[current=true]:decoration-primary aria-[current=true]:decoration-2 " +
+  "aria-[current=true]:underline-offset-5 aria-[current=true]:[text-decoration-skip-ink:none] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 /**
  * The FamilyBar's strip: one row on the page's own colour with a hairline under it, set apart from the site's own header
- * below it without a surface of its own, and clear of a phone's rounded corners.
+ * below it without a surface of its own, and clear of a phone's rounded corners. Its padding is the FamilyFooter's, and
+ * its first link's text, like the footer's, starts at the padding's edge, so a page's bar, logo and footer can share one
+ * column edge.
+ *
+ * @claim "its first link's text, like the footer's, starts at the padding's edge" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > starts its first link's text where the FamilyFooter's does, at the padding's edge, with the same padding, or after its brand)
  *
  * @internal
  */
 const familyBarClass =
   "box-border flex w-full min-w-0 items-center gap-2 border-0 border-b border-solid border-border bg-background text-foreground " +
-  "ps-[max(0.5rem,env(safe-area-inset-left,0px))] pe-[max(0.5rem,env(safe-area-inset-right,0px))]";
+  "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
 
 /**
  * The FamilyBar's row of links, which scrolls inside itself when it does not fit; a swipe comes to rest with a whole
- * link at its start, past the fade. A mouse and the keyboard scroll it exactly, without snapping. A finger swipes it, so on a coarse
+ * link at its start, past the fade. Without a brand before it, the row starts a link's padding before the bar's padding,
+ * so the first link's text starts at the padding's edge. A mouse and the keyboard scroll it exactly, without snapping. A finger swipes it, so on a coarse
  * pointer its scroll bar is hidden; a mouse wheel scrolls up and down, so on a fine pointer a thin, quiet scroll bar
  * stays to drag. Its scroll padding is as wide as the fade, and a link the keyboard focuses is brought clear of it,
  * outline and all.
@@ -45,20 +49,23 @@ const familyBarClass =
  * @internal
  */
 const familyScrollerClass =
-  "@container min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain pointer-coarse:snap-x pointer-coarse:snap-proximity scroll-px-8 " +
+  "@container min-w-0 flex-1 first:-ms-2.5 overflow-x-auto overflow-y-hidden overscroll-x-contain pointer-coarse:snap-x pointer-coarse:snap-proximity scroll-px-8 " +
   "[scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] pointer-coarse:[scrollbar-width:none]";
 
 /**
  * A link in a FamilyFooter's list: a FamilyBar link that looks like a link at rest, underlined in the border colour and
- * in its own colour on hover; the current site's link keeps its bar instead. In a narrow footer the links fill even
- * columns, a whole row each 44px tall, rather than wrapping into ragged lines; a long name wraps inside its column.
+ * in its own colour on hover; the current site's link is underlined in the primary colour, as in the bar. Forced colours
+ * paint the links in the link colour, so there the current site's link alone keeps its underline, as in the bar. In a
+ * narrow footer the links fill even columns, a whole row each 44px tall, rather than wrapping into ragged lines; a long
+ * name wraps inside its column.
  *
+ * @claim "Forced colours paint the links in the link colour, so there the current site's link alone keeps its underline" registry/ouro/components/ouro/family-bar/family-footer.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-footer.test.tsx::FamilyFooter > keeps only the current site's underline under forced colours, which drop colour, as the bar does)
  * @claim "In a narrow footer the links fill even columns, a whole row each 44px tall" registry/ouro/components/ouro/family-bar/family-footer.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-footer.test.tsx::FamilyFooter > lays its links in even columns of 44px rows on a narrow screen instead of ragged lines, and never scrolls sideways)
  *
  * @internal
  */
 const familyFooterLinkClass =
-  "underline decoration-border decoration-1 underline-offset-4 pointer-fine:hover:decoration-current aria-[current=true]:no-underline " +
+  "underline decoration-border decoration-1 underline-offset-4 pointer-fine:not-aria-[current=true]:hover:decoration-current forced-colors:not-aria-[current=true]:no-underline " +
   "max-sm:min-h-11 max-sm:pointer-fine:min-h-11 max-sm:max-w-full max-sm:justify-start max-sm:whitespace-normal max-sm:text-start";
 
 /**
@@ -77,6 +84,18 @@ const familyFooterListClass =
 const familyFooterClass =
   "box-border flex w-full min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 border-0 border-t border-solid border-border bg-background py-4 text-muted-foreground " +
   "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
+
+/**
+ * The FamilyFooter's area for the site's own extras: it takes the rest of the row after the family's links, or a whole
+ * row of its own when it wraps, so the site lays out its extras across it, to the row's end edge. They sit at that end
+ * on a wide screen, and at the start on a phone, under the links, until the site spreads them: `me-auto` on the first.
+ *
+ * @claim "it takes the rest of the row after the family's links, or a whole row of its own when it wraps" registry/ouro/components/ouro/family-bar/family-footer.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-footer.test.tsx::FamilyFooter > lets the site's extras fill the rest of the row, or a row of their own, to its end edge)
+ *
+ * @internal
+ */
+const familyExtrasClass =
+  "flex min-w-0 flex-[1_1_auto] flex-wrap items-center justify-end gap-x-4 gap-y-1 text-base pointer-fine:text-sm max-sm:basis-full max-sm:justify-start";
 
 /**
  * The development messages FamilyBar and FamilyFooter share: a `current` that is not a link's id, and a repeated link id.
