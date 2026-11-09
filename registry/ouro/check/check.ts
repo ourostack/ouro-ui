@@ -647,17 +647,18 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       const active = list.filter((_, p) => unit(s, p));
       for (const theme of themes) {
         if (!active.length) continue;
-        const context = await contextFor(width, height, theme);
         const queue = [...active];
-        // A few pages at once, each in its own tab.
+        // A few pages at once, each in a browser context of its own, so what one saves (an app's last view, a dismissed
+        // banner) reaches no other and no state starts from another's.
         await Promise.all(
           Array.from({ length: Math.min(TABS, active.length) }, async () => {
-            const page = await context.newPage();
-            for (let target = queue.shift(); target; target = queue.shift()) await checkPage(page, target, width, height, theme);
-            await page.close();
+            for (let target = queue.shift(); target; target = queue.shift()) {
+              const context = await contextFor(width, height, theme);
+              await checkPage(await context.newPage(), target, width, height, theme);
+              await context.close();
+            }
           }),
         );
-        await context.close();
       }
     }
 
