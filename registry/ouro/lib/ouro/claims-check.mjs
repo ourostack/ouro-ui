@@ -128,7 +128,7 @@ const HOW_TO = {
 };
 
 /** Characters that draw nothing: a way to split a word the patterns look for. */
-const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t-\r\u0085])\p{Cc}/gu;
+const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t\n\r])\p{Cc}/gu;
 /** A hidden character may sit inside a word or stand between words, so text is read with them removed and with them as spaces. */
 const FILLER = INVISIBLE;
 
@@ -151,7 +151,8 @@ const maskQuote = (quote, plain, curly) => {
 /** Entities that draw nothing. */
 const HIDDEN_ENTITY = /&(?:shy|ZeroWidthSpace|zwj|zwnj|ZeroWidthNonJoiner|NoBreak|lrm|rlm|LeftToRightMark|RightToLeftMark|InvisibleTimes|InvisibleComma|ic|it|af|ApplyFunction|NegativeVeryThinSpace|NegativeThinSpace|NegativeMediumSpace|NegativeThickSpace);/;
 /** An HTML or JSX tag: a name, name=value attributes, and at most one bare attribute ("open"), so prose between a bare < and a later > is not one. */
-const TAG_SOURCE = String.raw`<\/?[A-Za-z][\w:.-]*(?:\s+[^\s=<>"'/]+=(?:"[^"]*"|'[^']*'|\{[^}<]{0,200}\}|[^\s<>"']+))*(?:\s+[^\s=<>"'/]+)?\s*\/?>`;
+const BOOLEAN_ATTRIBUTE = "allowfullscreen|async|autofocus|autoplay|checked|controls|default|defer|disabled|formnovalidate|hidden|inert|ismap|loop|multiple|muted|nomodule|novalidate|open|playsinline|readonly|required|reversed|selected";
+const TAG_SOURCE = String.raw`<\/?[A-Za-z][\w:.-]*(?:\s+(?:[^\s=<>"'/]+=(?:"[^"]*"|'[^']*'|\{[^}<]{0,200}\}|[^\s<>"']+)|\{\.\.\.[^}<]{0,200}\}|(?:${BOOLEAN_ATTRIBUTE})(?![\w:.-])))*(?:\s+[^\s=<>"'/]+)?\s*\/?>`;
 const TAG = new RegExp(TAG_SOURCE, "g");
 /** A run of tags between letters: they draw nothing, so they are hidden characters like any other. */
 const IN_WORD_MARKUP = new RegExp(String.raw`(?<=[\w\u200B])(?:${TAG_SOURCE})+(?=[\w\u200B])`, "g");
@@ -290,7 +291,8 @@ function parseEvidence(body) {
 // ---------------------------------------------------------------------------------------
 // Markdown
 
-const collapse = (text) => text.replace(/\s+/g, " ").trim();
+// The vertical tab, form feed and NEL are hidden characters (INVISIBLE), not spaces, so they stay for the checks to read.
+const collapse = (text) => text.replace(/[^\S\v\f\u0085]+/g, " ").trim();
 
 /** Splits Markdown into the units sentences come from: paragraphs, list items, headings and table cells. */
 function blocks(text) {

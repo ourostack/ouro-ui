@@ -49,7 +49,7 @@ const TRAILER = /^[\s*>-]*([a-z][a-z-]*-by)\s*:\s*(.+)$/i;
 /** Every line terminator, so no separator hides a trailer from the checks that read a line. */
 const LINE_TERMINATOR = /\r\n|[\n\r\u2028\u2029\u0085]/;
 /** Characters that draw nothing (zero-width spaces and joiners, soft hyphens, byte order marks, variation selectors, fillers, the blank braille cell): a way to split a name the checks look for. */
-const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t-\r\u0085])\p{Cc}/gu;
+const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t\n\r])\p{Cc}/gu;
 /** A hidden character may sit inside a word or stand between words, so a line is read with them removed and with them as spaces. */
 const FILLER = INVISIBLE;
 const GENERATED = /(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;
@@ -78,8 +78,8 @@ export function problems(commits) {
     if (dependabot && (files.length === 0 || stray.length > 0)) report("files", files.length === 0 ? "Dependabot's commit changes no file the check could read" : `Dependabot may change only dependency files (package.json, pnpm-lock.yaml, workflows and actions), not ${stray.join(", ")}`, REAUTHOR);
     if (!AUTHORS.includes(commit.authorEmail.toLowerCase())) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")})`, REAUTHOR);
     if (!COMMITTERS.includes(commit.committerEmail.toLowerCase())) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
-    commit.message.split(LINE_TERMINATOR).forEach((raw, index) => {
-      const field = `message line ${index + 1}`;
+    // A line is read with its hidden characters removed and as spaces. NEL is a line terminator and a hidden character at once, so a message is read split at it and, when it holds one, again whole.
+    const read = (raw, field) => {
       for (const line of [raw.replace(INVISIBLE, ""), raw.replace(FILLER, " ").replace(INVISIBLE, "")]) {
         const trailer = line.match(TRAILER);
         const own = (bump && trailer?.[1].toLowerCase() === "co-authored-by" && trailer[2].trim().toLowerCase() === DEPENDABOT_CREDIT) || (trailer && [RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER].includes(trailer[2].trim().toLowerCase()));
@@ -87,7 +87,10 @@ export function problems(commits) {
         const generated = line.match(GENERATED);
         if ((generated && AI_TOOL.test(generated[1])) || ROBOT_FOOTER.test(line)) return report(field, `"${raw.trim()}" says an AI tool wrote it`, REWORD);
       }
-    });
+    };
+    const before = found.length;
+    commit.message.split(LINE_TERMINATOR).forEach((raw, index) => read(raw, `message line ${index + 1}`));
+    if (found.length === before && commit.message.includes("\u0085")) commit.message.split(/\r\n|[\n\r\u2028\u2029]/).forEach((raw, index) => read(raw, `message line ${index + 1}`));
   }
   return found;
 }
