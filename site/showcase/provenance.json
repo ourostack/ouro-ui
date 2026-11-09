@@ -16,7 +16,7 @@
       "spoonjoy-xray-phone-light.webp",
       "spoonjoy-xray-phone-dark.webp"
     ],
-  "source": "https://spoonjoy.app/test-kitchen?xray",
+    "source": "https://spoonjoy.app/test-kitchen?xray",
     "captured": "2026-11-08",
     "method": "Playwright Chromium, 390x844 viewport at 2x as a touch phone, prefers-color-scheme light and dark, scrolled to 330 CSS px above the recipe's heading, cropped to y 92-1416 device px (780x1324) and saved as WebP quality 90",
     "why": "On a phone the wide capture shrank to a strip too small to read; the home page shows this one below 640px."
