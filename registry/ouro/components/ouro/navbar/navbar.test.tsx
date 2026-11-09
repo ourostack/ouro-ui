@@ -191,6 +191,16 @@ describe("Navbar", () => {
     await expect.poll(() => Math.round(sheet.element().getBoundingClientRect().left)).toBe(0);
   });
 
+  it("marks the section a page is in as current but not the page in the sheet too, and no other link", async () => {
+    await page.viewport(390, 844);
+    const { menuButton } = await render(<Navbar label="Main" items={items} currentPath="/recipes/12" />);
+    await userEvent.click(press(menuButton));
+    const nav = page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Main" });
+    await expect.element(nav.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "true");
+    await expect.element(nav.getByRole("link", { name: "Cookbooks" })).not.toHaveAttribute("aria-current");
+    await expect.element(nav.getByRole("link", { name: "Shopping list" })).not.toHaveAttribute("aria-current");
+  });
+
   it("builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens", async () => {
     await page.viewport(390, 844);
     const { menuButton } = await render(<Navbar label="Main" items={items} />);

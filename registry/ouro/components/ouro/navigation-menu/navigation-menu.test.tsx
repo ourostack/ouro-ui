@@ -90,6 +90,8 @@ describe("NavigationMenu current-page marks", () => {
       await userEvent.click(page.getByRole("button", { name: "Recipes" }));
       const current = page.getByRole("link", { name: /^Drafts/ });
       await expect.element(current).toBeVisible();
+      await expect.element(current).toHaveAttribute("aria-current", "page");
+      await expect.element(current).toHaveAttribute("data-active");
       const [label, description] = current.element().querySelectorAll("span");
       await assertMark(label!, page.getByRole("link", { name: "Browse" }).element(), direction);
       expect(getComputedStyle(label!).fontWeight).toBe("600");
@@ -231,6 +233,8 @@ describe("NavigationMenu", () => {
   it("marks the current page from currentPath, on a link and inside a panel, and a page's section as current but not the page", async () => {
     const top = await render(<NavigationMenu label="Main" items={items} currentPath="/pricing" />);
     await expect.element(page.getByRole("link", { name: "Pricing" })).toHaveAttribute("aria-current", "page");
+    // Base UI's active state, and its data-active, follow the page itself.
+    await expect.element(page.getByRole("link", { name: "Pricing" })).toHaveAttribute("data-active");
     expect(top.root.querySelector("[data-current]")).toBeNull();
     await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     mounted.splice(0).forEach((node) => node.remove());
@@ -242,6 +246,7 @@ describe("NavigationMenu", () => {
     await userEvent.click(trigger);
     // A page under a link: the link, its section, is current but not the page, so a screen reader hears one current page.
     await expect.element(page.getByRole("link", { name: /Drafts/ })).toHaveAttribute("aria-current", "true");
+    await expect.element(page.getByRole("link", { name: /Drafts/ })).not.toHaveAttribute("data-active");
     await expect.element(page.getByRole("link", { name: /Browse/ })).not.toHaveAttribute("aria-current");
     const label = page.getByRole("link", { name: /Drafts/ }).element().firstElementChild!;
     expect(getComputedStyle(label).textDecorationLine).toBe("underline");
