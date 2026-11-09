@@ -143,6 +143,7 @@ interface IndexPath {
  */
 const paths = new WeakMap<object, IndexPath[]>();
 const PATHS = 8;
+// Stryker disable next-line ObjectLiteral,ArrayDeclaration: the empty list's path is returned for having no first object; nothing reads its steps
 const noSteps: IndexPath = { steps: [] };
 
 /**
