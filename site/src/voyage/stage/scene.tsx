@@ -126,7 +126,7 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
     const gap = Math.abs(state.depth - before.current.depth);
     const small = gap > 0 && gap < STEP && same(state) === same(before.current);
     before.current = state;
-    // A small step waits out an earlier fade, and does not extend it.
+    // A small step waits out an earlier fade, and does not extend it. The first run, on mount, starts the wait too, so a step does not cut short whatever fades in as the page loads.
     if (!small) fading.current = performance.now() + FADE_MS;
     root.current?.toggleAttribute("data-stepping", small && performance.now() >= fading.current);
   }, [state]);
