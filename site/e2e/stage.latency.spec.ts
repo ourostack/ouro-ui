@@ -11,6 +11,9 @@ import { LATENCY, expectPressesWithinBudget, medianCeiling, type Presses } from 
 async function open(page: Page): Promise<void> {
   await page.goto("./");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  // The page opens in Ouro's meadow under the family bar and the header, the porthole below them; the stage judges the
+  // screen only once it is on it, so bring it up.
+  await page.evaluate(() => document.querySelector("[data-stage]")!.scrollIntoView({ block: "center", behavior: "instant" }));
   // Measured with the fish swimming: the stage has judged the screen fast enough for them.
   // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
   await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
