@@ -181,7 +181,11 @@ const controlClass =
   "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 pointer-fine:hover:bg-muted active:bg-muted";
-const rowClass = "gap-3 aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2";
+// A row eases into its hover and press colours, but opens and closes at once: the open row is drawn in its accent on the
+// first frame after it becomes current, and the row that closes, neither hovered nor pressed, drops it at once.
+const rowClass =
+  "gap-3 aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2 " +
+  "aria-[current=true]:transition-none [&:not(:hover):not(:active)]:transition-none";
 // The open row keeps its highlight under the pointer and while pressed: the plain rows' muted
 // hover would make it look closed. These replace controlClass's hover and press colours.
 const currentClass = "pointer-fine:hover:bg-accent active:bg-accent";

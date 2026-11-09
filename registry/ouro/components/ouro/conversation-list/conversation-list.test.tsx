@@ -95,6 +95,30 @@ describe("ConversationList", () => {
     expect(rows.some((row) => row.hasAttribute("aria-current"))).toBe(false);
   });
 
+  it("draws the row that opens in its accent on the first frame, and drops the one that closes at once, but eases into hover", async () => {
+    const { host, rows, rerender } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
+    const away = document.createElement("div");
+    away.style.height = "40px";
+    host.append(away);
+    await userEvent.hover(away);
+    await Promise.allSettled(rows.flatMap((row) => row.getAnimations()).map((animation) => animation.finished));
+    const probe = document.createElement("span");
+    probe.style.color = "var(--accent)";
+    host.append(probe);
+    const accent = getComputedStyle(probe).color;
+    const easing = (row: HTMLElement) => row.getAnimations().filter((animation) => (animation as CSSTransition).transitionProperty === "background-color");
+    await rerender(<ConversationList label="Conversations" items={items} selectedId="garden" onSelect={() => {}} />);
+    await new Promise((done) => requestAnimationFrame(done));
+    expect(getComputedStyle(rows[2]!).backgroundColor).toBe(accent);
+    expect(getComputedStyle(rows[1]!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect([...easing(rows[1]!), ...easing(rows[2]!)]).toEqual([]);
+    // Hover still eases in, where a fine pointer hovers.
+    if (matchMedia("(pointer: fine)").matches) {
+      await userEvent.hover(rows[0]!);
+      expect(easing(rows[0]!)).toHaveLength(1);
+    }
+  });
+
   it("keeps the open conversation highlighted under the pointer", async () => {
     const { host, rows } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
     const paint = (value: string) => {
