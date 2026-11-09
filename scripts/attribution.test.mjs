@@ -291,5 +291,7 @@ test("attribution sees through control characters hidden in a credit, and keeps 
     assert.equal(found(`Fix\n\nGenerated${hidden}with Claude`).length, 1, JSON.stringify(hidden));
   }
   assert.equal(found("Fix\twith a tab\n\nBody line.").length, 0);
+  for (const end of ["\u2028", "\u2029", "\u0085"]) assert.equal(found(`Fix${end}Co-authored-by: Claude <a@b.c>`).length, 1, JSON.stringify(end));
+  assert.equal(found("Fix\n\n\u0001Co-authored-by: Claude <a@b.c>\u0001").length, 1);
   assert.equal(found("Fix\r\n\nCo-authored-by: Claude <a@b.c>").length, 1);
 });

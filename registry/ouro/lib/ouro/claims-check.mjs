@@ -148,6 +148,10 @@ const maskQuote = (quote, plain, curly) => {
   return hasClaimWord(inner) || inner.trim().split(/\s+/).length > 6 ? quote : "§".repeat(quote.length);
 };
 
+/** Entities that draw nothing; and inline tags, with a short attribute list, or comments between letters. */
+const HIDDEN_ENTITY = /&(?:shy|ZeroWidthSpace|zwj|zwnj|ZeroWidthNonJoiner|NoBreak|lrm|rlm|LeftToRightMark|RightToLeftMark|InvisibleTimes|InvisibleComma|ic|it|af|ApplyFunction|NegativeVeryThinSpace|NegativeThinSpace|NegativeMediumSpace|NegativeThickSpace);/g;
+const IN_WORD_MARKUP = /(?<=[\w\u200B])(?:<\/?(?:wbr|span|b|i|u|s|em|strong|small|mark|code|kbd|samp|var|sub|sup|abbr|bdi|bdo|data|del|ins|q|time|font|a|br)(?:\s[^<>]{0,60})?\/?>|<!--(?:(?!-->)[\s\S])*-->)+(?=[\w\u200B])/gi;
+
 /** Code spans, template substitutions, links' targets and addresses: their digits and words are not prose. */
 function maskCode(text, fillersAsSpaces = false) {
   // Characters that draw nothing are a way to split a word the patterns look for, so they go first.
@@ -353,7 +357,7 @@ function blocks(text) {
 function maskBlock(text, definitions) {
   const markers = [];
   let masked = text
-    .replace(/(?<=\w)<!--[\s\S]*?-->(?=\w)/g, (match) => "\u200B".repeat(match.length))
+    .replace(/(?<=\w)<!--(?:(?!-->)[\s\S])*-->(?=\w)/g, (match) => "\u200B".repeat(match.length))
     .replace(/<!--[\s\S]*?-->/g, (match) => " ".repeat(match.length))
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
     .replace(/\$\{[^}]*\}/g, (span) => "§".repeat(span.length))
@@ -377,8 +381,8 @@ function maskBlock(text, definitions) {
   });
   // Invisible entities, and tags or comments inside a word, draw nothing: they are hidden characters like any other.
   masked = masked
-    .replace(/&(?:shy|ZeroWidthSpace|zwj|zwnj|NoBreak|lrm|rlm|InvisibleTimes|InvisibleComma|ApplyFunction|NegativeThinSpace);/g, (entity) => "\u200B".repeat(entity.length))
-    .replace(/(?<=\w)(?:<\/?[A-Za-z][^>]*>|<!--[\s\S]*?-->)+(?=\w)/g, (hidden) => "\u200B".repeat(hidden.length));
+    .replace(HIDDEN_ENTITY, (entity) => "\u200B".repeat(entity.length))
+    .replace(IN_WORD_MARKUP, (hidden) => "\u200B".repeat(hidden.length));
   masked = masked
     .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length))
     .replace(QUOTED, maskQuote)

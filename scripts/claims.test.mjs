@@ -923,6 +923,12 @@ test("the lint sees a claim through control characters and invisible HTML entiti
   for (const hidden of ["&shy;", "&ZeroWidthSpace;", "&zwj;", "&NoBreak;", "<wbr>", "<wbr/>", "<!-- -->", "<span></span>"]) {
     assert.equal(markdown(`It al${hidden}ways works.`), 1, hidden);
   }
+  for (const hidden of ["&ic;", "&ZeroWidthNonJoiner;", "&LeftToRightMark;", "<wbr>&shy;", "&shy;<wbr>", "<span class=\"x\">"]) {
+    assert.equal(markdown(`It al${hidden}ways works.`), 1, hidden);
+  }
+  // Prose between two in-word comments, or between a bare < and >, is still read.
+  assert.equal(markdown("a<!-- x --> always works <!-- y -->b."), 1);
+  assert.equal(markdown("Run<br>Next sentence. Always works."), 1);
   // A visible tag between words, and a clean sentence, are not changed.
   assert.equal(markdown("It works.<br>Run `pnpm test`."), 0);
   assert.equal(markdown("The tab\tand line\nbreaks stay: run it."), 0);
