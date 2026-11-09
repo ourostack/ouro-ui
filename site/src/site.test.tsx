@@ -54,7 +54,7 @@ describe("home page", () => {
     expect(heading.element().textContent).toBe(VOYAGE_HERO.title.join(" "));
     expect(page.getByRole("link", { name: "Come aboard", exact: true }).first().element().getAttribute("href")).toBe("/nautilus/");
     expect(document.body.innerText).not.toContain("compliant");
-    expect(page.getByRole("navigation", { name: "Footer" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
+    expect(page.getByRole("navigation", { name: "Ouro UI" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
   it("shows two ships, the Nautilus and Spoonjoy, as showcases, each with its way in and its X-ray", async () => {

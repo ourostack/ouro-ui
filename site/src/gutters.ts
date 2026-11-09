@@ -1,8 +1,8 @@
 /**
- * Side gutters for a full-width strip whose contents line up with a page's column: the voyage's 1200px column
- * (voyage/layout.tsx Container) or the docs' (components/layout.tsx Container). The header's bars and the footer use them.
+ * Side gutters for a full-width strip whose contents line up with the site's one column (75rem, 1200px at 16px:
+ * voyage/layout.tsx Container, which the docs share). The header's bars and the footer use them, on every page alike,
+ * so the logo, the family's links and the footer's start at the same place wherever you are; only the content inside
+ * the column changes. In rem, so the column grows with the type on a very wide screen (styles.css).
  */
-export const GUTTERS = {
-  voyage: "ps-[max(1rem,calc(50%-600px))] pe-[max(1rem,calc(50%-600px))] sm:ps-[max(2rem,calc(50%-600px))] sm:pe-[max(2rem,calc(50%-600px))]",
-  docs: "ps-[max(1rem,calc(50%-560px))] pe-[max(1rem,calc(50%-560px))] sm:ps-[max(1.5rem,calc(50%-554px))] sm:pe-[max(1.5rem,calc(50%-554px))] lg:ps-[max(2rem,calc(50%-544px))] lg:pe-[max(2rem,calc(50%-544px))]",
-} as const;
+const SITE = "ps-[max(1rem,calc(50%-37.5rem))] pe-[max(1rem,calc(50%-37.5rem))] sm:ps-[max(2rem,calc(50%-37.5rem))] sm:pe-[max(2rem,calc(50%-37.5rem))]";
+export const GUTTERS = { voyage: SITE, docs: SITE } as const;

@@ -172,7 +172,7 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
           page={current}
           // Both docs sections list their pages, as the sidebar does on a wide screen, each list folded under its name.
           more={{
-            Docs: (
+            Install: (
               <Folds
                 groups={[
                   { label: "Guides", links: guides.filter((link) => !isAxPart(link)).map((link) => ({ ...link, label: guideLabel(link.label) })) },

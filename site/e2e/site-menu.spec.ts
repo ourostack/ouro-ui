@@ -15,7 +15,7 @@ const PHONE = { width: 390, height: 844 };
  * own, then the family footer's ("All sites") and the site's. The family bar ("Sites") is hidden on a phone, where the
  * menu lists the family's sites.
  */
-const framed = (...own: string[]) => [...own, "All sites", "Footer"];
+const framed = (...own: string[]) => [...own, "All sites", "Ouro UI"];
 const PAGES: ReadonlyArray<{ path: string; navs: string[] }> = [
   { path: "./", navs: framed() },
   { path: "nautilus/", navs: framed("Chapters") },
@@ -302,7 +302,7 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   // real clock: focus stays in the field until something moves it; no timer does.
   await expect(field).toBeFocused();
   // It finds what the menu lists, and every component and guide.
-  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Docs"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Ouro HX"]] as const) {
+  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Install"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Ouro HX"]] as const) {
     await field.fill(query);
     await expect(page.getByRole("option", { name: new RegExp(`^${name}\\b`) }).first()).toBeVisible();
   }

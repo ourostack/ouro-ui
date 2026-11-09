@@ -4,22 +4,16 @@ import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FAMILY, FAMILY_CURRENT } from "../family";
 import { GUTTERS } from "../gutters";
-import { GITHUB, href } from "../paths";
+import { FOOTER_LINKS } from "../footer-links";
 
 /** The grid's container: 1200px of content, 32px sides from 640px up and 16px below. */
 export function Container({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
-  return <div className={cn("mx-auto w-full max-w-[1264px] px-4 sm:px-8", className)}>{children}</div>;
+  return <div className={cn("mx-auto w-full max-w-[79rem] px-4 sm:px-8", className)}>{children}</div>;
 }
 
 /** The voyage pages' footer: the Ouro family's sites (FamilyFooter, this one marked), then the site's own words and links. */
 export function VoyageFooter(): JSX.Element {
-  const links = [
-    { label: "Docs", url: href("/docs/installing/") },
-    { label: "Ouro HX", url: href("/docs/") },
-    { label: "Ouro AX", url: href("/ax/") },
-    { label: "Ouro UI on GitHub", url: GITHUB },
-    { label: "llms.txt", url: href("/llms.txt") },
-  ];
+  const links = FOOTER_LINKS;
   return (
     <footer>
       <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} className={`pt-6 pb-12 ${GUTTERS.voyage}`}>
@@ -38,7 +32,7 @@ export function VoyageFooter(): JSX.Element {
               Our drawings are our own.
             </p>
           </div>
-          <nav aria-label="Footer">
+          <nav aria-label="Ouro UI">
             <ul className="m-0 -ms-2 flex list-none flex-wrap gap-x-1 p-0">
               {links.map((link) => (
                 <li key={link.label}>

@@ -35,7 +35,7 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
     pages: APPLE_PAGES.slice(1).map((page) => ({ label: page.label, href: page.path })),
   },
   {
-    label: "Docs",
+    label: "Install",
     href: "/docs/installing/",
     hint: "Install it, switch to it, keep it fresh",
     pages: [
@@ -294,15 +294,15 @@ function FamilyLinks(): JSX.Element {
 /**
  * Around the menu, in the sheet: a close button a thumb can see, beside the sheet's title (the sheet's own Close,
  * which a keyboard and a screen reader reach, shows only on focus, so this one is for pointers and stays out of the
- * tab order), a fade under the title, so rows scroll away beneath it instead of being cut, and on a phone, beside the
+ * tab order), a hairline under the title that rows scroll away beneath, and on a phone, beside the
  * close button, the header's `tools` its bar has no room for.
  */
 export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
   // While the menu is up, the root says so, and the Nautilus's fish wait under it (stage.css). From the frame after the
   // sheet draws, so the press's own frame does not also restyle the fish.
-  const fade = useRef<HTMLDivElement>(null);
+  const edge = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
-  useSheetShown(fade, (on) => {
+  useSheetShown(edge, (on) => {
     const root = document.documentElement;
     cancelAnimationFrame(frame.current);
     if (!on) {
@@ -332,7 +332,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
           <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </SheetClose>
-      <div ref={fade} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
+      <div ref={edge} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-2 border-0 border-b border-solid border-border bg-popover" />
       {tools && <div className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-2 z-3 flex gap-1 sm:hidden">{tools}</div>}
       {children}
     </>

@@ -262,7 +262,7 @@ describe("the Nautilus's page", () => {
     expect(document.querySelector("[data-site-story-eyebrow]")!.textContent).toBe(NAUTILUS_PAGE.eyebrow);
     expect(document.querySelector("#story-title + p")!.textContent).toBe(`${NAUTILUS_PAGE.intro} ${NAUTILUS_PAGE.parts}`);
     expect(routeFor("/nautilus/")!.description.startsWith(NAUTILUS_PAGE.intro)).toBe(true);
-    const list = page.getByRole("list", { name: NAUTILUS_PAGE.chaptersLabel });
+    const list = page.getByRole("navigation", { name: NAUTILUS_PAGE.chaptersLabel }).getByRole("list");
     const items = list.getByRole("listitem").elements();
     expect(items.map((item) => item.textContent)).toEqual([
       "Chapter IBuild the shipStart here",

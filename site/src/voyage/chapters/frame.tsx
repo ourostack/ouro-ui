@@ -100,7 +100,7 @@ const MARKER = {
   top: "var(--site-header-h, 3.5rem)",
   zIndex: 30,
   marginBlockEnd: "1.5rem",
-  padding: "0.5rem max(1rem, calc(50% - 600px))",
+  padding: "0.5rem max(1rem, calc(50% - 37.5rem))",
   borderBlock: "1px solid color-mix(in oklab, var(--border) 70%, transparent)",
   background: "var(--background)",
 } as const;

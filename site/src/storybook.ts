@@ -29,9 +29,14 @@ export interface Scene {
   sun: readonly [number, number];
   /**
    * Where a short band of the wide scene sits, in percent down (CSS object-position): a docs page opens on about
-   * half the scene's height, framed on its friends' faces.
+   * three fifths of the scene's height, framed so its friends' heads are whole, Ouro's included.
    */
   band: number;
+  /**
+   * Where a page opener's shorter crop sits, in percent down (CSS object-position), when the default (42) would cut
+   * the picture's top edge through mountains or a friend's head rather than sky.
+   */
+  shortY?: number;
 }
 
 export const SCENES: Record<SceneName, Scene> = {
@@ -41,7 +46,7 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 576,
     phoneHeight: 432,
     sun: [86, 30],
-    band: 32,
+    band: 27,
   },
   "ouro-ui-apple": {
     alt: "A little white robot leans over a phone, a tablet and a laptop on a garden bench, each showing the same green card with a switch, while Ouro smiles beside them.",
@@ -49,7 +54,8 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 576,
     phoneHeight: 432,
     sun: [87, 11],
-    band: 24,
+    band: 29,
+    shortY: 20,
   },
   "ouro-ui-core": {
     alt: "Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.",
@@ -57,7 +63,7 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 576,
     phoneHeight: 576,
     sun: [86, 13],
-    band: 20,
+    band: 24,
   },
   "playwright-focus-proof": {
     alt: "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
@@ -65,7 +71,7 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 576,
     phoneHeight: 320,
     sun: [87, 28],
-    band: 50,
+    band: 61,
   },
   "ouroboros-skills": {
     alt: "A little robot reads an unrolled scroll beside a bookshelf full of ribboned scrolls and books, while Ouro hands another scroll to a second robot.",
@@ -73,7 +79,7 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 576,
     phoneHeight: 384,
     sun: [86, 16],
-    band: 40,
+    band: 49,
   },
   ourostack: {
     alt: "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
@@ -81,7 +87,7 @@ export const SCENES: Record<SceneName, Scene> = {
     height: 512,
     phoneHeight: 384,
     sun: [86, 12],
-    band: 50,
+    band: 65,
   },
 };
 

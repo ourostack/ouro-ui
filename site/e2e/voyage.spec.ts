@@ -233,7 +233,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
     ["link", "Ouro UI"],
     ["link", "The Nautilus"],
     ["link", "For Apple"],
-    ["link", "Docs"],
+    ["link", "Install"],
     ["link", "Ouro HX"],
     ["link", "Ouro AX"],
     ["link", "Ouro UI on GitHub"],

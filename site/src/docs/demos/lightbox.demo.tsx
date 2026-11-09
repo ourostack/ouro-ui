@@ -8,11 +8,11 @@ function photo(width: number, height: number, sky: string, sun: string, land: st
   const horizon = Math.round(height * 0.62);
   return `data:image/svg+xml,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
-      `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky}"/><stop offset="1" stop-color="${sun}" stop-opacity="0.55"/></linearGradient></defs>` +
+      `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky}"/><stop offset="1" stop-color="${sun}"/></linearGradient></defs>` +
       `<rect width="${width}" height="${height}" fill="url(#s)"/>` +
       `<circle cx="${Math.round(width * 0.68)}" cy="${Math.round(height * 0.3)}" r="${Math.round(Math.min(width, height) * 0.11)}" fill="${sun}"/>` +
       `<path d="M0 ${horizon} L${Math.round(width * 0.22)} ${Math.round(height * 0.36)} L${Math.round(width * 0.42)} ${horizon} L${Math.round(width * 0.6)} ${Math.round(height * 0.44)} L${width} ${horizon} V${height} H0 Z" fill="${land}"/>` +
-      `<rect y="${horizon}" width="${width}" height="${height - horizon}" fill="${water}" opacity="0.8"/>` +
+      `<rect y="${horizon}" width="${width}" height="${height - horizon}" fill="${water}"/>` +
       `</svg>`,
   )}`;
 }

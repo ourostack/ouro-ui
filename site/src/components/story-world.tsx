@@ -61,12 +61,13 @@ export function StoryWorld({
   /** A picture that only sets the scene, as on every docs page: screen readers skip it rather than hear it each time. */
   decorative?: boolean;
 }): JSX.Element {
-  const { sky, sun, band } = SCENES[scene];
+  const { sky, sun, band, shortY } = SCENES[scene];
   const style = {
     ...Object.fromEntries(sky.map((colour, index) => [`--story-sky-${index + 1}`, colour])),
     "--story-sun-x": `${sun[0]}%`,
     "--story-sun-y": `${sun[1]}%`,
     "--story-band-y": `${band}%`,
+    ...(shortY === undefined ? {} : { "--story-short-y": `${shortY}%` }),
   } as CSSProperties;
   return (
     <div className={cn("story-world", `story-world-${variant}`, className)} style={style}>

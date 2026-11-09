@@ -47,11 +47,10 @@ try {
   .words { position: absolute; top: 46px; ${card.side}: 60px; width: ${card.width ?? 560}px; text-align: ${card.side}; color: #2a1d38; text-shadow: ${halo}; }
   .kicker { font-size: 26px; font-weight: 600; letter-spacing: 0.01em; color: #4b3a59; }
   .title { margin-top: 10px; font-size: ${card.size ?? (card.title.length > 32 ? 48 : (card.width ?? 560) < 500 ? 54 : 60)}px; line-height: 1.04; font-weight: 700; letter-spacing: -0.03em; text-wrap: balance; }
-  .site { position: absolute; bottom: 26px; ${card.side}: 60px; font-size: 22px; font-weight: 600; color: white; text-shadow: 0 1px 12px rgb(42 29 56 / 0.7); }
+  .site { display: inline-block; margin-top: 18px; padding: 5px 14px; border-radius: 999px; background: ${near}; font-size: 20px; font-weight: 600; color: #2a1d38; text-shadow: none; }
 </style></head><body>
   <div class="card">
-    <div class="words"><div class="kicker">${escape(card.kicker)}</div><div class="title">${escape(card.title)}</div></div>
-    <div class="site">ui.ouroboros.bot</div>
+    <div class="words"><div class="kicker">${escape(card.kicker)}</div><div class="title">${escape(card.title)}</div><div class="site">ui.ouroboros.bot</div></div>
   </div>
 </body></html>`);
     await page.evaluate(() => document.fonts.ready);
