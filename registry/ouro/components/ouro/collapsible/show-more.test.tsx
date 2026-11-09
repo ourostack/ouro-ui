@@ -1104,6 +1104,22 @@ describe("ShowMore in its first frame", () => {
     expect(foldOf(fits).hasAttribute("data-folded")).toBe(false);
   });
 
+  it("has its button and fade in the first frame the browser paints, and nothing for what fits", async () => {
+    const long = committed(<ShowMore lines={2}>{longText}</ShowMore>);
+    const tall = committed(<ShowMore maxHeight={120}><Opaque /></ShowMore>);
+    const short = committed(<ShowMore lines={4}>Hi</ShowMore>);
+    const fits = committed(<ShowMore maxHeight={120}><Opaque height={20} /></ShowMore>);
+    // Read where the first frame's resize observers run: after the browser has laid the page out, before it paints.
+    const painted = await new Promise<boolean[]>((resolve) => {
+      const probe = new ResizeObserver(() => {
+        probe.disconnect();
+        resolve([!!toggle(long), !!toggle(tall), foldOf(tall).hasAttribute("data-folded"), !!toggle(short), !!toggle(fits), foldOf(fits).hasAttribute("data-folded")]);
+      });
+      probe.observe(document.body);
+    });
+    expect(painted).toEqual([true, true, true, false, false, false]);
+  });
+
   it("gives text that wraps more in a narrow box its button, once measured", async () => {
     const narrow = committed(
       <div style={{ width: 80 }}>

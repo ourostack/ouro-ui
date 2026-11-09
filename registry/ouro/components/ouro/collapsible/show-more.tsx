@@ -1,6 +1,7 @@
 "use client";
 
-import { isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
+import { flushSync } from "react-dom";
+import { isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type JSX, type MouseEvent, type ReactNode, type Ref } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -471,12 +472,13 @@ function ShowMoreText({
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
   // Folded by CSS in the first commit and in server HTML, with no button and no guess: a ResizeObserver reads after the
   // browser lays the text out and adds the button to text that overflows, so no instance makes the page lay out again.
+  // It starts in a layout effect and commits its answer at once, so the button is in the first frame the browser paints.
   const fitKey = measureKey === undefined ? undefined : `text:${lines}:${measureKey}`;
   // Stryker disable next-line ConditionalExpression: an unkeyed instance has nothing cached, so reading by an undefined key gives the same answer
   const [overflowing, setOverflowing] = useState(() => (fitKey === undefined ? undefined : fitCache.get(fitKey)) ?? false);
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
-  useEffect(() => {
+  useLayoutEffect(() => {
     const text = textRef.current!;
     const observer = new ResizeObserver(() => {
       // Clamped, whether it hides any; whole, whether it is taller than the lines it clamps to.
@@ -486,14 +488,14 @@ function ShowMoreText({
         // Stryker disable next-line EqualityOperator: a hidden line is many pixels, so > and >= differ only at a 1px rounding gap no text has
         const over = text.scrollHeight > text.clientHeight + 1;
         remember(fitKey, over);
-        setOverflowing(over);
+        flushSync(() => setOverflowing(over));
       } else {
         // A line height that is not a length (`normal`) cannot say, so the button stays: shown whole, it is the way back.
         // Stryker disable next-line EqualityOperator: as above, a line is many pixels.
         const over = lineHeight > 0 ? text.clientHeight > lineHeight * lines + 1 : true;
         // Stryker disable next-line all: a mount is always folded and measures again, so what an expanded one remembers only changes whether a later remount writes
         remember(fitKey, over);
-        setOverflowing(over);
+        flushSync(() => setOverflowing(over));
       }
     });
     observer.observe(text);
@@ -550,20 +552,21 @@ function ShowMoreHeight({
 } & ShowMoreOpenProps): JSX.Element {
   const [expanded, setExpanded] = useOpen(open, onOpenChange);
   // Unknown until the browser has laid the content out, so the first commit and server HTML are folded by CSS with no
-  // button and no guess: the ResizeObserver reads after layout and says whether it fits.
+  // button and no guess: the ResizeObserver reads after layout and says whether it fits. It starts in a layout effect and
+  // commits its answer at once, so the fade and the button are in the first frame the browser paints.
   const fitKey = measureKey === undefined ? undefined : `height:${maxHeight}:${measureKey}`;
   // Stryker disable next-line ConditionalExpression,LogicalOperator: an unkeyed instance has nothing cached; a cached answer is a boolean and `&& null` differs only by folding first, which the remount tests hold through the keyed path
   const [fits, setFits] = useState<boolean | null>(() => (fitKey === undefined ? undefined : fitCache.get(fitKey)) ?? null);
   const contentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const foldId = useId();
-  useEffect(() => {
+  useLayoutEffect(() => {
     const content = contentRef.current!;
     // The observer measures once as it starts, and again on every change of size.
     const observer = new ResizeObserver(() => {
       const fit = content.scrollHeight <= maxHeight * 1.2;
       remember(fitKey, fit);
-      setFits(fit);
+      flushSync(() => setFits(fit));
     });
     observer.observe(content);
     return () => observer.disconnect();
