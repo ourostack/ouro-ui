@@ -87,7 +87,9 @@ export const InContext: Story = {
 
 /** A site far along the row: on a phone the row starts with its link in view, in the middle once the page has loaded. */
 export const FarAlong: Story = {
-  args: { current: "community" },
+  // Each site at its own address, as a real family's are: an in-page link scrolled out of the row reads to axe as a
+  // skip link with no target.
+  args: { current: "community", links: links.map((link) => ({ ...link, href: `https://${link.id}.example.com/` })) },
   render: (args) => (
     <Surface>
       <FamilyBar {...args} />
