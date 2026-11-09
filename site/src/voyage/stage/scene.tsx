@@ -125,8 +125,10 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
     const last = before.current;
     if (last.state === state) return;
     const now = performance.now();
-    const step = state.depth !== last.state.depth && Math.abs(state.depth - last.state.depth) < STEP && sameBesidesDepth(last.state, state) && now >= last.fadingUntil;
-    before.current = { state, fadingUntil: step ? last.fadingUntil : now + FADE_MS };
+    const small = state.depth !== last.state.depth && Math.abs(state.depth - last.state.depth) < STEP && sameBesidesDepth(last.state, state);
+    // A small step that waits out an earlier fade starts no fade of its own, so it does not extend the wait.
+    const step = small && now >= last.fadingUntil;
+    before.current = { state, fadingUntil: small ? last.fadingUntil : now + FADE_MS };
     root.current?.toggleAttribute("data-stepping", step);
   }, [state]);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
