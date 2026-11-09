@@ -1,9 +1,10 @@
 import axe from "axe-core";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
 import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
+import { server } from "vitest/browser";
 
 // Ouro check's in-page side (ouro-check), in a real browser: for each rule a page that fails it and one that passes,
 // and the opt-outs. scripts/check.test.mjs runs the whole check on fixture pages in Chromium.
@@ -189,6 +190,95 @@ describe("findSizeIssues: blurry-image", () => {
     await Promise.all([...document.images].map((img) => img.decode()));
     await decodeImages();
     expect(await findSizeIssues({ density: 2 })).toMatchObject([{ rule: "blurry-image", element: "fixtures/picture-160.png" }]);
+  });
+});
+
+describe("findSizeIssues: blurry-image, for a video", () => {
+  // 590×330 frames, served from the repository.
+  const CLIP = new URL("../site/public/apple/media/hx-press.webm", import.meta.url).href;
+  const sized = (video: HTMLVideoElement) => (video.readyState >= 1 ? Promise.resolve() : new Promise((done) => video.addEventListener("loadedmetadata", done, { once: true })));
+  const videos = () => [...host.querySelectorAll("video")];
+  // A stream of 64×48 frames from a canvas: a video with no address at all.
+  const stream = () => {
+    const canvas = document.createElement("canvas");
+    [canvas.width, canvas.height] = [64, 48];
+    canvas.getContext("2d")!.fillRect(0, 0, 64, 48);
+    return canvas.captureStream();
+  };
+
+  it("finds a video drawn larger than its frames at the density, by how it fits (contain unless the page says)", async () => {
+    // Preflight holds a video to its box (max-width: 100%; height: auto), so each sets its own.
+    const box = "display:block;max-width:none;width:400px;height:300px";
+    render(`
+      <video src="${CLIP}" muted style="${box}"></video>
+      <video src="${CLIP}" muted style="${box};object-fit:cover"></video>
+      <video src="${CLIP}" muted style="${box};object-fit:fill"></video>
+      <video src="${CLIP}" muted style="${box};object-fit:none"></video>
+      <video src="${CLIP}" muted style="${box};object-fit:scale-down"></video>`);
+    await Promise.all(videos().map(sized));
+    const issues = await findSizeIssues({ density: 2 });
+    expect(issues.map((issue) => [issue.rule, issue.element, issue.detail])).toEqual([
+      ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 800px wide"],
+      ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 1073px wide"],
+      ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 1073px wide"],
+      ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 1180px wide"],
+      ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 800px wide"],
+    ]);
+    expect(videos()[0]!.getAttribute("data-ouro-check-ref")).toBe(issues[0]!.ref);
+    expect(await findSizeIssues({ density: 1 })).toEqual([]);
+  });
+
+  it("asks a video that hasn't loaded its size (preload none) on a video of its own, by its src or its source", async () => {
+    const blob = URL.createObjectURL(await (await fetch(CLIP)).blob());
+    urls.push(blob);
+    render(`<video src="${CLIP}" preload="none" style="display:block;width:400px;height:300px"></video>`);
+    // Called at once, before the video has chosen its source, so the size comes from its src.
+    expect(await findSizeIssues({ density: 2 })).toMatchObject([{ rule: "blurry-image", element: "media/hx-press.webm", detail: "a video drawn 400×300 from 590×330 frames; at 2x it needs 800px wide" }]);
+    host.innerHTML = `<video preload="none" aria-label="A demo" style="display:block;width:400px;height:300px"><source src="${blob}" type="video/webm"></video>`;
+    expect(await findSizeIssues({ density: 2 })).toMatchObject([{ rule: "blurry-image", element: 'video "A demo"' }]);
+  });
+
+  // Ouro check runs in Chromium. WebKit on Linux gives a canvas stream no size until it plays, and plays only from a press.
+  it.skipIf(server.browser !== "chromium")("names a video playing a stream by a source it lists, or by its words when it has no address", async () => {
+    render(`
+      <video muted style="display:block;width:200px;height:150px"><source src="${CLIP}"></video>
+      <video src="${CLIP}" muted style="display:block;width:200px;height:150px"></video>
+      <video muted aria-label="A live feed" style="display:block;width:200px;height:150px"></video>
+      <video muted style="display:block;width:200px;height:150px"></video>`);
+    for (const video of videos()) video.srcObject = stream();
+    await Promise.all(videos().map(sized));
+    expect(videos().map((video) => video.currentSrc)).toEqual(["", "", "", ""]);
+    expect((await findSizeIssues({ density: 1 })).map((issue) => [issue.element, issue.detail])).toEqual([
+      ["media/hx-press.webm", "a video drawn 200×150 from 64×48 frames; at 1x it needs 200px wide"],
+      ["media/hx-press.webm", "a video drawn 200×150 from 64×48 frames; at 1x it needs 200px wide"],
+      ['video "A live feed"', "a video drawn 200×150 from 64×48 frames; at 1x it needs 200px wide"],
+      ["video", "a video drawn 200×150 from 64×48 frames; at 1x it needs 200px wide"],
+    ]);
+  });
+
+  it("leaves out a video that gives no size within 3 s", async () => {
+    render(`<video src="${new URL("../scripts/check/fixtures/missing.webm", import.meta.url).href}" preload="none" style="display:block;width:400px;height:300px"></video>`);
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    try {
+      const found = findSizeIssues({ density: 2 });
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(await found).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("passes sharp, small, hidden, allowed and empty videos", async () => {
+    const box = "display:block;width:200px;height:150px";
+    render(`
+      <video src="${CLIP}" muted style="${box}"></video>
+      <video src="${CLIP}" muted style="display:block;width:60px;height:40px;object-fit:fill"></video>
+      <video src="${CLIP}" muted hidden style="${box};object-fit:none"></video>
+      <span data-size-ignore="a soft backdrop on purpose"><video src="${CLIP}" muted style="${box};object-fit:none"></video></span>
+      <video src="${CLIP}" muted data-ouro-allow="blurry-image" data-ouro-allow-why="a soft backdrop on purpose" style="${box};object-fit:none"></video>
+      <video muted style="${box}"></video>`);
+    await Promise.all(videos().filter((video) => video.src).map(sized));
+    expect(await findSizeIssues({ density: 2 })).toEqual([]);
   });
 });
 

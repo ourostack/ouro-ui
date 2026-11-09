@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repaints at rest: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}</style>
+<style>@keyframes march{to{stroke-dashoffset:-20}}@keyframes shimmer{to{background-position:200px 0}}.flow{stroke:#57a;stroke-width:3;fill:none;stroke-dasharray:6 4;animation:march 1s linear infinite}.shimmer{height:40px;background:linear-gradient(90deg,#eee,#ddd,#eee) 0 0/200px 100%;animation:shimmer 1.2s linear infinite}</style>
+<main><h1>Repaints at rest</h1><p>A plan map whose links march and whose cards shimmer for ever.</p><svg width="320" height="80" role="img" aria-label="A link between two steps"><path class="flow" d="M10 40 H310"/></svg><div class="shimmer"></div></main>

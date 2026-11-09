@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jank: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:60rem;margin:0 auto}</style>
+<style>.cards{display:flex;flex-wrap:wrap;gap:16px}.card{display:block;width:240px;min-height:100px;padding:16px;border-radius:12px;background:#eef;color:inherit;text-decoration:none}.grow{display:none;height:300px}.card:hover .grow{display:block}.spacer{height:1200px}</style>
+<main><h1>Jank</h1><p>A plan map whose cards measure every card on hover, whose card grows under the pointer, and whose panel holds the page as it opens.</p>
+<div class="cards"><a class="card" id="thrash" href="#thrash">Measures every card on hover</a><a class="card" id="growing" href="#growing">Grows on hover<span class="grow"></span></a><div class="card">Step three</div><div class="card">Step four</div><div class="card">Step five</div><div class="card">Step six</div></div>
+<p>What comes after the cards: the plan's notes, which move down when a card grows.</p><p>More notes.</p>
+<button id="open" type="button" aria-expanded="false">Show the plan</button><div id="panel" hidden>The plan.</div>
+<div class="spacer"></div></main>
+<script>
+const thrash = document.getElementById("thrash");
+thrash.addEventListener("mouseenter", () => {
+  for (let i = 0; i < 120; i++) {
+    thrash.style.paddingTop = `${16 + (i % 2)}px`;
+    void thrash.offsetHeight;
+  }
+});
+const open = document.getElementById("open");
+open.addEventListener("click", () => {
+  const start = performance.now();
+  while (performance.now() - start < 400);
+  const shown = open.getAttribute("aria-expanded") === "true";
+  open.setAttribute("aria-expanded", String(!shown));
+  document.getElementById("panel").hidden = shown;
+});
+</script>

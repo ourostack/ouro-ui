@@ -1,4 +1,4 @@
-export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, LABELS, main, merge, parseArgs, RULES, SIZES, summary };
+export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues };
 export type { Budgets, CheckOptions, CheckResult, Finding, Gate, MergeOptions, Report };
 
 import { realpathSync } from "node:fs";
@@ -7,9 +7,11 @@ import { createRequire } from "node:module";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Browser, BrowserType, Page } from "playwright";
+import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
 import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
+import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
 import { findSizeIssues, type Measure, type PageIssue } from "./size-check.ts";
@@ -94,6 +96,7 @@ interface Budgets {
   inp: number;
   "layout-shift": number;
   "first-content": number;
+  jank: number;
 }
 
 interface Gate {
@@ -106,6 +109,8 @@ interface Gate {
   // Where long lines are checked, and against what: a page glob (two stars for all pages) holds the page's prose, a
   // CSS selector ("main .chat-message") holds what it matches. Without one the rule is off.
   measure?: Record<string, string>;
+  // false: walk nothing, so jank measures no page.
+  walk?: boolean;
 }
 
 interface CheckOptions {
@@ -125,6 +130,8 @@ interface CheckOptions {
   executablePath?: string;
   readyTimeout?: number;
   log?: (line: string) => void;
+  /** How the https rule asks a site: fetch, unless a test gives another. */
+  fetch?: typeof fetch;
 }
 
 interface MergeOptions {
@@ -162,6 +169,17 @@ const LABELS: Record<string, string> = {
   "layout-shift": "layout shift while loading",
   "first-content": "slow first content",
   inp: "slow press",
+  "giant-picture": "giant picture",
+  "cramped-heading": "cramped heading",
+  "nested-frame": "frame in a frame",
+  "baked-corner": "corner shows through",
+  "type-scale": "type scale",
+  "shadow-scale": "shadow scale",
+  "grey-on-colour": "grey on colour",
+  "heading-hierarchy": "heading hierarchy",
+  jank: "jank",
+  repaint: "repaints at rest",
+  https: "no HTTPS",
 };
 const RULES = Object.keys(LABELS);
 // The exit codes every Ouro tool shares (the Ouro AX kit's table: 0 ok, 1 error, 2 usage), and this tool's own 3. A
@@ -171,10 +189,30 @@ const EXIT = Object.freeze({ ok: 0, error: 1, usage: 2, findings: 3 });
 const HINTS: Record<string, string> = {
   "blurry-image": "often a wrong `sizes` on a cropped, height-driven image",
   "image-fade": "end the picture on a hard edge, or put it on a solid band",
+  "giant-picture": "show the work itself (the component, a screenshot) or a small picture beside the words, not a banner",
+  "cramped-heading": "give the heading room: more space above it than between it and what follows",
+  "nested-frame": "draw one frame: drop the inner border, or make the inner radius the outer one less the inset",
+  "baked-corner": "crop the recording to its content, or match the frame's radius to the window's and drop the frame's border",
+  "type-scale": "pick the sizes and weights from one scale",
+  "shadow-scale": "pick shadows from a few elevations",
+  "grey-on-colour": "use a shade of the background's own hue, or white at reduced opacity",
+  "heading-hierarchy": "size headings by rank: a heading under another is smaller",
+  jank: "batch layout reads before writes, animate transform and opacity, and keep hover from moving content",
+  repaint: "animate transform or opacity, outside SVG, or let the animation end",
+  https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
 // calls good, a 0.1 layout shift, 2500 ms to the largest content and 200 ms from a press to its paint.
-const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-content": 2500 });
+// jank's budget is the longest frame of a step, the median of its runs, from Ouro Feel; a step also fails when every run
+// forces more than MAX_FORCED layouts or moves the page by more than MAX_STEP_SHIFT.
+const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-content": 2500, jank: 250 });
+const MAX_FORCED = 50;
+const MAX_STEP_SHIFT = 0.01;
+// The walk: at most WALK_EACH states of each kind a page, each stepped WALK_RUNS times, at inp's size and theme.
+const WALK_EACH = 3;
+const WALK_RUNS = 3;
+// HSTS asks a year at least, as browsers' preload list does.
+const HSTS_MIN = 31536000;
 // inp presses at most this many controls a page, each PRESS_REPEAT times unless ouro-check.json says otherwise, at one
 // size and theme: a laptop's, or the widest given.
 const MAX_PRESSES = 24;
@@ -230,6 +268,40 @@ const measuresFor = (config: Gate, page: string): Measure[] =>
 const isGated = (config: Gate, page: string, rule: string) =>
   !Object.entries(config.waive ?? {}).some(([glob, rules]) => Boolean(rules[rule] ?? rules["*"]) && globToRegExp(glob.startsWith("/") ? glob : `/${glob}`).test(page));
 
+// The https rule, for a site on the web: http:// answers with a permanent redirect (301 or 308) to https://, and
+// https:// answers with Strict-Transport-Security of a year or more. A bare name's www. twin (or the bare name, for a
+// www. site) must move to https too, and answer there, when it answers at all. A local address has no certificate to check, and a site that does not
+// listen on http:// serves nothing over it.
+const LOCAL = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|.+\.localhost)(:\d+)?$/;
+async function transportIssues(host: string, ask: typeof fetch): Promise<{ element: string; detail: string }[]> {
+  if (LOCAL.test(host)) return [];
+  const issues: { element: string; detail: string }[] = [];
+  const get = (url: string) =>
+    ask(url, { redirect: "manual", signal: AbortSignal.timeout(10000) }).catch((problem: Error & { cause?: unknown }) => new Error(String(problem.cause ?? problem.message)));
+  const plain = async (name: string) => {
+    const response = await get(`http://${name}/`);
+    if (response instanceof Error) return false;
+    const location = response.headers.get("location") ?? "";
+    if ([301, 308].includes(response.status) && location.startsWith("https://")) return true;
+    const moves = response.status >= 300 && response.status < 400;
+    issues.push({ element: `http://${name}/`, detail: moves ? `moves to ${location || "nowhere"} with ${response.status}, not to https:// with a 301` : `answers ${response.status} over plain HTTP instead of moving to https://` });
+    return true;
+  };
+  const secure = async (name: string, twin: boolean) => {
+    const response = await get(`https://${name}/`);
+    if (response instanceof Error) return void issues.push({ element: `https://${name}/`, detail: `does not answer over HTTPS: ${response.message}` });
+    if (twin) return;
+    const age = /max-age=(\d+)/i.exec(response.headers.get("strict-transport-security") ?? "");
+    if (!age || Number(age[1]) < HSTS_MIN) issues.push({ element: `https://${name}/`, detail: age ? `Strict-Transport-Security max-age=${age[1]}, under a year` : "sends no Strict-Transport-Security" });
+  };
+  await plain(host);
+  await secure(host, false);
+  // A bare name (two labels) and its www. name are one site; a subdomain such as ui. has no twin.
+  const twin = host.startsWith("www.") ? host.slice(4) : host.split(".").length === 2 ? `www.${host}` : null;
+  if (twin && (await plain(twin))) await secure(twin, true);
+  return issues;
+}
+
 async function targetsOf(targets: string[], glob: string | undefined): Promise<{ list: Target[]; close: () => Promise<void> }> {
   const list: Target[] = [];
   const servers: { close: () => Promise<void> }[] = [];
@@ -274,7 +346,7 @@ async function open(page: Page, url: string, readyTimeout: number): Promise<{ fa
 }
 
 async function check(options: CheckOptions): Promise<CheckResult> {
-  const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log } = options;
+  const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
   const budgets: Budgets = { ...BUDGETS, ...config.budgets };
   const repeats = config.pressRepeat ?? PRESS_REPEAT;
   const { list, close } = await targetsOf(options.targets, options.pages);
@@ -323,10 +395,14 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     if (shot) earlier.set(f.closeUp, shot);
   }
 
-  const contextFor = async (width: number, height: number, theme: string) => {
-    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dprAt(width), colorScheme: theme as "light" | "dark", reducedMotion: "reduce" });
+  // Pages are checked with reduced motion, so a screenshot holds still; the walk moves as most people see a page.
+  const contextFor = async (width: number, height: number, theme: string, motion: "reduce" | "no-preference" = "reduce") => {
+    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dprAt(width), colorScheme: theme as "light" | "dark", reducedMotion: motion });
     await context.addInitScript(listenForReady, ["ouro:ready", ...readyEvents]);
-    if (measured) await context.addInitScript(listenForMeasures);
+    if (measured) {
+      await context.addInitScript(listenForMeasures);
+      await context.addInitScript(listenForMotion);
+    }
     return context;
   };
   // A finding, recorded, and photographed with its element outlined unless the page already has one of it or 40.
@@ -382,6 +458,80 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     }
     return found;
   };
+  // baked-corner: each picture and video as drawn, from its top, as far as the screen shows it, with the corners the
+  // screen shows of it.
+  const cornerShots = async (page: Page, height: number): Promise<CornerReading[]> => {
+    const readings: CornerReading[] = [];
+    for (const media of await page.evaluate(listCornerMedia, 12)) {
+      // Centred on the screen, or its top a quarter down when it is taller, clear of a fixed bar at the top; measured
+      // again once it has drawn, since the page may have moved.
+      await page.evaluate(`scrollTo({ top: ${media.box.y - Math.max(height / 4, (height - media.box.height) / 2)}, behavior: "instant" })`);
+      await page.evaluate(mediaDrawn, media.ref);
+      const { corners, clip } = await page.evaluate(shownCorners, media.ref);
+      // The rule needs two corners on the screen; a media scrolled out of view in a strip of its own shows none.
+      if (corners.length < 2) continue;
+      const shot = await page.screenshot({ clip, scale: "css" });
+      readings.push({ ref: media.ref, element: media.element, radius: media.radius, behind: media.behind, corners, shot: `data:image/png;base64,${shot.toString("base64")}` });
+    }
+    return readings;
+  };
+  // jank: steps through each state the page offers (hover a card, open and close a popup, scroll or pan a region)
+  // WALK_RUNS times, reading Ouro Feel's measures after each. A step fails when its median longest frame is over the
+  // budget, or every run forces more than MAX_FORCED layouts or shifts the page more than MAX_STEP_SHIFT, so one slow
+  // run on a busy machine does not make a finding.
+  const walk = async (page: Page, target: Target, width: number, height: number, theme: string) => {
+    let found = 0;
+    // At rest first, before anything is hovered or opened.
+    for (const issue of await page.evaluate(findRepaints)) {
+      found++;
+      await record(page, target, issue, width, height, theme);
+    }
+    const settle = () => page.waitForTimeout(400);
+    for (const step of await page.evaluate(markWalkables, { limit: WALK_EACH, never: NEVER_PRESS })) {
+      const runs: MotionReading[] = [];
+      for (let n = 0; n < WALK_RUNS; n++) {
+        // Away from everything, and two frames for the page to settle back, so each run starts from rest and aims at the
+        // target where it rests.
+        await page.mouse.move(0, 0);
+        await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
+        const point = step.page ? { x: width / 2, y: height / 2 } : await page.evaluate(pressPoint, { ref: step.ref, never: "[data-ouro-check-never-walk]" });
+        if (!point) break;
+        await page.evaluate(resetMotion);
+        // Straight to the target in one move, so the pointer's path hovers nothing else on the way.
+        if (step.kind === "hover") await page.mouse.move(point.x, point.y);
+        else if (step.kind === "open") {
+          await page.mouse.click(point.x, point.y);
+          await settle();
+          await page.keyboard.press("Escape");
+        } else if (step.kind === "pan") {
+          await page.mouse.move(point.x, point.y);
+          await page.mouse.down();
+          await page.mouse.move(point.x - 160, point.y - 80, { steps: 12 });
+          await page.mouse.up();
+        } else {
+          await page.mouse.move(point.x, point.y);
+          for (let w = 0; w < 6; w++) await page.mouse.wheel(step.axis === "x" ? 120 : 0, step.axis === "x" ? 0 : 120);
+        }
+        await settle();
+        runs.push(await page.evaluate(readMotion));
+      }
+      if (!runs.length) continue;
+      const frame = [...runs.map((r) => r.longestFrameMs)].sort((a, b) => a - b)[Math.floor(runs.length / 2)]!;
+      const forced = Math.min(...runs.map((r) => r.forcedLayouts));
+      const shift = Math.min(...runs.map((r) => r.shift));
+      const over = [
+        frame > budgets.jank ? `its longest frame took ${frame} ms (median of ${runs.length}; budget ${budgets.jank} ms)` : "",
+        forced > MAX_FORCED ? `it forced ${forced} layouts in its best run (keep to ${MAX_FORCED})` : "",
+        // Opening a disclosure moves what follows it on purpose, so an open step's shift isn't judged.
+        step.kind !== "open" && shift > MAX_STEP_SHIFT ? `it moved the page by a layout shift of ${shift} in its best run (keep to ${MAX_STEP_SHIFT})` : "",
+      ].filter(Boolean);
+      if (!over.length) continue;
+      found++;
+      const verb = { "hover": "hovering", open: "opening and closing", scroll: "scrolling", pan: "panning" }[step.kind];
+      await record(page, target, { ref: step.ref, rule: "jank", element: `${verb} ${step.element}`, detail: over.join("; "), value: frame, budget: budgets.jank, unit: "ms", samples: runs.map((r) => r.longestFrameMs) }, width, height, theme);
+    }
+    return found;
+  };
   const checkPage = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     const { failed, ready } = await open(page, target.url, readyTimeout);
     const issues: PageIssue[] = [];
@@ -399,6 +549,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await page.evaluate(decodeImages);
       issues.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
       issues.push(...(await page.evaluate(findImageFades)));
+      issues.push(...(await page.evaluate(findDesignIssues, {})));
+      issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
       if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
@@ -422,12 +574,28 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       pressed = await press(tab, target, width, height, theme);
       await own.close();
     }
-    const count = issues.length + pressed;
+    let walked = 0;
+    if (measured && !failed && config.walk !== false && inpAt === `${width}x${height} ${theme}`) {
+      const own = await contextFor(width, height, theme, "no-preference");
+      const tab = await own.newPage();
+      await open(tab, target.url, readyTimeout);
+      walked = await walk(tab, target, width, height, theme);
+      await own.close();
+    }
+    const count = issues.length + pressed + walked;
     log(`${count ? "✗" : "✓"} ${`${width}×${height}`.padEnd(9)} ${theme.padEnd(5)} ${pageOf(target)}${count ? `: ${count}` : ""}`);
     shots.push({ site: target.site, page: target.page, file, width, height, theme, count });
   };
 
   try {
+    // https, once a site, in the first shard.
+    if (k === 1) {
+      for (const host of new Set(list.map((t) => new URL(t.url).host))) {
+        for (const { element, detail } of await transportIssues(host, ask)) {
+          findings.push({ site: host, page: "/", width: sizes[0]![0], height: sizes[0]![1], theme: themes[0]!, rule: "https", element, detail, gated: isGated(config, "/", "https"), dpr: dprAt(sizes[0]![0]) });
+        }
+      }
+    }
     for (const [s, [width, height]] of sizes.entries()) {
       const active = list.filter((_, p) => unit(s, p));
       for (const theme of themes) {
@@ -653,10 +821,13 @@ const USAGE = `Usage: node lib/ouro/check/check.ts <url | built folder>… [opti
        node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config <file>]
 
 Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken and blurry
-pictures, pictures that fade into the page, pages that fail to load or draw, and serious accessibility problems, and
-long lines only where ouro-check.json declares a measure. It measures layout shift, first content and the presses the
-app lists against their budgets, and writes report.json, summary.md, a contact sheet per page and a captioned close-up
-per finding. merge joins the out folders of a sharded run into one.
+pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems,
+and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own
+corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one
+above it; and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
+and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page
+(hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a
+contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.
 
   --pages <glob>           only the built folder's pages the glob matches, such as "docs/**"
   --out <folder>           where the report goes (default ouro-check)

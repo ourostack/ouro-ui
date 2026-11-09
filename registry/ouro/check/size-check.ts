@@ -6,7 +6,8 @@ export type { Measure, PageIssue, SizeCheckOptions };
 //
 //   sideways-scroll  the page is wider than the screen; names the outermost elements that stick out
 //   clipped-text     a block of text cut off by its box: overflow, an ellipsis or a line clamp
-//   blurry-image     a raster picture drawn larger than its file's own pixels allow at the screen's density, at most 2
+//   blurry-image     a raster picture or a video drawn larger than its file's own pixels allow at the screen's density,
+//                    at most 2
 //   long-lines       only where the project declares a measure (`measures`): an element whose lines run past it
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and data-ouro-allow-why="<reason>"; an allow without
@@ -125,7 +126,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
   // pixels come from loading the chosen source into an Image of its own.
   // By its path's last two folders, never its host: a run's local server has a new port each time. A data: or blob:
   // picture has no lasting address, so it goes by its name.
-  const nameOf = (img: HTMLImageElement, src: string) => (/^(data|blob):/.test(src) ? `img${quoted(img)}` : new URL(src).pathname.split("/").filter(Boolean).slice(-2).join("/"));
+  const nameOf = (img: Element, src: string) => (/^(data|blob):/.test(src) ? `img${quoted(img)}` : new URL(src).pathname.split("/").filter(Boolean).slice(-2).join("/"));
   for (const img of document.images) {
     const src = img.currentSrc || img.src;
     // Loaded and empty: the file is missing or is no picture. (An SVG without a size of its own is empty too, so it is
@@ -152,6 +153,38 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
         rule: "blurry-image",
         element: nameOf(img, src),
         detail: `drawn ${Math.round(r.width)}×${Math.round(r.height)} from ${pw}×${ph}; at ${density}x it needs ${Math.ceil(pw * scale * density)}px wide`,
+      });
+    }
+  }
+
+  // Blurry videos: a video's frames are videoWidth × videoHeight pixels, drawn by object-fit (contain unless the page says
+  // otherwise). A video that has not loaded its size (preload="none", say) is asked for it on a video of its own, which
+  // loads only the metadata; one that gives no size in 3 s is left out.
+  for (const video of document.querySelectorAll("video")) {
+    if (optedOut(video, "blurry-image", ["data-size-ignore"]) || !shown(video)) continue;
+    const r = video.getBoundingClientRect();
+    if (r.width < minImage && r.height < minImage) continue;
+    const src = video.currentSrc || video.src || video.querySelector("source")?.src || "";
+    let [pw, ph] = [video.videoWidth, video.videoHeight];
+    if (!pw && src) {
+      const probe = document.createElement("video");
+      probe.muted = true;
+      probe.preload = "metadata";
+      probe.src = src;
+      await Promise.race([new Promise((done) => probe.addEventListener("loadedmetadata", done, { once: true })), new Promise((done) => setTimeout(done, 3000))]);
+      [pw, ph] = [probe.videoWidth, probe.videoHeight];
+      probe.removeAttribute("src");
+    }
+    if (!pw) continue;
+    const fit = getComputedStyle(video).objectFit;
+    const [sx, sy] = [r.width / pw, r.height / ph];
+    const scale = fit === "none" ? 1 : fit === "cover" || fit === "fill" ? Math.max(sx, sy) : Math.min(sx, sy);
+    if (scale * density > tolerance) {
+      issues.push({
+        ref: ref(video),
+        rule: "blurry-image",
+        element: /^(data|blob):/.test(src) || !src ? `video${quoted(video)}` : nameOf(video, src),
+        detail: `a video drawn ${Math.round(r.width)}×${Math.round(r.height)} from ${pw}×${ph} frames; at ${density}x it needs ${Math.ceil(pw * scale * density)}px wide`,
       });
     }
   }
