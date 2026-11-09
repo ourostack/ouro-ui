@@ -16,14 +16,8 @@ export interface SceneState {
   rings: number;
 }
 
-/** A change of depth smaller than this many fathoms is a step of the lever; a dive or a surfacing is larger. */
-const STEP = 30;
-
-/** What the picture shows besides the depth, as one string: its values are all primitives, so equal strings are equal states. */
-const same = (state: SceneState): string => String(Object.values({ ...state, depth: 0 }));
-
-/** How long a change fades in the picture (stage.css --stage-fade is the slow duration), with some to spare. */
-const FADE_MS = 700;
+/** The small-step marker, once the first press of the depth lever has loaded it (stepping.ts). */
+let markStep: typeof import("./stepping").markStep | undefined;
 
 /** A drawing from site/src/nautilus/art at a place and width in the scene, its height from its own proportions. */
 function Drawing({ of, x, y, width, className, inner = of.inner }: { of: Art; x: number; y: number; width: number; className?: string; inner?: string }): JSX.Element {
@@ -118,17 +112,10 @@ const PLAYBACK: Record<Speed, number> = { stop: 1, half: 1, full: 2.4 };
 export const Scene = memo(function Scene({ state, label, description, motto }: { state: SceneState; label: string; description: string; motto: string }): JSX.Element {
   const d = state.depth / MAX_DEPTH;
   const root = useRef<HTMLDivElement>(null);
-  // A press of the depth lever that changes nothing else is a small step, and its change is too small to need fading in (stage.css): a fade is an animation the page starts, runs and repaints for each step. A step that comes while an earlier change is still fading is no step, so it does not cut that fade short.
-  // It is set on the root before the browser works out the new style, so the step's transitions never start.
-  const before = useRef(state);
-  const fading = useRef(0);
+  // A small step of the depth lever is drawn without fading (stepping.ts, loaded with the lever's first press).
   useLayoutEffect(() => {
-    const gap = Math.abs(state.depth - before.current.depth);
-    const small = gap > 0 && gap < STEP && same(state) === same(before.current);
-    before.current = state;
-    // A small step waits out an earlier fade, and does not extend it. The first run, on mount, starts the wait too, so a step does not cut short whatever fades in as the page loads.
-    if (!small) fading.current = performance.now() + FADE_MS;
-    root.current?.toggleAttribute("data-stepping", small && performance.now() >= fading.current);
+    if (markStep) markStep(root.current, state);
+    else if (state.depth) void import("./stepping").then((module) => (markStep = module.markStep));
   }, [state]);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
   useEffect(() => {
