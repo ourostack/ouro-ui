@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { FamilyBar, type FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
@@ -62,8 +63,27 @@ describe("FamilyBar and FamilyFooter on a phone", () => {
     }
   });
 
-  it("hides the FamilyBar row's scroll bar from a finger, which swipes it", async () => {
+  it("drops the no-script fade when a phone turns and the row, scrolled to its end, now fits", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    host.innerHTML = renderToString(<FamilyBar links={sites} />);
+    const row = host.querySelector<HTMLElement>("[data-ouro-family-row]")!;
+    if (!CSS.supports("animation-timeline", "scroll()")) return;
+    const leftRamp = () => !getComputedStyle(row).maskPosition.trim().startsWith("-");
+    row.scrollLeft = row.scrollWidth;
+    await expect.poll(leftRamp).toBe(true);
+    await rotate(844, 390);
+    await expect.poll(() => innerWidth).toBe(844);
+    expect(row.scrollWidth - row.clientWidth).toBeLessThanOrEqual(1);
+    await expect.poll(leftRamp).toBe(false);
+  });
+
+  it("hides the FamilyBar row's scroll bar from a finger, which swipes it, and rests a swipe on a whole link", async () => {
     const host = await render(<FamilyBar links={sites} current="blog" />);
-    expect(getComputedStyle(host.querySelector("[data-ouro-family-row]")!).scrollbarWidth).toBe("none");
+    const row = host.querySelector("[data-ouro-family-row]")!;
+    expect(getComputedStyle(row).scrollbarWidth).toBe("none");
+    expect(getComputedStyle(row).scrollSnapType).toBe("x");
+    expect(getComputedStyle(row.querySelector("li")!).scrollSnapAlign).toBe("start");
   });
 });

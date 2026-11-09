@@ -29,7 +29,7 @@ Type: `FamilyFooterProps`.
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | The site's own extras, after the family's links: its Privacy and Terms links, a line about who makes it. |
 | `className` | `string` |  | Layout only: margins, grid placement (`mt-auto`). Appearance classes warn in development. |
-| `current` | `string` |  | The `id` of the site being shown, marked as in the `FamilyBar`: `aria-current="true"`, heavier text and a bar under it. |
+| `current` | `string` |  | The `id` of the site being shown, marked as in the `FamilyBar`: `aria-current="true"`, the text colour and a bar under it. |
 | `label` | `string` | `"All sites"` | Names the footer's navigation for screen readers, apart from the bar's. It is not shown. |
 | `links` (required) | `readonly FamilyLink[]` |  | The family's sites, in order: the list the site's `FamilyBar` takes. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |

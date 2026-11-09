@@ -99,6 +99,9 @@ describe("the fade check", () => {
       "// A mask: it fades nothing\nconst masked = mask;\nconst sky = 'linear-gradient(#9cf, #fff)';",
       "/* a mask: (don't fade it */",
       '<div className="[mask-image:url(shape.svg)] mask-[url(shape.svg)] mask-linearly" />',
+      // A style attribute's picture mask, then a gradient class on the same tag: the attribute ends at its quote.
+      '<div style="mask: url(/a.svg) center" class="bg-[linear-gradient(#000,#fff)]"></div>',
+      "<div style='-webkit-mask: url(/a.svg)' class=\"bg-[linear-gradient(#000,#fff)]\"></div>",
     ];
     for (const text of allowed) assert.deepEqual(lines(text), [], text);
   });
@@ -117,6 +120,22 @@ describe("the fade check", () => {
     assert.deepEqual(lines(".row { mask-image: linear-gradient(#000, transparent); } /* fade-ok: fades a row */\n.hero { mask-image: linear-gradient(#000, transparent); }"), [2]);
     // Windows line endings.
     assert.deepEqual(lines("// fade-ok: fades a row of links\r\n.row { mask-image: linear-gradient(#000, transparent); }\r\n.col { mask-image: linear-gradient(#000, transparent); } /* fade-ok: fades a column */\r\n"), []);
+  });
+
+  test("passes a gradient mask whose reason is anywhere in the comment just above it, a block comment's continuation lines too", () => {
+    const mask = ".row { mask-image: linear-gradient(to right, #000 90%, transparent); }";
+    assert.deepEqual(lines(`/* The row scrolls sideways;\n   fade-ok: it fades text, not a picture */\n${mask}`), []);
+    assert.deepEqual(lines(`/* fade-ok: fades text, not a picture,\n   the row of links that scrolls */\n${mask}`), []);
+    assert.deepEqual(lines(`/*\n * fade-ok: fades text, not a picture\n *\n */\n${mask}`), []);
+    assert.deepEqual(lines(`// fade-ok: fades text, not a picture\n// The row scrolls sideways.\n${mask}`), []);
+    assert.deepEqual(lines(`<!--\n  fade-ok: fades the hidden end of a row of tabs\n-->\n<div style="mask-image: linear-gradient(#000, transparent)"></div>`), []);
+    assert.deepEqual(lines(`{/*\n  fade-ok: fades a code block's hidden end\n*/}\n<pre className="mask-r-from-90%" />`), []);
+    // A comment that says no reason, or one that follows code, says nothing for the line after it.
+    assert.deepEqual(lines(`/* The row scrolls sideways,\n   and fades. */\n${mask}`), [3]);
+    assert.deepEqual(lines(`.a { color: red; } /* fade-ok: about the line it is on */\n${mask}`), [2]);
+    assert.deepEqual(lines(`.a { color: red; } /* fade-ok: about the line\n   it is on */\n${mask}`), [3]);
+    assert.deepEqual(lines(`.a { color: red; }\n// The row scrolls.\n${mask}`), [3]);
+    assert.deepEqual(lines(`/* fade-ok: fades text */\n.a { color: red; }\n${mask}`), [3]);
   });
 
   test("reports a line once, however many masks it holds, in line order, and shortens a long declaration", () => {

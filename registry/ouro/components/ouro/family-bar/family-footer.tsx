@@ -6,13 +6,13 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import type { FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
-import { familyFooterClass, familyLinkClass, familyWarnings } from "@/registry/ouro/components/ouro/family-bar/family-bar-styles";
+import { familyFooterClass, familyFooterLinkClass, familyFooterListClass, familyLinkClass, familyWarnings } from "@/registry/ouro/components/ouro/family-bar/family-bar-styles";
 
 /** Props for {@link FamilyFooter}. */
 export interface FamilyFooterProps {
   /** The family's sites, in order: the list the site's `FamilyBar` takes. */
   links: readonly FamilyLink[];
-  /** The `id` of the site being shown, marked as in the `FamilyBar`: `aria-current="true"`, heavier text and a bar under it. */
+  /** The `id` of the site being shown, marked as in the `FamilyBar`: `aria-current="true"`, the text colour and a bar under it. */
   current?: string | undefined;
   /** Names the footer's navigation for screen readers, apart from the bar's. It is not shown. @default "All sites" */
   label?: string | undefined;
@@ -77,8 +77,8 @@ export function FamilyFooter(props: FamilyFooterProps): JSX.Element {
 
   return (
     <div ref={ref} data-ouro="family-footer" className={cn(familyFooterClass, className)}>
-      <nav aria-label={label} className="min-w-0">
-        <ul className="m-0 -ms-2.5 flex list-none flex-wrap items-center gap-x-0.5 p-0">
+      <nav aria-label={label} className="min-w-0 max-sm:w-full">
+        <ul className={familyFooterListClass}>
           {links.map((link, index) => (
             <li key={index} className="flex">
               <RouterLink
@@ -86,7 +86,7 @@ export function FamilyFooter(props: FamilyFooterProps): JSX.Element {
                 aria-current={link.id === current ? "true" : undefined}
                 data-ouro-control="family-footer"
                 data-ouro-part="link"
-                className={familyLinkClass}
+                className={cn(familyLinkClass, familyFooterLinkClass)}
               >
                 {link.label}
               </RouterLink>
