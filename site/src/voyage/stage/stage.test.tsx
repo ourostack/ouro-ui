@@ -163,6 +163,27 @@ describe("the stage's controls", () => {
     await expect.poll(lastLog).toContain(LOG.band.sunlit.text);
   });
 
+  it("fades the picture in for a jump of the depth lever and not for a step, or for a step that comes with another change", async () => {
+    await renderPage("/");
+    const depth = page.getByRole("slider", { name: "Depth" });
+    (depth.element() as HTMLElement).focus();
+    // The first press down also starts the first stream of bubbles, so it is no plain step.
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.017");
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.033");
+    await expect.poll(() => scene().hasAttribute("data-stepping")).toBe(true);
+    await userEvent.keyboard("{End}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("1.000");
+    expect(scene().hasAttribute("data-stepping")).toBe(false);
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.983");
+    await expect.poll(() => scene().hasAttribute("data-stepping")).toBe(true);
+    await userEvent.click(page.getByRole("switch", { name: STAGE_COPY.lights }));
+    await expect.poll(() => scene().hasAttribute("data-lights")).toBe(true);
+    expect(scene().hasAttribute("data-stepping")).toBe(false);
+  });
+
   it("dives only once all three tanks are full, then surfaces and empties them", async () => {
     await renderPage("/");
     const dive = page.getByRole("button", { name: STAGE_COPY.dive, exact: true });
