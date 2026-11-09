@@ -152,6 +152,8 @@ describe("the fade check", () => {
       ['<Image src={a} />\n<div className="absolute" style={{ background: "linear-gradient(hsla(0, 0%, 0%, 0.4), hsla(0,0%,0%,0))" }} />', 2],
       ['<img src="a.jpg" />\n<style>.layer { position: fixed; background: conic-gradient(red, transparent); }</style>', 2],
       ['<img src="a.jpg" />\n.hero::after { @apply absolute bg-linear-to-t from-black; }', 2],
+      ['<img src="a.jpg" />\n<div className="fixed inset-0 bg-linear-to-t from-black" />', 2],
+      ['<img src="a.jpg" />\n<div className="md:fixed inset-0 bg-linear-to-t from-black" />', 2],
       ['<img src="a.jpg" />\nconst css = `.hero::after { inset: ${inset}px; background: repeating-linear-gradient(#000, transparent 4px); }`;', 2],
     ];
     for (const [text, line] of planted) assert.deepEqual(findFades(text, "x").map((fade) => [fade.line, fade.kind]), [[line, "wash"]], text);
@@ -196,6 +198,15 @@ describe("the fade check", () => {
       '<img src="a.jpg" />\n.x::after { background: linear-gradient(rgb(10, 20, 0), red); }',
       '<img src="a.jpg" />\n.faded-text { background: linear-gradient(#000, transparent); }',
       '<div className="absolute bg-linear-to-t from-black" />',
+      // A file whose only url() is a font, a stylesheet or a cursor draws no picture.
+      '@import url("https://fonts.example.com/inter.css");\n.divider::after { position: absolute; background: linear-gradient(to right, transparent, #ccc, transparent); }',
+      "@font-face { font-family: Inter; src: url(inter.woff2); }\n.shimmer::after { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #fff8, transparent); }",
+      ".grab { cursor: url(hand.png), grab; }\n.x::after { background: linear-gradient(red, transparent); }",
+      // A hairline covers no picture.
+      '<img src="a.jpg" />\n.divider::after { position: absolute; inset-inline: 0; bottom: 0; height: 1px; background: linear-gradient(to right, transparent, #ccc, transparent); }',
+      '<img src="a.jpg" />\n<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-border to-transparent" />',
+      // A background fixed to the viewport is no layer over anything.
+      '<img src="a.jpg" />\n.sky { background: linear-gradient(#9cf, transparent) fixed; background-attachment: fixed; }',
     ];
     for (const text of allowed) assert.deepEqual(lines(text), [], text);
   });
@@ -207,6 +218,12 @@ describe("the fade check", () => {
     assert.deepEqual(lines('<img src="a.jpg" />\n{/* fade-ok: fades the caption\'s backdrop */}\n<div className="absolute bg-linear-to-t from-black" />'), []);
     assert.deepEqual(lines('<img src="a.jpg" />\n.hero::after { background: linear-gradient(#000, transparent); } /* fade-ok: */'), [2]);
     assert.deepEqual(lines('<img src="a.jpg" />\n<div className="absolute bg-linear-to-t from-black" /> {/* fade-ok: */}'), [2]);
+  });
+
+  test("reads a mask's gradient as the mask's alone, on its own line too, opted out or not", () => {
+    assert.deepEqual(findFades(".fade {\n  mask-image:\n    linear-gradient(#000, transparent);\n}", "x").map((fade) => [fade.line, fade.kind]), [[2, "mask"]]);
+    const optedOut = '<img src="a.jpg" />\n.row::after {\n  position: absolute;\n  /* fade-ok: fades a scrolling row, not the picture */\n  mask-image:\n    linear-gradient(to right, #000 80%, transparent);\n}';
+    assert.deepEqual(lines(optedOut), []);
   });
 
   test("reports a line once, and a mask before a wash on it", () => {

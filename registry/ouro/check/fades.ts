@@ -14,7 +14,8 @@ import { EXIT } from "./check.ts";
 //   node lib/ouro/check/fades.ts <folder | file>…
 //
 // A wash is a gradient that reaches transparent on a layer over the picture, a `::before` or `::after` or an absolutely
-// positioned box, in a file that draws a picture (an `<img>`, `<picture>`, `<video>` or a `url()`), or a gradient whose
+// positioned or fixed box other than a hairline, in a file that draws a picture (an `<img>`, `<picture>`, `<video>` or a
+// `url()` other than a font's, a stylesheet's or a cursor's), or a gradient whose
 // name says what it is: a wash, scrim, fade, veil or haze. A gradient with no such role, a painted sky or a glow, passes.
 // A fade over text or controls rather than a picture (a row that scrolls sideways, a folded paragraph) stays when the
 // line it is on, or the comment just above it, says why: `fade-ok: <reason>`. A marker without a reason does not count.
@@ -120,10 +121,13 @@ const GRADIENT = /(?<![\w-])(?:repeating-)?(?:linear|radial|conic)-gradient\(/gi
 const UTILITY = /(?<![\w-])(?:[\w-]+:)*bg-(?:gradient-to-[trbl]{1,2}|linear-(?:to-[trbl]{1,2}|\d+|\[)|radial|conic)(?![\w-])[^\s"'`]*/g;
 const STOP = (stop: string) => new RegExp(`(?<![\\w-])(?:[\\w-]+:)*${stop}-(?!\\d+%)[^\\s"'\`]+`, "g");
 const CLEAR_STOP = /^(?:[\w-]+:)*(?:from|via|to)-(?:transparent|[^\s/]+\/0)$/;
-// A layer over something: a pseudo-element, or an absolutely positioned or fixed box.
-const OVER = /::?(?:before|after)\b|(?<![\w-])(?:before|after):|(?<![\w-])(?:[\w-]+:)*absolute(?![\w-])|position\s*:\s*["'`]?(?:absolute|fixed)/i;
-// A picture in the file: an image, a picture, a video or a `url()` that is not an SVG reference.
-const PICTURE = /<(?:img|picture|video|Image)\b|(?<![\w-])url\(\s*(?!["']?#)/;
+// A layer over something: a pseudo-element, or an absolutely positioned or fixed box, by its CSS or its Tailwind class
+// (not a value, such as `background-attachment: fixed`); and a hairline, a layer a pixel thick, which covers nothing.
+const OVER = /::?(?:before|after)\b|(?<![\w-])(?:before|after):|(?<![\w-])(?<!:\s*)(?:[\w-]+:)*(?:absolute|fixed)(?![\w-]|\s*[;,)}])|position\s*:\s*["'`]?(?:absolute|fixed)/i;
+const HAIRLINE = /(?<![\w-])(?:[\w-]+:)*[hw]-(?:px|\[1px\])(?![\w-])|(?:height|width)\s*:\s*["'`]?1px/i;
+// A picture in the file: an image, a picture, a video or a `url()` that is not an SVG reference, a font, a stylesheet
+// or a cursor.
+const PICTURE = /<(?:img|picture|video|Image)\b|(?<![\w-])(?<!@import\s*|(?:src|cursor)\s*:\s*)url\(\s*(?!["']?#)/;
 const WASH_WORDS = new Set(["wash", "washes", "scrim", "scrims", "fade", "fades", "veil", "veils", "haze", "hazes"]);
 // Whether a name says it washes: one of its words, split at hyphens, underscores and capitals, is one of WASH_WORDS.
 const named = (name: string) => name.split(/[^A-Za-z]+|(?<=[a-z])(?=[A-Z])/).some((word) => WASH_WORDS.has(word.toLowerCase()));
@@ -182,6 +186,8 @@ function findFades(text: string, file: string): Fade[] {
   const lines = text.split(/\r?\n/);
   const lineOf = (at: number) => text.slice(0, at).split("\n").length;
   const found = new Map<number, Fade>();
+  // Where each mask's value lies, opted out or not, so that its gradient is never read again as a wash.
+  const masked: [number, number][] = [];
   const add = (line: number, kind: Fade["kind"], declaration: string) => {
     const short = declaration.replace(/\s+/g, " ").trim();
     found.set(line, { file, line, kind, declaration: short.length > 160 ? `${short.slice(0, 159)}…` : short });
@@ -192,24 +198,25 @@ function findFades(text: string, file: string): Fade[] {
       const end = at + match[0].length;
       const value = read === "utility" ? "" : readValue(text, end, read);
       if (read !== "utility" && !/gradient\(/i.test(value)) continue;
+      masked.push([at, end + value.length]);
       const line = lineOf(at);
       if (found.has(line) || optedOut(lines, line - 1)) continue;
       add(line, "mask", `${match[0]}${value}${read === "bracket" ? "]" : ""}`);
     }
   }
   const picture = PICTURE.test(text);
-  const masks = new Set(found.keys());
   for (const match of text.matchAll(GRADIENT)) {
     const at = match.index;
     const gradient = closed(text, at, at + match[0].length);
     const line = lineOf(at);
-    if (masks.has(line) || found.has(line) || !CLEAR.test(gradient)) continue;
+    if (masked.some(([from, to]) => at >= from && at < to) || found.has(line) || !CLEAR.test(gradient)) continue;
     const start = text.lastIndexOf("\n", at - 1) + 1;
     const lead = text.slice(start, at);
     const block = blockAround(text, at);
     const string = quoted(text, at);
     const lineText = lines[line - 1]!;
-    const over = OVER.test(`${block?.head ?? ""}\n${block?.body ?? ""}\n${lineText}`);
+    const layer = `${block?.head ?? ""}\n${block?.body ?? ""}\n${lineText}`;
+    const over = OVER.test(layer) && !HAIRLINE.test(layer);
     if (!(named(`${block?.head ?? ""} ${lead} ${string}`) || (over && picture))) continue;
     if (optedOut(lines, line - 1) || (block !== undefined && optedOut(lines, block.line))) continue;
     add(line, "wash", gradient);
@@ -220,7 +227,7 @@ function findFades(text: string, file: string): Fade[] {
     const classes = quoted(text, match.index) || lines[line - 1]!;
     const stops = ["from", "via", "to"].map((stop) => [...classes.matchAll(STOP(stop))].map((token) => token[0]));
     const clear = stops[0]!.length === 0 || stops[2]!.length === 0 || stops.flat().some((token) => CLEAR_STOP.test(token));
-    if (!clear || !(named(classes) || (OVER.test(classes) && picture)) || optedOut(lines, line - 1)) continue;
+    if (!clear || !(named(classes) || (OVER.test(classes) && !HAIRLINE.test(classes) && picture)) || optedOut(lines, line - 1)) continue;
     add(line, "wash", [match[0], ...stops.flat()].join(" "));
   }
   return [...found.values()].sort((a, b) => a.line - b.line);
