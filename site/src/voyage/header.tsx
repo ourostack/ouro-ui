@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
@@ -17,7 +18,9 @@ import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-cont
 import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
-import { HxLogo } from "../components/brand";
+import { HxLogo, OuroMark } from "../components/brand";
+import { FAMILY, FAMILY_CURRENT } from "../family";
+import { GUTTERS } from "../gutters";
 import { href } from "../paths";
 import type { Mode } from "../themes/prepaint";
 import { ByPreset, Swatch } from "./presets";
@@ -206,17 +209,13 @@ function XrayPill(): JSX.Element {
   );
 }
 
-/** The bar's side gutters: the voyage's 1200px column, or the docs' (Container in components/layout.tsx). */
-const GUTTERS = {
-  voyage: "ps-[max(1rem,calc(50%-600px))] pe-[max(1rem,calc(50%-600px))] sm:ps-[max(2rem,calc(50%-600px))] sm:pe-[max(2rem,calc(50%-600px))]",
-  docs: "ps-[max(1rem,calc(50%-560px))] pe-[max(1rem,calc(50%-560px))] sm:ps-[max(1.5rem,calc(50%-554px))] sm:pe-[max(1.5rem,calc(50%-554px))] lg:ps-[max(2rem,calc(50%-544px))] lg:pe-[max(2rem,calc(50%-544px))]",
-} as const;
-
 /**
- * The site's one header, on the voyage pages and the docs alike, built from Ouro HX: Navbar, Popover,
- * RadioGroup, SegmentedControl, Switch, Command and Kbd. `path` is the bar's current link; `page` is the
- * page itself, which the menu marks. Whenever the links do not fit, its one menu (site-menu.tsx) lists every
- * section with its pages; `menu` takes its place (the docs' own, with their pages and a search).
+ * The site's one header, on the voyage pages and the docs alike, built from Ouro HX: FamilyBar over Navbar, Popover,
+ * RadioGroup, SegmentedControl, Switch, Command and Kbd. The family bar links the Ouro family's sites (family.ts), this
+ * one marked, and scrolls away with the page; the site's own bar under it sticks. `path` is the bar's current link;
+ * `page` is the page itself, which the menu marks. Whenever the links do not fit, its one menu (site-menu.tsx) lists
+ * every section with its pages, then the family's sites; `menu` takes its place (the docs' own, with their pages and a
+ * search).
  */
 export function VoyageHeader({
   path,
@@ -231,61 +230,83 @@ export function VoyageHeader({
 }): JSX.Element {
   const [searching, setSearching] = useCommandShortcut("mod+k");
   return (
-    <Navbar
-      label="Site"
-      // Sticky, but on the docs only on a phone: from 640px the docs sidebar sticks to the top itself, and would sit under it.
-      className={`${gutters === "voyage" ? "sticky top-0 z-40" : "relative z-40 max-sm:sticky max-sm:top-0"} ${GUTTERS[gutters]}`}
-      brand={
-        <a
-          href={href("/")}
-          className="-ms-1 inline-flex min-h-11 items-center gap-2 rounded-[calc(var(--radius)*0.8)] px-1 font-[family-name:var(--font-heading)] text-[1.0625rem] font-semibold tracking-[-0.015em] text-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-2"
-          data-site-brand=""
-        >
-          <HxLogo size={32} className="size-8" />
-          Ouro UI
-        </a>
-      }
-      // The brand is the way home, so the bar starts at the Nautilus.
-      items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
-      currentPath={href(path)}
-      menu={
-        <SiteMenuFrame
-          tools={
-            <>
-              {/* The docs' menu has its own search; elsewhere this opens the palette the bar's Search opens. */}
-              {menu === undefined && (
-                <MenuPill
-                  label="Search"
-                  // The palette rises as the menu slides away, and once the menu has handed focus back to its button,
-                  // the palette's field takes it: Search was pressed, so the next thing is typing.
-                  onClick={() => {
-                    setSearching(true);
-                    document.querySelector("[data-ouro-navbar-menu]")?.addEventListener("focus", focusPaletteField, { once: true });
-                  }}
-                >
-                  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="size-3.5">
-                    <circle cx="7" cy="7" r="4.25" />
-                    <path d="m10.25 10.25 3 3" />
-                  </svg>
-                  Search
-                </MenuPill>
-              )}
-              <XrayPill />
-            </>
-          }
-        >
-          {menu ?? <SiteMenu page={page} />}
-        </SiteMenuFrame>
-      }
-      actions={
-        <>
-          <ThemePicker />
-          <div className="max-sm:hidden">
-            <XraySwitch />
-          </div>
-          <SiteCommand open={searching} setOpen={setSearching} />
-        </>
-      }
-    />
+    <>
+      <FamilyBar
+        links={FAMILY}
+        current={FAMILY_CURRENT}
+        // Named apart from the site's own bar ("Site") and from a docs page's demo of the component ("Sites").
+        label="Ouro sites"
+        className={GUTTERS[gutters]}
+        brand={
+          // The family's home, by its mark: the bar's first link says "Ouro" and goes there too, so the mark is for a
+          // pointer only, out of the tab order and unheard.
+          <a
+            href={FAMILY[0]!.href}
+            tabIndex={-1}
+            aria-hidden="true"
+            data-site-family-mark=""
+            className="-ms-1 inline-flex size-9 items-center justify-center rounded-md pointer-coarse:size-11"
+          >
+            <OuroMark size={20} />
+          </a>
+        }
+      />
+      <Navbar
+        label="Site"
+        // Sticky, but on the docs only on a phone: from 640px the docs sidebar sticks to the top itself, and would sit under it.
+        className={`${gutters === "voyage" ? "sticky top-0 z-40" : "relative z-40 max-sm:sticky max-sm:top-0"} ${GUTTERS[gutters]}`}
+        brand={
+          <a
+            href={href("/")}
+            className="-ms-1 inline-flex min-h-11 items-center gap-2 rounded-[calc(var(--radius)*0.8)] px-1 font-[family-name:var(--font-heading)] text-[1.0625rem] font-semibold tracking-[-0.015em] text-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-2"
+            data-site-brand=""
+          >
+            <HxLogo size={32} className="size-8" />
+            Ouro UI
+          </a>
+        }
+        // The brand is the way home, so the bar starts at the Nautilus.
+        items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
+        currentPath={href(path)}
+        menu={
+          <SiteMenuFrame
+            tools={
+              <>
+                {/* The docs' menu has its own search; elsewhere this opens the palette the bar's Search opens. */}
+                {menu === undefined && (
+                  <MenuPill
+                    label="Search"
+                    // The palette rises as the menu slides away, and once the menu has handed focus back to its button,
+                    // the palette's field takes it: Search was pressed, so the next thing is typing.
+                    onClick={() => {
+                      setSearching(true);
+                      document.querySelector("[data-ouro-navbar-menu]")?.addEventListener("focus", focusPaletteField, { once: true });
+                    }}
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="size-3.5">
+                      <circle cx="7" cy="7" r="4.25" />
+                      <path d="m10.25 10.25 3 3" />
+                    </svg>
+                    Search
+                  </MenuPill>
+                )}
+                <XrayPill />
+              </>
+            }
+          >
+            {menu ?? <SiteMenu page={page} />}
+          </SiteMenuFrame>
+        }
+        actions={
+          <>
+            <ThemePicker />
+            <div className="max-sm:hidden">
+              <XraySwitch />
+            </div>
+            <SiteCommand open={searching} setOpen={setSearching} />
+          </>
+        }
+      />
+    </>
   );
 }

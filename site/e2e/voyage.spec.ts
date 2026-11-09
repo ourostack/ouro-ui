@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
+import family from "../src/family.json" with { type: "json" };
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
 import { LOG, TANKS } from "../src/voyage/stage/copy";
 import shipComponents from "../src/docs/ship-components.json" with { type: "json" };
@@ -219,6 +220,11 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   await open(page);
   const trigger = page.locator("[data-site-theme-trigger]");
   await page.locator("body").focus();
+  // First the family bar's sites, in the family's order (its mark is for a pointer, out of the tab order), then the site's own bar.
+  for (const site of family.links) {
+    await pressTab(page);
+    await expect(page.getByRole("navigation", { name: "Ouro sites" }).getByRole("link", { name: site.label, exact: true })).toBeFocused();
+  }
   for (const [role, name] of [
     ["link", "Ouro UI"],
     ["link", "The Nautilus"],

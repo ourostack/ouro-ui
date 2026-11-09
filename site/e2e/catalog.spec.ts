@@ -57,9 +57,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * Initial JavaScript ceilings, gzip bytes (site-design.md, Budgets). The docs may not grow: they
  * are what they loaded at 7c13bd6a (#141 on main at bf855de4, after the docs stopped loading every
  * page's Markdown first and after #138's claims), 167,396 bytes, plus 1 KiB. The voyage pages (the
- * home page and the Nautilus's) get 270 KB.
+ * home page and the Nautilus's) get 274 KiB: 270 KiB, and 4 KiB more for the Ouro family's bar and footer (FamilyBar and
+ * FamilyFooter over the header and in the footer, Ari, 2026-11-08: "make everything feel like one big happy family"),
+ * with which the home page measured 278,992 bytes, over the family-bar branch at bffc14e3.
  */
-const CEILINGS = { voyage: 270 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { voyage: 274 * 1024, docs: 167_396 + 1024 } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's

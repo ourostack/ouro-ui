@@ -51,9 +51,13 @@ test.describe("interaction latency", () => {
       await expect(page.locator("html[data-site-ready]")).toBeAttached();
       // On the home page, measured with the fish swimming: the stage has judged the screen fast enough for them.
       if (path === "./") {
+        // The stage judges the screen only while it is on it, and on a phone it starts below the fold: bring it up for
+        // that, then go back to the top, where the menu is pressed.
+        await page.evaluate(() => document.querySelector("[data-stage]")!.scrollIntoView({ block: "center", behavior: "instant" }));
         // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
         await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
         await expect(page.locator(".stage-scene")).toHaveAttribute("data-speed", "half");
+        await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
       }
       // The first open, measured on its own: the presses below are warm. The Navbar builds its sheet while the page is
       // idle and keeps it, hidden, between opens, so the first press, too, only shows it; on the docs, whose header is

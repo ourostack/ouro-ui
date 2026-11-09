@@ -9,18 +9,22 @@ import { heightsUntilStill, quietFrames } from "./frames";
 
 const PHONE = { width: 390, height: 844 };
 
-/** Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one. */
+/**
+ * Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one: the family
+ * bar's row of sites over the header ("Ouro sites"), the page's own, then the family footer's ("Ouro family") and the site's.
+ */
+const framed = (...own: string[]) => ["Ouro sites", ...own, "Ouro family", "Footer"];
 const PAGES: ReadonlyArray<{ path: string; navs: string[] }> = [
-  { path: "./", navs: ["Footer"] },
-  { path: "nautilus/", navs: ["Chapters", "Footer"] },
-  { path: "ax/", navs: ["Footer"] },
-  ...APPLE_PATHS.map((path) => ({ path: path.slice(1), navs: ["Footer"] })),
-  { path: "docs/", navs: ["Footer"] },
-  { path: "docs/installing/", navs: ["Footer"] },
-  { path: "docs/ax-cli/", navs: ["Footer"] },
-  { path: "docs/button/", navs: ["Footer"] },
-  { path: "docs/tooltip/", navs: ["Footer"] },
-  { path: "docs/use-timer/", navs: ["Footer"] },
+  { path: "./", navs: framed() },
+  { path: "nautilus/", navs: framed("Chapters") },
+  { path: "ax/", navs: framed() },
+  ...APPLE_PATHS.map((path) => ({ path: path.slice(1), navs: framed() })),
+  { path: "docs/", navs: framed() },
+  { path: "docs/installing/", navs: framed() },
+  { path: "docs/ax-cli/", navs: framed() },
+  { path: "docs/button/", navs: framed() },
+  { path: "docs/tooltip/", navs: framed() },
+  { path: "docs/use-timer/", navs: framed() },
 ];
 
 async function open(page: Page, path: string): Promise<void> {
