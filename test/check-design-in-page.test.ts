@@ -541,6 +541,24 @@ describe("listenForMotion", () => {
     resetMotion();
     expect(readMotion().shift).toBe(0);
   });
+
+  // The listener starts with a do-nothing wake that it swaps for the real one before it returns, so only a caller that
+  // gets hold of the state as it is published can reach it.
+  it("starts with a wake that does nothing, until the listener swaps in its own", () => {
+    let first: (() => void) | undefined;
+    Object.defineProperty(window, "__ouroMotion", {
+      configurable: true,
+      get: () => undefined,
+      set(value: { wake: () => void }) {
+        first = value.wake;
+        Object.defineProperty(window, "__ouroMotion", { value, writable: true, configurable: true });
+      },
+    });
+    listenForMotion();
+    expect(first).toBeTypeOf("function");
+    expect(first!()).toBeUndefined();
+    expect(state.__ouroMotion).toBeDefined();
+  });
 });
 
 describe("findRepaints", () => {
