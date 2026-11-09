@@ -239,7 +239,7 @@ test("on any docs page the menu lists the guides and the components, as the side
   await openMenu(page);
   await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toHaveAttribute("aria-current", "page");
   // Only the list with the page you are on is open.
-  await expect(sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "true");
+  await expect(sheet(page).getByRole("button", { name: /^More guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "true");
   const navigation = sheet(page).getByRole("button", { name: /^Navigation \d+ pages$/ });
   await expect(navigation).toHaveAttribute("aria-expanded", "false");
   await navigation.click();
@@ -248,9 +248,9 @@ test("on any docs page the menu lists the guides and the components, as the side
   await expect(page).toHaveURL(/\/docs\/segmented-control\/$/);
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await openMenu(page);
-  await expect(sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
+  await expect(sheet(page).getByRole("button", { name: /^More guides \d+ pages$/ })).toHaveAttribute("aria-expanded", "false");
   // A guide that shares a section's name says it is the guide, so no two links share a name.
-  await sheet(page).getByRole("button", { name: /^Guides \d+ pages$/ }).click();
+  await sheet(page).getByRole("button", { name: /^More guides \d+ pages$/ }).click();
   await expect(sheet(page).getByRole("link", { name: "Ouro AX guide", exact: true })).toBeVisible();
   await expect(sheet(page).getByRole("link", { name: "Ouro AX", exact: true })).toHaveCount(1);
   await foldsStill(page);
