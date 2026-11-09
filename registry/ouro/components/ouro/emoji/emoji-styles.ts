@@ -129,27 +129,43 @@ const indexes = new WeakMap<EmojiCatalogue, CatalogueIndex>();
 const VARIATION = /\uFE0F/g;
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** A step in a path of objects, held weakly, with the index the path ends at. */
+/** A list of objects, kept with the index it leads to. */
 interface IndexPath {
-  next: WeakMap<object, IndexPath>;
+  steps: readonly object[];
   index?: CatalogueIndex;
 }
 
-const paths: IndexPath = { next: new WeakMap() };
+/**
+ * The lists indexed lately, by their first object, held weakly: at most `PATHS` for each first
+ * object, the one indexed longest ago let go first.
+ *
+ * @claim "the one indexed longest ago let go first" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > keeps the lists of the 8 catalogues indexed most recently that start with the same emoji)
+ */
+const paths = new WeakMap<object, IndexPath[]>();
+const PATHS = 8;
+// Stryker disable next-line ObjectLiteral,ArrayDeclaration: the empty list's path is returned for having no first object; nothing reads its steps
+const noSteps: IndexPath = { steps: [] };
 
 /**
- * Where a sequence of objects leads, a lookup per object: the same objects in the same order
- * lead to the same place.
+ * Where a sequence of objects leads: the same objects in the same order lead to the same place.
+ * One weak lookup, by the first object, then a comparison of the rest: a weak lookup per object
+ * would chain one WeakMap per emoji, which a garbage collector that marks WeakMaps a level at a
+ * time (WebKit's) walks once per level, in every collection, for as long as the emoji live (a
+ * collection held the main thread for hundreds of milliseconds with a few thousand emoji).
  *
  * @claim "the same objects in the same order lead to the same place" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > shares one index between fresh catalogue objects holding the same emoji)
+ * @claim "One weak lookup, by the first object" registry/ouro/components/ouro/emoji/emoji.index.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.index.test.tsx::catalogueIndex > makes no WeakMap per emoji, however many the catalogue holds)
  */
 function pathOf(steps: readonly object[]): IndexPath {
-  let path = paths;
-  for (const step of steps) {
-    let next = path.next.get(step);
-    if (!next) path.next.set(step, (next = { next: new WeakMap() }));
-    path = next;
-  }
+  const [first] = steps;
+  if (first === undefined) return noSteps;
+  let known = paths.get(first);
+  if (!known) paths.set(first, (known = []));
+  const found = known.find((path) => path.steps.length === steps.length && path.steps.every((step, at) => step === steps[at]));
+  if (found) return found;
+  const path: IndexPath = { steps: [...steps] };
+  known.push(path);
+  if (known.length > PATHS) known.shift();
   return path;
 }
 
