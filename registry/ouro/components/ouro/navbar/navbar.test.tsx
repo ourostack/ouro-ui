@@ -50,6 +50,12 @@ beforeEach(async () => {
 });
 
 describe("Navbar current-page marks", () => {
+  // The pointer starts off the page: a link under it draws its hover highlight at once (`press` eases no colour), and
+  // the mark under test is the underline, never a background. Vitest's unhover leaves it at the body's centre, where
+  // the bar may be.
+  beforeEach(async () => {
+    await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
+  });
   afterEach(async () => {
     document.documentElement.removeAttribute("dir");
     await commands.emulateMedia({ forcedColors: "none" });

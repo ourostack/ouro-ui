@@ -112,23 +112,14 @@
 
 /*
  * Press feedback for controls: the scale arrives and releases in 160ms on the ease-out
- * token. Colors ease only into hover. A pressed, selected or current control is drawn so on the
- * frame it becomes so, and the one it took over from loses its color on that same frame, because
- * a transition follows the style being entered and neither of those styles eases a color.
+ * token. Colors change at once: a pressed, selected or current control is drawn so on the
+ * frame it becomes so, and the one it took over from loses its color on that same frame.
  * Each control adds the scale itself with a `motion-safe:` class, so reduced motion never scales.
  */
 @utility press {
   transition:
     scale var(--ouro-duration-press) var(--ouro-ease-out),
     opacity var(--ouro-duration-fast) ease;
-  &:hover:not(:active, [aria-current]:not([aria-current="false"]), [aria-selected="true"], [aria-pressed="true"], [data-selected], [data-pressed]) {
-    transition:
-      scale var(--ouro-duration-press) var(--ouro-ease-out),
-      background-color var(--ouro-duration-fast) ease,
-      border-color var(--ouro-duration-fast) ease,
-      color var(--ouro-duration-fast) ease,
-      opacity var(--ouro-duration-fast) ease;
-  }
 }
 
 /* Spinner motion, namespaced so it never collides with an app's keyframes. */

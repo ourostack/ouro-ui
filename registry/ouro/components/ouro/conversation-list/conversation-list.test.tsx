@@ -95,7 +95,7 @@ describe("ConversationList", () => {
     expect(rows.some((row) => row.hasAttribute("aria-current"))).toBe(false);
   });
 
-  it("draws the row that opens in its accent on the first frame, and drops the one that closes at once, but eases into hover", async () => {
+  it("draws the row that opens in its accent on the first frame, and drops the one that closes at once, as hover changes at once", async () => {
     const { host, rows, rerender } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
     const away = document.createElement("div");
     away.style.height = "40px";
@@ -112,10 +112,10 @@ describe("ConversationList", () => {
     expect(getComputedStyle(rows[2]!).backgroundColor).toBe(accent);
     expect(getComputedStyle(rows[1]!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect([...easing(rows[1]!), ...easing(rows[2]!)]).toEqual([]);
-    // Hover still eases in, where a fine pointer hovers.
+    // Hover changes at once too, where a fine pointer hovers: no colour eases (the press utility).
     if (matchMedia("(pointer: fine)").matches) {
       await userEvent.hover(rows[0]!);
-      expect(easing(rows[0]!)).toHaveLength(1);
+      expect(easing(rows[0]!)).toEqual([]);
     }
   });
 
