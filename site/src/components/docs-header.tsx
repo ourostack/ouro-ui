@@ -28,11 +28,15 @@ function DocsXray(): JSX.Element | null {
   ) : null;
 }
 
-/** The header link a docs page is under: the catalog, each component's page and each helper's under Components, a guide under Docs. */
+/**
+ * The header link a docs page is under: the catalog, each component's page and each helper's under Ouro HX, Ouro AX's
+ * guide and its parts under Ouro AX, any other guide under Guides, and the lost page under none.
+ */
 export function headerPath(current: string): string {
-  return current === "/docs/" || docsItems.some((item) => current === `/docs/${item.name}/`) || helpers.some((page) => page.path === current)
-    ? "/docs/"
-    : "/docs/installing/";
+  if (current === "") return "";
+  if (current === "/docs/" || docsItems.some((item) => current === `/docs/${item.name}/`) || helpers.some((page) => page.path === current)) return "/docs/";
+  if (/^\/docs\/ax(-[a-z0-9-]+)?\/$/.test(current)) return "/ax/";
+  return "/docs/installing/";
 }
 
 const asPage = ({ path, label }: DocsLink) => ({ label, href: path });
@@ -172,10 +176,10 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
           page={current}
           // Both docs sections list their pages, as the sidebar does on a wide screen, each list folded under its name.
           more={{
-            Install: (
+            Guides: (
               <Folds
                 groups={[
-                  { label: "Guides", links: guides.filter((link) => !isAxPart(link)).map((link) => ({ ...link, label: guideLabel(link.label) })) },
+                  { label: "More guides", links: guides.filter((link) => !isAxPart(link)).map((link) => ({ ...link, label: guideLabel(link.label) })) },
                   { label: "Ouro AX, part by part", links: guides.filter(isAxPart) },
                   { label: "Skill comparisons", links: comparisons },
                   { label: "Platforms", links: platforms },
@@ -233,6 +237,8 @@ export default function DocsHeader({ current }: { current: string }): JSX.Elemen
         page={current}
         menu={<DocsMenu current={current} />}
         gutters="docs"
+        // A docs page's title sits in its scene, before the sidebar and <main>: the skip link lands on it, so it is not skipped.
+        skipTo={current === "" ? undefined : "page-title"}
       />
       <DocsXray />
     </>

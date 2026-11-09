@@ -35,7 +35,7 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
     pages: APPLE_PAGES.slice(1).map((page) => ({ label: page.label, href: page.path })),
   },
   {
-    label: "Install",
+    label: "Guides",
     href: "/docs/installing/",
     hint: "Install it, switch to it, keep it fresh",
     pages: [
@@ -43,7 +43,7 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
       { label: "Updating installed components", href: "/docs/updating/" },
     ],
   },
-  // Ouro UI's two halves, side by side: HX's components, then AX. HX keeps the place Components had, after Docs, so on a
+  // Ouro UI's two halves, side by side: HX's components, then AX. HX keeps the place Components had, after Guides, so on a
   // phone its long folded list of components sits far down the menu, which opens scrolled to the page you are on.
   { label: "Ouro HX", href: "/docs/", hint: "Levers, dials and portholes" },
   { label: "Ouro AX", href: "/ax/", hint: "A morning with an agent" },
@@ -158,7 +158,7 @@ export function useSheetShown(ref: RefObject<HTMLElement | null>, shown: (on: bo
 
 /**
  * The menu: each section with its line, then its pages. `more` adds to a section by its label (the docs pages add
- * their guides under Docs and every component under Ouro HX). It opens scrolled to the page you are on.
+ * their guides under Guides and every component under Ouro HX). It opens scrolled to the page you are on.
  */
 export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<string, ReactNode>> | undefined }): JSX.Element {
   const current = normalizePath(page);

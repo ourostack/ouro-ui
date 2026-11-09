@@ -26,7 +26,7 @@ const coast: LightboxImage[] = [
 
 export default function LightboxDemo(): JSX.Element {
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-2xl">
       <Lightbox label="Coast photos" images={coast} />
     </div>
   );

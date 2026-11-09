@@ -32,6 +32,11 @@ export function SiteFooter(): JSX.Element {
                 <li key={link.label}>
                   <a href={link.url} className={navLink}>
                     {link.label}
+                    {link.url.startsWith("http") && (
+                      <span aria-hidden="true" className="ms-1">
+                        ↗
+                      </span>
+                    )}
                   </a>
                 </li>
               ))}

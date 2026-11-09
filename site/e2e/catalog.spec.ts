@@ -361,7 +361,7 @@ test("the 404 page is lost at sea: a guess, a search and the way home, passing t
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await expect(page.getByRole("heading", { level: 1, name: "Lost at sea" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to the surface" })).toBeVisible();
-  await page.getByRole("searchbox", { name: "Search the docs" }).fill("button");
+  await page.getByRole("searchbox", { name: "Find a page or component" }).fill("button");
   await expect(page.getByRole("search").getByRole("link", { name: "Button", exact: true })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   expect(await auditPage(page, browserName)).toBe("");

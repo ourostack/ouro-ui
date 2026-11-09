@@ -302,7 +302,7 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   // real clock: focus stays in the field until something moves it; no timer does.
   await expect(field).toBeFocused();
   // It finds what the menu lists, and every component and guide.
-  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Install"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Ouro HX"]] as const) {
+  for (const [query, name] of [["feel", "Ouro Feel"], ["toggle", "Toggle"], ["theming", "Theming"], ["timer", "useTimer"], ["installing", "Guides"], ["ouro ax guide", "Ouro AX guide"], ["overview", "Ouro HX"]] as const) {
     await field.fill(query);
     await expect(page.getByRole("option", { name: new RegExp(`^${name}\\b`) }).first()).toBeVisible();
   }

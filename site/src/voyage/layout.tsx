@@ -33,7 +33,7 @@ export function VoyageFooter(): JSX.Element {
             </p>
           </div>
           <nav aria-label="Ouro UI">
-            <ul className="m-0 -ms-2 flex list-none flex-wrap gap-x-1 p-0">
+            <ul className="m-0 -ms-2 flex list-none flex-wrap gap-x-1 p-0 sm:-me-2">
               {links.map((link) => (
                 <li key={link.label}>
                   <a
@@ -41,6 +41,11 @@ export function VoyageFooter(): JSX.Element {
                     className="inline-flex min-h-11 items-center rounded-md px-2 text-muted-foreground no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-2 pointer-fine:hover:text-foreground sm:min-h-9"
                   >
                     {link.label}
+                    {link.url.startsWith("http") && (
+                      <span aria-hidden="true" className="ms-1">
+                        ↗
+                      </span>
+                    )}
                   </a>
                 </li>
               ))}

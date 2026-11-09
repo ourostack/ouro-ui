@@ -46,7 +46,7 @@ export function DocsShell({ current, opener, children }: { current: string; open
           <StoryWorld scene={opener.scene} className={opener.tall ? "story-world-short story-world-still" : "story-world-docs story-world-still"} decorative>
             <Container className={COLUMNS}>
               <div className="max-sm:hidden" />
-              <div className="min-w-0 max-w-3xl">
+              <div className="min-w-0">
                 <p className="story-world-eyebrow">{opener.eyebrow}</p>
                 <h1 id="page-title" className="story-world-title">
                   {opener.title}
@@ -64,7 +64,7 @@ export function DocsShell({ current, opener, children }: { current: string; open
           </Suspense>
         </aside>
         <div className="min-w-0">
-          <main id="main" className={opener ? "max-w-3xl pt-6 lg:pt-8" : "max-w-3xl pt-8 lg:pt-10"}>
+          <main id="main" className={opener ? "pt-6 lg:pt-8" : "pt-8 lg:pt-10"}>
             {children}
             <Popups />
           </main>

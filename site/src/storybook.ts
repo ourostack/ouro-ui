@@ -113,15 +113,21 @@ export interface Card {
    * across the card's width under a band of the scene's own sky, which meets it on a hard edge.
    */
   crop?: { from: number; to: number };
+  /**
+   * Where the site's address goes, clear of every drawn figure: a bottom corner (the words' side unless `addressSide`
+   * says otherwise), or, on a card with a band of sky, the band's other end.
+   */
+  address?: "corner" | "band";
+  addressSide?: "left" | "right";
 }
 
 const APPLE = "Ouro UI for Apple";
 
 /** Every card, by the page that shows it. A docs page shows the docs card. */
 export const CARDS: Record<string, Card> = {
-  "/": { file: "home.jpg", scene: "ouro-hx", kicker: "Ouro UI", title: "Feels right to the people using it. Obvious to the agents building it.", side: "right" },
+  "/": { file: "home.jpg", scene: "ouro-hx", kicker: "Ouro UI", title: "Feels right to the people using it. Obvious to the agents building it.", side: "right", addressSide: "left" },
   "/nautilus/": { file: "nautilus.jpg", scene: "ouroboros-skills", kicker: "A story in chapters", title: "The Nautilus", side: "right" },
-  "/ax/": { file: "ax.jpg", scene: "playwright-focus-proof", kicker: "Ouro AX", title: "A morning with an agent", side: "right", width: 640, size: 46, crop: { from: 40, to: 1440 } },
+  "/ax/": { file: "ax.jpg", scene: "playwright-focus-proof", kicker: "Ouro AX", title: "A morning with an agent", side: "right", width: 640, size: 46, crop: { from: 0, to: 1536 }, address: "band", addressSide: "left" },
   "/apple/": { file: "apple.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Same manners, now in Swift.", side: "left", width: 330, size: 44 },
   "/apple/hx/": { file: "apple-hx.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro HX for Apple", side: "left", width: 400 },
   "/apple/feel/": { file: "apple-feel.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro Feel", side: "left", width: 400 },
