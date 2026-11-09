@@ -127,8 +127,13 @@ const HOW_TO = {
   copy: 'Wrap it in claim("…", { source, verify }) from lib/ouro/claims (the claim docs).',
 };
 
+/** Characters that draw nothing: a way to split a word the patterns look for. */
+const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
+/** A hidden character may sit inside a word or stand between words, so text is read with them removed and with them as spaces. */
+const FILLER = INVISIBLE;
+
 /** Whether text has one of the claim words (not a number): a quotation with one is read, not masked. */
-const hasClaimWord = (text) => WORDS.some(([, pattern]) => pattern.test(text));
+const hasClaimWord = (text) => [text, text.replace(FILLER, " ")].some((view) => WORDS.some(([, pattern]) => pattern.test(view.replace(INVISIBLE, ""))));
 
 /**
  * A short quotation mentions text, such as a label or an example of output ("3 days ago"); it
@@ -144,8 +149,10 @@ const maskQuote = (quote, plain, curly) => {
 };
 
 /** Code spans, template substitutions, links' targets and addresses: their digits and words are not prose. */
-function maskCode(text) {
-  return text
+function maskCode(text, fillersAsSpaces = false) {
+  // Characters that draw nothing are a way to split a word the patterns look for, so they go first.
+  return (fillersAsSpaces ? text.replace(FILLER, " ") : text)
+    .replace(INVISIBLE, "")
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
     .replace(/\$\{[^}]*\}/g, (span) => "§".repeat(span.length))
     .replace(/\]\([^)]*\)/g, (target) => "]" + " ".repeat(target.length - 1))
@@ -155,7 +162,14 @@ function maskCode(text) {
 
 /** The kinds of claim a sentence makes, with the words that make it. */
 export function triggers(sentence) {
-  let text = maskCode(sentence);
+  const found = triggersOf(maskCode(sentence));
+  // A filler that draws a blank may stand between two words rather than inside one.
+  if (sentence.search(FILLER) >= 0) for (const entry of triggersOf(maskCode(sentence, true))) if (!found.some((other) => other.kind === entry.kind)) found.push(entry);
+  return found;
+}
+
+function triggersOf(masked) {
+  let text = masked;
   const found = [];
   const take = (kind, pattern) => {
     const words = [...text.matchAll(pattern)].map((match) => match[0]);
@@ -652,6 +666,12 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
     findings.push(...(wordsOnly ? result.findings.filter((finding) => finding.kinds?.some((kind) => !["number", "version", "date"].includes(kind))) : result.findings));
     claims.push(...result.claims);
   };
+  // A string is read as copy when it passes the gate with its hidden characters removed or with its fillers as spaces; the text read is the string itself.
+  const readCopy = (text, node) => {
+    const views = [text.replace(INVISIBLE, ""), text.replace(FILLER, " ").replace(INVISIBLE, "")];
+    if (views.some((view) => isMarkdown(view) || isProse(view) || statesNumber(view))) prose(text, node);
+    else if (views.some(saysSomething)) prose(text, node, true);
+  };
   const visit = (node) => {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "claim") {
       const [textNode, evidenceNode] = node.arguments;
@@ -680,14 +700,12 @@ export function lintTypeScript(source, { file, jsdoc = false, copy = false, clai
     }
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       if (isLookup(node)) return;
-      if (isMarkdown(node.text) || isProse(node.text) || statesNumber(node.text)) prose(node.text, node);
-      else if (saysSomething(node.text)) prose(node.text, node, true);
+      readCopy(node.text, node);
       return;
     }
     if (ts.isTemplateExpression(node)) {
       const text = [node.head.text, ...node.templateSpans.map((span) => `\${${span.expression.getText(tree)}}${span.literal.text}`)].join("");
-      if (isMarkdown(text) || isProse(text) || statesNumber(text)) prose(text, node);
-      else if (saysSomething(text)) prose(text, node, true);
+      readCopy(text, node);
     }
     ts.forEachChild(node, visit);
   };

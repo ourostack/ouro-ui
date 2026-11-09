@@ -248,3 +248,38 @@ test("attribution reads a message split by any line terminator, so no separator 
   assert.deepEqual(fieldsOf([commit({ message: "Button: a fix (#1)\r\n\r\nGenerated with Claude Code\r\n" })]), ["message line 3"]);
   assert.deepEqual(problems([commit({ message: "Button: a fix (#1)\r\n\r\nSigned-off-by: Ari Mendelow <16390116+arimendelow@users.noreply.github.com>\r\n" })]), []);
 });
+
+test("attribution sees through Unicode format characters hidden in a credit, and passes a clean message", () => {
+  const hidden = [
+    "Co-authored-by: Cl\u200Baude <noreply@anthropic.com>",
+    "Co-authored-by: Cl\u00ADaude <noreply@example.com>",
+    "Co-authored-by: Claude <noreply@anthrop\u2060ic.com>",
+    "Co\u200B-authored-by: Claude <noreply@anthropic.com>",
+    "\uFEFFCo-authored-by: Claude <noreply@anthropic.com>",
+    "Co-authored-by: Copi\u200Dlot <noreply@example.com>",
+    "Assisted-by: Co\u200Bdex",
+    "Co-authored-by: Cl\u034Faude <noreply@anthropic.com>",
+    "Co-authored-by: Cl\uFE0Faude <noreply@example.com>",
+    "Co-authored-by: Cl\u3164aude <noreply@example.com>",
+    "Co-authored-by: Cl\u2800aude <noreply@example.com>",
+  ];
+  for (const line of hidden) {
+    const found = problems([commit({ message: `Button: a fix (#1)\n\n${line}` })]);
+    assert.deepEqual(found.map(({ field }) => field), ["message line 3"], JSON.stringify(line));
+    assert.match(found[0].problem, /credits an AI tool or a bot/);
+  }
+  assert.deepEqual(fieldsOf([commit({ message: "Button: a fix (#1)\n\nGenerated w\u200Bith Cl\u00ADaude Code" })]), ["message line 3"]);
+  // A clean message, even with format characters in it, passes.
+  assert.deepEqual(problems([commit({ message: "Button: a fix\u200B (#1) \u{1F468}\u200D\u{1F373}\n\nSigned-off-by: Ari\u00AD Mendelow <16390116+arimendelow@users.noreply.github.com>" })]), []);
+});
+
+test("attribution reads a blank-drawing filler as a space between words, so the line is still seen", () => {
+  const found = (message) => problems([{ sha: "c1", authorName: "Ari Mendelow", authorEmail: MAINTAINER.email, committerName: "Ari Mendelow", committerEmail: MAINTAINER.email, message, files: ["a.txt"] }]);
+  assert.equal(found("Fix\n\nGenerated\u2800with Claude").length, 1);
+  assert.equal(found("Fix\n\nGenerated\u3164with Claude").length, 1);
+  assert.equal(found("Fix\n\nGenerated\u200Bwith Claude").length, 1);
+  assert.equal(found("Fix\n\nGenerated\u2060with Claude").length, 1);
+  assert.equal(found("Fix\n\nGenerated\u180Ewith Claude").length, 1);
+  assert.equal(found("Fix\n\nCo-authored-by: Claude\u3164Code <a@b.c>").length, 1);
+  assert.equal(found("Fix\n\nCo-authored-by: Cl\u3164aude <a@b.c>").length, 1);
+});

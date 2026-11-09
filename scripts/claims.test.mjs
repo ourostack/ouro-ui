@@ -886,3 +886,30 @@ test("the tests that read the generated registry.json say how to make it when it
   writeFileSync(join(dir, "site/public/llms.txt"), "");
   assert.doesNotThrow(() => requireRegistry(dir));
 });
+
+test("the lint sees a claim through Unicode format characters hidden in its words, and passes the same text without a claim", () => {
+  const lint = (text) => lintPlain(text, { file: "pull request body" });
+  for (const text of ["Ev\u200Bery test passes now.", "All\u00AD components pass axe.", "\uFEFFNo\u2060 test fails.", "It always\u200D works.", "Ev\u034Fery test passes.", "Ev\uFE0Fery test passes.", "Ev\u3164ery test passes.", "Ev\u2800ery test passes."]) {
+    assert.equal(lint(text).length, 1, JSON.stringify(text));
+  }
+  // Inside a short quotation, which the lint reads as a mention, a hidden character must not hide the word either.
+  assert.equal(lint('The report says "Ev\u200Bery test passes now."').length, 1);
+  assert.equal(lint('The report says "Ev\u3164ery test passes now."').length, 1);
+  assert.equal(lint("Moves \u{1F468}\u200D\u{1F373}\u200B focus back to the\u00AD trigger.").length, 0);
+});
+
+test("TypeScript copy: a claim word split by a hidden character in a short string is still read", () => {
+  const copy = (text) => lintTypeScript(`const a = ${JSON.stringify(text)};`, { file: "site/src/copy.tsx", copy: true }).findings;
+  assert.equal(copy("Every test").length, 1);
+  assert.equal(copy("Ev\u200Bery test").length, 1);
+  assert.equal(copy("It is the\u3164best on the market.").length, 1);
+  assert.equal(copy("the\u3164best around").length, 1);
+  assert.equal(copy("Every\u3164test passes now.").length, 1);
+});
+
+test("a blank-drawing filler between two words is read as a space, so a claim across it is still seen", () => {
+  const lint = (text) => lintPlain(text, { file: "pull request body" });
+  assert.equal(lint("It is the\u3164best on the market.").length, 1);
+  assert.equal(lint("It is the\u2800best on the market.").length, 1);
+  assert.equal(lint('The report says "the\u3164best around"').length, 1);
+});
