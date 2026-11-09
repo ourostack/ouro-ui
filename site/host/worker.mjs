@@ -7,6 +7,7 @@
 
 export const host = "https://ui.ouroboros.bot";
 export const pages = "https://ourostack.github.io/ouro-ui";
+export const hsts = "max-age=31556952";
 
 /** The Pages address that holds `path` on ui.ouroboros.bot. */
 export function upstream(url) {
@@ -23,9 +24,17 @@ export function rehome(location) {
   return `${host}${path}${target.search}${target.hash}`;
 }
 
+/** Plain HTTP gets a 301 to the same path and query on https (Ari, 2026-11-09: "why doesn't http
+    forward to https on all these sites?"), before anything is fetched from Pages. */
+export function secure(url) {
+  return url.protocol === "http:" ? `https://${url.host}${url.pathname}${url.search}` : null;
+}
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
+    const target = secure(url);
+    if (target) return new Response(null, { status: 301, headers: { location: target, "strict-transport-security": hsts } });
     const forwarded = new Headers(request.headers);
     forwarded.delete("host"); // Pages finds the site by its own host name
     const response = await fetch(upstream(url), {
@@ -37,6 +46,8 @@ export default {
     const headers = new Headers(response.headers);
     if (headers.has("location")) headers.set("location", rehome(headers.get("location")));
     headers.set("x-ouro-ui-host", "ui.ouroboros.bot");
+    // Pages sends this already; set it here too so the site keeps HSTS if Pages ever stops.
+    if (!headers.has("strict-transport-security")) headers.set("strict-transport-security", hsts);
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   },
 };
