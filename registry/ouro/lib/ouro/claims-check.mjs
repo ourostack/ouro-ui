@@ -148,9 +148,35 @@ const maskQuote = (quote, plain, curly) => {
   return hasClaimWord(inner) || inner.trim().split(/\s+/).length > 6 ? quote : "§".repeat(quote.length);
 };
 
-/** Entities that draw nothing; and inline tags, with a short attribute list, or comments between letters. */
-const HIDDEN_ENTITY = /&(?:shy|ZeroWidthSpace|zwj|zwnj|ZeroWidthNonJoiner|NoBreak|lrm|rlm|LeftToRightMark|RightToLeftMark|InvisibleTimes|InvisibleComma|ic|it|af|ApplyFunction|NegativeVeryThinSpace|NegativeThinSpace|NegativeMediumSpace|NegativeThickSpace);/g;
-const IN_WORD_MARKUP = /(?<=[\w\u200B])(?:<\/?(?:wbr|span|b|i|u|s|em|strong|small|mark|code|kbd|samp|var|sub|sup|abbr|bdi|bdo|data|del|ins|q|time|font|a|br)(?:\s+[\w:-]+(?:=(?:"[^"<>]{0,80}"|'[^'<>]{0,80}'|[^\s"'<>]{1,80}))?){0,6}\s*\/?>|<!--(?:(?!-->)[\s\S]){0,500}-->)+(?=[\w\u200B])/gi;
+/** Entities that draw nothing. */
+const HIDDEN_ENTITY = /&(?:shy|ZeroWidthSpace|zwj|zwnj|ZeroWidthNonJoiner|NoBreak|lrm|rlm|LeftToRightMark|RightToLeftMark|InvisibleTimes|InvisibleComma|ic|it|af|ApplyFunction|NegativeVeryThinSpace|NegativeThinSpace|NegativeMediumSpace|NegativeThickSpace);/;
+/** An HTML or JSX tag: a name, name=value attributes, and at most one bare attribute ("open"), so prose between a bare < and a later > is not one. */
+const TAG_SOURCE = String.raw`<\/?[A-Za-z][\w:.-]*(?:\s+[^\s=<>"'/]+=(?:"[^"]*"|'[^']*'|\{[^}<]{0,200}\}|[^\s<>"']+))*(?:\s+[^\s=<>"'/]+)?\s*\/?>`;
+const TAG = new RegExp(TAG_SOURCE, "g");
+/** A run of tags between letters: they draw nothing, so they are hidden characters like any other. */
+const IN_WORD_MARKUP = new RegExp(String.raw`(?<=[\w\u200B])(?:${TAG_SOURCE})+(?=[\w\u200B])`, "g");
+
+/**
+ * The text with its comments masked to the same length: spaces, or hidden characters when the comment sits between
+ * letters (it draws nothing there). It finds a close with indexOf and stops at the first open comment without one,
+ * so a text of open comments is read in linear time.
+ */
+function maskComments(text) {
+  const letter = /[\w\u200B]/;
+  let out = "";
+  let at = 0;
+  for (;;) {
+    const open = text.indexOf("<!--", at);
+    if (open < 0) break;
+    const close = text.indexOf("-->", open + 4);
+    if (close < 0) break;
+    const end = close + 3;
+    const inWord = open > 0 && letter.test(text[open - 1]) && end < text.length && letter.test(text[end]);
+    out += text.slice(at, open) + (inWord ? "\u200B" : " ").repeat(end - open);
+    at = end;
+  }
+  return out + text.slice(at);
+}
 
 /** Code spans, template substitutions, links' targets and addresses: their digits and words are not prose. */
 function maskCode(text, fillersAsSpaces = false) {
@@ -356,9 +382,7 @@ function blocks(text) {
 /** The block's text with code, addresses and markup masked to the same length, and its claim markers. */
 function maskBlock(text, definitions) {
   const markers = [];
-  let masked = text
-    .replace(/(?<=\w)<!--(?:(?!-->)[\s\S]){0,500}-->(?=\w)/g, (match) => "\u200B".repeat(match.length))
-    .replace(/<!--[\s\S]*?-->/g, (match) => " ".repeat(match.length))
+  let masked = maskComments(text)
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
     .replace(/\$\{[^}]*\}/g, (span) => "§".repeat(span.length))
     .replace(/!\[[^\]]*\]\([^)]*\)/g, (image) => "§".repeat(image.length));
@@ -381,12 +405,12 @@ function maskBlock(text, definitions) {
   });
   // Invisible entities, and tags or comments inside a word, draw nothing: they are hidden characters like any other.
   masked = masked
-    .replace(HIDDEN_ENTITY, (entity) => "\u200B".repeat(entity.length))
+    .replace(new RegExp(HIDDEN_ENTITY, "g"), (entity) => "\u200B".repeat(entity.length))
     .replace(IN_WORD_MARKUP, (hidden) => "\u200B".repeat(hidden.length));
   masked = masked
     .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length))
     .replace(QUOTED, maskQuote)
-    .replace(/<\/?[A-Za-z][^>]*>/g, (tag) => " ".repeat(tag.length));
+    .replace(TAG, (tag) => " ".repeat(tag.length));
   return { masked, markers };
 }
 

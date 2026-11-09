@@ -937,3 +937,32 @@ test("the lint sees a claim through control characters and invisible HTML entiti
   assert.equal(markdown("It works.<br>Run `pnpm test`."), 0);
   assert.equal(markdown("The tab\tand line\nbreaks stay: run it."), 0);
 });
+
+test("prose between a bare less-than and a later greater-than is read, and real tags are still masked", () => {
+  const markdown = (text) => lintMarkdown(text, { file: "docs/a.md" }).length;
+  assert.equal(markdown("If x<y it is always so and z>w."), 1);
+  assert.equal(markdown("a<b and always c>d"), 1);
+  assert.equal(markdown("a<i hello always world>b"), 1);
+  // Real tags hold no claim of their own: their attributes are not read as prose.
+  assert.equal(markdown('Press <kbd>Enter</kbd>, <Button variant="always on" size={big}>Go</Button> or <details open>.'), 0);
+  assert.equal(markdown('See <img src="a.png" alt="every page" /> and <br/>.'), 0);
+});
+
+test("a claim word split by a long comment, a tag with many attributes or an uncommon tag is still read", () => {
+  const markdown = (text) => lintMarkdown(text, { file: "docs/a.md" }).length;
+  const filler = "x".repeat(600);
+  assert.equal(markdown(`It is fas<!--${filler}-->test.`), 1);
+  assert.equal(markdown("It is fas<span a=1 b=2 c=3 d=4 e=5 f=6 g=7>test</span>."), 1);
+  assert.equal(markdown(`It is fas<span class="${filler}">test</span>.`), 1);
+  assert.equal(markdown('It is fas<span @click="go" :a="b">test</span>.'), 1);
+  for (const tag of ["<big>", "<ruby>", "<cite>", "<img src=x>", "<svg viewBox='0 0 1 1'>"]) assert.equal(markdown(`It is fas${tag}test.`), 1, tag);
+  // A comment is read in a time that grows with the text, however many are left open.
+  const started = Date.now();
+  markdown("a<!--".repeat(40000));
+  assert.ok(Date.now() - started < 1500, "unclosed comments are read in linear time");
+  // An unclosed expression value is read in a time that grows with the text too.
+  const braced = Date.now();
+  markdown("<a b={".repeat(40000));
+  markdown("a<b c={".repeat(40000) + "d");
+  assert.ok(Date.now() - braced < 3000, "unclosed expression values are read in linear time");
+});
