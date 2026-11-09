@@ -1,0 +1,22 @@
+== /apple/
+  true /apple/ For Apple
+  page /apple/ Overview
+== /apple/hx/
+  true /apple/ For Apple
+  page /apple/hx/ Ouro HX for AppleHX
+== /docs/
+  true /docs/ Ouro HX
+  page /docs/ Overview
+== /docs/button/
+  true /docs/ Ouro HX
+  page /docs/button/ Button
+== /docs/ax-terminal/
+  true /ax/ Ouro AX
+  page /docs/ax-terminal/ ax-terminal
+== /docs/installing/
+  true /docs/installing/ Guides
+  page /docs/installing/ Installing
+== /nautilus/
+  page /nautilus/ The Nautilus
+== /ax/
+  page /ax/ Ouro AX
