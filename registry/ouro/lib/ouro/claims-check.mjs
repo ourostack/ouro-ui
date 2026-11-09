@@ -128,7 +128,7 @@ const HOW_TO = {
 };
 
 /** Characters that draw nothing: a way to split a word the patterns look for. */
-const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
+const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t-\r\u0085])\p{Cc}/gu;
 /** A hidden character may sit inside a word or stand between words, so text is read with them removed and with them as spaces. */
 const FILLER = INVISIBLE;
 
@@ -147,6 +147,10 @@ const maskQuote = (quote, plain, curly) => {
   const inner = plain ?? curly;
   return hasClaimWord(inner) || inner.trim().split(/\s+/).length > 6 ? quote : "§".repeat(quote.length);
 };
+
+/** Entities that draw nothing; and inline tags, with a short attribute list, or comments between letters. */
+const HIDDEN_ENTITY = /&(?:shy|ZeroWidthSpace|zwj|zwnj|ZeroWidthNonJoiner|NoBreak|lrm|rlm|LeftToRightMark|RightToLeftMark|InvisibleTimes|InvisibleComma|ic|it|af|ApplyFunction|NegativeVeryThinSpace|NegativeThinSpace|NegativeMediumSpace|NegativeThickSpace);/g;
+const IN_WORD_MARKUP = /(?<=[\w\u200B])(?:<\/?(?:wbr|span|b|i|u|s|em|strong|small|mark|code|kbd|samp|var|sub|sup|abbr|bdi|bdo|data|del|ins|q|time|font|a|br)(?:\s+[\w:-]+(?:=(?:"[^"<>]{0,80}"|'[^'<>]{0,80}'|[^\s"'<>]{1,80}))?){0,6}\s*\/?>|<!--(?:(?!-->)[\s\S]){0,500}-->)+(?=[\w\u200B])/gi;
 
 /** Code spans, template substitutions, links' targets and addresses: their digits and words are not prose. */
 function maskCode(text, fillersAsSpaces = false) {
@@ -353,6 +357,7 @@ function blocks(text) {
 function maskBlock(text, definitions) {
   const markers = [];
   let masked = text
+    .replace(/(?<=\w)<!--(?:(?!-->)[\s\S]){0,500}-->(?=\w)/g, (match) => "\u200B".repeat(match.length))
     .replace(/<!--[\s\S]*?-->/g, (match) => " ".repeat(match.length))
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
     .replace(/\$\{[^}]*\}/g, (span) => "§".repeat(span.length))
@@ -374,6 +379,10 @@ function maskBlock(text, definitions) {
     }
     return "¹".repeat(match.length);
   });
+  // Invisible entities, and tags or comments inside a word, draw nothing: they are hidden characters like any other.
+  masked = masked
+    .replace(HIDDEN_ENTITY, (entity) => "\u200B".repeat(entity.length))
+    .replace(IN_WORD_MARKUP, (hidden) => "\u200B".repeat(hidden.length));
   masked = masked
     .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length))
     .replace(QUOTED, maskQuote)

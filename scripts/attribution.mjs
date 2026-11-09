@@ -49,7 +49,7 @@ const TRAILER = /^[\s*>-]*([a-z][a-z-]*-by)\s*:\s*(.+)$/i;
 /** Every line terminator, so no separator hides a trailer from the checks that read a line. */
 const LINE_TERMINATOR = /\r\n|[\n\r\u2028\u2029\u0085]/;
 /** Characters that draw nothing (zero-width spaces and joiners, soft hyphens, byte order marks, variation selectors, fillers, the blank braille cell): a way to split a name the checks look for. */
-const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
+const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t-\r\u0085])\p{Cc}/gu;
 /** A hidden character may sit inside a word or stand between words, so a line is read with them removed and with them as spaces. */
 const FILLER = INVISIBLE;
 const GENERATED = /(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;

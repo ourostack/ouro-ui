@@ -283,3 +283,15 @@ test("attribution reads a blank-drawing filler as a space between words, so the 
   assert.equal(found("Fix\n\nCo-authored-by: Claude\u3164Code <a@b.c>").length, 1);
   assert.equal(found("Fix\n\nCo-authored-by: Cl\u3164aude <a@b.c>").length, 1);
 });
+
+test("attribution sees through control characters hidden in a credit, and keeps tabs and line breaks", () => {
+  const found = (message) => problems([{ sha: "c1", authorName: "Ari Mendelow", authorEmail: MAINTAINER.email, committerName: "Ari Mendelow", committerEmail: MAINTAINER.email, message, files: ["a.txt"] }]);
+  for (const hidden of ["\u0001", "\u0008", "\u001F", "\u007F", "\u0090"]) {
+    assert.equal(found(`Fix\n\nCo-authored-by: Cl${hidden}aude <a@b.c>`).length, 1, JSON.stringify(hidden));
+    assert.equal(found(`Fix\n\nGenerated${hidden}with Claude`).length, 1, JSON.stringify(hidden));
+  }
+  assert.equal(found("Fix\twith a tab\n\nBody line.").length, 0);
+  for (const end of ["\u2028", "\u2029", "\u0085"]) assert.equal(found(`Fix${end}Co-authored-by: Claude <a@b.c>`).length, 1, JSON.stringify(end));
+  assert.equal(found("Fix\n\n\u0001Co-authored-by: Claude <a@b.c>\u0001").length, 1);
+  assert.equal(found("Fix\r\n\nCo-authored-by: Claude <a@b.c>").length, 1);
+});
