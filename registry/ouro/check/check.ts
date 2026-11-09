@@ -245,7 +245,10 @@ const raw = (file: string) => file.replace(/\.png$/, "-raw.png");
 // an app shell's own scroller makes smaller than the page, and a box outside it fails. An element above or left of the
 // page, or a fix that made the page smaller, gives the nearest part of the screen instead.
 async function shoot(page: Page, path: string, box: Box): Promise<Box> {
-  const at = (await page.evaluate(`scrollTo(${box.x}, ${box.y}), { sx: scrollX, sy: scrollY, vw: innerWidth, vh: innerHeight }`)) as { sx: number; sy: number; vw: number; vh: number };
+  // The element in the middle of the screen, clear of a bar fixed to its top or side, and at once: a page that scrolls
+  // smoothly would still be on its way.
+  const middle = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const at = (await page.evaluate(`scrollTo({ left: ${middle.x} - innerWidth / 2, top: ${middle.y} - innerHeight / 2, behavior: "instant" }), { sx: scrollX, sy: scrollY, vw: innerWidth, vh: innerHeight }`)) as { sx: number; sy: number; vw: number; vh: number };
   const x = Math.max(0, Math.min(box.x - at.sx, at.vw - 1));
   const y = Math.max(0, Math.min(box.y - at.sy, at.vh - 1));
   const clip = { x, y, width: Math.max(1, Math.min(box.x + box.width - at.sx, at.vw) - x), height: Math.max(1, Math.min(box.y + box.height - at.sy, at.vh) - y) };

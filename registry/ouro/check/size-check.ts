@@ -203,17 +203,23 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
       const prose = selector === null;
       if ((prose && (el.closest("pre, code, table, nav") || !inlineOnly(el))) || optedOut(el, "long-lines", ["data-long-lines-ok", "data-size-ignore"]) || !shown(el)) continue;
       const text = el.textContent!.replace(/\s+/g, " ").trim();
+      // A run of short items set apart by middle dots, bullets or bars (counts, tags, a byline) is a list, not prose.
+      const items = text.split(/\s[·•|]\s/);
+      if (items.length >= 3 && items.every((item) => item.length <= 40)) continue;
       const range = document.createRange();
       range.selectNodeContents(el);
-      const boxes = [...range.getClientRects()].filter((b) => b.width > 1);
-      const rows = new Map<number, { left: number; right: number }>();
+      const boxes = [...range.getClientRects()].filter((b) => b.width > 1).sort((a, b) => a.top - b.top || a.left - b.left);
+      // A rendered line: the boxes at one height, unless a gap wider than a space parts them, as columns side by side do.
+      const gap = parseFloat(getComputedStyle(el).fontSize) * 0.75;
+      const rows: { top: number; left: number; right: number }[] = [];
       for (const b of boxes) {
-        const row = rows.get(Math.round(b.top)) ?? { left: b.left, right: b.right };
-        rows.set(Math.round(b.top), { left: Math.min(row.left, b.left), right: Math.max(row.right, b.right) });
+        const row = rows.findLast((row) => row.top === Math.round(b.top) && b.left <= row.right + gap);
+        if (row) [row.left, row.right] = [Math.min(row.left, b.left), Math.max(row.right, b.right)];
+        else rows.push({ top: Math.round(b.top), left: b.left, right: b.right });
       }
       if (unit === "chars") {
         // As a reader meets it: the characters a rendered line holds on average, fixed by how the text is composed.
-        const perLine = text.length / Math.max(1, rows.size);
+        const perLine = text.length / Math.max(1, rows.length);
         if (perLine > limit) issues.push({ ref: ref(el), rule: "long-lines", element: `${describe(el)}${quoted(el)}`, detail: `about ${Math.round(perLine)} characters a line (keep to ${limit})` });
         continue;
       }
@@ -223,7 +229,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
       const s = getComputedStyle(el);
       context.font = `${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
       const px = unit === "px" ? limit : limit * context.measureText("0").width;
-      const widest = Math.max(0, ...[...rows.values()].map((row) => row.right - row.left));
+      const widest = Math.max(0, ...rows.map((row) => row.right - row.left));
       if (widest > px + 1) issues.push({ ref: ref(el), rule: "long-lines", element: `${describe(el)}${quoted(el)}`, detail: `lines up to ${Math.round(widest)}px wide (measure ${measure.trim()})` });
     }
   }
