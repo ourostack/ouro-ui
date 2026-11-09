@@ -230,6 +230,17 @@ describe("Ouro check", () => {
       const home = site("one", { "index.html": page("<h1>Home</h1>") });
       const alone = await check({ targets: [home], out: dir("home"), sizes: [[390, 844]], themes: ["light"], chromium, log: quiet });
       assert.equal(alone.pages[0]!.name, "home");
+      // A URL with a long query, as an app's route can be: its start and a hash, short enough for a file name, and apart.
+      const long = (n: number) => `${server.origin}/overlap-pass.html#/meeting?link=${encodeURIComponent(`https://example.test/l/meetup-join/${"a".repeat(300)}${n}`)}`;
+      const named = await check({ targets: [long(1), long(2)], out: dir("long"), sizes: [[390, 844]], themes: ["light"], chromium, log: quiet });
+      const names = named.pages.map((p) => p.name);
+      assert.ok(names.every((name) => /^overlap-pass-html-meeting-link-https-3A-2F-2Fexample-test-2F-[0-9a-f]{8}$/.test(name)), names.join(" "));
+      assert.notEqual(names[0], names[1]);
+      assert.equal(named.shots.length, 2);
+      // The same page twice, the second by a route in its hash, a same-document move from the first: each loads afresh.
+      const routes = await check({ targets: [`${server.origin}/overlap-pass.html`, `${server.origin}/overlap-pass.html#/route`], out: dir("routes"), sizes: [[390, 844]], themes: ["light"], chromium, log: quiet });
+      assert.deepEqual(routes.findings, []);
+      assert.equal(routes.shots.length, 2);
     } finally {
       await server.close();
     }
@@ -264,6 +275,49 @@ describe("Ouro check", () => {
       await reader.close();
     }
   };
+
+  test("judges a page once its animations have run, as a person sees it after a moment", async () => {
+    // A label that slides over the words in a second and a half: still on its way when the page has loaded.
+    const sliding = site("sliding", {
+      "page.html": page('<h1>Sliding</h1><section style="position:relative"><p style="margin:0">Words under a label</p><p style="position:absolute;top:0;left:0;margin:0;animation:in 1.5s ease-out">A label</p></section>', "<style>@keyframes in { from { transform: translateY(600px) } }</style>"),
+    });
+    const result = await check({ targets: [sliding], out: dir("sliding"), sizes: [[390, 844]], themes: ["light"], config: { walk: false }, chromium, log: quiet });
+    assert.deepEqual(result.findings.map((f) => [f.rule, f.element]), [["overlap", 'p "Words under a label" × p "A label"']]);
+  });
+
+  test("checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing", async () => {
+    // A view with no address: the cut-off text is there only once Open is pressed.
+    const app = site("states", {
+      "page.html": page('<h1>States</h1><button onclick="document.getElementById(\'view\').hidden=false">Open</button><p id="view" hidden style="width:60px;overflow:hidden;white-space:nowrap">Text cut off by its box, in a view</p>'),
+    });
+    const config: Gate = { walk: false, states: { "/page.html": { "a view open": ["text=Open"], missing: ["text=Nowhere"] }, "/other.html": { never: ["text=Open"] } } };
+    const result = await check({ targets: [app], out: dir("states"), sizes: [[390, 844]], themes: ["light"], config, chromium, log: quiet });
+    assert.deepEqual(
+      result.pages.map((p) => [p.page, p.name]),
+      [
+        ["/page.html", "page"],
+        ["/page.html (a view open)", "page-a-view-open"],
+        ["/page.html (missing)", "page-missing"],
+      ],
+    );
+    assert.deepEqual(
+      result.findings.map((f) => [f.page, f.rule]),
+      [
+        ["/page.html (a view open)", "clipped-text"],
+        ["/page.html (missing)", "http-error"],
+      ],
+    );
+    assert.match(result.findings[1]!.detail, /^the state's press "text=Nowhere" found nothing to press \(/);
+    // An app that opens on the view it last showed: each state starts from the page as a new visitor sees it, the last
+    // one too, which starts once an earlier one has saved its view.
+    const remembering = site("remembering", {
+      "page.html": page(
+        '<h1>Views</h1><button id="cal">Calendar</button><div id="chat"><button>Open row</button></div><div id="calendar" hidden>Days</div><script>const show = (v) => { chat.hidden = v !== "chat"; calendar.hidden = v !== "calendar"; }; show(localStorage.getItem("view") ?? "chat"); cal.onclick = () => { localStorage.setItem("view", "calendar"); show("calendar"); };</script>',
+      ),
+    });
+    const views = await check({ targets: [remembering], out: dir("remembering"), sizes: [[390, 844], [1440, 900]], themes: ["light", "dark"], config: { walk: false, states: { "/page.html": { calendar: ["text=Calendar"], "calendar again": ["text=Calendar"], "calendar a third time": ["text=Calendar"], "calendar a fourth time": ["text=Calendar"], "a row open": ["text=Open row"] } } }, chromium, log: quiet });
+    assert.deepEqual(views.findings, []);
+  });
 
   test("photographs a finding on the screen, wherever on or off the page it sits", async () => {
     // Clipped sideways by the root, so a full-page shot ends at the screen's right edge; the screen scrolls to it.
@@ -504,6 +558,12 @@ describe("Ouro check's command", () => {
       [{ press: ["[role=tab]", " "] }, /"press" takes a list of CSS selectors/],
       [{ pressRepeat: 0 }, /"pressRepeat" takes a whole number of presses, 1 or more/],
       [{ pressRepeat: 2.5 }, /"pressRepeat" takes a whole number/],
+      [{ states: ["text=Open"] }, /"states" takes pages, each with its states' names/],
+      [{ states: { "/": ["text=Open"] } }, /"states" takes pages/],
+      [{ states: { "/": { open: "text=Open" } } }, /"states" takes pages/],
+      [{ states: { "/": { open: [] } } }, /"states" takes pages/],
+      [{ states: { "/": { open: [" "] } } }, /"states" takes pages/],
+      [{ states: { "/": null } }, /"states" takes pages/],
     ] as [object, RegExp][]) {
       writeFileSync(join(scratch, "press.json"), JSON.stringify(config));
       const wrong = await run([folder, "--config", "press.json"]);

@@ -1,6 +1,7 @@
 export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues };
 export type { Budgets, CheckOptions, CheckResult, Finding, Gate, MergeOptions, Report };
 
+import { createHash } from "node:crypto";
 import { realpathSync } from "node:fs";
 import { appendFile, copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -111,6 +112,10 @@ interface Gate {
   measure?: Record<string, string>;
   // false: walk nothing, so jank measures no page.
   walk?: boolean;
+  // The states a page reaches by presses, each checked as a page of its own: the page as the check names it ("/" or
+  // "/?mock=1#/inbox"), then each state's name and the controls to press in turn to reach it, as Playwright selectors
+  // ("text=Launch planning", "[role=tab] >> nth=1"). An app whose views have no address is checked in them this way.
+  states?: Record<string, Record<string, string[]>>;
 }
 
 interface CheckOptions {
@@ -144,6 +149,8 @@ interface MergeOptions {
 
 interface Target extends PageRef {
   url: string;
+  // The presses that reach the target's state from its page, in turn.
+  steps?: string[];
 }
 
 const SIZES: [number, number][] = [
@@ -213,6 +220,8 @@ const WALK_EACH = 3;
 const WALK_RUNS = 3;
 // HSTS asks a year at least, as browsers' preload list does.
 const HSTS_MIN = 31536000;
+// How long a page's finite animations may run before the rules judge it anyway.
+const SETTLE_MS = 2000;
 // inp presses at most this many controls a page, each PRESS_REPEAT times unless ouro-check.json says otherwise, at one
 // size and theme: a laptop's, or the widest given.
 const MAX_PRESSES = 24;
@@ -236,7 +245,12 @@ const keyOf = (f: Finding) => `${f.site}\u0000${f.page}\u0000${f.rule}\u0000${f.
 const spotOf = (f: Finding) => `${keyOf(f)}\u0000${f.width}x${f.height}\u0000${f.theme}`;
 const pageOf = (f: { site: string; page: string }) => `${f.site} ${f.page}`;
 const escape = (text: string) => text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
-const fileName = (text: string) => text.replace(/\.html$/, "").replace(/\W+/g, "-").replace(/^-|-$/g, "") || "home";
+// A page's name for its files. A long one (a URL with a long query, say) keeps its start and a hash of the whole, so it
+// fits a file name and two long names stay apart.
+const fileName = (text: string) => {
+  const name = text.replace(/\.html$/, "").replace(/\W+/g, "-").replace(/^-|-$/g, "") || "home";
+  return name.length <= 80 ? name : `${name.slice(0, 60).replace(/-$/, "")}-${createHash("sha256").update(name).digest("hex").slice(0, 8)}`;
+};
 const caption = (f: Finding) =>
   `${f.page} at ${f.width}×${f.height}@${f.dpr ?? dprAt(f.width)}x ${f.theme}: ${LABELS[f.rule] ?? f.rule}, ${f.element} (${f.detail})${HINTS[f.rule] ? `: ${HINTS[f.rule]}` : ""}`;
 const raw = (file: string) => file.replace(/\.png$/, "-raw.png");
@@ -336,7 +350,9 @@ async function open(page: Page, url: string, readyTimeout: number): Promise<{ fa
     await page.setContent(`<p style="font:16px system-ui;padding:16px">${escape(answered)}</p>`);
     return { failed: answered, ready: true };
   }
-  // goto answers null only for about:blank and a same-document move, which a check never asks for.
+  // From a blank page, so each page loads afresh: goto answers null for a same-document move, as from an app's page to
+  // one of its routes (the same address but its hash), and the app would keep what it held.
+  await page.goto("about:blank");
   const response = (await page.goto(url, { waitUntil: "load" }))!;
   if (!response.ok()) return { failed: `answered ${response.status()}`, ready: true };
   await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => undefined);
@@ -345,14 +361,25 @@ async function open(page: Page, url: string, readyTimeout: number): Promise<{ fa
     () => false,
   );
   await page.evaluate("document.fonts.ready.then(() => undefined)");
+  await settle(page);
   return { failed: null, ready };
+}
+
+// Lets the page's finite animations run to their end, for up to 2 s, so no rule judges it part way through one: a toast
+// fading in would read as low contrast, and a panel sliding in as out of place.
+async function settle(page: Page): Promise<void> {
+  await page.evaluate(
+    `Promise.race([Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))), new Promise((done) => setTimeout(done, ${SETTLE_MS}))]).then(() => undefined)`,
+  );
 }
 
 async function check(options: CheckOptions): Promise<CheckResult> {
   const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
   const budgets: Budgets = { ...BUDGETS, ...config.budgets };
   const repeats = config.pressRepeat ?? PRESS_REPEAT;
-  const { list, close } = await targetsOf(options.targets, options.pages);
+  const { list: opened, close } = await targetsOf(options.targets, options.pages);
+  // Each page, then each state of it, named after the page and the state.
+  const list = opened.flatMap((t) => [t, ...Object.entries(config.states?.[t.page] ?? {}).map(([state, steps]) => ({ ...t, page: `${t.page} (${state})`, name: fileName(`${t.name}-${state}`), steps }))]);
   // --shard k/n: the kth of every n (page, size) pairs, taken along the diagonal so each job gets a share of the pages
   // at every size and a share of the sizes of every page, whatever the counts.
   const [k, n] = shard;
@@ -408,6 +435,23 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     }
     return context;
   };
+  // Opens a target's page and, for a state, presses its way there, letting the page settle after each press. A press that
+  // finds nothing to press fails the state as a page that did not load.
+  const reach = async (page: Page, target: Target): Promise<{ failed: string | null; ready: boolean }> => {
+    const opened = await open(page, target.url, readyTimeout);
+    if (opened.failed) return opened;
+    for (const step of target.steps ?? []) {
+      try {
+        await page.locator(step).first().click({ timeout: 5000 });
+      } catch (problem) {
+        return { failed: `the state's press ${JSON.stringify(step)} found nothing to press (${(problem as Error).message.split("\n")[0]})`, ready: opened.ready };
+      }
+      await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
+      await page.waitForTimeout(500);
+      await settle(page);
+    }
+    return opened;
+  };
   // A finding, recorded, and photographed with its element outlined unless the page already has one of it or 40.
   const record = async (page: Page, target: Target, issue: PageIssue, width: number, height: number, theme: string) => {
     const { ref, rule, element, detail, value, budget, unit, samples } = issue;
@@ -445,7 +489,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         const ms = await page.evaluate(interactionSince, since).catch(() => 0);
         await page.keyboard.press("Escape");
         if (page.url() !== at) {
-          await open(page, target.url, readyTimeout);
+          await reach(page, target);
           at = page.url();
           controls = await mark();
           break;
@@ -536,7 +580,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     return found;
   };
   const checkPage = async (page: Page, target: Target, width: number, height: number, theme: string) => {
-    const { failed, ready } = await open(page, target.url, readyTimeout);
+    const { failed, ready } = await reach(page, target);
     const issues: PageIssue[] = [];
     if (failed) issues.push({ ref: "", rule: "http-error", element: "the page", detail: failed });
     else {
@@ -573,7 +617,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     if (listed) {
       const own = await contextFor(width, height, theme);
       const tab = await own.newPage();
-      await open(tab, target.url, readyTimeout);
+      await reach(tab, target);
       pressed = await press(tab, target, width, height, theme);
       await own.close();
     }
@@ -581,7 +625,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     if (measured && !failed && config.walk !== false && inpAt === `${width}x${height} ${theme}`) {
       const own = await contextFor(width, height, theme, "no-preference");
       const tab = await own.newPage();
-      await open(tab, target.url, readyTimeout);
+      await reach(tab, target);
       walked = await walk(tab, target, width, height, theme);
       await own.close();
     }
@@ -603,17 +647,18 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       const active = list.filter((_, p) => unit(s, p));
       for (const theme of themes) {
         if (!active.length) continue;
-        const context = await contextFor(width, height, theme);
         const queue = [...active];
-        // A few pages at once, each in its own tab.
+        // A few pages at once, each in a browser context of its own, so what one saves (an app's last view, a dismissed
+        // banner) reaches no other and no state starts from another's.
         await Promise.all(
           Array.from({ length: Math.min(TABS, active.length) }, async () => {
-            const page = await context.newPage();
-            for (let target = queue.shift(); target; target = queue.shift()) await checkPage(page, target, width, height, theme);
-            await page.close();
+            for (let target = queue.shift(); target; target = queue.shift()) {
+              const context = await contextFor(width, height, theme);
+              await checkPage(await context.newPage(), target, width, height, theme);
+              await context.close();
+            }
           }),
         );
-        await context.close();
       }
     }
 
@@ -635,7 +680,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await writeFile(join(out, candidate.before), shot);
       const context = await contextFor(f.width, f.height, f.theme);
       const page = await context.newPage();
-      await open(page, target.url, readyTimeout);
+      await reach(page, target);
       await shoot(page, join(out, candidate.after), f.box);
       await context.close();
       candidates.push(candidate);
@@ -920,10 +965,14 @@ async function readJson<T>(file: string, error: (line: string) => void): Promise
   }
 }
 
-// What is wrong with a config's press settings, which JSON leaves unchecked: a string would read as its letters.
-function configProblem({ press, pressRepeat }: Gate): string | null {
+// What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
+function configProblem({ press, pressRepeat, states }: Gate): string | null {
   if (press !== undefined && !(Array.isArray(press) && press.every((selector) => typeof selector === "string" && selector.trim() !== ""))) return '"press" takes a list of CSS selectors, such as ["[role=tab]"].';
   if (pressRepeat !== undefined && !(Number.isInteger(pressRepeat) && pressRepeat >= 1)) return '"pressRepeat" takes a whole number of presses, 1 or more.';
+  const listOf = (steps: unknown) => Array.isArray(steps) && steps.length > 0 && steps.every((step) => typeof step === "string" && step.trim() !== "");
+  const named = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+  if (states !== undefined && !(named(states) && Object.values(states).every((page) => named(page) && Object.values(page).every(listOf))))
+    return '"states" takes pages, each with its states\' names and the controls to press to reach them, such as {"/": {"a chat open": ["text=Launch planning"]}}.';
   return null;
 }
 

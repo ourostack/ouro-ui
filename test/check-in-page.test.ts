@@ -409,6 +409,17 @@ describe("findOverlaps", () => {
     expect(scrollY).toBe(0);
   });
 
+  it("leaves out the part of a picture a clipping box cuts away, and a label on an opaque backing of its own, but not one on a see-through backing", async () => {
+    const url = await picture(100, 100);
+    render(`
+      <section style="position:relative"><div style="height:60px;overflow:hidden"><img src="${url}" alt="cut short" style="width:100px;height:100px;display:block"></div><p style="margin:0">See more</p></section>
+      <section style="position:relative"><div style="height:0;overflow:hidden"><img src="${url}" alt="cut away" style="width:100px;height:100px;display:block"></div><p style="margin:0">Under nothing</p></section>
+      <section style="position:relative"><img src="${url}" alt="under a chip" style="width:100px;height:100px;display:block"><span style="position:absolute;bottom:4px;left:4px;background:#eee;padding:2px">GIF</span><span style="position:absolute;top:4px;left:4px;background:oklch(0.9 0.02 250 / 0.95);padding:2px">New</span></section>
+      <section style="position:relative"><img src="${url}" alt="under a see-through label" style="width:100px;height:100px;display:block"><span style="position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.5);color:white;padding:2px">Caption</span></section>`);
+    await decodeImages();
+    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Caption" × img "under a see-through label"']);
+  });
+
   it("passes text of one block, nested blocks, different sections, covered rows, hidden, clipped and allowed text", async () => {
     const url = await picture(100, 100);
     render(`
@@ -449,6 +460,42 @@ describe("findOverlaps", () => {
 
 describe("findImageFades", () => {
   const box = "width:200px;height:100px;display:block";
+  it("reads a linear mask's ramp along its line and finds only a picture in the part it fades, and any picture under a mask it can't read so", async () => {
+    const url = await picture(200, 40);
+    // A 200px square masked box, with one picture placed in it.
+    const masked = (id: string, mask: string, place: string, extra = "") => `<div style="display:flow-root;width:200px;height:200px;mask-image:${mask};${extra}"><img id="${id}" src="${url}" alt="" style="display:block;width:${place.includes("left") ? "50px;height:200px" : "200px;height:40px"};${place}"></div>`;
+    render(
+      [
+        masked("fold", "linear-gradient(#000 calc(100% - 3rem), transparent)", "margin-top:160px"),
+        masked("fold-clear", "linear-gradient(#000 calc(100% - 3rem), transparent)", "margin-top:0"),
+        masked("inert", "linear-gradient(#000 108px, transparent 108px, #000 108px)", "margin-top:90px"),
+        masked("top", "linear-gradient(to top, transparent, #000 20%)", "margin-top:160px"),
+        masked("top-clear", "linear-gradient(to top, transparent, #000 20%)", "margin-top:0"),
+        masked("right", "linear-gradient(90deg, transparent, #000 10%)", "margin-left:0"),
+        masked("right-clear", "linear-gradient(90deg, transparent, #000 10%)", "margin-left:150px"),
+        masked("left", "linear-gradient(-90deg, rgba(0,0,0,0) clamp(1px, 5%, 30px), #000)", "margin-left:150px"),
+        masked("minmax", "linear-gradient(transparent min(20px, 50%), #000 max(30px, 10%))", "margin-top:0"),
+        masked("viewport", "linear-gradient(#000 1vh, transparent 2vh)", "margin-top:160px"),
+        masked("plus", "linear-gradient(transparent calc(5% + 10px), #000 calc(5% + 20px))", "margin-top:0"),
+        masked("behind-clear", "linear-gradient(transparent -10px, #000 -5px)", "margin-top:0"),
+        masked("two-places", "linear-gradient(#000 0 150px, transparent 160px 200px)", "margin-top:0"),
+        masked("ordered", "linear-gradient(#000 100px, #000, transparent 50px)", "margin-top:160px"),
+        masked("ordered-clear", "linear-gradient(#000 100px, #000, transparent 50px)", "margin-top:0"),
+        masked("sized", "linear-gradient(#000, #000 190px, transparent)", "margin-top:0", "mask-size:100% 50%"),
+        masked("layers", "linear-gradient(#000, #000), linear-gradient(transparent, #000 10px)", "margin-top:0"),
+        masked("diagonal", "linear-gradient(to right bottom, #000 190px, transparent)", "margin-top:0"),
+        masked("angled", "linear-gradient(45deg, #000 190px, transparent)", "margin-top:0"),
+        masked("see-through", "linear-gradient(oklch(0.5 0.1 200 / 0.4), #000 10px)", "margin-top:0"),
+        masked("unread", "linear-gradient(#000 50vb, transparent 50vb)", "margin-top:0"),
+      ].join(""),
+    );
+    const found = findImageFades().map((issue) => issue.element);
+    // WebKit computes a viewport length as px, which reads; Chromium keeps vb, which the rule doesn't, so it counts as
+    // fading.
+    expect(found).toEqual(["img#fold", "img#top", "img#right", "img#left", "img#minmax", "img#viewport", "img#plus", "img#ordered", "img#sized", "img#layers", "img#diagonal", "img#angled", "img#see-through", ...(server.browser === "chromium" ? ["img#unread"] : [])]);
+  });
+
+
   it("finds a picture faded by a gradient mask on itself or a box around it, by either mask property", async () => {
     const url = await picture(200, 100);
     render(`
