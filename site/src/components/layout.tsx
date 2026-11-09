@@ -27,7 +27,7 @@ export function SiteFooter(): JSX.Element {
   ];
   return (
     <footer className="mt-24">
-      <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} label="All Ouro sites" className={`pt-6 pb-10 ${GUTTERS.docs}`}>
+      <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} label="Ouro family" className={`pt-6 pb-10 ${GUTTERS.docs}`}>
         <div className="flex basis-full flex-col gap-6 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground">
             <span>

@@ -11,9 +11,9 @@ const PHONE = { width: 390, height: 844 };
 
 /**
  * Every kind of page, with the navigation landmarks it shows on a phone besides the header's (hidden) one: the family
- * bar's row of sites over the header ("Ouro sites"), the page's own, then the family footer's ("All Ouro sites") and the site's.
+ * bar's row of sites over the header ("Ouro sites"), the page's own, then the family footer's ("Ouro family") and the site's.
  */
-const framed = (...own: string[]) => ["Ouro sites", ...own, "All Ouro sites", "Footer"];
+const framed = (...own: string[]) => ["Ouro sites", ...own, "Ouro family", "Footer"];
 const PAGES: ReadonlyArray<{ path: string; navs: string[] }> = [
   { path: "./", navs: framed() },
   { path: "nautilus/", navs: framed("Chapters") },
