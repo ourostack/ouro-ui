@@ -1,6 +1,6 @@
 import { spring } from "motion";
 import { afterEach, describe, expect, it } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 
 // The Ouro look (ouro-theme.css) over ouro-base.css, both loaded through app.css, which vitest.config.ts loads before every test.
 // Colors are read through getComputedStyle, so the browser really evaluates the
@@ -197,6 +197,17 @@ describe("press utility", () => {
     expect(easings[at("scale")]).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
     expect(durations[at("opacity")]).toBe("0.15s");
     for (const property of ["background-color", "border-color", "color", "all"]) expect(at(property), property).toBe(-1);
+  });
+
+  it("eases colors into hover, and not into a hover that is pressed or selected", async () => {
+    const host = mount('<div><button class="press">A</button><button class="press" aria-current="true">B</button></div>');
+    const [plain, current] = [...host.firstElementChild!.children] as [HTMLElement, HTMLElement];
+    await userEvent.hover(plain);
+    const eased = getComputedStyle(plain).transitionProperty.split(", ");
+    for (const property of ["background-color", "border-color", "color"]) expect(eased, property).toContain(property);
+    expect(getComputedStyle(plain).transitionDuration.split(", ")[eased.indexOf("background-color")]).toBe("0.15s");
+    await userEvent.hover(current);
+    expect(getComputedStyle(current).transitionProperty.split(", ")).not.toContain("background-color");
   });
 
   it("draws a selected row's background on the frame it is selected, and takes it off the row it left on that frame", () => {
