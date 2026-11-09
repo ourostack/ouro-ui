@@ -132,9 +132,12 @@ for (const { path, navs } of PAGES) {
     // The page you are on is marked, once.
     await expect(sheet(page).locator('[aria-current="page"]')).toHaveCount(1);
     await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
-    // The family's sites, under their heading in the menu rather than a landmark of their own, with this one marked.
-    await expect(sheet(page).getByRole("heading", { name: "Sites", exact: true })).toHaveCount(1);
-    await expect(sheet(page).getByRole("list", { name: "Sites", exact: true }).getByRole("link")).toHaveText(family.links.map((site) => new RegExp(`^${site.label}`)));
+    // The family's sites, under their heading in the menu rather than a landmark of their own, with this one marked and
+    // the others marked as leaving the site.
+    await expect(sheet(page).getByRole("heading", { name: "Ouro family", exact: true })).toHaveCount(1);
+    await expect(sheet(page).getByRole("list", { name: "Ouro family", exact: true }).getByRole("link")).toHaveText(
+      family.links.map((site) => new RegExp(`^${site.label}${site.id === "ouro-ui" ? "" : "↗"}`)),
+    );
     await expect(sheet(page).locator('[aria-current="true"]')).toHaveAttribute("href", family.links.find((site) => site.id === "ouro-ui")!.href);
     // Nothing sticks out of the window sideways.
     const box = (await sheet(page).boundingBox())!;

@@ -64,7 +64,7 @@ export function DocsShell({ current, opener, children }: { current: string; open
           </Suspense>
         </aside>
         <div className="min-w-0">
-          <main className={opener ? "max-w-3xl pt-6 lg:pt-8" : "max-w-3xl pt-8 lg:pt-10"}>
+          <main id="main" className={opener ? "max-w-3xl pt-6 lg:pt-8" : "max-w-3xl pt-8 lg:pt-10"}>
             {children}
             <Popups />
           </main>

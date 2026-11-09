@@ -113,18 +113,18 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
             <VoyageHeader path={page === "/nautilus/" || page === "/ax/" ? page : isApple(page) ? "/apple/" : "/"} page={page} />
           </Suspense>
           {isApple(page) ? (
-            <main>
+            <main id="main">
               <ApplePage page={page} />
               <Popups />
             </main>
           ) : page === "/ax/" ? (
-            <main>
+            <main id="main">
               <AxHero exhibit={<AxExhibitIsland />} />
               <AxIsland />
               <Popups />
             </main>
           ) : nautilus ? (
-            <main>
+            <main id="main">
               <StoryOpening />
               <ChapterOneIsland />
               <ChapterTwoIsland />
@@ -132,7 +132,7 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
               <Popups />
             </main>
           ) : (
-            <main>
+            <main id="main">
               <Hero onXray={openXray} />
               <TwoShips />
               <RepaintIsland />

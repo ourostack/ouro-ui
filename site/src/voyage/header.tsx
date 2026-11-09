@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { FamilyBar } from "@/registry/ouro/components/ouro/family-bar/family-bar";
+import { SkipLink } from "@/registry/ouro/components/ouro/skip-link/skip-link";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
@@ -231,6 +232,7 @@ export function VoyageHeader({
   const [searching, setSearching] = useCommandShortcut("mod+k");
   return (
     <>
+      <SkipLink />
       <FamilyBar
         links={FAMILY}
         current={FAMILY_CURRENT}
