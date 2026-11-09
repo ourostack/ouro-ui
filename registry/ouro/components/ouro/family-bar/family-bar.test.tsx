@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { FamilyBar, type FamilyBarProps, type FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -131,19 +131,34 @@ describe("FamilyBar", () => {
     host.before(before);
     mounted.push(before);
     before.focus();
+    const clear = (link: Element) => {
+      const box = row.getBoundingClientRect();
+      const at = link.getBoundingClientRect();
+      const fade = (side: "left" | "right") => Math.min(parseFloat(row.style.getPropertyValue(`--ouro-scroll-fade-${side}`) || "0"), 32);
+      return at.left - box.left >= fade("left") - 1 && box.right - at.right >= fade("right") - 1;
+    };
     for (const site of sites) {
       await pressTab();
-      const link = document.activeElement as HTMLElement;
-      expect(link.textContent).toBe(site.label);
-      await expect
-        .poll(() => {
-          const box = row.getBoundingClientRect();
-          const at = link.getBoundingClientRect();
-          const fade = (side: "left" | "right") => Math.min(parseFloat(row.style.getPropertyValue(`--ouro-scroll-fade-${side}`) || "0"), 32);
-          return at.left - box.left >= fade("left") - 1 && box.right - at.right >= fade("right") - 1;
-        })
-        .toBe(true);
+      expect(document.activeElement!.textContent).toBe(site.label);
+      await expect.poll(() => clear(document.activeElement!)).toBe(true);
     }
+    for (const site of sites.slice(0, -1).reverse()) {
+      await pressTab({ shift: true });
+      expect(document.activeElement!.textContent).toBe(site.label);
+      await expect.poll(() => clear(document.activeElement!)).toBe(true);
+    }
+  });
+
+  it("leaves the row still when a click focuses a link in the fade, so the link never moves under the pointer", async () => {
+    await page.viewport(320, 640);
+    const { host, row, link } = await render(<FamilyBar links={sites} />);
+    host.addEventListener("click", (event) => event.preventDefault());
+    const community = link("Community");
+    row.scrollLeft += community.getBoundingClientRect().right - row.getBoundingClientRect().right + 8;
+    const at = row.scrollLeft;
+    expect(at).toBeGreaterThan(0);
+    await userEvent.click(community);
+    expect(row.scrollLeft).toBe(at);
   });
 
   it("brings the current site's link to the middle of the row, and again when current changes", async () => {

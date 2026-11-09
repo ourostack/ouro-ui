@@ -34,10 +34,10 @@ const familyBarClass =
 /**
  * The FamilyBar's row of links, which scrolls inside itself when it does not fit. A finger swipes it, so on a coarse
  * pointer its scroll bar is hidden; a mouse wheel scrolls up and down, so on a fine pointer a thin, quiet scroll bar
- * stays to drag. Its scroll padding is as wide as the fade, so the keyboard brings a focused link, outline and all,
- * clear of the fade.
+ * stays to drag. Its scroll padding is as wide as the fade, and a link the keyboard focuses is brought clear of it,
+ * outline and all.
  *
- * @claim "Its scroll padding is as wide as the fade, so the keyboard brings a focused link, outline and all, clear of the fade." registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > brings each link the keyboard focuses clear of the row's fade, outline and all)
+ * @claim "Its scroll padding is as wide as the fade, and a link the keyboard focuses is brought clear of it, outline and all." registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > brings each link the keyboard focuses clear of the row's fade, outline and all)
  *
  * @internal
  */
