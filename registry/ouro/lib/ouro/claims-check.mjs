@@ -128,7 +128,7 @@ const HOW_TO = {
 };
 
 /** Characters that draw nothing: a way to split a word the patterns look for. */
-const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]/gu;
+const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800\u0000-\u0008\u000E-\u001F\u007F-\u0084\u0086-\u009F]/gu;
 /** A hidden character may sit inside a word or stand between words, so text is read with them removed and with them as spaces. */
 const FILLER = INVISIBLE;
 
@@ -353,6 +353,7 @@ function blocks(text) {
 function maskBlock(text, definitions) {
   const markers = [];
   let masked = text
+    .replace(/(?<=\w)<!--[\s\S]*?-->(?=\w)/g, (match) => "\u200B".repeat(match.length))
     .replace(/<!--[\s\S]*?-->/g, (match) => " ".repeat(match.length))
     .replace(/(`+)[\s\S]*?\1/g, (span) => "§".repeat(span.length))
     .replace(/\$\{[^}]*\}/g, (span) => "§".repeat(span.length))
@@ -374,6 +375,10 @@ function maskBlock(text, definitions) {
     }
     return "¹".repeat(match.length);
   });
+  // Invisible entities, and tags or comments inside a word, draw nothing: they are hidden characters like any other.
+  masked = masked
+    .replace(/&(?:shy|ZeroWidthSpace|zwj|zwnj|NoBreak|lrm|rlm|InvisibleTimes|InvisibleComma|ApplyFunction|NegativeThinSpace);/g, (entity) => "\u200B".repeat(entity.length))
+    .replace(/(?<=\w)(?:<\/?[A-Za-z][^>]*>|<!--[\s\S]*?-->)+(?=\w)/g, (hidden) => "\u200B".repeat(hidden.length));
   masked = masked
     .replace(/<?https?:\/\/[^\s)>\]]*[^\s)>\].,;:!?'"]>?/g, (url) => "§".repeat(url.length))
     .replace(QUOTED, maskQuote)

@@ -913,3 +913,17 @@ test("a blank-drawing filler between two words is read as a space, so a claim ac
   assert.equal(lint("It is the\u2800best on the market.").length, 1);
   assert.equal(lint('The report says "the\u3164best around"').length, 1);
 });
+
+test("the lint sees a claim through control characters and invisible HTML entities in Markdown", () => {
+  const plain = (text) => lintPlain(text, { file: "pull request body" }).length;
+  const markdown = (text) => lintMarkdown(text, { file: "docs/a.md" }).length;
+  assert.equal(plain("It al\u0001ways works."), 1);
+  assert.equal(plain("It al\u007Fways works."), 1);
+  assert.equal(plain("It al\u0090ways works."), 1);
+  for (const hidden of ["&shy;", "&ZeroWidthSpace;", "&zwj;", "&NoBreak;", "<wbr>", "<wbr/>", "<!-- -->", "<span></span>"]) {
+    assert.equal(markdown(`It al${hidden}ways works.`), 1, hidden);
+  }
+  // A visible tag between words, and a clean sentence, are not changed.
+  assert.equal(markdown("It works.<br>Run `pnpm test`."), 0);
+  assert.equal(markdown("The tab\tand line\nbreaks stay: run it."), 0);
+});
