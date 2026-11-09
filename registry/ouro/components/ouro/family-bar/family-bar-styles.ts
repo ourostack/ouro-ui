@@ -34,8 +34,8 @@ const familyBarClass =
   "ps-[max(0.5rem,env(safe-area-inset-left,0px))] pe-[max(0.5rem,env(safe-area-inset-right,0px))]";
 
 /**
- * The FamilyBar's row of links, which scrolls inside itself when it does not fit and comes to rest with a whole link at
- * its start, past the fade. A finger swipes it, so on a coarse
+ * The FamilyBar's row of links, which scrolls inside itself when it does not fit; a swipe comes to rest with a whole
+ * link at its start, past the fade. A mouse and the keyboard scroll it exactly, without snapping. A finger swipes it, so on a coarse
  * pointer its scroll bar is hidden; a mouse wheel scrolls up and down, so on a fine pointer a thin, quiet scroll bar
  * stays to drag. Its scroll padding is as wide as the fade, and a link the keyboard focuses is brought clear of it,
  * outline and all.
@@ -45,7 +45,7 @@ const familyBarClass =
  * @internal
  */
 const familyScrollerClass =
-  "@container min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain snap-x snap-proximity scroll-px-8 " +
+  "@container min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain pointer-coarse:snap-x pointer-coarse:snap-proximity scroll-px-8 " +
   "[scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] pointer-coarse:[scrollbar-width:none]";
 
 /**

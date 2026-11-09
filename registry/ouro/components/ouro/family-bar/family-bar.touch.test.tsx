@@ -79,8 +79,11 @@ describe("FamilyBar and FamilyFooter on a phone", () => {
     await expect.poll(leftRamp).toBe(false);
   });
 
-  it("hides the FamilyBar row's scroll bar from a finger, which swipes it", async () => {
+  it("hides the FamilyBar row's scroll bar from a finger, which swipes it, and rests a swipe on a whole link", async () => {
     const host = await render(<FamilyBar links={sites} current="blog" />);
-    expect(getComputedStyle(host.querySelector("[data-ouro-family-row]")!).scrollbarWidth).toBe("none");
+    const row = host.querySelector("[data-ouro-family-row]")!;
+    expect(getComputedStyle(row).scrollbarWidth).toBe("none");
+    expect(getComputedStyle(row).scrollSnapType).toBe("x");
+    expect(getComputedStyle(row.querySelector("li")!).scrollSnapAlign).toBe("start");
   });
 });

@@ -128,6 +128,7 @@ describe("FamilyBar", () => {
     const { row } = await render(<FamilyBar links={sites} />);
     expect(matchMedia("(pointer: fine)").matches).toBe(true);
     expect(getComputedStyle(row).scrollbarWidth).toBe("thin");
+    expect(getComputedStyle(row).scrollSnapType).toBe("none");
   });
 
   it("brings each link the keyboard focuses clear of the row's fade, outline and all", async () => {
