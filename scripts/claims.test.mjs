@@ -966,3 +966,20 @@ test("a claim word split by a long comment, a tag with many attributes or an unc
   markdown("a<b c={".repeat(40000) + "d");
   assert.ok(Date.now() - braced < 3000, "unclosed expression values are read in linear time");
 });
+
+test("a claim word split by a vertical tab, form feed or NEL is still read", () => {
+  const markdown = (text) => lintMarkdown(text, { file: "docs/a.md" }).length;
+  for (const separator of ["\u000B", "\u000C", "\u0085"]) assert.equal(markdown(`It is al${separator}ways fast.`), 1, JSON.stringify(separator));
+});
+
+test("a tag with several bare attributes is masked, and prose between a bare less-than and a later greater-than is still read", () => {
+  const markdown = (text) => lintMarkdown(text, { file: "docs/a.md" }).length;
+  for (const tag of ["<input disabled required>", '<input type="checkbox" checked disabled>', "<Foo {...a} {...b}>", '<Foo a="x" {...p} b="y">', "<video controls muted loop>"]) {
+    assert.equal(markdown(`Use ${tag} here.`), 0, tag);
+    assert.equal(markdown(`It is fas${tag}test.`), 1, tag);
+  }
+  assert.equal(markdown("a<b and always c>d"), 1);
+  assert.equal(markdown("a<i hello always world>b"), 1);
+  // A spread holds a name, not words, so prose in braces after the dots is still read.
+  assert.equal(markdown("It is fas<b {...we always never every}>test</b>."), 1);
+});
