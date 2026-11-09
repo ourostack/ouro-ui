@@ -2,8 +2,14 @@ import { memo, useEffect, useLayoutEffect, useRef, type CSSProperties, type JSX,
 import { art, partsOf, type Art } from "./art";
 import { MAX_DEPTH, type Band, type Speed } from "./copy";
 
-/** What the porthole shows: a pure function of the rail's controls. */
-export interface SceneState {
+/**
+ * Fails to compile for a type with a value that is not a primitive. stepping.ts tells one state from
+ * another by its values as a string, which would read two different objects as the same state.
+ */
+type Primitives<T extends { [K in keyof T]: string | number | boolean }> = T;
+
+/** What the porthole shows: a pure function of the rail's controls, its values all primitives. */
+export type SceneState = Primitives<{
   depth: number;
   band: Band;
   tanks: number;
@@ -14,7 +20,7 @@ export interface SceneState {
   dives: number;
   /** Bumped by each ring of the bell, so ripples spread again. */
   rings: number;
-}
+}>;
 
 /** The small-step marker, once the first press of the depth lever has loaded it (stepping.ts). */
 let markStep: typeof import("./stepping").markStep | undefined;
