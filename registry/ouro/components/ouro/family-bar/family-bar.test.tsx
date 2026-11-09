@@ -247,15 +247,20 @@ describe("FamilyBar", () => {
     const rtl = serverRow("rtl");
     await expect.poll(() => ramps(rtl)).toEqual({ left: true, right: false });
     await page.viewport(1280, 800);
-    // A row that widens to fit, from scrolled to its end, and one that fits from the start.
-    await expect.poll(() => ramps(row)).toEqual({ left: false, right: false });
+    // A row that fits from the start. (One that widens to fit after it scrolled: family-bar.touch.test.tsx.)
     await expect.poll(() => ramps(serverRow())).toEqual({ left: false, right: false });
+  });
+
+  it("keeps no scroll bar on a row that fits", async () => {
+    const { row } = await render(<FamilyBar links={sites} />);
+    expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
+    expect(row.offsetHeight - row.clientHeight).toBe(0);
   });
 
   it("brings the current site's link into view by script where CSS does not place it", async () => {
     await page.viewport(320, 640);
     const style = document.createElement("style");
-    style.textContent = "[data-ouro-family-row] a { scroll-initial-target: none !important; scroll-snap-align: none !important; }";
+    style.textContent = "[data-ouro-family-start] { scroll-initial-target: none !important } [data-ouro-family-row] li { scroll-snap-align: none !important }";
     document.head.append(style);
     try {
       const { row, root, link } = await render(<FamilyBar links={sites} current="community" />);
@@ -278,8 +283,7 @@ describe("FamilyBar", () => {
 
   it("leaves a row that fits, or has no current site, where it starts", async () => {
     const fits = await render(<FamilyBar links={sites} current="source" />);
-    // At most the pixel the list adds for the scroll timeline.
-    expect(fits.row.scrollWidth).toBeLessThanOrEqual(fits.row.clientWidth + 1);
+    expect(fits.row.scrollWidth).toBeLessThanOrEqual(fits.row.clientWidth);
     expect(fits.row.scrollLeft).toBe(0);
     expect(fits.row.hasAttribute("data-ouro-scroll-fade")).toBe(false);
     await page.viewport(320, 640);

@@ -144,11 +144,12 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
       <div ref={scroller} data-ouro-family-row="" className={cn(familyScrollerClass, scrollFadeClass, scrollFadeStaticClass)}>
         {/* Room after the last link: the row's scroll width rounds the list's down, which would clip the last link and
             its outline by a fraction of a pixel when the row is scrolled to its end. */}
-        {/* Where scroll-driven animations draw the fade with no script, the list is a pixel wider than a row it fits, so
-            the row's scroll timeline never goes idle and holds a stale fade after the row widens to fit. */}
+        {/* Where scroll-driven animations draw the fade with no script, the list is a pixel wider than a row it fits on a
+            touch screen, so the row's scroll timeline never goes idle and holds a stale fade after a phone turns. Not for
+            a mouse, whose row keeps a scroll bar a pixel would show. */}
         <ul
           onFocus={clearOfFade}
-          className="m-0 flex w-max list-none items-center gap-0.5 p-0 pe-1 supports-[animation-timeline:scroll()]:min-w-[calc(100%+1px)]"
+          className="m-0 flex w-max list-none items-center gap-0.5 p-0 pe-1 pointer-coarse:supports-[animation-timeline:scroll()]:min-w-[calc(100%+1px)]"
         >
           {links.map((link, index) => (
             <li key={index} className="relative flex snap-start">

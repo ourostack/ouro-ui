@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { FamilyBar, type FamilyLink } from "@/registry/ouro/components/ouro/family-bar/family-bar";
 import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
@@ -60,6 +61,22 @@ describe("FamilyBar and FamilyFooter on a phone", () => {
       }
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
     }
+  });
+
+  it("drops the no-script fade when a phone turns and the row, scrolled to its end, now fits", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    nodes.push(host);
+    host.innerHTML = renderToString(<FamilyBar links={sites} />);
+    const row = host.querySelector<HTMLElement>("[data-ouro-family-row]")!;
+    if (!CSS.supports("animation-timeline", "scroll()")) return;
+    const leftRamp = () => !getComputedStyle(row).maskPosition.trim().startsWith("-");
+    row.scrollLeft = row.scrollWidth;
+    await expect.poll(leftRamp).toBe(true);
+    await rotate(844, 390);
+    await expect.poll(() => innerWidth).toBe(844);
+    expect(row.scrollWidth - row.clientWidth).toBeLessThanOrEqual(1);
+    await expect.poll(leftRamp).toBe(false);
   });
 
   it("hides the FamilyBar row's scroll bar from a finger, which swipes it", async () => {

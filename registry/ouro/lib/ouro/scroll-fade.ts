@@ -23,13 +23,14 @@ export const scrollFadeClass =
  * {@link scrollFadeClass}, it fades each side that hides more from the first paint, in a browser with scroll-driven
  * animations (`animation-timeline: scroll()`). The mask is two ramps, one at each side, kept where they show nothing
  * until the box scrolls: the box's own scroll timeline slides the left ramp in over the first 2rem it scrolls, and the
- * right one out over the last 2rem, in reverse in a right-to-left box. A box that fits has no scroll timeline, so
- * nothing fades. Once {@link useScrollFade} marks the box, its mask takes over and this one stands down. Its keyframes
+ * right one out over the last 2rem, in reverse in a right-to-left box. A box that fits from the start has no scroll
+ * timeline, so nothing fades. Chromium holds the last fade of a box that scrolled and then widened to fit, so where that
+ * matters keep the box's content at least a pixel wider than the box. Once {@link useScrollFade} marks the box, its mask takes over and this one stands down. Its keyframes
  * are in ouro-base.css.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  * @claim "The mask is two ramps, one at each side" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits)
- * @claim "A box that fits has no scroll timeline, so nothing fades" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits)
+ * @claim "A box that fits from the start has no scroll timeline, so nothing fades" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits)
  * @claim "it fades each side that hides more from the first paint" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits)
  */
 export const scrollFadeStaticClass =

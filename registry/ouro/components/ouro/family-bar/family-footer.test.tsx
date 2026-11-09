@@ -95,9 +95,11 @@ describe("FamilyFooter", () => {
 
   it("lays its links in even columns of 44px rows on a narrow screen instead of ragged lines, and never scrolls sideways", async () => {
     await page.viewport(320, 640);
-    const { footer } = await render(<FamilyFooter links={sites} current="docs" />);
+    const long = [...sites, { id: "portal", label: "Developer Portal and Forums", href: "https://portal.example.com/" }];
+    const { footer } = await render(<FamilyFooter links={long} current="docs" />);
     expect(footer.scrollWidth).toBeLessThanOrEqual(footer.clientWidth);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    for (const a of footer.querySelectorAll("nav a")) expect(a.scrollWidth).toBeLessThanOrEqual(a.clientWidth);
     const boxes = [...footer.querySelectorAll("nav a")].map((a) => a.getBoundingClientRect());
     const columns = new Set(boxes.map((box) => Math.round(box.left)));
     expect(columns.size).toBeGreaterThan(1);

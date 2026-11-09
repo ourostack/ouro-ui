@@ -51,7 +51,7 @@ const familyScrollerClass =
 /**
  * A link in a FamilyFooter's list: a FamilyBar link that looks like a link at rest, underlined in the border colour and
  * in its own colour on hover; the current site's link keeps its bar instead. In a narrow footer the links fill even
- * columns, a whole row each 44px tall, rather than wrapping into ragged lines.
+ * columns, a whole row each 44px tall, rather than wrapping into ragged lines; a long name wraps inside its column.
  *
  * @claim "In a narrow footer the links fill even columns, a whole row each 44px tall" registry/ouro/components/ouro/family-bar/family-footer.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-footer.test.tsx::FamilyFooter > lays its links in even columns of 44px rows on a narrow screen instead of ragged lines, and never scrolls sideways)
  *
@@ -59,7 +59,7 @@ const familyScrollerClass =
  */
 const familyFooterLinkClass =
   "underline decoration-border decoration-1 underline-offset-4 pointer-fine:hover:decoration-current aria-[current=true]:no-underline " +
-  "max-sm:min-h-11 max-sm:pointer-fine:min-h-11 max-sm:w-full max-sm:justify-start";
+  "max-sm:min-h-11 max-sm:pointer-fine:min-h-11 max-sm:w-full max-sm:justify-start max-sm:whitespace-normal max-sm:text-start";
 
 /**
  * The FamilyFooter's list of links: even columns in a narrow footer, one row that wraps in a wide one.
