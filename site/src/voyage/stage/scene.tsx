@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, type CSSProperties, type JSX, type ReactNode } from "react";
 import { art, partsOf, type Art } from "./art";
 import { MAX_DEPTH, type Band, type Speed } from "./copy";
 
@@ -19,8 +19,11 @@ export interface SceneState {
 /** A change of depth smaller than this many fathoms is a step of the lever; a dive or a surfacing is larger. */
 const STEP = 30;
 
-/** Whether two states differ in nothing but the depth (and the band it falls in). */
-const sameBesidesDepth = (a: SceneState, b: SceneState): boolean => a.tanks === b.tanks && a.dived === b.dived && a.lights === b.lights && a.speed === b.speed && a.dives === b.dives && a.rings === b.rings;
+/** How long a change fades in the picture (stage.css --stage-fade is the slow duration), with some to spare. */
+const FADE_MS = 700;
+
+/** Whether two states differ in nothing but the depth: the same water, so no band fades in or out. */
+const sameBesidesDepth = (a: SceneState, b: SceneState): boolean => a.band === b.band && a.tanks === b.tanks && a.dived === b.dived && a.lights === b.lights && a.speed === b.speed && a.dives === b.dives && a.rings === b.rings;
 
 /** A drawing from site/src/nautilus/art at a place and width in the scene, its height from its own proportions. */
 function Drawing({ of, x, y, width, className, inner = of.inner }: { of: Art; x: number; y: number; width: number; className?: string; inner?: string }): JSX.Element {
@@ -115,13 +118,17 @@ const PLAYBACK: Record<Speed, number> = { stop: 1, half: 1, full: 2.4 };
 export const Scene = memo(function Scene({ state, label, description, motto }: { state: SceneState; label: string; description: string; motto: string }): JSX.Element {
   const d = state.depth / MAX_DEPTH;
   const root = useRef<HTMLDivElement>(null);
-  // A press of the depth lever that changes nothing else is a small step, and its change is too small to need fading in (stage.css): a fade is an animation the page starts, runs and repaints for each step.
-  const [seen, setSeen] = useState(state);
-  const [stepping, setStepping] = useState(false);
-  if (seen !== state) {
-    setSeen(state);
-    setStepping(state.depth !== seen.depth && Math.abs(state.depth - seen.depth) < STEP && sameBesidesDepth(seen, state));
-  }
+  // A press of the depth lever that changes nothing else is a small step, and its change is too small to need fading in (stage.css): a fade is an animation the page starts, runs and repaints for each step. A step that comes while an earlier change is still fading is no step, so it does not cut that fade short.
+  // It is set on the root before the browser works out the new style, so the step's transitions never start.
+  const before = useRef({ state, fadingUntil: 0 });
+  useLayoutEffect(() => {
+    const last = before.current;
+    if (last.state === state) return;
+    const now = performance.now();
+    const step = state.depth !== last.state.depth && Math.abs(state.depth - last.state.depth) < STEP && sameBesidesDepth(last.state, state) && now >= last.fadingUntil;
+    before.current = { state, fadingUntil: step ? last.fadingUntil : now + FADE_MS };
+    root.current?.toggleAttribute("data-stepping", step);
+  }, [state]);
   // Speed changes the fish's playback rate, so they speed up from where they are instead of jumping.
   useEffect(() => {
     for (const animation of root.current?.getAnimations({ subtree: true }) ?? []) {
@@ -135,7 +142,6 @@ export const Scene = memo(function Scene({ state, label, description, motto }: {
       aria-label={`${label}. ${description}`}
       className="stage-scene"
       data-band={state.band}
-      data-stepping={stepping ? "" : undefined}
       data-dived={state.dived ? "" : undefined}
       data-lights={state.lights ? "" : undefined}
       data-speed={state.speed}
