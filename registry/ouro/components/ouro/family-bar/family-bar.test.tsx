@@ -228,7 +228,7 @@ describe("FamilyBar", () => {
     };
     const row = serverRow();
     // The hint is in the HTML, as classes; no script marks the row.
-    expect(row.className).toContain("[animation-timeline:scroll(self_inline)]");
+    expect(row.className).toContain(":[animation-timeline:scroll(self_inline)]");
     expect(row.hasAttribute("data-ouro-scroll-fade")).toBe(false);
     expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
     // Firefox has no scroll-driven animations yet: there the row fades once it hydrates.
