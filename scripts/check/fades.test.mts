@@ -73,8 +73,18 @@ describe("the fade check", () => {
       '<img style={{ "mask-image": "radial-gradient(#000, transparent)" }} />',
       'img.style.setProperty("-webkit-mask-image", "linear-gradient(#000, transparent)");',
       "const style = { WebkitMask: 'linear-gradient(#000, transparent)' };",
+      'img.style.maskImage = "linear-gradient(#000, transparent)";',
+      "img.style.webkitMaskImage = `radial-gradient(#000, transparent)`;",
     ];
     for (const text of planted) assert.deepEqual(lines(text), [1], text);
+  });
+
+  test("reads a value over the lines a formatter splits it into: a ternary, and a mask's layers", () => {
+    assert.deepEqual(lines('const style = {\n  maskImage: faded\n    ? "linear-gradient(to bottom, #000 60%, transparent)"\n    : undefined,\n};'), [2]);
+    assert.deepEqual(lines('const style = {\n  WebkitMaskImage: faded ?\n    "linear-gradient(#000, transparent)" : undefined,\n};'), [2]);
+    assert.deepEqual(lines(".hero {\n  mask:\n    url(a.svg) no-repeat,\n    linear-gradient(#000, transparent);\n}"), [2]);
+    // A value that no operator carries over ends with its line.
+    assert.deepEqual(lines("const style = {\n  maskImage: faded\n};\nconst sky = { background: 'linear-gradient(#9cf, #fff)' };"), []);
   });
 
   test("passes a mask with no gradient, a gradient that is no mask, and code that reads a mask", () => {
@@ -85,6 +95,7 @@ describe("the fade check", () => {
       '<div className="bg-linear-to-b from-sky-200 to-white" />',
       "<OtpField label=\"PIN\" mask defaultValue=\"1234\" />\nconst args = { mask: true, label: 'PIN' };\nconst types = { mask: { control: \"boolean\" } };\nconst sky = 'linear-gradient(#9cf, #fff)';",
       'expect(getComputedStyle(box).maskImage).toContain("linear-gradient");',
+      "if (img.style.maskImage === 'linear-gradient(#000, transparent)') reset();",
       "// A mask: it fades nothing\nconst masked = mask;\nconst sky = 'linear-gradient(#9cf, #fff)';",
       "/* a mask: (don't fade it */",
       '<div className="[mask-image:url(shape.svg)] mask-[url(shape.svg)] mask-linearly" />',
@@ -102,6 +113,10 @@ describe("the fade check", () => {
     assert.deepEqual(lines("<!-- fade-ok: -->\n<div style=\"mask-image: linear-gradient(#000, transparent)\"></div>"), [2]);
     assert.deepEqual(lines("{/* fade-ok: */}\n<img className=\"mask-b-from-50%\" />"), [2]);
     assert.deepEqual(lines("// fade-ok: fades text\n\n.hero { mask-image: linear-gradient(#000, transparent); }"), [3]);
+    // A marker after code belongs to its own line's mask, not the next one.
+    assert.deepEqual(lines(".row { mask-image: linear-gradient(#000, transparent); } /* fade-ok: fades a row */\n.hero { mask-image: linear-gradient(#000, transparent); }"), [2]);
+    // Windows line endings.
+    assert.deepEqual(lines("// fade-ok: fades a row of links\r\n.row { mask-image: linear-gradient(#000, transparent); }\r\n.col { mask-image: linear-gradient(#000, transparent); } /* fade-ok: fades a column */\r\n"), []);
   });
 
   test("reports a line once, however many masks it holds, in line order, and shortens a long declaration", () => {

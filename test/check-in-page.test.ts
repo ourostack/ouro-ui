@@ -377,12 +377,16 @@ describe("findImageFades", () => {
         .wash::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: linear-gradient(rgba(0, 0, 0, 0), rgb(0, 0, 0)) }
         .outer { position: relative; width: 200px }
         .inner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(oklch(1 0 0 / 0), oklch(1 0 0)) }
+        .lid { position: relative; width: 200px }
+        .lid::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 30px; background: linear-gradient(#fff, transparent) }
       </style>
       <div class="scrim"><img src="${url}" alt="scrim" style="${box}"></div>
       <div class="wash" style="${box}"></div>
       <div class="outer"><div class="inner"><img src="${url}" alt="inner" style="${box}"></div></div>
       <div style="position:relative;width:200px"><img id="under" src="${url}" alt="under" style="${box}"><div class="shade" style="position:absolute;inset:0 0 50px 0;background:linear-gradient(to top,rgba(255,255,255,0),#fff)"></div></div>
       <div style="position:relative;width:200px"><img id="vignette" src="${url}" alt="vignette" style="${box}"><div class="edge" style="position:absolute;inset:0;background:radial-gradient(circle,transparent 40%,#000)"></div></div>
+      <div class="lid"><img src="${url}" alt="lid" style="${box}"></div>
+      <div id="layered" style="${box};background:linear-gradient(transparent,#fff),url(${url}) center/cover"></div>
       <div style="position:relative;width:200px"><div class="late" style="position:absolute;inset:0"></div><img src="${url}" alt="after" style="${box};position:relative"><div class="cover" style="position:absolute;inset:0;background:linear-gradient(transparent,#000)"></div></div>`);
     expect(findImageFades().map(({ element, detail }) => [element, detail])).toEqual([
       ["img", "100% covered by the gradient to transparent of div.scrim::after"],
@@ -390,6 +394,8 @@ describe("findImageFades", () => {
       ["img", "100% covered by the gradient to transparent of div.inner::after"],
       ["img#under", "50% covered by the gradient to transparent of div.shade"],
       ["img#vignette", "100% covered by the gradient to transparent of div.edge"],
+      ["img", "30% covered by the gradient to transparent of div.lid::before"],
+      ["div#layered", "faded by a gradient layered over its own background"],
       ["img", "100% covered by the gradient to transparent of div.cover"],
     ]);
   });
@@ -408,12 +414,20 @@ describe("findImageFades", () => {
         .sky { position: relative }
         .sky::before { content: ""; position: absolute; inset: 0; background: linear-gradient(#9cf, #fde) }
         .thin { position: relative; width: 200px }
+        .backdrop { position: relative; isolation: isolate }
+        .backdrop::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(transparent, #fff) }
+        .under { position: relative }
+        .under::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent, #fff) }
         .thin::after { content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 5px; background: linear-gradient(transparent, #000) }
       </style>
       <div style="background:#eee;padding:8px"><img src="${url}" alt="band" style="${box}"></div>
       <div class="flow"><img src="${url}" alt="flow" style="${box}"></div>
       <div class="sky"><img src="${url}" alt="sky" style="${box}"></div>
       <div class="thin"><img src="${url}" alt="thin" style="${box}"></div>
+      <div class="backdrop"><img src="${url}" alt="backdrop" style="${box}"></div>
+      <div class="under"><img src="${url}" alt="positioned" style="${box};position:relative"></div>
+      <div style="${box};background:url(${url}) center/cover,linear-gradient(transparent,#fff)"></div>
+      <div style="${box};background:linear-gradient(rgb(0 0 0 / 0.2),rgb(0 0 0 / 0.2)),url(${url}) center/cover"></div>
       <div style="position:relative;width:200px"><div style="position:absolute;inset:0;z-index:-1;background:linear-gradient(transparent,#000)"></div><img src="${url}" alt="behind" style="${box}"></div>
       <div style="position:relative;width:200px"><div style="position:absolute;inset:0;background:linear-gradient(transparent,#000)"></div><img src="${url}" alt="earlier" style="${box};position:relative"></div>
       <div style="position:absolute;top:0;left:400px;background:linear-gradient(transparent,#fff)"><img src="${url}" alt="inside an overlay" style="${box}"></div>

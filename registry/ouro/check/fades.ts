@@ -29,12 +29,13 @@ const FADE_FIX =
   "end the picture on a hard edge, or put it on a solid band; if this mask fades text or controls rather than a picture, mark it `fade-ok: <why>`";
 
 // Where a mask is declared, and how its value is read. `css` is a declaration (`mask-image: …`, up to its `;`); `js` a
-// style object's key (`maskImage: …`, up to the next comma at its own level); `bracket` a Tailwind arbitrary property
+// style object's key or a style property set (`maskImage: …`, `style.maskImage = …`, up to the next comma at its own
+// level, or a line break that no operator carries over); `bracket` a Tailwind arbitrary property
 // or value (`[mask-image:…]`, `mask-[…]`, up to its `]`); `utility` one of Tailwind's own gradient mask utilities,
 // which are a gradient by name.
 const DECLARATIONS: { pattern: RegExp; read: "css" | "js" | "bracket" | "utility" }[] = [
   { pattern: /(?<![\w$[-])(?:-webkit-)?mask(?:-image)?\s*:(?!:)/g, read: "css" },
-  { pattern: /(?<![\w$])(?:[Ww]ebkit)?[Mm]ask(?:Image)?\s*:(?!:)/g, read: "js" },
+  { pattern: /(?<![\w$])(?:[Ww]ebkit)?[Mm]ask(?:Image)?\s*(?::(?!:)|=(?!=))/g, read: "js" },
   { pattern: /["'](?:-webkit-)?mask(?:-image)?["']\s*[:,]/g, read: "js" },
   { pattern: /\[(?:-webkit-)?mask(?:-image)?:/g, read: "bracket" },
   { pattern: /(?<![\w$[/.-])mask-\[/g, read: "bracket" },
@@ -42,10 +43,13 @@ const DECLARATIONS: { pattern: RegExp; read: "css" | "js" | "bracket" | "utility
 ];
 const OPENERS: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
 const QUOTES = new Set(['"', "'", "`"]);
+// An operator that starts the next line and so carries a script's value on to it.
+const CARRIED = /\s*[?:|&+]/y;
 
-// The value from `start`: up to what ends it at its own level (`stops`), or a line break once some of it has been read.
-// Brackets nest and quotes hold their contents whole, except that in a declaration (`css`) a quote at its own level
-// ends the value, as the end of a style attribute or of the string the declaration is in does.
+// The value from `start`: up to what ends it at its own level (`stops`). Brackets nest and quotes hold their contents
+// whole, except that in a declaration (`css`) a quote at its own level ends the value, as the end of a style attribute
+// or of the string the declaration is in does. A script's value also ends at a line break once some of it has been
+// read, unless an operator at the end of that line or the start of the next carries it on, as in a ternary.
 function readValue(text: string, start: number, read: "css" | "js" | "bracket"): string {
   const stops = read === "css" ? ";{}" : read === "js" ? ",;})]" : "]";
   const closing: string[] = [];
@@ -54,7 +58,11 @@ function readValue(text: string, start: number, read: "css" | "js" | "bracket"):
     const c = text[i]!;
     if (closing.length === 0) {
       if (stops.includes(c) || (read === "css" && QUOTES.has(c))) break;
-      if (c === "\n" && text.slice(start, i).trim() !== "") break;
+      if (read === "js" && c === "\n") {
+        const before = text.slice(start, i);
+        CARRIED.lastIndex = i + 1;
+        if (before.trim() !== "" && !/[?:|&+]\s*$/.test(before) && !CARRIED.test(text)) break;
+      }
     }
     const close = OPENERS[c];
     if (QUOTES.has(c)) {
@@ -67,14 +75,18 @@ function readValue(text: string, start: number, read: "css" | "js" | "bracket"):
 }
 
 // Whether a line opts its fade out with a reason: `fade-ok:` and words after it, other than a comment's closing marks.
-const optsOut = (line: string | undefined) => {
-  const marker = /fade-ok:(.*)$/.exec(line ?? "");
+const optsOut = (line: string) => {
+  const marker = /fade-ok:([^\r\n]*)/.exec(line);
   return marker !== null && /\p{L}/u.test(marker[1]!.replace(/\*\/|-->|\}+/g, ""));
 };
 
-// Every gradient mask in `text`, by line, that neither its line nor the line before opts out.
+// A line that is only a comment, which may say why for the line after it. A marker after code on the line before
+// belongs to that line's own mask.
+const commentOnly = (line: string | undefined) => /^\s*(?:\/\/|\/\*|\*|<!--|\{\/\*)/.test(line ?? "");
+
+// Every gradient mask in `text`, by line, that neither its line nor a comment on the line before opts out.
 function findFades(text: string, file: string): Fade[] {
-  const lines = text.split("\n");
+  const lines = text.split(/\r?\n/);
   const found = new Map<number, Fade>();
   for (const { pattern, read } of DECLARATIONS) {
     for (const match of text.matchAll(pattern)) {
@@ -83,7 +95,7 @@ function findFades(text: string, file: string): Fade[] {
       const value = read === "utility" ? "" : readValue(text, end, read);
       if (read !== "utility" && !/gradient\(/i.test(value)) continue;
       const line = text.slice(0, at).split("\n").length;
-      if (found.has(line) || optsOut(lines[line - 1]) || optsOut(lines[line - 2])) continue;
+      if (found.has(line) || optsOut(lines[line - 1]!) || (commentOnly(lines[line - 2]) && optsOut(lines[line - 2]!))) continue;
       const declaration = `${match[0]}${value}${read === "bracket" ? "]" : ""}`.replace(/\s+/g, " ").trim();
       found.set(line, { file, line, declaration: declaration.length > 160 ? `${declaration.slice(0, 159)}…` : declaration });
     }

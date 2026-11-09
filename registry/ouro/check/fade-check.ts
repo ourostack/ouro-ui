@@ -8,7 +8,8 @@ import type { PageIssue } from "./size-check.ts";
 //   image-fade  a picture that fades into the page: an <img>, an SVG <image> or an element with a url() background
 //               whose own box or a box around it has a gradient mask, or that a gradient between transparent and a
 //               colour covers, a tenth of it or more: an absolutely positioned element over it, or an absolutely
-//               positioned ::before or ::after of the picture or of a box around it. A radial or conic gradient counts
+//               positioned ::before or ::after of the picture or of a box around it, or a gradient layered over its own
+//               url() background. A radial or conic gradient counts
 //               only when it is opaque at its outer edge, as a vignette is: a glow that fades out adds light, and stays.
 //               A picture ends on a hard edge, or sits on a solid band.
 //
@@ -84,22 +85,27 @@ function findImageFades(): PageIssue[] {
   });
   // Why `picture` fades into the page, or "" when it does not.
   const causeOf = (picture: Element, box: DOMRect): string => {
+    // A gradient layered over the picture's own url() background: the layers before it are drawn on top.
+    const own = getComputedStyle(picture);
+    const first = own.backgroundImage.indexOf("url(");
+    if (first > 0 && fadesOut(own.backgroundImage.slice(0, first))) return "faded by a gradient layered over its own background";
     for (let n: Element | null = picture; n; n = n.parentElement) {
       const s = getComputedStyle(n);
       if (/gradient\(/.test(`${s.getPropertyValue("mask-image")} ${s.getPropertyValue("-webkit-mask-image")}`)) return `faded by a gradient mask on ${n === picture ? "the picture itself" : describe(n)}`;
       for (const which of ["::before", "::after"]) {
         const p = getComputedStyle(n, which);
-        // A pseudo-element in the flow sits beside the picture, not over it.
-        if (p.content === "none" || !/absolute|fixed/.test(p.position) || !fadesOut(p.backgroundImage)) continue;
+        // A pseudo-element in the flow sits beside the picture, not over it; one set behind the page, or a box's ::before
+        // under a positioned picture, which is drawn after it, sits under it.
+        if (p.content === "none" || !/absolute|fixed/.test(p.position) || Number.parseInt(p.zIndex) < 0 || !fadesOut(p.backgroundImage)) continue;
+        if (which === "::before" && n !== picture && own.position !== "static") continue;
         const part = covered(box, pseudoBox(n, p));
         if (part >= 0.1) return `${percent(part)} covered by the gradient to transparent of ${describe(n)}${which}`;
       }
     }
-    const own = getComputedStyle(picture).position;
     for (const overlay of overlays) {
       if (overlay.contains(picture) || optedOut(overlay)) continue;
       // An overlay is drawn over a picture that is not positioned, and over one that is when it comes later in the page.
-      if (own !== "static" && overlay.compareDocumentPosition(picture) & Node.DOCUMENT_POSITION_FOLLOWING) continue;
+      if (own.position !== "static" && overlay.compareDocumentPosition(picture) & Node.DOCUMENT_POSITION_FOLLOWING) continue;
       const part = covered(box, overlay.getBoundingClientRect());
       if (part >= 0.1) return `${percent(part)} covered by the gradient to transparent of ${describe(overlay)}`;
     }
