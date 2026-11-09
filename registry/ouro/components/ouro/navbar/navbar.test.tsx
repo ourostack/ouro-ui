@@ -62,6 +62,7 @@ describe("Navbar current-page marks", () => {
     expect(mark.textDecorationLine).toBe("underline");
     expect(mark.textDecorationThickness).toBe("2px");
     expect(mark.textDecorationColor).not.toBe(mark.color);
+    expect(mark.fontWeight).toBe("600");
     expect(getComputedStyle(other).textDecorationLine).toBe("none");
     expect(isTransparent(mark.backgroundColor)).toBe(true);
   }
@@ -199,6 +200,15 @@ describe("Navbar", () => {
     await expect.element(nav.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "true");
     await expect.element(nav.getByRole("link", { name: "Cookbooks" })).not.toHaveAttribute("aria-current");
     await expect.element(nav.getByRole("link", { name: "Shopping list" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("lets an item's own current win over currentPath in the sheet too", async () => {
+    await page.viewport(390, 844);
+    const { menuButton } = await render(<Navbar label="Main" items={[items[0]!, { ...items[1]!, current: true }]} currentPath="/recipes" />);
+    await userEvent.click(press(menuButton));
+    const nav = page.getByRole("dialog", { name: "Menu" }).getByRole("navigation", { name: "Main" });
+    await expect.element(nav.getByRole("link", { name: "Cookbooks" })).toHaveAttribute("aria-current", "page");
+    await expect.element(nav.getByRole("link", { name: "Recipes" })).not.toHaveAttribute("aria-current");
   });
 
   it("builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens", async () => {

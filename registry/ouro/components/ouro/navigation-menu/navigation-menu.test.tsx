@@ -61,6 +61,7 @@ describe("NavigationMenu current-page marks", () => {
     const mark = getComputedStyle(current);
     expect(mark.textDecorationLine).toBe("underline");
     expect(mark.textDecorationThickness).toBe("2px");
+    expect(mark.fontWeight).toBe("600");
     expect(getComputedStyle(other).textDecorationLine).toBe("none");
     expect(getComputedStyle(current).direction).toBe(direction);
     expect(isTransparent(mark.backgroundColor)).toBe(true);
