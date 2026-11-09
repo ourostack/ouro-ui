@@ -385,11 +385,14 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   };
   return (
     <>
-      {shown !== null &&
+      {
+        // The portal is there from the layer's first render, empty until a message is shown: React gives a portal's
+        // element its event listeners the first time it renders into it, and in WebKit a wheel listener restyles the
+        // whole page (151 ms on a long conversation), which then landed on the pointer's first move onto a message.
         // Stryker disable next-line ConditionalExpression: the host is null only where there is no document (a server's render), and the layer arrives in a browser.
         host !== null &&
         createPortal(
-          <MessageActionBar
+          shown !== null && <MessageActionBar
             row={shown.row}
             actions={shown.data.actions}
             menu={shown.data.menu}
