@@ -163,6 +163,47 @@ describe("the stage's controls", () => {
     await expect.poll(lastLog).toContain(LOG.band.sunlit.text);
   });
 
+  it("fades the picture in for a jump of the depth lever, a crossing into other water or a change that comes with another, and not for a step", async () => {
+    await renderPage("/");
+    const depth = page.getByRole("slider", { name: "Depth" });
+    const stepping = () => scene().hasAttribute("data-stepping");
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 800));
+    (depth.element() as HTMLElement).focus();
+    // The first press down also starts the first stream of bubbles, so it is no plain step, and what it fades in is let finish.
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.017");
+    expect(stepping()).toBe(false);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.033");
+    expect(stepping()).toBe(false);
+    await settle();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.050");
+    expect(stepping()).toBe(true);
+    // A jump fades, and so does a step into the next water, which would cut the band's fade short.
+    await userEvent.keyboard("{End}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("1.000");
+    expect(stepping()).toBe(false);
+    await settle();
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.983");
+    expect(stepping()).toBe(true);
+    await userEvent.keyboard("{Home}");
+    await expect.poll(() => scene().dataset.band).toBe("sunlit");
+    await settle();
+    await userEvent.keyboard("{ArrowRight>9/}");
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.150");
+    await settle();
+    expect(scene().dataset.band).toBe("sunlit");
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => scene().dataset.band).toBe("twilight");
+    expect(stepping()).toBe(false);
+    await settle();
+    await userEvent.click(page.getByRole("switch", { name: STAGE_COPY.lights }));
+    await expect.poll(() => scene().hasAttribute("data-lights")).toBe(true);
+    expect(stepping()).toBe(false);
+  });
+
   it("dives only once all three tanks are full, then surfaces and empties them", async () => {
     await renderPage("/");
     const dive = page.getByRole("button", { name: STAGE_COPY.dive, exact: true });
