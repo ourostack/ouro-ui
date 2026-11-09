@@ -55,12 +55,11 @@ const familyScrollerClass =
 /**
  * A link in a FamilyFooter's list: a FamilyBar link that looks like a link at rest, underlined in the border colour and
  * in its own colour on hover; the current site's link is underlined in the primary colour, as in the bar. Forced colours
- * paint every link in the link colour and drop its colour, so there only the current site's link keeps its underline,
- * as in the bar.
+ * paint the links in the link colour, so there the current site's link alone keeps its underline, as in the bar. In a
+ * narrow footer the links fill even columns, a whole row each 44px tall, rather than wrapping into ragged lines; a long
+ * name wraps inside its column.
  *
- * @claim "there only the current site's link keeps its underline" registry/ouro/components/ouro/family-bar/family-footer.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-footer.test.tsx::FamilyFooter > keeps only the current site's underline under forced colours, which drop colour, as the bar does) In a narrow footer the links fill even
- * columns, a whole row each 44px tall, rather than wrapping into ragged lines; a long name wraps inside its column.
- *
+ * @claim "Forced colours paint the links in the link colour, so there the current site's link alone keeps its underline" registry/ouro/components/ouro/family-bar/family-footer.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-footer.test.tsx::FamilyFooter > keeps only the current site's underline under forced colours, which drop colour, as the bar does)
  * @claim "In a narrow footer the links fill even columns, a whole row each 44px tall" registry/ouro/components/ouro/family-bar/family-footer.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-footer.test.tsx::FamilyFooter > lays its links in even columns of 44px rows on a narrow screen instead of ragged lines, and never scrolls sideways)
  *
  * @internal
