@@ -112,7 +112,7 @@ describe("home page", () => {
   it("keeps Ouro UI as the parent, with Ouro AX as the other half and its own page, and never says AX is still being defined", async () => {
     await renderPage("/");
     // The site is Ouro UI; the bar names its two halves side by side, and the hero says so under the install, each name a link to its half.
-    await expect.element(page.getByRole("link", { name: "Ouro UI", exact: true })).toBeVisible();
+    await expect.element(page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true })).toBeVisible();
     expect(SITE_SECTIONS.map((section) => [section.label, section.href]).slice(4, 6)).toEqual([
       ["Ouro HX", "/docs/"],
       ["Ouro AX", "/ax/"],
@@ -145,7 +145,7 @@ describe("home page", () => {
 
   it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
     await renderPage("/");
-    const home = page.getByRole("link", { name: "Ouro UI", exact: true }).element();
+    const home = page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true }).element();
     expect(home.getAttribute("href")).toBe("/");
     const image = home.querySelector("img");
     expect(image).not.toBeNull();

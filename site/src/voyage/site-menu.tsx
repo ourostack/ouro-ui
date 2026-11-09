@@ -1,12 +1,14 @@
 import { useEffectEvent, useId, useLayoutEffect, useRef, type JSX, type ReactNode, type RefObject } from "react";
 import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { FAMILY, FAMILY_CURRENT } from "../family";
 import { APPLE_PAGES, GITHUB, href, normalizePath } from "../paths";
 
 /*
  * The site's one menu, in the header's sheet whenever the bar's links do not fit: every section, a line on what is
- * there, and the section's own pages under it, with the page you are on marked. The Apple pages' row and the docs
- * sidebar hide on a phone, so this is the only menu there (site/e2e/site-menu.spec.ts).
+ * there, and the section's own pages under it, with the page you are on marked, then the Ouro family's sites. The
+ * Apple pages' row, the docs sidebar and the family bar's row scroll or hide on a phone, so this is the menu there
+ * (site/e2e/site-menu.spec.ts).
  */
 
 /** A page under a section, or a heading over some of them (`links`). */
@@ -206,44 +208,76 @@ export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<
     });
   });
   return (
-    <ol ref={list} className="m-0 grid list-none gap-2 p-0">
-      {SITE_SECTIONS.map((section, index) => {
-        const here = section.href === current;
-        const away = !section.href.startsWith("/");
-        return (
-          // A group the menu opens on: the section, or inside it a folded list (the docs menu's).
-          <li key={section.label} data-site-menu-group="" className="grid gap-0.5">
-            <a
-              href={sectionHref(section.href)}
-              aria-current={here ? "page" : undefined}
-              onClick={here ? stay : undefined}
-              aria-describedby={`${id}${index}`}
-              className={cn(row, "py-1.5")}
-            >
-              <span className="grid min-w-0 flex-1 gap-0.5">
-                <span className="flex items-center gap-2 font-[family-name:var(--font-heading)] text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em] text-foreground">
-                  <span>
-                    {section.label}
-                    {away && (
-                      <span aria-hidden="true" className="ms-1 text-muted-foreground">
-                        ↗
-                      </span>
-                    )}
+    <>
+      <ol ref={list} className="m-0 grid list-none gap-2 p-0">
+        {SITE_SECTIONS.map((section, index) => {
+          const here = section.href === current;
+          const away = !section.href.startsWith("/");
+          return (
+            // A group the menu opens on: the section, or inside it a folded list (the docs menu's).
+            <li key={section.label} data-site-menu-group="" className="grid gap-0.5">
+              <a
+                href={sectionHref(section.href)}
+                aria-current={here ? "page" : undefined}
+                onClick={here ? stay : undefined}
+                aria-describedby={`${id}${index}`}
+                className={cn(row, "py-1.5")}
+              >
+                <span className="grid min-w-0 flex-1 gap-0.5">
+                  <span className="flex items-center gap-2 font-[family-name:var(--font-heading)] text-[1.0625rem] leading-6 font-semibold tracking-[-0.01em] text-foreground">
+                    <span>
+                      {section.label}
+                      {away && (
+                        <span aria-hidden="true" className="ms-1 text-muted-foreground">
+                          ↗
+                        </span>
+                      )}
+                    </span>
+                    {here && <Here />}
                   </span>
-                  {here && <Here />}
+                  {/* Heard as the link's description, not its name. */}
+                  <span id={`${id}${index}`} aria-hidden="true" className="text-sm leading-5 text-muted-foreground">
+                    {section.hint}
+                  </span>
                 </span>
-                {/* Heard as the link's description, not its name. */}
-                <span id={`${id}${index}`} aria-hidden="true" className="text-sm leading-5 text-muted-foreground">
-                  {section.hint}
-                </span>
-              </span>
-            </a>
-            {section.pages && <MenuPages pages={section.pages} current={current} />}
-            {more?.[section.label]}
-          </li>
-        );
-      })}
-    </ol>
+              </a>
+              {section.pages && <MenuPages pages={section.pages} current={current} />}
+              {more?.[section.label]}
+            </li>
+          );
+        })}
+      </ol>
+      <FamilyLinks />
+    </>
+  );
+}
+
+/** The Ouro family's sites, as the family bar lists them, with this one marked: on a phone, the menu is where they are. */
+function FamilyLinks(): JSX.Element {
+  const id = useId();
+  return (
+    <div data-site-menu-family="" className="mt-4 grid gap-0.5 border-0 border-t border-solid border-border pt-3">
+      <p id={id} className="m-0 px-3 py-1 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase">
+        Ouro family
+      </p>
+      <ul aria-labelledby={id} className="m-0 grid list-none gap-0.5 p-0">
+        {FAMILY.map((site) => {
+          const here = site.id === FAMILY_CURRENT;
+          return (
+            <li key={site.id}>
+              <a
+                href={site.href}
+                aria-current={here ? "true" : undefined}
+                className={cn(row, "py-2 text-[0.9375rem] leading-5 text-muted-foreground aria-[current=true]:font-semibold aria-[current=true]:text-foreground")}
+              >
+                <span>{site.label}</span>
+                {here && <Here />}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

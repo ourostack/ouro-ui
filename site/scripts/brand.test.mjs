@@ -87,7 +87,7 @@ test("every scene the site shows is there at each width, with the phone crop and
     assert.equal(webp.toString("latin1", 12, 16), "VP8 ", scene);
     assert.deepEqual([webp.readUInt16LE(26) & 0x3fff, webp.readUInt16LE(28) & 0x3fff], [768, phoneHeight], `phone/${scene}-768.webp`);
   }
-  for (const icon of ["icons/ouro-hx.svg", "icons/ouro-hx-180.png", "icons/ouro-hx-192.png", "icons/ouro-hx-512.png"]) assert.ok(have.has(icon), icon);
+  for (const icon of ["icons/ouro-hx.svg", "icons/ouro-hx-180.png", "icons/ouro-hx-192.png", "icons/ouro-hx-512.png", "icons/ouro.svg"]) assert.ok(have.has(icon), icon);
 });
 
 test("every link-preview card is a 1200x630 JPEG", async () => {
@@ -100,4 +100,42 @@ test("every link-preview card is a 1200x630 JPEG", async () => {
     while (at < bytes.length && ![0xc0, 0xc2].includes(bytes[at + 1])) at += 2 + bytes.readUInt16BE(at + 2);
     assert.deepEqual([bytes.readUInt16BE(at + 7), bytes.readUInt16BE(at + 5)], [1200, 630], card.file);
   }
+});
+
+// The family's links (site/src/family.json): a byte-for-byte copy of ourostack/.github's brand/family.json, the one list
+// every Ouro site's family bar and footer show, in its order. Offline, the copy is held to the order and ids it had when
+// it was copied.
+const familyCopy = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/family.json"), "utf8");
+const FAMILY_CANONICAL = "https://raw.githubusercontent.com/ourostack/.github/main/brand/family.json";
+
+test("the family links are in the family's order, with its ids, labels and addresses", () => {
+  assert.deepEqual(
+    JSON.parse(familyCopy).links.map((link) => [link.id, link.label, link.href]),
+    [
+      ["ouro", "Ouro", "https://ouroboros.bot/"],
+      ["ouro-ui", "Ouro UI", "https://ui.ouroboros.bot/"],
+      ["ouro-md", "Ouro MD", "https://ouroboros.bot/ouro-md/"],
+      ["desk", "Desk", "https://ouroboros.bot/desk/"],
+      ["apps", "Apps", "https://ouroboros.bot/apps/"],
+      ["ari", "Ari Mendelow", "https://mendelow.me/"],
+      ["github", "GitHub", "https://github.com/ourostack"],
+    ],
+  );
+});
+
+test("the family links are byte-identical to the canonical brand/family.json, when the network is reachable", async (t) => {
+  let response;
+  try {
+    response = await fetch(FAMILY_CANONICAL, { signal: AbortSignal.timeout(15_000) });
+  } catch (error) {
+    t.skip(`the canonical file is out of reach: ${error.message}`);
+    return;
+  }
+  // GitHub's own trouble (rate limits, outages) is out of reach too; a missing file is not.
+  if (response.status === 429 || response.status >= 500) {
+    t.skip(`the canonical file is out of reach: HTTP ${response.status}`);
+    return;
+  }
+  assert.equal(response.status, 200, `${FAMILY_CANONICAL} answered ${response.status}`);
+  assert.equal(familyCopy, await response.text(), "site/src/family.json differs from ourostack/.github's brand/family.json: copy it again, byte for byte");
 });
