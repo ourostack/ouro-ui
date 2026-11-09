@@ -446,7 +446,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       } catch (problem) {
         return { failed: `the state's press ${JSON.stringify(step)} found nothing to press (${(problem as Error).message.split("\n")[0]})`, ready: opened.ready };
       }
-      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
       await page.waitForTimeout(500);
       await settle(page);
     }
