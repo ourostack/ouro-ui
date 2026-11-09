@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
       - name: Put the stage files of main back for the main variant
         if: matrix.variant == 'main'
-        run: git checkout origin/main -- site/src/voyage/stage/scene.tsx site/src/voyage/stage/stage.css site/src/voyage/voyage-sources.generated.css
+        run: git checkout 944b8925 -- site/src/voyage/stage/scene.tsx site/src/voyage/stage/stage.css site/src/voyage/voyage-sources.generated.css
       - name: The first version of the change, for the v1 variant
         if: matrix.variant == 'v1'
         run: git checkout b2b054cf -- site/src/voyage/stage/scene.tsx site/src/voyage/stage/stage.css
