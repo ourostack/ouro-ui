@@ -39,7 +39,7 @@ export const routes: Route[] = [
   { path: "/apple/start/", title: "Get started · Ouro UI for Apple", description: "Add one Swift package, set a theme, animate with the shared spring, play a named haptic, and X-ray your App Intents in CI." },
   {
     path: "/docs/",
-    title: "Docs · Ouro HX",
+    title: "Components · Ouro HX",
     description: claim("Every Ouro HX component, with install commands, props and live demos.", {
       source: { file: "site/src/site.test.tsx" },
       verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" },

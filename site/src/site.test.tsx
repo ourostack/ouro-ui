@@ -8,6 +8,7 @@ import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./d
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
+import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
@@ -54,7 +55,7 @@ describe("home page", () => {
     expect(heading.element().textContent).toBe(VOYAGE_HERO.title.join(" "));
     expect(page.getByRole("link", { name: "Come aboard", exact: true }).first().element().getAttribute("href")).toBe("/nautilus/");
     expect(document.body.innerText).not.toContain("compliant");
-    expect(page.getByRole("navigation", { name: "Footer" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
+    expect(page.getByRole("navigation", { name: "Ouro UI" }).getByRole("link", { name: "llms.txt" }).element().getAttribute("href")).toBe("/llms.txt");
   });
 
   it("shows two ships, the Nautilus and Spoonjoy, as showcases, each with its way in and its X-ray", async () => {
@@ -367,7 +368,7 @@ describe("docs", () => {
       await expect.element(page.getByRole("link", { name: "Back to the surface" })).toHaveAttribute("href", href("/"));
       await expect.element(page.getByRole("link", { name: "Button", exact: true }).last()).toHaveAttribute("href", href("/docs/button/"));
       const main = page.getByRole("search");
-      const field = main.getByRole("searchbox", { name: "Search the docs" });
+      const field = main.getByRole("searchbox", { name: "Find a page or component" });
       await userEvent.fill(field, "text field");
       await expect.element(main.getByRole("status")).toHaveTextContent("One page by that name.");
       await expect.element(main.getByRole("link", { name: "TextField", exact: true })).toHaveAttribute("href", href("/docs/text-field/"));
@@ -468,6 +469,18 @@ it("the Updating page's note has the tag filled in and no raw-file hint", () => 
   expect(upgrading).not.toContain("{{latestRelease}}");
   expect(upgrading).not.toContain("Reading this file on GitHub");
   expect(upgrading).toContain(`ourostack/ouro-ui/ouro-base#${latestRelease}`);
+});
+
+describe("the header's current section on a docs page", () => {
+  it("is Ouro HX for the catalog and a component, Ouro AX for its guide and parts, Guides for another guide, and none on the lost page", () => {
+    expect(headerPath("/docs/")).toBe("/docs/");
+    expect(headerPath("/docs/button/")).toBe("/docs/");
+    expect(headerPath("/docs/ax/")).toBe("/ax/");
+    expect(headerPath("/docs/ax-cli/")).toBe("/ax/");
+    expect(headerPath("/docs/installing/")).toBe("/docs/installing/");
+    expect(headerPath("/docs/switching-from-shadcn/")).toBe("/docs/installing/");
+    expect(headerPath("")).toBe("");
+  });
 });
 
 describe("head tags", () => {

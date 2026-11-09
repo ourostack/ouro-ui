@@ -35,6 +35,18 @@
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
   }
+  /* On a very wide screen at 1x (a 4K display at 100%), the type and the column grow a step, so the page reads at the
+     size a laptop's does instead of a strip of small print down the middle. Gutters and columns are set in rem. */
+  @media (width >= 150rem) {
+    html {
+      font-size: 112.5%;
+    }
+  }
+  @media (width >= 200rem) {
+    html {
+      font-size: 125%;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
@@ -51,6 +63,16 @@
       scroll-margin-top: 5rem;
     }
   }
+  /* The voyage's header sticks at every width, so a jump there lands below it on a laptop too. */
+  .voyage :target {
+    scroll-margin-top: 5rem;
+  }
+}
+
+/* The site's own words and links under the family's row take the footer's whole width, so its links end on the
+   column's right edge rather than wherever the words stop. */
+[data-ouro="family-footer"] > [data-ouro-family-extras] {
+  flex-basis: 100%;
 }
 
 /* The 404 page's compass (components/lost-at-sea.tsx): its needle hunts for north, then settles. */

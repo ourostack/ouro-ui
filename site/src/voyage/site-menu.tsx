@@ -35,7 +35,7 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
     pages: APPLE_PAGES.slice(1).map((page) => ({ label: page.label, href: page.path })),
   },
   {
-    label: "Docs",
+    label: "Guides",
     href: "/docs/installing/",
     hint: "Install it, switch to it, keep it fresh",
     pages: [
@@ -43,7 +43,7 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
       { label: "Updating installed components", href: "/docs/updating/" },
     ],
   },
-  // Ouro UI's two halves, side by side: HX's components, then AX. HX keeps the place Components had, after Docs, so on a
+  // Ouro UI's two halves, side by side: HX's components, then AX. HX keeps the place Components had, after Guides, so on a
   // phone its long folded list of components sits far down the menu, which opens scrolled to the page you are on.
   { label: "Ouro HX", href: "/docs/", hint: "Levers, dials and portholes" },
   { label: "Ouro AX", href: "/ax/", hint: "A morning with an agent" },
@@ -158,7 +158,7 @@ export function useSheetShown(ref: RefObject<HTMLElement | null>, shown: (on: bo
 
 /**
  * The menu: each section with its line, then its pages. `more` adds to a section by its label (the docs pages add
- * their guides under Docs and every component under Ouro HX). It opens scrolled to the page you are on.
+ * their guides under Guides and every component under Ouro HX). It opens scrolled to the page you are on.
  */
 export function SiteMenu({ page, more }: { page: string; more?: Readonly<Record<string, ReactNode>> | undefined }): JSX.Element {
   const current = normalizePath(page);
@@ -294,15 +294,15 @@ function FamilyLinks(): JSX.Element {
 /**
  * Around the menu, in the sheet: a close button a thumb can see, beside the sheet's title (the sheet's own Close,
  * which a keyboard and a screen reader reach, shows only on focus, so this one is for pointers and stays out of the
- * tab order), a fade under the title, so rows scroll away beneath it instead of being cut, and on a phone, beside the
+ * tab order), a hairline under the title that rows scroll away beneath, and on a phone, beside the
  * close button, the header's `tools` its bar has no room for.
  */
 export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?: ReactNode }): JSX.Element {
   // While the menu is up, the root says so, and the Nautilus's fish wait under it (stage.css). From the frame after the
   // sheet draws, so the press's own frame does not also restyle the fish.
-  const fade = useRef<HTMLDivElement>(null);
+  const edge = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
-  useSheetShown(fade, (on) => {
+  useSheetShown(edge, (on) => {
     const root = document.documentElement;
     cancelAnimationFrame(frame.current);
     if (!on) {
@@ -324,7 +324,7 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
             data-site-menu-close=""
             // Out of the way while the sheet's own Close shows, under keyboard focus, in the same corner. Asked of the
             // sheet, not of any element: a bare :has() makes Chrome restyle the whole page on each focus and insertion.
-            className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-2 z-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent active:bg-accent"
+            className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-0.5 z-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent active:bg-accent"
           />
         }
       >
@@ -332,8 +332,8 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
           <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </SheetClose>
-      <div ref={fade} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-4" style={{ background: "linear-gradient(var(--popover), transparent)" }} />
-      {tools && <div className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-2 z-3 flex gap-1 sm:hidden">{tools}</div>}
+      <div ref={edge} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-2 border-0 border-b border-solid border-border bg-popover" />
+      {tools && <div className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-0.5 z-3 flex gap-1 sm:hidden">{tools}</div>}
       {children}
     </>
   );

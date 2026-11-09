@@ -122,11 +122,11 @@ export function LostAtSea(): JSX.Element {
       <div className="flex flex-wrap justify-center gap-3">
         <Button href={href("/")}>Back to the surface</Button>
         <Button href={href("/docs/")} variant="outline" tone="secondary">
-          Browse the docs
+          Browse components
         </Button>
       </div>
       <div role="search" className="mt-4 grid w-full max-w-sm gap-2 text-start">
-        <TextField label="Search the docs" type="search" clearable placeholder="A component or a guide" value={query} onChange={(event) => setQuery(event.currentTarget.value)} />
+        <TextField label="Find a page or component" type="search" clearable placeholder="A component or a guide" value={query} onChange={(event) => setQuery(event.currentTarget.value)} />
         {query.trim() !== "" && (
           <p role="status" className="m-0 text-sm text-muted-foreground">
             {found.length === 0 ? "Nothing on our charts by that name. Try a component, like Button." : `${found.length === 1 ? "One page" : `${found.length} pages`} by that name.`}

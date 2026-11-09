@@ -29,7 +29,7 @@ export function StoryOpening(): JSX.Element {
           </p>
         </div>
         <nav aria-label={NAUTILUS_PAGE.chaptersLabel} className="lg:col-span-5 lg:self-end">
-          <ol aria-label={NAUTILUS_PAGE.chaptersLabel} className="m-0 grid list-none border-t border-border/70 p-0">
+          <ol className="m-0 grid list-none border-t border-border/70 p-0">
             {NAUTILUS_PAGE.chapters.map((chapter) => (
               <li
                 key={chapter.number}

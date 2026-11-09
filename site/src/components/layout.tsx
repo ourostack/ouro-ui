@@ -1,16 +1,13 @@
 import type { JSX, ReactNode } from "react";
 import { FamilyFooter } from "@/registry/ouro/components/ouro/family-bar/family-footer";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { GITHUB } from "../docs/items";
 import { FAMILY, FAMILY_CURRENT } from "../family";
+import { FOOTER_LINKS } from "../footer-links";
 import { GUTTERS } from "../gutters";
-import { href } from "../routes";
-
-export const STORYBOOK = "https://ui.ouroboros.bot/storybook/";
 
 /** Page width and side gutters: 16px on phones, as the house layout rule says. */
 export function Container({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
-  return <div className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8", className)}>{children}</div>;
+  return <div className={cn("mx-auto w-full max-w-[79rem] px-4 sm:px-8", className)}>{children}</div>;
 }
 
 const navLink =
@@ -19,12 +16,7 @@ const navLink =
 
 /** The docs' footer: the Ouro family's sites (FamilyFooter, this one marked), then the site's own words and links. */
 export function SiteFooter(): JSX.Element {
-  const links = [
-    { label: "Ouro UI on GitHub", url: GITHUB },
-    { label: "Storybook", url: STORYBOOK },
-    { label: "Docs", url: href("/docs/") },
-    { label: "llms.txt", url: "https://ui.ouroboros.bot/llms.txt" },
-  ];
+  const links = FOOTER_LINKS;
   return (
     <footer className="mt-24">
       <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} className={`pt-6 pb-10 ${GUTTERS.docs}`}>
@@ -34,12 +26,17 @@ export function SiteFooter(): JSX.Element {
               Ouro UI: Ouro HX for people, Ouro AX for agents. Part of Ouro. MIT license.
             </span>
           </p>
-          <nav aria-label="Footer">
+          <nav aria-label="Ouro UI">
             <ul className="m-0 -ms-2.5 flex list-none flex-wrap gap-x-1 gap-y-0 p-0 sm:ms-0 sm:-me-2.5">
               {links.map((link) => (
                 <li key={link.label}>
                   <a href={link.url} className={navLink}>
                     {link.label}
+                    {link.url.startsWith("http") && (
+                      <span aria-hidden="true" className="ms-1">
+                        ↗
+                      </span>
+                    )}
                   </a>
                 </li>
               ))}

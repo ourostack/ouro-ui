@@ -223,16 +223,19 @@ export function VoyageHeader({
   page = path,
   menu,
   gutters = "voyage",
+  skipTo = "main",
 }: {
   path: string;
   page?: string;
   menu?: ReactNode;
   gutters?: keyof typeof GUTTERS;
+  /** The id the skip link jumps to: the page's <main>, or a docs page's title, which comes before it. */
+  skipTo?: string | undefined;
 }): JSX.Element {
   const [searching, setSearching] = useCommandShortcut("mod+k");
   return (
     <>
-      <SkipLink />
+      <SkipLink target={skipTo} />
       <FamilyBar
         links={FAMILY}
         current={FAMILY_CURRENT}

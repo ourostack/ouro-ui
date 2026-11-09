@@ -98,7 +98,7 @@
     --site-sea-light: color-mix(in oklab, var(--primary) 16%, transparent);
     padding-block: 1rem 4rem;
     background:
-      radial-gradient(52rem 34rem at 76% 30%, var(--site-sea-light), transparent 70%),
+      radial-gradient(52rem 34rem at calc(50% + 22rem) 30%, var(--site-sea-light), transparent 70%),
       linear-gradient(to bottom, var(--site-sea), var(--background) 92%);
   }
   .dark .site-hero {
