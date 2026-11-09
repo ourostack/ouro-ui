@@ -450,6 +450,17 @@ describe("NavigationRail overflow", () => {
     expect(separators.every((separator) => separator.getClientRects().length === 0)).toBe(true);
   });
 
+  it("marks only the current item's bar selected, never More's, the bar its motion map animates", async () => {
+    const { host } = await render(<NavigationRail label="Main" items={many} currentPath="/notes" />, 16 + 2 * 56 + 4);
+    await expect.poll(() => host.querySelector('[data-ouro-part="more"]')).not.toBeNull();
+    const bars = [...host.querySelectorAll<HTMLElement>('[data-ouro-part="indicator"]')];
+    const marked = bars.filter((bar) => bar.hasAttribute("data-selected"));
+    expect(marked).toHaveLength(1);
+    expect(marked[0]!.getAttribute("data-selected")).toBe("true");
+    expect(marked[0]!.closest('[data-ouro-part="link"], [data-ouro-part="button"]')!.getAttribute("aria-current")).toBe("page");
+    expect(host.querySelector('[data-ouro-part="more"] [data-ouro-part="indicator"]')!.hasAttribute("data-selected")).toBe(false);
+  });
+
   it("brings items back from More as the rail grows, and moves them again as it shrinks", async () => {
     const { host, nav } = await render(<NavigationRail label="Main" items={many} />, 200);
     const labels = () => [...nav.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-stop]")].filter((item) => item.getClientRects().length > 0).map(labelOf);
