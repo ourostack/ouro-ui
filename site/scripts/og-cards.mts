@@ -1,8 +1,9 @@
 // Draws the link-preview cards (site/public/og/<page>.jpg, 1200×630; the og:image and twitter:image
 // of each page, site/src/head.ts): each page's storybook scene (the canonical og crop, copied byte
-// for byte into site/public/brand/storybook/og/) with the page's words set in its sky. Which page
-// shows which scene, and the words, are in site/src/storybook.ts (CARDS). Rerun after a card's words
-// or scene change, look at every card, and commit them:
+// for byte into site/public/brand/storybook/og/) with the page's words set in its sky. The scene is
+// shown whole, never washed or faded: the words read on it by their own halo in the sky's colour.
+// Which page shows which scene, and the words, are in site/src/storybook.ts (CARDS). Rerun after a
+// card's words or scene change, look at every card, and commit them:
 //
 //   node site/scripts/og-cards.mts
 //
@@ -26,8 +27,9 @@ try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   for (const card of Object.values(CARDS)) {
     const sky = SCENES[card.scene].sky;
-    // The sky's own colour along the side the words sit on, deepening the wash so they read.
+    // The sky's own colour along the side the words sit on: the halo the words carry, so they read on the clouds.
     const near = card.side === "left" ? sky[0] : sky[4];
+    const halo = `0 0 2px color-mix(in oklab, ${near} 60%, white), 0 0 12px color-mix(in oklab, ${near} 70%, white), 0 1px 28px ${near}`;
     const scene = dataUrl(`site/public/brand/storybook/og/${card.scene}.jpg`, "image/jpeg");
     await page.setContent(`<!doctype html>
 <html><head><style>
@@ -35,15 +37,12 @@ try {
   * { margin: 0; box-sizing: border-box; }
   body { width: 1200px; height: 630px; overflow: hidden; font-family: Geist, sans-serif; }
   .card { position: relative; width: 1200px; height: 630px; background: url(${scene}) center / cover; }
-  .wash { position: absolute; inset: 0; background:
-    linear-gradient(to bottom, color-mix(in oklab, ${near} 88%, white) 0%, color-mix(in oklab, ${near} 62%, transparent) 22%, transparent 42%),
-    linear-gradient(to ${card.side === "left" ? "right" : "left"}, color-mix(in oklab, ${near} 45%, transparent) 0%, transparent 45%); }
-  .words { position: absolute; top: 46px; ${card.side}: 60px; width: ${card.width ?? 560}px; text-align: ${card.side}; color: #2a1d38; text-shadow: 0 1px 22px rgb(255 255 255 / 0.65); }
+  .words { position: absolute; top: 46px; ${card.side}: 60px; width: ${card.width ?? 560}px; text-align: ${card.side}; color: #2a1d38; text-shadow: ${halo}; }
   .kicker { font-size: 26px; font-weight: 600; letter-spacing: 0.01em; color: #4b3a59; }
   .title { margin-top: 10px; font-size: ${card.title.length > 32 ? 48 : (card.width ?? 560) < 500 ? 54 : 60}px; line-height: 1.04; font-weight: 700; letter-spacing: -0.03em; text-wrap: balance; }
   .site { position: absolute; bottom: 26px; ${card.side}: 60px; font-size: 22px; font-weight: 600; color: white; text-shadow: 0 1px 12px rgb(42 29 56 / 0.7); }
 </style></head><body>
-  <div class="card"><div class="wash"></div>
+  <div class="card">
     <div class="words"><div class="kicker">${escape(card.kicker)}</div><div class="title">${escape(card.title)}</div></div>
     <div class="site">ui.ouroboros.bot</div>
   </div>

@@ -1,7 +1,8 @@
-// Renders site/public/og.png, the 1200×630 image link previews show (the og:image and
-// twitter:image tags, site/src/head.ts), from the landing page itself: the hero, in the light
-// theme with motion reduced so the frame is settled. Rerun after the landing page or the release
-// changes, review the image, and commit it:
+// Renders site/public/og.png, a 1200×630 screenshot of the landing page's hero, in the light
+// theme with motion reduced so the frame is settled. No page's og:image or twitter:image uses it
+// any more: link previews show the storybook cards site/scripts/og-cards.mts draws
+// (site/public/og/, chosen by cardFor in site/src/head.ts). It is kept for links shared before
+// those cards, so there is no need to rerun this when the landing page changes. To redraw it:
 //
 //   pnpm site:build && node site/scripts/og-image.mts
 //
