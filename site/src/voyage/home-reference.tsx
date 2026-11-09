@@ -22,7 +22,7 @@ function Label({ children }: { children: ReactNode }): JSX.Element {
   return <p className="m-0 mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">{children}</p>;
 }
 
-const output = "m-0 font-mono text-[0.8125rem] leading-6 whitespace-pre-wrap [overflow-wrap:anywhere]";
+const output = "m-0 font-mono text-sm leading-6 whitespace-pre-wrap [overflow-wrap:anywhere]";
 
 function AgentExample({ example }: { example: (typeof agentExamples)[number] }): JSX.Element {
   const real = generated[example.id as keyof typeof generated];

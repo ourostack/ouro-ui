@@ -23,7 +23,7 @@
   background: var(--primary);
 }
 .site-code-line {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

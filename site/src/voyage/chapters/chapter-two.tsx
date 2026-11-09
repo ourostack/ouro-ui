@@ -388,7 +388,13 @@ const Legs = memo(function Legs({ route }: { route: readonly PortId[] }): JSX.El
   return (
     <div ref={host} className="site-legs relative">
       <Chart title={CHART_ROOM.legs} description={CHART_ROOM.legsHint} type="bar" data={data} categoryKey="port" config={{ leagues: { label: "Leagues" } }} className="h-52" />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-xs text-muted-foreground" data-chapter-axis="">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 text-xs text-muted-foreground"
+        data-chapter-axis=""
+        data-ouro-allow="overlap"
+        data-ouro-allow-why="The chart's own x-axis labels, set where Recharts would draw them, in the band its SVG keeps for them below the bars."
+      >
         {labels.map((label) => (
           <span key={`${label.text}-${label.x}`} className="absolute whitespace-nowrap leading-none" style={{ left: label.x, top: label.y, translate: "-50%" }}>
             {label.text}

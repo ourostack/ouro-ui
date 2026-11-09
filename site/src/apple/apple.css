@@ -123,12 +123,12 @@
   .apple-fine {
     margin: 0;
     color: var(--muted-foreground);
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     line-height: 1.55;
   }
   .apple-fine code {
     font-family: var(--font-mono);
-    font-size: 0.86em;
+    font-size-adjust: 0.46;
   }
 
   /* Bands. */
@@ -182,14 +182,23 @@
     width: 100%;
     min-width: 0;
   }
+  /* No wider than the capture's own pixels (--apple-loop-native, set from the clip) allow at the screen's density, so it is never upscaled. */
+  .apple-loop {
+    --apple-loop-pixels: var(--apple-loop-native);
+  }
+  @media (resolution > 1dppx) {
+    .apple-loop {
+      --apple-loop-pixels: calc(var(--apple-loop-native) / 2);
+    }
+  }
   .apple-loop-sm {
-    max-width: 18rem;
+    max-width: min(18rem, var(--apple-loop-pixels));
   }
   .apple-loop-md {
-    max-width: 22rem;
+    max-width: min(22rem, var(--apple-loop-pixels));
   }
   .apple-loop-lg {
-    max-width: 24rem;
+    max-width: min(24rem, var(--apple-loop-pixels));
   }
   .apple-hero-media {
     justify-self: center;
@@ -278,7 +287,7 @@
     justify-content: space-between;
     gap: calc(var(--spacing) * 3);
     color: var(--muted-foreground);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     line-height: 1.5;
   }
   .apple-loop-source {
@@ -327,7 +336,7 @@
   .apple-door-kicker {
     margin: 0;
     color: var(--muted-foreground);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 500;
   }
   .apple-door-link {
@@ -382,8 +391,8 @@
   .apple-figure-from,
   .apple-figure-to {
     font-family: var(--font-heading);
-    font-size: clamp(2.5rem, 6vw, 3.5rem);
-    font-weight: 650;
+    font-size: clamp(2.5rem, 6vw, 3rem);
+    font-weight: 600;
     line-height: 1;
     letter-spacing: -0.04em;
     font-variant-numeric: tabular-nums;
@@ -401,10 +410,10 @@
   .apple-figure-label {
     flex-basis: 100%;
     color: var(--muted-foreground);
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
   .apple-showcase-links {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
 
   .apple-soon {
@@ -417,7 +426,7 @@
     margin: 0;
     max-width: 40rem;
     font-family: var(--font-heading);
-    font-size: clamp(1.25rem, 2.6vw, 1.625rem);
+    font-size: clamp(1.25rem, 2.6vw, 1.5rem);
     line-height: 1.3;
     letter-spacing: -0.015em;
   }
@@ -433,7 +442,7 @@
   }
   .apple-next-label {
     color: var(--muted-foreground);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 500;
   }
   .apple-next-title {
@@ -494,9 +503,10 @@
     stop-color: var(--warning);
     stop-opacity: 0;
   }
+  /* The lamp breathes three times as the page opens and rests lit, so the page is still at rest. */
   .apple-angler-glow {
     mix-blend-mode: multiply;
-    animation: apple-breathe 3.2s ease-in-out infinite alternate;
+    animation: apple-breathe 3.2s ease-in-out 3 alternate;
   }
   .dark .apple-angler-glow {
     mix-blend-mode: screen;
@@ -504,7 +514,7 @@
   .apple-angler-lamp {
     fill: color-mix(in oklab, var(--warning) 55%, white);
     filter: drop-shadow(0 0 6px var(--warning));
-    animation: apple-breathe 3.2s ease-in-out infinite alternate;
+    animation: apple-breathe 3.2s ease-in-out 3 alternate;
   }
   .apple-angler .c-body {
     fill: color-mix(in oklab, var(--background) 55%, var(--primary));
@@ -680,7 +690,7 @@
   }
   .apple-press-title {
     margin: 0;
-    font-size: 1.0625rem;
+    font-size: 1.125rem;
     font-weight: 600;
   }
   .apple-press-meta {
@@ -757,7 +767,7 @@
   .apple-haptic-when {
     margin: 0 0 0 calc(7.5rem + var(--spacing) * 4);
     color: var(--muted-foreground);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
   }
   .apple-wave {
     width: 100%;
@@ -829,7 +839,7 @@
   .apple-haptics-note {
     margin: 0;
     color: var(--muted-foreground);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
   }
 
   /* The X-ray explorer. */
@@ -857,7 +867,7 @@
   .apple-xray-holding {
     font-family: var(--font-heading);
     font-size: clamp(3rem, 9vw, 5rem);
-    font-weight: 650;
+    font-weight: 600;
     line-height: 1;
     letter-spacing: -0.05em;
     color: var(--primary);
@@ -868,9 +878,9 @@
     color: var(--muted-foreground);
   }
   @media (max-width: 40rem) {
-    /* On a phone a showcase capture takes the whole column, so its words stay readable. */
+    /* On a phone a showcase capture takes as much of the column as its pixels allow, so its words stay readable and sharp. */
     .apple-showcase > .apple-loop {
-      max-width: none !important;
+      max-width: var(--apple-loop-pixels) !important;
     }
   }
   .apple-dots-key {
@@ -917,14 +927,14 @@
   .apple-xray-context {
     margin: 0;
     color: var(--muted-foreground);
-    font-size: 0.9375rem;
+    font-size: 1rem;
     max-width: 46rem;
   }
   .apple-lanes {
     display: flex;
     flex-wrap: wrap;
     gap: calc(var(--spacing) * 2) calc(var(--spacing) * 5);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
   }
   .apple-lane-ran {
     color: var(--foreground);
@@ -989,7 +999,7 @@
     white-space: nowrap;
   }
   .apple-mark {
-    font-weight: 700;
+    font-weight: 600;
     text-align: center;
   }
   .apple-mark-holds {
@@ -1005,7 +1015,7 @@
     display: grid;
     gap: calc(var(--spacing) * 2);
     padding: 0 0 calc(var(--spacing) * 5) calc(1.5rem + var(--spacing) * 3);
-    font-size: 0.9375rem;
+    font-size: 1rem;
   }
   .apple-claim-body > p,
   .apple-claim-found {
@@ -1016,7 +1026,7 @@
     border-radius: 0.3rem;
     background: var(--muted);
     font-family: var(--font-mono);
-    font-size: 0.86em;
+    font-size-adjust: 0.46;
     overflow-wrap: anywhere;
   }
   .apple-claim-meta {

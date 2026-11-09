@@ -53,7 +53,13 @@ export function GatefoldFlip(): JSX.Element {
                   loading="lazy"
                   decoding="async"
                 />
-                <span className="feel-flip-ring" style={RING[which]} aria-hidden="true">
+                <span
+                  className="feel-flip-ring"
+                  style={RING[which]}
+                  aria-hidden="true"
+                  data-ouro-allow="overlap"
+                  data-ouro-allow-why="A callout on the capture, on its own solid pill, naming the panel the ring marks."
+                >
                   <span className="feel-flip-ring-label">{which === "before" ? "the panel, mostly off-screen" : "the panel"}</span>
                 </span>
               </div>

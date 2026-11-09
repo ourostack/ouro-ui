@@ -306,7 +306,7 @@ export function Repaint(): JSX.Element {
                 }}
               />
             </div>
-            <pre className="site-mono m-0 w-full max-w-xl overflow-x-auto rounded-lg bg-muted px-5 py-4 text-[0.8125rem] leading-relaxed" data-site-maker-css="">
+            <pre className="site-mono m-0 w-full max-w-xl overflow-x-auto rounded-lg bg-muted px-5 py-4 text-sm leading-relaxed" data-site-maker-css="">
               <code>{makerCss(accent, radius)}</code>
             </pre>
             <Button variant="outline" tone="secondary" onClick={() => void copyText(makerCss(accent, radius), "Copied your paint", "Paste it after your theme's CSS, and the parts pick up the new colour.")}>

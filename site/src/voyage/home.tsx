@@ -52,7 +52,8 @@ function Shot({ theme, className }: { theme: "light" | "dark"; className: string
   const phone = shots[`spoonjoy-xray-phone-${theme}.webp`]!;
   const url = (path: string) => href(path);
   const srcSet = (srcset: string) => srcset.replace(/(^|, )\//g, (_, lead: string) => `${lead}${url("/")}`);
-  const sizes = "(min-width: 72rem) 72rem, 100vw";
+  // The row's width: the page's 79rem column less its 2rem gutters, which grow with the root type on a 4K screen (styles.css).
+  const sizes = "(min-width: 200rem) 1500px, (min-width: 150rem) 1350px, (min-width: 79rem) 1200px, calc(100vw - 4rem)";
   return (
     <picture className={className}>
       {phone.sources.map((source) => (
