@@ -960,4 +960,9 @@ test("a claim word split by a long comment, a tag with many attributes or an unc
   const started = Date.now();
   markdown("a<!--".repeat(40000));
   assert.ok(Date.now() - started < 1500, "unclosed comments are read in linear time");
+  // An unclosed expression value is read in a time that grows with the text too.
+  const braced = Date.now();
+  markdown("<a b={".repeat(40000));
+  markdown("a<b c={".repeat(40000) + "d");
+  assert.ok(Date.now() - braced < 3000, "unclosed expression values are read in linear time");
 });
