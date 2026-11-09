@@ -338,7 +338,7 @@ function PresenceGlyph({ presence }: { presence: AvatarPresence }): JSX.Element 
  * `presence` adds a status dot that says what it shows (`presenceLabel`), and
  * `shape="square"` marks a team, a channel, an app or a bot, and `shape="hexagon"` an AI
  * agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture fades in
- * once it loads.
+ * once it loads, or shows at once when the browser already holds it.
  *
  * The initials are drawn, not written: CSS generated content from a data attribute, which
  * paints exactly as text did but is no text in the page. So a link or button that wraps the
@@ -394,6 +394,9 @@ export function Avatar(props: AvatarProps): JSX.Element {
   // An agent has no presence: a hexagon draws no dot and says none.
   const presence = shape === "hexagon" ? undefined : oneOf(presences, presenceProp);
   const [image, setImage] = useState<string>("idle");
+  // Whether the picture was waited for. One the browser already holds goes straight to loaded and shows at once, so a
+  // chat switch or a list row mounted again doesn't fade its faces in; one that loads later fades in.
+  const [waited, setWaited] = useState(false);
   useAppearanceClassNameCheck(
     "Avatar",
     className,
@@ -459,8 +462,14 @@ export function Avatar(props: AvatarProps): JSX.Element {
         <BaseAvatar.Image
           src={src}
           alt=""
-          onLoadingStatusChange={setImage}
-          className="size-full rounded-[inherit] object-cover transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0"
+          onLoadingStatusChange={(status) => {
+            if (status === "loading") setWaited(true);
+            setImage(status);
+          }}
+          className={cn(
+            "size-full rounded-[inherit] object-cover",
+            waited && "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0",
+          )}
         />
       )}
       <BaseAvatar.Fallback

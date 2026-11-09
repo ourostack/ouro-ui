@@ -117,6 +117,20 @@ describe("Avatar", () => {
     expect(getComputedStyle(img).objectFit).toBe("cover");
   });
 
+  it("shows a picture the browser already holds at once, and fades in one it waits for", async () => {
+    const file = new URL("../../../../../scripts/check/fixtures/picture-160.png", import.meta.url).href;
+    const held = new Image();
+    held.src = file;
+    await held.decode();
+    const cached = await render(<Avatar name="Ana Lind" src={file} />);
+    await expect.poll(() => cached.avatar.querySelector("img")).not.toBeNull();
+    expect(getComputedStyle(cached.avatar.querySelector("img")!).transitionProperty).not.toContain("opacity");
+    // A picture never fetched before: the avatar waits for it, then fades it in.
+    const fresh = await render(<Avatar name="Ana Lind" src={`${file}?fresh=${Math.random()}`} />);
+    await expect.poll(() => fresh.avatar.querySelector("img")).not.toBeNull();
+    expect(getComputedStyle(fresh.avatar.querySelector("img")!).transitionProperty).toContain("opacity");
+  });
+
   it("falls back to initials when the image fails", async () => {
     const { avatar } = await render(<Avatar name="Ana Lind" src={broken} />);
     await expect.poll(() => avatar.getAttribute("data-image")).toBe("error");
