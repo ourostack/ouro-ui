@@ -3,8 +3,8 @@ export { familyBarClass, familyFooterClass, familyLinkClass, familyScrollerClass
 import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /**
- * A link in a FamilyBar or a FamilyFooter, in the muted foreground mixed 20% toward the foreground, since the bar is on
- * the muted surface. The current site's link is in the foreground, heavier, with a bar under its text in the primary
+ * A link in a FamilyBar or a FamilyFooter, in the muted foreground mixed toward the foreground, since the bar is on the
+ * muted surface. The current site's link is in the foreground, heavier, with a bar under its text in the primary
  * colour, drawn as a border so that forced colours keep it. The focus outline is inset, inside the row that scrolls.
  *
  * @internal
@@ -29,7 +29,7 @@ const familyBarClass =
   "ps-[max(0.5rem,env(safe-area-inset-left,0px))] pe-[max(0.5rem,env(safe-area-inset-right,0px))]";
 
 /**
- * The FamilyBar's row of links, which scrolls inside itself when it does not fit, with no scroll bar drawn.
+ * The FamilyBar's row of links, which scrolls inside itself when it does not fit, its scroll bar hidden.
  *
  * @internal
  */
@@ -45,7 +45,7 @@ const familyFooterClass =
   "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
 
 /**
- * The development messages FamilyBar and FamilyFooter share: a `current` that matches no link, and two links with one id.
+ * The development messages FamilyBar and FamilyFooter share: a `current` that matches no link, and a repeated link id.
  *
  * @internal
  */

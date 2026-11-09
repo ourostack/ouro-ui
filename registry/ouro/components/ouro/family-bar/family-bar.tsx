@@ -59,6 +59,8 @@ const example = '<FamilyBar links={[{ id: "docs", label: "Docs", href: "/" }]} /
  *
  * @group Navigation
  * @see https://ui.ouroboros.bot/docs/family-bar
+ * @claim "links every site of a family" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > renders a labelled nav of the family's links in order, the current site marked with aria-current, heavier text and a bar under it)
+ * @claim "the server HTML is the whole bar" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > renders the whole bar in the server HTML)
  *
  * @example
  * <FamilyBar
