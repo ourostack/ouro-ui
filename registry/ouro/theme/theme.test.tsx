@@ -203,7 +203,7 @@ describe("press utility", () => {
     const host = mount(
       '<div><button class="press aria-[current=true]:bg-primary aria-[current=true]:text-primary-foreground" aria-current="true">A</button><button class="press aria-[current=true]:bg-primary aria-[current=true]:text-primary-foreground">B</button></div>',
     );
-    const [left, picked] = [...host.firstElementChild!.children] as HTMLElement[];
+    const [left, picked] = [...host.firstElementChild!.children] as [HTMLElement, HTMLElement];
     const selected = getComputedStyle(left).backgroundColor;
     const plain = getComputedStyle(picked).backgroundColor;
     expect(selected).not.toBe(plain);
