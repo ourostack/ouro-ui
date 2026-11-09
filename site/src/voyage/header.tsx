@@ -234,6 +234,8 @@ export function VoyageHeader({
       <FamilyBar
         links={FAMILY}
         current={FAMILY_CURRENT}
+        // Named apart from the site's own bar ("Site") and from a docs page's demo of the component ("Sites").
+        label="Ouro sites"
         className={GUTTERS[gutters]}
         brand={
           // The family's home, by its mark: the bar's first link says "Ouro" and goes there too, so the mark is for a

@@ -223,7 +223,7 @@ test("the header works from the keyboard: picker, mode, X-ray and the command pa
   // First the family bar's sites, in the family's order (its mark is for a pointer, out of the tab order), then the site's own bar.
   for (const site of family.links) {
     await pressTab(page);
-    await expect(page.getByRole("navigation", { name: "Sites" }).getByRole("link", { name: site.label, exact: true })).toBeFocused();
+    await expect(page.getByRole("navigation", { name: "Ouro sites" }).getByRole("link", { name: site.label, exact: true })).toBeFocused();
   }
   for (const [role, name] of [
     ["link", "Ouro UI"],
