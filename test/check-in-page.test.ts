@@ -4,6 +4,7 @@ import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, 
 import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
+import { server } from "vitest/browser";
 
 // Ouro check's in-page side (ouro-check), in a real browser: for each rule a page that fails it and one that passes,
 // and the opt-outs. scripts/check.test.mjs runs the whole check on fixture pages in Chromium.
@@ -198,17 +199,11 @@ describe("findSizeIssues: blurry-image, for a video", () => {
   const sized = (video: HTMLVideoElement) => (video.readyState >= 1 ? Promise.resolve() : new Promise((done) => video.addEventListener("loadedmetadata", done, { once: true })));
   const videos = () => [...host.querySelectorAll("video")];
   // A stream of 64×48 frames from a canvas: a video with no address at all.
-  // WebKit only sends frames drawn once the capture has started, so each canvas keeps drawing until the test ends.
-  const painters: number[] = [];
-  afterEach(() => painters.splice(0).forEach((painter) => clearInterval(painter)));
   const stream = () => {
     const canvas = document.createElement("canvas");
     [canvas.width, canvas.height] = [64, 48];
-    const captured = canvas.captureStream();
-    const paint = () => canvas.getContext("2d")!.fillRect(0, 0, 64, 48);
-    paint();
-    painters.push(window.setInterval(paint, 50));
-    return captured;
+    canvas.getContext("2d")!.fillRect(0, 0, 64, 48);
+    return canvas.captureStream();
   };
 
   it("finds a video drawn larger than its frames at the density, by how it fits (contain unless the page says)", async () => {
@@ -243,7 +238,8 @@ describe("findSizeIssues: blurry-image, for a video", () => {
     expect(await findSizeIssues({ density: 2 })).toMatchObject([{ rule: "blurry-image", element: 'video "A demo"' }]);
   });
 
-  it("names a video playing a stream by a source it lists, or by its words when it has no address", async () => {
+  // Ouro check runs in Chromium. WebKit on Linux gives a canvas stream no size until it plays, and plays only from a press.
+  it.skipIf(server.browser !== "chromium")("names a video playing a stream by a source it lists, or by its words when it has no address", async () => {
     render(`
       <video muted style="display:block;width:200px;height:150px"><source src="${CLIP}"></video>
       <video src="${CLIP}" muted style="display:block;width:200px;height:150px"></video>
