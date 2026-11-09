@@ -118,7 +118,7 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   const samples: number[] = [];
   let presses = LATENCY.warmUps + LATENCY.samples;
   for (let index = 0; index < presses; index++) {
-    if (setUp) await unthrottled(() => setUp(index));
+    if (setUp || process.env.PROBE_VARIANT === "settle") await unthrottled(async () => setUp?.(index));
     await page.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
     const before = await interactions();
     await press(index);
