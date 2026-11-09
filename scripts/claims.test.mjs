@@ -980,4 +980,6 @@ test("a tag with several bare attributes is masked, and prose between a bare les
   }
   assert.equal(markdown("a<b and always c>d"), 1);
   assert.equal(markdown("a<i hello always world>b"), 1);
+  // A spread holds a name, not words, so prose in braces after the dots is still read.
+  assert.equal(markdown("It is fas<b {...we always never every}>test</b>."), 1);
 });

@@ -152,7 +152,7 @@ const maskQuote = (quote, plain, curly) => {
 const HIDDEN_ENTITY = /&(?:shy|ZeroWidthSpace|zwj|zwnj|ZeroWidthNonJoiner|NoBreak|lrm|rlm|LeftToRightMark|RightToLeftMark|InvisibleTimes|InvisibleComma|ic|it|af|ApplyFunction|NegativeVeryThinSpace|NegativeThinSpace|NegativeMediumSpace|NegativeThickSpace);/;
 /** An HTML or JSX tag: a name, name=value attributes, and at most one bare attribute ("open"), so prose between a bare < and a later > is not one. */
 const BOOLEAN_ATTRIBUTE = "allowfullscreen|async|autofocus|autoplay|checked|controls|default|defer|disabled|formnovalidate|hidden|inert|ismap|loop|multiple|muted|nomodule|novalidate|open|playsinline|readonly|required|reversed|selected";
-const TAG_SOURCE = String.raw`<\/?[A-Za-z][\w:.-]*(?:\s+(?:[^\s=<>"'/]+=(?:"[^"]*"|'[^']*'|\{[^}<]{0,200}\}|[^\s<>"']+)|\{\.\.\.[^}<]{0,200}\}|(?:${BOOLEAN_ATTRIBUTE})(?![\w:.-])))*(?:\s+[^\s=<>"'/]+)?\s*\/?>`;
+const TAG_SOURCE = String.raw`<\/?[A-Za-z][\w:.-]*(?:\s+(?:[^\s=<>"'/]+=(?:"[^"]*"|'[^']*'|\{[^}<]{0,200}\}|[^\s<>"']+)|\{\.\.\.[\w$.?\[\]()]{1,80}\}|(?:${BOOLEAN_ATTRIBUTE})(?![\w:.-])))*(?:\s+[^\s=<>"'/]+)?\s*\/?>`;
 const TAG = new RegExp(TAG_SOURCE, "g");
 /** A run of tags between letters: they draw nothing, so they are hidden characters like any other. */
 const IN_WORD_MARKUP = new RegExp(String.raw`(?<=[\w\u200B])(?:${TAG_SOURCE})+(?=[\w\u200B])`, "g");
