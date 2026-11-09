@@ -550,6 +550,8 @@
     "site/e2e/voyage-live.spec.ts": 257000,
     "site/e2e/voyage-presets.spec.ts": 650000,
     "site/e2e/voyage.spec.ts": 273715,
-    "site/e2e/early-input.spec.ts": 15000
+    "site/e2e/early-input.spec.ts": 15000,
+    "registry/ouro/e2e/ouro/family-bar.spec.ts": 6500,
+    "registry/ouro/e2e/ouro/family-footer.spec.ts": 4500
   }
 }
