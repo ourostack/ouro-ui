@@ -1,0 +1,14 @@
+$ node registry/ouro/check/fades.ts planted
+planted/hero.css:2: mask-image: linear-gradient(to bottom, #000 60%, transparent)
+  Fix: end the picture on a hard edge, or put it on a solid band; if this mask fades text or controls rather than a picture, mark it `fade-ok: <why>`.
+::error file=planted/hero.css,line=2,title=Picture fade::mask-image: linear-gradient(to bottom, #000 60%, transparent): end the picture on a hard edge, or put it on a solid band; if this mask fades text or controls rather than a picture, mark it `fade-ok: <why>`.
+planted/hero.tsx:1: WebkitMaskImage: "radial-gradient(#000, transparent)"
+  Fix: end the picture on a hard edge, or put it on a solid band; if this mask fades text or controls rather than a picture, mark it `fade-ok: <why>`.
+::error file=planted/hero.tsx,line=1,title=Picture fade::WebkitMaskImage: "radial-gradient(#000, transparent)": end the picture on a hard edge, or put it on a solid band; if this mask fades text or controls rather than a picture, mark it `fade-ok: <why>`.
+
+2 gradient masks to fix.
+exit 3
+
+$ node registry/ouro/check/fades.ts registry site
+No gradient masks without a fade-ok reason.
+exit 0
