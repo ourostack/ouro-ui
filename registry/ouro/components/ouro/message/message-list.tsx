@@ -1104,18 +1104,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
     } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
-    const kept: (number | undefined)[] = [last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)];
+    const kept = new Set<number | undefined>([last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)]);
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!) ?? last;
     // Stryker disable next-line EqualityOperator: the newest is kept as the last child anyway.
-    for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.push(index);
-    for (const key of waitingKeys.split("\n")) kept.push(indexes.get(key));
+    for (let index = Math.max(since + 1, last + 1 - KEEP_ARRIVED); index <= last; index++) kept.add(index);
+    for (const key of waitingKeys.split("\n")) kept.add(indexes.get(key));
     all.forEach((child, index) => {
       if (!isValidElement(child)) return;
       const props = child.props as { streaming?: unknown; "aria-busy"?: unknown };
-      if (props.streaming === true || props["aria-busy"] === true || props["aria-busy"] === "true") kept.push(index);
+      if (props.streaming === true || props["aria-busy"] === true || props["aria-busy"] === "true") kept.add(index);
     });
-    draws = (index) => (index >= range[0] && index <= range[1]) || kept.includes(index);
+    draws = (index) => (index >= range[0] && index <= range[1]) || kept.has(index);
   }
   // The slots, with space kept for each run of children not drawn: their heights and the gaps between them, less the gap the
   // list puts before the space itself.
@@ -1144,7 +1144,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   });
   // The newest always draws, so no run is left after it.
   // What the window's effects read: the latest render's.
-  const view = { windowed, all, keys, measured, band, reach, sizeOf };
+  const view = { windowed, all, keys, indexes, measured, band, reach, sizeOf };
   const viewRef = useRef(view);
   useLayoutEffect(() => {
     viewRef.current = view;
@@ -1572,7 +1572,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       springsRef.current?.moved(scroller.scrollTop - before);
     };
     windowSync.current = (scrolled) => {
-      const { windowed, keys, measured, reach, sizeOf } = viewRef.current;
+      const { windowed, keys, indexes, measured, reach, sizeOf } = viewRef.current;
       // A list inside a hidden panel draws nothing to measure or place; it does once it shows, and resizes.
       if (windowed && content.getClientRects().length === 0) return;
       if (windowed && !scrolled) {
@@ -1648,7 +1648,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const viewTop = scroller.getBoundingClientRect().top - content.getBoundingClientRect().top;
       const viewBottom = viewTop + scroller.clientHeight;
       const over = Math.max(OVERSCAN, scroller.clientHeight);
-      const indexes = new Map(keys.map((key, index) => [key, index]));
       const placed = tops.current.entries().next().value;
       // Every child drawn draws nothing (the app hid them all): nothing to place by, until one draws.
       /* istanbul ignore if @preserve -- the newest message always draws; this only keeps a list whose messages are all hidden from drawing every child */
@@ -1660,11 +1659,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.
       const extent = (index: number) => sizeAt(index) + (index > 0 && sizeAt(index) > 0 ? measured.gap : 0);
       let sum = 0;
-      const sums = keys.map((_, index) => {
-        const at = sum;
+      const sums = new Float64Array(keys.length);
+      for (let index = 0; index < keys.length; index++) {
+        sums[index] = sum;
         sum += extent(index);
-        return at;
-      });
+      }
       // Stryker disable next-line ConditionalExpression,EqualityOperator: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.
       const shift = nearTop - (near > 0 ? measured.gap : 0) - sums[near]!;
       // Stryker disable next-line ArithmeticOperator: the shift is the content's 16px padding, which moves the band's edges by twice that against an 800px overscan.
