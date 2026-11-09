@@ -57,22 +57,28 @@ const sites: FamilyLink[] = [
   { id: "source", label: "Source", href: "https://github.com/example" },
 ];
 
-/** How far the link's middle is from the row's, in px. */
-function offCentre(row: HTMLElement, link: HTMLElement): number {
+/** Whether the link is in the row and clear of its scroll padding, as wide as its fade, at each side that scrolls. */
+function clearOfFade(row: HTMLElement, link: HTMLElement): boolean {
   const box = row.getBoundingClientRect();
   const at = link.getBoundingClientRect();
-  return Math.abs(at.left + at.width / 2 - (box.left + box.width / 2));
+  const end = row.scrollWidth - row.clientWidth - Math.abs(row.scrollLeft) <= 1;
+  const start = Math.abs(row.scrollLeft) <= 1;
+  const [left, right] = getComputedStyle(row).direction === "rtl" ? [end, start] : [start, end];
+  return at.left >= box.left + (left ? 0 : 32) - 1 && at.right <= box.right - (right ? 0 : 32) + 1;
 }
 
 describe("FamilyBar", () => {
-  it("renders a labelled nav of the family's links in order, the current site marked with aria-current, heavier text and a bar under it", async () => {
+  it("renders a labelled nav of the family's links in order, at regular weight, the current site marked with aria-current, the text colour and a bar under it", async () => {
     const { nav, link } = await render(<FamilyBar links={sites} current="docs" />);
     expect(nav.tagName).toBe("NAV");
     expect(nav.getAttribute("aria-label")).toBe("Sites");
     expect([...nav.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")])).toEqual(sites.map((site) => [site.label, site.href]));
     expect([...nav.querySelectorAll("[aria-current]")]).toEqual([link("Docs")]);
     expect(link("Docs").getAttribute("aria-current")).toBe("true");
-    expect(Number(getComputedStyle(link("Docs")).fontWeight)).toBeGreaterThan(Number(getComputedStyle(link("Guides")).fontWeight));
+    expect(getComputedStyle(link("Docs")).fontWeight).toBe("400");
+    expect(getComputedStyle(link("Guides")).fontWeight).toBe("400");
+    expect(getComputedStyle(link("Docs")).color).toBe(getComputedStyle(nav).color);
+    expect(getComputedStyle(link("Guides")).color).not.toBe(getComputedStyle(nav).color);
     const bar = getComputedStyle(link("Docs"), "::after");
     expect(bar.borderBottomWidth).toBe("2px");
     expect(bar.borderBottomStyle).toBe("solid");
@@ -169,13 +175,26 @@ describe("FamilyBar", () => {
     expect(row.scrollLeft).toBe(at);
   });
 
-  it("brings the current site's link to the middle of the row, and again when current changes", async () => {
+  it("brings the current site's link into view when it is out of view, and again when current changes", async () => {
     await page.viewport(320, 640);
-    const { row, root, link } = await render(<FamilyBar links={sites} current="blog" />);
+    const { row, root, link } = await render(<FamilyBar links={sites} current="community" />);
     expect(row.scrollLeft).toBeGreaterThan(0);
-    expect(offCentre(row, link("Blog"))).toBeLessThan(1);
-    await act(async () => root.render(<FamilyBar links={sites} current="status" />));
-    expect(offCentre(row, link("Status"))).toBeLessThan(1);
+    expect(clearOfFade(row, link("Community"))).toBe(true);
+    await act(async () => root.render(<FamilyBar links={sites} current="source" />));
+    expect(clearOfFade(row, link("Source"))).toBe(true);
+  });
+
+  it("leaves the row where it starts when the current site's link is already in view, with or without script", async () => {
+    await page.viewport(320, 640);
+    const { row } = await render(<FamilyBar links={sites} current="docs" />);
+    expect(row.scrollWidth).toBeGreaterThan(row.clientWidth + 1);
+    expect(row.scrollLeft).toBe(0);
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    host.innerHTML = renderToString(<FamilyBar links={sites} current="docs" />);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(host.querySelector<HTMLElement>("[data-ouro-family-row]")!.scrollLeft).toBe(0);
   });
 
   it("starts the row with the current site's link in view from the server HTML alone, where the browser supports scroll-initial-target", async () => {
@@ -196,32 +215,71 @@ describe("FamilyBar", () => {
     expect(at.right).toBeLessThanOrEqual(box.right + 1);
   });
 
-  it("brings the current site's link to the middle by script where CSS does not place it", async () => {
+  it("fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits", async () => {
+    await page.viewport(320, 640);
+    const serverRow = (dir?: "rtl") => {
+      const host = document.createElement("div");
+      if (dir) host.dir = dir;
+      document.body.append(host);
+      mounted.push(host);
+      host.innerHTML = renderToString(<FamilyBar links={sites} />);
+      return host.querySelector<HTMLElement>("[data-ouro-family-row]")!;
+    };
+    const row = serverRow();
+    // The hint is in the HTML, as classes; no script marks the row.
+    expect(row.className).toContain("[animation-timeline:scroll(self_inline)]");
+    expect(row.hasAttribute("data-ouro-scroll-fade")).toBe(false);
+    expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
+    // Firefox has no scroll-driven animations yet: there the row fades once it hydrates.
+    if (!CSS.supports("animation-timeline", "scroll()")) return;
+    expect(getComputedStyle(row).maskImage).toContain("gradient");
+    // Which ramps show: the left one once its layer is no longer pushed off the box, the right one once its layer is
+    // the box's width.
+    const ramps = (box: HTMLElement) => {
+      const style = getComputedStyle(box);
+      return { left: !style.maskPosition.trim().startsWith("-"), right: style.maskSize.split(",")[1]!.trim().startsWith("100%") };
+    };
+    await expect.poll(() => ramps(row)).toEqual({ left: false, right: true });
+    row.scrollLeft = (row.scrollWidth - row.clientWidth) / 2;
+    await expect.poll(() => ramps(row)).toEqual({ left: true, right: true });
+    row.scrollLeft = row.scrollWidth;
+    await expect.poll(() => ramps(row)).toEqual({ left: true, right: false });
+    const rtl = serverRow("rtl");
+    await expect.poll(() => ramps(rtl)).toEqual({ left: true, right: false });
+    await page.viewport(1280, 800);
+    // A row that widens to fit, from scrolled to its end, and one that fits from the start.
+    await expect.poll(() => ramps(row)).toEqual({ left: false, right: false });
+    await expect.poll(() => ramps(serverRow())).toEqual({ left: false, right: false });
+  });
+
+  it("brings the current site's link into view by script where CSS does not place it", async () => {
     await page.viewport(320, 640);
     const style = document.createElement("style");
     style.textContent = "[data-ouro-family-row] a { scroll-initial-target: none !important; scroll-snap-align: none !important; }";
     document.head.append(style);
     try {
-      const { row, root, link } = await render(<FamilyBar links={sites} current="blog" />);
-      expect(offCentre(row, link("Blog"))).toBeLessThan(1);
+      const { row, root, link } = await render(<FamilyBar links={sites} current="community" />);
+      expect(row.scrollLeft).toBeGreaterThan(0);
+      expect(clearOfFade(row, link("Community"))).toBe(true);
       row.scrollLeft = 0;
-      await act(async () => root.render(<FamilyBar links={sites} current="status" />));
-      expect(offCentre(row, link("Status"))).toBeLessThan(1);
+      await act(async () => root.render(<FamilyBar links={sites} current="source" />));
+      expect(clearOfFade(row, link("Source"))).toBe(true);
     } finally {
       style.remove();
     }
   });
 
-  it("brings the current site's link to the middle of a right-to-left row", async () => {
+  it("brings the current site's link into view in a right-to-left row", async () => {
     await page.viewport(320, 640);
-    const { row, link } = await render(<FamilyBar links={sites} current="blog" />, "rtl");
+    const { row, link } = await render(<FamilyBar links={sites} current="community" />, "rtl");
     expect(row.scrollLeft).toBeLessThan(0);
-    expect(offCentre(row, link("Blog"))).toBeLessThan(1);
+    expect(clearOfFade(row, link("Community"))).toBe(true);
   });
 
   it("leaves a row that fits, or has no current site, where it starts", async () => {
     const fits = await render(<FamilyBar links={sites} current="source" />);
-    expect(fits.row.scrollWidth).toBeLessThanOrEqual(fits.row.clientWidth);
+    // At most the pixel the list adds for the scroll timeline.
+    expect(fits.row.scrollWidth).toBeLessThanOrEqual(fits.row.clientWidth + 1);
     expect(fits.row.scrollLeft).toBe(0);
     expect(fits.row.hasAttribute("data-ouro-scroll-fade")).toBe(false);
     await page.viewport(320, 640);

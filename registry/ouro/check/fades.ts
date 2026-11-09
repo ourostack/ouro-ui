@@ -13,7 +13,7 @@ import { EXIT } from "./check.ts";
 //   node lib/ouro/check/fades.ts <folder | file>…
 //
 // A gradient mask that fades text or controls rather than a picture (a row that scrolls sideways, a folded paragraph)
-// stays when the line it is on, or the line before, says why: `fade-ok: <reason>`. A marker without a reason does not
+// stays when the line it is on, or the comment just above it, says why: `fade-ok: <reason>`. A marker without a reason does not
 // count. Exits as check.ts does (EXIT): 0 none found, 2 usage, 3 findings; 1 when a file cannot be read.
 
 interface Fade {
@@ -48,8 +48,10 @@ const CARRIED = /\s*[?:|&+]/y;
 
 // The value from `start`: up to what ends it at its own level (`stops`). Brackets nest and quotes hold their contents
 // whole, except that in a declaration (`css`) a quote at its own level ends the value, as the end of a style attribute
-// or of the string the declaration is in does. A script's value also ends at a line break once some of it has been
-// read, unless an operator at the end of that line or the start of the next carries it on, as in a ternary.
+// or of the string the declaration is in does. In a script a string never follows a word or a `)` directly, so a quote
+// there is a style attribute's end too (`style="mask: url(a.svg) center"`). A script's value also ends at a line break
+// once some of it has been read, unless an operator at the end of that line or the start of the next carries it on, as
+// in a ternary.
 function readValue(text: string, start: number, read: "css" | "js" | "bracket"): string {
   const stops = read === "css" ? ";{}" : read === "js" ? ",;})]" : "]";
   const closing: string[] = [];
@@ -58,6 +60,7 @@ function readValue(text: string, start: number, read: "css" | "js" | "bracket"):
     const c = text[i]!;
     if (closing.length === 0) {
       if (stops.includes(c) || (read === "css" && QUOTES.has(c))) break;
+      if (read === "js" && (c === '"' || c === "'") && /[\w)]\s*$/.test(text.slice(start, i))) break;
       if (read === "js" && c === "\n") {
         const before = text.slice(start, i);
         CARRIED.lastIndex = i + 1;
@@ -80,11 +83,29 @@ const optsOut = (line: string) => {
   return marker !== null && /\p{L}/u.test(marker[1]!.replace(/\*\/|-->|\}+/g, ""));
 };
 
-// A line that is only a comment, which may say why for the line after it. A marker after code on the line before
-// belongs to that line's own mask.
-const commentOnly = (line: string | undefined) => /^\s*(?:\/\/|\/\*|\*|<!--|\{\/\*)/.test(line ?? "");
+// A line that is only a comment, or starts one.
+const commentOnly = (line: string) => /^\s*(?:\/\/|\/\*|\*|<!--|\{\/\*)/.test(line);
 
-// Every gradient mask in `text`, by line, that neither its line nor a comment on the line before opts out.
+// Whether the comment just above line `index` (0-based) says why: any line of the comment lines right above it, `//`
+// lines or a block comment, its continuation lines included. A marker after code belongs to that line's own mask, so a
+// line of code, or a comment after code, ends the search.
+function markedAbove(lines: string[], index: number): boolean {
+  let inBlock = false;
+  for (let k = index - 1; k >= 0; k--) {
+    const line = lines[k]!;
+    if (!inBlock && /(?:\*\/|-->)\s*\}?\s*$/.test(line)) inBlock = true;
+    else if (!inBlock && !commentOnly(line)) return false;
+    const opener = line.search(/\/\*|<!--/);
+    if (inBlock && opener >= 0) {
+      inBlock = false;
+      if (line.slice(0, opener).replace(/\{\s*$/, "").trim() !== "") return false;
+    }
+    if (optsOut(line)) return true;
+  }
+  return false;
+}
+
+// Every gradient mask in `text`, by line, that neither its line nor the comment just above it opts out.
 function findFades(text: string, file: string): Fade[] {
   const lines = text.split(/\r?\n/);
   const found = new Map<number, Fade>();
@@ -95,7 +116,7 @@ function findFades(text: string, file: string): Fade[] {
       const value = read === "utility" ? "" : readValue(text, end, read);
       if (read !== "utility" && !/gradient\(/i.test(value)) continue;
       const line = text.slice(0, at).split("\n").length;
-      if (found.has(line) || optsOut(lines[line - 1]!) || (commentOnly(lines[line - 2]) && optsOut(lines[line - 2]!))) continue;
+      if (found.has(line) || optsOut(lines[line - 1]!) || markedAbove(lines, line - 1)) continue;
       const declaration = `${match[0]}${value}${read === "bracket" ? "]" : ""}`.replace(/\s+/g, " ").trim();
       found.set(line, { file, line, declaration: declaration.length > 160 ? `${declaration.slice(0, 159)}…` : declaration });
     }
@@ -128,7 +149,7 @@ const USAGE = `Usage: node lib/ouro/check/fades.ts <folder | file>…
 
 Finds every gradient used as a mask in the source under each folder (its stylesheets, Tailwind classes and style
 objects; not node_modules, build output or hidden folders), so that no picture fades into the page. Where a mask fades
-text or controls rather than a picture, say why on its line or the line before: fade-ok: <reason>.
+text or controls rather than a picture, say why on its line or in the comment just above it: fade-ok: <reason>.
 
 Exit codes: 0 none found, 1 error (a file could not be read), 2 usage, 3 findings to fix.`;
 

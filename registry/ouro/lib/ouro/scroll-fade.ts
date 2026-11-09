@@ -19,6 +19,32 @@ export const scrollFadeClass =
   "data-ouro-scroll-fade:[mask-image:linear-gradient(to_right,transparent,#000_min(var(--ouro-scroll-fade-left),2rem),#000_calc(100%-min(var(--ouro-scroll-fade-right),2rem)),transparent)]"; // fade-ok: fades a scrolling row of text or controls, not a picture
 
 /**
+ * The same hint with no script, for a box drawn on the server that may never hydrate, as a static page's: added to
+ * {@link scrollFadeClass}, it fades each side that hides more from the first paint, in a browser with scroll-driven
+ * animations (`animation-timeline: scroll()`). The mask is two ramps, one at each side, kept where they show nothing
+ * until the box scrolls: the box's own scroll timeline slides the left ramp in over the first 2rem it scrolls, and the
+ * right one out over the last 2rem, in reverse in a right-to-left box. A box that fits has no scroll timeline, so
+ * nothing fades. Once {@link useScrollFade} marks the box, its mask takes over and this one stands down. Its keyframes
+ * are in ouro-base.css.
+ *
+ * Internal: Ouro UI components use it; apps don't need to.
+ * @claim "The mask is two ramps, one at each side" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits)
+ * @claim "A box that fits has no scroll timeline, so nothing fades" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits)
+ * @claim "it fades each side that hides more from the first paint" registry/ouro/components/ouro/family-bar/family-bar.test.tsx verify:testExists(registry/ouro/components/ouro/family-bar/family-bar.test.tsx::FamilyBar > fades the side of the row that hides more in the server HTML alone, with no script, and nothing in a row that fits)
+ */
+export const scrollFadeStaticClass =
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[mask-image:linear-gradient(to_right,transparent,#000_2rem),linear-gradient(to_left,transparent,#000_2rem)] " + // fade-ok: fades a scrolling row of text or controls, not a picture
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[mask-repeat:no-repeat] supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[mask-composite:intersect] " +
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[mask-position:-2rem_0,0_0] " +
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[mask-size:calc(100%+2rem)_100%,calc(100%+2rem)_100%] " +
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[animation-name:ouro-scroll-fade-left,ouro-scroll-fade-right] " +
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:rtl:[animation-name:ouro-scroll-fade-right,ouro-scroll-fade-left] " +
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[animation-direction:normal,reverse] " +
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[animation-fill-mode:both] supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[animation-timing-function:linear] " +
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[animation-timeline:scroll(self_inline)] " +
+  "supports-[animation-timeline:scroll()]:not-data-ouro-scroll-fade:[animation-range:0_2rem,calc(100%-2rem)_100%]";
+
+/**
  * Shows that a box scrolls sideways: while its content is wider than it, the box gets
  * `data-ouro-scroll-fade` and how far its content runs past each side, as
  * `--ouro-scroll-fade-left` and `--ouro-scroll-fade-right`, for {@link scrollFadeClass}. At rest a

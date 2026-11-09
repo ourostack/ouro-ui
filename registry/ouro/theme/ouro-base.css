@@ -15,7 +15,8 @@
  *   fields draw their border in --input and round their corners on the --radius scale.
  *   shadcn add writes a variable only when the app's stylesheet lacks it, and a theme
  *   loaded after this file wins, so an app that has them keeps its own.
- * - The press transition and the keyframes for spinners, indeterminate progress and skeletons.
+ * - The press transition and the keyframes for spinners, indeterminate progress, skeletons and the
+ *   scroll fade drawn with no script.
  * - The shadow under each side of a sheet, --ouro-shadow-sheet-<side>, which shadcn's
  *   --shadow-* scale has no upward or sideways step for.
  *
@@ -152,5 +153,34 @@
   }
   to {
     background-position: -100% 0;
+  }
+}
+
+/*
+ * The scroll fade with no script (scrollFadeStaticClass): a box's scroll timeline slides its left ramp in, by
+ * mask-position, and its right ramp in, by mask-size, each over the 2rem it scrolls toward that side.
+ */
+@keyframes ouro-scroll-fade-left {
+  from {
+    mask-position:
+      -2rem 0,
+      0 0;
+  }
+  to {
+    mask-position:
+      0 0,
+      0 0;
+  }
+}
+@keyframes ouro-scroll-fade-right {
+  from {
+    mask-size:
+      calc(100% + 2rem) 100%,
+      calc(100% + 2rem) 100%;
+  }
+  to {
+    mask-size:
+      calc(100% + 2rem) 100%,
+      100% 100%;
   }
 }

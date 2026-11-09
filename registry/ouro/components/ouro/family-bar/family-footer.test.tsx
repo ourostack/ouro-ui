@@ -63,7 +63,11 @@ describe("FamilyFooter", () => {
     expect([...nav.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")])).toEqual(sites.map((site) => [site.label, site.href]));
     expect([...footer.querySelectorAll("[aria-current]")]).toEqual([link("Docs")]);
     expect(link("Docs").getAttribute("aria-current")).toBe("true");
-    expect(Number(getComputedStyle(link("Docs")).fontWeight)).toBeGreaterThan(Number(getComputedStyle(link("Guides")).fontWeight));
+    expect(getComputedStyle(link("Docs")).color).not.toBe(getComputedStyle(link("Guides")).color);
+    expect(getComputedStyle(link("Docs"), "::after").borderBottomWidth).toBe("2px");
+    // A link at rest is underlined in the border colour; the current one carries its bar instead.
+    expect(getComputedStyle(link("Guides")).textDecorationLine).toBe("underline");
+    expect(getComputedStyle(link("Docs")).textDecorationLine).toBe("none");
     expect(getComputedStyle(link("Docs"), "::after").borderBottomWidth).toBe("2px");
     const extras = footer.querySelector("[data-ouro-family-extras]")!;
     expect(nav.contains(link("Privacy"))).toBe(false);
@@ -89,11 +93,17 @@ describe("FamilyFooter", () => {
     expect(html).toContain("<span>Made in the open</span>");
   });
 
-  it("wraps on a narrow screen instead of scrolling sideways", async () => {
+  it("lays its links in even columns of 44px rows on a narrow screen instead of ragged lines, and never scrolls sideways", async () => {
     await page.viewport(320, 640);
     const { footer } = await render(<FamilyFooter links={sites} current="docs" />);
     expect(footer.scrollWidth).toBeLessThanOrEqual(footer.clientWidth);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    const boxes = [...footer.querySelectorAll("nav a")].map((a) => a.getBoundingClientRect());
+    const columns = new Set(boxes.map((box) => Math.round(box.left)));
+    expect(columns.size).toBeGreaterThan(1);
+    expect(columns.size).toBeLessThan(boxes.length);
+    expect(new Set(boxes.map((box) => Math.round(box.width))).size).toBe(1);
+    for (const box of boxes) expect(box.height).toBeGreaterThanOrEqual(44);
   });
 
   it("routes a link to the site's own path through OuroProvider's linkComponent", async () => {
