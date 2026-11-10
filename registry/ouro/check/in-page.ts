@@ -27,7 +27,7 @@ const ALIASES: Record<string, string> = {
   "data-long-lines-ok": "long-lines",
   "data-clip-ok": "clipped-text",
   "data-scroll-x": "sideways-scroll",
-  "data-size-ignore": "sideways-scroll clipped-text long-lines blurry-image",
+  "data-size-ignore": "sideways-scroll clipped-text long-lines blurry-image stretched-image",
   "data-image-fade-ok": "image-fade",
 };
 

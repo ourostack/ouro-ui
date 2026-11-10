@@ -8,13 +8,15 @@ export type { Measure, PageIssue, SizeCheckOptions };
 //   clipped-text     a block of text cut off by its box: overflow, an ellipsis or a line clamp
 //   blurry-image     a raster picture or a video drawn larger than its file's own pixels allow at the screen's density,
 //                    at most 2
+//   stretched-image  a raster picture or a video the page draws out of its own shape (object-fit: fill, an <img>'s
+//                    default, with a width and a height that don't keep its ratio), by more than 5% and 2px
 //   long-lines       only where the project declares a measure (`measures`): an element whose lines run past it
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and data-ouro-allow-why="<reason>"; an allow without
 // a reason does not count. For an app whose own rules keep data-ouro-* for Ouro's components, plain aliases do the same,
 // each with its reason as its value, and stay: data-scroll-x (sideways-scroll), data-clip-ok (clipped-text),
-// data-long-lines-ok (long-lines) and data-size-ignore (all four of these rules and blurry-image; a broken picture is
-// broken at any size, so it is never ignored).
+// data-long-lines-ok (long-lines) and data-size-ignore (all four of these rules, blurry-image and stretched-image; a broken
+// picture is broken at any size, so it is never ignored).
 // `element` names the element the same way at every size, so a sweep can say where it shows; `detail` has this size's
 // numbers; `ref` marks it (data-ouro-check-ref) so the runner can photograph it.
 
@@ -43,9 +45,10 @@ interface SizeCheckOptions {
   density?: number;
   tolerance?: number;
   minImage?: number;
+  stretch?: number;
 }
 
-async function findSizeIssues({ measures = [], density = Math.min(2, window.devicePixelRatio), tolerance = 1.1, minImage = 96 }: SizeCheckOptions = {}): Promise<PageIssue[]> {
+async function findSizeIssues({ measures = [], density = Math.min(2, window.devicePixelRatio), tolerance = 1.1, minImage = 96, stretch = 0.05 }: SizeCheckOptions = {}): Promise<PageIssue[]> {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -133,6 +136,14 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
   // pixels come from loading the chosen source into an Image of its own.
   // By its path's last two folders, never its host: a run's local server has a new port each time. A data: or blob:
   // picture has no lasting address, so it goes by its name.
+  // A picture drawn out of its own shape: by its height against the height its width calls for, so a rounding of a
+  // pixel or two on a small picture isn't a stretch.
+  const stretched = (el: Element, fit: string, [w, h]: [number, number], [pw, ph]: [number, number], what: string) => {
+    const keeps = (w * ph) / pw;
+    if (fit !== "fill" || optedOut(el, "stretched-image", ["data-size-ignore"]) || Math.abs(h - keeps) <= Math.max(2, keeps * stretch)) return;
+    const by = Math.round((Math.max(h / keeps, keeps / h) - 1) * 100);
+    issues.push({ ref: ref(el), rule: "stretched-image", element: what, detail: `${el.localName === "video" ? "a video " : ""}drawn ${Math.round(w)}×${Math.round(h)} from ${pw}×${ph}${el.localName === "video" ? " frames" : ""}, ${by}% ${h > keeps ? "taller" : "wider"} than its own shape` });
+  };
   const nameOf = (img: Element, src: string) => (/^(data|blob):/.test(src) ? `img${quoted(img)}` : new URL(src).pathname.split("/").filter(Boolean).slice(-2).join("/"));
   for (const img of document.images) {
     const src = img.currentSrc || img.src;
@@ -142,15 +153,16 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
       issues.push({ ref: ref(img), rule: "broken-image", element: nameOf(img, src), detail: "the picture did not load" });
       continue;
     }
-    if (!img.naturalWidth || /\.svg(\?|#|$)|^data:image\/svg/.test(src) || optedOut(img, "blurry-image", ["data-size-ignore"]) || !shown(img)) continue;
+    if (!img.naturalWidth || /\.svg(\?|#|$)|^data:image\/svg/.test(src) || !shown(img)) continue;
     const r = img.getBoundingClientRect();
-    if (r.width < minImage && r.height < minImage) continue;
     const fit = getComputedStyle(img).objectFit;
     const file = new Image();
     file.src = src;
     await file.decode().catch(() => undefined);
     const pw = file.naturalWidth || img.naturalWidth;
     const ph = file.naturalHeight || img.naturalHeight;
+    stretched(img, fit, [r.width, r.height], [pw, ph], nameOf(img, src));
+    if ((r.width < minImage && r.height < minImage) || optedOut(img, "blurry-image", ["data-size-ignore"])) continue;
     const sx = r.width / pw;
     const sy = r.height / ph;
     const scale = fit === "contain" || fit === "scale-down" ? Math.min(sx, sy) : fit === "none" ? 1 : Math.max(sx, sy);
@@ -168,9 +180,12 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
   // otherwise). A video that has not loaded its size (preload="none", say) is asked for it on a video of its own, which
   // loads only the metadata; one that gives no size in 3 s is left out.
   for (const video of document.querySelectorAll("video")) {
-    if (optedOut(video, "blurry-image", ["data-size-ignore"]) || !shown(video)) continue;
+    if (!shown(video)) continue;
     const r = video.getBoundingClientRect();
-    if (r.width < minImage && r.height < minImage) continue;
+    const fit = getComputedStyle(video).objectFit;
+    // Asking a video for its size can take seconds, so only one a rule could find something on is asked.
+    const blurry = (r.width >= minImage || r.height >= minImage) && !optedOut(video, "blurry-image", ["data-size-ignore"]);
+    if (!blurry && (fit !== "fill" || optedOut(video, "stretched-image", ["data-size-ignore"]))) continue;
     const src = video.currentSrc || video.src || video.querySelector("source")?.src || "";
     let [pw, ph] = [video.videoWidth, video.videoHeight];
     if (!pw && src) {
@@ -183,14 +198,16 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
       probe.removeAttribute("src");
     }
     if (!pw) continue;
-    const fit = getComputedStyle(video).objectFit;
+    const name = /^(data|blob):/.test(src) || !src ? `video${quoted(video)}` : nameOf(video, src);
+    stretched(video, fit, [r.width, r.height], [pw, ph], name);
+    if (!blurry) continue;
     const [sx, sy] = [r.width / pw, r.height / ph];
     const scale = fit === "none" ? 1 : fit === "cover" || fit === "fill" ? Math.max(sx, sy) : Math.min(sx, sy);
     if (scale * density > tolerance) {
       issues.push({
         ref: ref(video),
         rule: "blurry-image",
-        element: /^(data|blob):/.test(src) || !src ? `video${quoted(video)}` : nameOf(video, src),
+        element: name,
         detail: `a video drawn ${Math.round(r.width)}×${Math.round(r.height)} from ${pw}×${ph} frames; at ${density}x it needs ${Math.ceil(pw * scale * density)}px wide`,
       });
     }
