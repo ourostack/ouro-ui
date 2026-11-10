@@ -62,4 +62,19 @@ describe("Ouro check stress inputs", () => {
     expect(root.textContent).toBe("12");
     expect(document.querySelector("[data-ouro-check-large-text]")).toBeNull();
   });
+
+  it.each(["long-text", "counts", "large-text"] as const)("applies %s to rendered text in boxless elements without exposing hidden text", (stress) => {
+    const root = render('<div style="display:contents"><span id="visible" style="display:contents;font-size:14px">7</span></div><div hidden><span id="hidden" style="display:contents;font-size:14px">8</span></div><div style="opacity:0"><span id="transparent" style="display:contents;font-size:14px">9</span></div><div style="visibility:hidden"><span id="revealed" style="display:contents;visibility:visible;font-size:14px">4</span></div><span id="collapsed" style="display:contents;visibility:collapse;font-size:14px">5</span><span style="display:contents"></span><span style="display:contents"><span style="display:inline-block;width:10px;height:0"></span></span><span style="display:contents"><br></span>');
+    applyStress(stress);
+    for (const [id, label] of [["visible", "7"], ["revealed", "4"]]) {
+      const element = root.querySelector(`#${id}`)!;
+      expect(element.textContent).toBe(stress === "long-text" ? `${label} ${label} ${label}` : stress === "counts" ? "999+" : label);
+      expect(getComputedStyle(element).fontSize).toBe(stress === "large-text" ? "28px" : "14px");
+    }
+    for (const [id, label] of [["hidden", "8"], ["transparent", "9"], ["collapsed", "5"]]) {
+      const element = root.querySelector(`#${id}`)!;
+      expect(element.textContent).toBe(label);
+      expect(getComputedStyle(element).fontSize).toBe("14px");
+    }
+  });
 });
