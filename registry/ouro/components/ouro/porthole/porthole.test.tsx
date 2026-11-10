@@ -394,6 +394,40 @@ describe("Porthole", () => {
     expect(getComputedStyle(pill).transitionProperty).toBe("none");
   });
 
+  it("draws its width at once when its column shows again, never easing from the width it had while hidden", async () => {
+    const s = service(snapshot());
+    const view = await render(<div style={{ width: 600 }}>{base(s.source, { quiet: false })}</div>);
+    const column = view.host.firstElementChild as HTMLElement;
+    const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
+    const content = pill.firstElementChild as HTMLElement;
+    await expect.poll(() => getComputedStyle(pill).width === pill.style.width).toBe(true);
+    const shown = pill.style.width;
+    // The column hides (a sidebar put away) and the line changes while nobody can see it.
+    column.style.display = "none";
+    await s.send(snapshot([item("sync", "working", { label: "Catching up on a great many messages" })]));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    column.style.display = "";
+    // The first frame it is drawn again, read after the size observers (the pill's measures before this one) and before
+    // paint: the pill is at the width its new line needs, and no transition is easing it there.
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => {
+        const probe = new ResizeObserver(() => {
+          probe.disconnect();
+          resolve(null);
+        });
+        probe.observe(document.body);
+      }),
+    );
+    expect(pill.style.width).toBe(`${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px`);
+    expect(pill.style.width).not.toBe(shown);
+    expect(getComputedStyle(pill).width).toBe(pill.style.width);
+    expect(pill.getAnimations().length).toBe(0);
+    expect(getComputedStyle(pill).transitionProperty).toBe("width, background-color, border-color");
+    // Once drawn, a new line eases again.
+    await s.send(snapshot());
+    expect(pill.getAnimations().length).toBeGreaterThan(0);
+  });
+
   it("gives a line of a fractional width its whole room, rounding the pill up, and never cuts it short", async () => {
     // Letter spacing of a third of a pixel makes the line's width fractional, as a 2x screen's text often is.
     const view = await render(

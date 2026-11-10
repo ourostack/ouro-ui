@@ -300,11 +300,15 @@ export function Porthole(props: PortholeProps): JSX.Element {
   const action = item?.action !== undefined && onAction !== undefined ? item.action : null;
   const dismissable = item?.dismissable === true && onDismiss !== undefined;
 
-  // The pill's width follows its content, so the change can be eased; the measure writes the style, never state. Where
-  // the room is narrower than the content, the line is cut short with an ellipsis (the root carries
+  // The pill's width follows its content, so a change while it is drawn can be eased; the measure writes the style,
+  // never state. Where the room is narrower than the content, the line is cut short with an ellipsis (the root carries
   // data-porthole-truncated, and the open lines lead with the whole line), and the room from the spot's start edge to
-  // its container's end bounds the open lines (--ouro-porthole-room).
+  // its container's end bounds the open lines (--ouro-porthole-room). While the pill isn't drawn (a hidden column) there
+  // is nothing to measure, and the first width it gets once drawn again, as on mounting, is set at once: it never
+  // eases from a width it had while nobody could see it.
   const pill = useRef<HTMLDivElement>(null);
+  // Stryker disable next-line BooleanLiteral: a mounting pill's width goes from auto, which a transition can't ease, so its first width is at once either way
+  const drawn = useRef(false);
   const content = useRef<HTMLDivElement>(null);
   const words = useRef<HTMLSpanElement>(null);
   const sizer = useRef<HTMLSpanElement>(null);
@@ -312,11 +316,25 @@ export function Porthole(props: PortholeProps): JSX.Element {
     () => {
     const box = pill.current!;
     const root = box.parentElement!;
+    if (box.getClientRects().length === 0) {
+      drawn.current = false;
+      return;
+    }
     // The cut is how much wider the whole line (its unseen, unwrapped copy) is than the room the line has. Widths are
     // read unrounded and the pill's rounded up, so a line 196.4px wide gets its room, not 196px and an ellipsis.
     const width = (element: Element) => element.getBoundingClientRect().width;
     const cut = Math.max(0, width(sizer.current!) - width(words.current!.lastElementChild!));
-    box.style.width = `${Math.ceil(width(content.current!) + cut) + box.offsetWidth - box.clientWidth}px`;
+    const next = `${Math.ceil(width(content.current!) + cut) + box.offsetWidth - box.clientWidth}px`;
+    if (drawn.current) box.style.width = next;
+    else {
+      // Its first width as it is drawn: at once, with the style read back before the transition returns, so the
+      // change is already the style's own and nothing eases it.
+      box.style.transition = "none";
+      box.style.width = next;
+      void box.offsetWidth;
+      box.style.transition = "";
+      drawn.current = true;
+    }
     root.toggleAttribute("data-porthole-truncated", cut > 0);
     const host = root.parentElement!.getBoundingClientRect();
     const at = root.getBoundingClientRect();
