@@ -198,7 +198,7 @@ describe("findSizeIssues: blurry-image", () => {
   });
 
   it("names a picture with an address by its last two folders, never by its host, which a local server changes", async () => {
-    render(`<img src="${new URL("../scripts/check/fixtures/picture-160.png?v=1", import.meta.url).href}" alt="a fixture" style="width:200px;height:200px">`);
+    render(`<img src="${new URL("../scripts/check/fixtures/picture-160.png?v=1", import.meta.url).href}" alt="a fixture" style="width:200px;height:auto">`);
     // A picture fetched from the server can take longer than decodeImages waits on a loaded runner, and a picture not yet decoded is skipped, so this waits for it alone.
     await Promise.all([...document.images].map((img) => img.decode()));
     await decodeImages();
@@ -233,12 +233,13 @@ describe("findSizeIssues: blurry-image, for a video", () => {
     expect(issues.map((issue) => [issue.rule, issue.element, issue.detail])).toEqual([
       ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 800px wide"],
       ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 1073px wide"],
+      ["stretched-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames, 34% taller than its own shape"],
       ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 1073px wide"],
       ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 1180px wide"],
       ["blurry-image", "media/hx-press.webm", "a video drawn 400×300 from 590×330 frames; at 2x it needs 800px wide"],
     ]);
     expect(videos()[0]!.getAttribute("data-ouro-check-ref")).toBe(issues[0]!.ref);
-    expect(await findSizeIssues({ density: 1 })).toEqual([]);
+    expect(rules(await findSizeIssues({ density: 1 }))).toEqual(["stretched-image"]);
   });
 
   it("asks a video that hasn't loaded its size (preload none) on a video of its own, by its src or its source", async () => {
@@ -285,13 +286,67 @@ describe("findSizeIssues: blurry-image, for a video", () => {
     const box = "display:block;width:200px;height:150px";
     render(`
       <video src="${CLIP}" muted style="${box}"></video>
-      <video src="${CLIP}" muted style="display:block;width:60px;height:40px;object-fit:fill"></video>
+      <video src="${CLIP}" muted style="display:block;width:60px;height:34px;object-fit:fill"></video>
       <video src="${CLIP}" muted hidden style="${box};object-fit:none"></video>
       <span data-size-ignore="a soft backdrop on purpose"><video src="${CLIP}" muted style="${box};object-fit:none"></video></span>
       <video src="${CLIP}" muted data-ouro-allow="blurry-image" data-ouro-allow-why="a soft backdrop on purpose" style="${box};object-fit:none"></video>
       <video muted style="${box}"></video>`);
     await Promise.all(videos().filter((video) => video.src).map(sized));
     expect(await findSizeIssues({ density: 2 })).toEqual([]);
+  });
+});
+
+describe("findSizeIssues: stretched-image", () => {
+  const stretched = async () => (await findSizeIssues({ density: 1 })).filter((issue) => issue.rule === "stretched-image");
+
+  it("finds a picture drawn out of its own shape, taller or wider, small ones too, by how much", async () => {
+    const wide = await picture(200, 100);
+    const icon = await picture(40, 20);
+    render(`
+      <img src="${wide}" alt="squeezed" style="width:200px;height:200px">
+      <img src="${wide}" alt="flattened" style="width:300px;height:100px">
+      <img src="${icon}" alt="an icon" style="width:20px;height:20px">`);
+    await decodeImages();
+    const issues = await stretched();
+    expect(issues.map(({ element, detail }) => [element, detail])).toEqual([
+      ['img "squeezed"', "drawn 200×200 from 200×100, 100% taller than its own shape"],
+      ['img "flattened"', "drawn 300×100 from 200×100, 50% wider than its own shape"],
+      ['img "an icon"', "drawn 20×20 from 40×20, 100% taller than its own shape"],
+    ]);
+    expect(host.querySelector("img")!.getAttribute("data-ouro-check-ref")!.split(" ")).toContain(issues[0]!.ref);
+  });
+
+  it("passes a picture in its shape or within a rounding, padded, framed or turned, one object-fit fits, SVG, hidden and allowed pictures", async () => {
+    const wide = await picture(400, 200);
+    const thin = await picture(30, 10);
+    render(`
+      <img src="${wide}" alt="kept" style="width:200px;height:100px">
+      <img src="${wide}" alt="within 5%" style="width:400px;height:208px">
+      <img src="${thin}" alt="within 2px" style="width:30px;height:11px">
+      <img src="${wide}" alt="padded and framed" style="box-sizing:content-box;width:200px;height:100px;padding:4px 12px;border:3px solid">
+      <img src="${wide}" alt="turned" style="width:200px;height:100px;transform:rotate(30deg)">
+      <img src="${wide}" alt="cover" style="width:200px;height:200px;object-fit:cover">
+      <img src="${wide}" alt="contain" style="width:200px;height:200px;object-fit:contain">
+      <img src="${wide}" alt="scale-down" style="width:200px;height:200px;object-fit:scale-down">
+      <img src="${wide}" alt="none" style="width:200px;height:200px;object-fit:none">
+      <img srcset="${wide} 800w" sizes="400px" alt="srcset" style="width:400px;height:200px">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='20'/%3E" alt="svg" style="width:200px;height:200px">
+      <img src="${wide}" alt="hidden" hidden style="width:200px;height:200px">
+      <span data-size-ignore="a placeholder on purpose"><img src="${wide}" alt="alias" style="width:200px;height:200px"></span>
+      <img src="${wide}" alt="allowed" data-ouro-allow="stretched-image" data-ouro-allow-why="a placeholder on purpose" style="width:200px;height:200px">`);
+    await decodeImages();
+    expect(await stretched()).toEqual([]);
+  });
+
+  it("finds a small video drawn out of its frames' shape, and asks no video it can't judge", async () => {
+    const CLIP = new URL("../site/public/apple/media/hx-press.webm", import.meta.url).href;
+    render(`
+      <video src="${CLIP}" muted style="display:block;width:60px;height:60px;object-fit:fill"></video>
+      <video src="${CLIP}" muted style="display:block;width:60px;height:60px"></video>
+      <video src="${CLIP}" muted data-ouro-allow="stretched-image" data-ouro-allow-why="a placeholder on purpose" style="display:block;width:60px;height:60px;object-fit:fill"></video>`);
+    const videos = [...host.querySelectorAll("video")];
+    await Promise.all(videos.map((video) => (video.readyState >= 1 ? undefined : new Promise((done) => video.addEventListener("loadedmetadata", done, { once: true })))));
+    expect((await stretched()).map(({ element, detail }) => [element, detail])).toEqual([["media/hx-press.webm", "a video drawn 60×60 from 590×330 frames, 79% taller than its own shape"]]);
   });
 });
 
@@ -681,7 +736,7 @@ describe("aliases", () => {
       { rules: "overlap", element: 'div.a.b.c "Stamp" [data-overlap-ignore]', reason: "a stamp" },
       { rules: "clipped-text", element: "span [data-clip-ok]", reason: "a code" },
       { rules: "sideways-scroll", element: "div [data-scroll-x]", reason: "a timeline" },
-      { rules: "sideways-scroll clipped-text long-lines blurry-image", element: 'img "Backdrop" [data-size-ignore]', reason: "a soft backdrop" },
+      { rules: "sideways-scroll clipped-text long-lines blurry-image stretched-image", element: 'img "Backdrop" [data-size-ignore]', reason: "a soft backdrop" },
       { rules: "image-fade", element: 'img "Cut-out" [data-image-fade-ok]', reason: "a cut-out on purpose" },
     ]);
   });

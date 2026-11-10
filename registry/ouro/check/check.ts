@@ -170,6 +170,7 @@ const LABELS: Record<string, string> = {
   "clipped-text": "clipped text",
   "long-lines": "long lines",
   "blurry-image": "blurry picture",
+  "stretched-image": "stretched picture",
   "image-fade": "picture fades",
   axe: "accessibility (axe)",
   "broken-image": "broken picture",
@@ -204,6 +205,7 @@ const EXIT = Object.freeze({ ok: 0, error: 1, usage: 2, findings: 3 });
 // What usually causes a finding, for the person who fixes it.
 const HINTS: Record<string, string> = {
   "blurry-image": "often a wrong `sizes` on a cropped, height-driven image",
+  "stretched-image": "give it a width and a height in its own ratio (one of them auto), or let object-fit: cover crop it",
   "image-fade": "end the picture on a hard edge, or put it on a solid band",
   "giant-picture": "show the work itself (the component, a screenshot) or a small picture beside the words, not a banner",
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
@@ -925,7 +927,7 @@ interface Args {
 const USAGE = `Usage: node lib/ouro/check/check.ts <url | built folder>… [options]
        node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config <file>]
 
-Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken and blurry
+Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched
 pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems,
 and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own
 corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one
