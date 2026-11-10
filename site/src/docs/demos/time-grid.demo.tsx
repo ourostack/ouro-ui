@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { useState, useSyncExternalStore, type JSX } from "react";
 import { TimeGrid, type TimeGridEvent } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 
 // The live demo at the top of docs/time-grid/: the component as an app would use it, with its props, nothing else.
@@ -31,7 +31,20 @@ function week(): { date: string; events: TimeGridEvent[] } {
   };
 }
 
+const subscribeNever = () => () => {};
+
 export default function TimeGridDemo(): JSX.Element {
+  // The week is the reader's, from their clock and time zone, which the prerender doesn't have: it draws an empty box of
+  // the grid's height, and the browser draws the week once it has hydrated, so the two never disagree.
+  const hydrated = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
+  return <div className="w-full">{hydrated ? <Week /> : <div className="h-[32rem]" />}</div>;
+}
+
+function Week(): JSX.Element {
   const [{ date, events }] = useState(week);
   const [selected, setSelected] = useState<string | null>(null);
   return (
