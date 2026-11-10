@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type Ref } from "react";
+import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type FormEvent, type JSX, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -194,6 +194,8 @@ function Shipyard(): JSX.Element {
   const [order, setOrder] = useState<readonly PartId[]>(START_ORDER);
   const [built, setBuilt] = useState<ReadonlySet<PartId>>(() => new Set());
   const [launched, setLaunched] = useState(false);
+  // The hint beside Launch says why it is off (the jobs left), and Launch is described by it.
+  const hint = useId();
   const [line, setLine] = useState<CrewLine>(YARD.opening);
   const [emptying, startEmptying] = useTransition();
   const left = PARTS.length - built.size;
@@ -268,10 +270,10 @@ function Shipyard(): JSX.Element {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Crew line={line} cheer={launched} />
           <div className="flex shrink-0 items-center gap-3" data-chapter-control="launch">
-            <span className="text-sm text-muted-foreground" data-chapter-launch-hint="">
+            <span id={hint} className="text-sm text-muted-foreground" data-chapter-launch-hint="">
               {launched ? SHIPYARD.launched : SHIPYARD.launchHint(emptying ? PARTS.length : left)}
             </span>
-            <Button size="md" disabled={emptying || (!launched && left > 0)} variant={ready ? "solid" : "outline"} tone={ready ? "primary" : "secondary"} onClick={launch}>
+            <Button size="md" disabled={emptying || (!launched && left > 0)} aria-describedby={hint} variant={ready ? "solid" : "outline"} tone={ready ? "primary" : "secondary"} onClick={launch}>
               {launched || emptying ? SHIPYARD.again : SHIPYARD.launch}
             </Button>
           </div>
