@@ -232,6 +232,7 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
   const changed = (changedRow: Element) => {
     if (changedRow !== row) return;
     if (layer.get(changedRow) === undefined) show(null, null, false);
+    // Stryker disable next-line ArithmeticOperator: version only forces a new object identity, so the layer reads its row's new data; any other number does that too.
     else setShown((previous) => ({ ...previous, version: previous.version + 1 }));
   };
   // Held for a menu that opens: hidden in the same update as the menu, so opening it draws once.
@@ -340,6 +341,7 @@ export function useRowHover<T>(
   // commit the layer arrives in, before the browser paints, rather than in a later task. Else after every ref of the
   // update is in place: a list whose element's ref is replaced in the same update the layer arrives in has it only once
   // the layout effects are done.
+  // Stryker disable next-line BooleanLiteral: the layout effect sets it before the passive effect reads it, so its first value is never read.
   const early = useRef(false);
   useLayoutEffect(() => {
     early.current = container.current !== null;
