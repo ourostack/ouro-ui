@@ -10,15 +10,16 @@ export const SITE = "https://ui.ouroboros.bot";
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 
+/** Whether a page's HTML shows text in the mono face: code, a block of it, or Tailwind's `font-mono`. */
+export const showsMono = (html: string): boolean => /<(?:code|pre|samp)[\s>]|\bfont-mono\b/.test(html);
+
 /**
  * The `<head>` tags of a prerendered page: its title and description, the canonical URL, the
  * icons (the Ouro HX silhouette, which the site wears as Ouro UI's mark, the touch icon and the web manifest, all from the storybook
  * brand), and the Open Graph and Twitter tags link previews read, with the page's storybook card
- * (storybook.ts; site/scripts/og-cards.mts draws them into site/public/og/) as the image.
+ * (storybook.ts; site/scripts/og-cards.mts draws them into site/public/og/) as the image. `mono` says whether the
+ * page shows code (showsMono), so a page without any leaves Geist Mono out of its preloads.
  */
-/** Whether a page's HTML shows text in the mono face: code, a block of it, or Tailwind's `font-mono`. */
-export const showsMono = (html: string): boolean => /<(?:code|pre|samp)[\s>]|\bfont-mono\b/.test(html);
-
 export function headTags(route: Route, canonical: boolean, mono = true): string[] {
   // An unindexed route has no canonical address, and a robots tag.
   canonical = canonical && !route.noindex;

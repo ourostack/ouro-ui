@@ -101,7 +101,7 @@ describe("the theme before first paint", () => {
     expect(themes.map((preset) => preset.name)).toEqual([...PRESET_NAMES]);
   });
 
-  it("lets search index the home page and the Nautilus, and every page preloads only Geist and Geist Mono", () => {
+  it("lets search index the home page and the Nautilus, and a page with code preloads only Geist and Geist Mono", () => {
     for (const path of ["/", "/nautilus/", "/docs/", "/docs/button/"]) {
       const tags = headTags(routeFor(path)!, true);
       expect(tags.some((tag) => tag.includes("robots"))).toBe(false);
