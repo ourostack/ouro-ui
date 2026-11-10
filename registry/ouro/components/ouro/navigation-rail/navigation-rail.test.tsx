@@ -450,6 +450,17 @@ describe("NavigationRail overflow", () => {
     expect(separators.every((separator) => separator.getClientRects().length === 0)).toBe(true);
   });
 
+  it("marks only the current item's bar selected, never More's, the bar its motion map animates", async () => {
+    const { host } = await render(<NavigationRail label="Main" items={many} currentPath="/notes" />, 16 + 2 * 56 + 4);
+    await expect.poll(() => host.querySelector('[data-ouro-part="more"]')).not.toBeNull();
+    const bars = [...host.querySelectorAll<HTMLElement>('[data-ouro-part="indicator"]')];
+    const marked = bars.filter((bar) => bar.hasAttribute("data-selected"));
+    expect(marked).toHaveLength(1);
+    expect(marked[0]!.getAttribute("data-selected")).toBe("true");
+    expect(marked[0]!.closest('[data-ouro-part="link"], [data-ouro-part="button"]')!.getAttribute("aria-current")).toBe("page");
+    expect(host.querySelector('[data-ouro-part="more"] [data-ouro-part="indicator"]')!.hasAttribute("data-selected")).toBe(false);
+  });
+
   it("brings items back from More as the rail grows, and moves them again as it shrinks", async () => {
     const { host, nav } = await render(<NavigationRail label="Main" items={many} />, 200);
     const labels = () => [...nav.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-stop]")].filter((item) => item.getClientRects().length > 0).map(labelOf);
@@ -830,7 +841,7 @@ describe("NavigationRail labels", () => {
 });
 
 describe("NavigationRail motion", () => {
-  it("grows the new current link's bar and eases its colour, and with reduced motion only fades and eases", async () => {
+  it("grows the new current link's bar and changes its colour at once, and with reduced motion only fades the bar", async () => {
     const { root, items: links } = await render(<NavigationRail label="Main" items={items} currentPath="/chat" />);
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
@@ -847,8 +858,10 @@ describe("NavigationRail motion", () => {
           </OuroProvider>,
         ),
       );
+      // The current item's colour is there on the frame it becomes current: nothing eases it.
+      expect(link.getAnimations()).toHaveLength(0);
+      expect(getComputedStyle(link).transitionProperty.split(", ")).not.toContain("color");
       await Promise.all([
-        expectMotion(link, { stem: "navigation-rail", state: "data-selected", properties: { color: token("--ouro-duration-fast") }, reduced }),
         expectMotion(bar, {
           stem: "navigation-rail",
           state: "data-selected",
@@ -859,7 +872,7 @@ describe("NavigationRail motion", () => {
     }
   });
 
-  it("eases a button item's colour and grows its bar when it becomes current, and with reduced motion only fades and eases", async () => {
+  it("changes a button item's colour at once and grows its bar when it becomes current, and with reduced motion only fades the bar", async () => {
     const views = (current: string): NavigationRailEntry[] => ["Chat", "Calendar", "Files"].map((label) => ({ label, icon: icon(label), onClick: () => {}, current: label === current }));
     const { root, items: buttons } = await render(<NavigationRail label="Main" items={views("Chat")} />);
     for (const reduced of [false, true]) {
@@ -875,8 +888,10 @@ describe("NavigationRail motion", () => {
           </OuroProvider>,
         ),
       );
+      // The current item's colour is there on the frame it becomes current: nothing eases it.
+      expect(button.getAnimations()).toHaveLength(0);
+      expect(getComputedStyle(button).transitionProperty.split(", ")).not.toContain("color");
       await Promise.all([
-        expectMotion(button, { stem: "navigation-rail", state: "data-selected", properties: { color: token("--ouro-duration-fast") }, reduced }),
         expectMotion(bar, {
           stem: "navigation-rail",
           state: "data-selected",

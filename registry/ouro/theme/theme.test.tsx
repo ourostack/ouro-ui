@@ -186,7 +186,7 @@ describe("motion tokens", () => {
 });
 
 describe("press utility", () => {
-  it("scales in and out in 160ms on the ease-out token, and eases colors in 150ms", () => {
+  it("scales in and out in 160ms on the ease-out token, and changes colors at once", () => {
     const style = getComputedStyle(mount('<button class="press"></button>').firstElementChild!);
     const properties = style.transitionProperty.split(", ");
     const durations = style.transitionDuration.split(", ");
@@ -195,9 +195,23 @@ describe("press utility", () => {
     expect(at("scale")).toBeGreaterThanOrEqual(0);
     expect(durations[at("scale")]).toBe("0.16s");
     expect(easings[at("scale")]).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
-    for (const property of ["background-color", "border-color", "color", "opacity"]) {
-      expect(durations[at(property)], property).toBe("0.15s");
-      expect(easings[at(property)], property).toBe("ease");
-    }
+    expect(durations[at("opacity")]).toBe("0.15s");
+    for (const property of ["background-color", "border-color", "color", "all"]) expect(at(property), property).toBe(-1);
+  });
+
+  it("draws a selected row's background on the frame it is selected, and takes it off the row it left on that frame", () => {
+    const host = mount(
+      '<div><button class="press aria-[current=true]:bg-primary aria-[current=true]:text-primary-foreground" aria-current="true">A</button><button class="press aria-[current=true]:bg-primary aria-[current=true]:text-primary-foreground">B</button></div>',
+    );
+    const [left, picked] = [...host.firstElementChild!.children] as [HTMLElement, HTMLElement];
+    const selected = getComputedStyle(left).backgroundColor;
+    const plain = getComputedStyle(picked).backgroundColor;
+    expect(selected).not.toBe(plain);
+    left.removeAttribute("aria-current");
+    picked.setAttribute("aria-current", "true");
+    // Read in the same frame, before any transition could run: each is already at its end.
+    expect(getComputedStyle(picked).backgroundColor).toBe(selected);
+    expect(getComputedStyle(left).backgroundColor).toBe(plain);
+    expect([...left.getAnimations(), ...picked.getAnimations()]).toHaveLength(0);
   });
 });

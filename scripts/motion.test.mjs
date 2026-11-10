@@ -192,8 +192,6 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "choice-card data-checked card",
       "choice-card data-invalid card",
       "choice-card data-disabled -",
-      "navigation-rail data-selected link",
-      "navigation-rail data-selected button",
       "navigation-rail data-selected indicator",
       "level-meter data-highlighted segment",
       "media-tile data-highlighted ring",

@@ -14,13 +14,11 @@
         "data-selected": {
           "kind": "motion",
           "parts": {
-            "link": {"properties": ["color"], "reduced": ["color"]},
-            "button": {"properties": ["color"], "reduced": ["color"]},
             "indicator": {"properties": ["opacity", "scale"], "reduced": ["opacity"]}
           },
           "tests": [
-            "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > grows the new current link's bar and eases its colour, and with reduced motion only fades and eases",
-            "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > eases a button item's colour and grows its bar when it becomes current, and with reduced motion only fades and eases"
+            "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > grows the new current link's bar and changes its colour at once, and with reduced motion only fades the bar",
+            "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail motion > changes a button item's colour at once and grows its bar when it becomes current, and with reduced motion only fades the bar"
           ]
         }
       }

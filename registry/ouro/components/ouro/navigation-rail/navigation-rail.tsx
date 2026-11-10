@@ -441,10 +441,11 @@ function withTip(show: boolean, text: string, element: ReactElement): ReactEleme
  * words: the label, then the count as `countLabel` speaks it, "Activity, 5 new", so its name starts
  * with the words it shows. The badge itself is hidden.
  */
-function itemInside(text: string, icon: ReactNode, count: number, countLabel: string, index: number | undefined, hideLabels: boolean, squeezed: boolean) {
+function itemInside(text: string, icon: ReactNode, count: number, countLabel: string, index: number | undefined, hideLabels: boolean, squeezed: boolean, selected = false) {
   return (
     <>
-      <span aria-hidden="true" data-ouro-part="indicator" className={indicatorClass} />
+      {/* The bar says it is selected itself: it is the part that moves when its item becomes current. */}
+      <span aria-hidden="true" data-ouro-part="indicator" data-selected={selected ? "true" : undefined} className={indicatorClass} />
       <span aria-hidden="true" className={iconClass}>
         {icon}
         {count > 0 && (
@@ -512,7 +513,7 @@ function RailEntry({
     onFocus: () => onFocus(key),
     className: itemClass[look],
   };
-  const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, countLabel, index, hideLabels, squeezed.has(entry.label));
+  const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, countLabel, index, hideLabels, squeezed.has(entry.label), isCurrent);
   return (
     <li data-ouro-navigation-rail-entry={key} className={cn("flex shrink-0", hidden && "hidden")}>
       {withTip(
