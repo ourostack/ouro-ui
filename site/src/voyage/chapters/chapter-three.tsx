@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX } from "react";
+import { createContext, use, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type JSX } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
@@ -446,6 +446,8 @@ function Encounter(): JSX.Element {
 function Saloon(): JSX.Element {
   const store = useFightStore();
   const { won, played } = useFight();
+  // The hint beside Play says why it is off, and Play is described by it, so a screen reader says why too.
+  const hint = useId();
   // Play answers at once (the button and its hint); the organ, the stamp, the way on and the toast
   // follow in a render of their own.
   const shown = useAfterPaint(played);
@@ -487,6 +489,7 @@ function Saloon(): JSX.Element {
           <span data-chapter-control="organ">
             <Button
               disabled={!won || played}
+              aria-describedby={hint}
               variant={won && !played ? "solid" : "outline"}
               tone={won && !played ? "primary" : "secondary"}
               onClick={() => {
@@ -497,7 +500,7 @@ function Saloon(): JSX.Element {
               {SALOON.play}
             </Button>
           </span>
-          <span className="text-sm text-muted-foreground" data-chapter-organ-hint="">
+          <span id={hint} className="text-sm text-muted-foreground" data-chapter-organ-hint="">
             {played ? SALOON.playing : won ? null : SALOON.playHint}
           </span>
         </div>

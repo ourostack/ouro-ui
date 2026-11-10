@@ -19,6 +19,7 @@ import { findSizeIssues, type Measure, type PageIssue } from "./size-check.ts";
 import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
+import { findInteractionIssues } from "./interaction-check.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of
 // a dual-screen phone unfolded sideways, light and dark, at density 2 up to 3072px wide and 1 above. Pass and fail come from measurement, never from
@@ -199,6 +200,7 @@ const LABELS: Record<string, string> = {
   "stray-scrollbar": "stray scrollbar",
   "focus-ring": "no focus ring",
   "dark-miss": "missed dark mode",
+  "disabled-no-reason": "disabled, no reason",
   https: "no HTTPS",
 };
 const RULES = Object.keys(LABELS);
@@ -229,6 +231,7 @@ const HINTS: Record<string, string> = {
   "stray-scrollbar": "find what spills over by a few pixels (a margin, a border, a rounding) and fit it, or don't let the region scroll",
   "focus-ring": "give it a :focus-visible outline in a colour that stands out from what is behind it",
   "dark-miss": "fill it from a theme token that has a dark value, not a fixed light colour",
+  "disabled-no-reason": "say why beside it and tie the words to it with aria-describedby, or give it a title",
   https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
@@ -664,6 +667,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       issues.push(...(await page.evaluate(findTextIssues)));
       issues.push(...(await page.evaluate(findLayoutIssues, {})));
       issues.push(...(await page.evaluate(findThemeIssues, {})));
+      issues.push(...(await page.evaluate(findInteractionIssues)));
       issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
       issues.push(...runtime());
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
@@ -942,7 +946,8 @@ corner inside its frame, too many text sizes, weights or shadows, grey text on c
 above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no
 one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to
 the page's own server that fail; content the screen cuts off, the same control twice in view and a region that
-scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
+scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason
+given; and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
 and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page
 (hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a
 contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.
