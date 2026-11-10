@@ -131,6 +131,28 @@ describe("MessageList actions", () => {
     expect(barIn("m1")).toBeNull();
   });
 
+  it("shows its first bar adding no event listener, so WebKit restyles nothing as the pointer first reaches a message", async () => {
+    // The layer's code loaded by a list before, as an app's second conversation has it.
+    const first = await render(<Channel count={2} />);
+    await ready("m1");
+    await userEvent.unhover(document.body);
+    await act(async () => roots.pop()!.unmount());
+    first.host.remove();
+    await render(<Channel count={4} />);
+    // The new list's layer is in place once its rows have taken it.
+    await act(async () => void (await new Promise((resolve) => requestAnimationFrame(resolve))));
+    const add = vi.spyOn(EventTarget.prototype, "addEventListener");
+    try {
+      message("m3").dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+      expect(barIn("m3")).not.toBeNull();
+      // React gives a portal's element its listeners the first time it renders into it; a wheel listener restyles the
+      // whole page in WebKit (151 ms on a long conversation).
+      expect(add.mock.calls.map(([type]) => type)).not.toContain("wheel");
+    } finally {
+      add.mockRestore();
+    }
+  });
+
   it("moves its bar without the list measuring its layout again", async () => {
     const { scroller } = await render(<Channel count={12} />);
     await ready("m11");
