@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
-import { headTags, redirectPage } from "../head";
+import { headTags, redirectPage, showsMono } from "../head";
 import { redirects, routeFor } from "../routes";
 import themes from "../themes/themes.json";
 import fonts from "../themes/fonts.json";
@@ -113,6 +113,19 @@ describe("the theme before first paint", () => {
       expect(preloads.map((tag) => /fonts\/([a-z-]+)-/.exec(tag)?.[1])).toEqual(["geist", "geist-mono"]);
     }
     expect(routeFor("/voyage/")).toBeUndefined();
+  });
+
+  it("leaves Geist Mono out of a docs page that shows no code, and keeps it on the voyage pages, which set it from CSS", () => {
+    const fontsOf = (path: string, mono: boolean) =>
+      headTags(routeFor(path) ?? { path, title: "Lost at sea", description: "Off the charts." }, true, mono).flatMap((tag) => /rel="preload" href="\/fonts\/([a-z-]+)-/.exec(tag)?.[1] ?? []);
+    expect(fontsOf("/docs/button/", false)).toEqual(["geist"]);
+    expect(fontsOf("/404/", false)).toEqual(["geist"]);
+    expect(fontsOf("/", false)).toEqual(["geist", "geist-mono"]);
+    expect(fontsOf("/nautilus/", false)).toEqual(["geist", "geist-mono"]);
+    expect(showsMono('<p>Run <code class="font-mono">pnpm</code></p>')).toBe(true);
+    expect(showsMono("<pre>npx</pre>")).toBe(true);
+    expect(showsMono('<span class="tabular-nums font-mono">3</span>')).toBe(true);
+    expect(showsMono('<p>Press <kbd class="[font:inherit]">K</kbd> to search the <a href="/docs/codes/">codes</a>.</p>')).toBe(false);
   });
 });
 

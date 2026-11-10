@@ -17,12 +17,13 @@ interface Route {
   title: string;
   description: string;
 }
-const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, headTags, pageKind, sitemap, SITE } = (await import(pathToFileURL(server).href)) as {
+const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, headTags, showsMono, pageKind, sitemap, SITE } = (await import(pathToFileURL(server).href)) as {
   sitemap: (routes: Route[]) => string;
   SITE: string;
   render: (path: string) => Promise<string>;
   pageKind: (path: string) => string;
-  headTags: (route: Route, canonical: boolean) => string[];
+  headTags: (route: Route, canonical: boolean, mono?: boolean) => string[];
+  showsMono: (html: string) => boolean;
   routes: Route[];
   redirects: Array<{ from: string; to: string }>;
   redirectPage: (to: string) => string;
@@ -101,10 +102,10 @@ function islandAssets(path: string): string[] {
 }
 
 async function page(route: Route, path: string, canonical: boolean): Promise<string> {
-  const head = headTags(route, canonical).join("\n    ");
+  const html = await render(path);
+  const head = headTags(route, canonical, showsMono(html)).join("\n    ");
   // Each page imports its own stylesheets (the entry has none), Tailwind's first, so a page's theme rules come later and win.
   const assets = [...pageAssets(pageKind(path)), ...islandAssets(path)].join("\n    ");
-  const html = await render(path);
   return template
     .replace("<!--head-->", () => head)
     .replace("</head>", () => `  ${assets}\n  </head>`)
