@@ -1,0 +1,39 @@
+/docs/button/
+  Sites: "Ouro UI" = true
+  Primary: "Ouro HX" = true
+  Docs: "Button" = page
+  All sites: "Ouro UI" = true
+/docs/
+  Sites: "Ouro UI" = true
+  Primary: "Ouro HX" = true
+  Docs: "Overview" = page
+  All sites: "Ouro UI" = true
+/docs/ax-terminal/
+  Sites: "Ouro UI" = true
+  Primary: "Ouro AX" = true
+  Docs: "ax-terminal" = page
+  All sites: "Ouro UI" = true
+/docs/installing/
+  Sites: "Ouro UI" = true
+  Primary: "Guides" = true
+  Docs: "Installing" = page
+  All sites: "Ouro UI" = true
+/apple/
+  Sites: "Ouro UI" = true
+  Primary: "For Apple" = true
+  Ouro UI for Apple: "Overview" = page
+  All sites: "Ouro UI" = true
+/apple/hx/
+  Sites: "Ouro UI" = true
+  Primary: "For Apple" = true
+  Ouro UI for Apple: "Ouro HX for AppleHX" = page
+  All sites: "Ouro UI" = true
+/nautilus/
+  Sites: "Ouro UI" = true
+  Primary: "The Nautilus" = page
+  ?: "The whole crewFour aboard" = true
+  All sites: "Ouro UI" = true
+/ax/
+  Sites: "Ouro UI" = true
+  Primary: "Ouro AX" = page
+  All sites: "Ouro UI" = true
