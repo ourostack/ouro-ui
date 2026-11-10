@@ -307,6 +307,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
   // is nothing to measure, and the first width it gets once drawn again, as on mounting, is set at once: it never
   // eases from a width it had while nobody could see it.
   const pill = useRef<HTMLDivElement>(null);
+  // Stryker disable next-line BooleanLiteral: a mounting pill's width goes from auto, which a transition can't ease, so its first width is at once either way
   const drawn = useRef(false);
   const content = useRef<HTMLDivElement>(null);
   const words = useRef<HTMLSpanElement>(null);
