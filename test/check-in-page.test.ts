@@ -316,13 +316,15 @@ describe("findSizeIssues: stretched-image", () => {
     expect(host.querySelector("img")!.getAttribute("data-ouro-check-ref")!.split(" ")).toContain(issues[0]!.ref);
   });
 
-  it("passes a picture in its shape or within a rounding, one object-fit fits, SVG, hidden and allowed pictures", async () => {
+  it("passes a picture in its shape or within a rounding, padded, framed or turned, one object-fit fits, SVG, hidden and allowed pictures", async () => {
     const wide = await picture(400, 200);
     const thin = await picture(30, 10);
     render(`
       <img src="${wide}" alt="kept" style="width:200px;height:100px">
       <img src="${wide}" alt="within 5%" style="width:400px;height:208px">
       <img src="${thin}" alt="within 2px" style="width:30px;height:11px">
+      <img src="${wide}" alt="padded and framed" style="box-sizing:content-box;width:200px;height:100px;padding:4px 12px;border:3px solid">
+      <img src="${wide}" alt="turned" style="width:200px;height:100px;transform:rotate(30deg)">
       <img src="${wide}" alt="cover" style="width:200px;height:200px;object-fit:cover">
       <img src="${wide}" alt="contain" style="width:200px;height:200px;object-fit:contain">
       <img src="${wide}" alt="scale-down" style="width:200px;height:200px;object-fit:scale-down">

@@ -137,8 +137,12 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
   // By its path's last two folders, never its host: a run's local server has a new port each time. A data: or blob:
   // picture has no lasting address, so it goes by its name.
   // A picture drawn out of its own shape: by its height against the height its width calls for, so a rounding of a
-  // pixel or two on a small picture isn't a stretch.
-  const stretched = (el: Element, fit: string, [w, h]: [number, number], [pw, ph]: [number, number], what: string) => {
+  // pixel or two on a small picture isn't a stretch. Measured on its content box, as laid out: padding and a border
+  // aren't the picture, and a rotation turns the shape without changing it.
+  const stretched = (el: HTMLElement, fit: string, [pw, ph]: [number, number], what: string) => {
+    const s = getComputedStyle(el);
+    const w = el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+    const h = el.clientHeight - parseFloat(s.paddingTop) - parseFloat(s.paddingBottom);
     const keeps = (w * ph) / pw;
     if (fit !== "fill" || optedOut(el, "stretched-image", ["data-size-ignore"]) || Math.abs(h - keeps) <= Math.max(2, keeps * stretch)) return;
     const by = Math.round((Math.max(h / keeps, keeps / h) - 1) * 100);
@@ -161,7 +165,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     await file.decode().catch(() => undefined);
     const pw = file.naturalWidth || img.naturalWidth;
     const ph = file.naturalHeight || img.naturalHeight;
-    stretched(img, fit, [r.width, r.height], [pw, ph], nameOf(img, src));
+    stretched(img, fit, [pw, ph], nameOf(img, src));
     if ((r.width < minImage && r.height < minImage) || optedOut(img, "blurry-image", ["data-size-ignore"])) continue;
     const sx = r.width / pw;
     const sy = r.height / ph;
@@ -199,7 +203,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     }
     if (!pw) continue;
     const name = /^(data|blob):/.test(src) || !src ? `video${quoted(video)}` : nameOf(video, src);
-    stretched(video, fit, [r.width, r.height], [pw, ph], name);
+    stretched(video, fit, [pw, ph], name);
     if (!blurry) continue;
     const [sx, sy] = [r.width / pw, r.height / ph];
     const scale = fit === "none" ? 1 : fit === "cover" || fit === "fill" ? Math.max(sx, sy) : Math.min(sx, sy);
