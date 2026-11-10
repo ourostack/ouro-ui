@@ -101,8 +101,8 @@ describe("the theme before first paint", () => {
     expect(themes.map((preset) => preset.name)).toEqual([...PRESET_NAMES]);
   });
 
-  it("lets search index the home page and the Nautilus, each preloading only Geist and Geist Mono", () => {
-    for (const path of ["/", "/nautilus/"]) {
+  it("lets search index the home page and the Nautilus, and every page preloads only Geist and Geist Mono", () => {
+    for (const path of ["/", "/nautilus/", "/docs/", "/docs/button/"]) {
       const tags = headTags(routeFor(path)!, true);
       expect(tags.some((tag) => tag.includes("robots"))).toBe(false);
       expect(tags).toContain(`<link rel="canonical" href="https://ui.ouroboros.bot${path}" />`);
@@ -112,7 +112,6 @@ describe("the theme before first paint", () => {
       );
       expect(preloads.map((tag) => /fonts\/([a-z-]+)-/.exec(tag)?.[1])).toEqual(["geist", "geist-mono"]);
     }
-    expect(headTags(routeFor("/docs/")!, true).some((tag) => tag.includes('rel="preload"') || tag.includes("robots"))).toBe(false);
     expect(routeFor("/voyage/")).toBeUndefined();
   });
 });

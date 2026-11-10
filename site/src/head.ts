@@ -1,5 +1,4 @@
 import type { Route } from "./routes";
-import { pageKind } from "./paths";
 import { earlyInputScript } from "./early-input";
 import { prepaintScript } from "./themes/prepaint";
 import fonts from "./themes/fonts.json";
@@ -51,10 +50,10 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:image:alt" content="${alt}" />`,
-    // The voyage pages set their type in Geist and Geist Mono; only they are preloaded.
-    ...(pageKind(route.path) === "voyage"
-      ? fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`)
-      : []),
+    // Every page sets its type in Geist and Geist Mono, whatever the preset. Fetched with the stylesheets, they
+    // arrive before the first paint; found only once the page lays out, they swap in after it, and on a phone the
+    // wider face rewraps the docs' opening paragraph and moves the page below it.
+    ...fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`),
   ].filter(Boolean);
 }
 
