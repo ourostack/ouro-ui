@@ -54,6 +54,95 @@ const run = async (argv: string[], options: { cwd?: string; env?: Record<string,
 };
 
 describe("Ouro check", () => {
+  test("stress profiles feed the existing rules, preserve the baseline, and identify actual viewport and DPR", async () => {
+    const folder = site("stress-profiles", {
+      "index.html": page('<h1>Inbox</h1><p style="width:60px;white-space:nowrap;overflow:hidden;font-family:monospace">Save</p><p style="width:25px;white-space:nowrap;overflow:hidden;font-family:monospace">7</p>', "<style>main{min-width:600px}@media(prefers-contrast:more){main{width:800px}}@media(forced-colors:active){main{width:800px}}</style>"),
+    });
+    const stress = parseArgs(["site", "--stress", "all"]).stress!;
+    const result = await check({ targets: [folder], out: dir("stress-profiles"), sizes: [[640, 480]], themes: ["light"], stress, chromium, measured: false, log: quiet });
+    assert.equal(result.pages.length, 1);
+    assert.equal(result.shots.length, 7);
+    assert.deepEqual(result.findings.filter((f) => !f.stress), []);
+    assert.deepEqual(new Set(result.findings.map((f) => f.stress)), new Set(stress));
+    for (const profile of ["long-text", "counts", "large-text"]) assert.ok(result.findings.some((f) => f.stress === profile && f.rule === "clipped-text"), profile);
+    for (const profile of ["zoom", "contrast", "forced-colors"]) assert.ok(result.findings.some((f) => f.stress === profile && f.rule === "sideways-scroll"), profile);
+    const zoom = result.findings.find((f) => f.stress === "zoom")!;
+    assert.equal(zoom.width, 640);
+    assert.equal(zoom.height, 480);
+    assert.equal(zoom.dpr, 4);
+    assert.deepEqual(zoom.viewport, { width: 320, height: 240 });
+    assert.match(caption(zoom), /\[zoom; viewport 320×240 CSS px\]/);
+    assert.equal(new Set(result.shots.map((s) => s.file)).size, 7);
+    assert.deepEqual(result.shots.find((s) => s.stress === "zoom")!.viewport, zoom.viewport);
+    assert.equal(result.shots.find((s) => s.stress === "zoom")!.dpr, 4);
+    assert.match(summary(result), /baseline plus stress: zoom, large-text, contrast, forced-colors, long-text, counts/);
+    assert.equal(new Set(group(result.findings).map((f) => f.stress)).size, 6);
+  });
+
+  test("stress viewport emulation records odd, minimum and wide dimensions at their actual DPR", async () => {
+    const folder = site("stress-dimensions", { "index.html": page("<h1>Inbox</h1>") });
+    const cases = [[641, 481, 320, 240, 4], [1, 1, 1, 1, 4], [3201, 481, 1600, 240, 2]] as const;
+    const result = await check({ targets: [folder], out: dir("stress-dimensions"), sizes: cases.map(([width, height]): [number, number] => [width, height]), themes: ["light"], stress: ["zoom"], chromium, measured: false, log: quiet });
+    assert.equal(result.shots.length, 6);
+    for (const [width, height, actualWidth, actualHeight, dpr] of cases) {
+      const shot = result.shots.find((s) => s.width === width && s.height === height && s.stress === "zoom")!;
+      assert.deepEqual(shot.viewport, { width: actualWidth, height: actualHeight });
+      assert.equal(shot.dpr, dpr);
+    }
+  });
+
+  test("stress reaches configured states before substituting the text used to press into them", async () => {
+    const folder = site("stress-state", {
+      "index.html": page('<h1>Inbox</h1><button onclick="this.insertAdjacentHTML(\'afterend\', \'<p style=&quot;width:60px;white-space:nowrap;overflow:hidden;font-family:monospace&quot;>Save</p>\')">Open</button>'),
+    });
+    const result = await check({ targets: [folder], out: dir("stress-state"), sizes: [[640, 480]], themes: ["light"], stress: ["long-text"], config: { states: { "/": { open: ["text=Open"] } } }, chromium, measured: false, log: quiet });
+    assert.equal(result.pages.length, 2);
+    assert.equal(result.shots.length, 4);
+    assert.deepEqual(result.findings.filter((f) => f.rule === "http-error"), []);
+    assert.ok(result.findings.some((f) => f.page === "/ (open)" && f.stress === "long-text" && f.rule === "clipped-text"));
+  });
+
+  test("stress shards preserve profile identity and do not call an unswept profile fixed", async () => {
+    const html = (width: number) => page(`<h1>Inbox</h1><p style="width:${width}px;white-space:nowrap;overflow:hidden;font-family:monospace">Save</p>`);
+    const folder = site("stress-compare", { "index.html": html(25), "index-stress-long-text.html": page("<h1>Another page</h1>") });
+    const options = { targets: [folder], sizes: [[640, 480]] as [number, number][], themes: ["light"], stress: ["long-text" as const], chromium, measured: false, log: quiet };
+    const out = dir("stress-whole");
+    const whole = await check({ ...options, out });
+    const dirs = [dir("stress-shard"), dir("stress-shard")];
+    for (const [i, out] of dirs.entries()) await check({ ...options, out, shard: [i + 1, 2] });
+    const merged = await merge({ dirs, out: dir("stress-merged"), chromium });
+    const identities = (report: Report) => report.findings.map((f) => `${spots([f])[0]} ${f.stress ?? "baseline"}`).sort();
+    assert.deepEqual(identities(merged), identities(whole));
+    assert.deepEqual(merged.stress, ["long-text"]);
+    assert.equal(merged.pages.length, 2);
+    assert.equal(merged.shots.length, whole.shots.length);
+    assert.equal(new Set(merged.shots.map((s) => s.file)).size, whole.shots.length);
+    assert.equal(new Set(merged.findings.filter((f) => f.closeUp).map((f) => f.closeUp)).size, 2);
+    writeFileSync(join(folder, "index.html"), html(60));
+    const partlyFixed = await check({ ...options, out: dir("stress-after"), before: whole.findings, beforeDir: out });
+    assert.equal(partlyFixed.fixed.length, 1);
+    assert.equal(partlyFixed.fixed[0]!.stress, undefined, "a baseline fix is independent of the still-clipped long label");
+    const baselineOnly = await check({ ...options, stress: [], out: dir("stress-baseline-only"), before: whole.findings, beforeDir: out });
+    assert.equal(baselineOnly.fixed.length, 1);
+    assert.equal(baselineOnly.fixed[0]!.stress, undefined, "not checking a profile does not prove it fixed");
+  });
+
+  test("stress follows isolated measured presses and motion walks without changing the baseline", async () => {
+    const folder = site("stress-measured", {
+      "index.html": page(`<h1>Inbox</h1><button id="save" type="button" data-ouro-check-press>Save</button><div id="paint" style="width:60px;height:20px"></div>
+        <script>
+          const save = document.getElementById("save");
+          const stressed = () => save.textContent === "Save Save Save" || (innerWidth === 320 && devicePixelRatio === 4);
+          save.addEventListener("click", () => { if (stressed()) { const start = performance.now(); while (performance.now() - start < 400); } });
+          new MutationObserver(() => { if (save.textContent === "Save Save Save") document.getElementById("paint").style.animation = "repaint 1s infinite"; }).observe(save, { childList: true, characterData: true, subtree: true });
+        </script>`, "<style>@keyframes repaint{from{background:red}to{background:blue}}@media(max-width:400px) and (min-resolution:3dppx){#paint{animation:repaint 1s infinite}}</style>"),
+    });
+    const result = await check({ targets: [folder], out: dir("stress-measured"), sizes: [[640, 480]], themes: ["light"], stress: ["long-text", "zoom"], config: { pressRepeat: 1 }, chromium, log: quiet });
+    for (const rule of ["inp", "repaint"]) assert.deepEqual(new Set(result.findings.filter((f) => f.rule === rule).map((f) => f.stress)), new Set(["long-text", "zoom"]), rule);
+    assert.ok(result.findings.filter((f) => f.rule === "inp").every((f) => f.samples!.length === 1));
+    assert.equal(result.shots.length, 3);
+  });
+
   test("finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups", async () => {
     const out = dir("rules");
     // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
@@ -466,6 +555,30 @@ describe("Ouro check", () => {
 describe("Ouro check's command", () => {
   const folder = site("command", { "overlap.html": readFileSync(join(fixtures, "overlap-fail.html"), "utf8"), "fine.html": readFileSync(join(fixtures, "overlap-pass.html"), "utf8") });
   const fast = ["--sizes", "390x844", "--themes", "light"];
+
+  test("stress arguments select independent known profiles, reject mistakes and stay opt-in", async () => {
+    assert.equal(parseArgs(["site"]).stress, undefined);
+    assert.deepEqual(parseArgs(["site", "--stress", "long-text, counts,counts"]).stress, ["long-text", "counts"]);
+    assert.deepEqual(parseArgs(["site", "--stress", "all"]).stress, ["zoom", "large-text", "contrast", "forced-colors", "long-text", "counts"]);
+    assert.throws(() => parseArgs(["site", "--stress"]), /needs a value/);
+    assert.throws(() => parseArgs(["site", "--stress", ""]), /--stress takes/);
+    assert.throws(() => parseArgs(["site", "--stress", "zoom,unknown"]), /not "unknown"/);
+    assert.throws(() => parseArgs(["merge", "one", "--stress", "zoom"]), /merge takes --out and --config/);
+    const help = await run(["--help"]);
+    assert.equal(help.code, EXIT.ok);
+    assert.match(help.out, /--stress <profiles>\s+baseline plus zoom,large-text,contrast,forced-colors,long-text,counts, or all/);
+  });
+
+  test("stress on the command line reaches the runner and its written report", async () => {
+    const built = site("stress-command", { "index.html": page('<h1>Inbox</h1><p style="width:60px;white-space:nowrap;overflow:hidden;font-family:monospace">Save</p>') });
+    const out = dir("stress-command");
+    const result = await run([built, ...fast, "--stress", "long-text", "--no-measured", "--no-axe", "--out", out]);
+    assert.equal(result.code, EXIT.findings, result.err);
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
+    assert.deepEqual(report.stress, ["long-text"]);
+    assert.ok(report.findings.some((f) => f.stress === "long-text" && f.rule === "clipped-text"));
+    assert.equal(report.shots.length, 2);
+  });
 
   test("reads every option, and refuses what it cannot run", () => {
     assert.deepEqual(parseArgs(["site", "--pages", "docs/**", "--out", "o", "--sizes", " 390x844 ,1440x900", "--themes", "dark", "--shard", "2/4", "--before", "b.json", "--config", "c.json", "--no-axe", "--no-measured", "--ready-event", "a", "--ready-event", "b"]), {

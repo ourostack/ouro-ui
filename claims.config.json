@@ -167,8 +167,8 @@
     },
     {
       "file": "registry/ouro/check/check.ts",
-      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers and budgets (default ouro-check.json, when it exists) --no-axe skip axe-core --no-measured skip the measured rules, and press nothing --ready-event <name> an event the page fires once it has drawn, besides ouro:ready",
-      "reason": "Ouro check's --help lists its options; the \"no\" it reads as a claim is the --no-axe and --no-measured flags' names"
+      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --stress <profiles> baseline plus zoom,large-text,contrast,forced-colors,long-text,counts, or all --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers and budgets (default ouro-check.json, when it exists) --no-axe skip axe-core --no-measured skip the measured rules, and press nothing --ready-event <name> an event the page fires once it has drawn, besides ouro:ready",
+      "reason": "Ouro check's --help lists option names and values: all is a literal --stress value, and no is part of --no-axe and --no-measured. scripts/check/check.test.mts checks parsing and the printed stress option."
     },
     {
       "file": "registry/ouro/check/check.ts",

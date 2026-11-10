@@ -20,6 +20,7 @@ import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
 import { findInteractionIssues } from "./interaction-check.ts";
+import { applyStress, STRESSES, type Stress } from "./stress.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of
 // a dual-screen phone unfolded sideways, light and dark, at density 2 up to 3072px wide and 1 above. Pass and fail come from measurement, never from
@@ -40,6 +41,8 @@ interface Finding {
   width: number;
   height: number;
   theme: string;
+  stress?: Stress;
+  viewport?: { width: number; height: number };
   rule: string;
   element: string;
   detail: string;
@@ -70,6 +73,9 @@ interface Shot {
   width: number;
   height: number;
   theme: string;
+  stress?: Stress;
+  viewport?: { width: number; height: number };
+  dpr?: number;
   count: number;
 }
 
@@ -83,6 +89,7 @@ interface Report {
   targets: string[];
   sizes: [number, number][];
   themes: string[];
+  stress?: Stress[];
   shard?: string;
   pages: PageRef[];
   findings: Finding[];
@@ -128,6 +135,7 @@ interface CheckOptions {
   pages?: string;
   sizes?: [number, number][];
   themes?: string[];
+  stress?: Stress[];
   shard?: [number, number];
   before?: Finding[];
   beforeDir?: string;
@@ -152,6 +160,7 @@ interface MergeOptions {
 }
 
 interface Target extends PageRef {
+  stress?: Stress;
   url: string;
   // The presses that reach the target's state from its page, in turn.
   steps?: string[];
@@ -267,7 +276,7 @@ const refused = (problem: Error): never => {
 };
 // The 75th percentile of some numbers, 0 for none.
 const p75 = (samples: number[]) => [...samples].sort((a, b) => a - b)[Math.ceil(samples.length * 0.75) - 1] ?? 0;
-const keyOf = (f: Finding) => `${f.site}\u0000${f.page}\u0000${f.rule}\u0000${f.element}`;
+const keyOf = (f: Finding) => `${f.site}\u0000${f.page}\u0000${f.rule}\u0000${f.element}${f.stress ? `\u0000stress=${f.stress}` : ""}`;
 const spotOf = (f: Finding) => `${keyOf(f)}\u0000${f.width}x${f.height}\u0000${f.theme}`;
 const pageOf = (f: { site: string; page: string }) => `${f.site} ${f.page}`;
 const escape = (text: string) => text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -278,7 +287,7 @@ const fileName = (text: string) => {
   return name.length <= 80 ? name : `${name.slice(0, 60).replace(/-$/, "")}-${createHash("sha256").update(name).digest("hex").slice(0, 8)}`;
 };
 const caption = (f: Finding) =>
-  `${f.page} at ${f.width}×${f.height}@${f.dpr ?? dprAt(f.width)}x ${f.theme}: ${LABELS[f.rule] ?? f.rule}, ${f.element} (${f.detail})${HINTS[f.rule] ? `: ${HINTS[f.rule]}` : ""}`;
+  `${f.page} at ${f.width}×${f.height}@${f.dpr ?? dprAt(f.width)}x ${f.theme}${f.stress ? ` [${f.stress}; viewport ${f.viewport!.width}×${f.viewport!.height} CSS px]` : ""}: ${LABELS[f.rule] ?? f.rule}, ${f.element} (${f.detail})${HINTS[f.rule] ? `: ${HINTS[f.rule]}` : ""}`;
 const raw = (file: string) => file.replace(/\.png$/, "-raw.png");
 // Photographs `box` (page coordinates) as far as it shows on the screen once the page is scrolled to it, and returns
 // the box it took. Never a full-page shot: its size is the root scroller's, which a clipped overflow, a scroll lock or
@@ -437,18 +446,19 @@ async function settle(page: Page): Promise<void> {
 }
 
 async function check(options: CheckOptions): Promise<CheckResult> {
-  const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
+  const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], stress = [], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
   const budgets: Budgets = { ...BUDGETS, ...config.budgets };
   const repeats = config.pressRepeat ?? PRESS_REPEAT;
   const { list: opened, close } = await targetsOf(options.targets, options.pages);
   // Each page, then each state of it, named after the page and the state.
-  const list = opened.flatMap((t) => [t, ...Object.entries(config.states?.[t.page] ?? {}).map(([state, steps]) => ({ ...t, page: `${t.page} (${state})`, name: fileName(`${t.name}-${state}`), steps }))]);
+  const states = opened.flatMap((t) => [t, ...Object.entries(config.states?.[t.page] ?? {}).map(([state, steps]) => ({ ...t, page: `${t.page} (${state})`, name: fileName(`${t.name}-${state}`), steps }))]);
+  const list: Target[] = states.flatMap((t) => [t, ...[...new Set(stress)].map((stress) => ({ ...t, stress, name: `${t.name}--stress-${stress}` }))]);
   // --shard k/n: the kth of every n (page, size) pairs, taken along the diagonal so each job gets a share of the pages
   // at every size and a share of the sizes of every page, whatever the counts.
   const [k, n] = shard;
   const unit = (size: number, page: number) => (size + page) % n === k - 1;
   const swept = list.filter((_, p) => sizes.some((_, s) => unit(s, p)));
-  const report: Report = { targets: options.targets, sizes, themes, ...(n > 1 ? { shard: `${k}/${n}` } : {}), pages: swept.map(({ site, page, name }) => ({ site, page, name })), findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
+  const report: Report = { targets: options.targets, sizes, themes, ...(stress.length ? { stress: [...new Set(stress)] } : {}), ...(n > 1 ? { shard: `${k}/${n}` } : {}), pages: states.filter((t) => swept.some((s) => s.site === t.site && s.page === t.page)).map(({ site, page, name }) => ({ site, page, name })), findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
   if (!swept.length) {
     await close();
     // A shard with nothing to sweep still writes its report, so a merge of every shard's folder works.
@@ -474,7 +484,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const { findings, shots, candidates } = report;
   const pictured = new Set<string>();
   const allowed = new Set<string>();
-  const closeUps = new Map(list.map((t) => [t, 0]));
+  const closeUps = new Map(list.map((t) => [pageOf(t), 0]));
   const sizeKeys = sizes.map(([w, h]) => `${w}x${h}`);
   const axeAt = new Set(sizeKeys.some((key) => AXE_SIZES.includes(key)) ? AXE_SIZES : [sizeKeys[0], sizeKeys.at(-1)]);
   const inpAt = `${sizeKeys.includes(INP_SIZE) ? INP_SIZE : sizeKeys.at(-1)} ${themes[0]}`;
@@ -489,8 +499,16 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   }
 
   // Pages are checked with reduced motion, so a screenshot holds still; the walk moves as most people see a page.
-  const contextFor = async (width: number, height: number, theme: string, motion: "reduce" | "no-preference" = "reduce") => {
-    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dprAt(width), colorScheme: theme as "light" | "dark", reducedMotion: motion });
+  const contextFor = async (width: number, height: number, theme: string, motion: "reduce" | "no-preference", stress?: Stress) => {
+    const scale = stress === "zoom" ? 2 : 1;
+    const context = await browser.newContext({
+      viewport: { width: Math.max(1, Math.floor(width / scale)), height: Math.max(1, Math.floor(height / scale)) },
+      deviceScaleFactor: dprAt(width) * scale,
+      colorScheme: theme as "light" | "dark",
+      reducedMotion: motion,
+      ...(stress === "contrast" ? { contrast: "more" as const } : {}),
+      ...(stress === "forced-colors" ? { forcedColors: "active" as const } : {}),
+    });
     await context.addInitScript(listenForReady, ["ouro:ready", ...readyEvents]);
     if (measured) {
       await context.addInitScript(listenForMeasures);
@@ -513,21 +531,25 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await page.waitForTimeout(500);
       await settle(page);
     }
+    if (target.stress) {
+      await page.evaluate(applyStress, target.stress);
+      await settle(page);
+    }
     return opened;
   };
   // A finding, recorded, and photographed with its element outlined unless the page already has one of it or 40.
   const record = async (page: Page, target: Target, issue: PageIssue, width: number, height: number, theme: string) => {
     const { ref, rule, element, detail, value, budget, unit, samples } = issue;
     const measured = value === undefined ? {} : { value, budget: budget!, unit: unit!, ...(samples ? { samples } : {}) };
-    const f: Finding = { site: target.site, page: target.page, width, height, theme, rule, element, detail, ...measured, gated: isGated(config, target.page, rule), dpr: dprAt(width) };
+    const f: Finding = { site: target.site, page: target.page, width, height, theme, ...(target.stress ? { stress: target.stress, viewport: page.viewportSize()! } : {}), rule, element, detail, ...measured, gated: isGated(config, target.page, rule), dpr: dprAt(width) * (target.stress === "zoom" ? 2 : 1) };
     findings.push(f);
     const key = keyOf(f);
-    if (pictured.has(key) || closeUps.get(target)! >= MAX_CLOSE_UPS) return;
+    if (pictured.has(key) || closeUps.get(pageOf(target))! >= MAX_CLOSE_UPS) return;
     pictured.add(key);
-    closeUps.set(target, closeUps.get(target)! + 1);
-    const box = await page.evaluate(boxOf, { ref, width, height });
+    closeUps.set(pageOf(target), closeUps.get(pageOf(target))! + 1);
+    const box = await page.evaluate(boxOf, { ref, ...page.viewportSize()! });
     await page.evaluate(outline, { ref, on: true });
-    f.closeUp = `findings/${target.name}-${closeUps.get(target)}.png`;
+    f.closeUp = `findings/${target.name}-${closeUps.get(pageOf(target))}.png`;
     f.box = await shoot(page, join(out, raw(f.closeUp)), box);
     await page.evaluate(outline, { ref, on: false });
   };
@@ -604,7 +626,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         // target where it rests.
         await page.mouse.move(0, 0);
         await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
-        const point = step.page ? { x: width / 2, y: height / 2 } : await page.evaluate(pressPoint, { ref: step.ref, never: "[data-ouro-check-never-walk]" });
+        const viewport = page.viewportSize()!;
+        const point = step.page ? { x: viewport.width / 2, y: viewport.height / 2 } : await page.evaluate(pressPoint, { ref: step.ref, never: "[data-ouro-check-never-walk]" });
         if (!point) break;
         await page.evaluate(resetMotion);
         // Straight to the target in one move, so the pointer's path hovers nothing else on the way.
@@ -668,7 +691,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       issues.push(...(await page.evaluate(findLayoutIssues, {})));
       issues.push(...(await page.evaluate(findThemeIssues, {})));
       issues.push(...(await page.evaluate(findInteractionIssues)));
-      issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
+      issues.push(...(await page.evaluate(readCorners, await cornerShots(page, page.viewportSize()!.height))));
       issues.push(...runtime());
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
@@ -686,7 +709,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     let pressed = 0;
     const listed = measured && !failed && inpAt === `${width}x${height} ${theme}` && ((await page.evaluate(anyListed(config.press ?? [])).catch(refused)) as boolean);
     if (listed) {
-      const own = await contextFor(width, height, theme);
+      const own = await contextFor(width, height, theme, "reduce", target.stress);
       const tab = await own.newPage();
       await reach(tab, target);
       pressed = await press(tab, target, width, height, theme);
@@ -694,15 +717,15 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     }
     let walked = 0;
     if (measured && !failed && config.walk !== false && inpAt === `${width}x${height} ${theme}`) {
-      const own = await contextFor(width, height, theme, "no-preference");
+      const own = await contextFor(width, height, theme, "no-preference", target.stress);
       const tab = await own.newPage();
       await reach(tab, target);
       walked = await walk(tab, target, width, height, theme);
       await own.close();
     }
     const count = issues.length + pressed + walked;
-    log(`${count ? "✗" : "✓"} ${`${width}×${height}`.padEnd(9)} ${theme.padEnd(5)} ${pageOf(target)}${count ? `: ${count}` : ""}`);
-    shots.push({ site: target.site, page: target.page, file, width, height, theme, count });
+    log(`${count ? "✗" : "✓"} ${`${width}×${height}`.padEnd(9)} ${theme.padEnd(5)} ${pageOf(target)}${target.stress ? ` [${target.stress}]` : ""}${count ? `: ${count}` : ""}`);
+    shots.push({ site: target.site, page: target.page, file, width, height, theme, ...(target.stress ? { stress: target.stress, viewport: page.viewportSize()!, dpr: dprAt(width) * (target.stress === "zoom" ? 2 : 1) } : {}), count });
   };
 
   try {
@@ -724,7 +747,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         await Promise.all(
           Array.from({ length: Math.min(TABS, active.length) }, async () => {
             for (let target = queue.shift(); target; target = queue.shift()) {
-              const context = await contextFor(width, height, theme);
+              const context = await contextFor(width, height, theme, "reduce", target.stress);
               await checkPage(await context.newPage(), target, width, height, theme);
               await context.close();
             }
@@ -737,7 +760,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     // the same size, after. Whether each is fixed depends on every size, which a merge of shards decides.
     const found = new Set(findings.map(spotOf));
     for (const f of before) {
-      const target = list.find((t) => t.site === f.site && t.page === f.page);
+      const target = list.find((t) => t.site === f.site && t.page === f.page && t.stress === f.stress);
       const s = sizes.findIndex(([w, h]) => w === f.width && h === f.height);
       if (!f.closeUp || !f.box || !target || s < 0 || !themes.includes(f.theme) || !unit(s, list.indexOf(target)) || found.has(spotOf(f))) continue;
       const i = candidates.length + 1;
@@ -749,7 +772,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         continue;
       }
       await writeFile(join(out, candidate.before), shot);
-      const context = await contextFor(f.width, f.height, f.theme);
+      const context = await contextFor(f.width, f.height, f.theme, "reduce", f.stress);
       const page = await context.newPage();
       await reach(page, target);
       await shoot(page, join(out, candidate.after), f.box);
@@ -799,7 +822,7 @@ async function compose(browser: Browser, out: string, report: Report): Promise<F
     for (const ref of report.pages) {
       const tiles = report.shots
         .filter((s) => s.site === ref.site && s.page === ref.page)
-        .map((s) => `<figure><img src="${src(`sheets/shots/${s.file}`)}" style="height:260px"><figcaption>${s.width}×${s.height}@${dprAt(s.width)}x ${s.theme}${s.count ? ` · <b>${s.count} finding${s.count > 1 ? "s" : ""}</b>` : " · ✓"}</figcaption></figure>`)
+        .map((s) => `<figure><img src="${src(`sheets/shots/${s.file}`)}" style="height:260px"><figcaption>${s.width}×${s.height}@${s.dpr ?? dprAt(s.width)}x ${s.theme}${s.stress ? ` [${s.stress}; viewport ${s.viewport!.width}×${s.viewport!.height} CSS px]` : ""}${s.count ? ` · <b>${s.count} finding${s.count > 1 ? "s" : ""}</b>` : " · ✓"}</figcaption></figure>`)
         .join("");
       await render(`<h1>${escape(pageOf(ref))} at every size${report.shard ? ` in shard ${report.shard}` : ""}</h1><div class="row" style="max-width:2900px">${tiles}</div>`, `sheets/${ref.name}`);
     }
@@ -824,7 +847,8 @@ async function merge({ dirs, out, config, chromium, executablePath }: MergeOptio
   const pages = new Map<string, PageRef>();
   for (const r of reports) for (const p of r.pages) pages.set(pageOf(p), p);
   const order = [...pages.keys()].sort();
-  const merged: Report = { targets: [...new Set(reports.flatMap((r) => r.targets))], sizes, themes, pages: order.map((key) => pages.get(key)!), findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
+  const stress = [...new Set(reports.flatMap((r) => r.stress ?? []))];
+  const merged: Report = { targets: [...new Set(reports.flatMap((r) => r.targets))], sizes, themes, ...(stress.length ? { stress } : {}), pages: order.map((key) => pages.get(key)!), findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
   const allowed = new Set<string>();
   for (const a of reports.flatMap((r) => r.allowances)) {
     const key = JSON.stringify([a.site, a.page, a.rules, a.element, a.reason]);
@@ -833,10 +857,11 @@ async function merge({ dirs, out, config, chromium, executablePath }: MergeOptio
     merged.allowances.push(a);
   }
   for (const dir of ["sheets/shots", "findings", "pairs/raw"]) await mkdir(join(out, dir), { recursive: true });
-  const rank = (f: Finding) => [sizes.findIndex(([w, h]) => w === f.width && h === f.height), themes.indexOf(f.theme), order.indexOf(pageOf(f))];
-  const byRank = (a: Finding, b: Finding) => {
+  type Spot = Pick<Finding, "site" | "page" | "width" | "height" | "theme" | "stress">;
+  const rank = (f: Spot) => [sizes.findIndex(([w, h]) => w === f.width && h === f.height), themes.indexOf(f.theme), order.indexOf(pageOf(f))];
+  const byRank = (a: Spot, b: Spot) => {
     const [x, y] = [rank(a), rank(b)];
-    return x[0]! - y[0]! || x[1]! - y[1]! || x[2]! - y[2]!;
+    return x[0]! - y[0]! || x[1]! - y[1]! || x[2]! - y[2]! || STRESSES.indexOf(a.stress!) - STRESSES.indexOf(b.stress!);
   };
   const all = reports.flatMap((r) => r.findings.map((f) => ({ f: { ...f, gated: config ? isGated(config, f.page, f.rule) : f.gated }, dir: r.dir })));
   all.sort((a, b) => byRank(a.f, b.f));
@@ -867,7 +892,7 @@ async function merge({ dirs, out, config, chromium, executablePath }: MergeOptio
       merged.shots.push(s);
     }
   }
-  merged.shots.sort((a, b) => byRank(a as unknown as Finding, b as unknown as Finding));
+  merged.shots.sort(byRank);
   const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
   try {
     merged.fixed = await compose(browser, out, merged);
@@ -884,7 +909,7 @@ function group(findings: Finding[]): (Finding & { sizes: string[] })[] {
   for (const f of findings) {
     const row = rows.get(keyOf(f)) ?? { ...f, sizes: [] };
     if (!row.closeUp && f.closeUp) row.closeUp = f.closeUp;
-    const size = `${f.width}×${f.height} ${f.theme}`;
+    const size = `${f.width}×${f.height} ${f.theme}${f.stress ? ` [${f.stress}]` : ""}`;
     if (!row.sizes.includes(size)) row.sizes.push(size);
     rows.set(keyOf(f), row);
   }
@@ -892,10 +917,10 @@ function group(findings: Finding[]): (Finding & { sizes: string[] })[] {
 }
 
 // The Markdown report: a row per page with each rule's count, then every finding with the sizes it shows at.
-function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: Report): string {
+function summary({ findings, fixed, pages, sizes, themes, stress, shard, allowances }: Report): string {
   const rows = group(findings);
   const lines = [
-    `### Ouro check: ${pages.length} page${pages.length === 1 ? "" : "s"} at ${sizes.length} size${sizes.length === 1 ? "" : "s"}, ${themes.join(" and ")}, density 2 (1 above 3072px wide)${shard ? `, shard ${shard}` : ""}`,
+    `### Ouro check: ${pages.length} page${pages.length === 1 ? "" : "s"} at ${sizes.length} size${sizes.length === 1 ? "" : "s"}, ${themes.join(" and ")}, density 2 (1 above 3072px wide)${stress?.length ? `, baseline plus stress: ${stress.join(", ")}` : ""}${shard ? `, shard ${shard}` : ""}`,
     "",
     `| | Page | ${RULES.map((rule) => LABELS[rule]).join(" | ")} |`,
     `|---|---|${RULES.map(() => "---").join("|")}|`,
@@ -927,6 +952,7 @@ interface Args {
   pages?: string;
   sizes: [number, number][];
   themes: string[];
+  stress?: Stress[];
   shard: [number, number];
   before?: string;
   config?: string;
@@ -956,6 +982,7 @@ contact sheet per page and a captioned close-up per finding. merge joins the out
   --out <folder>           where the report goes (default ouro-check)
   --sizes WxH,…            the screen sizes (default: from a phone to a wide desktop, and short landscape screens)
   --themes light,dark      the colour schemes (default both)
+  --stress <profiles>      baseline plus zoom,large-text,contrast,forced-colors,long-text,counts, or all
   --shard k/n              this job's share, the kth of n parallel jobs; merge their out folders after
   --before <report.json>   an earlier report, to show a before and after of what was fixed since
   --config <file>          the waivers and budgets (default ouro-check.json, when it exists)
@@ -989,6 +1016,12 @@ function parseArgs(argv: string[]): Args {
       args.themes = value().split(",").map((t) => t.trim());
       const bad = args.themes.find((t) => t !== "light" && t !== "dark");
       if (bad !== undefined) throw new Error(`--themes takes light, dark or both, not "${bad}".`);
+    } else if (arg === "--stress") {
+      const text = value();
+      const profiles = text === "all" ? [...STRESSES] : text.split(",").map((profile) => profile.trim());
+      const bad = profiles.find((profile) => !STRESSES.some((known) => known === profile));
+      if (bad !== undefined) throw new Error(`--stress takes ${STRESSES.join(",")} or all, not "${bad}".`);
+      args.stress = [...new Set(profiles)] as Stress[];
     } else if (arg === "--shard") {
       const text = value();
       const match = /^(\d+)\/(\d+)$/.exec(text);
@@ -1122,6 +1155,7 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
         ...(args.pages === undefined ? {} : { pages: args.pages }),
         sizes: args.sizes,
         themes: args.themes,
+        ...(args.stress === undefined ? {} : { stress: args.stress }),
         shard: args.shard,
         before: before.findings,
         ...(args.before === undefined ? {} : { beforeDir: dirname(resolve(cwd, args.before)) }),
