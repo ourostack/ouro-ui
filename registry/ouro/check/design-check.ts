@@ -90,6 +90,33 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const w = words(el);
     return w ? ` "${w.slice(0, 40)}${w.length > 40 ? "…" : ""}"` : "";
   };
+  // The part of a box that is drawn: its rect cut by each ancestor that clips it (overflow other than visible, or paint
+  // containment) to that ancestor's padding box, following containing blocks, so an absolutely positioned box escapes
+  // ancestors below its positioned one and a fixed box escapes them all. null when nothing of it is drawn.
+  const drawnRect = (el: Element): DOMRect | null => {
+    const box = el.getBoundingClientRect();
+    let [left, top, right, bottom] = [box.left, box.top, box.right, box.bottom];
+    const own = getComputedStyle(el).position;
+    let escaping = own === "absolute";
+    if (own !== "fixed") {
+      for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+        const s = getComputedStyle(n);
+        const positioned = s.position !== "static";
+        // Overflow doesn't apply to inline boxes or display: contents, and body's goes to the viewport when html's is visible.
+        const clips = !/^(inline|contents)$/.test(s.display) && !(n === document.body && getComputedStyle(document.documentElement).overflow === "visible");
+        if (clips && (!escaping || positioned)) {
+          const c = n.getBoundingClientRect();
+          const [x, y] = [c.left + n.clientLeft, c.top + n.clientTop];
+          const paint = /paint|strict|content/.test(s.contain);
+          if (paint || s.overflowX !== "visible") [left, right] = [Math.max(left, x), Math.min(right, x + n.clientWidth)];
+          if (paint || s.overflowY !== "visible") [top, bottom] = [Math.max(top, y), Math.min(bottom, y + n.clientHeight)];
+        }
+        if (positioned) escaping = s.position === "absolute";
+        if (s.position === "fixed") break;
+      }
+    }
+    return right - left >= 2 && bottom - top >= 2 ? new DOMRect(left, top, right - left, bottom - top) : null;
+  };
   const shown = (el: Element) => {
     if (el.closest("[hidden], template, .visually-hidden, .sr-only")) return false;
     const r = el.getBoundingClientRect();
@@ -98,7 +125,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       const s = getComputedStyle(n);
       if (s.display === "none" || s.visibility === "hidden" || Number(s.opacity) <= 0.05) return false;
     }
-    return true;
+    return drawnRect(el) !== null;
   };
   const px = (value: string) => parseFloat(value) || 0;
   const all = [...document.body.querySelectorAll("*")].filter((el) => !el.closest("svg, script, style, template, head") || el.tagName === "svg");
@@ -211,9 +238,10 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // cramped-heading: a heading (with the icon on its row) too close to a picture or a filled or framed box beside it.
+  // cramped-heading: a heading (with the icon on its row) too close to a picture or a filled or framed box beside it,
+  // each measured by the part of it that is drawn.
   const blocks = visible.filter((el) => {
-    const r = el.getBoundingClientRect();
+    const r = drawnRect(el)!;
     return r.width >= 48 && r.height >= 48 && filled(el);
   });
   for (const heading of headings) {
@@ -223,11 +251,11 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const size = px(getComputedStyle(heading).fontSize);
     const onRow = /flex/.test(ps.display) && !ps.flexDirection.startsWith("column") && [...parent.children].every((c) => c === heading || c.getBoundingClientRect().height <= size * 2.5);
     const row = onRow ? parent : heading;
-    const r = row.getBoundingClientRect();
+    const r = drawnRect(row) ?? drawnRect(heading)!;
     let worst: { block: Element; gap: number; need: number } | null = null;
     for (const block of blocks) {
       if (block.contains(row) || row.contains(block)) continue;
-      const b = block.getBoundingClientRect();
+      const b = drawnRect(block)!;
       const across = Math.min(r.right, b.right) - Math.max(r.left, b.left);
       if (across < Math.min(r.width, b.width) * 0.3 || b.bottom > r.top + 2) continue;
       // The same item: the smallest box holding both holds no other heading, and is no page-wide container.

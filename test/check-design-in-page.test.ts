@@ -133,10 +133,38 @@ describe("findDesignIssues: cramped-heading", () => {
       <section><div style="height:60px;background:#3a7"></div><h2 data-ouro-allow="cramped-heading" data-ouro-allow-why="a caption bar on purpose" style="margin:0">Allowed</h2></section>`);
     expect(of("cramped-heading")).toEqual([]);
   });
+
+  it("measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out", () => {
+    render(`
+      <section><div style="overflow:hidden;height:100px"><div style="height:300px;background:#3a7"></div></div><h2 style="margin:2px 0 0;font-size:24px">Under a clipped card</h2></section>
+      <section style="margin-top:40px"><div style="contain:paint;height:100px"><div style="height:300px;background:#3a7"></div></div><h2 style="margin:3px 0 0;font-size:24px">Under a contained card</h2></section>
+      <section style="margin-top:40px"><div class="wrap" style="overflow:hidden;height:200px"><div class="scope" style="overflow:auto;height:600px"><div style="height:400px"></div><div style="height:100px;background:#3a7"></div></div></div><h3 style="margin:1px 0 0;font-size:20px">Under a card scrolled out</h3></section>
+      <section style="margin-top:40px"><div style="display:contents;overflow:hidden"><div style="height:100px;background:#3a7"></div><h2 style="margin:4px 0 0;font-size:24px">In a box-less wrapper</h2></div></section>
+      <section style="margin-top:40px"><div style="height:100px;background:#3a7"></div><div style="display:flex;align-items:flex-start;height:0;margin-top:5px"><h2 style="margin:0;font-size:24px">On a flat row</h2></div></section>`);
+    expect(of("cramped-heading").map(({ element, detail }) => [element, detail])).toEqual([
+      ['h2 "Under a clipped card"', "2px below div; a 24px heading needs 8px"],
+      ['h2 "Under a contained card"', "3px below div; a 24px heading needs 8px"],
+      ['h2 "In a box-less wrapper"', "4px below div; a 24px heading needs 8px"],
+      ['h2 "On a flat row"', "5px below div; a 24px heading needs 8px"],
+    ]);
+    // With html's own overflow set, body's no longer goes to the viewport, so body clips like any box (here, nothing).
+    document.documentElement.style.overflow = "auto";
+    expect(of("cramped-heading")).toHaveLength(4);
+  });
+
+  it("lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip", () => {
+    render(`
+      <section style="position:relative"><div style="overflow:hidden;height:4px"><div style="position:absolute;top:0;left:0;width:300px"><div style="height:100px;background:#3a7"></div></div></div><h2 style="margin:100px 0 0;font-size:24px">Under an escaping card</h2></section>
+      <div style="overflow:hidden;height:0"><div style="position:fixed;top:300px;left:0;width:400px"><div style="height:100px;background:#3a7"></div><h2 style="margin:2px 0 0;font-size:24px">In a fixed layer</h2></div></div>
+      <div style="overflow:hidden;height:0"><div style="position:fixed;top:500px;left:0;width:300px;height:100px;background:#3a7"></div></div>`);
+    expect(of("cramped-heading").map(({ element, detail }) => [element, detail])).toEqual([
+      ['h2 "Under an escaping card"', "4px below div; a 24px heading needs 8px"],
+      ['h2 "In a fixed layer"', "2px below div; a 24px heading needs 8px"],
+    ]);
+  });
 });
 
-describe("findDesignIssues: nested-frame", () => {
-  it("finds a frame hugging a frame, drawn by a border, an outline or a ring, once each", () => {
+describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a frame, drawn by a border, an outline or a ring, once each", () => {
     render(`
       <div id="outer" style="border:1px solid #888;padding:4px"><div id="inner" class="a b c d" style="border:1px solid #888;height:40px">Twice framed</div></div>
       <div id="a" style="border:1px solid #888;padding:2px;margin-top:20px"><div id="b" style="border:1px solid #888;padding:2px"><div id="c" style="border:1px solid #888;height:40px"></div></div></div>
