@@ -55,13 +55,14 @@ function findInteractionIssues(): PageIssue[] {
   const reasoned = (el: Element | null) => Boolean(el && ((el.getAttribute("title") ?? "").trim() || (el.getAttribute("aria-description") ?? "").trim() || textOf(el.getAttribute("aria-describedby"))));
   // Moves one way, so at its end there is nowhere to go: the end is the reason.
   const oneWay = /^(no )?(previous|prev|next|back|forward|first|last|earlier|later|older|newer|before|after|up|down|left|right|increase|decrease|increment|decrement|zoom (in|out)|scroll (up|down|left|right)|undo|redo)\b/i;
-  // Waits for a field: an empty field in the control's form, or in a box around it up to three out.
+  // Waits for a field: an empty field in the control's form, or in a box around it up to three out, short of the page
+  // itself, where a search box in the header would excuse every control.
   const fields = "input:not([type=hidden], [type=submit], [type=button], [type=reset], [type=image], [type=checkbox], [type=radio]), textarea, [contenteditable=''], [contenteditable=true], [role=textbox]";
-  const empty = (field: Element) => ("value" in field ? !(field as HTMLInputElement).value.trim() : !(field.textContent ?? "").trim());
+  const empty = (field: Element) => ("value" in field ? !(field as HTMLInputElement).value.trim() : !field.textContent!.trim());
   const waits = (el: Element) => {
     const form = (el as HTMLButtonElement).form;
     if (form && [...form.querySelectorAll(fields)].some(empty)) return true;
-    for (let n = el.parentElement, i = 0; n && i < 3; n = n.parentElement, i++) if ([...n.querySelectorAll(fields)].some(empty)) return true;
+    for (let n = el.parentElement, i = 0; n && n !== document.body && i < 3; n = n.parentElement, i++) if ([...n.querySelectorAll(fields)].some(empty)) return true;
     return false;
   };
   const controls = "button, input[type=submit], input[type=button], input[type=reset], input[type=image], [role=button], [role=menuitem], [role=tab], [role=switch], [role=checkbox], [role=radio], [role=option]";
