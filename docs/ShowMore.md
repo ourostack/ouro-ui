@@ -128,7 +128,7 @@ A list the server grows a page at a time: "Show more" asks for the next page and
 | `hasMore` (required) | `boolean` |  | Whether there is another page. Without one, the button goes away. |
 | `href` | `string` |  | The next page's URL, so the button is a link that works before JavaScript loads. With JavaScript, pressing it calls `onShowMore` instead. |
 | `items` (required) | `readonly ReactNode[]` |  | Every item, in order. Each renders in its own list item; give elements a `key`. With `onShowMore`, append each new page here. |
-| `loadedLabel` | `((count: number) => string)` | (count) => `Showing ${count} items` | What screen readers hear after each page, from the number of items now shown. Name the items and translate it here: `(count) => \`Showing ${count} recipes\``. |
+| `loadedLabel` | `((count: number) => string)` | `` (count) => `Showing ${count} items` `` | What screen readers hear after each page, from the number of items now shown. Name the items and translate it here: `` (count) => `Showing ${count} recipes` ``. |
 | `loading` | `boolean` |  | Shows the button as busy, and keeps it from asking twice. |
 | `loadingLabel` | `string` | `"Loading"` | What screen readers hear when loading starts. Translate it here. |
 | `noMoreLabel` | `string` | `"No more items"` | What screen readers hear when a page comes back empty and there is no more. Translate it here. |

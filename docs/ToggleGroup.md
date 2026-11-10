@@ -79,7 +79,7 @@ One toggle pressed at a time, the default: the value is one item's value, or `nu
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `defaultValue` | `string \| null` | null | The toggle pressed first, when the group keeps its own state. |
+| `defaultValue` | `string \| null` | `null` | The toggle pressed first, when the group keeps its own state. |
 | `multiple` | `false` |  | Allows several toggles pressed at once, and makes the value a list. |
 | `onValueChange` | `((value: string \| null) => void)` |  | Called with the pressed toggle's value, or `null` when the pressed one is pressed again. |
 | `value` | `string \| null` |  | The pressed toggle's value, or `null` for none, when you control it. Pair it with `onValueChange`. |
