@@ -363,6 +363,13 @@ describe("listCornerMedia", () => {
     expect(listCornerMedia(2)).toHaveLength(2);
   });
 
+  it("lists the colours the media and its frame draw at their edges: borders and outlines, never fills or a clear border", async () => {
+    const url = await picture(200, 150);
+    render(`<div style="border-radius:14px;overflow:hidden;width:200px;outline:2px solid rgb(40, 50, 60);outline-offset:3px;background:rgb(1, 2, 3)"><img src="${url}" alt="framed" style="display:block;width:200px;height:150px;border:1px solid rgb(10, 20, 30);border-left-color:transparent;background:rgb(4, 5, 6)"></div>`);
+    const [media] = listCornerMedia();
+    expect(media!.own).toEqual([[10, 20, 30], [10, 20, 30], [10, 20, 30], [40, 50, 60]]);
+  });
+
   it("takes a video's address before it loads, and white behind a page nothing fills", () => {
     document.body.style.background = "transparent";
     render(`<video src="${CLIP}" preload="none" style="display:block;width:200px;height:150px"></video>`);
@@ -449,7 +456,7 @@ describe("readCorners", () => {
   const ALL = ["top left", "top right", "bottom left", "bottom right"];
   // A recording of a window, with its own dark corners at radius 28, inside the page's 14px frame.
   const window_ = (corners = ALL, band = (x: number, y: number) => (x < 0 && y < 0 ? RED : BLACK)) => shot((x, y) => (outside(x, y, 14) ? WHITE : outside(x, y, 28, corners) ? band(x, y) : LIGHT));
-  const reading = (picture: string, corners = ALL): CornerReading => ({ ref: "c1", element: "media/window.webm", shot: picture, radius: 14, behind: WHITE, corners });
+  const reading = (picture: string, corners = ALL, own: number[][] = []): CornerReading => ({ ref: "c1", element: "media/window.webm", shot: picture, radius: 14, behind: WHITE, own, corners });
 
   it("finds a media whose own pixels draw a corner of one colour inside its frame, on two corners or more", async () => {
     expect(await readCorners([reading(window_())])).toEqual([
@@ -465,6 +472,16 @@ describe("readCorners", () => {
     const striped = shot((x, y) => (outside(x, y, 14) ? WHITE : outside(x, y, 28) ? BLACK : y < 30 ? BLUE : LIGHT));
     expect(await readCorners([reading(plain), reading(one), reading(window_(), ["top left"]), reading(mixed), reading(striped, ["top left", "top right"])])).toEqual([]);
     expect(await readCorners([reading(striped)])).toMatchObject([{ detail: expect.stringMatching(/^the bottom left, bottom right corners/) }]);
+  });
+
+  it("passes a corner that shows the page as drawn at its tip, or a colour the frame draws itself, such as its outline or border", async () => {
+    // The page behind is green where the styles say white: the gap before an outline, say.
+    const GREEN = [30, 160, 90];
+    const gap = shot((x, y) => (outside(x, y, 14) ? GREEN : LIGHT));
+    // A rounded outline that cuts across the box's corner, in the frame's own blue.
+    const outlined = window_(ALL, () => BLUE);
+    expect(await readCorners([reading(gap), reading(outlined, ALL, [BLUE])])).toEqual([]);
+    expect(await readCorners([reading(outlined)])).toHaveLength(1);
   });
 });
 

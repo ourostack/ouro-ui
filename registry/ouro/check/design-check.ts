@@ -55,6 +55,8 @@ interface CornerMedia {
   radius: number;
   /** The colour behind the media's frame, which shows outside its rounded corners. */
   behind: number[];
+  /** The colours the frame and the media draw at their edges themselves: borders and outlines, which a corner may show. */
+  own: number[][];
 }
 
 interface CornerReading {
@@ -64,6 +66,7 @@ interface CornerReading {
   shot: string;
   radius: number;
   behind: number[];
+  own: number[][];
   /** The corners the screen shows: on the screen, and not under another element (a fixed bar, say). */
   corners: string[];
 }
@@ -379,17 +382,29 @@ function listCornerMedia(limit = 12): CornerMedia[] {
       if (/hidden|clip/.test(ns.overflow) && (parseFloat(ns.borderTopLeftRadius) || 0) > radius) [radius, frame] = [parseFloat(ns.borderTopLeftRadius), n];
     }
     const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
-    let behind = [255, 255, 255];
-    for (let n = frame.parentElement; n; n = n.parentElement) {
+    // A CSS colour as RGB, or null when it is mostly transparent.
+    const rgb = (colour: string) => {
       context.clearRect(0, 0, 1, 1);
-      context.fillStyle = getComputedStyle(n).backgroundColor;
+      context.fillStyle = colour;
       context.fillRect(0, 0, 1, 1);
       const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
-      if (alpha! >= 128) {
-        behind = [red!, green!, blue!];
+      return alpha! >= 128 ? [red!, green!, blue!] : null;
+    };
+    let behind = [255, 255, 255];
+    for (let n = frame.parentElement; n; n = n.parentElement) {
+      const fill = rgb(getComputedStyle(n).backgroundColor);
+      if (fill) {
+        behind = fill;
         break;
       }
     }
+    // Never their fills: a dark card behind a recording would hide the recording's dark corners.
+    const own = [el, frame].flatMap((n) => {
+      const ns = getComputedStyle(n);
+      const sides = ["top", "right", "bottom", "left"].filter((side) => parseFloat(ns.getPropertyValue(`border-${side}-width`)) > 0);
+      const outline = ns.outlineStyle !== "none" && parseFloat(ns.outlineWidth) > 0 ? [ns.outlineColor] : [];
+      return [...sides.map((side) => ns.getPropertyValue(`border-${side}-color`)), ...outline].map(rgb).filter((c): c is number[] => c !== null);
+    });
     counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
     const ref = `c${counter.__ouroCheckRef}`;
     el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${ref}`.trim());
@@ -397,7 +412,7 @@ function listCornerMedia(limit = 12): CornerMedia[] {
     const name = src && !/^(data|blob):/.test(src) ? new URL(src, location.href).pathname.split("/").filter(Boolean).slice(-2).join("/") : el.tagName.toLowerCase();
     // A round crop (an avatar, a pill) is round on purpose; its corners are the page's.
     if (radius >= Math.min(r.width, r.height) / 4) continue;
-    found.push({ ref, element: name, box: { x: r.left + scrollX, y: r.top + scrollY, width: r.width, height: r.height }, radius, behind });
+    found.push({ ref, element: name, box: { x: r.left + scrollX, y: r.top + scrollY, width: r.width, height: r.height }, radius, behind, own });
   }
   return found;
 }
@@ -451,7 +466,7 @@ function shownCorners(ref: string): { corners: string[]; clip: { x: number; y: n
 // photograph's dark corners aren't one.
 async function readCorners(readings: CornerReading[]): Promise<PageIssue[]> {
   const issues: PageIssue[] = [];
-  for (const { ref, element, shot, radius, behind, corners: shown } of readings) {
+  for (const { ref, element, shot, radius, behind: computed, own, corners: shown } of readings) {
     const picture = new Image();
     picture.src = shot;
     await picture.decode();
@@ -474,12 +489,16 @@ async function readCorners(readings: CornerReading[]): Promise<PageIssue[]> {
     const reach = Math.min(Math.ceil(radius * 1.2) + 4, 40, Math.floor(Math.min(w, h) / 4));
     // The colour of a corner's band, or null when it has none.
     const band = ([, x, y, dx, dy]: (typeof corners)[number]): number[] | null => {
+      // What shows behind the frame: the nearest fill in the styles, or the page as drawn at the corner's own tip, outside
+      // a curve of 3 px or more, whatever paints it there.
+      const tip = radius >= 3 ? at(x, y) : computed;
       let odd: number[] | null = null;
       for (let c = 1; c <= reach; c++) {
         const [k, a, d] = [at(x + dx * c, y + dy * c), at(x + dx * edge, y + dy * c), at(x + dx * c, y + dy * edge)];
         if (far(a, d) >= 40) continue;
         if (odd && far(k, a) < 40 && far(k, d) < 40) return odd;
-        if (!odd && offBlend(k, behind, a) > 80 && far(k, d) > 80) odd = k;
+        // A colour the frame or the media draws itself (its border, its fill) is its own frame, not a corner baked in.
+        if (!odd && offBlend(k, computed, a) > 80 && offBlend(k, tip, a) > 80 && far(k, d) > 80 && !own.some((c) => offBlend(k, computed, c) < 40)) odd = k;
       }
       return null;
     };

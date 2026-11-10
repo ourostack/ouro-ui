@@ -128,6 +128,16 @@ describe("Ouro check", () => {
     assert.ok(report.findings.filter((f) => f.rule === "overlap" || f.rule === "axe").every((f) => !("value" in f)));
     assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 1));
 
+    // First content is what the page drew on arrival, read before any rule scrolls it: this page draws a large block
+    // whenever it scrolls, which the corner rule does to reach the rounded picture far down, once the page has settled
+    // (a 1.6 s fade holds it). A script's scroll doesn't end largest-contentful-paint as a person's does.
+    const below = site("below", {
+      "below.html": page(`<h1>Arrived</h1><p style="animation:fade 1.6s">Here at once.</p><style>@keyframes fade{from{opacity:.5}}</style><div style="height:3000px"></div><div style="border-radius:16px;overflow:hidden"><img src="picture-960.png" alt="A wide field" width="960" height="540" style="display:block;width:100%;height:auto"></div><script>addEventListener("scroll", () => { if (document.getElementById("late")) return; const p = document.createElement("p"); p.id = "late"; p.style.cssText = "position:fixed;inset:20px;margin:0;font-size:48px;background:#fff"; p.textContent = "Drawn on a scroll. ".repeat(40); document.body.append(p); }, { once: true });</script>`),
+    });
+    copyFileSync(join(fixtures, "picture-960.png"), join(below, "picture-960.png"));
+    const quick = await check({ targets: [below], out: dir("below"), sizes: [[1440, 900]], themes: ["light"], config: { budgets: { "first-content": 1500 } }, chromium, log: quiet });
+    assert.deepEqual(quick.findings.filter((f) => f.rule === "first-content").map((f) => f.element), []);
+
     // Budgets from the config, and none with the measured rules off.
     const config = { budgets: { inp: 5000, "layout-shift": 5, "first-content": 60000 } };
     const relaxed = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], config, chromium, log: quiet });
