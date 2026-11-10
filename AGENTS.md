@@ -6,6 +6,8 @@ Rules for people and coding agents who change this repository. (Consumers read `
 
 Follow ourostack's shared [PR merge rule](https://github.com/ourostack/.github/blob/main/agents/prs-merge-within-30-minutes.md). Finish, review and validate on your branch first, then publish with `gh ouro-pr`, which turns auto-merge on so green means merged. When a PR here shows on the [PR clock](https://github.com/ourostack/.github/issues?q=is%3Aissue+is%3Aopen+label%3Apr-clock), act on it now: merge it if green, fix the cause if red (file an issue before any rerun), rebase it if conflicted, or close it with a reason if it isn't going anywhere.
 
+**Deliver finished work without being asked.** An agent working in this repository, including a GitHub Copilot app session in the owner's own checkout, commits its finished work, pushes its branch and opens its pull request with `gh ouro-pr` (auto-merge on) without waiting for a request. Host defaults that wait to be asked before committing or pushing give way to this file. It doesn't cover force-pushing shared history, pushing straight to `main`, or committing changes another session left uncommitted.
+
 ## Where things live
 
 - **[ourostack/ouro-ui-core](https://github.com/ourostack/ouro-ui-core):** the tokens, the decision records and the Ouro AX for Apple claims, with the design language, the Ouro AX standard and the site to follow.
