@@ -96,6 +96,13 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
   }
 
   // Clipped text.
+  // Text hidden from assistive technology by the page: under aria-hidden that no open modal set. A modal dialog hides the
+  // page behind it on purpose, so text there is the page's, which a person reaches once the modal closes.
+  const modals = [...document.querySelectorAll('[aria-modal="true"], dialog:modal')].filter((m) => m.getClientRects().length);
+  const unreachable = (el: Element) => {
+    const hidden = el.closest('[aria-hidden="true"]');
+    return Boolean(hidden) && !modals.some((m) => !m.contains(el) && !hidden!.contains(m));
+  };
   for (const el of document.body.querySelectorAll("*")) {
     if (el.closest("svg, select, textarea, script, style") || optedOut(el, "clipped-text", ["data-clip-ok", "data-size-ignore"])) continue;
     if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim()) || !inlineOnly(el)) continue;
@@ -111,7 +118,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     // asks: in a title, an aria-label, or the text itself in the accessibility tree.
     const whole = el.textContent!.trim().replace(/\s+/g, " ");
     const told = [el.getAttribute("title"), el.getAttribute("aria-label")].some((text) => text?.trim().replace(/\s+/g, " ").includes(whole));
-    const intended = (s.textOverflow === "ellipsis" || clamped) && (told || !el.closest('[aria-hidden="true"]'));
+    const intended = (s.textOverflow === "ellipsis" || clamped) && (told || !unreachable(el));
     if ((cutX || cutY) && !intended) {
       issues.push({
         ref: ref(el),

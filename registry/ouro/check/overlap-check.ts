@@ -7,8 +7,10 @@ import type { PageIssue } from "./size-check.ts";
 // the page and reports any line of text that collides with another line of text, or with a picture, inside the same
 // section. Sticky headings are checked where they sit at each scroll position. Text that belongs to one block (its own
 // lines, or a block and the blocks inside it) never counts against itself; text a line clamp or overflow cuts away
-// doesn't count, nor does the part of a picture a clipping box cuts away; an opaque sticky or fixed bar covers what
-// scrolls under it rather than colliding with it; and a label on an opaque backing of its own (a chip on a picture) reads.
+// doesn't count, nor does the part of a picture a clipping box cuts away; an opaque sticky or fixed bar, and an opaque
+// overlay (an open dialog, menu, listbox, popover or tooltip, or a panel of 120×48 or more floating fixed or absolute,
+// not a badge), covers what is under it rather than colliding with it; and a label on an opaque backing of its own (a
+// chip on a picture) reads.
 // An element opts out with data-ouro-allow="overlap" and data-ouro-allow-why="<reason>", or, in an app whose own rules
 // keep data-ouro-* for Ouro's components, data-overlap-ignore="<reason>", which stays; art drawn as a backdrop behind
 // words needs it.
@@ -71,10 +73,21 @@ function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIs
     }
     return box;
   };
+  // The layer an element is drawn on, when it covers what is under it: the nearest sticky or fixed bar with a fill, or
+  // the nearest overlay with an opaque fill on it or on a box between it and the element. Text on one layer and text on
+  // another don't collide: the one on top hides the other.
+  const overlay = "[role=dialog], [role=alertdialog], dialog, [role=menu], [role=listbox], [role=tooltip], [popover], [data-popover]";
   const coverOf = (el: Element) => {
+    let opaque = false;
     for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) {
       const style = getComputedStyle(node);
-      if ((style.position === "sticky" || style.position === "fixed") && style.backgroundColor !== "rgba(0, 0, 0, 0)" && style.backgroundColor !== "transparent") return node;
+      const filled = style.backgroundColor !== "rgba(0, 0, 0, 0)" && style.backgroundColor !== "transparent";
+      const [, , , alpha = "1"] = style.backgroundColor.replace(/^[a-z]+\(|\)$/g, "").split(/[\s,/]+/);
+      opaque ||= filled && Number(alpha) >= 0.9;
+      if ((style.position === "sticky" || style.position === "fixed") && filled) return node;
+      const box = node.getBoundingClientRect();
+      const floating = (style.position === "absolute" || style.position === "fixed") && box.width >= 120 && box.height >= 48;
+      if (opaque && (node.matches(overlay) || floating)) return node;
     }
     return null;
   };

@@ -91,7 +91,9 @@ function outline({ ref, on }: { ref: string; on: boolean }): void {
 }
 
 // Runs axe-core (already on window.axe) and returns its serious and critical violations, one per rule, the first
-// element it names marked for the close-up. Elements with data-ouro-allow="axe" and a reason are left out.
+// element it names marked for the close-up. Elements with data-ouro-allow="axe" and a reason are left out, and so are
+// Base UI's focus guards, as Ouro's axe kit leaves them out (axeExclude): visually hidden spans that hand focus on the
+// moment they get it, aria-hidden so a screen reader skips them, and a button for VoiceOver in WebKit.
 async function runAxe(): Promise<AxeIssue[]> {
   const axe = (window as unknown as { axe: { run: (context: unknown, options: unknown) => Promise<{ violations: AxeResult[] }> } }).axe;
   // The elements that opt out, read with their reasons trimmed (a reason of spaces is none), never rewritten.
@@ -99,6 +101,7 @@ async function runAxe(): Promise<AxeIssue[]> {
     const rules = el.getAttribute("data-ouro-allow")!.trim().split(/\s+/);
     return (rules.includes("axe") || rules.includes("all")) && (el.getAttribute("data-ouro-allow-why") ?? "").trim();
   });
+  exclude.push(...document.querySelectorAll("[data-base-ui-focus-guard]"));
   const { violations } = await axe.run({ exclude }, { resultTypes: ["violations"] });
   const counter = window as unknown as { __ouroCheckRef?: number };
   return violations
