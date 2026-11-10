@@ -59,7 +59,7 @@ A Combobox that accepts any text, suggesting matching items as people type.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `allowCustomValue` (required) | `true` |  | Accept any text: the value is what is in the input, and items are suggestions. |
-| `customValueLabel` | `((text: string) => string)` | (text) => `Use “${text}”` | The sheet's row (on a phone) that keeps what was typed, from the text. Translate it with your app. |
+| `customValueLabel` | `((text: string) => string)` | `` (text) => `Use “${text}”` `` | The sheet's row (on a phone) that keeps what was typed, from the text. Translate it with your app. |
 | `defaultValue` | `string` |  | The text at first, when the field keeps its own. |
 | `multiple` | `false` |  | Not with `allowCustomValue`: it keeps one typed value. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the text as people type or pick a suggestion. A suggestion puts its `label` in the input, and the text is the value, so an `{ value, label }` item submits its label. |
@@ -81,7 +81,7 @@ A Combobox that picks several items, shown as chips in the input.
 | `inputValue` | `string` |  | The input's text, when you control it with `onInputChange`. Set it to `""` in `onValueChange` to clear the input after a pick. |
 | `multiple` (required) | `true` |  | Pick several items, shown as chips; the value is an array. |
 | `onValueChange` | `((value: string[]) => void)` |  | Called with the picked items' values. |
-| `removeLabel` | `((label: string) => string)` | (label) => `Remove ${label}` | The name of a chip's remove button, from the item's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
+| `removeLabel` | `((label: string) => string)` | `` (label) => `Remove ${label}` `` | The name of a chip's remove button, from the item's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
 | `value` | `string[]` |  | The picked items' values, when you control them. |
 
 Not in this mode (typed `never`):

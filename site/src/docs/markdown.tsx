@@ -98,7 +98,7 @@ function sourceBody(text: string): ReactNode[] {
   sources.forEach((source, index) => {
     if (index > 0) out.push("; ");
     out.push(
-      <a key={`source-${index}`} href={sourceHref(source)} className="font-medium text-primary underline underline-offset-4 [overflow-wrap:anywhere]">
+      <a key={`source-${index}`} href={sourceHref(source)} data-ouro-allow="leaked-value odd-timestamp" data-ouro-allow-why="a source names its test or file as written" className="font-medium text-primary underline underline-offset-4 [overflow-wrap:anywhere]">
         {source}
       </a>,
     );
@@ -120,23 +120,25 @@ export function slug(text: string): string {
 /** Inline code and links. `link` maps a Markdown href to the site's. */
 export function inline(text: string, link: (href: string) => string = (href) => href): ReactNode[] {
   const out: ReactNode[] = [];
-  const pattern = /`([^`]+)`|\[\^([^\]]+)\]|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  // A code span is a run of backticks and the text up to the next run of as many, as in CommonMark, so `` a `b` `` holds
+  // its backticks; one space inside each end is dropped.
+  const pattern = /(`+)(?!`)([\s\S]*?[^`])\1(?!`)|\[\^([^\]]+)\]|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
   let last = 0;
   for (const match of text.matchAll(pattern)) {
     if (match.index > last) out.push(text.slice(last, match.index));
-    if (match[1] !== undefined) out.push(<InlineCode key={match.index}>{match[1]}</InlineCode>);
-    else if (match[2] !== undefined)
+    if (match[1] !== undefined) out.push(<InlineCode key={match.index}>{/^ .* $/s.test(match[2]!) && match[2]!.trim() ? match[2]!.slice(1, -1) : match[2]}</InlineCode>);
+    else if (match[3] !== undefined)
       out.push(
         <sup key={match.index}>
-          <a href={`#source-${slug(match[2])}`} aria-label={`Source: ${match[2]}`} className="text-primary underline underline-offset-2">
-            {match[2]}
+          <a href={`#source-${slug(match[3])}`} aria-label={`Source: ${match[3]}`} className="text-primary underline underline-offset-2">
+            {match[3]}
           </a>
         </sup>,
       );
     else
       out.push(
-        <a key={match.index} href={link(match[4]!)} className="font-medium text-primary underline underline-offset-4">
-          {inline(match[3]!, link)}
+        <a key={match.index} href={link(match[5]!)} className="font-medium text-primary underline underline-offset-4">
+          {inline(match[4]!, link)}
         </a>,
       );
     last = match.index + match[0].length;

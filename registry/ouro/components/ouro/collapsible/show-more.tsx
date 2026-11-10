@@ -242,7 +242,7 @@ export type ShowMoreLoadProps = ShowMoreListProps & {
   loadingLabel?: string | undefined;
   /**
    * What screen readers hear after each page, from the number of items now shown. Name the
-   * items and translate it here: `(count) => \`Showing ${count} recipes\``.
+   * items and translate it here: `` (count) => `Showing ${count} recipes` ``.
    * @default (count) => `Showing ${count} items`
    * @claim "What screen readers hear after each" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore announcements > says how many items show after each page, through a polite status region)
    */

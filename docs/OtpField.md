@@ -43,7 +43,7 @@ Type: `OtpFieldProps`.
 | `readOnly` | `boolean` |  | Shows the code without letting the person change it. |
 | `ref` | `Ref<HTMLDivElement>` |  | The slots' group element (`role="group"`). |
 | `required` | `boolean` |  | The code must be filled before the form submits. |
-| `slotLabel` | `((position: number, length: number) => string)` | (position, length) => `Character ${position} of ${length}` | The name of each slot after the first (the first takes `label`). Translate it with your app. |
+| `slotLabel` | `((position: number, length: number) => string)` | `` (position, length) => `Character ${position} of ${length}` `` | The name of each slot after the first (the first takes `label`). Translate it with your app. |
 | `validationType` | `"numeric" \| "alpha" \| "alphanumeric"` | `"numeric"` | Which characters the slots take. Others are dropped as the person types or pastes. `numeric` brings up the number keyboard on phones. |
 | `value` | `string` |  | The code, when you control it. Pair it with `onValueChange`. |
 

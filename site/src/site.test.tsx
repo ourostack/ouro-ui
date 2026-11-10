@@ -560,6 +560,15 @@ describe("guides and exports without an item", () => {
     expect(hrefs.filter((link) => link.endsWith(".md") && !link.startsWith("http") && !link.includes("/docs/forms.md"))).toEqual([]);
   });
 
+  it("draws a code span that holds backticks, between double backticks, as one code element, and a function default as code", async () => {
+    await renderPage("/docs/table/");
+    const codes = [...document.querySelectorAll("code")].map((code) => code.textContent);
+    expect(codes).toContain("<Table rowHref={(row) => `/recipes/${row.id}`}>");
+    await renderPage("/docs/show-more/");
+    const shown = [...document.querySelectorAll("code")].map((code) => code.textContent);
+    expect(shown).toEqual(expect.arrayContaining(["(count) => `Showing ${count} items`", "(count) => `Showing ${count} recipes`"]));
+  });
+
   it("gathers a page's claim footnotes into a Claim sources list, each source a link to the file or test it names", async () => {
     const blocks = parse("A claim.[^a] Another.[^b]\n\n[^a]: scripts/claims.mjs#L12; test:scripts/claims.test.mjs::lint verify:count(registry:ui)=1\n[^b]: https://example.com/spec\n  verify:urlOk(https://example.com/spec)");
     expect(blocks).toEqual([
@@ -583,6 +592,8 @@ describe("guides and exports without an item", () => {
     await expect.element(page.getByRole("region", { name: "Claim sources" })).toBeVisible();
     const sources = document.getElementById("claim-sources")!.parentElement!;
     const first = sources.querySelector<HTMLAnchorElement>("li a[href]")!;
+    // A source names its test or file as written, which may hold words the text rules look for.
+    expect(first.getAttribute("data-ouro-allow")).toBe("leaked-value odd-timestamp");
     expect(first.href).toMatch(/^https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\//);
     const ref = document.querySelector<HTMLAnchorElement>("sup a[href^='#source-']")!;
     expect(document.getElementById(ref.getAttribute("href")!.slice(1))).not.toBeNull();

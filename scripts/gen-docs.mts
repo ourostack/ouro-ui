@@ -359,9 +359,11 @@ function propTable(props: Prop[]): string {
   return [`| Prop | Type |${defaults ? " Default |" : ""} Description |`, `| --- | --- |${defaults ? " --- |" : ""} --- |`, ...rows].join("\n");
 }
 
-/** `@default "accent"` reads as code, `@default derived from …` stays prose, and a value with a note keeps both. */
+/** `@default "accent"`, `null` or a function reads as code, `@default derived from …` stays prose, and a value with a note keeps both. */
 function defaultText(value: string): string {
-  const match = /^("[^"]*"|'[^']*'|\d[\w.]*|true|false)(.*)$/s.exec(value);
+  // A function is code, unless it lists example outputs in prose ("1 result" or "{count} results").
+  if (/^\([^)]*\)\s*=>/.test(value) && !/" or "|", "/.test(value)) return code(value);
+  const match = /^("[^"]*"|'[^']*'|\d[\w.]*|true|false|null|undefined)(.*)$/s.exec(value);
   return match ? `${code(match[1]!)}${match[2]}` : value;
 }
 

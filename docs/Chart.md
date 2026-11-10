@@ -47,7 +47,7 @@ Type: `ChartProps<Row>`.
 | `hideTitle` | `boolean` |  | Hides the title visually; screen readers still hear it. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `showTable` | `boolean` |  | Shows the data table under the chart. It is always there for screen readers. |
-| `summary` | `((info: ChartSummaryInfo) => string)` | (info) => "Bar chart of Cooked and Saved by Month, 3 points. The table that follows lists every value." | What screen readers hear about the chart after its title, for other languages. |
+| `summary` | `((info: ChartSummaryInfo) => string)` | `(info) => "Bar chart of Cooked and Saved by Month, 3 points. The table that follows lists every value."` | What screen readers hear about the chart after its title, for other languages. |
 | `title` (required) | `string` |  | What the chart shows: "Recipes cooked per month". Its name for screen readers, shown above it. Required. |
 | `type` | `"area" \| "line" \| "bar"` | `"bar"` | What to draw when there are no children: bars, lines or areas, one per series. |
 

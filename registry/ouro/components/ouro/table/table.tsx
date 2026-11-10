@@ -175,7 +175,7 @@ export interface TableOwnProps {
 
   /** Not a prop. Ouro UI uses `rows`: `<Table rows={recipes} columns={…}>`. */
   data?: { "Use rows={recipes}": never };
-  /** Not a prop. A row opens a link with `rowHref`: `<Table rowHref={(row) => `/recipes/${row.id}`}>`. */
+  /** Not a prop. A row opens a link with `rowHref`: `` <Table rowHref={(row) => `/recipes/${row.id}`}> ``. */
   onRowClick?: { "Use rowHref={(row) => `/recipes/${row.id}`}": never };
   /** Not a prop. Ouro UI uses `caption`: `<Table caption="Recipes">`. */
   title?: { 'Use <Table caption="Recipes">': never };

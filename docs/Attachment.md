@@ -37,7 +37,7 @@ Type: `AttachmentProps`.
 | `onOpen` | `((event: MouseEvent<HTMLElement>) => void)` |  | Opens the file in the app, for example in a `Lightbox`. Without `href` the attachment is a button that calls it. With `href` it stays a link: a plain click calls it instead of following the link, and a click with a modifier key (a new tab, a new window) or the middle button follows the link as usual. |
 | `onRemove` | `(() => void)` |  | Shows a remove button, which calls this. Use it while composing a message, before it is sent. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
-| `removeLabel` | `((name: string) => string)` | (name) => `Remove ${name}` | The remove button's accessible name, for other languages. |
+| `removeLabel` | `((name: string) => string)` | `` (name) => `Remove ${name}` `` | The remove button's accessible name, for other languages. |
 | `size` | `number` |  | The file's size in bytes (`file.size`), shown as "1.2 MB". |
 
 ## Native attributes

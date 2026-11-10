@@ -60,7 +60,7 @@ The props the modes share. Type: `TableProps<Row>`.
 | `dense` | `boolean` |  | Tighter cells, for many rows. A row is still 44px tall on a touch screen when it is a link. |
 | `hideCaption` | `boolean` |  | Hides the caption visually and keeps it as the table's name, when a heading already shows it. |
 | `ref` | `Ref<HTMLTableElement>` |  | A ref to the `<table>` element. |
-| `sortedLabel` | `((header: string, direction: TableSortDirection) => string)` | (header, direction) => `Sorted by ${header}, ${direction}` | What screen readers hear after a header sorts the rows, from the column's header and the new direction. Pass it to translate the message. |
+| `sortedLabel` | `((header: string, direction: TableSortDirection) => string)` | `` (header, direction) => `Sorted by ${header}, ${direction}` `` | What screen readers hear after a header sorts the rows, from the column's header and the new direction. Pass it to translate the message. |
 | `stickyHeader` | `boolean` |  | Keeps the header row at the top while the rows scroll under it. The table scrolls inside its own height, so give it one: `className="max-h-96"`. It keeps working while the table also scrolls sideways. |
 | `striped` | `boolean` |  | Shades every other body row, for long rows that are hard to follow across. |
 | `style` | `CSSProperties` |  |  |
@@ -116,7 +116,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `data`: Not a prop. Ouro UI uses `rows`: `<Table rows={recipes} columns={…}>`.
-- `onRowClick`: Not a prop. A row opens a link with `rowHref`: `<Table rowHref={(row) => `/recipes/${row.id}`}>`.
+- `onRowClick`: Not a prop. A row opens a link with `rowHref`: `` <Table rowHref={(row) => `/recipes/${row.id}`}> ``.
 - `sortable`: Not a prop. A column sorts with `sortable`: `{ key: "name", header: "Recipe", sortable: true }`.
 - `title`: Not a prop. Ouro UI uses `caption`: `<Table caption="Recipes">`.
 

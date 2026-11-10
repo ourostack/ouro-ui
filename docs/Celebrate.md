@@ -30,7 +30,7 @@ Type: `CelebrateProps`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `cap` | `CelebrateCap \| readonly CelebrateCap[]` | How often the confetti may burst: at most `times` times `per` day, week, 30-day month or ever, counted in `localStorage` under `capKey` (or the cap's own `key`). Pass several to hold to all of them, such as once per conversation and three times a day across the app: `cap={[{ times: 1, per: "ever", key: `cleared:${id}` }, { times: 3, per: "day", key: "celebrations" }]}`. Past a cap the message still shows and is heard, with no confetti. `Moment` counts under the same keys, so the two can share a cap. |
+| `cap` | `CelebrateCap \| readonly CelebrateCap[]` | How often the confetti may burst: at most `times` times `per` day, week, 30-day month or ever, counted in `localStorage` under `capKey` (or the cap's own `key`). Pass several to hold to all of them, such as once per conversation and three times a day across the app: `` cap={[{ times: 1, per: "ever", key: `cleared:${id}` }, { times: 3, per: "day", key: "celebrations" }]} ``. Past a cap the message still shows and is heard, with no confetti. `Moment` counts under the same keys, so the two can share a cap. |
 | `capKey` | `string` | The key a cap without its own `key` counts under, such as "list-cleared". Falls back to `id`. |
 | `className` | `string` | Layout only: placement (`mx-auto`, `mt-4`). Appearance classes warn in development. |
 | `hideMessage` | `boolean` | Speaks the message without showing the badge, for a screen that already says it. The confetti still bursts. |

@@ -33,12 +33,12 @@ Type: `ThreadSummaryProps`.
 | `label` | `string` |  | What screen readers hear for the button, when its words alone ("2 replies") would repeat from post to post: "2 replies to Riley's post Settings mockups". Start it with the words the button shows, so speech input that says them still finds it (WCAG's label in name). |
 | `lastReply` | `string` |  | When the last reply came, already formatted for the reader ("7:44 AM"). |
 | `lastReplyDateTime` | `string` |  | The same moment for machines, as an ISO date: the `<time>` element's `dateTime`. |
-| `lastReplyLabel` | `((time: string) => string)` | (time) => `Last reply ${time}` | The words around the last reply's time, for other languages. |
+| `lastReplyLabel` | `((time: string) => string)` | `` (time) => `Last reply ${time}` `` | The words around the last reply's time, for other languages. |
 | `onOpen` (required) | `(event: MouseEvent<HTMLElement>) => void` |  | Opens the thread, with the click event, so the app can check `event.isTrusted`. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `repliers` | `readonly ThreadReplier[]` |  | Who replied, in the order to show them. The first three show as small overlapping faces: the picture, or one initial on the person's colour; the count beside them says how many replied in all. |
 | `repliersLabel` | `string` | `"Replied"` | What screen readers hear for the repliers' avatars, for other languages. |
-| `repliesLabel` | `((count: number) => string)` | (count) => count === 1 ? "1 reply" : `${count} replies` | The button's words for a count, for other languages. |
+| `repliesLabel` | `((count: number) => string)` | `` (count) => count === 1 ? "1 reply" : `${count} replies` `` | The button's words for a count, for other languages. |
 | `replyLabel` | `string` | `"Reply"` | The button's words before anyone has replied, for other languages. |
 
 ## Native attributes

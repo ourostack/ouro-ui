@@ -98,7 +98,7 @@ export interface PaginationPagerProps {
 export type PaginationLinkProps = PaginationBaseProps & {
   /**
    * The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a
-   * Server Component can pass) or a function (`href={(page) => `/recipes?page=${page}`}`).
+   * Server Component can pass) or a function (`` href={(page) => `/recipes?page=${page}`} ``).
    * Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates.
    */
   href: string | ((page: number) => string);

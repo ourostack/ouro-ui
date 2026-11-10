@@ -34,7 +34,7 @@ Type: `AvatarGroupProps`.
 | `className` | `string` |  | Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. |
 | `label` (required) | `string` |  | What the group is, for screen readers: "Cooks on this recipe". Required, so the group has a name. |
 | `max` | `number` | unlimited | Shows at most this many avatars, then a "+N" count for the rest. |
-| `moreLabel` | `((count: number) => string)` | (count) => `${count} more` | What screen readers hear for the "+N" count, for other languages. |
+| `moreLabel` | `((count: number) => string)` | `` (count) => `${count} more` `` | What screen readers hear for the "+N" count, for other languages. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | The size of every avatar in the group, and of the count. |
 | `total` | `number` |  | How many there are in all, when you pass only the first few avatars (a recipe with 120 cooks). The "+N" count is `total` minus the avatars shown. |

@@ -49,7 +49,7 @@ The props the modes share. Type: `PaginationProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `hasNextPage` | `boolean` | `false` | Whether there is a page after this one, which enables Next. |
-| `href` (required) | `string \| ((page: number) => string)` |  | The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a Server Component can pass) or a function (`href={(page) => `/recipes?page=${page}`}`). Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates. |
+| `href` (required) | `string \| ((page: number) => string)` |  | The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a Server Component can pass) or a function (`` href={(page) => `/recipes?page=${page}`} ``). Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates. |
 
 Not in this mode (typed `never`):
 
@@ -60,7 +60,7 @@ Not in this mode (typed `never`):
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `href` (required) | `string \| ((page: number) => string)` | The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a Server Component can pass) or a function (`href={(page) => `/recipes?page=${page}`}`). Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates. |
+| `href` (required) | `string \| ((page: number) => string)` | The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a Server Component can pass) or a function (`` href={(page) => `/recipes?page=${page}`} ``). Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates. |
 | `pageCount` (required) | `number` | How many pages there are. From a count of rows: `Math.ceil(total / pageSize)`. |
 
 Not in this mode (typed `never`):

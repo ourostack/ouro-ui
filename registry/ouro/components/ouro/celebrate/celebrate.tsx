@@ -20,7 +20,7 @@ export interface CelebrateOwnProps {
    * How often the confetti may burst: at most `times` times `per` day, week, 30-day month or
    * ever, counted in `localStorage` under `capKey` (or the cap's own `key`). Pass several to
    * hold to all of them, such as once per conversation and three times a day across the app:
-   * `cap={[{ times: 1, per: "ever", key: `cleared:${id}` }, { times: 3, per: "day", key: "celebrations" }]}`.
+   * `` cap={[{ times: 1, per: "ever", key: `cleared:${id}` }, { times: 3, per: "day", key: "celebrations" }]} ``.
    * Past a cap the message still shows and is heard, with no confetti. `Moment` counts under the
    * same keys, so the two can share a cap.
    * @claim "Past a cap the message still" registry/ouro/components/ouro/celebrate/celebrate.test.tsx verify:testExists(registry/ouro/components/ouro/celebrate/celebrate.test.tsx::Celebrate cap > bursts at most times per period under its key, then shows and speaks the message alone)
