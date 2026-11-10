@@ -573,7 +573,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       // The rule needs two corners on the screen; a media scrolled out of view in a strip of its own shows none.
       if (corners.length < 2) continue;
       const shot = await page.screenshot({ clip, scale: "css" });
-      readings.push({ ref: media.ref, element: media.element, radius: media.radius, behind: media.behind, corners, shot: `data:image/png;base64,${shot.toString("base64")}` });
+      readings.push({ ref: media.ref, element: media.element, radius: media.radius, behind: media.behind, own: media.own, corners, shot: `data:image/png;base64,${shot.toString("base64")}` });
     }
     return readings;
   };
@@ -642,6 +642,9 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     else {
       // Checked as it is, but never a pass: on a slower machine the same page could draw something else in time.
       if (!ready) issues.push({ ref: "", rule: "not-ready", element: "the page", detail: `no ready signal in ${readyTimeout / 1000} s (ouro:ready, data-app-ready or a drawn h1)` });
+      // The loading measures first, before any rule scrolls: a script's scroll doesn't end largest-contentful-paint as a
+      // person's does, so a picture far down that a later rule scrolls to would otherwise read as the first content.
+      if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
       // axe first: it names an element by its rarest attribute, which would otherwise be the other rules' marks, a new
       // one at each size.
       if (axe && axeAt.has(`${width}x${height}`)) {
@@ -656,7 +659,6 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       issues.push(...(await page.evaluate(findTextIssues)));
       issues.push(...(await page.evaluate(findLayoutIssues, {})));
       issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
-      if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
       issues.push(...runtime());
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);
