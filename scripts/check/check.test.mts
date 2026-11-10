@@ -67,10 +67,10 @@ describe("Ouro check", () => {
     // axe runs only at the phone and laptop sizes.
     assert.ok(result.findings.some((f) => f.rule === "axe" && f.width === 390) && result.findings.some((f) => f.rule === "axe" && f.width === 1440));
     assert.equal(result.gated.length, result.findings.length);
-    assert.equal(result.shots.length, 64 * 2);
+    assert.equal(result.shots.length, 66 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 64);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 64 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 66);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 66 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -91,7 +91,7 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 32);
+    assert.equal(merged.pages.length, 33);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
@@ -124,9 +124,9 @@ describe("Ouro check", () => {
     for (const f of measured.filter((f) => f.closeUp)) assert.ok(existsSync(join(out, f.closeUp!)), f.closeUp);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
     assert.ok(report.findings.some((f) => f.rule === "inp" && f.value === pressed[0]!.value && f.budget === 200 && f.unit === "ms" && f.samples!.length === 5));
-    assert.ok(report.findings.filter((f) => f.rule !== "inp").every((f) => !("samples" in f)));
+    assert.ok(report.findings.filter((f) => f.rule !== "inp" && f.rule !== "long-task").every((f) => !("samples" in f)));
     assert.ok(report.findings.filter((f) => f.rule === "overlap" || f.rule === "axe").every((f) => !("value" in f)));
-    assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 1));
+    assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 2));
 
     // First content is what the page drew on arrival, read before any rule scrolls it: this page draws a large block
     // whenever it scrolls, which the corner rule does to reach the rounded picture far down, once the page has settled
@@ -139,7 +139,7 @@ describe("Ouro check", () => {
     assert.deepEqual(quick.findings.filter((f) => f.rule === "first-content").map((f) => f.element), []);
 
     // Budgets from the config, and none with the measured rules off.
-    const config = { budgets: { inp: 5000, "layout-shift": 5, "first-content": 60000 } };
+    const config = { budgets: { inp: 5000, "layout-shift": 5, "first-content": 60000, "long-task": 5000 } };
     const relaxed = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], config, chromium, log: quiet });
     assert.deepEqual(relaxed.findings.filter((f) => f.value !== undefined), []);
     const off = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], measured: false, chromium, log: quiet });
@@ -372,7 +372,7 @@ describe("Ouro check", () => {
     }
   });
 
-  test("fails a page that answers an error or does not answer, and checks nothing else on it", async () => {
+  test("fails an unanswered or error page and records incomplete task measurement without scanning it", async () => {
     const server = await serve(fixtures);
     const closed = await serve(fixtures);
     const refused = `${closed.origin}/overlap-fail.html`;
@@ -380,7 +380,12 @@ describe("Ouro check", () => {
     try {
       const result = await check({ targets: [`${server.origin}/nope.html`, refused], out: dir("http"), sizes: [[390, 844]], themes: ["light"], chromium, log: quiet });
       // The two pages load side by side, so in either order.
-      const gated = [...result.gated].sort((x, y) => x.detail.localeCompare(y.detail));
+      const incomplete = result.gated.filter((finding) => finding.rule === "long-task");
+      assert.equal(incomplete.length, 2);
+      assert.ok(incomplete.every((finding) => finding.value === undefined && finding.closeUp === undefined));
+      assert.ok(result.time!.filter((row) => row.phase === "loading").every((row) => row.reading.status === "incomplete" && row.reading.reason === "page-load-failed"));
+      assert.ok(result.time!.filter((row) => row.phase !== "loading").every((row) => row.reading.status === "not-run" && row.reading.reason === "page-load-failed"));
+      const gated = result.gated.filter((finding) => finding.rule !== "long-task").sort((x, y) => x.detail.localeCompare(y.detail));
       assert.deepEqual(gated.map((f) => [f.rule, f.element]), [["http-error", "the page"], ["http-error", "the page"]]);
       assert.equal(gated[0]!.detail, "answered 404");
       assert.match(gated[1]!.detail, /^no answer: Error: connect ECONNREFUSED/);

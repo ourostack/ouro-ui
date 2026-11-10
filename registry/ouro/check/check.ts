@@ -20,6 +20,7 @@ import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
 import { findInteractionIssues } from "./interaction-check.ts";
+import { armTime, compareTimeObservations, continueTime, listenForTime, readTime, timeFailure, timeIssues, type TimeObservation, type TimeReading, type TimeWindow } from "./time-check.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of
 // a dual-screen phone unfolded sideways, light and dark, at density 2 up to 3072px wide and 1 above. Pass and fail come from measurement, never from
@@ -48,7 +49,7 @@ interface Finding {
   value?: number;
   budget?: number;
   unit?: string;
-  // inp's presses of the control, each in ms, whose 75th percentile is its value.
+  // inp's press durations (p75), jank's frame durations (median), or long-task's raw task durations (maximum).
   samples?: number[];
   // The device pixel ratio the page was drawn at (dprAt); missing in a report written before it was recorded.
   dpr?: number;
@@ -91,6 +92,8 @@ interface Report {
   // The elements a page opts out of a rule, with their reasons, once a page.
   allowances: (Allowance & { site: string; page: string })[];
   shots: Shot[];
+  // Missing in older reports. Every attempted or deliberately unperformed task-observation window.
+  time?: TimeObservation[];
 }
 
 interface CheckResult extends Report {
@@ -102,6 +105,7 @@ interface Budgets {
   "layout-shift": number;
   "first-content": number;
   jank: number;
+  "long-task": number;
 }
 
 interface Gate {
@@ -181,6 +185,7 @@ const LABELS: Record<string, string> = {
   "layout-shift": "layout shift while loading",
   "first-content": "slow first content",
   inp: "slow press",
+  "long-task": "long main-thread task",
   "giant-picture": "giant picture",
   "cramped-heading": "cramped heading",
   "nested-frame": "frame in a frame",
@@ -221,6 +226,7 @@ const HINTS: Record<string, string> = {
   "grey-on-colour": "use a shade of the background's own hue, or white at reduced opacity",
   "heading-hierarchy": "size headings by rank: a heading under another is smaller",
   jank: "batch layout reads before writes, animate transform and opacity, and keep hover from moving content",
+  "long-task": "split main-thread work into smaller tasks; restore instrumentation when the observation is incomplete or unsupported",
   repaint: "animate transform or opacity, outside SVG, or let the animation end",
   "leaked-value": "show a person's words for the value, or nothing, never what the program holds for itself",
   "odd-timestamp": "check the time was set before formatting it, and format it for a person: a date, a time or an age",
@@ -236,9 +242,10 @@ const HINTS: Record<string, string> = {
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
 // calls good, a 0.1 layout shift, 2500 ms to the largest content and 200 ms from a press to its paint.
+// long-task tests raw task entries against this check's 100ms budget; frame gaps are not tasks.
 // jank's budget is the longest frame of a step, the median of its runs, from Ouro Feel; a step also fails when every run
 // forces more than MAX_FORCED layouts or moves the page by more than MAX_STEP_SHIFT.
-const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-content": 2500, jank: 250 });
+const BUDGETS: Budgets = Object.freeze({ inp: 200, "layout-shift": 0.1, "first-content": 2500, jank: 250, "long-task": 100 });
 const MAX_FORCED = 50;
 const MAX_STEP_SHIFT = 0.01;
 // The walk: at most WALK_EACH states of each kind a page, each stepped WALK_RUNS times, at inp's size and theme.
@@ -448,7 +455,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const [k, n] = shard;
   const unit = (size: number, page: number) => (size + page) % n === k - 1;
   const swept = list.filter((_, p) => sizes.some((_, s) => unit(s, p)));
-  const report: Report = { targets: options.targets, sizes, themes, ...(n > 1 ? { shard: `${k}/${n}` } : {}), pages: swept.map(({ site, page, name }) => ({ site, page, name })), findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
+  const report: Report = { targets: options.targets, sizes, themes, ...(n > 1 ? { shard: `${k}/${n}` } : {}), pages: swept.map(({ site, page, name }) => ({ site, page, name })), findings: [], fixed: [], candidates: [], shots: [], allowances: [], time: [] };
   if (!swept.length) {
     await close();
     // A shard with nothing to sweep still writes its report, so a merge of every shard's folder works.
@@ -495,25 +502,55 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     if (measured) {
       await context.addInitScript(listenForMeasures);
       await context.addInitScript(listenForMotion);
+      await context.addInitScript(listenForTime);
     }
     return context;
   };
   // Opens a target's page and, for a state, presses its way there, letting the page settle after each press. A press that
   // finds nothing to press fails the state as a page that did not load.
-  const reach = async (page: Page, target: Target): Promise<{ failed: string | null; ready: boolean }> => {
+  const beginTime = async (page: Page): Promise<TimeWindow | TimeReading> => {
+    try {
+      return await page.evaluate(armTime);
+    } catch (problem) {
+      return timeFailure(problem, undefined, page.url());
+    }
+  };
+  const finishTime = async (page: Page, start: TimeWindow | TimeReading, frames = false): Promise<TimeReading> => {
+    if (!("document" in start)) return start;
+    try {
+      if (frames) await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
+      return await page.evaluate(readTime, start);
+    } catch (problem) {
+      return timeFailure(problem, start, page.url());
+    }
+  };
+  const trackTime = (target: Target, width: number, height: number, theme: string) => {
+    const observations: TimeObservation[] = [];
+    const note = (ref: string, element: string, phase: string, run: number, reading: TimeReading) => {
+      const observation: TimeObservation = { site: target.site, page: target.page, width, height, theme, dpr: dprAt(width), viewport: { width, height }, ref, element, phase, run, reading };
+      observations.push(observation);
+      report.time!.push(observation);
+    };
+    return { observations, note };
+  };
+  const reach = async (page: Page, target: Target): Promise<{ failed: string | null; ready: boolean; time: TimeReading }> => {
     const opened = await open(page, target.url, readyTimeout);
-    if (opened.failed) return opened;
+    const disabled: TimeReading = { status: "not-run", reason: "measurement-disabled" };
+    if (opened.failed) return { ...opened, time: measured ? { status: "incomplete", observed: { url: page.url() }, reason: "page-load-failed" } : disabled };
+    const start = measured ? await beginTime(page) : disabled;
+    // The init script observes startup. Capture that document before configured state actions can replace it.
+    if ("document" in start) start.since = 0;
     for (const step of target.steps ?? []) {
       try {
         await page.locator(step).first().click({ timeout: 5000 });
       } catch (problem) {
-        return { failed: `the state's press ${JSON.stringify(step)} found nothing to press (${(problem as Error).message.split("\n")[0]})`, ready: opened.ready };
+        return { failed: `the state's press ${JSON.stringify(step)} found nothing to press (${(problem as Error).message.split("\n")[0]})`, ready: opened.ready, time: await finishTime(page, start) };
       }
       await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
       await page.waitForTimeout(500);
       await settle(page);
     }
-    return opened;
+    return { ...opened, time: await finishTime(page, start) };
   };
   // A finding, recorded, and photographed with its element outlined unless the page already has one of it or 40.
   const record = async (page: Page, target: Target, issue: PageIssue, width: number, height: number, theme: string) => {
@@ -521,6 +558,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     const measured = value === undefined ? {} : { value, budget: budget!, unit: unit!, ...(samples ? { samples } : {}) };
     const f: Finding = { site: target.site, page: target.page, width, height, theme, rule, element, detail, ...measured, gated: isGated(config, target.page, rule), dpr: dprAt(width) };
     findings.push(f);
+    // Missing measurement has no valid task/element picture; keep the gated finding without inventing evidence.
+    if (rule === "long-task" && value === undefined) return;
     const key = keyOf(f);
     if (pictured.has(key) || closeUps.get(target)! >= MAX_CLOSE_UPS) return;
     pictured.add(key);
@@ -536,25 +575,40 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   // percentile, so one slow press on a busy machine does not make one; its photograph is the page after the presses.
   const press = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
+    const time = trackTime(target, width, height, theme);
     let at = page.url();
     const mark = () => page.evaluate(markPressables, { limit: MAX_PRESSES, press: config.press ?? [], never: NEVER_PRESS });
     let controls = await mark();
+    if (!controls.length) time.note("", "the page", "press", 0, { status: "not-run", reason: "no-safe-listed-controls" });
     // By index: a page opened again is marked again, in the same order.
     for (let i = 0; i < controls.length; i++) {
       const { ref, element } = controls[i]!;
       const samples: number[] = [];
       for (let n = 0; n < repeats; n++) {
         const point = await page.evaluate(pressPoint, { ref, never: NEVER_PRESS });
-        if (!point) break;
+        if (!point) {
+          for (let run = n + 1; run <= repeats; run++) {
+            for (const phase of ["press-open", "press-close"]) time.note(ref, element, phase, run, { status: "not-run", reason: "unsafe-or-unavailable" });
+          }
+          break;
+        }
+        const opening = await beginTime(page);
         const since = (await page.evaluate("performance.now()")) as number;
         await page.mouse.click(point.x, point.y);
         /* node:coverage ignore next */
         const ms = await page.evaluate(interactionSince, since).catch(() => 0);
+        const opened = await finishTime(page, opening, true);
+        time.note(ref, element, "press-open", n + 1, opened);
+        const closing = continueTime(opened, await beginTime(page));
         await page.keyboard.press("Escape");
+        time.note(ref, element, "press-close", n + 1, await finishTime(page, closing, true));
         if (page.url() !== at) {
           await reach(page, target);
           at = page.url();
           controls = await mark();
+          for (let run = n + 2; run <= repeats; run++) {
+            for (const phase of ["press-open", "press-close"]) time.note(ref, element, phase, run, { status: "not-run", reason: "page-left-after-press" });
+          }
           break;
         }
         samples.push(ms);
@@ -565,6 +619,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         const detail = `${value} ms from the press to its paint at the 75th percentile of ${samples.length} presses, over the budget of ${budgets.inp} ms`;
         await record(page, target, { ref, rule: "inp", element, detail, value, budget: budgets.inp, unit: "ms", samples }, width, height, theme);
       }
+    }
+    for (const issue of timeIssues(time.observations, budgets["long-task"])) {
+      found++;
+      await record(page, target, issue, width, height, theme);
     }
     return found;
   };
@@ -591,6 +649,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   // run on a busy machine does not make a finding.
   const walk = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
+    const time = trackTime(target, width, height, theme);
+    let hasSteps = false;
     // At rest first, before anything is hovered or opened.
     for (const issue of await page.evaluate(findRepaints)) {
       found++;
@@ -598,6 +658,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     }
     const settle = () => page.waitForTimeout(400);
     for (const step of await page.evaluate(markWalkables, { limit: WALK_EACH, never: NEVER_PRESS })) {
+      hasSteps = true;
       const runs: MotionReading[] = [];
       for (let n = 0; n < WALK_RUNS; n++) {
         // Away from everything, and two frames for the page to settle back, so each run starts from rest and aims at the
@@ -605,13 +666,22 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         await page.mouse.move(0, 0);
         await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
         const point = step.page ? { x: width / 2, y: height / 2 } : await page.evaluate(pressPoint, { ref: step.ref, never: "[data-ouro-check-never-walk]" });
-        if (!point) break;
+        if (!point) {
+          for (let run = n + 1; run <= WALK_RUNS; run++) {
+            for (const phase of step.kind === "open" ? ["walk-open", "walk-close"] : [`walk-${step.kind}`]) time.note(step.ref, step.element, phase, run, { status: "not-run", reason: "unsafe-or-unavailable" });
+          }
+          break;
+        }
         await page.evaluate(resetMotion);
+        let start = await beginTime(page);
         // Straight to the target in one move, so the pointer's path hovers nothing else on the way.
         if (step.kind === "hover") await page.mouse.move(point.x, point.y);
         else if (step.kind === "open") {
           await page.mouse.click(point.x, point.y);
           await settle();
+          const opened = await finishTime(page, start);
+          time.note(step.ref, step.element, "walk-open", n + 1, opened);
+          start = continueTime(opened, await beginTime(page));
           await page.keyboard.press("Escape");
         } else if (step.kind === "pan") {
           await page.mouse.move(point.x, point.y);
@@ -624,6 +694,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         }
         await settle();
         runs.push(await page.evaluate(readMotion));
+        time.note(step.ref, step.element, step.kind === "open" ? "walk-close" : `walk-${step.kind}`, n + 1, await finishTime(page, start));
       }
       if (!runs.length) continue;
       const frame = [...runs.map((r) => r.longestFrameMs)].sort((a, b) => a - b)[Math.floor(runs.length / 2)]!;
@@ -640,12 +711,20 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       const verb = { "hover": "hovering", open: "opening and closing", scroll: "scrolling", pan: "panning" }[step.kind];
       await record(page, target, { ref: step.ref, rule: "jank", element: `${verb} ${step.element}`, detail: over.join("; "), value: frame, budget: budgets.jank, unit: "ms", samples: runs.map((r) => r.longestFrameMs) }, width, height, theme);
     }
+    if (!hasSteps) time.note("", "the page", "walk", 0, { status: "not-run", reason: "no-safe-walk-targets" });
+    for (const issue of timeIssues(time.observations, budgets["long-task"])) {
+      found++;
+      await record(page, target, issue, width, height, theme);
+    }
     return found;
   };
   const checkPage = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     const runtime = listenForRuntime(page, target.url);
-    const { failed, ready } = await reach(page, target);
+    const { failed, ready, time: loading } = await reach(page, target);
+    const time = trackTime(target, width, height, theme);
+    time.note("", "the page", "loading", 1, loading);
     const issues: PageIssue[] = [];
+    issues.push(...timeIssues(time.observations, budgets["long-task"]));
     if (failed) issues.push({ ref: "", rule: "http-error", element: "the page", detail: failed });
     else {
       // Checked as it is, but never a pass: on a slower machine the same page could draw something else in time.
@@ -683,23 +762,28 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await page.screenshot({ path: join(out, "sheets/shots", file), type: "jpeg", quality: 70, scale: "css" });
     // Pressed in a context of its own, so what a press saves (a theme, a dismissed banner) reaches no other page.
     // Only on a page with a control listed for pressing: pressing is opt-in.
+    const setupFailure = async (tab: Page, phase: string, detail: string) => {
+      time.note("", "the page", phase, 0, { status: "not-run", reason: "setup-page-load-failed" });
+      await record(tab, target, { ref: "", rule: "http-error", element: `${phase} setup`, detail }, width, height, theme);
+      return 1;
+    };
     let pressed = 0;
     const listed = measured && !failed && inpAt === `${width}x${height} ${theme}` && ((await page.evaluate(anyListed(config.press ?? [])).catch(refused)) as boolean);
     if (listed) {
       const own = await contextFor(width, height, theme);
       const tab = await own.newPage();
-      await reach(tab, target);
-      pressed = await press(tab, target, width, height, theme);
+      const setup = await reach(tab, target);
+      pressed = setup.failed ? await setupFailure(tab, "press", setup.failed) : await press(tab, target, width, height, theme);
       await own.close();
-    }
+    } else time.note("", "the page", "press", 0, { status: "not-run", reason: !measured ? "measurement-disabled" : failed ? "page-load-failed" : inpAt !== `${width}x${height} ${theme}` ? "unselected-size-or-theme" : "no-listed-controls" });
     let walked = 0;
     if (measured && !failed && config.walk !== false && inpAt === `${width}x${height} ${theme}`) {
       const own = await contextFor(width, height, theme, "no-preference");
       const tab = await own.newPage();
-      await reach(tab, target);
-      walked = await walk(tab, target, width, height, theme);
+      const setup = await reach(tab, target);
+      walked = setup.failed ? await setupFailure(tab, "walk", setup.failed) : await walk(tab, target, width, height, theme);
       await own.close();
-    }
+    } else time.note("", "the page", "walk", 0, { status: "not-run", reason: !measured ? "measurement-disabled" : failed ? "page-load-failed" : config.walk === false ? "walk-disabled" : "unselected-size-or-theme" });
     const count = issues.length + pressed + walked;
     log(`${count ? "✗" : "✓"} ${`${width}×${height}`.padEnd(9)} ${theme.padEnd(5)} ${pageOf(target)}${count ? `: ${count}` : ""}`);
     shots.push({ site: target.site, page: target.page, file, width, height, theme, count });
@@ -761,6 +845,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await browser.close();
     await close();
   }
+  report.time?.sort(compareTimeObservations);
   await write(out, report);
   return { ...report, gated: findings.filter((f) => f.gated) };
 }
@@ -824,7 +909,7 @@ async function merge({ dirs, out, config, chromium, executablePath }: MergeOptio
   const pages = new Map<string, PageRef>();
   for (const r of reports) for (const p of r.pages) pages.set(pageOf(p), p);
   const order = [...pages.keys()].sort();
-  const merged: Report = { targets: [...new Set(reports.flatMap((r) => r.targets))], sizes, themes, pages: order.map((key) => pages.get(key)!), findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
+  const merged: Report = { targets: [...new Set(reports.flatMap((r) => r.targets))], sizes, themes, pages: order.map((key) => pages.get(key)!), findings: [], fixed: [], candidates: [], shots: [], allowances: [], time: reports.flatMap((r) => r.time ?? []).sort(compareTimeObservations) };
   const allowed = new Set<string>();
   for (const a of reports.flatMap((r) => r.allowances)) {
     const key = JSON.stringify([a.site, a.page, a.rules, a.element, a.reason]);
@@ -892,7 +977,7 @@ function group(findings: Finding[]): (Finding & { sizes: string[] })[] {
 }
 
 // The Markdown report: a row per page with each rule's count, then every finding with the sizes it shows at.
-function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: Report): string {
+function summary({ findings, fixed, pages, sizes, themes, shard, allowances, time }: Report): string {
   const rows = group(findings);
   const lines = [
     `### Ouro check: ${pages.length} page${pages.length === 1 ? "" : "s"} at ${sizes.length} size${sizes.length === 1 ? "" : "s"}, ${themes.join(" and ")}, density 2 (1 above 3072px wide)${shard ? `, shard ${shard}` : ""}`,
@@ -905,9 +990,13 @@ function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: R
     const count = (rule: string) => mine.filter((r) => r.rule === rule).length || "";
     lines.push(`| ${!mine.length ? "✓" : mine.some((r) => r.gated) ? "✗" : "·"} | \`${pageOf(ref)}\` | ${RULES.map(count).join(" | ")} |`);
   }
-  lines.push("", "✗ fails; · is waived in ouro-check.json. Each finding has a captioned close-up in `findings/`, and each page a contact sheet in `sheets/`.", "");
+  lines.push("", "✗ fails; · is waived in ouro-check.json. Findings have captioned close-ups in `findings/` (except missing task measurements), and each page a contact sheet in `sheets/`.", "");
   if (fixed.length) lines.push(`Fixed since the earlier report: ${fixed.length}, each with a before and after in \`pairs/\`.`, "");
   if (allowances.length) lines.push(`Opted out on purpose: ${allowances.length}, each with its reason in \`report.json\` (\`allowances\`).`, "");
+  if (time) {
+    const count = (status: TimeReading["status"]) => time.filter((observation) => observation.reading.status === status).length;
+    lines.push(`Task windows: ${count("measured")} measured, ${count("incomplete")} incomplete, ${count("unsupported")} unsupported, ${count("not-run")} not run. Raw entries, boundaries, and reasons are in \`report.json\` (\`time\`); these observations do not prove complete event-loop or presented-frame coverage.`, "");
+  }
   if (rows.length) {
     lines.push("<details><summary>Every finding</summary>", "", "| | Page | Rule | Element | At | Example |", "|---|---|---|---|---|---|");
     const cell = (text: string) => text.replaceAll("|", "\\|");
@@ -948,9 +1037,9 @@ one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warn
 the page's own server that fail; content the screen cuts off, the same control twice in view and a region that
 scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason
 given; and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
-and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page
+and ask for HSTS. It measures layout shift, first content, actual long main-thread tasks, the presses the app lists and jank as it walks each page
 (hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a
-contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.
+contact sheet per page and captioned finding close-ups (except missing task measurements). merge joins the out folders of a sharded run into one.
 
   --pages <glob>           only the built folder's pages the glob matches, such as "docs/**"
   --out <folder>           where the report goes (default ouro-check)

@@ -27,6 +27,9 @@ test("the Ouro check tests pass and cover every line, branch and function of its
       "--test-coverage-functions=100",
       "scripts/check/check.test.mts",
       "scripts/check/fades.test.mts",
+      "scripts/check/time.test.mts",
+      "scripts/check/time-report.test.mts",
+      "scripts/check/time-runner.test.mts",
     ],
     {
       cwd: root,
