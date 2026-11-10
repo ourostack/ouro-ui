@@ -1118,6 +1118,56 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("shows on a row focused from the keyboard, or the pointer rests on, in the commit a layer arriving after its list mounts in", async () => {
+    const layer = createRowLayer<string>();
+    // What the layer's first commit leaves committed before anything else can run: nothing paints between a task and
+    // its microtasks, so a row shown by then is in the frame the layer arrives in.
+    const first: { row: HTMLElement | null | undefined } = { row: undefined };
+    function Layer({ list }: { list: RefObject<HTMLDivElement | null> }) {
+      const hover = useRowHover(list, layer);
+      const committed = useRef<HTMLElement | null>(null);
+      useLayoutEffect(() => {
+        committed.current = hover.row;
+      });
+      useLayoutEffect(() => {
+        queueMicrotask(() => (first.row = committed.current));
+      }, []);
+      return null;
+    }
+    function Rows({ ready, focus }: { ready: boolean; focus: boolean }) {
+      const list = useRef<HTMLDivElement>(null);
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        layer.set(ref.current!, "r0");
+        if (focus) ref.current!.focus();
+      }, [focus]);
+      return (
+        <div ref={list}>
+          <div ref={ref} id="r0" tabIndex={-1} style={{ height: 40 }}>
+            Row
+          </div>
+          {ready ? <Layer list={list} /> : null}
+        </div>
+      );
+    }
+    // Focus already in a row, from the keyboard.
+    await userEvent.keyboard("{Shift}");
+    const focused = await render(<Rows ready={false} focus />);
+    flushSync(() => roots.at(-1)!.render(<Rows ready focus />));
+    await act(async () => {});
+    expect(first.row).toBe(row("r0"));
+    await focused.rerender(<Rows ready={false} focus={false} />);
+    await act(async () => roots.pop()!.unmount());
+    // The pointer resting on a row, nothing focused.
+    first.row = undefined;
+    const rested = await render(<Rows ready={false} focus={false} />);
+    await userEvent.hover(row("r0"));
+    flushSync(() => roots.at(-1)!.render(<Rows ready focus={false} />));
+    await act(async () => {});
+    expect(first.row).toBe(row("r0"));
+    await rested.rerender(<Rows ready={false} focus={false} />);
+  });
+
   it("a list inside a row stops looking for a row at its own root: it never reaches past it to an ancestor row of the same shared layer", async () => {
     const layer = createRowLayer<string>();
     function Inner({ container }: { container: RefObject<HTMLDivElement | null> }) {
