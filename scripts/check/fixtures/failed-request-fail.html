@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Failed request: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}</style>
+<main><h1>Failed request</h1><p>The page asks its own server for data that isn't there, and frames a page that isn't either.</p><iframe title="Missing" src="/missing-frame.html" width="200" height="80"></iframe></main>
+<script>
+  fetch("/missing-data.json").then((r) => r.ok);
+</script>

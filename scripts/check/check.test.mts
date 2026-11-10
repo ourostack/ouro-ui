@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
@@ -66,10 +67,10 @@ describe("Ouro check", () => {
     // axe runs only at the phone and laptop sizes.
     assert.ok(result.findings.some((f) => f.rule === "axe" && f.width === 390) && result.findings.some((f) => f.rule === "axe" && f.width === 1440));
     assert.equal(result.gated.length, result.findings.length);
-    assert.equal(result.shots.length, 46 * 2);
+    assert.equal(result.shots.length, 50 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 46);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 46 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 50);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 50 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -90,7 +91,7 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 23);
+    assert.equal(merged.pages.length, 25);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
@@ -343,6 +344,24 @@ describe("Ouro check", () => {
     assert.equal(await bluePixels(join(barredOut, deep.closeUp!.replace(/\.png$/, "-raw.png"))), 0);
   });
 
+  test("finds a request to the page's own origin that gets no answer, once, by its path without the server's address or its query", async () => {
+    // The server hangs up on /data.json without a word, as a crashed handler does.
+    const server = createServer((request, response) => {
+      if (request.url!.startsWith("/data.json")) return request.socket.destroy();
+      response.writeHead(200, { "content-type": "text/html" }).end('<!doctype html><html lang="en"><title>Drop</title><main><h1>Drop</h1><p>Asks for data.</p></main><script>for (const n of [1, 2, 3]) fetch(`/data.json?try=${n}`).catch(() => undefined)</script>');
+    });
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    const { port } = server.address() as { port: number };
+    try {
+      const result = await check({ targets: [`http://127.0.0.1:${port}/page`], out: dir("drop"), sizes: [[390, 844], [1440, 900]], themes: ["light"], measured: false, chromium, log: quiet });
+      const failed = result.findings.filter((f) => f.rule === "failed-request");
+      assert.deepEqual(failed.map((f) => [f.element, f.width]), [["GET /data.json", 390], ["GET /data.json", 1440]]);
+      assert.match(failed[0]!.detail, /^no answer \(net::ERR_[A-Z_]+\)$/);
+    } finally {
+      await new Promise((done) => server.close(done));
+    }
+  });
+
   test("fails a page that answers an error or does not answer, and checks nothing else on it", async () => {
     const server = await serve(fixtures);
     const closed = await serve(fixtures);
@@ -407,7 +426,7 @@ describe("Ouro check", () => {
   });
 
   test("checks a page that never settles once its waits run out", async () => {
-    const busy = site("busy", { "index.html": page("<p>Still loading.</p>", '<script type="module">setInterval(() => fetch(`/poll?${Math.random()}`), 100);</script>') });
+    const busy = site("busy", { "index.html": page("<p>Still loading.</p>", '<script type="module">setInterval(() => fetch(`/index.html?${Math.random()}`), 100);</script>') });
     // axe runs at the narrowest and widest of sizes without the phone and laptop ones.
     const result = await check({ targets: [busy], out: dir("busy"), sizes: [[400, 800]], themes: ["light"], readyTimeout: 200, readyEvents: ["app:drawn"], axe, chromium, log: quiet });
     assert.equal(result.shots.length, 1);
