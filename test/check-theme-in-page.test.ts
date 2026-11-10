@@ -70,6 +70,7 @@ describe("findThemeIssues: focus-ring", () => {
         .line { text-decoration: underline; text-decoration-color: #ccc; } .line:focus-visible { text-decoration-color: #36f; text-decoration-thickness: 2px; }
         .field:focus-within { box-shadow: 0 0 0 2px #36f; }
         .row:has(.row-link:focus-visible) { outline: 2px solid #36f; }
+        .cell { display: grid; } .cell > * { grid-area: 1 / 1; } .cell:has(> .code:focus-visible) > .overlay { outline: 2px solid #36f; }
         .card:focus-visible .title { outline: 2px solid #36f; }
         .stretch { position: relative; } .stretch::after { content: ""; position: absolute; inset: 0; } .stretch:focus-visible::after { outline: 2px solid #36f; }
         .spin { animation: spin 1s linear infinite; } .spin:focus-visible { outline: 2px solid #36f !important; }
@@ -85,6 +86,7 @@ describe("findThemeIssues: focus-ring", () => {
       <a href="#c" class="card"><span class="title">A card</span></a>
       <a href="#s" class="stretch">Stretched</a>
       <div class="row"><div><p><a href="#r" class="row-link">A row's link, three boxes in</a></p></div></div>
+      <div class="cell"><span class="overlay" aria-hidden="true"></span><pre class="code" tabindex="0" style="margin:0">const ring = "beside";</pre></div>
       <button class="spin">Spinning</button><button class="fade">Fading in</button>
       <button class="appear">A ring that appears</button><button class="lift">Lifts</button>
       <button class="first" autofocus>Already focused</button>

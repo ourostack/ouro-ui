@@ -8,12 +8,12 @@ import type { PageIssue } from "./size-check.ts";
 // visible:
 //
 //   focus-ring  a control that, given keyboard focus, changes nothing a person can see: no outline, shadow, border,
-//               background, colour or underline (its colour or thickness too) on it, any box around it or what is
-//               in it, nor on their ::before or ::after. An outline or shadow in a transparent colour, or 0 wide,
-//               counts as none, and so does anything on a part that isn't drawn (see-through, hidden, a pseudo-element
-//               with no content). One control of each kind (its tag, id, classes, type, role and inline style), up
-//               to `maxControls` kinds a page, each read unfocused first (one that already has focus is blurred), then
-//               focused without scrolling; focus goes back where it was
+//               background, colour or underline (its colour or thickness too) on it, any box around it, what is
+//               beside it (an overlay that draws its ring) or in it, nor on their ::before or ::after. An outline or
+//               shadow in a transparent colour, or 0 wide, counts as none, and so does anything on a part that isn't
+//               drawn (see-through, hidden, a pseudo-element with no content). One control of each kind (its tag,
+//               id, classes, type, role and inline style), up to `maxControls` kinds a page, each read unfocused first
+//               (one that already has focus is blurred), then focused without scrolling; focus goes back where it was
 //   dark-miss   on a page whose own background is dark (its dark theme, or a page that is always dark), a surface of
 //               `minWidth` × `minHeight` or more still filled a light neutral: an opaque background as light as
 //               `light` (relative luminance) or lighter, with no more than `chroma` of colour, the white, grey or cream
@@ -110,7 +110,9 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
   };
   const looks = (el: Element) => {
     const inside = [...el.querySelectorAll("*")].slice(0, 12);
-    return [el, ...around(el), ...inside].flatMap((n) => [look(n), look(n, "::before"), look(n, "::after")]).join("\n");
+    // A ring drawn on an overlay beside the control, as CodeBlock draws its code's ring over the code's cell.
+    const beside = [...el.parentElement!.children].filter((n) => n !== el).slice(0, 12);
+    return [el, ...around(el), ...beside, ...inside].flatMap((n) => [look(n), look(n, "::before"), look(n, "::after")]).join("\n");
   };
   const settle = (el: Element) => {
     for (const n of [el, ...around(el)]) {
