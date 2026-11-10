@@ -8,11 +8,12 @@ import type { PageIssue } from "./size-check.ts";
 // visible:
 //
 //   focus-ring  a control that, given keyboard focus, changes nothing a person can see: no outline, shadow, border,
-//               background, colour or underline (its colour or thickness too) on it, its parent or grandparent or what
-//               is in it, nor on its ::before or ::after. An outline or shadow in a transparent colour, or 0 wide,
+//               background, colour or underline (its colour or thickness too) on it, any box around it or what is
+//               in it, nor on their ::before or ::after. An outline or shadow in a transparent colour, or 0 wide,
 //               counts as none, and so does anything on a part that isn't drawn (see-through, hidden, a pseudo-element
-//               with no content). Up to `maxControls` controls a page, each read unfocused first (one that already
-//               has focus is blurred), then focused without scrolling; focus goes back where it was
+//               with no content). One control of each kind (its tag, id, classes, type, role and inline style), up
+//               to `maxControls` kinds a page, each read unfocused first (one that already has focus is blurred), then
+//               focused without scrolling; focus goes back where it was
 //   dark-miss   on a page whose own background is dark (its dark theme, or a page that is always dark), a surface of
 //               `minWidth` × `minHeight` or more still filled a light neutral: an opaque background as light as
 //               `light` (relative luminance) or lighter, with no more than `chroma` of colour, the white, grey or cream
@@ -100,8 +101,13 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
     const fill = visible(s.backgroundColor) ? s.backgroundColor : "none";
     return [outline, shadow, ...borders, fill, s.color, s.textDecorationLine === "none" ? "none" : `${s.textDecorationLine} ${s.textDecorationColor} ${s.textDecorationThickness}`, s.backgroundImage, s.opacity, pseudo ? s.content : ""].join("|");
   };
-  // A control's parent and grandparent: a field's frame often shows its focus (:focus-within).
-  const around = (el: Element) => [el.parentElement!, el.parentElement!.parentElement!];
+  // Every box around a control: a field's frame, or a card or row that holds a stretched link, often shows its focus
+  // (:focus-within, :has(:focus-visible)), however far out it is.
+  const around = (el: Element) => {
+    const out: Element[] = [];
+    for (let n = el.parentElement; n; n = n.parentElement) out.push(n);
+    return out;
+  };
   const looks = (el: Element) => {
     const inside = [...el.querySelectorAll("*")].slice(0, 12);
     return [el, ...around(el), ...inside].flatMap((n) => [look(n), look(n, "::before"), look(n, "::after")]).join("\n");
@@ -119,11 +125,15 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
   };
   const focusable = "button, a[href], input:not([type=hidden]), select, textarea, summary, [tabindex]:not([tabindex='-1']), [contenteditable=''], [contenteditable=true]";
   const was = document.activeElement as HTMLElement | null;
-  let tried = 0;
+  // One control of a kind: a sidebar's hundred links share one look, so judging one judges them all, and the budget
+  // reaches the rest of the page.
+  const kinds = new Set<string>();
   for (const el of document.body.querySelectorAll<HTMLElement>(focusable)) {
-    if (tried >= maxControls) break;
+    if (kinds.size >= maxControls) break;
     if ((el as HTMLButtonElement).disabled || el.closest("fieldset[disabled]") || optedOut(el, "focus-ring") || !drawn(el)) continue;
-    tried++;
+    const kind = [el.tagName, el.id, el.className, el.getAttribute("type"), el.getAttribute("role"), el.getAttribute("style")].join("|");
+    if (kinds.has(kind)) continue;
+    kinds.add(kind);
     // Unfocused first, so a control that already has focus (autofocus, say) is read as it looks without it.
     (document.activeElement as HTMLElement).blur();
     settle(el);

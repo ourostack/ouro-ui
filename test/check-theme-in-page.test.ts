@@ -69,6 +69,7 @@ describe("findThemeIssues: focus-ring", () => {
         .ink:focus-visible { color: #36f; }
         .line { text-decoration: underline; text-decoration-color: #ccc; } .line:focus-visible { text-decoration-color: #36f; text-decoration-thickness: 2px; }
         .field:focus-within { box-shadow: 0 0 0 2px #36f; }
+        .row:has(.row-link:focus-visible) { outline: 2px solid #36f; }
         .card:focus-visible .title { outline: 2px solid #36f; }
         .stretch { position: relative; } .stretch::after { content: ""; position: absolute; inset: 0; } .stretch:focus-visible::after { outline: 2px solid #36f; }
         .spin { animation: spin 1s linear infinite; } .spin:focus-visible { outline: 2px solid #36f !important; }
@@ -83,6 +84,7 @@ describe("findThemeIssues: focus-ring", () => {
       <label class="field"><input aria-label="In a frame"></label>
       <a href="#c" class="card"><span class="title">A card</span></a>
       <a href="#s" class="stretch">Stretched</a>
+      <div class="row"><div><p><a href="#r" class="row-link">A row's link, three boxes in</a></p></div></div>
       <button class="spin">Spinning</button><button class="fade">Fading in</button>
       <button class="appear">A ring that appears</button><button class="lift">Lifts</button>
       <button class="first" autofocus>Already focused</button>
@@ -93,8 +95,9 @@ describe("findThemeIssues: focus-ring", () => {
     expect(document.activeElement).toBe(host.querySelector(".first"));
   });
 
-  it("passes controls it can't focus or judge, allowed ones, and stops at maxControls, then gives focus back", () => {
+  it("judges one control of a kind, passes controls it can't focus or judge and allowed ones, and stops at maxControls, then gives focus back", () => {
     render(`${reset}<div class="t">
+      <button class="same">Twin</button><button class="same">Twin</button>
       <button disabled>Disabled</button>
       <fieldset disabled><button>In a disabled set</button></fieldset>
       <button hidden>Hidden</button>
@@ -108,10 +111,10 @@ describe("findThemeIssues: focus-ring", () => {
     const was = host.querySelector<HTMLInputElement>("#was")!;
     host.querySelector("#hands-on")!.addEventListener("focus", () => host.querySelector<HTMLElement>("#taker")!.focus());
     was.focus();
-    expect(of("focus-ring").map((issue) => issue.element)).toEqual(['input#taker "Taker"', 'input#was "Was focused"']);
+    expect(of("focus-ring").map((issue) => issue.element)).toEqual(['button.same "Twin"', 'input#taker "Taker"', 'input#was "Was focused"']);
     expect(document.activeElement).toBe(was);
     was.blur();
-    expect(of("focus-ring", { maxControls: 1 })).toEqual([]);
+    expect(of("focus-ring", { maxControls: 2 }).map((issue) => issue.element)).toEqual(['button.same "Twin"']);
     expect(document.activeElement).toBe(document.body);
     host.innerHTML = `${reset}<div class="t"><button data-ouro-allow="focus-ring">No reason</button></div>`;
     expect(of("focus-ring").map((issue) => issue.element)).toEqual(['button "No reason"']);
