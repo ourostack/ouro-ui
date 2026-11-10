@@ -187,6 +187,16 @@ const LABELS: Record<string, string> = {
   jank: "jank",
   repaint: "repaints at rest",
   https: "no HTTPS",
+  // The window rules (window-check.ts), which a runner for an app's real native window reports.
+  "chrome-overlap": "under the window's controls",
+  "under-title-bar": "under the title bar",
+  "outside-window": "past the window's edge",
+  "ghost-layer": "drawn twice",
+  "band-not-draggable": "title bar doesn't drag",
+  "control-drags": "control drags the window",
+  "moved-after-first-frame": "moved after the first frame",
+  "popped-in": "popped in after the first frame",
+  faded: "faded after the first frame",
 };
 const RULES = Object.keys(LABELS);
 // The exit codes every Ouro tool shares (the Ouro AX kit's table: 0 ok, 1 error, 2 usage), and this tool's own 3. A
@@ -207,6 +217,15 @@ const HINTS: Record<string, string> = {
   jank: "batch layout reads before writes, animate transform and opacity, and keep hover from moving content",
   repaint: "animate transform or opacity, outside SVG, or let the animation end",
   https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
+  "chrome-overlap": "keep the page clear of the traffic lights and toolbar items: inset it by the title bar's band, or move the control",
+  "under-title-bar": "start the page below the title bar's band, or draw the bar in the page and make its empty part drag the window",
+  "outside-window": "let it wrap or scroll inside the window, or give the window a minimum size it fits",
+  "ghost-layer": "draw it once: remove the second layer or the stale view that draws the copy",
+  "band-not-draggable": "make the bar's empty part drag the window (-webkit-app-region: drag, or the app's own drag handler)",
+  "control-drags": "make each control in the bar no-drag, so a press reaches it",
+  "moved-after-first-frame": "give it its size and place in the first frame, with what it needs ready before the window shows",
+  "popped-in": "draw it in the first frame, or keep the window hidden until it is ready",
+  faded: "draw it at its settled opacity in the first frame, or keep the window hidden until it is ready",
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
 // calls good, a 0.1 layout shift, 2500 ms to the largest content and 200 ms from a press to its paint.

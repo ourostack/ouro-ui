@@ -5,9 +5,10 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
+import { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
+import { WINDOW_RULES } from "../../registry/ouro/check/window-check.ts";
 
 // Ouro check's Node side (check.ts and serve.ts) against the fixture pages, one pass and one fail page per rule, in
 // headless Chromium. scripts/check.test.mjs runs this file under Node's coverage and holds both files to 100%.
@@ -58,8 +59,9 @@ describe("Ouro check", () => {
     // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
     const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet });
     // http-error and not-ready are about the page, not its content, and https about a site on the web: each has tests
-    // of its own.
-    for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https")) {
+    // of its own. The window rules judge an app's real native window, in test/check-window.test.ts.
+    const windowRules: readonly string[] = WINDOW_RULES;
+    for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https" && !windowRules.includes(r))) {
       assert.ok(result.findings.some((f) => f.page === `/${rule}-fail.html` && f.rule === rule), `${rule} fires on its fail page`);
       assert.deepEqual(result.findings.filter((f) => f.page === `/${rule}-pass.html`), [], `nothing fires on the ${rule} pass page`);
     }
@@ -76,6 +78,13 @@ describe("Ouro check", () => {
       assert.ok(f.box && f.box.width > 0);
     }
     assert.deepEqual(readdirSync(join(out, "findings")).filter((file) => file.endsWith(".html")), [], "the composites' pages are removed");
+  });
+
+  test("names each window rule in plain words, with a hint for the person who fixes it", () => {
+    for (const rule of WINDOW_RULES) {
+      assert.ok(RULES.includes(rule), rule);
+      assert.ok(HINTS[rule], rule);
+    }
   });
 
   test("a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again", async () => {
