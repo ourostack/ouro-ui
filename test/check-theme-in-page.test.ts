@@ -33,6 +33,7 @@ describe("findThemeIssues: focus-ring", () => {
       <style>
         .clear:focus-visible { outline: 2px solid transparent !important; }
         .zero:focus-visible { outline: 0 solid red !important; }
+        .unseen { position: relative; } .unseen::after { content: ""; position: absolute; inset: 0; opacity: 0; outline: 2px solid transparent; } .unseen:focus-visible::after { outline-color: #36f; }
         .ghost:focus-visible { box-shadow: 0 0 0 3px rgb(0 0 0 / 0); }
         .frame { border: 0 solid red; } .frame:focus-visible { border-color: blue; }
       </style>
@@ -41,6 +42,7 @@ describe("findThemeIssues: focus-ring", () => {
       <button class="zero" title="Settings" style="width:24px;height:24px"></button>
       <span tabindex="0" class="ghost" style="display:inline-block;width:24px;height:24px"></span>
       <input class="frame" aria-label="Name">
+      <button class="unseen">A ring that never shows</button>
     </div>`);
     const issues = of("focus-ring");
     expect(issues.map(({ element, detail }) => [element, detail])).toEqual([
@@ -49,11 +51,12 @@ describe("findThemeIssues: focus-ring", () => {
       ['button.zero "Settings"', "nothing a person can see changes when it gets keyboard focus"],
       ["span.ghost", "nothing a person can see changes when it gets keyboard focus"],
       ['input.frame "Name"', "nothing a person can see changes when it gets keyboard focus"],
+      ['button.unseen "A ring that never shows"', "nothing a person can see changes when it gets keyboard focus"],
     ]);
     expect(host.querySelector("#bare")!.getAttribute("data-ouro-check-ref")).toBe(issues[0]!.ref);
     // A second run marks the same control again, beside its first mark.
-    expect(of("focus-ring")[0]!.ref).toBe("t6");
-    expect(host.querySelector("#bare")!.getAttribute("data-ouro-check-ref")).toBe("t1 t6");
+    expect(of("focus-ring")[0]!.ref).toBe("t7");
+    expect(host.querySelector("#bare")!.getAttribute("data-ouro-check-ref")).toBe("t1 t7");
   });
 
   it("passes a ring, a shadow, a border, a fill, a colour or an underline, on it, its frame, what is in it or a pseudo-element", () => {
@@ -70,6 +73,9 @@ describe("findThemeIssues: focus-ring", () => {
         .stretch { position: relative; } .stretch::after { content: ""; position: absolute; inset: 0; } .stretch:focus-visible::after { outline: 2px solid #36f; }
         .spin { animation: spin 1s linear infinite; } .spin:focus-visible { outline: 2px solid #36f !important; }
         .fade { transition: background-color 10s; } .fade:focus-visible { background-color: #eef; }
+        .appear { position: relative; } .appear::after { content: ""; position: absolute; inset: -4px; outline: 2px solid #36f; opacity: 0; } .appear:focus-visible::after { opacity: 1; }
+        .lift { opacity: 0.6; } .lift:focus-visible { opacity: 1; }
+        .first:focus-visible { outline: 2px solid #36f !important; }
         @keyframes spin { to { rotate: 1turn; } }
       </style>
       <button class="ring">Ring</button><button class="shadow">Shadow</button><button class="frame">Border</button>
@@ -78,8 +84,13 @@ describe("findThemeIssues: focus-ring", () => {
       <a href="#c" class="card"><span class="title">A card</span></a>
       <a href="#s" class="stretch">Stretched</a>
       <button class="spin">Spinning</button><button class="fade">Fading in</button>
+      <button class="appear">A ring that appears</button><button class="lift">Lifts</button>
+      <button class="first" autofocus>Already focused</button>
     </div>`);
+    // Focused before the check, as autofocus leaves it: it is read unfocused first, then focused.
+    host.querySelector<HTMLElement>(".first")!.focus();
     expect(of("focus-ring")).toEqual([]);
+    expect(document.activeElement).toBe(host.querySelector(".first"));
   });
 
   it("passes controls it can't focus or judge, allowed ones, and stops at maxControls, then gives focus back", () => {

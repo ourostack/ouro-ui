@@ -10,7 +10,9 @@ import type { PageIssue } from "./size-check.ts";
 //   focus-ring  a control that, given keyboard focus, changes nothing a person can see: no outline, shadow, border,
 //               background, colour or underline (its colour or thickness too) on it, its parent or grandparent or what
 //               is in it, nor on its ::before or ::after. An outline or shadow in a transparent colour, or 0 wide,
-//               counts as none. Up to `maxControls` controls a page, each focused without scrolling, then blurred
+//               counts as none, and so does anything on a part that isn't drawn (see-through, hidden, a pseudo-element
+//               with no content). Up to `maxControls` controls a page, each read unfocused first (one that already
+//               has focus is blurred), then focused without scrolling; focus goes back where it was
 //   dark-miss   on a page whose own background is dark (its dark theme, or a page that is always dark), a surface of
 //               `minWidth` × `minHeight` or more still filled a light neutral: an opaque background as light as
 //               `light` (relative luminance) or lighter, with no more than `chroma` of colour, the white, grey or cream
@@ -82,8 +84,12 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
 
   // Focus rings.
   const visible = (color: string) => rgba(color).a > 0.05;
+  // What a person can see of an element or a pseudo-element. One that isn't drawn (display none, hidden, see-through, a
+  // pseudo-element with no content) is just hidden, whatever its ring would be: a ring that only shows up on focus
+  // counts, one that never shows doesn't.
   const look = (el: Element, pseudo?: string) => {
     const s = getComputedStyle(el, pseudo);
+    if (s.display === "none" || s.visibility === "hidden" || Number(s.opacity) <= 0.05 || (pseudo && s.content === "none")) return "hidden";
     const outline = s.outlineStyle === "none" || parseFloat(s.outlineWidth) === 0 || !visible(s.outlineColor) ? "none" : `${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor} ${s.outlineOffset}`;
     const shadow = s.boxShadow === "none" || ![...s.boxShadow.matchAll(/(rgba?|oklch|oklab|lab|lch|hsla?|color)\([^)]*\)|#[0-9a-f]+/gi)].some(([color]) => visible(color)) ? "none" : s.boxShadow;
     const borders = ["Top", "Right", "Bottom", "Left"].map((side) => {
@@ -92,7 +98,7 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
       return width && visible(color) ? `${width} ${color}` : "none";
     });
     const fill = visible(s.backgroundColor) ? s.backgroundColor : "none";
-    return [outline, shadow, ...borders, fill, s.color, s.textDecorationLine === "none" ? "none" : `${s.textDecorationLine} ${s.textDecorationColor} ${s.textDecorationThickness}`, s.backgroundImage, pseudo ? s.content : ""].join("|");
+    return [outline, shadow, ...borders, fill, s.color, s.textDecorationLine === "none" ? "none" : `${s.textDecorationLine} ${s.textDecorationColor} ${s.textDecorationThickness}`, s.backgroundImage, s.opacity, pseudo ? s.content : ""].join("|");
   };
   // A control's parent and grandparent: a field's frame often shows its focus (:focus-within).
   const around = (el: Element) => [el.parentElement!, el.parentElement!.parentElement!];
@@ -118,6 +124,8 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
     if (tried >= maxControls) break;
     if ((el as HTMLButtonElement).disabled || el.closest("fieldset[disabled]") || optedOut(el, "focus-ring") || !drawn(el)) continue;
     tried++;
+    // Unfocused first, so a control that already has focus (autofocus, say) is read as it looks without it.
+    (document.activeElement as HTMLElement).blur();
     settle(el);
     const before = looks(el);
     el.focus({ preventScroll: true, focusVisible: true } as FocusOptions);
