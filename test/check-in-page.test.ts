@@ -115,6 +115,19 @@ describe("findSizeIssues: clipped-text", () => {
       <p aria-hidden="true" aria-label="Whole in the label: clamped to a line" style="width:120px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden">clamped   to a line</p>`);
     expect(rules(await findSizeIssues())).toEqual(["clipped-text"]);
   });
+
+  it("passes an ellipsis behind an open modal, which hides the page on purpose, but not one the modal itself hides", async () => {
+    const cut = (words: string) => `<span style="display:block;width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${words}</span>`;
+    render(`
+      <div aria-hidden="true">${cut("Behind the modal, read once it closes")}</div>
+      <div role="dialog" aria-modal="true"><div aria-hidden="true">${cut("Hidden inside the modal itself")}</div></div>
+      <div role="dialog" aria-modal="true" style="display:none">${cut("A closed modal hides nothing")}</div>`);
+    expect((await findSizeIssues()).map((issue) => issue.element)).toEqual(['span "Hidden inside the modal itself"']);
+    host.remove();
+    // The page hides the modal too, so nothing in it is reachable.
+    render(`<div aria-hidden="true"><div role="dialog" aria-modal="true">${cut("Hidden with its modal")}</div></div>`);
+    expect((await findSizeIssues()).map((issue) => issue.element)).toEqual(['span "Hidden with its modal"']);
+  });
 });
 
 describe("findSizeIssues: blurry-image", () => {
@@ -420,6 +433,31 @@ describe("findOverlaps", () => {
     expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Caption" × img "under a see-through label"']);
   });
 
+  it("passes page text under an opaque overlay: a dialog, a menu, a popover or a floating panel, on a fill of its own or a box in it", () => {
+    const over = (attrs: string, style: string, inner = "Over the page") => `<div style="position:relative"><p style="margin:0">Page text under the overlay</p><div ${attrs} style="position:absolute;top:0;left:0;width:240px;height:60px;${style}"><span>${inner}</span></div></div>`;
+    render(
+      [
+        over('role="menu"', "background:#fff"),
+        over('role="dialog"', "background:rgb(30 30 30)"),
+        over('data-popover=""', "", '<div style="background:#fff">On a box of its own</div>'),
+        over("", "background:oklch(0.98 0 0 / 0.95)"),
+      ].join(""),
+    );
+    expect(findOverlaps()).toEqual([]);
+  });
+
+  it("finds page text under a see-through overlay, a small badge, or a floating box with no fill", () => {
+    render(`
+      <div style="position:relative"><p style="margin:0">Under a see-through menu</p><div role="menu" style="position:absolute;top:0;left:0;width:240px;height:60px;background:rgba(255,255,255,0.5)">A see-through menu</div></div>
+      <div style="position:relative"><p style="margin:0">Under a badge</p><span style="position:absolute;top:0;left:0;width:40px;height:20px;background:#fff">99+</span></div>
+      <div style="position:relative"><p style="margin:0">Under a clear panel</p><div style="position:absolute;top:0;left:0;width:240px;height:60px">A clear panel</div></div>`);
+    expect(findOverlaps().map((issue) => issue.element)).toEqual([
+      'p "Under a see-through menu" × div "A see-through menu"',
+      'p "Under a badge" × span "99+"',
+      'p "Under a clear panel" × div "A clear panel"',
+    ]);
+  });
+
   it("passes text of one block, nested blocks, different sections, covered rows, hidden, clipped and allowed text", async () => {
     const url = await picture(100, 100);
     render(`
@@ -487,12 +525,15 @@ describe("findImageFades", () => {
         masked("angled", "linear-gradient(45deg, #000 190px, transparent)", "margin-top:0"),
         masked("see-through", "linear-gradient(oklch(0.5 0.1 200 / 0.4), #000 10px)", "margin-top:0"),
         masked("unread", "linear-gradient(#000 50vb, transparent 50vb)", "margin-top:0"),
+        // A scroll area's edges, both faded while it scrolls: a picture in its middle isn't faded.
+        masked("edges", "linear-gradient(transparent, #000 min(24px, 2rem), #000 calc(100% - min(24px, 2rem)), transparent)", "margin-top:0"),
+        masked("edges-clear", "linear-gradient(transparent, #000 min(24px, 2rem), #000 calc(100% - min(24px, 2rem)), transparent)", "margin-top:80px"),
       ].join(""),
     );
     const found = findImageFades().map((issue) => issue.element);
     // WebKit computes a viewport length as px, which reads; Chromium keeps vb, which the rule doesn't, so it counts as
     // fading.
-    expect(found).toEqual(["img#fold", "img#top", "img#right", "img#left", "img#minmax", "img#viewport", "img#plus", "img#ordered", "img#sized", "img#layers", "img#diagonal", "img#angled", "img#see-through", ...(server.browser === "chromium" ? ["img#unread"] : [])]);
+    expect(found).toEqual(["img#fold", "img#top", "img#right", "img#left", "img#minmax", "img#viewport", "img#plus", "img#ordered", "img#sized", "img#layers", "img#diagonal", "img#angled", "img#see-through", ...(server.browser === "chromium" ? ["img#unread"] : []), "img#edges"]);
   });
 
 
