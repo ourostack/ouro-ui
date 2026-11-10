@@ -10,13 +10,17 @@ export const SITE = "https://ui.ouroboros.bot";
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 
+/** Whether a page's HTML shows text in the mono face: code, a block of it, or Tailwind's `font-mono`. */
+export const showsMono = (html: string): boolean => /<(?:code|pre|samp)[\s>]|\bfont-mono\b/.test(html);
+
 /**
  * The `<head>` tags of a prerendered page: its title and description, the canonical URL, the
  * icons (the Ouro HX silhouette, which the site wears as Ouro UI's mark, the touch icon and the web manifest, all from the storybook
  * brand), and the Open Graph and Twitter tags link previews read, with the page's storybook card
- * (storybook.ts; site/scripts/og-cards.mts draws them into site/public/og/) as the image.
+ * (storybook.ts; site/scripts/og-cards.mts draws them into site/public/og/) as the image. `mono` says whether the
+ * page shows code (showsMono), so a page without any leaves Geist Mono out of its preloads.
  */
-export function headTags(route: Route, canonical: boolean): string[] {
+export function headTags(route: Route, canonical: boolean, mono = true): string[] {
   // An unindexed route has no canonical address, and a robots tag.
   canonical = canonical && !route.noindex;
   const title = escape(route.title);
@@ -51,10 +55,13 @@ export function headTags(route: Route, canonical: boolean): string[] {
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:image:alt" content="${alt}" />`,
-    // The voyage pages set their type in Geist and Geist Mono; only they are preloaded.
-    ...(pageKind(route.path) === "voyage"
-      ? fonts.filter((font) => font.preload).map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`)
-      : []),
+    // Every preset sets its type in Geist and its code in Geist Mono. Fetched with the stylesheets, they arrive before
+    // the first paint; found only once the page lays out, they swap in after it, and on a phone the wider face rewraps
+    // the docs' opening paragraph and moves the page below it. A docs page without code leaves Geist Mono out, since a
+    // preloaded font the page never uses is a wasted download and a console warning; the voyage pages set it from CSS.
+    ...fonts
+      .filter((font) => font.preload && (font.role !== "mono" || mono || pageKind(route.path) === "voyage"))
+      .map((font) => `<link rel="preload" href="/fonts/${font.file}" as="font" type="font/woff2" crossorigin />`),
   ].filter(Boolean);
 }
 
