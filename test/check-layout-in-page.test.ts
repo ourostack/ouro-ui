@@ -82,12 +82,15 @@ describe("findLayoutIssues: duplicate-control", () => {
     expect(of("duplicate-control").map((issue) => issue.element)).toEqual(['button "Help"', 'search field "Find"']);
   });
 
-  it("passes rows' own controls, different roles or names, one out of view, nameless and nested controls, and allowed ones", () => {
+  it("passes rows' own controls, different roles or names or places, one link twice, own toggles, one out of view, nameless and nested controls, and allowed ones", () => {
     render(`
       <ul><li>One <button>Delete</button></li><li>Two <button>Delete</button></li></ul>
       <table><tbody><tr><td><a href="#1">Open</a></td></tr><tr><td><a href="#2">Open</a></td></tr></tbody></table>
       <button>Save the draft</button><button>Save and send</button>
       <a href="#s">Search</a><button>Search</button>
+      <nav aria-label="Main"><button>Menu</button></nav><aside><button>Menu</button></aside>
+      <p>See <a href="#source">Source</a> and again <a href="#source">Source</a></p>
+      <button aria-controls="first">Show more</button><div id="first"></div><button aria-controls="second">Show more</button><div id="second"></div>
       <input type="text" aria-label="Name"><input type="email" aria-label="Name">
       <button></button><button></button>
       <div role="button" tabindex="0">Outer <span role="button" tabindex="0">Outer</span></div>
@@ -103,11 +106,13 @@ describe("findLayoutIssues: stray-scrollbar", () => {
   it("finds a region that scrolls by a few pixels, either way, and a page a few pixels taller than the screen", () => {
     render(`
       <div id="list" style="height:120px;overflow:auto"><div style="height:123px">The content</div></div>
+      <main style="height:120px;overflow:auto"><h2 style="margin:0">A heading</h2><ul style="margin:0"><li style="height:98px">A row</li></ul></main>
       <div style="width:200px;overflow-x:scroll;overflow-y:hidden"><div style="width:205px;height:20px">Across</div></div>
       <div style="width:200px;height:100px;overflow:auto"><div style="width:202px;height:104px">Both ways</div></div>
       <div style="height:40px;overflow:auto"><div style="height:42px"></div></div>`);
     expect(of("stray-scrollbar").map(({ element, detail }) => [element, detail])).toEqual([
       ['div#list "The content"', "scrolls by 3px down"],
+      ['main "A heading A row"', "scrolls by 2px down"],
       ['div "Across"', "scrolls by 5px across"],
       ['div "Both ways"', "scrolls by 4px down and 2px across"],
       ["div", "scrolls by 2px down"],
@@ -123,14 +128,21 @@ describe("findLayoutIssues: stray-scrollbar", () => {
     }
   });
 
-  it("passes a region that fits or scrolls by a real amount, one that hides its overflow, a hidden one and allowed ones", () => {
+  it("passes a region that fits or scrolls by a real amount, one that hides its overflow, a hidden one, a pixel across, unwrapped text, a list's region and allowed ones", () => {
     render(`
       <div style="height:120px;overflow:auto"><div style="height:120px">Fits</div></div>
       <div style="height:120px;overflow:auto"><div style="height:400px">A real scroll</div></div>
       <div style="height:120px;overflow:hidden"><div style="height:123px">Hidden overflow</div></div>
       <div hidden style="height:120px;overflow:auto"><div style="height:123px">Hidden region</div></div>
-      <div data-ouro-allow="stray-scrollbar" data-ouro-allow-why="a vendor's widget" style="height:120px;overflow:auto"><div style="height:123px">Allowed</div></div>`);
+      <div data-ouro-allow="stray-scrollbar" data-ouro-allow-why="a vendor's widget" style="height:120px;overflow:auto"><div style="height:123px">Allowed</div></div>
+      <div style="width:200px;overflow-x:auto"><div style="width:201px;height:10px"></div></div>
+      <pre style="width:200px;overflow-x:auto;margin:0">x<span style="display:inline-block;width:203px"></span></pre>
+      <div style="width:200px;overflow-x:auto;white-space:nowrap"><span style="display:inline-block;width:203px">A row</span></div>
+      <div style="width:200px;overflow-x:auto"><code style="display:block;width:203px">code</code></div>
+      <div style="height:120px;overflow:auto"><ul style="margin:0"><li style="height:123px">A row</li></ul></div>
+      <ol style="height:120px;overflow:auto;margin:0"><li style="height:123px">An item</li></ol>
+      <div style="height:120px;overflow:auto"><div data-ouro="message" style="height:123px">A message</div></div>`);
     expect(of("stray-scrollbar")).toEqual([]);
-    expect(of("stray-scrollbar", { maxScroll: 300 }).map((issue) => issue.element)).toEqual(['div "A real scroll"']);
+    expect(of("stray-scrollbar", { maxScroll: 300 }).map((issue) => issue.element).filter((element) => element !== "the page")).toEqual(['div "A real scroll"']);
   });
 });

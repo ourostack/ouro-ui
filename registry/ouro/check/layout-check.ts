@@ -9,10 +9,16 @@ import type { PageIssue } from "./size-check.ts";
 //   off-screen         text or a control the screen cuts off at its left or right edge, where no scrolling reaches it:
 //                      more than `cutPx` of it lies past the edge and no box around it scrolls that way. A box wholly
 //                      off the screen (a closed drawer) and visually hidden text (1px, or clipped) are left out
-//   duplicate-control  two controls in view with the same role and name, such as two Close buttons or two Chat tabs,
-//                      outside repeated items (a list's rows, a table's cells, cards), where each has its own
-//   stray-scrollbar    a region that scrolls by `minScroll` to `maxScroll` px: a scrollbar, and a scroll, for almost
-//                      nothing, often a rounding or a margin that spills over. The page itself counts too, down (across, it is
+//   duplicate-control  two controls in view with the same role and name in one place (the same nearest section, group,
+//                      nav, header, aside, form or dialog), such as two Close buttons on a panel, outside repeated
+//                      items (a list's rows, a table's cells, cards), where each has its own. Two links count only when
+//                      they go to different places: two that go to the same one are the same link. Two toggles that
+//                      each control their own panel (`aria-controls`) are two controls
+//   stray-scrollbar    a region that scrolls by `minScroll` to `maxScroll` px down, or 2 to `maxScroll` px across: a
+//                      scrollbar, and a scroll, for almost nothing, often a rounding or a margin that spills over. Text
+//                      that doesn't wrap (code, a nowrap row) scrolls across by however long its line is, so it doesn't
+//                      count across, and nor does a list's region (messages, rows, options): it holds as many as
+//                      there are, so it overflows by however much they add up to. The page itself counts too, down (across, it is
 //                      sideways-scroll's)
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
@@ -108,6 +114,10 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8 }: LayoutOpt
 
   // The same control twice.
   const repeated = "li, tr, td, th, article, [role=row], [role=listitem], [role=gridcell], [role=option], [role=article]";
+  const place = "section, form, dialog, fieldset, figure, nav, header, footer, aside, main, [role=dialog], [role=alertdialog], [role=region], [role=group], [role=toolbar], [role=tablist], [role=menu], [role=menubar]";
+  const destination = (el: Element) => (el.tagName.toLowerCase() === "a" ? (el as HTMLAnchorElement).href : "");
+  // Two toggles that each open their own panel, such as a Show more under each of two blocks, are two controls.
+  const controlsOwn = (a: Element, b: Element) => Boolean(a.getAttribute("aria-controls") && b.getAttribute("aria-controls") && a.getAttribute("aria-controls") !== b.getAttribute("aria-controls"));
   const seen = new Map<string, Element>();
   const twice = new Set<string>();
   for (const el of document.body.querySelectorAll(controls)) {
@@ -122,20 +132,24 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8 }: LayoutOpt
       seen.set(key, el);
       continue;
     }
-    if (twice.has(key) || first.contains(el) || el.contains(first)) continue;
+    if (twice.has(key) || first.contains(el) || el.contains(first) || (destination(el) && destination(el) === destination(first)) || controlsOwn(first, el) || first.closest(place) !== el.closest(place)) continue;
     twice.add(key);
     issues.push({ ref: ref(first, el), rule: "duplicate-control", element: `${roleOf(el)} "${name.slice(0, 40)}"`, detail: `drawn twice in view: ${describe(first)} and ${describe(el)}` });
   }
 
   // Scrolls for almost nothing.
+  const lists = "ul, ol, table, [role=list], [role=listbox], [role=log], [role=feed], [role=grid], [role=tree]";
+  const listRegion = (el: Element) => el.matches(lists) || el.firstElementChild?.matches(lists) || Boolean(el.querySelector('[data-ouro="message"]'));
   for (const el of [document.documentElement, ...document.body.querySelectorAll("*")]) {
     const s = getComputedStyle(el);
     const page = el === document.documentElement;
-    if (optedOut(el, "stray-scrollbar") || (!page && !drawn(el))) continue;
+    // A list's region (messages, rows, options) holds as many as there are, so it overflows by whatever they add up to.
+    if (optedOut(el, "stray-scrollbar") || (!page && (!drawn(el) || listRegion(el)))) continue;
     // The page's own sideways scroll is sideways-scroll's.
-    const across = page ? 0 : /auto|scroll/.test(s.overflowX) ? el.scrollWidth - el.clientWidth : 0;
+    const unwrapped = /pre|nowrap/.test(s.whiteSpace) || Boolean(el.querySelector("pre, code"));
+    const across = page || unwrapped ? 0 : /auto|scroll/.test(s.overflowX) ? el.scrollWidth - el.clientWidth : 0;
     const down = page ? el.scrollHeight - innerHeight : /auto|scroll/.test(s.overflowY) ? el.scrollHeight - el.clientHeight : 0;
-    const by = [down >= minScroll && down <= maxScroll && !(page && /hidden|clip/.test(s.overflowY)) ? `${down}px down` : "", across >= minScroll && across <= maxScroll ? `${across}px across` : ""].filter(Boolean);
+    const by = [down >= minScroll && down <= maxScroll && !(page && /hidden|clip/.test(s.overflowY)) ? `${down}px down` : "", across >= Math.max(2, minScroll) && across <= maxScroll ? `${across}px across` : ""].filter(Boolean);
     if (!by.length) continue;
     issues.push({ ref: ref(page ? document.body : el), rule: "stray-scrollbar", element: page ? "the page" : describe(el), detail: `scrolls by ${by.join(" and ")}` });
   }
