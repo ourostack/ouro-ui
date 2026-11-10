@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { compileFunction } from "node:vm";
 import ts from "typescript";
-import { armTime, readTime, timeFailure, type TimeReading, type TimeWindow } from "../../registry/ouro/check/time-check.ts";
+import type { Gate, Report } from "../../registry/ouro/check/check.ts";
+import { armTime, readTime, timeFailure, type TimeObservation, type TimeReading, type TimeWindow } from "../../registry/ouro/check/time-check.ts";
 
 // Execute only the named source closures, never their browser suite or server. This characterizes their Node contracts,
 // not Playwright delivery or coverage of the original file's instrumented lines.
@@ -22,6 +23,90 @@ const initializer = (root: ts.Node, name: string) => {
 };
 const execute = <T,>(text: string, bindings: Record<string, unknown> = {}): T =>
   Reflect.apply(compileFunction(ts.transpileModule(text, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, Object.keys(bindings)), undefined, Object.values(bindings)) as T;
+
+test("the equality diagnostic preserves complete original readings and distinguishes absent, empty, incomplete and populated windows", () => {
+  const file = source("scripts/check/check.test.mts");
+  const serialize = execute<(whole: Report, parts: Report[], config: Gate) => string>(`return ${initializer(file, "timeComparison").getText()};`);
+  const row: TimeObservation = {
+    site: "fixtures", page: "/long-task-fail.html", width: 390, height: 844, theme: "dark",
+    dpr: 2, viewport: { width: 390, height: 844 }, ref: "", element: "the page", phase: "loading", run: 1,
+    reading: { status: "measured", expected: { document: 1000, url: "http://127.0.0.1:1234/long-task-fail.html", since: 0 },
+      observed: { document: 1000, url: "http://127.0.0.1:1234/long-task-fail.html" }, until: 510, tasks: [] },
+  };
+  const report = (rows: TimeObservation[], shard?: string): Report => ({
+    targets: ["/fixtures"], sizes: [[390, 844], [1440, 900]], themes: ["light", "dark"],
+    pages: [], findings: [], fixed: [], candidates: [], shots: [], allowances: [], time: rows, ...(shard ? { shard } : {}),
+  });
+  const incomplete: TimeObservation = { ...row, reading: { status: "incomplete", expected: row.reading.expected!,
+    observed: { document: 2000, url: "http://127.0.0.1:1234/landed.html" }, reason: "navigated" } };
+  const populated: TimeObservation = { ...row, reading: { status: "measured", expected: row.reading.expected!,
+    observed: { document: 1000, url: "http://127.0.0.1:1234/long-task-fail.html" }, until: 510,
+    tasks: [{ startTime: 0, duration: 100.001 }, { startTime: 120, duration: 99.999 }, { startTime: 250, duration: 180.123456 }] } };
+  const whole = report([row, ...[
+    { site: "other" }, { page: "/other.html" }, { width: 1440 }, { height: 900 }, { theme: "light" }, { phase: "press-open" },
+  ].map((change) => ({ ...row, ...change }))]);
+  const parts = [report([], "1/3"), report([incomplete], "2/3"), report([populated], "3/3")];
+  const config = { measure: { "**": "100 chars" } };
+  const before = JSON.stringify({ whole, parts, config });
+  const diagnostic = JSON.parse(serialize(whole, parts, config));
+  assert.deepEqual(diagnostic.identity, { site: "fixtures", page: "/long-task-fail.html", width: 390, height: 844, theme: "dark", phase: "loading" });
+  assert.deepEqual(diagnostic.configuration, { targets: ["/fixtures"], sizes: [[390, 844], [1440, 900]], themes: ["light", "dark"], config });
+  assert.deepEqual(diagnostic.observations, [
+    { origin: "whole", rows: [row] }, { origin: "shard", shard: "1/3", rows: [] },
+    { origin: "shard", shard: "2/3", rows: [incomplete] }, { origin: "shard", shard: "3/3", rows: [populated] },
+  ]);
+  assert.equal(JSON.stringify({ whole, parts, config }), before, "diagnostics never mutate the original windows");
+});
+
+test("the delegating fault adapter selects one temporal evaluation and leaves other calls and receivers unchanged", async () => {
+  const file = source("scripts/check/check.test.mts");
+  const window = { document: 1000, url: "https://example.test/", since: 10 };
+  const frameWait = "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))";
+  for (const point of ["armTime", "readTime", "frame-wait"] as const) {
+    let closed = 0;
+    const calls: unknown[] = [];
+    const page = {
+      url() { assert.equal(this, page); return window.url; },
+      async evaluate(fn: unknown, argument?: unknown): Promise<unknown> {
+        assert.equal(this, page);
+        calls.push(fn);
+        return fn === armTime ? window : fn === readTime ? argument : "delegated";
+      },
+    };
+    const context = { async newPage() { assert.equal(this, context); return page; } };
+    const browser = { async newContext() { assert.equal(this, browser); return context; }, async close() { assert.equal(this, browser); closed++; } };
+    const chromium = { async launch() { assert.equal(this, chromium); return browser; } };
+    const problem = new Error("Execution context was destroyed");
+    const make = execute<(point: string, problem: unknown) => {
+      chromium: typeof chromium; receipt: () => { point: string; url: string; expected?: TimeWindow }; close: () => Promise<void>;
+    }>(`return ${initializer(file, "timeFault").getText()};`, { assert, chromium, armTime, readTime });
+    const adapter = make(point, problem);
+    try {
+      assert.throws(adapter.receipt, /not consumed/);
+      const tab = await (await (await adapter.chromium.launch()).newContext()).newPage();
+      assert.equal(tab.url(), window.url);
+      assert.equal(await tab.evaluate("unrelated"), "delegated");
+      if (point === "armTime") {
+        await assert.rejects(tab.evaluate(armTime), (error) => error === problem);
+      } else {
+        await tab.evaluate(armTime);
+        if (point === "readTime") await assert.rejects(tab.evaluate(readTime, window), (error) => error === problem);
+        else {
+          assert.equal(await tab.evaluate(frameWait), "delegated", "a first-window frame wait is not the selected press window");
+          await tab.evaluate(armTime);
+          await assert.rejects(tab.evaluate(frameWait), (error) => error === problem);
+        }
+      }
+      assert.deepEqual(adapter.receipt(), { point, url: window.url, ...(point === "armTime" ? {} : { expected: window }) });
+      assert.equal(await tab.evaluate(frameWait), "delegated", "the fault is one-shot");
+      assert.equal(await tab.evaluate(readTime, window), window);
+      assert.ok(calls.includes("unrelated"));
+    } finally {
+      await adapter.close();
+    }
+    assert.equal(closed, 1, "cleanup delegates to the original browser");
+  }
+});
 
 test("the pass-fixture oracle accepts only the identified, gated, nonnumeric navigation failure", () => {
   const file = source("scripts/check/check.test.mts");

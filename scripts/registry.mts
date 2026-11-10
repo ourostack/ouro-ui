@@ -281,9 +281,9 @@ const kits = [
       `Optional: the screen check. ${claim(
         "It opens every page of a built folder or a URL in headless Chromium at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures, pictures that fade into the page and serious axe-core violations, and long lines only where ouro-check.json declares a measure, each with a captioned close-up and a contact sheet per page.",
         {
-          source: [{ test: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" }, { file: "registry/ouro/check/check.ts" }],
+          source: [{ test: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and exact expected findings on pass pages, with a report, a contact sheet and close-ups" }, { file: "registry/ouro/check/check.ts" }],
           verify: [
-            { testExists: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" },
+            { testExists: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and exact expected findings on pass pages, with a report, a contact sheet and close-ups" },
             { fileLine: "registry/ouro/check/check.ts", pattern: "^  \\[320, 640\\], " },
             { fileLine: "registry/ouro/check/check.ts", pattern: "\\[3840, 2160\\],$" },
           ],

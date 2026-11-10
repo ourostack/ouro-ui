@@ -5,8 +5,9 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { chromium, type Browser, type BrowserContext, type BrowserType } from "playwright";
 import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
+import { armTime, readTime, type TimeWindow } from "../../registry/ouro/check/time-check.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 
@@ -46,6 +47,68 @@ const site = (name: string, pages: Record<string, string>) => {
   return folder;
 };
 const spots = (findings: Finding[]) => findings.map((f) => `${f.page} ${f.width}x${f.height} ${f.theme} ${f.rule} ${f.element}`).sort();
+const timeComparison = (whole: Report, parts: Report[], config: Gate) => {
+  const identity = { site: "fixtures", page: "/long-task-fail.html", width: 390, height: 844, theme: "dark", phase: "loading" };
+  const rows = (report: Report) => (report.time ?? []).filter((row) =>
+    row.site === identity.site && row.page === identity.page && row.width === identity.width
+    && row.height === identity.height && row.theme === identity.theme && row.phase === identity.phase);
+  return JSON.stringify({
+    identity, configuration: { targets: whole.targets, sizes: whole.sizes, themes: whole.themes, config },
+    observations: [{ origin: "whole", rows: rows(whole) }, ...parts.map((part) => ({ origin: "shard", shard: part.shard, rows: rows(part) }))],
+  }, null, 2);
+};
+const timeFault = (point: "armTime" | "readTime" | "frame-wait", problem: unknown) => {
+  let consumed: { point: typeof point; url: string; expected?: TimeWindow } | undefined;
+  const browsers = new Set<Browser>();
+  const delegate = <T extends object, K extends keyof T>(target: T, key: K, replacement: T[K]): T => new Proxy(target, {
+    get(owner, property) {
+      if (property === key) return replacement;
+      const value = Reflect.get(owner, property, owner);
+      return typeof value === "function" ? value.bind(owner) : value;
+    },
+  });
+  const windowOf = (value: unknown): TimeWindow => {
+    assert.ok(value && typeof value === "object" && "document" in value && typeof value.document === "number"
+      && "url" in value && typeof value.url === "string" && "since" in value && typeof value.since === "number");
+    return { document: value.document, url: value.url, since: value.since };
+  };
+  const launch: BrowserType["launch"] = async (options) => {
+    const browser = await chromium.launch(options);
+    browsers.add(browser);
+    const newContext: Browser["newContext"] = async (options) => {
+      const context = await browser.newContext(options);
+      const newPage: BrowserContext["newPage"] = async () => {
+        const page = await context.newPage();
+        let arms = 0;
+        let armed: TimeWindow | undefined;
+        const evaluate = new Proxy(page.evaluate, {
+          async apply(method, _receiver, args: unknown[]) {
+            const [fn, argument] = args;
+            // This fixture has no state presses: the second arm on its isolated press page opens the listed control.
+            const frame = arms === 2 && fn === "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))";
+            if (!consumed && (point === "armTime" ? fn === armTime : point === "readTime" ? fn === readTime : frame)) {
+              const expected = point === "readTime" ? windowOf(argument) : point === "frame-wait" ? armed : undefined;
+              if (point !== "armTime") assert.ok(expected);
+              consumed = { point, url: page.url(), ...(expected ? { expected } : {}) };
+              throw problem;
+            }
+            const result: unknown = await Reflect.apply(method, page, args);
+            if (fn === armTime) { arms++; armed = windowOf(result); }
+            return result;
+          },
+        });
+        return delegate(page, "evaluate", evaluate);
+      };
+      return delegate(context, "newPage", newPage);
+    };
+    return delegate(browser, "newContext", newContext);
+  };
+  return {
+    chromium: delegate(chromium, "launch", launch),
+    receipt: () => { assert.ok(consumed, "the selected temporal fault was not consumed"); return consumed; },
+    close: async () => { await Promise.all([...browsers].map((browser) => browser.close())); },
+  };
+};
 const run = async (argv: string[], options: { cwd?: string; env?: Record<string, string | undefined>; from?: string[] } = {}) => {
   const out: string[] = [];
   const err: string[] = [];
@@ -112,7 +175,7 @@ describe("Ouro check", () => {
     assert.ok(parts.every((part) => part.shard && part.findings.length < whole.findings.length));
     assert.match(readFileSync(join(shards[0]!, "summary.md"), "utf8"), /, shard 1\/3$/m);
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
-    assert.deepEqual(spots(merged.findings), spots(whole.findings));
+    assert.deepEqual(spots(merged.findings), spots(whole.findings), timeComparison(whole, parts, options.config));
     assert.equal(merged.shots.length, whole.shots.length);
     assert.equal(merged.pages.length, 33);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
@@ -120,6 +183,49 @@ describe("Ouro check", () => {
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
     assert.ok(waived.gated.length > 0 && waived.gated.every((f) => !f.page.startsWith("/axe-") && !(f.page === "/overlap-fail.html" && f.rule === "overlap")));
     assert.ok(waived.findings.some((f) => !f.gated && f.rule === "overlap"));
+  });
+
+  test("actual temporal evaluate failures remain precisely incomplete and nonnumeric in loading and the framed press window", async () => {
+    const folder = site("time-fault", {
+      "index.html": page('<button type="button" aria-expanded="false" data-ouro-check-press>Open detail</button>'),
+    });
+    for (const point of ["armTime", "readTime", "frame-wait"] as const) {
+      const adapter = timeFault(point, new Error(point === "readTime" ? "Cannot find context with specified id" : "Execution context was destroyed"));
+      try {
+        const result = await check({ targets: [folder], out: dir("time-fault"), sizes: [[1440, 900]], themes: ["light"],
+          chromium: adapter.chromium, config: { walk: false, pressRepeat: 1 }, log: quiet });
+        const receipt = adapter.receipt();
+        const phase = point === "frame-wait" ? "press-open" : "loading";
+        const rows = result.time!.filter((row) => row.phase === phase);
+        assert.equal(rows.length, 1);
+        const row = rows[0]!;
+        assert.deepEqual(row.reading, { status: "incomplete", ...(receipt.expected ? { expected: receipt.expected } : {}),
+          observed: { url: receipt.url }, reason: "execution-context-destroyed" });
+        if (point === "readTime") assert.equal(receipt.expected!.since, 0);
+        if (point === "frame-wait") assert.ok(receipt.expected!.since > 0);
+        const findings = result.gated.filter((finding) => finding.rule === "long-task" && finding.element === `${phase} ${row.element} (incomplete)`);
+        assert.equal(findings.length, 1);
+        for (const key of ["value", "budget", "unit", "samples", "closeUp"] as const) assert.equal(findings[0]![key], undefined, key);
+      } finally {
+        await adapter.close();
+      }
+    }
+  });
+
+  test("actual loading and reach propagate unrelated Error and non-Error temporal evaluation failures", async () => {
+    const folder = site("time-unknown", { "index.html": page("<p>Loaded document.</p>") });
+    for (const point of ["armTime", "readTime"] as const) {
+      for (const problem of [new Error("unrelated application failure"), "not an Error"]) {
+        const adapter = timeFault(point, problem);
+        try {
+          await assert.rejects(check({ targets: [folder], out: dir("time-unknown"), sizes: [[1440, 900]], themes: ["light"],
+            chromium: adapter.chromium, config: { walk: false }, log: quiet }), (error) => error === problem);
+          assert.equal(adapter.receipt().point, point);
+        } finally {
+          await adapter.close();
+        }
+      }
+    }
   });
 
   test("measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number", async () => {
