@@ -59,9 +59,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * page's Markdown first and after #138's claims), 167,396 bytes, plus 1 KiB. The voyage pages (the
  * home page and the Nautilus's) get 274 KiB: 270 KiB, and 4 KiB more for the Ouro family's bar and footer (FamilyBar and
  * FamilyFooter over the header and in the footer, Ari, 2026-11-08: "make everything feel like one big happy family"),
- * with which the home page measured 278,992 bytes, over the family-bar branch at bffc14e3.
+ * with which the home page measured 278,992 bytes, over the family-bar branch at bffc14e3. Then 1 KiB more (275 KiB):
+ * by v1.3.10 the components the voyage pages load (the family bar's fade without script, the Navbar's one current
+ * mark) had brought the home page within 200 bytes of 274 KiB, 280,398 bytes at 2495a54e, and the bar's section mark
+ * on a page with its own navigation crossed it on CI.
  */
-const CEILINGS = { voyage: 274 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { voyage: 275 * 1024, docs: 167_396 + 1024 } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's

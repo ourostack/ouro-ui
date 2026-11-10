@@ -224,9 +224,12 @@ export function VoyageHeader({
   menu,
   gutters = "voyage",
   skipTo = "main",
+  pageNav = false,
 }: {
   path: string;
   page?: string;
+  /** Whether the page has its own navigation that marks it as the current page: the docs sidebar, the Apple pages' row. */
+  pageNav?: boolean;
   menu?: ReactNode;
   gutters?: keyof typeof GUTTERS;
   /** The id the skip link jumps to: the page's <main>, or a docs page's title, which comes before it. */
@@ -258,7 +261,9 @@ export function VoyageHeader({
         }
         // The brand is the way home, so the bar starts at the Nautilus.
         items={SITE_SECTIONS.slice(1).map((section) => ({ label: section.label, href: sectionHref(section.href) }))}
-        currentPath={href(path)}
+        // On a page its own navigation marks (`pageNav`), a path under the section's: the bar marks the section you are in
+        // (aria-current="true") and a screen reader hears one current page.
+        currentPath={href(pageNav ? `${path}~` : path)}
         menu={
           <SiteMenuFrame
             tools={

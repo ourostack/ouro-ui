@@ -236,6 +236,7 @@ export default function DocsHeader({ current }: { current: string }): JSX.Elemen
       <VoyageHeader
         path={headerPath(current)}
         page={current}
+        pageNav
         menu={<DocsMenu current={current} />}
         gutters="docs"
         // A docs page's title sits in its scene, before the sidebar and <main>: the skip link lands on it, so it is not skipped.
