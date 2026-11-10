@@ -1118,6 +1118,72 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("shows on a row focused from the keyboard, or the pointer rests on, in the commit a layer arriving after its list mounts in", async () => {
+    const layer = createRowLayer<string>();
+    // What the layer's first commit leaves committed before anything else can run: nothing paints between a task and
+    // its microtasks, so a row shown by then is in the frame the layer arrives in.
+    const first: { row?: HTMLElement | null; via?: string | null } = {};
+    function Layer({ list }: { list: RefObject<HTMLDivElement | null> }) {
+      const hover = useRowHover(list, layer);
+      const committed = useRef<{ row: HTMLElement | null; via: string | null }>({ row: null, via: null });
+      useLayoutEffect(() => {
+        committed.current = { row: hover.row, via: hover.via };
+        probe.hover = hover;
+      });
+      useLayoutEffect(() => {
+        queueMicrotask(() => Object.assign(first, committed.current));
+      }, []);
+      return null;
+    }
+    function Rows({ ready, focus }: { ready: boolean; focus: boolean }) {
+      const list = useRef<HTMLDivElement>(null);
+      const ref = useRef<HTMLDivElement>(null);
+      const other = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        layer.set(ref.current!, "r0");
+        layer.set(other.current!, "r1");
+        if (focus) ref.current!.focus();
+      }, [focus]);
+      return (
+        <div ref={list}>
+          <div ref={ref} id="r0" tabIndex={-1} style={{ height: 40 }}>
+            Row
+          </div>
+          <div ref={other} id="r1" tabIndex={-1} style={{ height: 40 }}>
+            Other row
+          </div>
+          {ready ? <Layer list={list} /> : null}
+        </div>
+      );
+    }
+    const arrive = async (focus: boolean) => {
+      for (const key of Object.keys(first)) delete first[key as keyof typeof first];
+      flushSync(() => roots.at(-1)!.render(<Rows ready focus={focus} />));
+      await act(async () => {});
+    };
+    // Focus already in a row, from the keyboard.
+    await userEvent.keyboard("{Shift}");
+    await render(<Rows ready={false} focus />);
+    await arrive(true);
+    expect(first).toEqual({ row: row("r0"), via: "focus" });
+    // Another row leaving the layer leaves it where it is.
+    await act(async () => layer.delete(row("r1")));
+    expect(probe.hover.row).toBe(row("r0"));
+    await act(async () => roots.pop()!.unmount());
+    // The pointer resting on a row, nothing focused.
+    await render(<Rows ready={false} focus={false} />);
+    await userEvent.hover(row("r0"));
+    await arrive(false);
+    expect(first).toEqual({ row: row("r0"), via: "pointer" });
+    await act(async () => roots.pop()!.unmount());
+    // Focus in a row from a click: the pointer's, not the keyboard's, so it shows for the pointer resting there.
+    await render(<Rows ready={false} focus={false} />);
+    await userEvent.click(row("r0"));
+    expect(document.activeElement).toBe(row("r0"));
+    await arrive(false);
+    expect(first).toEqual({ row: row("r0"), via: "pointer" });
+  });
+
   it("a list inside a row stops looking for a row at its own root: it never reaches past it to an ancestor row of the same shared layer", async () => {
     const layer = createRowLayer<string>();
     function Inner({ container }: { container: RefObject<HTMLDivElement | null> }) {
