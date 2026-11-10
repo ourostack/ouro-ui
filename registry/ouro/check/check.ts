@@ -17,6 +17,7 @@ import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
 import { findSizeIssues, type Measure, type PageIssue } from "./size-check.ts";
 import { findTextIssues } from "./text-check.ts";
+import { findLayoutIssues } from "./layout-check.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of
 // a dual-screen phone unfolded sideways, light and dark, at density 2 up to 3072px wide and 1 above. Pass and fail come from measurement, never from
@@ -191,6 +192,9 @@ const LABELS: Record<string, string> = {
   "odd-timestamp": "odd timestamp",
   "console-error": "console error",
   "failed-request": "failed request",
+  "off-screen": "off the screen",
+  "duplicate-control": "control twice",
+  "stray-scrollbar": "stray scrollbar",
   https: "no HTTPS",
 };
 const RULES = Object.keys(LABELS);
@@ -215,6 +219,9 @@ const HINTS: Record<string, string> = {
   "odd-timestamp": "check the time was set before formatting it, and format it for a person: a date, a time or an age",
   "console-error": "fix what threw or warned; a warning a library prints is fixed by using it as it asks",
   "failed-request": "point the request at an address that answers, or don't make it",
+  "off-screen": "keep it inside the screen: let it wrap or shrink, or let its row scroll",
+  "duplicate-control": "show one; if both are needed, name each for what it does",
+  "stray-scrollbar": "find what spills over by a few pixels (a margin, a border, a rounding) and fit it, or don't let the region scroll",
   https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
@@ -645,6 +652,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       issues.push(...(await page.evaluate(findImageFades)));
       issues.push(...(await page.evaluate(findDesignIssues, {})));
       issues.push(...(await page.evaluate(findTextIssues)));
+      issues.push(...(await page.evaluate(findLayoutIssues, {})));
       issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
       if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
       issues.push(...runtime());
@@ -923,7 +931,8 @@ and design problems: a banner where content belongs, a cramped heading, a frame 
 corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one
 above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no
 one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to
-the page's own server that fail; and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
+the page's own server that fail; content the screen cuts off, the same control twice in view and a region that
+scrolls by a few pixels; and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
 and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page
 (hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a
 contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.
