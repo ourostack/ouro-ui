@@ -53,6 +53,18 @@ The WKWebView leg runs nightly and by hand in [the Feel workflow](../.github/wor
 
 An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.js` first in the page's `<head>`, with `data-ouro-feel-bridge` naming where the page polls for commands. Its own driver sends real input from outside the page, and calls `window.ouroFeel` from its own cases. An entry in `feel-report.json` carries the value of a measure in each run, so the app can take its own medians and bands.[^runs]
 
+## Native window
+
+The page's own checks run the page in a browser, without the app's title bar, traffic lights and toolbar around it, so they can't see one drawn over its content. The window probe ([`hosts/window/OuroWindowProbe.swift`](hosts/window/OuroWindowProbe.swift)) lets a runner see the app's real Mac window. It is one Swift file next to the WKWebView host, and it needs only AppKit and WebKit.[^window-probe] It can:
+
+- picture the window as the window server composites it, title bar, glass and toolbar included, through `CGWindowListCreateImage`, which an app may call on its own windows without Screen Recording permission;[^window-picture]
+- measure the window's size, scale and appearance, the band its title bar and toolbar take, its content view's frame, and the native controls around the page (traffic lights, toolbar items) with the roles, labels and frames macOS reports for them, in window points from the top left;
+- answer a hit test (does a click at a point reach the page, or does the title bar take it), a drag test (does a press at a point move the window, from the app's own `dragAt`), a resize, a change of appearance, full screen (only when the app allows it), and JavaScript in the page through WebKit's `callAsyncJavaScript`, which the page's Content Security Policy doesn't block.
+
+An app links the file into its test build, not the copy people run. The test build parks its window with `OuroWindowProbe.park(window)`: off the displays, at full opacity, not key and not activated, so the window server still draws the real picture and the person at the Mac doesn't see it.[^window-park] Its window class keeps the parked frame (`constrainFrameRect` returns it unchanged while `OuroWindowProbe.isParked(window)`), or AppKit pulls the window back onto a screen. It then starts `OuroWindowProbe.Loop(url:window:web:)`, which long-polls the runner's `<url>/next` for one command at a time and posts the answer to `<url>/done`.
+
+The rules that judge what the probe measures live in Ouro check's [`window-check.ts`](../registry/ouro/check/window-check.ts) ([An app's real window](../docs/guides/guardrails.md#an-apps-real-window)). The first app to use them is Tandem, whose window gate is `scripts/window-gate/run.ts` in teams-microsoft/tandem.
+
 [^seed]: test:scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up verify:testExists(scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up)
 [^service]: test:scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page)
 [^judge]: test:scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs verify:testExists(scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs)
@@ -65,3 +77,6 @@ An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.j
 [^dead]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const DEAD_INPUT_MS = 100;$/)
 [^prepend]: feel/fixture/cases/history-prepend.tsx verify:fileLine(feel/fixture/cases/history-prepend.tsx, /^const LOADED = 200;$/) verify:fileLine(feel/fixture/cases/history-prepend.tsx, /^const PAGE = 200;$/)
 [^runs]: test:scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs verify:testExists(scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs)
+[^window-probe]: feel/hosts/window/OuroWindowProbe.swift verify:fileLine(feel/hosts/window/OuroWindowProbe.swift, /^import AppKit$/) verify:fileLine(feel/hosts/window/OuroWindowProbe.swift, /^import WebKit$/)
+[^window-picture]: feel/hosts/window/OuroWindowProbe.swift verify:fileLine(feel/hosts/window/OuroWindowProbe.swift, /"CGWindowListCreateImage"/)
+[^window-park]: feel/hosts/window/OuroWindowProbe.swift verify:fileLine(feel/hosts/window/OuroWindowProbe.swift, /static let parkedOrigin = NSPoint\(x: -30000, y: -30000\)/) verify:fileLine(feel/hosts/window/OuroWindowProbe.swift, /window.alphaValue = 1$/)
