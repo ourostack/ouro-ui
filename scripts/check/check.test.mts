@@ -54,7 +54,7 @@ const run = async (argv: string[], options: { cwd?: string; env?: Record<string,
 };
 
 describe("Ouro check", () => {
-  test("finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups", async () => {
+  test("finds each rule on its fail page and exact expected findings on pass pages, with a report, a contact sheet and close-ups", async () => {
     const out = dir("rules");
     // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
     const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet });
@@ -62,7 +62,30 @@ describe("Ouro check", () => {
     // of its own.
     for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https")) {
       assert.ok(result.findings.some((f) => f.page === `/${rule}-fail.html` && f.rule === rule), `${rule} fires on its fail page`);
-      assert.deepEqual(result.findings.filter((f) => f.page === `/${rule}-pass.html`), [], `nothing fires on the ${rule} pass page`);
+      // The INP fixture deliberately leaves its document: no numeric task reading may stand in for that lost window.
+      assert.deepEqual(result.findings.filter((f) => f.page === `/${rule}-pass.html`), rule === "inp" ? [{
+        site: "fixtures", page: "/inp-pass.html", width: 1440, height: 900, theme: "light", dpr: 2,
+        rule: "long-task", element: 'press-open button#away "Leave the page" (incomplete)', gated: true,
+        detail: "Task measurement incomplete: navigated. No clean measurement is established.",
+      }] : [], `only expected findings on the ${rule} pass page`);
+      if (rule === "inp") {
+        const rows = result.time!.filter((row) => row.page === "/inp-pass.html" && row.phase === "press-open" && row.element === 'button#away "Leave the page"');
+        assert.equal(rows.length, 1);
+        const row = rows[0]!;
+        assert.deepEqual([row.site, row.width, row.height, row.theme, row.dpr, row.viewport, row.run], [
+          "fixtures", 1440, 900, "light", 2, { width: 1440, height: 900 }, 1,
+        ]);
+        assert.ok(row.ref);
+        const reading = row.reading;
+        assert.equal(reading.status, "incomplete");
+        assert.equal(reading.reason, "navigated");
+        assert.equal(reading.tasks, undefined);
+        assert.equal(reading.until, undefined);
+        assert.ok(reading.expected && reading.observed?.document !== undefined);
+        assert.notEqual(reading.expected.document, reading.observed.document);
+        assert.equal(new URL(reading.expected.url).pathname, "/inp-pass.html");
+        assert.equal(reading.observed.url, `${reading.expected.url}?moved`);
+      }
     }
     // axe runs only at the phone and laptop sizes.
     assert.ok(result.findings.some((f) => f.rule === "axe" && f.width === 390) && result.findings.some((f) => f.rule === "axe" && f.width === 1440));

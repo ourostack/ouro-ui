@@ -59,6 +59,21 @@ test("callback entries and queued entries survive repeated arming and init is id
   assert.deepEqual(p.read(window).tasks, [{ startTime: 11, duration: 120 }, { startTime: 16, duration: 130 }]);
 });
 
+test("the loading window retains startup entries before the post-load arm, but cannot reconstruct undelivered entries", () => {
+  const p = probe();
+  p.init();
+  p.clock(500);
+  const window = { ...p.arm(), since: 0 };
+  p.pending.push(p.entry(10, 180));
+  p.clock(510);
+  const first = p.read(window);
+  assert.deepEqual(first.tasks, [{ startTime: 10, duration: 180 }], "since zero retains delivered startup work");
+  p.deliver([p.entry(200, 190)]);
+  p.clock(520);
+  assert.deepEqual(first.tasks, [{ startTime: 10, duration: 180 }], "a recorded snapshot does not acquire later delivery");
+  assert.deepEqual(p.read(window).tasks, [{ startTime: 10, duration: 180 }, { startTime: 200, duration: 190 }]);
+});
+
 test("a measured empty window is distinct from unsupported or missing instrumentation", () => {
   const p = probe();
   assert.equal(p.read(p.arm()).reason, "missing-instrumentation");

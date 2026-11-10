@@ -80,6 +80,7 @@ test("does not act after a press or walk setup load fails and records explicit n
   let visits = 0;
   const server = createServer((request, response) => {
     if (request.url !== "/") { response.writeHead(204).end(); return; }
+    if (request.method === "HEAD") { response.writeHead(200).end(); return; }
     response.writeHead(++visits === 1 ? 200 : 503, { "content-type": "text/html" });
     response.end(html('<button type="button" aria-expanded="false" data-ouro-check-press>Open detail</button>'));
   });
