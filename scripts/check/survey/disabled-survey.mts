@@ -1,5 +1,5 @@
 import { chromium } from "playwright";
-import { listPages, serve } from "./registry/ouro/check/serve.ts";
+import { listPages, serve } from "../../../registry/ouro/check/serve.ts";
 const probe = () => [...document.querySelectorAll('button, [role=button], input[type=submit], input[type=button], [role=menuitem], [role=tab], a[aria-disabled]')].filter((el) => ((el as HTMLButtonElement).disabled || el.getAttribute("aria-disabled") === "true") && el.getBoundingClientRect().width > 1 && !el.closest("[hidden],[aria-hidden=true]")).map((el) => {
   const desc = (el.getAttribute("aria-describedby") ?? "").split(/\s+/).map((id) => document.getElementById(id)?.textContent?.trim() ?? "").join(" ").trim();
   const name = (el.getAttribute("aria-label") || (el as HTMLElement).innerText || "").trim().slice(0, 30);
