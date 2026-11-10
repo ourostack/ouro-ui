@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
@@ -148,6 +149,27 @@ describe("MessageList actions", () => {
       // React gives a portal's element its listeners the first time it renders into it; a wheel listener restyles the
       // whole page in WebKit (151 ms on a long conversation).
       expect(add.mock.calls.map(([type]) => type)).not.toContain("wheel");
+    } finally {
+      add.mockRestore();
+    }
+  });
+
+  it("has its bar layer in its first commit once an earlier list has loaded the layer's code", async () => {
+    const first = await render(<Channel count={2} />);
+    await ready("m1");
+    await act(async () => roots.pop()!.unmount());
+    first.host.remove();
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const add = vi.spyOn(EventTarget.prototype, "addEventListener");
+    try {
+      // Synchronously, so no promise has settled: the layer is there only if the list began with it.
+      flushSync(() => root.render(<Channel count={2} />));
+      const detached = add.mock.contexts.some((target, index) => add.mock.calls[index]![0] === "wheel" && target instanceof HTMLSpanElement && !target.isConnected);
+      expect(detached).toBe(true);
     } finally {
       add.mockRestore();
     }
