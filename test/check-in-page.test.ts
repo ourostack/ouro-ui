@@ -769,4 +769,11 @@ describe("runAxe", () => {
     host.innerHTML = `<button>Named</button>`;
     expect(await runAxe()).toEqual([]);
   });
+
+  it("leaves out Base UI's focus guards, as Ouro's axe kit does, but not another focusable element under aria-hidden", async () => {
+    render(`<span data-base-ui-focus-guard="" data-type="outside" aria-hidden="true" tabindex="0" style="position:fixed;width:1px;height:1px;overflow:hidden"></span><button>Named</button>`);
+    expect(await runAxe()).toEqual([]);
+    host.innerHTML = `<span aria-hidden="true" tabindex="0">Hidden but focusable</span>`;
+    expect((await runAxe()).map((issue) => issue.element)).toEqual([expect.stringMatching(/^aria-hidden-focus: /)]);
+  });
 });
