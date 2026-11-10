@@ -479,8 +479,11 @@ let shifted = 0;
 const shifts = new WeakMap<Element, number>();
 
 // The list's one action bar and menu, loaded with the first message that has actions.
+// Once it has loaded, a list that mounts later starts with it, rather than getting it a commit after its first.
 let layerModule: Promise<typeof MessageBarLayer> | undefined;
-const loadLayer = () => (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => module.MessageBarLayer));
+let loadedLayer: typeof MessageBarLayer | undefined;
+const loadLayer = () =>
+  (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => (loadedLayer = module.MessageBarLayer)));
 
 /** Where an element is laid out: its box, less the spring of the message it is in. */
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
@@ -1003,7 +1006,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   // One action bar and one menu for every message, rather than one each: the messages give the layer what to show.
-  const [Layer, setLayer] = useState<typeof MessageBarLayer | undefined>(undefined);
+  const [Layer, setLayer] = useState<typeof MessageBarLayer | undefined>(() => loadedLayer);
   const [layer] = useState(() => createRowLayer<MessageBarData>(() => void loadLayer().then((Loaded) => setLayer(() => Loaded))));
   // Whether the view follows new content: whether it was at the bottom before the content changed.
   const pinned = useRef(true);
