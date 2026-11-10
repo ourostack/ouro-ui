@@ -463,6 +463,9 @@ describe("readCorners", () => {
       { ref: "c1", rule: "baked-corner", element: "media/window.webm", detail: "the top left, top right, bottom left, bottom right corners draw a colour neither edge beside them has: the media's own corners show inside its frame" },
     ]);
     expect(await readCorners([reading(window_(), ["top right", "bottom right"])])).toMatchObject([{ detail: expect.stringMatching(/^the top right, bottom right corners/) }]);
+    // A frame curved less than 3 px shows no page at its tip: the tip is the media's own pixel, so the fill behind stands in.
+    const square = shot((x, y) => (outside(x, y, 2) ? WHITE : outside(x, y, 16) ? BLACK : LIGHT));
+    expect(await readCorners([{ ...reading(square), radius: 2 }])).toMatchObject([{ rule: "baked-corner" }]);
   });
 
   it("passes plain corners, one corner, corners the screen doesn't show, corners of different colours, and edges that disagree", async () => {
