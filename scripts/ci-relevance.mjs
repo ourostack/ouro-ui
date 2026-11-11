@@ -40,6 +40,7 @@ export const targets = {
       [/^AGENTS\.md$/, "the contributors' rules"],
       [/^flows\//, "a Flow review flow"],
       [/^feel\//, "Ouro Feel, which its own workflow runs (feel.yml)"],
+      [/^plugins\//, "an agent plugin, which only scripts/agent-plugin.test.mjs and the claims check read"],
       [/^scripts\/.+\.test\.mjs$/, "a Node script test (pnpm test:scripts)"],
       [/^scripts\/agent-usability\//, "the agent-usability test, which runs in Node"],
       [/^site\/e2e\/(?!voyage-presets\.spec\.ts$).+\.spec\.ts$/, "a site end-to-end spec, which Playwright runs"],
@@ -58,6 +59,7 @@ export const targets = {
       [/^AGENTS\.md$/, "the contributors' rules"],
       [/^flows\//, "a Flow review flow"],
       [/^feel\//, "Ouro Feel, which its own workflow runs (feel.yml)"],
+      [/^plugins\//, "an agent plugin, which only scripts/agent-plugin.test.mjs and the claims check read"],
       // site/scripts/proof.mts reads voyage-presets.spec.ts for the hero's proof line.
       [/^site\/e2e\/(?!voyage-presets\.spec\.ts$)/, "a site end-to-end spec or its helpers"],
       [/^site\/test\//, "a site test helper"],

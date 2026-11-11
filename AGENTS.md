@@ -13,6 +13,7 @@ Follow ourostack's shared [PR merge rule](https://github.com/ourostack/.github/b
 - **[ourostack/ouro-ui-core](https://github.com/ourostack/ouro-ui-core):** the tokens, the decision records and the Ouro AX for Apple claims, with the design language, the Ouro AX standard and the site to follow.
 - **[ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple):** the Swift package (`OuroHX`, `OuroAX`, `ouro-ax-xray`).
 - **ourostack/ouro-ui (web, this repository):** React and the registry.
+- **[`plugins/ouro-check`](plugins/ouro-check) (this repository):** the `ouro-check` agent skill, moved from `ourostack/ouroboros-skills`, which is being retired. Change it here, in the same pull request as the change to the check it describes.
 
 The rules:
 

@@ -1,0 +1,11 @@
+{
+  "name": "ouro-check",
+  "version": "0.1.0",
+  "description": "Agent skill for Ouro check, Ouro UI's screen check: run it on a site, a built app or a page in a test, and fix what its JSON findings report (design, layout, pictures, accessibility, jank, HTTPS) without looking at screenshots.",
+  "author": {
+    "name": "ourostack",
+    "url": "https://github.com/ourostack/ouro-ui"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}
