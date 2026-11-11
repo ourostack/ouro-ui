@@ -101,6 +101,11 @@
   ],
   "allowed": [
     {
+      "file": "plugins/ouro-check/skills/ouro-check/SKILL.md",
+      "sentence": "--- name: ouro-check description: Use when you need to know whether a site, a built app or a page in a test looks, reads and moves right (design, layout, pictures, accessibility, jank, HTTPS) at phone, laptop and 4K sizes in light and dark, without looking at screenshots or recordings.",
+      "reason": "the skill's front matter, which agents match the skill on: YAML has no room for a footnote mark, and the screen check guide (docs/guides/guardrails.md) sources the rules, sizes and themes it names"
+    },
+    {
       "file": "site/src/voyage/stage/copy.ts",
       "sentence": "All three tanks are full.",
       "reason": "the Nautilus story: Conseil and Nemo on the ship's ballast"

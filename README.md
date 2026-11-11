@@ -475,6 +475,10 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Dev messages teach**, in one format: `[ouro-ui] <Component>: <what's wrong>. Fix: <exact code>.` They are stripped from production builds.
 - **axe in WebKit flags Base UI's focus guards; exclude them.** While a Dialog, ConfirmDialog or Sheet is open, WebKit gives Base UI's focus guards `role="button"` without a name so VoiceOver's cursor stays trapped, and axe reports `aria-command-name`. That is expected: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`, or spread `axeExclude` from `lib/ouro/testing/axe.ts` (in `ouro-testing`).
 
+### Agent plugin
+
+[`plugins/ouro-check`](plugins/ouro-check) ships the `ouro-check` agent skill as a plugin. It teaches an agent to run Ouro check on a site, a built app or a page in a test, and to fix what its JSON findings report without looking at screenshots. Install it with Agency (`agency plugin install github:ourostack/ouro-ui:plugins/ouro-check@main --cache-policy auto --cache-ttl 0`) or point any plugin-aware host at that folder. The skill moved here from `ourostack/ouroboros-skills`; change it here, in the same pull request as the change to the check it describes.
+
 ## Components
 
 <!-- catalog:start -->
@@ -719,6 +723,7 @@ The site moved from ui.ouro.bot to ui.ouroboros.bot.[^host] Old addresses still 
 - **[ourostack/ouro-ui-core](https://github.com/ourostack/ouro-ui-core):** the tokens, the decision records and the Ouro AX for Apple claims, with the design language, the Ouro AX standard and the site to follow.
 - **[ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple):** the Swift package (`OuroHX`, `OuroAX`, `ouro-ax-xray`).
 - **ourostack/ouro-ui (web, this repository):** React and the registry.
+- **[`plugins/ouro-check`](plugins/ouro-check) (this repository):** the `ouro-check` agent skill, moved from `ourostack/ouroboros-skills`, which is being retired. Change it here, in the same pull request as the change to the check it describes.
 
 The rules:
 

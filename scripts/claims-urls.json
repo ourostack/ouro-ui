@@ -115,6 +115,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases": {
+    "status": 200,
+    "checked": "2026-11-11"
+  },
   "https://docs.github.com/en/rest/actions/workflow-runs#approve-a-workflow-run-for-a-fork-pull-request": {
     "status": 200,
     "checked": "2026-11-06"
