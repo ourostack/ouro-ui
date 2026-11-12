@@ -1,5 +1,5 @@
-export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues };
-export type { Budgets, CheckOptions, CheckResult, Finding, Gate, MergeOptions, Report };
+export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues };
+export type { Budgets, CheckOptions, CheckResult, Finding, Gate, ImageEntry, MergeOptions, Report };
 
 import { createHash } from "node:crypto";
 import { realpathSync } from "node:fs";
@@ -15,7 +15,7 @@ import { findLoadingIssues, interactionSince, listenForMeasures, markPressables,
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
-import { findSizeIssues, type Measure, type PageIssue } from "./size-check.ts";
+import { findSizeIssues, type ImageMeasure, type Measure, type PageIssue } from "./size-check.ts";
 import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
@@ -27,8 +27,8 @@ import { findInteractionIssues } from "./interaction-check.ts";
 //
 //   node lib/ouro/check/check.ts <url | built folder>… [--pages <glob>] [--out <folder>] [--sizes WxH,…]
 //        [--themes light,dark] [--before <old report.json>] [--config ouro-check.json] [--no-axe]
-//        [--no-measured] [--ready-event <name>] [--shard k/n]
-//   node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config ouro-check.json]
+//        [--no-measured] [--ready-event <name>] [--shard k/n] [--images-report <file.json>]
+//   node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config ouro-check.json] [--images-report <file.json>]
 //
 // Exits as every Ouro tool does (EXIT): 0 ok, 1 error (the check could not run), 2 usage, 3 findings. Playwright comes
 // from the app's playwright (or PLAYWRIGHT_MODULE), Chromium from Playwright or BROWSER_EXECUTABLE, axe-core from the app or AXE_CORE.
@@ -52,9 +52,29 @@ interface Finding {
   samples?: number[];
   // The device pixel ratio the page was drawn at (dprAt); missing in a report written before it was recorded.
   dpr?: number;
+  // A blurry picture's numbers, and the file it drew when the check served it from a built folder.
+  // url is the page's address: a URL target's own, or a built folder's page path, since its server's port changes each run.
+  image?: ImageMeasure & { url?: string; file?: string };
   box?: Box;
   closeUp?: string;
   pair?: string;
+}
+
+// One picture in the images report: the largest file it needs, across every size and theme it was too small at.
+interface ImageEntry {
+  url: string;
+  site: string;
+  page: string;
+  selector: string;
+  element: string;
+  currentSrc: string;
+  naturalWidth: number;
+  naturalHeight: number;
+  renderedWidth: number;
+  dpr: number;
+  requiredWidth: number;
+  file: string | null;
+  sizes: string[];
 }
 
 // A finding from the --before report that this run did not find at its size: fixed, unless another size still has it.
@@ -153,6 +173,8 @@ interface MergeOptions {
 
 interface Target extends PageRef {
   url: string;
+  // The built folder the check serves the page from, so a picture's address can name its file.
+  root?: string;
   // The presses that reach the target's state from its page, in turn.
   steps?: string[];
 }
@@ -307,8 +329,10 @@ const measuresFor = (config: Gate, page: string): Measure[] =>
   );
 
 // Whether a finding fails the check: every one does unless the config waives its rule ("*" for every rule) on a page
-// glob it matches.
+// glob it matches. blurry-image is never waived: a picture too small for where it is drawn always fails.
+const UNWAIVABLE = ["blurry-image"];
 const isGated = (config: Gate, page: string, rule: string) =>
+  UNWAIVABLE.includes(rule) ||
   !Object.entries(config.waive ?? {}).some(([glob, rules]) => Boolean(rules[rule] ?? rules["*"]) && globToRegExp(glob.startsWith("/") ? glob : `/${glob}`).test(page));
 
 // The https rule, for a site on the web: http:// answers with a permanent redirect (301 or 308) to https://, and
@@ -356,7 +380,7 @@ async function targetsOf(targets: string[], glob: string | undefined): Promise<{
     }
     const server = await serve(target);
     servers.push(server);
-    for (const page of await listPages(target, glob)) list.push({ site: basename(resolve(target)), page, url: `${server.origin}${page}`, name: "" });
+    for (const page of await listPages(target, glob)) list.push({ site: basename(resolve(target)), page, url: `${server.origin}${page}`, name: "", root: resolve(target) });
   }
   const sites = new Set(list.map((t) => t.site));
   for (const t of list) t.name = fileName(sites.size > 1 ? `${t.site}${t.page}` : t.page);
@@ -517,9 +541,9 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   };
   // A finding, recorded, and photographed with its element outlined unless the page already has one of it or 40.
   const record = async (page: Page, target: Target, issue: PageIssue, width: number, height: number, theme: string) => {
-    const { ref, rule, element, detail, value, budget, unit, samples } = issue;
+    const { ref, rule, element, detail, value, budget, unit, samples, image } = issue;
     const measured = value === undefined ? {} : { value, budget: budget!, unit: unit!, ...(samples ? { samples } : {}) };
-    const f: Finding = { site: target.site, page: target.page, width, height, theme, rule, element, detail, ...measured, gated: isGated(config, target.page, rule), dpr: dprAt(width) };
+    const f: Finding = { site: target.site, page: target.page, width, height, theme, rule, element, detail, ...measured, gated: isGated(config, target.page, rule), dpr: dprAt(width), ...(image ? { image: { ...image, ...placeOf(target, image.src) } } : {}) };
     findings.push(f);
     const key = keyOf(f);
     if (pictured.has(key) || closeUps.get(target)! >= MAX_CLOSE_UPS) return;
@@ -809,6 +833,50 @@ async function compose(browser: Browser, out: string, report: Report): Promise<F
   return fixed;
 }
 
+// Where a picture is: the page's address, and the file its address names when the check served the page from a built
+// folder, so a tool can replace it. Pictures from elsewhere (another site, data: or blob: addresses) have no file.
+function placeOf(target: Target, src: string): { url: string; file?: string } {
+  const origin = new URL(target.url).origin;
+  if (!target.root) return { url: target.url };
+  const url = new URL(src);
+  return { url: target.url.slice(origin.length), ...(url.protocol !== "blob:" && url.origin === origin ? { file: join(target.root, decodeURIComponent(url.pathname)) } : {}) };
+}
+
+// The images report: each picture too small for where it is drawn, once a page, with its widest drawn width and the
+// largest file it needs (at that size's density) across the sizes and themes it was found at, and where to find it: the page's address, a selector, the file it drew and, from
+// a built folder, the file on disk. Read from the findings, so it works on a merge too.
+function imagesReport(findings: Finding[]): ImageEntry[] {
+  const entries = new Map<string, ImageEntry>();
+  for (const f of findings) {
+    if (!f.image) continue;
+    const i = f.image;
+    const key = JSON.stringify([f.site, f.page, i.selector, i.src]);
+    const size = `${f.width}x${f.height}@${i.density}x ${f.theme}`;
+    const known = entries.get(key);
+    if (known) {
+      known.sizes.push(size);
+      known.renderedWidth = Math.max(known.renderedWidth, i.renderedWidth);
+      if (i.requiredWidth <= known.requiredWidth) continue;
+    }
+    entries.set(key, {
+      url: i.url ?? f.page,
+      site: f.site,
+      page: f.page,
+      selector: i.selector,
+      element: f.element,
+      currentSrc: i.src,
+      naturalWidth: i.naturalWidth,
+      naturalHeight: i.naturalHeight,
+      renderedWidth: Math.max(i.renderedWidth, known?.renderedWidth ?? 0),
+      dpr: i.density,
+      requiredWidth: i.requiredWidth,
+      file: i.file ?? null,
+      sizes: known ? known.sizes : [size],
+    });
+  }
+  return [...entries.values()].sort((a, b) => a.site.localeCompare(b.site) || a.page.localeCompare(b.page) || b.requiredWidth - a.requiredWidth);
+}
+
 async function write(out: string, report: Report) {
   await writeFile(join(out, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
   await writeFile(join(out, "summary.md"), summary(report));
@@ -933,11 +1001,12 @@ interface Args {
   axe: boolean;
   measured: boolean;
   readyEvents: string[];
+  imagesReport?: string;
   help: boolean;
 }
 
 const USAGE = `Usage: node lib/ouro/check/check.ts <url | built folder>… [options]
-       node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config <file>]
+       node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config <file>] [--images-report <file>]
 
 Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched
 pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems,
@@ -962,6 +1031,8 @@ contact sheet per page and a captioned close-up per finding. merge joins the out
   --no-axe                 skip axe-core
   --no-measured            skip the measured rules, and press nothing
   --ready-event <name>     an event the page fires once it has drawn, besides ouro:ready
+  --images-report <file>   also write, as JSON, each picture too small for where it is drawn: its page, a selector, the
+                           file it drew, that file's pixels, its drawn width, the density and the width it needs
 
 Exit codes: 0 ok, 1 error (the check stopped before it finished, as when the browser would not start), 2 usage, 3 findings to fix.`;
 
@@ -975,8 +1046,8 @@ function parseArgs(argv: string[]): Args {
       if (next === undefined || next.startsWith("--")) throw new Error(`${arg} needs a value.`);
       return next;
     };
-    const flag = args.merge && !["--help", "-h", "--out", "--config"].includes(arg) && arg.startsWith("-");
-    if (flag) throw new Error(`merge takes --out and --config, not ${arg}.`);
+    const flag = args.merge && !["--help", "-h", "--out", "--config", "--images-report"].includes(arg) && arg.startsWith("-");
+    if (flag) throw new Error(`merge takes --out, --config and --images-report, not ${arg}.`);
     if (arg === "--help" || arg === "-h") args.help = true;
     else if (arg === "--no-axe") args.axe = false;
     else if (arg === "--no-measured") args.measured = false;
@@ -984,6 +1055,7 @@ function parseArgs(argv: string[]): Args {
     else if (arg === "--pages") args.pages = value();
     else if (arg === "--before") args.before = value();
     else if (arg === "--config") args.config = value();
+    else if (arg === "--images-report") args.imagesReport = value();
     else if (arg === "--ready-event") args.readyEvents.push(value());
     else if (arg === "--themes") {
       args.themes = value().split(",").map((t) => t.trim());
@@ -1041,7 +1113,10 @@ async function readJson<T>(file: string, error: (line: string) => void): Promise
 }
 
 // What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
-function configProblem({ press, pressRepeat, states }: Gate): string | null {
+function configProblem({ press, pressRepeat, states, waive }: Gate): string | null {
+  const waived = Object.entries(waive ?? {}).find(([, rules]) => typeof rules === "object" && rules !== null && "blurry-image" in rules);
+  if (waived)
+    return `"waive" > "${waived[0]}" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source, or a srcset whose largest file covers its drawn width at 2x.`;
   if (press !== undefined && !(Array.isArray(press) && press.every((selector) => typeof selector === "string" && selector.trim() !== ""))) return '"press" takes a list of CSS selectors, such as ["[role=tab]"].';
   if (pressRepeat !== undefined && !(Number.isInteger(pressRepeat) && pressRepeat >= 1)) return '"pressRepeat" takes a whole number of presses, 1 or more.';
   const listOf = (steps: unknown) => Array.isArray(steps) && steps.length > 0 && steps.every((step) => typeof step === "string" && step.trim() !== "");
@@ -1139,6 +1214,13 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
       }
     }
     if (env.GITHUB_STEP_SUMMARY) await appendFile(env.GITHUB_STEP_SUMMARY, summary(result));
+    if (args.imagesReport !== undefined) {
+      const file = resolve(cwd, args.imagesReport);
+      await mkdir(dirname(file), { recursive: true });
+      const images = imagesReport(result.findings);
+      await writeFile(file, `${JSON.stringify({ images }, null, 2)}\n`);
+      log(`Images report: ${images.length} picture(s) too small for where they are drawn, in ${relative(cwd, file)}`);
+    }
     const failing = group(result.gated);
     log(`\n${group(result.findings).length} finding(s), ${failing.length} gated, ${result.fixed.length} fixed since --before. Report: ${relative(cwd, join(out, "report.json"))}`);
     return failing.length ? EXIT.findings : EXIT.ok;
