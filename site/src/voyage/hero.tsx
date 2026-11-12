@@ -186,7 +186,7 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
           <p className="site-eyebrow site-hero-eyebrow max-sm:sr-only" data-site-eyebrow="">
             <span className="site-hero-brand">{EYEBROW}</span>
           </p>
-          <h1 id="hero-title" className="site-h1 site-hero-title mt-1 sm:mt-3 lg:mt-4">
+          <h1 id="hero-title" className="site-h1 site-hero-title">
             {VOYAGE_HERO.title.map((sentence, index) => (
               <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
                 {sentence}
@@ -194,14 +194,14 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
               </span>
             ))}
           </h1>
+          <p className="site-lede site-hero-sky-lede">{VOYAGE_HERO.subline}</p>
         </Container>
       </StoryWorld>
       <Container className="site-hero-grid">
         <div className="site-hero-copy">
           {/* On a phone the theme dots open the copy, above the words, so the stage's first control comes sooner. */}
           <div className="max-sm:flex max-sm:flex-col">
-            <p className="site-lede max-w-[44ch] max-sm:mt-2">{VOYAGE_HERO.subline}</p>
-            <div className="mt-3 max-w-[36rem] lg:mt-7">
+            <div className="max-w-[36rem]">
               <Install />
             </div>
             <div className="mt-3 flex flex-wrap gap-3 lg:mt-6">

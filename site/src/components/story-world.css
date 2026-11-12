@@ -236,22 +236,65 @@
   }
 
   /*
-   * The home page's arrival (voyage/hero.tsx): the sky starts under the header, the headline sits in
-   * it one sentence a line where there is room, and the copy and the porthole follow the meadow.
+   * The home page's arrival (voyage/hero.tsx), centred: the storybook is the full-width sky, the eyebrow, headline and
+   * lede sit centred in a 42rem column, and the scene centres below them at the fold cap. --hero-width is as wide as
+   * the scene can be while its foot still clears the first screen (the 36rem is the sky above it); it is never past
+   * the scene file's 1536px, so the picture is never upscaled.
    */
   .site-hero.site-hero-storybook {
+    --hero-gap: 3rem;
+    --hero-measure: 42rem;
+    --hero-width: min(80rem, 100% - 4rem, max(48rem, (100svh - 36rem) * 8 / 3));
     padding-top: 0;
   }
-  .story-world-sky .site-hero-title {
-    max-width: 22ch;
-    font-size: clamp(1.875rem, 4.4vw, 4rem);
-  }
-  @media (min-width: 64rem) {
-    .story-world-sky .site-hero-title {
-      max-width: none;
+  @media (max-width: 40rem) {
+    .site-hero.site-hero-storybook {
+      --hero-gap: 2rem;
     }
   }
-  .site-hero-storybook > .site-hero-grid {
-    margin-top: clamp(1.25rem, 2vw, 1.75rem);
+  .site-hero.site-hero-storybook .story-world {
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .site-hero.site-hero-storybook .story-world-sky {
+    padding-block: 3rem 0;
+    background: none;
+    text-align: center;
+  }
+  .site-hero.site-hero-storybook .site-hero-eyebrow {
+    justify-content: center;
+  }
+  .site-hero.site-hero-storybook .site-hero-title {
+    max-width: var(--hero-measure);
+    margin: 1rem auto 0;
+    font-size: 3rem;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  .site-hero.site-hero-storybook .site-hero-sky-lede {
+    max-width: var(--hero-measure);
+    margin: 1.5rem auto 0;
+    font-size: 1.125rem;
+    line-height: 2rem;
+    text-wrap: pretty;
+  }
+  .site-hero.site-hero-storybook .story-world-view {
+    width: var(--hero-width);
+    max-width: 1536px;
+    margin: var(--hero-gap) auto 0;
+    border-radius: 4px;
+  }
+  .site-hero.site-hero-storybook .story-world-img {
+    aspect-ratio: 8 / 3;
+    max-height: none;
+  }
+  .site-hero.site-hero-storybook > .site-hero-grid {
+    margin-top: var(--hero-gap);
+  }
+  .site-hero.site-hero-storybook .site-hero-copy {
+    padding-top: 0;
   }
 }
