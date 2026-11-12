@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { BUDGETS, caption, check, dprAt, EXIT, group, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
+import { BUDGETS, caption, check, dprAt, EXIT, group, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, SIZES, summary, transportIssues, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 
@@ -264,6 +264,76 @@ describe("Ouro check", () => {
     assert.deepEqual(result.findings.map((f) => [f.rule, f.width, f.dpr]), [["blurry-image", 3072, 2]]);
   });
 
+  test("never waives a blurry picture, and lists each one, with the file it needs, in the images report", async () => {
+    const art = site("art", {
+      "page.html": page('<h1>Art</h1><img src="picture-160.png" alt="A picture" style="width:320px;height:auto"><img src="picture-960.png" alt="A sharp picture" style="width:320px;height:auto">'),
+      "other.html": page('<h1>Other</h1><p data-ouro-allow="blurry-image" data-ouro-allow-why="soft on purpose">Words</p>'),
+    });
+    for (const file of ["picture-160.png", "picture-960.png"]) copyFileSync(join(fixtures, file), join(art, file));
+    const cwd = dir("art-cwd");
+    writeFileSync(join(cwd, "ouro-check.json"), JSON.stringify({ waive: { "**": { "*": "everything on purpose" } } }));
+    const result = await run([art, "--sizes", "390x844,1440x900", "--themes", "light", "--no-axe", "--no-measured", "--out", "first", "--images-report", "reports/images.json"], { cwd, env: { BROWSER_EXECUTABLE: browser } });
+    assert.equal(result.code, 3, result.out + result.err);
+    assert.match(result.out, /Images report: 1 picture\(s\) too small for where they are drawn, in reports\/images\.json/);
+    const { images } = JSON.parse(readFileSync(join(cwd, "reports", "images.json"), "utf8")) as { images: Record<string, unknown>[] };
+    assert.deepEqual(images, [
+      {
+        url: "/page.html",
+        site: "art",
+        page: "/page.html",
+        selector: "body > main > img:nth-of-type(1)",
+        element: "picture-160.png",
+        currentSrc: images[0]!.currentSrc,
+        naturalWidth: 160,
+        naturalHeight: 90,
+        renderedWidth: 320,
+        dpr: 2,
+        requiredWidth: 640,
+        file: join(realpathSync(art), "picture-160.png"),
+        sizes: ["390x844@2x light", "1440x900@2x light"],
+      },
+    ]);
+    assert.match(String(images[0]!.currentSrc), /^http:\/\/[^/]+\/picture-160\.png$/);
+    const report = JSON.parse(readFileSync(join(cwd, "first", "report.json"), "utf8")) as Report;
+    // The waiver attempt is a finding of its own, and the config's "*" covers every rule but this one.
+    assert.deepEqual(group(report.findings.filter((f) => f.gated)).map((g) => [g.page, g.rule, g.element]), [
+      ["/other.html", "blurry-image", 'p "Words" [data-ouro-allow="blurry-image"]'],
+      ["/page.html", "blurry-image", "picture-160.png"],
+    ]);
+    const merged = await run(["merge", "first", "--out", "merged", "--images-report", "merged.json"], { cwd });
+    assert.equal(merged.code, 3, merged.err);
+    assert.deepEqual(JSON.parse(readFileSync(join(cwd, "merged.json"), "utf8")), { images });
+  });
+
+  test("names a picture's file only when the check served it from a built folder, and keeps the largest need for each", () => {
+    const at = { site: "s", page: "/a.html", name: "a" };
+    assert.deepEqual(placeOf({ ...at, url: "https://site.test/a.html" }, "https://site.test/p.png"), { url: "https://site.test/a.html" });
+    const served = { ...at, url: "http://127.0.0.1:5000/a.html", root: "/built" };
+    assert.deepEqual(placeOf(served, "http://127.0.0.1:5000/art/my%20scene.png"), { url: "/a.html", file: join("/built", "art/my scene.png") });
+    assert.deepEqual(placeOf(served, "https://cdn.test/p.png"), { url: "/a.html" });
+    assert.deepEqual(placeOf(served, "blob:http://127.0.0.1:5000/1234"), { url: "/a.html" });
+    assert.deepEqual(placeOf(served, "data:image/png;base64,AAAA"), { url: "/a.html" });
+    const image = { selector: "img", src: "p.png", naturalWidth: 100, naturalHeight: 50, renderedWidth: 100, renderedHeight: 50, density: 2, requiredWidth: 200 };
+    const finding = (over: Partial<Finding>, size: Partial<typeof image>): Finding => ({ site: "s", page: "/a.html", width: 390, height: 844, theme: "light", rule: "blurry-image", element: "p.png", detail: "", gated: true, ...over, image: { ...image, ...size } });
+    assert.deepEqual(
+      imagesReport([
+        finding({ rule: "overlap" }, {}),
+        finding({ width: 1440, height: 900 }, { renderedWidth: 300, requiredWidth: 600 }),
+        finding({ theme: "dark" }, { renderedWidth: 400, requiredWidth: 400 }),
+        finding({ width: 3840, height: 2160 }, { renderedWidth: 200, density: 1, requiredWidth: 700 }),
+        finding({ page: "/b.html" }, { selector: "div", src: "q.png" }),
+        finding({ site: "r" }, { renderedWidth: 120, requiredWidth: 240 }),
+        finding({ site: "s", page: "/a.html" }, { selector: "p", src: "r.png", requiredWidth: 900 }),
+      ].map((f, i) => (i === 0 ? { ...f, image: undefined } : i === 5 ? { ...f, image: { ...f.image!, url: "https://r.test/a.html", file: "/r/p.png" } } : f)) as Finding[]),
+      [
+        { url: "https://r.test/a.html", site: "r", page: "/a.html", selector: "img", element: "p.png", currentSrc: "p.png", naturalWidth: 100, naturalHeight: 50, renderedWidth: 120, dpr: 2, requiredWidth: 240, file: "/r/p.png", sizes: ["390x844@2x light"] },
+        { url: "/a.html", site: "s", page: "/a.html", selector: "p", element: "p.png", currentSrc: "r.png", naturalWidth: 100, naturalHeight: 50, renderedWidth: 100, dpr: 2, requiredWidth: 900, file: null, sizes: ["390x844@2x light"] },
+        { url: "/a.html", site: "s", page: "/a.html", selector: "img", element: "p.png", currentSrc: "p.png", naturalWidth: 100, naturalHeight: 50, renderedWidth: 400, dpr: 1, requiredWidth: 700, file: null, sizes: ["1440x900@2x light", "390x844@2x dark", "3840x2160@1x light"] },
+        { url: "/b.html", site: "s", page: "/b.html", selector: "div", element: "p.png", currentSrc: "q.png", naturalWidth: 100, naturalHeight: 50, renderedWidth: 100, dpr: 2, requiredWidth: 200, file: null, sizes: ["390x844@2x light"] },
+      ],
+    );
+  });
+
   // How many pure blue pixels a picture has, read in the browser.
   const bluePixels = async (file: string) => {
     const reader = await chromium.launch({ executablePath: browser });
@@ -484,6 +554,8 @@ describe("Ouro check's command", () => {
       help: false,
     });
     assert.deepEqual(parseArgs(["merge", "a", "b", "--out", "o", "--config", "c.json"]), { ...parseArgs(["a"]), merge: true, targets: ["a", "b"], out: "o", config: "c.json" });
+    assert.equal(parseArgs(["a", "--images-report", "images.json"]).imagesReport, "images.json");
+    assert.equal(parseArgs(["merge", "a", "--images-report", "images.json"]).imagesReport, "images.json");
     assert.equal(parseArgs(["--help"]).help, true);
     assert.equal(parseArgs(["merge", "-h"]).help, true);
     assert.equal(parseArgs(["a"]).sizes, SIZES);
@@ -496,7 +568,8 @@ describe("Ouro check's command", () => {
       [["a", "--shard", "half"], /not "half"/],
       [["a", "--sizes", "390x844,wide"], /not "wide"/],
       [["a", "--wat"], /Unknown option --wat/],
-      [["merge", "a", "--shard", "1/2"], /merge takes --out and --config, not --shard/],
+      [["merge", "a", "--shard", "1/2"], /merge takes --out, --config and --images-report, not --shard/],
+      [["a", "--images-report"], /--images-report needs a value/],
       [[], /Name a URL or a built folder/],
       [["merge"], /Name the out folders to merge/],
     ] as [string[], RegExp][]) {
@@ -593,6 +666,7 @@ describe("Ouro check's command", () => {
       [{ states: { "/": { open: [] } } }, /"states" takes pages/],
       [{ states: { "/": { open: [" "] } } }, /"states" takes pages/],
       [{ states: { "/": null } }, /"states" takes pages/],
+      [{ waive: { "/art/**": { "blurry-image": "soft on purpose" } } }, /"waive" > "\/art\/\*\*" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source/],
     ] as [object, RegExp][]) {
       writeFileSync(join(scratch, "press.json"), JSON.stringify(config));
       const wrong = await run([folder, "--config", "press.json"]);

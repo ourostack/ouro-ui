@@ -1,4 +1,4 @@
-export { FORMATS, main, makeImages, parseArgs, planWidths, WIDTHS };
+export { FORMATS, HERO_FLOOR, main, makeImages, parseArgs, planWidths, shortfall, WIDTHS };
 export type { Format, ImageEntry, ImagesOptions, ImagesResult, Manifest };
 
 import { createHash } from "node:crypto";
@@ -12,7 +12,12 @@ import sharp from "sharp";
 // srcset of each, so a page draws a picture sharp at every screen size without sending a phone the widest file.
 //
 //   node lib/ouro/images/images.ts <source folder> [--out <folder>] [--widths 320,640,…] [--formats avif,webp]
-//        [--base <url prefix>] [--quality <1-100>]
+//        [--base <url prefix>] [--quality <1-100>] [--max-width <css px>] [--min-long-edge <px>]
+//
+// It refuses a picture too small to be drawn sharp, and writes nothing for it: one narrower than twice --max-width, the
+// widest it is drawn (a 2x screen needs two pixels for each), and one whose long edge is under --min-long-edge, or under
+// 2048 when it sits in a folder named hero, heroes, scene or scenes, as a page's big art does. The browser cannot add
+// detail a file lacks, so the fix is a larger source.
 //
 // A picture's files are kept when images.json says they were made from the same bytes and options, and they are all
 // there. Exit 0 when every picture was written, kept or left out, 1 when one could not be written, 2 for a usage
@@ -43,6 +48,10 @@ interface ImagesOptions {
   formats?: Format[];
   base?: string;
   quality?: number;
+  /** The widest, in CSS pixels, these pictures are drawn; a picture narrower than twice it is refused. */
+  maxWidth?: number | undefined;
+  /** A long edge a picture must reach; a picture whose long edge is shorter is refused. */
+  minLongEdge?: number | undefined;
   log?: (line: string) => void;
 }
 
@@ -58,6 +67,21 @@ const WIDTHS = [320, 640, 960, 1280, 1920, 2560, 3840, 5120];
 const FORMATS: Format[] = ["avif", "webp"];
 const TYPES: Record<Format, string> = { avif: "image/avif", webp: "image/webp" };
 const RASTER = /\.(png|jpe?g|webp|avif|tiff?)$/i;
+/** The long edge a page's big art must reach: a picture in a hero, heroes, scene or scenes folder. */
+const HERO_FLOOR = 2048;
+const HERO = /^(hero|heroes|scene|scenes)$/i;
+
+// Why a picture `width`×`height` at `name` is too small to be drawn sharp, or undefined when it is not: narrower than
+// twice the widest it is drawn, or a long edge under the floor, which is HERO_FLOOR for big art when none is set higher.
+function shortfall(name: string, width: number, height: number, { maxWidth, minLongEdge = 0 }: Pick<ImagesOptions, "maxWidth" | "minLongEdge"> = {}) {
+  const hero = name.split("/").slice(0, -1).some((part) => HERO.test(part));
+  const floor = Math.max(minLongEdge, hero ? HERO_FLOOR : 0);
+  if (maxWidth !== undefined && width < maxWidth * 2)
+    return `${width}×${height} is narrower than ${maxWidth * 2}, twice the ${maxWidth} CSS pixels it is drawn at, so a 2x screen would draw it blurry; give it a source at least ${maxWidth * 2} wide`;
+  if (Math.max(width, height) < floor)
+    return `${width}×${height} has a long edge under ${floor}${hero && floor === HERO_FLOOR ? ", the floor for hero and scene art" : ""}; give it a source at least ${floor} on its long edge`;
+  return undefined;
+}
 
 // The widths to write for a picture `width` pixels wide: each of `widths` narrower than it, then its own.
 const planWidths = (width: number, widths: number[]) => [...new Set([...widths.filter((w) => w < width), width])].sort((a, b) => a - b);
@@ -65,7 +89,7 @@ const planWidths = (width: number, widths: number[]) => [...new Set([...widths.f
 // Writes each picture under `source` into `out` at each width and format, turned upright as its EXIF orientation says,
 // and `out`/images.json. Hidden folders, node_modules and an `out` inside `source` are left out, and so is an animated
 // picture, which would lose its frames.
-async function makeImages({ source, out, widths = WIDTHS, formats = FORMATS, base = "", quality = 70, log = console.log }: ImagesOptions): Promise<ImagesResult> {
+async function makeImages({ source, out, widths = WIDTHS, formats = FORMATS, base = "", quality = 70, maxWidth, minLongEdge, log = console.log }: ImagesOptions): Promise<ImagesResult> {
   const root = resolve(source);
   const outDir = resolve(out);
   // Only an out folder inside the source holds files to leave out; a source inside the out folder is all source.
@@ -99,6 +123,11 @@ async function makeImages({ source, out, widths = WIDTHS, formats = FORMATS, bas
         continue;
       }
       const { width, height } = autoOrient;
+      const small = shortfall(name, width, height, { maxWidth, minLongEdge });
+      if (small) {
+        result.failed.push(`${name}: ${small}`);
+        continue;
+      }
       const planned = planWidths(width, widths);
       const made = createHash("sha256")
         .update(await readFile(file))
@@ -141,6 +170,8 @@ interface Args {
   formats: Format[];
   base: string;
   quality: number;
+  maxWidth?: number;
+  minLongEdge?: number;
   help: boolean;
 }
 
@@ -153,7 +184,12 @@ srcset of each, for a <picture> element.
   --widths 320,640,…    the widths to write below each picture's own (default 320,640,960,1280,1920,2560,3840,5120)
   --formats avif,webp   the formats, the fallback last (default avif,webp)
   --base <prefix>       what each address in a srcset starts with, such as /images/ (default none)
-  --quality <1-100>     the encoder's quality (default 70)`;
+  --quality <1-100>     the encoder's quality (default 70)
+  --max-width <px>      the widest, in CSS pixels, the pictures are drawn; one narrower than twice it is refused
+  --min-long-edge <px>  the fewest pixels a picture's long edge may have (default 2048 in a folder named hero, heroes,
+                        scene or scenes, else none); a smaller one is refused
+
+A refused picture gets no files and exits 1: the browser cannot add detail a file lacks, so give it a larger source.`;
 
 // The command line, or the usage problem as a thrown Error.
 function parseArgs(argv: string[]): Args {
@@ -180,6 +216,12 @@ function parseArgs(argv: string[]): Args {
       const text = value();
       args.quality = Number(text);
       if (!Number.isInteger(args.quality) || args.quality < 1 || args.quality > 100) throw new Error(`--quality takes a whole number from 1 to 100, not "${text}".`);
+    } else if (arg === "--max-width" || arg === "--min-long-edge") {
+      const text = value();
+      const px = Number(text);
+      if (!Number.isInteger(px) || px < 1) throw new Error(`${arg} takes a whole number of pixels, such as 1200, not "${text}".`);
+      if (arg === "--max-width") args.maxWidth = px;
+      else args.minLongEdge = px;
     } else if (arg.startsWith("-")) throw new Error(`Unknown option ${arg}.`);
     else if (args.source === undefined) args.source = arg;
     else throw new Error(`Name one source folder, not "${args.source}" and "${arg}".`);
@@ -213,7 +255,7 @@ async function main(argv: string[], { cwd, log, error }: Env): Promise<number> {
     return 2;
   }
   const out = resolve(cwd, args.out);
-  const { written, kept, failed, skipped } = await makeImages({ source, out, widths: args.widths, formats: args.formats, base: args.base, quality: args.quality, log });
+  const { written, kept, failed, skipped } = await makeImages({ source, out, widths: args.widths, formats: args.formats, base: args.base, quality: args.quality, maxWidth: args.maxWidth, minLongEdge: args.minLongEdge, log });
   for (const line of skipped) log(`Left out ${line}`);
   for (const line of failed) error(`Not written: ${line}`);
   log(`\n${written} written, ${kept} up to date, ${skipped.length} left out, ${failed.length} failed. Manifest: ${relative(cwd, join(out, "images.json"))}`);

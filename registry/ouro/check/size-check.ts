@@ -166,7 +166,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     issues.push({
       ref: ref(el),
       rule: "blurry-image",
-      element: `${describe(el)} [data-ouro-allow="${reasonOf(el, "data-ouro-allow")}"]`,
+      element: `${describe(el)}${quoted(el)} [data-ouro-allow="${reasonOf(el, "data-ouro-allow")}"]`,
       detail: "blurry-image cannot be waived: remove it from data-ouro-allow and give the picture a larger source, or a srcset whose largest file covers its drawn width at 2x",
     });
   }
@@ -291,7 +291,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
       const [pw, ph] = [file.naturalWidth, file.naturalHeight];
       const [iw, ih] = [pw / best.res, ph / best.res];
       const size = sizes[i % sizes.length]!;
-      let [dw, dh] = [iw, ih];
+      let dw: number, dh: number;
       if (size === "cover" || size === "contain") {
         const k = (size === "cover" ? Math.max : Math.min)(bw / iw, bh / ih);
         [dw, dh] = [iw * k, ih * k];
@@ -301,7 +301,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
         [dw, dh] = w === null && h === null ? [iw, ih] : w === null ? [(h! * iw) / ih, h!] : h === null ? [w, (w * ih) / iw] : [w, h];
       }
       if (dw < minImage && dh < minImage) continue;
-      const name = /^(data|blob):/.test(best.url) ? `${describe(el)} background` : `${nameOf(el, best.url)} (background)`;
+      const name = /^(data|blob):/.test(best.url) ? `${describe(el)}${quoted(el)} background` : `${nameOf(el, best.url)} (background)`;
       blur(el, best.url, [pw, ph], Math.max(dw / pw, dh / ph), new DOMRect(0, 0, dw, dh), name, "a background ");
     }
   }

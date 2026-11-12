@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { FORMATS, main, makeImages, parseArgs, planWidths, WIDTHS, type Format, type Manifest } from "../../registry/ouro/images/images.ts";
+import { FORMATS, HERO_FLOOR, main, makeImages, parseArgs, planWidths, shortfall, WIDTHS, type Format, type Manifest } from "../../registry/ouro/images/images.ts";
 
 // Ouro images (registry/ouro/images/images.ts) on pictures made here with sharp. scripts/images.test.mjs runs this file
 // under Node's coverage and holds images.ts to 100%.
@@ -152,6 +152,42 @@ describe("Ouro images", () => {
   });
 });
 
+describe("Ouro images' refusal of pictures too small to draw sharp", () => {
+  test("refuses a picture narrower than twice its widest drawn width, or under the long-edge floor, and passes one at the line", () => {
+    assert.equal(shortfall("a.png", 2400, 900, { maxWidth: 1200 }), undefined);
+    assert.equal(
+      shortfall("a.png", 2399, 900, { maxWidth: 1200 }),
+      "2399×900 is narrower than 2400, twice the 1200 CSS pixels it is drawn at, so a 2x screen would draw it blurry; give it a source at least 2400 wide",
+    );
+    assert.equal(HERO_FLOOR, 2048);
+    assert.equal(shortfall("scenes/sea.png", 2048, 768), undefined);
+    assert.equal(shortfall("Hero/sea.png", 1536, 2048), undefined);
+    assert.equal(shortfall("site/scenes/sea.png", 2047, 768), "2047×768 has a long edge under 2048, the floor for hero and scene art; give it a source at least 2048 on its long edge");
+    assert.equal(shortfall("scenes.png", 1536, 512), undefined);
+    assert.equal(shortfall("heroes/a.png", 2048, 900, { minLongEdge: 4096 }), "2048×900 has a long edge under 4096; give it a source at least 4096 on its long edge");
+    assert.equal(shortfall("icons/a.png", 300, 300, { minLongEdge: 512 }), "300×300 has a long edge under 512; give it a source at least 512 on its long edge");
+  });
+
+  test("writes nothing for a refused picture, and the rest as before", async () => {
+    const source = dir("refuse");
+    await picture(join(source, "scene/sea.png"), 1536, 512);
+    await picture(join(source, "wide.png"), 2400, 400);
+    await picture(join(source, "narrow.png"), 1000, 400);
+    const out = join(source, "out");
+    const result = await makeImages({ source, out, widths: [], formats: ["webp"], maxWidth: 1200, log: () => {} });
+    assert.deepEqual(result.failed, [
+      "narrow.png: 1000×400 is narrower than 2400, twice the 1200 CSS pixels it is drawn at, so a 2x screen would draw it blurry; give it a source at least 2400 wide",
+      "scene/sea.png: 1536×512 is narrower than 2400, twice the 1200 CSS pixels it is drawn at, so a 2x screen would draw it blurry; give it a source at least 2400 wide",
+    ]);
+    assert.deepEqual(Object.keys(result.manifest), ["wide.png"]);
+    assert.equal(result.written, 1);
+    assert.throws(() => statSync(join(out, "narrow-1000.webp")));
+    const floor = await makeImages({ source, out, widths: [], formats: ["webp"], log: () => {} });
+    assert.deepEqual(floor.failed, ["scene/sea.png: 1536×512 has a long edge under 2048, the floor for hero and scene art; give it a source at least 2048 on its long edge"]);
+    assert.throws(() => statSync(join(out, "scene/sea-1536.webp")));
+  });
+});
+
 describe("Ouro images' command", () => {
   test("reads every option, and refuses what it cannot run", () => {
     assert.deepEqual(parseArgs(["pics", "--out", "o", "--widths", "320,640", "--formats", "webp, avif", "--base", "/i/", "--quality", "80"]), {
@@ -161,6 +197,17 @@ describe("Ouro images' command", () => {
       formats: ["webp", "avif"],
       base: "/i/",
       quality: 80,
+      help: false,
+    });
+    assert.deepEqual(parseArgs(["pics", "--max-width", "1200", "--min-long-edge", "2048"]), {
+      source: "pics",
+      out: "public/images",
+      widths: WIDTHS,
+      formats: FORMATS,
+      base: "",
+      quality: 70,
+      maxWidth: 1200,
+      minLongEdge: 2048,
       help: false,
     });
     assert.deepEqual(parseArgs(["pics"]), { source: "pics", out: "public/images", widths: WIDTHS, formats: FORMATS, base: "", quality: 70, help: false });
@@ -174,6 +221,8 @@ describe("Ouro images' command", () => {
       [["a", "--quality", "0"], /from 1 to 100, not "0"/],
       [["a", "--quality", "101"], /not "101"/],
       [["a", "--quality", "7.5"], /not "7\.5"/],
+      [["a", "--max-width", "wide"], /--max-width takes a whole number of pixels, such as 1200, not "wide"/],
+      [["a", "--min-long-edge", "0"], /--min-long-edge takes a whole number of pixels, such as 1200, not "0"/],
       [["a", "--wat"], /Unknown option --wat/],
       [["a", "b"], /Name one source folder, not "a" and "b"/],
       [[], /Name the folder of pictures/],
@@ -207,5 +256,8 @@ describe("Ouro images' command", () => {
     await sharp([red, blue], { join: { animated: true } }).webp().toFile(join(cwd, "pictures/moving.webp"));
     const animated = await run(["pictures", "--widths", "320"], cwd);
     assert.match(animated.out, /^Left out moving\.webp: animated/m);
+    const refused = await run(["pictures", "--widths", "320", "--max-width", "300"], cwd);
+    assert.equal(refused.code, 1);
+    assert.match(refused.err, /^Not written: a\.png: 400×200 is narrower than 600, twice the 300 CSS pixels it is drawn at/m);
   });
 });

@@ -1,4 +1,4 @@
-export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, RULES, SIZES, summary, transportIssues };
+export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, SIZES, summary, transportIssues };
 export type { Budgets, CheckOptions, CheckResult, Finding, Gate, ImageEntry, MergeOptions, Report };
 
 import { createHash } from "node:crypto";
@@ -1114,7 +1114,7 @@ async function readJson<T>(file: string, error: (line: string) => void): Promise
 
 // What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
 function configProblem({ press, pressRepeat, states, waive }: Gate): string | null {
-  const waived = Object.entries(waive ?? {}).find(([, rules]) => typeof rules === "object" && rules !== null && "blurry-image" in rules);
+  const waived = Object.entries(waive ?? {}).find(([, rules]) => Object.hasOwn(Object(rules), "blurry-image"));
   if (waived)
     return `"waive" > "${waived[0]}" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source, or a srcset whose largest file covers its drawn width at 2x.`;
   if (press !== undefined && !(Array.isArray(press) && press.every((selector) => typeof selector === "string" && selector.trim() !== ""))) return '"press" takes a list of CSS selectors, such as ["[role=tab]"].';
