@@ -117,8 +117,8 @@
     }
   }
   /*
-   * A phone's first screen holds the headline, the command, both buttons, the whole porthole, the
-   * crew's line and the depth control under it: everything above the stage is set close.
+   * A phone's first screen holds the headline, the install command and both buttons. The stage starts
+   * at the fold, so the porthole is not wholly on that screen. Everything above the stage is set close.
    */
   @media (max-width: 40rem) {
     .site-hero {

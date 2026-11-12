@@ -298,8 +298,9 @@
     padding-top: 0;
   }
   /*
-   * A phone's first screen holds the headline, the lede, both buttons and the whole porthole: the title and lede
-   * are set to fit, the sky's top is set close, and the art is its 16:9 crop at the width of the column.
+   * At 390x844 the headline, the lede and both buttons sit above the fold. The porthole stage starts at the
+   * fold and is not wholly on the first screen. The title and lede are set to fit, the sky's top is set
+   * close, and the art is its 16:9 crop at the width of the column.
    */
   @media (max-width: 40rem) {
     .site-hero.site-hero-storybook {
