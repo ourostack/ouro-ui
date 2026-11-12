@@ -275,6 +275,7 @@
     font-size: 1.125rem;
     line-height: 2rem;
     text-wrap: pretty;
+    color: var(--story-ink-soft);
   }
   .site-hero.site-hero-storybook .story-world-view {
     width: var(--hero-width);
