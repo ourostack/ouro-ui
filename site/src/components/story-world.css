@@ -247,11 +247,6 @@
     --hero-width: min(80rem, 100% - 4rem, max(48rem, (100svh - 36rem) * 8 / 3));
     padding-top: 0;
   }
-  @media (max-width: 40rem) {
-    .site-hero.site-hero-storybook {
-      --hero-gap: 2rem;
-    }
-  }
   .site-hero.site-hero-storybook .story-world {
     max-width: none;
     margin: 0;
@@ -288,13 +283,37 @@
     border-radius: 4px;
   }
   .site-hero.site-hero-storybook .story-world-img {
-    aspect-ratio: 8 / 3;
     max-height: none;
+  }
+  /* Above a phone the scene is the 8:3 window; on a phone the 16:9 crop keeps its own shape, uncropped. */
+  @media (width > 40rem) {
+    .site-hero.site-hero-storybook .story-world-img {
+      aspect-ratio: 8 / 3;
+    }
   }
   .site-hero.site-hero-storybook > .site-hero-grid {
     margin-top: var(--hero-gap);
   }
   .site-hero.site-hero-storybook .site-hero-copy {
     padding-top: 0;
+  }
+  /*
+   * A phone's first screen holds the headline, the lede, both buttons and the whole porthole: the title and lede
+   * are set to fit, the sky's top is set close, and the art is its 16:9 crop at the width of the column.
+   */
+  @media (max-width: 40rem) {
+    .site-hero.site-hero-storybook {
+      --hero-gap: 2rem;
+    }
+    .site-hero.site-hero-storybook .story-world-sky {
+      padding-top: 1.5rem;
+    }
+    .site-hero.site-hero-storybook .site-hero-title {
+      font-size: clamp(2rem, 8vw, 3rem);
+    }
+    .site-hero.site-hero-storybook .site-hero-sky-lede {
+      font-size: 1rem;
+      line-height: 1.5;
+    }
   }
 }

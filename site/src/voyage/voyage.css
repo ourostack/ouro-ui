@@ -127,7 +127,7 @@
     .site-hero-grid {
       gap: 0.75rem;
     }
-    .site-hero .site-lede {
+    .site-hero:not(.site-hero-storybook) .site-lede {
       font-size: 1rem;
       line-height: 1.45;
     }
@@ -158,22 +158,12 @@
     text-transform: none;
     color: var(--muted-foreground);
   }
-  .site-hero-title {
-    max-width: 18ch;
-    font-size: clamp(2.125rem, 4.6vw, 3.75rem);
-    line-height: 1.04;
-  }
   .site-hero-line {
     display: block;
   }
   /* The second sentence answers the first: quieter than the headline, never faint. */
   .site-hero-line-second {
     color: color-mix(in oklab, var(--muted-foreground) 75%, var(--foreground));
-  }
-  @media (max-width: 40rem) {
-    .site-hero-title {
-      font-size: clamp(1.75rem, 7.7vw, 2.25rem);
-    }
   }
   .site-hero-brand {
     display: inline-flex;
