@@ -296,8 +296,8 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
         const k = (size === "cover" ? Math.max : Math.min)(bw / iw, bh / ih);
         [dw, dh] = [iw * k, ih * k];
       } else {
-        const [x = "auto", y = "auto"] = size.split(/\s+/);
-        const [w, h] = [length(x, bw), length(y, bh)];
+        const [x, y = "auto"] = size.split(/\s+/);
+        const [w, h] = [length(x!, bw), length(y, bh)];
         [dw, dh] = w === null && h === null ? [iw, ih] : w === null ? [(h! * iw) / ih, h!] : h === null ? [w, (w * ih) / iw] : [w, h];
       }
       if (dw < minImage && dh < minImage) continue;

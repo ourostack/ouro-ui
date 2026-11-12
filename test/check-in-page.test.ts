@@ -265,7 +265,8 @@ describe("findSizeIssues: blurry-image, for a CSS background", () => {
       <div aria-label="Natural" style="${box};background-image:url(${file})"></div>
       <div aria-label="Width" style="${box};background:url(${file}) 0 0/50% auto"></div>
       <div aria-label="Height" style="${box};background:url(${file}) 0 0/auto 100px"></div>
-      <div aria-label="Both" style="${box};background:url(${file}) 0 0/300px 50px"></div>`);
+      <div aria-label="Both" style="${box};background:url(${file}) 0 0/300px 50px"></div>
+      <span aria-label="Inline" style="background:url(${file}) 0 0/300px 50px">An inline box</span>`);
     expect(await issues()).toEqual([
       ["blurry-image", 'div "Cover" background', "a background drawn 400×200 from 200×100; at 2x it needs 800px wide"],
       ["blurry-image", 'div "Contain" background', "a background drawn 400×200 from 200×100; at 2x it needs 800px wide"],
@@ -273,11 +274,13 @@ describe("findSizeIssues: blurry-image, for a CSS background", () => {
       ["blurry-image", 'div "Width" background', "a background drawn 200×100 from 200×100; at 2x it needs 400px wide"],
       ["blurry-image", 'div "Height" background', "a background drawn 200×100 from 200×100; at 2x it needs 400px wide"],
       ["blurry-image", 'div "Both" background', "a background drawn 300×50 from 200×100; at 2x it needs 600px wide"],
+      ["blurry-image", 'span "Inline" background', "a background drawn 300×50 from 200×100; at 2x it needs 600px wide"],
     ]);
     expect(await issues(1)).toEqual([
       ["blurry-image", 'div "Cover" background', "a background drawn 400×200 from 200×100; at 1x it needs 400px wide"],
       ["blurry-image", 'div "Contain" background', "a background drawn 400×200 from 200×100; at 1x it needs 400px wide"],
       ["blurry-image", 'div "Both" background', "a background drawn 300×50 from 200×100; at 1x it needs 300px wide"],
+      ["blurry-image", 'span "Inline" background', "a background drawn 300×50 from 200×100; at 1x it needs 300px wide"],
     ]);
   });
 
