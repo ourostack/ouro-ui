@@ -137,7 +137,7 @@ function Proof(): JSX.Element {
 
 /**
  * Ouro UI's two halves, HX and AX, under a line that says so, as two hairline rows (no cards), each name a link to its
- * half: after the stage on a phone, so the first screen keeps the porthole; on a wide screen, in the copy's column
+ * half: after the stage on a phone, so they don't push the porthole further down; on a wide screen, in the copy's column
  * between the paint and the proof.
  */
 function Halves(): JSX.Element {
