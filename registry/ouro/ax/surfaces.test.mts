@@ -170,6 +170,8 @@ test("a baseline is written once, fails what is new, and only ever shrinks", asy
   const grew = await call("check", file, "--baseline", base);
   assert.equal(grew.code, 3);
   assert.match(grew.out, /error\.leads-with-fix c: has no fix/);
+  const grewJson = JSON.parse((await call("check", file, "--baseline", base, "--json")).out);
+  assert.deepEqual([grewJson.ok, grewJson.baseline.added], [false, ["error.leads-with-fix:c"]]);
   const refused = await call("check", file, "--baseline", base, "--update");
   assert.equal(refused.code, 3);
   assert.match(refused.out, /a baseline never takes one/);
