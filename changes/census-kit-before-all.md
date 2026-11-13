@@ -1,0 +1,1 @@
+- Fixed: the census kit's `censusTests` registers its tests under [Playwright 1.64](https://github.com/ourostack/ouro-ui/issues/175 "verify:urlOk(https://github.com/ourostack/ouro-ui/issues/175)"), whose hooks need an object pattern for their fixtures.

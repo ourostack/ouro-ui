@@ -28,8 +28,17 @@ A journey is a page your app renders, as the visitor who sees it, and the states
 
 ```ts
 // e2e/census.spec.ts
-import { test } from "@playwright/test";
+import { test as base } from "@playwright/test";
 import { censusTests, type Journey } from "./ouro-census/census-page.mjs";
+
+// Declare the census in this spec, not in the kit: Playwright lists a test under the file that calls
+// `test()`, so `playwright test e2e/census.spec.ts` finds the kit's own calls under no file.[^locate]
+const wrap = <T extends (...args: any[]) => unknown>(fn: T): T => ((...args: any[]) => fn(...args)) as T;
+const test = Object.assign(wrap(base), {
+  describe: wrap(base.describe),
+  beforeAll: wrap(base.beforeAll),
+  use: wrap(base.use),
+});
 
 const journeys: Journey[] = [
   { id: "home", enrolled: false, path: "/", states: [{ id: "default" }] },
@@ -55,7 +64,7 @@ const journeys: Journey[] = [
 censusTests({ test, journeys, projects: ["chromium", "webkit"], componentsDir: "src/components/ouro" });
 ```
 
-`projects` lists every Playwright project the spec runs in; a run that leaves one out fails the merge.[^merge-projects] `componentsDir` is where your app installs Ouro components: a marker naming no file there fails an enrolled journey.[^known-items] Pass `prepare` to wait for hydration after each load, and your own `test` to use your fixtures. Each test fails when the page answers another status (`status`, 200 by default) or redirects, since it would measure some other page.[^status]
+`projects` lists every Playwright project the spec runs in; a run that leaves one out fails the merge.[^merge-projects] `componentsDir` is where your app installs Ouro components: a marker naming no file there fails an enrolled journey.[^known-items] Pass `prepare` to wait for hydration after each load, and a `test` your spec declares with your fixtures (the wrapper above is the minimum). Each test fails when the page answers another status (`status`, 200 by default) or redirects, since it would measure some other page.[^status]
 
 ### Run it and accept changes
 
@@ -413,6 +422,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [^identity]: test:scripts/kits/census-update.test.mjs::identity > builds an identity from role, name, marker, part and context, never position; test:scripts/kits/census-update.test.mjs::identity > takes the landmark as context, then the nearest data-testid, then '-'; test:scripts/kits/census-update.test.mjs::identity > makes a marker one token, and '-' when it is absent or blank verify:testExists(scripts/kits/census-update.test.mjs::identity > builds an identity from role, name, marker, part and context, never position) verify:testExists(scripts/kits/census-update.test.mjs::identity > takes the landmark as context, then the nearest data-testid, then '-') verify:testExists(scripts/kits/census-update.test.mjs::identity > makes a marker one token, and '-' when it is absent or blank)
 [^names]: test:scripts/kits/census-update.test.mjs::identity > normalizes a name's whitespace and keeps its case and punctuation; test:scripts/kits/census-update.test.mjs::identity > replaces relative times and calendar dates, which depend on the run, with placeholders verify:testExists(scripts/kits/census-update.test.mjs::identity > normalizes a name's whitespace and keeps its case and punctuation) verify:testExists(scripts/kits/census-update.test.mjs::identity > replaces relative times and calendar dates, which depend on the run, with placeholders)
 [^fresh-load]: test:scripts/kits/census-page.test.mjs::censusTests > registers one tagged test per state, each journey with its session, and the expected set before them verify:testExists(scripts/kits/census-page.test.mjs::censusTests > registers one tagged test per state, each journey with its session, and the expected set before them)
+[^locate]: test:scripts/kits/census-page.test.mjs::censusTests under real Playwright > lists the census tests of a spec outside testDir, with the kit beside it, and no fixture-pattern error verify:testExists(scripts/kits/census-page.test.mjs::censusTests under real Playwright > lists the census tests of a spec outside testDir, with the kit beside it, and no fixture-pattern error)
 [^merge-projects]: test:scripts/kits/census-update.test.mjs::mergeActuals > fails on a journey/state recorded twice and on a missing project verify:testExists(scripts/kits/census-update.test.mjs::mergeActuals > fails on a journey/state recorded twice and on a missing project)
 [^known-items]: test:scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches; test:scripts/kits/census-page.test.mjs::installedItems > names each installed component file's stem, the values its markers carry verify:testExists(scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches) verify:testExists(scripts/kits/census-page.test.mjs::installedItems > names each installed component file's stem, the values its markers carry)
 [^status]: test:scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline; registry/ouro/census/census-page.mjs verify:testExists(scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline) verify:fileLine(registry/ouro/census/census-page.mjs, /journey\.status \?\? 200/)
