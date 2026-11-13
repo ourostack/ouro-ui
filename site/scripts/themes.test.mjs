@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
+import { scratchDir } from "../../scripts/scratch.mjs";
 import {
   build,
   buildPreset,
@@ -15,6 +17,7 @@ import {
   parseBlocks,
   presets,
   readFonts,
+  readSpoonjoy,
   scopeSelector,
   SITE,
   sha256,
@@ -85,16 +88,15 @@ test("every font is OFL, unchanged and within budget: 90 KB preloaded, 40 KB per
   assert.deepEqual(checkFonts([{ ...fonts[2], licence: "Proprietary" }]), ["space-grotesk-5.3.0.woff2: licence Proprietary is not OFL-1.1"]);
 });
 
-const spoonjoy = `@import "tailwindcss";
+const tailwindFixture = `@import "tailwindcss";
+@import "./sj-tokens.css";
 
 :root {
-  color-scheme: light;
-  --sj-paper: #fff;
+  --warning: #b05109;
 }
 
 .dark {
-  color-scheme: dark;
-  --sj-paper: #000;
+  --warning: #fbbf24;
 }
 
 /* mapping */
@@ -108,9 +110,22 @@ const spoonjoy = `@import "tailwindcss";
 }
 `;
 
-test("the Cookbook sync copies Spoonjoy's three token blocks verbatim and records their checksum and commit", () => {
-  const blocks = extractSpoonjoy(spoonjoy);
-  assert.equal(blocks, ":root {\n  color-scheme: light;\n  --sj-paper: #fff;\n}\n\n.dark {\n  color-scheme: dark;\n  --sj-paper: #000;\n}\n\n:root,\n.dark {\n  --background: var(--sj-paper);\n}");
+const tokensFixture = `/* generated */
+
+:root {
+  color-scheme: light;
+  --sj-paper: #fff;
+}
+
+.dark {
+  color-scheme: dark;
+  --sj-paper: #000;
+}
+`;
+
+test("the Cookbook sync copies Spoonjoy's token blocks verbatim and records their checksum and commit", () => {
+  const blocks = extractSpoonjoy(tailwindFixture, tokensFixture);
+  assert.equal(blocks, ":root {\n  color-scheme: light;\n  --sj-paper: #fff;\n  --warning: #b05109;\n}\n\n.dark {\n  color-scheme: dark;\n  --sj-paper: #000;\n  --warning: #fbbf24;\n}\n\n:root,\n.dark {\n  --background: var(--sj-paper);\n}");
   const css = cookbookCss(blocks, "a".repeat(40));
   assert.deepEqual(checkCookbook(css), []);
   assert.equal(cookbookParts(css).blocks, blocks);
@@ -119,7 +134,22 @@ test("the Cookbook sync copies Spoonjoy's three token blocks verbatim and record
   assert.deepEqual(checkCookbook(css.replace("#000", "#111")), [
     "cookbook.css: its synced part differs from the Spoonjoy blocks it records; run sync-cookbook, never edit it",
   ]);
-  assert.throws(() => extractSpoonjoy(":root {\n}\n"), /no .*dark/);
+});
+
+test("a block missing from sj-tokens.css or tailwind.css fails the sync, naming that file", () => {
+  assert.throws(() => extractSpoonjoy(tailwindFixture, "/* generated, no palette */"), /app\/styles\/sj-tokens\.css has no :root block/);
+  assert.throws(() => extractSpoonjoy(tailwindFixture, ":root {\n  --sj-paper: #fff;\n}\n"), /app\/styles\/sj-tokens\.css has no \.dark block/);
+  assert.throws(() => extractSpoonjoy(":root {\n  --warning: #b05109;\n}\n", tokensFixture), /app\/styles\/tailwind\.css has no \.dark block/);
+});
+
+test("the Cookbook sync reads both files from a checkout, and a checkout missing sj-tokens.css fails by its path", () => {
+  const checkout = scratchDir("ouro-cookbook-checkout-");
+  mkdirSync(join(checkout, "app/styles"), { recursive: true });
+  writeFileSync(join(checkout, "app/styles/tailwind.css"), tailwindFixture);
+  writeFileSync(join(checkout, "app/styles/sj-tokens.css"), tokensFixture);
+  assert.equal(readSpoonjoy(checkout), extractSpoonjoy(tailwindFixture, tokensFixture));
+  rmSync(join(checkout, "app/styles/sj-tokens.css"));
+  assert.throws(() => readSpoonjoy(checkout), /app\/styles\/sj-tokens\.css/);
 });
 
 test("the committed Cookbook preset is an untouched sync of Spoonjoy, with Fraunces as its display face", () => {

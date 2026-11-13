@@ -404,17 +404,40 @@ test("a touchstart does not wait for Chromium to let go of the node at its point
   assert.ok(end < 1400, `touchEnd ${end}ms`);
 });
 
-test("a touch command that takes longer than a second logs its steps, when each frame's watch answered and how late Node ran", async () => {
+test("with OURO_TOUCH_TRACE set, a touch command that takes longer than a second logs its steps as information, when each frame's watch answered and how late Node ran", async () => {
   const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const before = process.env.OURO_TOUCH_TRACE;
+  process.env.OURO_TOUCH_TRACE = "1";
   try {
     await tapOnPage({ delays: { "Input.dispatchTouchEvent": 1100 } });
-    assert.equal(warn.mock.callCount(), 2);
-    const [message] = warn.mock.calls[0].arguments;
+    assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 2);
+    const [message] = info.mock.calls[0].arguments;
     assert.match(
       message,
       /^touchStep: the touchStart at \(100, 50\) took \d+ms\. Steps: \+\d+ms asked Chromium: layout \d+ms, hit test \d+ms, node \d+ms, watcher \d+ms, frame id \d+ms; \+\d+ms the frame at the point: true, the test page; \+\d+ms watched; \+\d+ms sent; \+\d+ms handled by http:\/\/localhost:63315\/__vitest_test__\/; \+\d+ms tidied, waiting for no frame\. Watches: http:\/\/localhost:63315\/ answered at \+\d+ms; http:\/\/localhost:63315\/__vitest_test__\/ answered at \+\d+ms\. Node's event loop ran up to \d+ms late\.$/,
     );
   } finally {
+    if (before === undefined) delete process.env.OURO_TOUCH_TRACE;
+    else process.env.OURO_TOUCH_TRACE = before;
+    info.mock.restore();
+    warn.mock.restore();
+  }
+});
+
+test("a slow touch that succeeds prints nothing unless OURO_TOUCH_TRACE is set", async () => {
+  const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const before = process.env.OURO_TOUCH_TRACE;
+  delete process.env.OURO_TOUCH_TRACE;
+  try {
+    await tapOnPage({ delays: { "Input.dispatchTouchEvent": 1100 } });
+    assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 0);
+  } finally {
+    if (before !== undefined) process.env.OURO_TOUCH_TRACE = before;
+    info.mock.restore();
     warn.mock.restore();
   }
 });

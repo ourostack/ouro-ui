@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.10 ourostack/ouro-ui/ouro-source-rules#v1.3.10
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.11 ourostack/ouro-ui/ouro-source-rules#v1.3.11
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -28,8 +28,17 @@ A journey is a page your app renders, as the visitor who sees it, and the states
 
 ```ts
 // e2e/census.spec.ts
-import { test } from "@playwright/test";
+import { test as base } from "@playwright/test";
 import { censusTests, type Journey } from "./ouro-census/census-page.mjs";
+
+// Declare the census in this spec, not in the kit: Playwright lists a test under the file that calls
+// `test()`, so `playwright test e2e/census.spec.ts` finds the kit's own calls under no file.[^locate]
+const wrap = <T extends (...args: any[]) => unknown>(fn: T): T => ((...args: any[]) => fn(...args)) as T;
+const test = Object.assign(wrap(base), {
+  describe: wrap(base.describe),
+  beforeAll: wrap(base.beforeAll),
+  use: wrap(base.use),
+});
 
 const journeys: Journey[] = [
   { id: "home", enrolled: false, path: "/", states: [{ id: "default" }] },
@@ -55,7 +64,7 @@ const journeys: Journey[] = [
 censusTests({ test, journeys, projects: ["chromium", "webkit"], componentsDir: "src/components/ouro" });
 ```
 
-`projects` lists every Playwright project the spec runs in; a run that leaves one out fails the merge.[^merge-projects] `componentsDir` is where your app installs Ouro components: a marker naming no file there fails an enrolled journey.[^known-items] Pass `prepare` to wait for hydration after each load, and your own `test` to use your fixtures. Each test fails when the page answers another status (`status`, 200 by default) or redirects, since it would measure some other page.[^status]
+`projects` lists every Playwright project the spec runs in; a run that leaves one out fails the merge.[^merge-projects] `componentsDir` is where your app installs Ouro components: a marker naming no file there fails an enrolled journey.[^known-items] Pass `prepare` to wait for hydration after each load, and a `test` your spec declares with your fixtures (the wrapper above is the minimum). Each test fails when the page answers another status (`status`, 200 by default) or redirects, since it would measure some other page.[^status]
 
 ### Run it and accept changes
 
@@ -183,7 +192,7 @@ It walks each page as a person would, at the same size and theme it presses at, 
 
 | Rule | What it measures | Budget |
 | --- | --- | --- |
-| `jank` | Hovering each card-sized link or button, opening and closing each popup and disclosure (`aria-haspopup`, `aria-expanded`, `popovertarget`, `<summary>`), scrolling the page and each region that scrolls, and panning each surface you drag (`cursor: grab`), three times each, at most three of each kind a page.[^check-jank] A step fails when its longest frame, the median of its runs, is over the budget; or when even its best run forces more than 50 layouts (layout reads with a change still waiting to be laid out, Feel's `forcedLayouts`) or, hovering, scrolling or panning, shifts the page by more than 0.01, as a card that grows under the pointer does; opening a disclosure moves what follows it on purpose.[^check-jank] It never opens what `inp` never presses: links away, submit buttons and destructive controls.[^check-jank] `"walk": false` in `ouro-check.json` turns it off. | 250 ms[^check-budgets] |
+| `jank` | Hovering each card-sized link or button, opening and closing each popup and disclosure (`aria-haspopup`, `aria-expanded`, `popovertarget`, `<summary>`), scrolling the page and each region that scrolls, and panning each surface you drag (`cursor: grab`), three times each, at most three of each kind a page.[^check-jank] A step fails when its longest frame, the median of its runs, is over the budget; or when even its best run forces more than 50 layouts (layout reads with a change still waiting to be laid out, Feel's `forcedLayouts`) or, hovering, scrolling or panning, shifts the page by more than 0.01, as a card that grows under the pointer does; opening a disclosure moves what follows it on purpose.[^check-jank] A step whose target a run cannot reach within 2 s is not judged at all, rather than judged on fewer runs.[^check-jank] It never opens what `inp` never presses: links away, submit buttons and destructive controls.[^check-jank] `"walk": false` in `ouro-check.json` turns it off. | 250 ms[^check-budgets] |
 | `repaint` | Before the walk, at rest: an endless animation that repaints every frame, because it animates something other than `transform`, `opacity`, `translate`, `rotate` or `scale` (a dash offset, a background position, a colour), or anything inside an SVG drawing.[^check-repaint] Read from `document.getAnimations()`, so it needs no timing. The walk runs without reduced motion, as most people see a page; the rest of the check runs with it, so pictures hold still.[^check-repaint] | none |
 
 The budgets are the thresholds browsers' own field data calls good.[^check-budgets] Each measured finding records its number, its budget and their unit in `report.json` (`value`, `budget` and `unit`), so a later run can be compared with it.[^check-measured] `--no-measured` skips the measured rules.[^check-measured]
@@ -283,7 +292,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.10
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.11
 node lib/ouro/check/check.ts dist
 ```
 
@@ -355,7 +364,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.10
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.11
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -365,7 +374,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.10
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.11
         with:
           merge: "true"
 ```
@@ -385,7 +394,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.10
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.11
 node lib/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -413,6 +422,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [^identity]: test:scripts/kits/census-update.test.mjs::identity > builds an identity from role, name, marker, part and context, never position; test:scripts/kits/census-update.test.mjs::identity > takes the landmark as context, then the nearest data-testid, then '-'; test:scripts/kits/census-update.test.mjs::identity > makes a marker one token, and '-' when it is absent or blank verify:testExists(scripts/kits/census-update.test.mjs::identity > builds an identity from role, name, marker, part and context, never position) verify:testExists(scripts/kits/census-update.test.mjs::identity > takes the landmark as context, then the nearest data-testid, then '-') verify:testExists(scripts/kits/census-update.test.mjs::identity > makes a marker one token, and '-' when it is absent or blank)
 [^names]: test:scripts/kits/census-update.test.mjs::identity > normalizes a name's whitespace and keeps its case and punctuation; test:scripts/kits/census-update.test.mjs::identity > replaces relative times and calendar dates, which depend on the run, with placeholders verify:testExists(scripts/kits/census-update.test.mjs::identity > normalizes a name's whitespace and keeps its case and punctuation) verify:testExists(scripts/kits/census-update.test.mjs::identity > replaces relative times and calendar dates, which depend on the run, with placeholders)
 [^fresh-load]: test:scripts/kits/census-page.test.mjs::censusTests > registers one tagged test per state, each journey with its session, and the expected set before them verify:testExists(scripts/kits/census-page.test.mjs::censusTests > registers one tagged test per state, each journey with its session, and the expected set before them)
+[^locate]: test:scripts/kits/census-page.test.mjs::censusTests under real Playwright > lists the census tests of a spec outside testDir, with the kit beside it, and no fixture-pattern error verify:testExists(scripts/kits/census-page.test.mjs::censusTests under real Playwright > lists the census tests of a spec outside testDir, with the kit beside it, and no fixture-pattern error)
 [^merge-projects]: test:scripts/kits/census-update.test.mjs::mergeActuals > fails on a journey/state recorded twice and on a missing project verify:testExists(scripts/kits/census-update.test.mjs::mergeActuals > fails on a journey/state recorded twice and on a missing project)
 [^known-items]: test:scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches; test:scripts/kits/census-page.test.mjs::installedItems > names each installed component file's stem, the values its markers carry verify:testExists(scripts/kits/census-update.test.mjs::checkCensusState > fails an enrolled journey on any unmarked control or unknown item, even when the baseline matches) verify:testExists(scripts/kits/census-page.test.mjs::installedItems > names each installed component file's stem, the values its markers carry)
 [^status]: test:scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline; registry/ouro/census/census-page.mjs verify:testExists(scripts/kits/census-page.test.mjs::censusTests > fails a state whose page answers another status, redirects, or differs from the baseline) verify:fileLine(registry/ouro/census/census-page.mjs, /journey\.status \?\? 200/)
@@ -430,7 +440,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [^gated-load-escape]: test:scripts/kits/source-rules.test.mjs::main > --base: the ratchet > gives a gated load's rise the eager-loading advice, and lets it through once a reason is recorded verify:testExists(scripts/kits/source-rules.test.mjs::main > --base: the ratchet > gives a gated load's rise the eager-loading advice, and lets it through once a reason is recorded)
 [^wrappers]: test:scripts/kits/source-rules.test.mjs::the ratchet against real changes > counts every hop of a wrapper chain, and terminates on a cycle; test:scripts/kits/source-rules.test.mjs::call sites > counts each use of an app component that hand-rolls a control, and re-exported third-party controls verify:testExists(scripts/kits/source-rules.test.mjs::the ratchet against real changes > counts every hop of a wrapper chain, and terminates on a cycle) verify:testExists(scripts/kits/source-rules.test.mjs::call sites > counts each use of an app component that hand-rolls a control, and re-exported third-party controls)
 [^fingerprints]: test:scripts/kits/source-rules.test.mjs::fingerprints > do not change when lines move, and report the new line; test:scripts/kits/source-rules.test.mjs::fingerprints > record only the stable props, in a fixed order, literal or as written verify:testExists(scripts/kits/source-rules.test.mjs::fingerprints > do not change when lines move, and report the new line) verify:testExists(scripts/kits/source-rules.test.mjs::fingerprints > record only the stable props, in a fixed order, literal or as written)
-[^check-jank]: test:scripts/check/check.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why verify:testExists(scripts/check/check.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why) verify:fileLine(registry/ouro/check/check.ts, /^const MAX_FORCED = 50;$/) verify:fileLine(registry/ouro/check/check.ts, /^const MAX_STEP_SHIFT = 0.01;$/) verify:fileLine(registry/ouro/check/check.ts, /^const WALK_EACH = 3;$/) verify:fileLine(registry/ouro/check/check.ts, /^const WALK_RUNS = 3;$/)
+[^check-jank]: test:scripts/check/check.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why; test:scripts/check/check.test.mts::Ouro check's design rules > judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step verify:testExists(scripts/check/check.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why) verify:testExists(scripts/check/check.test.mts::Ouro check's design rules > judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step) verify:fileLine(registry/ouro/check/check.ts, /^const MAX_FORCED = 50;$/) verify:fileLine(registry/ouro/check/check.ts, /^const MAX_STEP_SHIFT = 0.01;$/) verify:fileLine(registry/ouro/check/check.ts, /^const WALK_EACH = 3;$/) verify:fileLine(registry/ouro/check/check.ts, /^const WALK_RUNS = 3;$/) verify:fileLine(registry/ouro/check/check.ts, /^const WALK_WAIT_MS = 2000;$/)
 [^check-design]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups; test:scripts/check/check.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:testExists(scripts/check/check.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why)
 [^check-drawn]: test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out; test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip)
 [^check-repaint]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/check.ts, /contextFor\(width, height, theme, "no-preference"\)/)

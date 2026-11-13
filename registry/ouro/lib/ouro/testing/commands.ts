@@ -595,7 +595,7 @@ const TOUCH_SLOW_MS = 1000;
  * What one touch command waited for, logged when it succeeds but is slow: its steps with their
  * times, when each frame's watch answered, and how late Node's event loop ran meanwhile. A refused
  * touch logs nothing; its error says why.
- * @claim "What one touch command waited for" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a touch command that takes longer than a second logs its steps, when each frame's watch answered and how late Node ran) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_SLOW_MS\s=\s1000;/)
+ * @claim "What one touch command waited for" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::with OURO_TOUCH_TRACE set, a touch command that takes longer than a second logs its steps as information, when each frame's watch answered and how late Node ran) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const\sTOUCH_SLOW_MS\s=\s1000;/)
  * @claim "A refused touch logs nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a refused touch logs no trace: its error says why)
  */
 interface TouchTrace {
@@ -625,16 +625,16 @@ function stepsText(trace: TouchTrace): string {
   return [...steps.slice(0, TRACE_HEAD), `… ${steps.length - TRACE_HEAD - TRACE_TAIL} steps left out …`, ...steps.slice(-TRACE_TAIL)].join("; ");
 }
 
-/** Logs `trace` when the command took longer than TOUCH_SLOW_MS. Only a command that succeeded logs: a refusal's error says why. */
+/** Prints `trace` as information, not a warning, when the command took longer than TOUCH_SLOW_MS and `OURO_TOUCH_TRACE=1`. Only a command that succeeded prints: a refusal's error says why. */
 function logIfSlow(command: string, expected: TouchPoint, trace: TouchTrace, frames: Iterable<Frame>) {
   const took = Date.now() - trace.start;
   trace.loop.disable();
-  if (took <= TOUCH_SLOW_MS) return;
+  if (took <= TOUCH_SLOW_MS || process.env.OURO_TOUCH_TRACE !== "1") return;
   const watches = [...frames].map((frame) => {
     const at = trace.answered.get(frame);
     return `${frame.url() || "a frame with no URL yet"} ${at === undefined ? "had not answered" : `answered at +${at}ms`}`;
   });
-  console.warn(
+  console.info(
     `${command}: the ${expected.type} at (${Math.round(expected.x)}, ${Math.round(expected.y)}) took ${took}ms. ` +
       `Steps: ${stepsText(trace)}. Watches: ${watches.join("; ")}. ` +
       `Node's event loop ran up to ${Math.round(trace.loop.max / 1e6)}ms late.`,
@@ -994,6 +994,7 @@ export interface TouchDragOptions {
  * and touch events, as from a phone: a swipe to dismiss. Needs a context with
  * `hasTouch`, as in the `touch` project. Coordinates are relative to the top-level page.
  * It resolves once the page has handled the whole gesture, touchend included.
+ * A slow gesture's trace prints as information only when `OURO_TOUCH_TRACE=1` is set in the test run's environment.
  * With `durationMs`, it queues the whole timed path before waiting for protocol replies:
  * delayed acknowledgments must not turn its first small moves into a long press.
  * Use `touchStep` when the finger should actually stay down between commands.
@@ -1133,24 +1134,26 @@ export interface PointerPressOptions {
    * @claim "presses and releases in one command" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::pointerPress click presses and releases in one command, leaving the page's scroll alone)
    */
   action: "down" | "up" | "click";
+  /** The button to press and release; the primary one unless `right`, which opens a context menu. */
+  button?: "left" | "right";
 }
 
 /**
  * Presses or releases the real mouse over an element, so `:active` styles apply.
  * Coordinates come from Playwright, so the iframe offset is already included.
  */
-export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, { selector, action }) => {
+export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, { selector, action, button = "left" }) => {
   const { page } = ctx;
   if (action === "up") {
-    await page.mouse.up();
+    await page.mouse.up({ button });
     return;
   }
   if (!selector) throw new Error(`pointerPress: ${action} needs a selector`);
   const box = await ctx.iframe.locator(selector).boundingBox();
   if (!box) throw new Error(`pointerPress: ${selector} is not visible`);
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  if (action === "click") await page.mouse.up();
+  await page.mouse.down({ button });
+  if (action === "click") await page.mouse.up({ button });
 };
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, cloneElement, createContext, isValidElement, useContext, useId, useMemo, useRef } from "react";
+import { Children, cloneElement, createContext, isValidElement, useContext, useId, useMemo, useRef, useState } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, ReactElement, ReactNode, Ref } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -139,6 +139,8 @@ interface Series {
 interface ChartState {
   byKey: Map<string, Series>;
   formatValue: (value: number, series: string) => string;
+  /** The element a `ChartLegend` portals its list into, below the plot; `null` until it mounts. */
+  legendTarget: HTMLElement | null;
 }
 
 const ChartContext = createContext<ChartState | null>(null);
@@ -281,8 +283,12 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   const summaryId = `${id}-summary`;
   const tableRef = useRef<HTMLDivElement>(null);
   useScrollFade(tableRef);
+  const [legendTarget, setLegendTarget] = useState<HTMLElement | null>(null);
   // Indexed once per series and formatter, not on every render (a tooltip's move renders the chart).
-  const state = useMemo<ChartState>(() => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue }), [series, formatValue]);
+  const state = useMemo<ChartState>(
+    () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget }),
+    [series, formatValue, legendTarget],
+  );
   const colors = useMemo(() => Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties, [series]);
   // Recharts makes the plot a tab stop (role "application"), so it carries the control marker.
   const plotProps = { "aria-label": title, "aria-describedby": summaryId, "data-ouro-control": "chart", "data-ouro-part": "plot" };
@@ -309,6 +315,8 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
           </ResponsiveContainer>
         </ChartContext>
       </div>
+      {/* Empty until a ChartLegend portals its list here, so it takes no gap. */}
+      <div ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden" />
       <p id={summaryId} data-ouro-chart-summary="" className="sr-only">
         {summary({ title, type: child ? undefined : type, series: series.map((item) => item.label), category, count: rows.length })}
       </p>
@@ -505,7 +513,7 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
   const { byKey } = useChartPart("ChartLegend");
   const shown = payload.flatMap((entry) => byKey.get(String(entry.dataKey)) ?? []);
   return (
-    <ul data-ouro-chart-legend="" className="m-0 flex list-none flex-wrap items-center justify-center gap-x-4 gap-y-1 p-0 pt-3 text-xs text-foreground">
+    <ul data-ouro-chart-legend="" className="m-0 flex list-none flex-wrap items-center justify-center gap-x-4 gap-y-1 p-0 text-xs text-foreground">
       {shown.map((item) => (
         <li key={item.key} className="flex items-center gap-1.5">
           <Marker item={item} />
@@ -573,14 +581,19 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
  * @claim "`Chart` adds it for you with" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > leaves out the legend for a single series, which the title already names)
  * @claim "`Chart` adds it for you with" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws lines with a different point shape per series)
  */
-export function ChartLegend(props: ChartLegendProps): JSX.Element {
+export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
   const { content } = props;
-  useChartPart("ChartLegend");
+  const { legendTarget } = useChartPart("ChartLegend");
   useDevWarnings(
     "ChartLegend",
     process.env.NODE_ENV !== "production"
       ? () => [content !== undefined && ["content is not a prop; ChartLegend draws its content from config", "<ChartLegend />"]]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  return <Legend verticalAlign="bottom" content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
+  // Recharts measures the plot before it renders its children, by which time the slot is mounted. A null
+  // target would make Legend fall back to the list inside the chart's own wrapper, so render nothing then.
+  /* istanbul ignore if @preserve -- the slot mounts before Recharts measures the plot, so a target is always set when this renders */
+  // Stryker disable next-line ConditionalExpression: the slot mounts before Recharts measures the plot, so this never runs with a null target and forcing it false changes nothing.
+  if (legendTarget === null) return null;
+  return <Legend verticalAlign="bottom" portal={legendTarget} content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
 }

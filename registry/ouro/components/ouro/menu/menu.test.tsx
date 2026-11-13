@@ -1698,4 +1698,57 @@ describe("Menu and the page's scroll", () => {
       expect(moving).toBe(true);
     });
   }
+
+  for (const reduced of [false, true]) {
+    it(`stays open and stops the page where it is, pressed mid-scroll on a menubar's trigger${reduced ? ", with reduced motion" : ""}`, async () => {
+      // The bar's trigger is 44px tall, so the style below makes it as tall as the dropdown's
+      // trigger above, for the press to stay on it while the page sways.
+      if (reduced) await commands.emulateMedia({ reducedMotion: "reduce" });
+      await render(
+        <div style={{ height: 9000, paddingTop: 2140 }}>
+          <style>{'[data-ouro-part="bar-trigger"] { height: 2500px; }'}</style>
+          <MenuBar>
+            <Menu label="Actions">{basicItems}</Menu>
+          </MenuBar>
+          <div data-press-here="" style={{ position: "fixed", top: 310, left: 420, width: 1, height: 1, pointerEvents: "none" }} />
+          <div data-rest-here="" style={{ position: "fixed", top: 100, left: 100, width: 10, height: 10 }} />
+        </div>,
+      );
+      await userEvent.hover(document.querySelector("[data-rest-here]")!);
+      const { pressedAt, moving } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 4000, scroll: "underway" });
+      await expect.poll(() => {
+        const open = menu();
+        return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
+      }).toBe(true);
+      await frame();
+      await frame();
+      expect(menu()!.hasAttribute("data-open")).toBe(true);
+      expect(window.scrollY).toBe(pressedAt);
+      expect(moving).toBe(true);
+    });
+
+    it(`stays open and stops the page where it is, right-pressed mid-scroll on a context menu's area${reduced ? ", with reduced motion" : ""}`, async () => {
+      // The right button's press is the one that opens a context menu, at the pointer. The area is
+      // as tall as the dropdown's trigger above, so the press stays on it while the page sways.
+      if (reduced) await commands.emulateMedia({ reducedMotion: "reduce" });
+      await render(
+        <div style={{ height: 9000, paddingTop: 2140 }}>
+          <Menu contextTrigger={<div style={{ width: 300, height: 2500 }}>Recipe card</div>}>{basicItems}</Menu>
+          <div data-press-here="" style={{ position: "fixed", top: 310, left: 420, width: 1, height: 1, pointerEvents: "none" }} />
+          <div data-rest-here="" style={{ position: "fixed", top: 100, left: 100, width: 10, height: 10 }} />
+        </div>,
+      );
+      await userEvent.hover(document.querySelector("[data-rest-here]")!);
+      const { pressedAt, moving } = await pressDuringScroll("[data-press-here]", { from: 2000, to: 4000, scroll: "underway", button: "right" });
+      await expect.poll(() => {
+        const open = menu();
+        return Boolean(open?.hasAttribute("data-open") && !open.hasAttribute("data-starting-style") && open.getAnimations().length === 0);
+      }).toBe(true);
+      await frame();
+      await frame();
+      expect(menu()!.hasAttribute("data-open")).toBe(true);
+      expect(window.scrollY).toBe(pressedAt);
+      expect(moving).toBe(true);
+    });
+  }
 });

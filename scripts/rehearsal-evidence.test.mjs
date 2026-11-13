@@ -4,7 +4,7 @@ import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { describe, findEvidence, main, MAX_COMMITS, NOTES_FILES, reusable, runGit } from "./rehearsal-evidence.mjs";
+import { describe, findEvidence, main, MAX_COMMITS, NOTES_FILES, releaseCommit, reusable, runGit } from "./rehearsal-evidence.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { copyTree } from "./tree.mjs";
 
@@ -194,6 +194,48 @@ test("findEvidence reuses a rehearsal on an earlier commit of main only across t
   assert.match(refused({ "registry.json": itemFiles("registry/a.tsx", "test/kit.test.ts"), "test/kit.test.ts": "k\n" }).reason, /registry\.json \(registry\.json is the registry\); test\/kit\.test\.ts \(an item in registry\.json ships it\)/);
 });
 
+test("releaseCommit releases the commit a passing rehearsal tested, main's head or an earlier commit of main, whatever merged after it", () => {
+  const { dir, git, commit } = repo();
+  const r = commit({ "registry.json": itemFiles("registry/a.tsx"), "registry/a.tsx": "a\n" });
+  const m = commit({ "registry/a.tsx": "b\n", "changes/b.md": "- B.\n" });
+  const head = commit({ "package.json": "{}\n" });
+  const pick = (runs, options = {}) => releaseCommit({ tag: "v1.3.2", head, runs, git: runGit(dir), now, ...options });
+  // A passing rehearsal on main's head releases the head, at any age.
+  assert.deepEqual(pick([run(7, r), run(8, head, { createdAt: hoursAgo(500) })]), { ok: true, run: run(8, head, { createdAt: hoursAgo(500) }), sha: head });
+  // Else the newest commit of main whose newest rehearsal passed, whatever shipped after it.
+  assert.equal(pick([run(7, r), run(8, m), run(9, head, { status: "in_progress", conclusion: "" })]).sha, m);
+  assert.equal(pick([run(7, r), run(8, m, { conclusion: "failure" })]).sha, r, "a commit whose newest rehearsal failed is passed over");
+  assert.equal(pick([run(8, m), run(7, m, { conclusion: "failure" })]).sha, m, "an older failure on the same commit does not count");
+  assert.match(pick([run(9, m, { conclusion: "failure" }), run(8, m)]).reason, /no commit's newest rehearsal of v1\.3\.2 passed/);
+  // Bounds: 24 hours from an earlier commit's rehearsal, MAX_COMMITS commits, and main's history only.
+  assert.equal(pick([run(7, r), run(8, m, { createdAt: hoursAgo(24.1) })]).sha, r);
+  assert.match(pick([run(8, m)], { maxCommits: 0 }).reason, /no passing rehearsal of v1\.3\.2 is on main \([0-9a-f]{40}\) or on a commit of main up to 0 commits before it, started in the last 24 hours/);
+  git("switch", "-q", "-c", "side", r);
+  const side = commit({ "test/x.test.ts": "x\n" });
+  git("switch", "-q", "main");
+  assert.equal(pick([run(7, r), run(9, side)]).sha, r);
+  assert.equal(pick([run(9, "f".repeat(40)), run(7, r)]).sha, r, "a commit unknown here is too far back");
+  // Another version, or input it cannot read, releases nothing.
+  assert.equal(pick([run(8, head, { tag: "v1.3.1" })]).ok, false);
+  assert.equal(releaseCommit({ tag: "1.3.2", head, runs: [], git: runGit(dir), now }).ok, false);
+  assert.equal(releaseCommit({ tag: "v1.3.2", head: "abc", runs: [], git: runGit(dir), now }).ok, false);
+  assert.equal(releaseCommit({ tag: "v1.3.2", head, runs: {}, git: runGit(dir), now }).ok, false);
+  assert.match(pick([{ ...run(7, r), databaseId: "7" }]).reason, /no readable id or commit/);
+  // The command prints the commit, and fails closed.
+  const runsFile = join(dir, "runs.json");
+  writeFileSync(runsFile, JSON.stringify([run(8, m, { createdAt: new Date().toISOString() })]));
+  const lines = { out: [], log: [] };
+  const env = { GITHUB_REPOSITORY: "o/r" };
+  assert.equal(main(["pick", "v1.3.2", head, "--runs", runsFile], { env, cwd: dir, out: (line) => lines.out.push(line), log: (line) => lines.log.push(line) }), 0);
+  assert.deepEqual(lines.out, [m]);
+  assert.match(lines.log.join("\n"), /^Releasing v1\.3\.2 from [0-9a-f]{40}, the commit rehearsal run 8 tested; main's head is [0-9a-f]{40}\.$/);
+  writeFileSync(runsFile, "[]");
+  assert.equal(main(["pick", "v1.3.2", head, "--runs", runsFile], { env, cwd: dir, out: () => {}, log: (line) => lines.log.push(line) }), 1);
+  assert.match(lines.log.at(-1), /^::error::No commit to release v1\.3\.2 from: no commit's newest rehearsal/);
+  assert.equal(main(["pick", "v1.3.2"], { env, cwd: dir, out: () => {}, log: (line) => lines.log.push(line) }), 1);
+  assert.match(lines.log.at(-1), /usage: rehearsal-evidence\.mjs pick/);
+});
+
 test("findEvidence deepens a shallow checkout to find the earlier commit, leaves a full one whole, and stops on a git error", () => {
   const origin = repo("ouro-rehearsal-origin-");
   const r = origin.commit({ "registry.json": itemFiles("registry/a.tsx"), "registry/a.tsx": "a\n" });
@@ -296,8 +338,8 @@ function releaseStep(name) {
   return lines.slice(0, end === -1 ? undefined : end).map((line) => line.slice(10)).join("\n");
 }
 
-test("Release's check, end to end on a shallow checkout of main: it reuses a passing rehearsal across tests and records, records it, and refuses anything else", () => {
-  // Main: R (rehearsed), then a test and a record; the checkout is a depth-1 clone of it, as
+test("Release's check, end to end on a shallow checkout of main: it releases the commit a passing rehearsal tested, records it, and refuses when none passed", () => {
+  // Main: R (rehearsed), then later merges; the checkout is a depth-1 clone of it, as
   // actions/checkout makes. gh stands in for GitHub: main's rules require ci, which run 6 passed
   // on main's commit, with no run of main's own; the rehearsal runs are $RUNS.
   const origin = repo("ouro-release-reuse-origin-");
@@ -338,30 +380,28 @@ esac
     const read = (file) => (spawnSync("test", ["-f", join(temp, file)]).status === 0 ? readFileSync(join(temp, file), "utf8") : undefined);
     return { ...result, t, summary: read("summary.md"), notes: read("rehearsal.md"), env: read("env.txt"), output: read("output.txt") };
   };
-  // A test and a record since the rehearsal: it holds, and the run, the commits and each file are recorded.
-  const green = release({ "AGENTS.md": "a\n", "docs/decisions/d.md": "d\n" }, () => [run(7, r, { createdAt: new Date(Date.now() - 3_600_000).toISOString() }), run(9, r, { tag: "v1.3.1", conclusion: "failure" })]);
-  assert.equal(green.status, 0, green.stdout + green.stderr);
-  assert.match(green.env, new RegExp(`^MAIN_SHA=${green.t}$`, "m"));
-  assert.match(green.output, /^new=true$/m);
-  for (const text of [green.summary, green.notes]) {
-    assert.ok(text.includes(`[the rehearsal of v1.3.2](https://github.com/o/r/actions/runs/7) passed on main's commit \`${r}\`, 2 commit(s) before \`${green.t}\``), text);
-    assert.ok(text.includes(`[the diff](https://github.com/o/r/compare/${r}...${green.t})`));
-    for (const path of ["AGENTS.md", "docs/decisions/d.md", "test/s.test.tsx"]) assert.ok(text.includes(`- \`${path}\`: `), path);
-  }
-  // The rehearsal's retries are read from the reused run.
-  assert.match(green.stdout, /^::warning::Could not read the jobs of the rehearsal https:\/\/github\.com\/o\/r\/actions\/runs\/7, /m);
-  // A component's test since then ships: the release stops before anything is cut, saying why.
-  const shipped = release({ "registry/a.test.tsx": "t2\n" }, () => [run(7, r, { createdAt: new Date().toISOString() })]);
-  assert.equal(shipped.status, 1);
-  assert.match(shipped.stderr, /^::error::No rehearsal holds for v1\.3\.2 on main \([0-9a-f]{40}\): [^\n]+registry\/a\.test\.tsx \(an item in registry\.json ships it\)/m);
-  assert.match(shipped.stdout, /^::error::No passing rehearsal of v1\.3\.2 holds for main \([0-9a-f]{40}\)\. Run it first: gh workflow run release-rehearsal\.yml -f version=1\.3\.2$/m);
-  assert.doesNotMatch(shipped.env, /MAIN_SHA/);
-  assert.equal(shipped.notes, undefined);
-  // A rehearsal on main's commit itself still decides alone; one that GitHub cannot list refuses.
-  const exact = release({ "test/x.test.ts": "x\n" }, (t) => [run(8, t, { createdAt: "2020-01-01T00:00:00Z" })]);
+  // A component and a test merged since the rehearsal: R is released, and they go out next time.
+  const later = release({ "registry/a.tsx": "b\n", "registry/a.test.tsx": "t2\n", "AGENTS.md": "a\n" }, () => [run(7, r, { createdAt: new Date(Date.now() - 3_600_000).toISOString() }), run(9, r, { tag: "v1.3.1", conclusion: "failure" })]);
+  assert.equal(later.status, 0, later.stdout + later.stderr);
+  assert.match(later.env, new RegExp(`^MAIN_SHA=${r}$`, "m"));
+  assert.match(later.output, /^new=true$/m);
+  assert.match(later.stderr, new RegExp(`^Releasing v1\\.3\\.2 from ${r}, the commit rehearsal run 7 tested; main's head is ${later.t}\\.$`, "m"));
+  for (const text of [later.summary, later.notes]) assert.ok(text.includes(`[the rehearsal of v1.3.2](https://github.com/o/r/actions/runs/7) passed on main's commit \`${r}\`, which this release is cut from.`), text);
+  // The rehearsal's retries are read from that run.
+  assert.match(later.stdout, /^::warning::Could not read the jobs of the rehearsal https:\/\/github\.com\/o\/r\/actions\/runs\/7, /m);
+  // A rehearsal on main's head releases the head, at any age.
+  const exact = release({ "test/x.test.ts": "x\n" }, (t) => [run(7, r), run(8, t, { createdAt: "2020-01-01T00:00:00Z" })]);
   assert.equal(exact.status, 0, exact.stdout + exact.stderr);
+  assert.match(exact.env, new RegExp(`^MAIN_SHA=${exact.t}$`, "m"));
   assert.match(exact.notes, /^Rehearsed: \[the rehearsal of v1\.3\.2\]\(https:\/\/github\.com\/o\/r\/actions\/runs\/8\) passed on main's commit `[0-9a-f]{40}`, which this release is cut from\.\n$/);
-  const unlisted = release({ "test/y.test.ts": "y\n" }, () => "not a list");
+  // With no passing rehearsal, or none GitHub can list, the release stops before anything is cut, saying why.
+  const failed = release({ "test/y.test.ts": "y\n" }, () => [run(7, r, { conclusion: "failure", createdAt: new Date().toISOString() })]);
+  assert.equal(failed.status, 1);
+  assert.match(failed.stderr, /^::error::No commit to release v1\.3\.2 from: no commit's newest rehearsal of v1\.3\.2 passed\./m);
+  assert.match(failed.stdout, /^::error::No passing rehearsal of v1\.3\.2 on main to release\. Run it first: gh workflow run release-rehearsal\.yml -f version=1\.3\.2$/m);
+  assert.doesNotMatch(failed.env, /MAIN_SHA/);
+  assert.equal(failed.notes, undefined);
+  const unlisted = release({ "test/z.test.ts": "z\n" }, () => "not a list");
   assert.equal(unlisted.status, 1);
-  assert.match(unlisted.stderr, /^::error::No rehearsal holds for v1\.3\.2 on main \([0-9a-f]{40}\): the rehearsal runs are not a list\./m);
+  assert.match(unlisted.stderr, /^::error::No commit to release v1\.3\.2 from: the rehearsal runs are not a list\./m);
 });

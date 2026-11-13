@@ -1,1 +1,0 @@
-- Fixed: the claims checker reads the repository from package.json's `repository` field, then from the `origin` remote, and names the missing field when it finds neither, rather than assuming Ouro UI's own repository.

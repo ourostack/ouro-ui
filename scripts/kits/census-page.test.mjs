@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import axe from "axe-core";
 import path from "node:path";
 import { after, describe, it } from "node:test";
@@ -246,5 +247,63 @@ describe("censusTests", () => {
     const { test, registered } = fakeTest();
     censusTests({ test, journeys, projects: ["webkit"], componentsDir });
     expect(registered.tests).toHaveLength(3);
+  });
+});
+
+// The consumer's spec wraps Playwright's test: Playwright locates a test at the line that calls
+// `test()`, so a test the kit calls directly is located in the kit, and a file-filtered list finds none.
+const CONSUMER_SPEC = `import { test as base } from "@playwright/test";
+import { censusTests } from "../../ouro-census/census-page.mjs";
+
+const wrap = <T extends (...args: any[]) => unknown>(fn: T): T => ((...args: any[]) => fn(...args)) as T;
+const test = Object.assign(wrap(base), {
+  describe: wrap(base.describe),
+  beforeAll: wrap(base.beforeAll),
+  use: wrap(base.use),
+});
+
+censusTests({
+  test,
+  journeys: [{ id: "home", enrolled: false, path: "/", states: [{ id: "default" }] }],
+  projects: ["chromium"],
+  componentsDir: "components/ouro",
+  baselinePath: "census-baseline.json",
+  resultsDir: "ouro-census-results",
+});
+`;
+
+const CONSUMER_CONFIG = `export default {
+  testDir: "./e2e",
+  testMatch: /\\.journey\\.ts$/,
+  projects: [{ name: "chromium" }],
+};
+`;
+
+describe("censusTests under real Playwright", () => {
+  it("lists the census tests of a spec outside testDir, with the kit beside it, and no fixture-pattern error", () => {
+    const repo = process.cwd();
+    mkdirSync(path.join(repo, ".tmp"), { recursive: true });
+    const root = mkdtempSync(path.join(repo, ".tmp", "census-consumer-"));
+    try {
+      const app = path.join(root, "app");
+      mkdirSync(path.join(app, "e2e", "journeys"), { recursive: true });
+      cpSync(path.join(repo, "registry", "ouro", "census"), path.join(app, "ouro-census"), { recursive: true });
+      symlinkSync(path.join(repo, "node_modules"), path.join(app, "node_modules"), "dir");
+      writeFileSync(path.join(app, "playwright.config.mjs"), CONSUMER_CONFIG);
+      writeFileSync(path.join(app, "e2e", "journeys", "hx-census.journey.ts"), CONSUMER_SPEC);
+      // `node --test` sets this for its children; the Playwright run must act as its own runner.
+      const env = { ...process.env };
+      delete env["NODE_TEST_CONTEXT"];
+      const cli = path.join(repo, "node_modules", "@playwright", "test", "cli.js");
+      const run = spawnSync(process.execPath, [cli, "test", "--list", "-c", "playwright.config.mjs", "e2e/journeys/hx-census.journey.ts"], { cwd: app, encoding: "utf8", env });
+      const output = `${run.stdout}${run.stderr}`;
+      expect(output).not.toContain("object destructuring pattern");
+      expect(run.status).toBe(0);
+      expect(output).toContain("Total: 1 test in 1 file");
+      expect(output).toContain("journeys/hx-census.journey.ts");
+      expect(output).toContain("Ouro census home › home / default");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

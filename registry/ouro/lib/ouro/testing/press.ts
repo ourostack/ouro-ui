@@ -66,24 +66,24 @@ const runDue = () => act(async () => vi.advanceTimersByTime(0));
  *
  * @example
  * await pressAndLetGo('[data-ouro="button"]');
- * @claim "lets go `frames` animation frames later" registry/ouro/lib/ouro/testing/press.ts verify:fileLine(registry/ouro/lib/ouro/testing/press.ts, /\{ frames = 10 \}: \{ frames\?: number \| undefined \} = \{\}/)
+ * @claim "lets go `frames` animation frames later" registry/ouro/lib/ouro/testing/press.ts verify:fileLine(registry/ouro/lib/ouro/testing/press.ts, /\{ frames = 10, button = "left" \}/)
  * @claim "Base UI takes a release over" https://github.com/mui/base-ui/blob/47b40521eab921c2756bf9bdb0b0f07fbfdb8c8c/packages/react/src/select/trigger/SelectTrigger.tsx verify:urlOk(https://github.com/mui/base-ui/blob/47b40521eab921c2756bf9bdb0b0f07fbfdb8c8c/packages/react/src/select/trigger/SelectTrigger.tsx)
  * @claim "a timer set to run at once runs" registry/ouro/lib/ouro/testing/press.test.ts verify:testExists(registry/ouro/lib/ouro/testing/press.test.ts::pressAndLetGo runs a timer set to run at once before the release, and one set for later only once the release has landed)
  * @claim "Then the timers still waiting run" registry/ouro/lib/ouro/testing/press.test.ts verify:testExists(registry/ouro/lib/ouro/testing/press.test.ts::pressAndLetGo runs a timer set to run at once before the release, and one set for later only once the release has landed)
  */
-export async function pressAndLetGo(selector: string, { frames = 10 }: { frames?: number | undefined } = {}): Promise<void> {
+export async function pressAndLetGo(selector: string, { frames = 10, button = "left" }: { frames?: number | undefined; button?: "left" | "right" | undefined } = {}): Promise<void> {
   const pressed = seen("pointerdown");
   const released = seen("pointerup");
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   try {
-    await commands.pointerPress({ selector, action: "down" });
+    await commands.pointerPress({ selector, action: "down", button });
     await pressed;
     await runDue();
     for (let index = 0; index < frames; index++) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await runDue();
     }
-    await commands.pointerPress({ action: "up" });
+    await commands.pointerPress({ action: "up", button });
     await released;
   } finally {
     try {
@@ -130,7 +130,7 @@ export interface ScrollPress {
  */
 export async function pressDuringScroll(
   selector: string,
-  { from, to, scroll, frames }: { from: number; to: number; scroll: "begins" | "underway"; frames?: number | undefined },
+  { from, to, scroll, frames, button }: { from: number; to: number; scroll: "begins" | "underway"; frames?: number | undefined; button?: "left" | "right" | undefined },
 ): Promise<ScrollPress> {
   const html = document.documentElement;
   window.scrollTo({ top: from, behavior: "instant" });
@@ -170,7 +170,7 @@ export async function pressDuringScroll(
       swaying();
       await inMotion;
     }
-    await pressAndLetGo(selector, { frames });
+    await pressAndLetGo(selector, { frames, button });
   } finally {
     pressed = true;
     document.removeEventListener("pointerdown", onPress, { capture: true });

@@ -1405,3 +1405,43 @@ describe("SheetTrigger with no handlers of its own", () => {
     });
   }
 });
+
+describe("sheet first focus with a scrolling body", () => {
+  const tall = <p style={{ margin: 0, height: 2000 }}>A long note.</p>;
+  const body = () => document.querySelector<HTMLElement>("[data-ouro-sheet-content]");
+  const field = (
+    <label>
+      Note <input aria-label="Note" />
+    </label>
+  );
+  async function openWith(children: ReactNode) {
+    await render(
+      <Sheet title="Save to cookbook" trigger={<Button>Save</Button>}>
+        {children}
+      </Sheet>,
+    );
+    // A keyboard open: Enter on the trigger, which is what puts first focus on the first tab stop.
+    trigger().focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+  }
+
+  it("gives first focus to the sheet, not its scrolling body, with a control above the fold", async () => {
+    await openWith(<>{field}{tall}</>);
+    await expect.poll(() => body()?.getAttribute("tabindex")).toBe("0");
+    await expect.poll(() => document.activeElement).toBe(popup());
+  });
+
+  it("gives first focus to the sheet, not its scrolling body, with a control below the fold", async () => {
+    await openWith(<>{tall}{field}</>);
+    await expect.poll(() => body()?.getAttribute("tabindex")).toBe("0");
+    await expect.poll(() => document.activeElement).toBe(popup());
+  });
+
+  it("keeps the scrolling body in reach of Tab", async () => {
+    await openWith(<>{field}{tall}</>);
+    await expect.poll(() => document.activeElement).toBe(popup());
+    await pressTab();
+    await expect.poll(() => document.activeElement).toBe(body());
+  });
+});

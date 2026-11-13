@@ -880,10 +880,13 @@ describe("Popover and the page's scroll", () => {
     );
     const html = document.documentElement;
     html.style.scrollBehavior = "smooth";
+    // The press holds the page, so its scrolls are instant, until a second passes with no popup.
+    // Read it as the key reaches the window, since a loaded runner's keyboard command can return after that second.
+    let atPress = "";
+    window.addEventListener("keydown", () => (atPress = html.style.scrollBehavior), { once: true });
     document.querySelector<HTMLElement>('[data-ouro-control="popover"]')!.focus();
     await userEvent.keyboard("{Enter}");
-    // The press holds the page, so its scrolls are instant, until a second passes with no popup.
-    expect(html.style.scrollBehavior).toBe("auto");
+    expect(atPress).toBe("auto");
     await commands.pointerPress({ selector: '[data-ouro-control="popover"][data-ouro-part="trigger"]', action: "down" });
     await commands.pointerPress({ action: "up" });
     expect([pointerDown.mock.calls.length, keyDown.mock.calls.length]).toEqual([1, 1]);

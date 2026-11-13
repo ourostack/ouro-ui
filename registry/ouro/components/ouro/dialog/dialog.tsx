@@ -198,6 +198,20 @@ function CloseIcon(): JSX.Element {
   );
 }
 
+/** The controls a person can focus; a disabled one is left out. */
+const FOCUSABLE =
+  "a[href], button:not(:disabled), input:not(:disabled):not([type='hidden']), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])";
+
+/**
+ * The element a dialog gives first focus: the first control in its body that can be seen, else its
+ * close button, else the popup itself. The body is skipped: while it scrolls it is a tab stop, and
+ * Base UI would focus it first.
+ */
+function firstFocus(popup: HTMLElement): HTMLElement {
+  const candidates = [...popup.querySelectorAll<HTMLElement>(`[data-ouro-dialog-content] :is(${FOCUSABLE}), [data-ouro-dialog-close]`), popup];
+  return candidates.find((element) => element.getClientRects().length > 0)!;
+}
+
 /**
  * A dialog that presents itself for the screen: a centered dialog on wider
  * screens and a bottom sheet you can drag away on phones (below 640px). It
@@ -421,15 +435,15 @@ export function DialogFrame({
     });
   // Focus returns to the trigger on close, in either presentation.
   const finalFocus = trigger !== undefined ? { finalFocus: triggerRef } : {};
-  // The centered dialog focuses itself after a touch or pen open, and the first
-  // control otherwise, as Base UI does with its own trigger. A dialog without a trigger
-  // decides when it opens, from the last press on the page. (The sheet always
-  // focuses itself, like a plain Sheet.)
-  const initialFocus = trigger === undefined
-    ? { initialFocus: () => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true) }
-    : tapOpened
-      ? { initialFocus: popupRef }
-      : {};
+  // Focus goes where firstFocus picks, never on a scrolling body. The centered dialog focuses
+  // itself after a touch or pen open. A dialog without a trigger decides when it opens, from the
+  // last press on the page. (The sheet always focuses itself, like a plain Sheet.)
+  const initialFocus = {
+    initialFocus: () => {
+      const touch = trigger === undefined ? lastInput() === "touch" || lastInput() === "pen" : tapOpened;
+      return touch ? popupRef.current : firstFocus(popupRef.current!);
+    },
+  };
 
   // The server and hydration render the dialog form; the client corrects it after.
   const presented = useSheetPresentation(presentation) ? (

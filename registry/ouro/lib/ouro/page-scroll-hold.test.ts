@@ -413,6 +413,23 @@ describe("holdPageAtPress", () => {
     expect(html.style.scrollBehavior).toBe("auto");
   });
 
+  it("holds the page from a context area's right-button press, not its primary press or a touch, which may start a scroll", async () => {
+    const html = document.documentElement;
+    html.style.scrollBehavior = "smooth";
+    const press = (init: PointerEventInit) =>
+      holdPageAtPress.contextMenu.onPointerDown({ button: init.button, pointerType: init.pointerType, currentTarget: page, nativeEvent: new PointerEvent("pointerdown", init) } as unknown as ReactPointerEvent<HTMLElement>);
+    press({ button: 0, pointerType: "mouse" });
+    expect(html.style.scrollBehavior).toBe("smooth");
+    keyDown("Enter", "contextMenu");
+    expect(html.style.scrollBehavior).toBe("smooth");
+    press({ button: 2, pointerType: "mouse" });
+    expect(html.style.scrollBehavior).toBe("auto");
+    vi.advanceTimersByTime(1000);
+    expect(html.style.scrollBehavior).toBe("smooth");
+    press({ button: 0, pointerType: "touch" });
+    expect(html.style.scrollBehavior).toBe("smooth");
+  });
+
   it("does not take the key that pressed a trigger for the person scrolling, though nothing handled it", async () => {
     const html = document.documentElement;
     html.style.scrollBehavior = "smooth";

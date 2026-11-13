@@ -6,11 +6,10 @@ run-name: Release rehearsal v${{ inputs.version }}
 # there (a release branch, so with ci.yml's release-only install-latest job) and the
 # screen-reader lane, then deletes the branch. A check that holds on main but not on a release
 # commit, as one that reads the release's own tag before it exists, fails here, not in the
-# release. Release refuses to cut v<version> until a rehearsal of that version has passed on
-# main's commit (release.yml, "Check the version, the tag and main's CI"), so it is part of
-# preparing every release: run it, fix what fails, run it again. A rehearsal also holds for a later
-# commit of main, up to 50 commits and 24 hours on, that changes only tests and records that ship
-# nowhere (scripts/rehearsal-evidence.mjs), so those can merge while it runs and after it passes.
+# release. Release cuts v<version> from the commit of main a passing rehearsal of that version
+# tested, main's head or a commit up to 50 commits and 24 hours before it (release.yml, "Check the
+# version, the tag and main's CI"; scripts/rehearsal-evidence.mjs pick), so it is part of preparing
+# every release: run it, fix what fails, run it again. Merges while it runs go out in the next release.
 # It rehearses one commit end to end: the one it was dispatched on (github.sha, main's head when it
 # starts), which is also the commit Release finds it by, so a merge to main mid-run changes neither
 # what it tests nor which commit its result is for. A check that failed only because of a test in
@@ -53,7 +52,7 @@ jobs:
           DISPATCHED_REF: ${{ github.ref }}
         run: |
           [ "$(git rev-parse HEAD)" = "$DISPATCHED_SHA" ] || { echo "::error::The checkout is $(git rev-parse HEAD), not the dispatched commit $DISPATCHED_SHA."; exit 1; }
-          [ "$DISPATCHED_REF" = refs/heads/main ] || echo "::notice::Rehearsing $DISPATCHED_REF, not main: Release accepts this rehearsal only if main's head is $DISPATCHED_SHA, or a later commit of main that changes only tests and records (scripts/rehearsal-evidence.mjs)."
+          [ "$DISPATCHED_REF" = refs/heads/main ] || echo "::notice::Rehearsing $DISPATCHED_REF, not main: Release cuts a commit from this rehearsal only if $DISPATCHED_SHA is on main (scripts/rehearsal-evidence.mjs pick)."
           echo "Rehearsed commit: $DISPATCHED_SHA ($DISPATCHED_REF when dispatched)" >> "$GITHUB_STEP_SUMMARY"
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must be x.y.z, without the v"; exit 1; }
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
