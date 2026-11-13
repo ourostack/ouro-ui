@@ -1,0 +1,1 @@
+- Fixed: NumberField's steppers pass Base UI a render function whose name a minifier can't turn into a capitalised one, so a minified development build stops logging Base UI's render-prop warning.
