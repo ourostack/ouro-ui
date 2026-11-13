@@ -68,7 +68,7 @@ jobs:
       - name: Start the rehearsal of the next release
         env:
           AFTER: ${{ inputs.after }}
-        if: ${{ inputs.rehearsed == '' && (github.event_name != 'workflow_run' || (github.event.workflow_run.name == 'Release' && github.event.workflow_run.conclusion == 'success')) }}
+        if: ${{ inputs.rehearsed == '' && (github.event_name != 'workflow_run' || github.event.workflow_run.name == 'Release') }}
         run: |
           [[ "${AFTER:-0}" =~ ^[0-9]+$ ]] || { echo "::error::after must be a run id."; exit 1; }
           fragments=$(gh api "repos/$GITHUB_REPOSITORY/contents/changes?ref=main" --jq '[.[] | select(.name | endswith(".md"))] | length')

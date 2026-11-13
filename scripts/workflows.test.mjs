@@ -2544,7 +2544,8 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   assert.match(start, /prepare\/after-/);
   assert.match(start, /for workflow in release\.yml release-rehearsal\.yml/);
   assert.match(start, /gh workflow run release-rehearsal\.yml --ref main -f version="\$version" -f release=true$/m);
-  assert.match(auto, /github\.event\.workflow_run\.conclusion == 'success'/, "a failed release starts nothing again");
+  assert.match(auto, /github\.event\.workflow_run\.name == 'Release'\) }}/, "a release that ended in any way lets Release auto decide again");
+  assert.doesNotMatch(auto, /workflow_run\.conclusion == 'success'\)/);
   const release = stepScript(auto, "Release a rehearsal that passed");
   assert.match(release, /\[ "\$CONCLUSION" = success \] \|\|/);
   assert.match(release, /gh workflow run release\.yml --ref main -f version=/);
@@ -2557,7 +2558,7 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   assert.match(handed, /gh workflow run release\.yml --ref main -f version="\$VERSION"/);
   assert.match(start, /select\(\.databaseId != \$\{AFTER:-0\}\)/, "the ending release does not count as running");
   const release2 = workflow("release.yml");
-  assert.match(release2, /^ {2}next:\n(?: {4}.*\n| *\n)*? {4}needs: \[release, queue, publish\]\n {4}if: \$\{\{ needs\.release\.result == 'success' && needs\.queue\.result == 'success' && needs\.publish\.result == 'success' \}\}$/m, "a release started by GITHUB_TOKEN starts no workflow_run, so it starts the next itself");
+  assert.match(release2, /^ {2}next:\n(?: {4}.*\n| *\n)*? {4}needs: \[release, queue, publish\]\n {4}if: \$\{\{ always\(\) && needs\.release\.result != 'cancelled' \}\}$/m, "a release started by GITHUB_TOKEN starts no workflow_run, so it starts the next itself");
   assert.equal(stepScript(release2, "Start the next release").trim(), 'gh workflow run release-auto.yml --ref main -f after="$GITHUB_RUN_ID"');
   assert.match(stepScript(workflow("release-rehearsal.yml"), "Hand the release to Release auto"), /^gh workflow run release-auto\.yml -f rehearsed="\$VERSION"\n?$/);
   assert.match(workflow("release-rehearsal.yml"), /if: \$\{\{ success\(\) && inputs\.release \}\}\n {8}name: Hand the release/);
