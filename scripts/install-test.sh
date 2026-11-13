@@ -58,6 +58,11 @@
 #   OURO_COMPONENTS             set (maybe empty) on a pull request's reduced run: the shipped tests
 #                               of those components' folders and their specs, or none when it is
 #                               empty (scripts/test-impact.mjs). Unset: every shipped test.
+#   OURO_PREPARE_ONLY           stops after the install, type check, build and every later add, with
+#                               the shipped tests installed: CI's prepare job runs this once for a
+#                               variant and preset.
+#   OURO_REUSE_APP              skips all of that and runs the shipped tests in <app-dir>, which
+#                               must be the tree a prepare run left, restored at the same path.
 #
 # Same-repo registryDependencies are written without a ref (ourostack/ouro-ui/<item>), so
 # shadcn resolves them on the default branch; refs are not inherited. To install this
@@ -234,6 +239,10 @@ if [ "$variant" = github ]; then
   exit 0
 fi
 
+if [ -n "${OURO_REUSE_APP:-}" ]; then
+  # The app a prepare job installed and checked (OURO_PREPARE_ONLY), restored at this same path.
+  cd "$app"
+else
 echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
 cd "$app"
@@ -584,6 +593,9 @@ npx tsc -b
 npx vite build
 node "$root/scripts/install-check.mjs" "$app" "$variant" tests
 echo "::endgroup::"
+fi
+
+[ -z "${OURO_PREPARE_ONLY:-}" ] || { echo "Prepared the $variant app; the shards run the shipped tests."; exit 0; }
 
 # The shipped tests to run: every one, or a reduced run's (OURO_COMPONENTS), in one shard (OURO_SHARD).
 vitest_filters=()
