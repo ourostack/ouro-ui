@@ -200,6 +200,7 @@ test("extract reads the words after a throw, an Error constructor or an error pr
     '  throw new Error("short");',
     '  throw new Error("The draft is empty, so nothing was sent again.");',
     String.raw`  throw new Error("Say \"why\" to send " + pick(a, [{ b: 1 }]) + ", then retry " + (x) + " later");`,
+    String.raw`  throw new Error("Pass --why to send it.\nThe draft stays\tunsent.");`,
     "  throw new Error('Never closed, so skipped",
     "  throw new Error(`A template over",
     "two lines`);",
@@ -222,14 +223,15 @@ test("extract reads the words after a throw, an Error constructor or an error pr
       ["src/send.js#pass-why-reaches-other-people", "Pass --why: ${draft} reaches other people", "needs_why", "src/send.js:4"],
       ["src/send.js#the-draft-is-empty-so~2", "The draft is empty, so nothing was sent again.", undefined, "src/send.js:6"],
       ["src/send.js#say-why-to-send-then", 'Say "why" to send ${…}, then retry ${…} later', undefined, "src/send.js:7"],
-      ["src/send.js#a-template-over-two-lines", "A template over two lines", undefined, "src/send.js:9"],
-      ["src/send.js#pass-the-flag", "Pass the flag ${…}", undefined, "src/send.js:12"],
-      ["src/send.js#text", "${draft} ${other} ${third}", undefined, "src/send.js:13"],
+      ["src/send.js#pass-why-to-send-it", "Pass --why to send it. The draft stays unsent.", undefined, "src/send.js:8"],
+      ["src/send.js#a-template-over-two-lines", "A template over two lines", undefined, "src/send.js:10"],
+      ["src/send.js#pass-the-flag", "Pass the flag ${…}", undefined, "src/send.js:13"],
+      ["src/send.js#text", "${draft} ${other} ${third}", undefined, "src/send.js:14"],
     ],
   );
   const out = join(dir, "out", "surfaces.json");
   assert.equal((await call("extract", "src", "--root", dir, "--tool", "notes", "--out", out)).code, 0);
-  assert.equal(JSON.parse(readFileSync(out, "utf8")).errors.length, 8);
+  assert.equal(JSON.parse(readFileSync(out, "utf8")).errors.length, 9);
   const printed = await call("extract", join(dir, "src", "send.js"), "--tool", "notes", "--root", dir);
   assert.equal(printed.code, 0);
   assert.equal(JSON.parse(printed.out).tool, "notes");

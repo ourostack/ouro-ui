@@ -330,6 +330,8 @@ function sourceFiles(path: string): string[] {
 const ERROR_START = /\b(?:throw\b|new\s+\w*Error\s*\(|\w*Error\s*\(|console\.error\s*\(|stderr\.write\s*\(|(?:die|fail|refuse|bail)\s*\(|(?:error|message)\s*:)/g;
 const CODE_NEAR = /\b(?:error_)?code\s*[:=]\s*["'`]([A-Za-z][\w.-]*)["'`]/;
 
+const ESCAPES: Readonly<Record<string, string>> = { n: "\n", t: "\t", r: "\r" };
+
 /** Reads one string literal at `i` (a quote or backtick), returning its text and the index after it. */
 function literalAt(src: string, i: number): [string, number] | null {
   const quote = src[i];
@@ -338,7 +340,7 @@ function literalAt(src: string, i: number): [string, number] | null {
   for (let j = i + 1; j < src.length; j++) {
     const c = src[j]!;
     if (c === "\\") {
-      text += src.charAt(j + 1);
+      text += ESCAPES[src.charAt(j + 1)] ?? src.charAt(j + 1);
       j++;
     } else if (c === quote) return [text, j + 1];
     else if (c === "\n" && quote !== "`") return null;
