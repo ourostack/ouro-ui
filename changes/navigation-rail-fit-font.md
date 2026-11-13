@@ -1,1 +1,0 @@
-- Fixed: NavigationRail's shipped font-load fit test brings its own font, so it passes in an installed app whatever fonts the machine has.

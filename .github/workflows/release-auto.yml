@@ -1,0 +1,61 @@
+name: Release auto
+# Starts the next release on its own, so a merge to main reaches consumers without anyone dispatching
+# a workflow. It runs when main moves and when a release ends, and it
+# starts the rehearsal (release-rehearsal.yml) of the next patch version when
+# changes/ lists a change, no release or rehearsal is running and main is not waiting on its
+# "Prepare main for the next release" pull request. A rehearsal that passes, once its run has ended, dispatches Release,
+# which cuts the commit that rehearsal tested (scripts/rehearsal-evidence.mjs pick); merges that
+# came after go out in the next release, which this workflow starts when Release ends. A failed
+# rehearsal or release starts nothing again by itself: the next merge does, after the failure's
+# cause is fixed. It adds no gate and relaxes none: the rehearsal and the release run everything
+# they always did.
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: [Release, Release rehearsal]
+    types: [completed]
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: release-auto
+  cancel-in-progress: false
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # start the rehearsal
+      contents: read # read changes/ and the newest release
+      pull-requests: read # see whether main waits on its preparing pull request
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Release a rehearsal that passed
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Release rehearsal' }}
+        env:
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          TITLE: ${{ github.event.workflow_run.display_title }}
+        run: |
+          [ "$CONCLUSION" = success ] || { echo "::notice::The rehearsal ended $CONCLUSION; nothing is released. A merge after its cause is fixed starts the next."; exit 0; }
+          [[ "$TITLE" =~ ^Release\ rehearsal\ v([0-9]+\.[0-9]+\.[0-9]+)$ ]] || { echo "::error::Cannot read the version from \"$TITLE\"."; exit 1; }
+          gh workflow run release.yml --ref main -f version="${BASH_REMATCH[1]}"
+      - name: Start the rehearsal of the next release
+        if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.name == 'Release' && github.event.workflow_run.conclusion == 'success') }}
+        run: |
+          fragments=$(gh api "repos/$GITHUB_REPOSITORY/contents/changes?ref=main" --jq '[.[] | select(.name | endswith(".md"))] | length')
+          [ "$fragments" -gt 0 ] || { echo "::notice::changes/ lists no change, so there is nothing to release."; exit 0; }
+          preparing=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("prepare/after-"))] | length')
+          [ "$preparing" -eq 0 ] || { echo "::notice::Main is waiting on the pull request that prepares it for the next release; its merge starts this again."; exit 0; }
+          for workflow in release.yml release-rehearsal.yml; do
+            for status in queued in_progress; do
+              running=$(gh run list --workflow "$workflow" --status "$status" --json databaseId --jq length)
+              [ "$running" -eq 0 ] || { echo "::notice::$workflow is $status; the release that follows starts this again."; exit 0; }
+            done
+          done
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          [[ "$latest" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || { echo "::error::The newest release, \"$latest\", is not a tag such as v1.2.3."; exit 1; }
+          version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
+          echo "Rehearsing v$version, the release after $latest." >> "$GITHUB_STEP_SUMMARY"
+          gh workflow run release-rehearsal.yml --ref main -f version="$version"

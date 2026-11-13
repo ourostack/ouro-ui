@@ -261,7 +261,7 @@ describe("Navbar", () => {
     await render(<Navbar label="Main" items={items} />);
     await new Promise((resolve) => setTimeout(resolve, 250));
     expect(document.querySelector('[data-ouro="sheet"]')).toBeNull();
-    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden, { timeout: 2000 }).toBe(true);
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
   });
 
   for (const idle of [true, false]) {
@@ -273,11 +273,11 @@ describe("Navbar", () => {
       await render(<Navbar label="Main" items={items} />);
       const popup = () => document.querySelector<HTMLElement>('[data-ouro="sheet"]');
       const links = () => popup()?.querySelectorAll("a[href]").length ?? 0;
-      await expect.poll(popup, { timeout: 2000 }).not.toBeNull();
+      await expect.poll(popup).not.toBeNull();
       // Its frame alone, with no links yet; then, a turn later, the links.
       expect(popup()!.hidden).toBe(true);
       expect(links()).toBe(0);
-      await expect.poll(links, { timeout: 2000 }).toBeGreaterThan(0);
+      await expect.poll(links).toBeGreaterThan(0);
       expect(popup()!.hidden).toBe(true);
     });
 
@@ -296,7 +296,7 @@ describe("Navbar", () => {
       vi.stubGlobal("cancelIdleCallback", (id: number) => clearTimeout(id));
       await page.viewport(390, 844);
       const { menuButton } = await render(<Navbar label="Main" items={items} />);
-      await expect.poll(() => document.querySelector('[data-ouro="sheet"]'), { timeout: 2000 }).not.toBeNull();
+      await expect.poll(() => document.querySelector('[data-ouro="sheet"]')).not.toBeNull();
       expect(document.querySelectorAll('[data-ouro="sheet"] a[href]')).toHaveLength(0);
       await userEvent.click(press(menuButton));
       await expect.element(page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: items[0]!.label })).toBeVisible();
@@ -338,7 +338,7 @@ describe("Navbar", () => {
     await page.viewport(390, 844);
     await render(<Navbar label="Main" items={items} menu={<Filter />} />);
     // The sheet built and kept before the first press, as on a page that has been idle.
-    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden, { timeout: 2000 }).toBe(true);
+    await expect.poll(() => document.querySelector<HTMLElement>('[data-ouro="sheet"]')?.hidden).toBe(true);
     const button = page.getByRole("button", { name: "Menu", exact: true });
     await userEvent.click(button);
     await userEvent.fill(page.getByRole("textbox", { name: "Filter" }), "rec");

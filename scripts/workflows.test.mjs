@@ -2534,6 +2534,23 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   assert.match(tagged.stdout, new RegExp(`^::error::v${next.replace(/\./g, "\\.")} already exists here`, "m"));
 });
 
+test("Release auto starts the rehearsal of the next patch when main has a change to release and nothing runs, and releases a rehearsal only once its run has passed", () => {
+  const auto = workflow("release-auto.yml");
+  assert.match(auto, /^ {2}push:\n {4}branches: \[main\]$/m);
+  assert.match(auto, /^ {4}workflows: \[Release, Release rehearsal\]\n {4}types: \[completed\]$/m);
+  assert.match(auto, /^permissions: \{\}$/m);
+  const start = stepScript(auto, "Start the rehearsal of the next release");
+  assert.match(start, /changes\/ lists no change/);
+  assert.match(start, /prepare\/after-/);
+  assert.match(start, /for workflow in release\.yml release-rehearsal\.yml/);
+  assert.match(start, /gh workflow run release-rehearsal\.yml --ref main -f version="\$version"$/m);
+  assert.match(auto, /github\.event\.workflow_run\.conclusion == 'success'/, "a failed release starts nothing again");
+  const release = stepScript(auto, "Release a rehearsal that passed");
+  assert.match(release, /\[ "\$CONCLUSION" = success \] \|\|/);
+  assert.match(release, /gh workflow run release\.yml --ref main -f version=/);
+  assert.doesNotMatch(auto, /retry|sleep/);
+});
+
 test("a release rehearsal writes the release commit as Release does, on a branch of its own, runs CI and the screen-reader lane there, tags nothing and deletes the branch", () => {
   const rehearsal = workflow("release-rehearsal.yml");
   assert.match(rehearsal, /^run-name: Release rehearsal v\$\{\{ inputs\.version \}\}$/m);

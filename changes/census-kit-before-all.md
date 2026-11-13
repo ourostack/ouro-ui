@@ -1,1 +1,0 @@
-- Fixed: the census kit's `censusTests` registers its tests under Playwright, whose hooks need an object pattern for their fixtures, and the guide's example declares the census in the app's own spec so a run of that file lists it.

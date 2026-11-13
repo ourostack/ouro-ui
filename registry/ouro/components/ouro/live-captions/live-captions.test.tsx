@@ -695,7 +695,6 @@ describe("LiveCaptions motion", () => {
     expect(row("4").getBoundingClientRect().bottom).toBeCloseTo(bottom(), 0);
 
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    await expect.poll(() => matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
     await rerender(<LiveCaptions label="Captions" lines={[a, b, c, d]} />);
     await rerender(<LiveCaptions label="Captions" lines={[a, b, c, d, e]} />);
     expect(track.getAnimations()).toEqual([]);

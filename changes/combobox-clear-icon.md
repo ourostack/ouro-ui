@@ -1,1 +1,0 @@
-- Fixed: a Combobox clear button shows its cross icon.

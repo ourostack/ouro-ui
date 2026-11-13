@@ -2,7 +2,7 @@
 
 # Pagination
 
-Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current="page"`. With `href` every page is a real link, so it works with no JavaScript and through your router; with `onPageChange` the pages are buttons. Below 640px the numbers give way to "Page 3 of 12" between Previous and Next. Without `pageCount`, for a list that is not counted, it shows Previous and Next only, and `hasNextPage` enables Next.
+Page navigation for a long list: Previous, the page numbers with gaps, and Next, with the current page marked `aria-current="page"`. With `href` every page is a real link, so it works with no JavaScript and through your router; with `onPageChange` the pages are buttons. Below 640px the numbers give way to "Page 3 of 12" between Previous and Next. They give way too when they are wider than the space their container gives them, so the list stays inside a narrow column. Without `pageCount`, for a list that is not counted, it shows Previous and Next only, and `hasNextPage` enables Next.
 
 ```tsx
 import { Pagination } from "@/registry/ouro/components/ouro/pagination/pagination";
@@ -38,7 +38,7 @@ The props the modes share. Type: `PaginationProps`.
 | `previousLabel` | `string` | `"Previous"` | The text of the link to the page before. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `siblings` | `number` | `1` | How many pages show on each side of the current one before a gap ("1 … 4 5 6 … 12" is `1`). The list keeps the same number of cells on every page, so Next never moves. |
-| `summaryLabel` | `string` | `"Page {page} of {pageCount}"` | The text between Previous and Next below 640px, where the page numbers do not fit; `{page}` and `{pageCount}` are the numbers. |
+| `summaryLabel` | `string` | `"Page {page} of {pageCount}"` | The text between Previous and Next where the page numbers do not fit: below 640px, or in a container too narrow for them. `{page}` and `{pageCount}` are the numbers. |
 
 ## Modes
 

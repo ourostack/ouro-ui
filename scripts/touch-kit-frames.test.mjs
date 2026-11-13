@@ -404,17 +404,40 @@ test("a touchstart does not wait for Chromium to let go of the node at its point
   assert.ok(end < 1400, `touchEnd ${end}ms`);
 });
 
-test("a touch command that takes longer than a second logs its steps, when each frame's watch answered and how late Node ran", async () => {
+test("with OURO_TOUCH_TRACE set, a touch command that takes longer than a second logs its steps as information, when each frame's watch answered and how late Node ran", async () => {
   const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const before = process.env.OURO_TOUCH_TRACE;
+  process.env.OURO_TOUCH_TRACE = "1";
   try {
     await tapOnPage({ delays: { "Input.dispatchTouchEvent": 1100 } });
-    assert.equal(warn.mock.callCount(), 2);
-    const [message] = warn.mock.calls[0].arguments;
+    assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 2);
+    const [message] = info.mock.calls[0].arguments;
     assert.match(
       message,
       /^touchStep: the touchStart at \(100, 50\) took \d+ms\. Steps: \+\d+ms asked Chromium: layout \d+ms, hit test \d+ms, node \d+ms, watcher \d+ms, frame id \d+ms; \+\d+ms the frame at the point: true, the test page; \+\d+ms watched; \+\d+ms sent; \+\d+ms handled by http:\/\/localhost:63315\/__vitest_test__\/; \+\d+ms tidied, waiting for no frame\. Watches: http:\/\/localhost:63315\/ answered at \+\d+ms; http:\/\/localhost:63315\/__vitest_test__\/ answered at \+\d+ms\. Node's event loop ran up to \d+ms late\.$/,
     );
   } finally {
+    if (before === undefined) delete process.env.OURO_TOUCH_TRACE;
+    else process.env.OURO_TOUCH_TRACE = before;
+    info.mock.restore();
+    warn.mock.restore();
+  }
+});
+
+test("a slow touch that succeeds prints nothing unless OURO_TOUCH_TRACE is set", async () => {
+  const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const before = process.env.OURO_TOUCH_TRACE;
+  delete process.env.OURO_TOUCH_TRACE;
+  try {
+    await tapOnPage({ delays: { "Input.dispatchTouchEvent": 1100 } });
+    assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 0);
+  } finally {
+    if (before !== undefined) process.env.OURO_TOUCH_TRACE = before;
+    info.mock.restore();
     warn.mock.restore();
   }
 });
@@ -674,8 +697,21 @@ function mousePage(hangAt = 0, hangMs = Infinity) {
 
 const STEP = String.raw`(?:the move to the start|the press|move \d+|the release) \d+ms`;
 
-test("a mouse drag the browser stops answering logs the move it is stuck on and each earlier move's time, and is not refused", { timeout: 15_000 }, async () => {
+/** Sets `OURO_TOUCH_TRACE` for one test, or unsets it when `value` is undefined; returns the restore. */
+function setTouchTrace(value) {
+  const before = process.env.OURO_TOUCH_TRACE;
+  if (value === undefined) delete process.env.OURO_TOUCH_TRACE;
+  else process.env.OURO_TOUCH_TRACE = value;
+  return () => {
+    if (before === undefined) delete process.env.OURO_TOUCH_TRACE;
+    else process.env.OURO_TOUCH_TRACE = before;
+  };
+}
+
+test("with OURO_TOUCH_TRACE set, a mouse drag the browser stops answering logs the move it is stuck on and each earlier move's time as information, and is not refused", { timeout: 15_000 }, async () => {
   const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const restore = setTouchTrace("1");
   try {
     // The move to the start, the press, move 1, then move 2 never answers.
     const { page } = mousePage(4);
@@ -683,56 +719,107 @@ test("a mouse drag the browser stops answering logs the move it is stuck on and 
     drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 }).finally(() => (ended = true));
     await new Promise((resolve) => setTimeout(resolve, DRAG_SLOW_MS + 500));
     assert.equal(ended, false, "the drag is left to the test's own time limit");
-    assert.equal(warn.mock.callCount(), 1);
+    assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 1);
     assert.match(
-      warn.mock.calls[0].arguments[0],
+      info.mock.calls[0].arguments[0],
       /^drag: still waiting on move 2 after \d+ms, \d+ms into a 40ms drag of 4 moves \(logged at 3040ms\)\. Each step before it, pauses between moves left out: the move to the start \d+ms, the press \d+ms, move 1 \d+ms\.$/,
     );
   } finally {
+    restore();
+    info.mock.restore();
     warn.mock.restore();
   }
 });
 
-test("a mouse drag stalled in the pause after a move names that pause, not the move", { timeout: 15_000 }, async () => {
+test("without OURO_TOUCH_TRACE, a mouse drag the browser stops answering prints nothing, and is not refused", { timeout: 15_000 }, async () => {
   const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const restore = setTouchTrace(undefined);
+  try {
+    const { page } = mousePage(4);
+    let ended = false;
+    drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 }).finally(() => (ended = true));
+    await new Promise((resolve) => setTimeout(resolve, DRAG_SLOW_MS + 500));
+    assert.equal(ended, false, "the drag is left to the test's own time limit");
+    assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 0);
+  } finally {
+    restore();
+    info.mock.restore();
+    warn.mock.restore();
+  }
+});
+
+test("with OURO_TOUCH_TRACE set, a mouse drag stalled in the pause after a move names that pause, not the move", { timeout: 15_000 }, async () => {
+  const info = mock.method(console, "info", () => {});
+  const restore = setTouchTrace("1");
   try {
     const { page } = mousePage();
     page.waitForTimeout = () => new Promise(() => {});
     void drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
     await new Promise((resolve) => setTimeout(resolve, DRAG_SLOW_MS + 500));
-    assert.equal(warn.mock.callCount(), 1);
-    assert.match(warn.mock.calls[0].arguments[0], /^drag: still waiting on the pause after move 1 after \d+ms, .* move 1 \d+ms\.$/);
+    assert.equal(info.mock.callCount(), 1);
+    assert.match(info.mock.calls[0].arguments[0], /^drag: still waiting on the pause after move 1 after \d+ms, .* move 1 \d+ms\.$/);
   } finally {
-    warn.mock.restore();
+    restore();
+    info.mock.restore();
   }
 });
 
-test("a slow mouse drag that finishes logs every step's time once it ends", { timeout: 15_000 }, async () => {
+test("with OURO_TOUCH_TRACE set, a slow mouse drag that finishes logs where it waited and every step's time as information once it ends", { timeout: 15_000 }, async () => {
   const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const restore = setTouchTrace("1");
   try {
     const { calls, page } = mousePage(4, DRAG_SLOW_MS + 300);
     await drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
     assert.deepEqual(calls, ["move", "down", "move", "move", "move", "move", "up"]);
-    assert.equal(warn.mock.callCount(), 2);
-    assert.match(warn.mock.calls[0].arguments[0], /^drag: still waiting on move 2 /);
+    assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 2);
+    assert.match(info.mock.calls[0].arguments[0], /^drag: still waiting on move 2 /);
     assert.match(
-      warn.mock.calls[1].arguments[0],
+      info.mock.calls[1].arguments[0],
       new RegExp(String.raw`^drag: finished after \d+ms, in a 40ms drag of 4 moves \(logged at 3040ms\)\. Each step, pauses between moves left out: ${STEP}(?:, ${STEP}){6}\.$`),
     );
-    assert.match(warn.mock.calls[1].arguments[0], /move 2 3[3-9]\d\dms/);
+    assert.match(info.mock.calls[1].arguments[0], /move 2 3[3-9]\d\dms/);
   } finally {
+    restore();
+    info.mock.restore();
     warn.mock.restore();
   }
 });
 
-test("a mouse drag that finishes in time logs nothing", async () => {
+test("without OURO_TOUCH_TRACE, a slow mouse drag that finishes prints nothing", { timeout: 15_000 }, async () => {
   const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const restore = setTouchTrace(undefined);
+  try {
+    const { calls, page } = mousePage(4, DRAG_SLOW_MS + 300);
+    await drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
+    assert.deepEqual(calls, ["move", "down", "move", "move", "move", "move", "up"]);
+    assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 0);
+  } finally {
+    restore();
+    info.mock.restore();
+    warn.mock.restore();
+  }
+});
+
+test("a mouse drag that finishes in time logs nothing, even with OURO_TOUCH_TRACE set", async () => {
+  const warn = mock.method(console, "warn", () => {});
+  const info = mock.method(console, "info", () => {});
+  const restore = setTouchTrace("1");
   try {
     const { calls, page } = mousePage();
     await drag({ page }, { from: [10, 10], to: [50, 10], steps: 4, durationMs: 40 });
     assert.deepEqual(calls, ["move", "down", "move", "move", "move", "move", "up"]);
     assert.equal(warn.mock.callCount(), 0);
+    assert.equal(info.mock.callCount(), 0);
   } finally {
+    restore();
+    info.mock.restore();
     warn.mock.restore();
   }
 });
