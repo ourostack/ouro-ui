@@ -179,6 +179,7 @@ const holdPageAtPress = {
   listButton: pressHandlers([...buttonKeys, ...listKeys]),
   listInput: pressHandlers(listKeys),
   dialog: pressHandlers(buttonKeys, true),
+  // Stryker disable next-line ArrayDeclaration: a context area opens on no key, and a key list no real key matches holds the page at none, as the empty one does.
   contextMenu: pressHandlers([], false, (event) => event.button === 2),
 };
 
