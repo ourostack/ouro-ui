@@ -1,0 +1,1265 @@
+{
+  "targets": [
+    "/Users/arimendelow/code/ouro-ui-worktrees/hx-squircles/site/dist"
+  ],
+  "sizes": [
+    [
+      320,
+      640
+    ],
+    [
+      360,
+      780
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      480,
+      900
+    ],
+    [
+      600,
+      960
+    ],
+    [
+      720,
+      1000
+    ],
+    [
+      768,
+      1024
+    ],
+    [
+      900,
+      1000
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      1180,
+      820
+    ],
+    [
+      1280,
+      800
+    ],
+    [
+      1440,
+      900
+    ],
+    [
+      1680,
+      1050
+    ],
+    [
+      1920,
+      1080
+    ],
+    [
+      2560,
+      1440
+    ],
+    [
+      3200,
+      1800
+    ],
+    [
+      3840,
+      2160
+    ],
+    [
+      640,
+      360
+    ],
+    [
+      720,
+      420
+    ],
+    [
+      900,
+      500
+    ],
+    [
+      1000,
+      600
+    ]
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "pages": [
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "name": "docs-message"
+    }
+  ],
+  "findings": [
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 320,
+      "height": 640,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2,
+      "closeUp": "findings/docs-message-1.png",
+      "box": {
+        "x": 62.90625,
+        "y": 1295.765625,
+        "width": 231.09375,
+        "height": 96
+      }
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 320,
+      "height": 640,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 320,
+      "height": 640,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2,
+      "closeUp": "findings/docs-message-2.png",
+      "box": {
+        "x": 68.90625,
+        "y": 1301.765625,
+        "width": 52,
+        "height": 84
+      }
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 360,
+      "height": 780,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 360,
+      "height": 780,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 360,
+      "height": 780,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 480,
+      "height": 900,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 480,
+      "height": 900,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 480,
+      "height": 900,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 600,
+      "height": 960,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 600,
+      "height": 960,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 600,
+      "height": 960,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 720,
+      "height": 1000,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 720,
+      "height": 1000,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 720,
+      "height": 1000,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 900,
+      "height": 1000,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 900,
+      "height": 1000,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 900,
+      "height": 1000,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1180,
+      "height": 820,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1180,
+      "height": 820,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1180,
+      "height": 820,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1680,
+      "height": 1050,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1680,
+      "height": 1050,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1680,
+      "height": 1050,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1920,
+      "height": 1080,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1920,
+      "height": 1080,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1920,
+      "height": 1080,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 2560,
+      "height": 1440,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 16px, 10px inside a 36px corner: the corners nest at 26px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 2560,
+      "height": 1440,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 16px, 10px inside a 36px corner: the corners nest at 26px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 2560,
+      "height": 1440,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 7px inside a 16px corner: the corners nest at 9px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 3200,
+      "height": 1800,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 18px, 11px inside a 41px corner: the corners nest at 30px",
+      "gated": true,
+      "dpr": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 3200,
+      "height": 1800,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 18px, 11px inside a 41px corner: the corners nest at 30px",
+      "gated": true,
+      "dpr": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 3200,
+      "height": 1800,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 3px, 8px inside a 18px corner: the corners nest at 11px",
+      "gated": true,
+      "dpr": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 3840,
+      "height": 2160,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 18px, 11px inside a 41px corner: the corners nest at 30px",
+      "gated": true,
+      "dpr": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 3840,
+      "height": 2160,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 18px, 11px inside a 41px corner: the corners nest at 30px",
+      "gated": true,
+      "dpr": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 3840,
+      "height": 2160,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 3px, 8px inside a 18px corner: the corners nest at 11px",
+      "gated": true,
+      "dpr": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 640,
+      "height": 360,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 640,
+      "height": 360,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 640,
+      "height": 360,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 720,
+      "height": 420,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 720,
+      "height": 420,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 720,
+      "height": 420,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 900,
+      "height": 500,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 900,
+      "height": 500,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 900,
+      "height": 500,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1000,
+      "height": 600,
+      "theme": "light",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1000,
+      "height": 600,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "blockquote.m-0.mb-2.flex in div.box-border.max-w-full.min-w-0",
+      "detail": "corner radius 14px, 9px inside a 32px corner: the corners nest at 23px",
+      "gated": true,
+      "dpr": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "width": 1000,
+      "height": 600,
+      "theme": "dark",
+      "rule": "nested-frame",
+      "element": "span.w-1.shrink-0.self-stretch in blockquote.m-0.mb-2.flex",
+      "detail": "corner radius 2px, 6px inside a 14px corner: the corners nest at 8px",
+      "gated": true,
+      "dpr": 2
+    }
+  ],
+  "fixed": [],
+  "candidates": [],
+  "shots": [
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-320x640-light.jpg",
+      "width": 320,
+      "height": 640,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-320x640-dark.jpg",
+      "width": 320,
+      "height": 640,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-360x780-light.jpg",
+      "width": 360,
+      "height": 780,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-360x780-dark.jpg",
+      "width": 360,
+      "height": 780,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-390x844-light.jpg",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-390x844-dark.jpg",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-480x900-light.jpg",
+      "width": 480,
+      "height": 900,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-480x900-dark.jpg",
+      "width": 480,
+      "height": 900,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-600x960-light.jpg",
+      "width": 600,
+      "height": 960,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-600x960-dark.jpg",
+      "width": 600,
+      "height": 960,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-720x1000-light.jpg",
+      "width": 720,
+      "height": 1000,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-720x1000-dark.jpg",
+      "width": 720,
+      "height": 1000,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-768x1024-light.jpg",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-768x1024-dark.jpg",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-900x1000-light.jpg",
+      "width": 900,
+      "height": 1000,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-900x1000-dark.jpg",
+      "width": 900,
+      "height": 1000,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1024x768-light.jpg",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1024x768-dark.jpg",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1180x820-light.jpg",
+      "width": 1180,
+      "height": 820,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1180x820-dark.jpg",
+      "width": 1180,
+      "height": 820,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1280x800-light.jpg",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1280x800-dark.jpg",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1440x900-light.jpg",
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1440x900-dark.jpg",
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1680x1050-light.jpg",
+      "width": 1680,
+      "height": 1050,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1680x1050-dark.jpg",
+      "width": 1680,
+      "height": 1050,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1920x1080-light.jpg",
+      "width": 1920,
+      "height": 1080,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1920x1080-dark.jpg",
+      "width": 1920,
+      "height": 1080,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-2560x1440-light.jpg",
+      "width": 2560,
+      "height": 1440,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-2560x1440-dark.jpg",
+      "width": 2560,
+      "height": 1440,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-3200x1800-light.jpg",
+      "width": 3200,
+      "height": 1800,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-3200x1800-dark.jpg",
+      "width": 3200,
+      "height": 1800,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-3840x2160-light.jpg",
+      "width": 3840,
+      "height": 2160,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-3840x2160-dark.jpg",
+      "width": 3840,
+      "height": 2160,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-640x360-light.jpg",
+      "width": 640,
+      "height": 360,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-640x360-dark.jpg",
+      "width": 640,
+      "height": 360,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-720x420-light.jpg",
+      "width": 720,
+      "height": 420,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-720x420-dark.jpg",
+      "width": 720,
+      "height": 420,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-900x500-light.jpg",
+      "width": 900,
+      "height": 500,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-900x500-dark.jpg",
+      "width": 900,
+      "height": 500,
+      "theme": "dark",
+      "count": 2
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1000x600-light.jpg",
+      "width": 1000,
+      "height": 600,
+      "theme": "light",
+      "count": 1
+    },
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "file": "docs-message-1000x600-dark.jpg",
+      "width": 1000,
+      "height": 600,
+      "theme": "dark",
+      "count": 2
+    }
+  ],
+  "allowances": [
+    {
+      "site": "dist",
+      "page": "/docs/message/",
+      "rules": "leaked-value odd-timestamp",
+      "element": "a.font-medium.text-primary.underline \"test:registry/ouro/components/ouro/messa…\"",
+      "reason": "a source names its test or file as written"
+    }
+  ]
+}
