@@ -322,6 +322,9 @@ describe("measureInteraction", () => {
   });
 
   it("outside an event handler times from the call and says so in development, once per name", async () => {
+    // The park before each test (testing/pointer-setup.ts) resumes this test inside a message event,
+    // where window.event is set. A frame later the test is outside every event again.
+    await frames(1);
     const { emit } = fakeEventTiming();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const reports = listen();

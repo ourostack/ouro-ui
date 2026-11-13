@@ -1157,6 +1157,18 @@ export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, {
 };
 
 /**
+ * Moves the real mouse off the test frame, so a test starts with no hover from an earlier one.
+ * The browser re-checks hover after layout (WebKit late), and a button under the pointer then
+ * fades to its hover colour. The point is outside the viewport, which the test frame fills.
+ * The mouse projects call this before each test (testing/pointer-setup.ts).
+ * @claim "Moves the real mouse off the test frame, so a test starts with no hover from an earlier one." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::the pointer between tests > renders a button under the old pointer without hovering it, under a theme with a hover colour)
+ * @claim "The mouse projects call this before each test" registry/ouro/lib/ouro/testing/pointer-setup.ts verify:fileLine(registry/ouro/lib/ouro/testing/pointer-setup.ts, /commands\.parkPointer/)
+ */
+export const parkPointer: BrowserCommand<[]> = async (ctx) => {
+  await ctx.page.mouse.move(-1, -1);
+};
+
+/**
  * Taps an element inside the test iframe with real touch input (Playwright's
  * `locator.tap`), so the page sees `pointerType: "touch"`. Needs a context with
  * `hasTouch`, as in the `touch` project.
@@ -1432,11 +1444,12 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   }
 };
 
-export const commands = { compositedLayers, emulateMedia, doubleTap, drag, flick, pageZoom, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
+export const commands = { compositedLayers, emulateMedia, doubleTap, drag, flick, pageZoom, parkPointer, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     emulateMedia: (options: EmulateMediaOptions) => Promise<void>;
+    parkPointer: () => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;

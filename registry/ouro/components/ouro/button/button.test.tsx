@@ -902,6 +902,39 @@ describe("theme", () => {
   });
 });
 
+describe("the pointer between tests", () => {
+  // The two tests run in order. The first leaves the pointer over a button at the top left, as an
+  // earlier test can. The second renders a button in that place: the browser re-checks hover after
+  // layout (WebKit late), so the button would turn :hover and fade to --ouro-action-hover, which the
+  // theme tests do not set.
+  it("hovers a button at the top left, leaving the pointer on it", async () => {
+    const { button } = await render(<Button>Light</Button>);
+    await userEvent.hover(button);
+    await expect.poll(() => button.matches(":hover")).toBe(true);
+  });
+
+  it("renders a button under the old pointer without hovering it, under a theme with a hover colour", async () => {
+    const style = document.createElement("style");
+    style.textContent = ":root { --ouro-action: rgb(10, 20, 30); --ouro-action-hover: rgb(31, 27, 23); }";
+    document.head.append(style);
+    mounted.push(style);
+    const { host } = await render(
+      <>
+        <Button>Light</Button>
+        <div className="dark">
+          <Button>Dark</Button>
+        </div>
+      </>,
+    );
+    const light = host.querySelector<HTMLElement>("button")!;
+    for (let frame = 0; frame < 10; frame++) await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    expect({ hovered: light.matches(":hover"), background: getComputedStyle(light).backgroundColor }).toEqual({
+      hovered: false,
+      background: "rgb(10, 20, 30)",
+    });
+  });
+});
+
 describe("touch target", () => {
   it("does not grow the hit area for a fine pointer", async () => {
     const { button } = await render(<Button size="sm">Tap</Button>);
