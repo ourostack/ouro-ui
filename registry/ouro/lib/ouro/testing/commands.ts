@@ -63,6 +63,9 @@ function mediaQueries(options: EmulateMediaOptions): string[] {
 /** How long `emulateMedia` waits for the test frame to match: as long as a poll waits. */
 const MEDIA_WAIT_MS = 10_000;
 
+/** How long `emulateMedia` gives the frame to answer one read of its media, however close the deadline. */
+const MEDIA_ANSWER_MS = 3000;
+
 /**
  * Polls the frame's `matchMedia` from Node until the queries match. The poll runs here, not in the
  * frame, because a test's fake timers in the frame would stall a wait that the frame's own timers drive.
@@ -73,8 +76,10 @@ async function awaitMedia(frame: Frame, queries: string[]): Promise<void> {
   const deadline = performance.now() + MEDIA_WAIT_MS;
   const unmatched = `${JSON.stringify(queries)}.find((query) => !matchMedia(query).matches)`;
   for (;;) {
-    const left = Math.max(deadline - performance.now(), 1);
-    const missing = await within(frame.evaluate<string | undefined>(unmatched), left, `the test frame did not answer for ${queries.join(" and ")} within ${MEDIA_WAIT_MS / 1000}s`);
+    // Each read gets at least MEDIA_ANSWER_MS, so a read begun just before the deadline can still answer
+    // and the failure names the query that does not match, not a frame that did not answer.
+    const limit = Math.max(deadline - performance.now(), MEDIA_ANSWER_MS);
+    const missing = await within(frame.evaluate<string | undefined>(unmatched), limit, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(limit)}ms`);
     if (missing === undefined) return;
     if (performance.now() > deadline) throw new Error(`the test frame does not match ${missing} within ${MEDIA_WAIT_MS / 1000}s`);
     await sleep(10);
