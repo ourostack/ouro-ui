@@ -14,6 +14,9 @@ import { StoryWorld } from "../components/story-world";
 import { Stage } from "./stage/stage";
 import { ThemeDots } from "./theme-dots";
 
+/** The hero scene's width: its 80rem cap, scaled by the root type on a wide screen and never past the 1536px file width (story-world.css `--hero-width`). In rem, so a larger browser font never makes it guess too small. */
+const HERO_SCENE_SIZES = "(min-width: 200rem) min(1536px, 100rem), (min-width: 150rem) min(1536px, 90rem), (min-width: 80rem) min(1536px, 80rem), calc(100vw - 4rem)";
+
 /** What the hero says the library is, before anything else: its name. */
 export const EYEBROW = VOYAGE_HERO.eyebrow;
 
@@ -181,7 +184,7 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
         headline in its sky; the porthole, the showcase, follows. The eyebrow names Ouro UI's two halves (the
         header names Ouro UI itself); on a phone the halves are named under the stage, so it stays for screen readers only.
       */}
-      <StoryWorld scene="ouro-hx">
+      <StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES}>
         <Container>
           <p className="site-eyebrow site-hero-eyebrow max-sm:sr-only" data-site-eyebrow="">
             <span className="site-hero-brand">{EYEBROW}</span>

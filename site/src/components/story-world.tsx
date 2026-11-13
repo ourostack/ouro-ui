@@ -7,9 +7,12 @@ import "./story-world.css";
 
 const art = (path: string) => href(`${STORYBOOK}${path}`);
 
+/** Full width until the world stops growing at max(1536px, 79rem) on a wide screen, with 79rem scaled by the root type there (112.5%, then 125%). In rem, so a larger browser font never makes it guess too small. */
+const FULL_WORLD_SIZES = "(min-width: 200rem) max(1536px, 98.75rem), (min-width: 150rem) max(1536px, 88.875rem), (min-width: 100rem) max(1536px, 79rem), 100vw";
+
 /**
  * One of the storybook scenes (storybook.ts), as the canonical files serve it: AVIF then WebP at 640,
- * 960 and 1536 pixels wide, and on a phone the crop around Ouro and the friends, in its own shape. Its width and
+ * 960, 1536 and 3072 pixels wide, and on a phone the crop around Ouro and the friends, in its own shape. Its width and
  * height are given for each crop, so nothing moves when it arrives.
  */
 function ScenePicture({ scene, priority, sizes, decorative }: { scene: SceneName; priority: boolean; sizes: string; decorative: boolean }): JSX.Element {
@@ -47,6 +50,7 @@ export function StoryWorld({
   variant = "arrival",
   children,
   className,
+  sizes = FULL_WORLD_SIZES,
   decorative = false,
 }: {
   scene: SceneName;
@@ -54,6 +58,8 @@ export function StoryWorld({
   /** The words in the sky. */
   children?: ReactNode;
   className?: string | undefined;
+  /** How wide the scene draws, for the browser's file choice; defaults to the full-width world's width. */
+  sizes?: string;
   /** A picture that only sets the scene, as on every docs page: screen readers skip it rather than hear it each time. */
   decorative?: boolean;
 }): JSX.Element {
@@ -69,7 +75,7 @@ export function StoryWorld({
     <div className={cn("story-world", `story-world-${variant}`, className)} style={style}>
       {children ? <div className="story-world-sky">{children}</div> : null}
       <div className="story-world-view">
-        <ScenePicture scene={scene} priority={variant !== "band"} sizes="100vw" decorative={decorative} />
+        <ScenePicture scene={scene} priority={variant !== "band"} sizes={sizes} decorative={decorative} />
         <span aria-hidden="true" className="story-world-sun" />
       </div>
     </div>
