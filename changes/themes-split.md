@@ -1,0 +1,1 @@
+- Changed: the themes scan splits the light and dark schemes of its fixtures into separate test files, so CI shards run them side by side.
