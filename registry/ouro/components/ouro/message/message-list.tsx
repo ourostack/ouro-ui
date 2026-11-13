@@ -1480,6 +1480,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const onWheel = () => {
       wheelAt = performance.now();
     };
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only tells the browser the listener never cancels the wheel; no test can observe it.
     scroller.addEventListener("wheel", onWheel, { passive: true });
     const hold = () => {
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
@@ -1512,6 +1513,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         // The place is held by the messages that moved together, not one that moved away: of those, the one that moved least (with only
         // one other in view, the one that did not go), and the first of those that moved alike.
         const moved = (ranked.sort((a, b) => a.passed - b.passed || Math.abs(a.moved) - Math.abs(b.moved))[0]?.moved ?? 0) + owed;
+        // Stryker disable next-line EqualityOperator: a drift or a wheel age exactly at its limit is a tie in a real-valued clock and pixel count that no test can place.
         if (Math.abs(moved) < WHEEL_DRIFT && performance.now() - wheelAt < WHEEL_REST) {
           cancelAnimationFrame(later);
           later = requestAnimationFrame(hold);
