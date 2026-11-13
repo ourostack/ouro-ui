@@ -601,7 +601,12 @@ test("CI cancels only a pull request's superseded run: never a merge-queue, main
 
 test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
   const release = workflow("release.yml");
-  assert.match(release, /scripts\/required-ci\.sh \$runs \|\| \{[^\n]+exit 1; \}\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
+  // The release job hands the pull request to the queue and finishes: the queue's CI on the merged tree is the gate, so it neither waits for nor judges the pull request's own CI.
+  const handOff = releaseStep("Prepare main for the next release");
+  assert.doesNotMatch(handOff, /required-ci\.sh/);
+  assert.match(handOff, /gh pr merge "\$NEXT_BRANCH" --auto/);
+  assert.equal(handOff.match(/enqueuePullRequest/g).length, 1, "it enqueues once, never in a loop");
+  assert.match(handOff, /\[ "\$position" -gt 2 \]/);
   // gh's exit code also fails on local branch cleanup, so the pull request's state decides, and
   // the branch is deleted through the API afterwards.
   assert.doesNotMatch(release, /gh pr merge[^\n]*--delete-branch/);
@@ -768,7 +773,7 @@ test("Release tags nothing when its notes would be over GitHub's limit", () => {
 
 test("every wait of Release, and of its rehearsal, on a CI run judges only the checks main's rules require, through scripts/required-ci.sh", () => {
   // ci-budget, which the rules do not require, failed CI on "Prepare main" for v1.2.0 (run 39754777487) and stopped the release.
-  for (const name of ["Check the version, the tag and main's CI", "Run CI on the release commit", "Prepare main for the next release", "Pass the merge queue and CI on main"]) {
+  for (const name of ["Check the version, the tag and main's CI", "Run CI on the release commit", "Pass the merge queue and CI on main"]) {
     const step = releaseStep(name);
     // The queue job runs no code from the repository, so it judges the jobs itself (state_of), as the script does.
     assert.match(step, name === "Pass the merge queue and CI on main" ? /\[ "\$\(state_of "\$context" "\$jobs"\)" = success \]/ : /scripts\/required-ci\.sh (--also "[^"]+" )?\$(run|runs)\b/, name);
@@ -887,7 +892,37 @@ const releaseStep = (name) => {
   return lines.slice(0, end === -1 ? undefined : end).map((line) => line.slice(10)).join("\n");
 };
 
-const scenarios = ["success", "queued", "queue-rebuilt", "queue-tip", "pr-ci-failed", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "queue-dropped", "approval-failed", "tip-advanced"];
+for (const [position, dequeues] of [[5, 1], [2, 0], [1, 0]]) {
+  test(`Prepare main already queued at position ${position} ${dequeues ? "is taken out, then jumped once" : "is left where it is"}`, () => {
+    const prepare = releaseStep("Prepare main for the next release");
+    const gate = prepare.slice(prepare.indexOf("number=$(gh pr view"), prepare.indexOf("echo \"Handed"));
+    const fixture = scratchDir("ouro-release-requeue-");
+    const state = join(fixture, "state");
+    writeFileSync(state, "OPEN true");
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
+      gh() {
+        printf 'CALL %s\\n' "$*" >&2
+        case "$*" in
+          "pr view "*"--json number"*) echo 9 ;;
+          "pr view "*"--json id"*) echo PR_9 ;;
+          "pr merge "*) return 0 ;;
+          *dequeuePullRequest*) echo "OPEN false" > "$STATE" ;;
+          *enqueuePullRequest*) echo "OPEN true" > "$STATE" ;;
+          *mergeQueueEntry*) echo "$POSITION" ;;
+          "api graphql "*) cat "$STATE" ;;
+          *) return 99 ;;
+        esac
+      }
+      sha=headsha
+      ${gate}
+    `], { cwd: root, encoding: "utf8", env: { ...process.env, POSITION: String(position), STATE: state, NEXT_BRANCH: "prepare/after-v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_OUTPUT: join(fixture, "out") } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal((result.stderr.match(/dequeuePullRequest/g) ?? []).length, dequeues);
+    assert.equal((result.stderr.match(/enqueuePullRequest/g) ?? []).length, dequeues);
+  });
+}
+
+const scenarios = ["success", "queued", "queue-rebuilt", "queue-tip", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "queue-dropped", "approval-failed", "tip-advanced"];
 for (const scenario of scenarios) {
   const passes = ["success", "queued", "queue-rebuilt", "queue-tip"].includes(scenario);
   test(`Release's main CI gate ${passes ? "permits" : "blocks"} Pages (${scenario})`, () => {
@@ -926,10 +961,11 @@ for (const scenario of scenarios) {
           # The merge queue, look by look: the release job looks twice, the queue job once before its
           # loop and once a round. Queued, then merged (or dropped) on the queue job's first round;
           # rebuilt: still queued after two rounds, a second build's branch from the second on.
+          "api graphql "*mergeQueueEntry*) echo "\${POSITION:-0}" ;;
           "api graphql "*)
             looks=$(( $(cat "$QUEUE_LOOKS") + 1 )); echo "$looks" > "$QUEUE_LOOKS"
             case "$SCENARIO:$looks" in
-              queued:[1-3]|queue-tip:[1-3]|queue-dropped:[1-3]|queue-rebuilt:[1-5]) echo "OPEN true" ;;
+              queued:[1-4]|queue-tip:[1-4]|queue-dropped:[1-4]|queue-rebuilt:[1-6]) echo "OPEN true" ;;
               not-merged:*|queue-dropped:*) echo "OPEN false" ;;
               *) echo "MERGED false" ;;
             esac ;;
@@ -999,7 +1035,7 @@ for (const scenario of scenarios) {
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
     // Queued by the API only while gh left the pull request open and out of the queue, a few times.
     const enqueued = result.stderr.match(/^CALL api graphql -f query=mutation \{ enqueuePullRequest.*$/gm) ?? [];
-    assert.equal(enqueued.length, scenario === "not-merged" ? 5 : 0, "enqueuePullRequest");
+    assert.equal(enqueued.length, scenario === "not-merged" ? 1 : 0, "enqueuePullRequest");
     if (scenario.startsWith("queue")) {
       // Queued by the workflow's token: CI runs on the queue's branch by dispatch, once on each
       // build's branch, however often the branches are looked at.

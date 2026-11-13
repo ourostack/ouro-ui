@@ -383,30 +383,27 @@ jobs:
           done
           if [ "$approved" = true ]; then
             echo "Approved the runs$runs on $NEXT_BRANCH; their checks report on the pull request." >> "$GITHUB_STEP_SUMMARY"
-            # Queue it here once its checks pass, so main's README names this release before the
-            # run ends instead of when a person next looks; the queue job follows it through the
-            # merge queue and CI on main, and the publish job deploys Pages.
+            # Hand it to the merge queue and finish: the queue runs the full CI on the merged tree,
+            # which is the gate, so this job neither waits for nor judges the pull request's own CI,
+            # and a flake there cannot fail a release that is already tagged. The queue job follows
+            # it through the queue and CI on main, and the publish job deploys Pages.
             number=$(gh pr view "$NEXT_BRANCH" --json number --jq .number)
             echo "number=$number" >> "$GITHUB_OUTPUT"
             queue_state() { gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $number) { state isInMergeQueue } } }" --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue)"'; }
-            # shellcheck disable=SC2086 # one argument per run
-            scripts/required-ci.sh $runs || { echo "::error::CI on \"Prepare main for the next release\" did not pass the checks main's rules require; Pages will not deploy. Fix it, merge it, then pass main CI before deploying."; exit 1; }
-            gh pr merge "$NEXT_BRANCH" --squash || true
-            # With the merge queue on main, gh asks for auto-merge to queue a pull request, which
-            # this repository does not allow (probe #142): queue it directly, at the commit CI
-            # passed on, until GitHub says it is queued.
+            gh pr merge "$NEXT_BRANCH" --auto || echo "::warning::Could not turn auto-merge on for #$number."
             id=$(gh pr view "$NEXT_BRANCH" --json id --jq .id)
-            for attempt in 1 2 3 4 5; do
-              [ "$(queue_state)" = "OPEN false" ] || break
-              gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$id\", expectedHeadOid: \"$sha\", jump: true}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue (attempt $attempt)."
-              sleep "${POLL_SECONDS:-10}"
-            done
-            state=$(queue_state)
-            case "$state" in
-              "OPEN true") echo "Queued \"Prepare main for the next release\" (#$number)." >> "$GITHUB_STEP_SUMMARY" ;;
-              "MERGED "*) echo "Merged \"Prepare main for the next release\" (#$number)." >> "$GITHUB_STEP_SUMMARY" ;;
-              *) echo "::error::Could not queue \"Prepare main for the next release\" (#$number is $state); Pages will not deploy. Queue it by hand, then pass main CI before deploying."; exit 1 ;;
-            esac
+            # Once, to the front: a release path never waits behind other work. GitHub ignores jump
+            # for an entry that already exists, so a pull request auto-merge queued at the back is
+            # taken out first, unless it is already at the front, since every dequeue cancels the
+            # merge groups building behind it.
+            position=$(gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $number) { mergeQueueEntry { position } } } }" --jq '.data.repository.pullRequest.mergeQueueEntry.position // 0')
+            if [ "$(queue_state)" = "OPEN true" ] && [ "$position" -gt 2 ]; then
+              gh api graphql -f query="mutation { dequeuePullRequest(input: {id: \"$id\"}) { clientMutationId } }" >/dev/null || echo "::warning::Could not take #$number out of the merge queue to put it at the front."
+            fi
+            if [ "$(queue_state)" = "OPEN false" ]; then
+              gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$id\", expectedHeadOid: \"$sha\", jump: true}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue yet; auto-merge queues it once its checks report."
+            fi
+            echo "Handed \"Prepare main for the next release\" (#$number) to the merge queue with auto-merge on; this job does not wait for its CI." >> "$GITHUB_STEP_SUMMARY"
           else
             cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request run of $workflow on $NEXT_BRANCH>}/approve"
             echo "::warning::Could not approve the held CI run on $NEXT_BRANCH; the required checks will not report until a person does."
@@ -494,6 +491,11 @@ jobs:
           }
           # Commits the queue built whose CI passed every required check.
           green=" "
+          # Auto-merge queues the pull request once its own checks report, which the release job no longer waits for.
+          for _ in $(seq 240); do
+            [ "$(queue_state)" = "OPEN false" ] || break
+            sleep "${POLL_SECONDS:-15}"
+          done
           if [ "$(queue_state)" = "OPEN true" ]; then
             dispatched=" "
             branches=" "
