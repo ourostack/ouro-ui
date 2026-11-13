@@ -871,11 +871,33 @@ function workflowJobs(root) {
   return jobs;
 }
 
-/** The repository's owner/name, for recognising its own GitHub addresses. */
-function repoSlug(root) {
-  const url = readJson(root, "package.json")?.repository?.url ?? "";
-  return /github\.com\/([^/]+\/[^/.]+)/.exec(url)?.[1] ?? "ourostack/ouro-ui";
+/** owner/name of a GitHub address (`github:`, https, git+https, ssh or scp-style), or undefined. */
+function githubSlug(address) {
+  const value = typeof address === "string" ? address.trim() : "";
+  const match = /^github:([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(value) ?? /github\.com[/:]([^/\s:]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(value);
+  return match ? `${match[1]}/${match[2]}` : undefined;
 }
+
+/** The `origin` remote's address, or undefined if git cannot report one. */
+function gitOrigin(root) {
+  try {
+    return execFileSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The repository's owner/name, for recognising its own GitHub addresses: package.json's
+ * `repository` (a string or `{ url }`), else the `origin` remote. Undefined if neither is a
+ * GitHub repository, so the checker cannot fall back to another repository's.
+ */
+function repoSlug(root) {
+  const field = readJson(root, "package.json")?.repository;
+  return githubSlug(typeof field === "string" ? field : field?.url) ?? githubSlug(gitOrigin(root));
+}
+
+const NO_REPO_SLUG = 'A GitHub address cannot be checked: this repository has no "repository" field in package.json and no GitHub origin remote, so the checker cannot tell which repository is its own. Add "repository": "github:<owner>/<repo>" to package.json.';
 
 async function fetchStatus(url) {
   let last = 0;
@@ -1027,7 +1049,10 @@ export async function verify(checks, context, sources = []) {
       else if (entry.status < 200 || entry.status >= 400) fail(`${check.urlOk} answered ${entry.status || "nothing"} (checked ${entry.checked}).`);
     }
   }
-  const slug = repoSlug(root);
+  // A GitHub address is this repository's own only when its slug is known, so the checker names the missing field instead of guessing.
+  const githubSpec = sources.some((source) => "spec" in source && /^https:\/\/github\.com\//.test(source.spec));
+  const slug = githubSpec ? repoSlug(root) : undefined;
+  if (githubSpec && slug === undefined) fail(NO_REPO_SLUG);
   for (const source of sources) {
     if ("file" in source || "evidence" in source) {
       const file = source.file ?? source.evidence;
@@ -1038,7 +1063,7 @@ export async function verify(checks, context, sources = []) {
       const problem = testProblem(root, source.test, config);
       if (problem) fail(problem);
     } else if ("spec" in source) {
-      const own = new RegExp(`^https://github\\.com/${slug.replace(".", "\\.")}/(?:blob|tree)/[^/]+/([^#?]+)(?:#L(\\d+))?`).exec(source.spec);
+      const own = slug && new RegExp(`^https://github\\.com/${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/(?:blob|tree)/[^/]+/([^#?]+)(?:#L(\\d+))?`).exec(source.spec);
       if (own) {
         const file = decodeURIComponent(own[1]).replace(/\/$/, "");
         const text = read(root, file);

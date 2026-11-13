@@ -416,7 +416,7 @@ test("testNames: full test names, nested with ' > ', and whether each is skipped
 
 function verifyFixture() {
   return fixture({
-    "package.json": JSON.stringify({ ouro: { latestRelease: "v1.1.0" }, scripts: { "test:scripts": "node --test scripts/a.test.mjs" } }),
+    "package.json": JSON.stringify({ repository: "github:ourostack/ouro-ui", ouro: { latestRelease: "v1.1.0" }, scripts: { "test:scripts": "node --test scripts/a.test.mjs" } }),
     "registry.json": JSON.stringify({ items: [{ type: "registry:ui" }, { type: "registry:ui" }, { type: "registry:lib" }] }),
     ".github/workflows/ci.yml": "name: CI\non: push\njobs:\n  ci:\n    runs-on: ubuntu-latest\n  e2e:\n    name: end to end\n    runs-on: ubuntu-latest\n  lane:\n    runs-on: ubuntu-latest\n",
     "registry/ouro/components/ouro/a/a.test.tsx": 'describe("A", () => { it("works", () => {}); it.skip("later", () => {}); });\n',
@@ -500,6 +500,32 @@ test("verify: sources must exist where they can be checked offline", async () =>
   assert.match((await failures([{ test: "scripts/a.test.mjs::nope" }]))[0], /has no test "nope"/);
   assert.match((await failures([{ spec: "https://github.com/ourostack/ouro-ui/blob/main/gone.md" }]))[0], /gone\.md does not exist/);
   assert.deepEqual(await failures([{ spec: "https://github.com/ourostack/ouro-ui/blob/main/app.css#L2" }]), []);
+});
+
+test("verify: package.json's repository field names the repository's GitHub addresses, in any form npm accepts", async () => {
+  const forms = ["github:acme/app", "git+https://github.com/acme/app.git", "https://github.com/acme/app", { url: "git@github.com:acme/app.git" }];
+  for (const repository of forms) {
+    const root = fixture({ "package.json": JSON.stringify({ name: "app", repository }), "app.css": "a {}\n" });
+    const failures = (await verify([], { root, urlCache: "claims-urls.json", network: false }, [{ spec: "https://github.com/acme/app/blob/main/gone.md" }, { spec: "https://github.com/acme/app/blob/main/app.css" }])).map((failure) => failure.message);
+    assert.deepEqual(failures, ["gone.md does not exist."], JSON.stringify(repository));
+  }
+});
+
+test("verify: with no repository field, the origin remote names the repository's GitHub addresses", async () => {
+  const root = fixture({ "package.json": JSON.stringify({ name: "app" }), "app.css": "a {}\n" });
+  assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: root }).status, 0);
+  assert.equal(spawnSync("git", ["remote", "add", "origin", "git@github.com:acme/app.git"], { cwd: root }).status, 0);
+  const failures = (await verify([], { root, urlCache: "claims-urls.json", network: false }, [{ spec: "https://github.com/acme/app/blob/main/gone.md" }, { spec: "https://github.com/acme/app/blob/main/app.css" }])).map((failure) => failure.message);
+  assert.deepEqual(failures, ["gone.md does not exist."]);
+});
+
+test("verify: with no repository field and no GitHub origin, a GitHub address fails and names the field to add, never Ouro UI's repository", async () => {
+  const root = fixture({ "package.json": JSON.stringify({ name: "app" }), "app.css": "a {}\n" });
+  const failures = async (sources) => (await verify([], { root, urlCache: "claims-urls.json", network: false }, sources)).map((failure) => failure.message);
+  assert.deepEqual(await failures([{ spec: "https://www.w3.org/TR/WCAG22/" }]), []);
+  const messages = await failures([{ spec: "https://github.com/ourostack/ouro-ui/blob/main/gone.md" }]);
+  assert.equal(messages.length, 1);
+  assert.match(messages[0], /Add "repository": "github:<owner>\/<repo>" to package\.json\./);
 });
 
 test("surfaces: every tracked prose file is linted or declared generated, evidence or input with a reason", () => {
