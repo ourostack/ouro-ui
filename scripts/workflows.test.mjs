@@ -1805,7 +1805,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const mySpecs = installSpecShard(specs.slice(0, 3), { index: 2, count: 2 });
   assert.ok(mine.length > 0 && mySpecs.length > 0);
   const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
-  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=1 ${escaped(mine)}$`, "m"));
+  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=2 ${escaped(mine)}$`, "m"));
   assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel ${escaped(mySpecs)}$`, "m"));
   const empty = run({ OURO_SHARD: "2/2" });
   assert.equal(empty.status, 1);
@@ -1853,7 +1853,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.doesNotMatch(ciJobs()["install-shard"], /OURO_BROWSER_DEPS|browser-deps/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
-  assert.match(some.stdout, /^npx vitest run --maxWorkers=1 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
+  assert.match(some.stdout, /^npx vitest run --maxWorkers=2 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
   assert.match(some.stdout, /^npx playwright test --fully-parallel --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
