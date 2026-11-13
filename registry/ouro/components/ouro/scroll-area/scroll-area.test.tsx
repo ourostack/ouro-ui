@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -91,6 +92,40 @@ describe("ScrollArea", () => {
     expect(bar.width).toBe(10);
     // A fine pointer can drag the thumb.
     expect(getComputedStyle(scrollbar).pointerEvents).toBe("auto");
+  });
+
+  it("keeps a vertical area's content to the viewport's width, so a child that cannot wrap does not widen the text beside it", async () => {
+    const unbroken = "a".repeat(300);
+    const { area, viewport } = await render(
+      <ScrollArea className="h-40 w-[380px]" label="Method">
+        <div>
+          <p>Stir the sauce until it thickens, then pour it over the rice.</p>
+          <Button>{unbroken}</Button>
+        </div>
+      </ScrollArea>,
+    );
+    expect(area.getBoundingClientRect().width).toBe(380);
+    const content = viewport.firstElementChild as HTMLElement;
+    const paragraph = content.querySelector("p")!;
+    await expect.poll(() => paragraph.getBoundingClientRect().height).toBeGreaterThan(20);
+    expect(content.getBoundingClientRect().width).toBe(viewport.clientWidth);
+    expect(paragraph.getBoundingClientRect().width).toBeLessThanOrEqual(380);
+  });
+
+  it("lets a horizontal or both area's content grow wider than the viewport", async () => {
+    const { viewport } = await render(
+      <ScrollArea orientation="horizontal" className="w-[380px]">
+        <div style={{ width: 900 }}>{tall}</div>
+      </ScrollArea>,
+    );
+    const content = viewport.firstElementChild as HTMLElement;
+    expect(content.getBoundingClientRect().width).toBe(900);
+    const { viewport: both } = await render(
+      <ScrollArea orientation="both" className="h-40 w-[380px]">
+        <div style={{ width: 900 }}>{tall}</div>
+      </ScrollArea>,
+    );
+    expect((both.firstElementChild as HTMLElement).getBoundingClientRect().width).toBe(900);
   });
 
   it("scrolls horizontally with orientation=horizontal, and both ways with both", async () => {

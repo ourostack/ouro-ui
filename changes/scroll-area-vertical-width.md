@@ -1,0 +1,1 @@
+- Fixed: a vertical ScrollArea keeps its content to the viewport's width, so a child that can't wrap overflows on its own and the text beside it still wraps.
