@@ -2341,6 +2341,7 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
 
 test("the workflows beside CI cancel only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
   const blocks = {
+    "apple-release.yml": "  group: apple-release-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "conformance-exemptions.yml": "  group: conformance-exemptions-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",

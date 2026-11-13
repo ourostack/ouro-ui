@@ -37,7 +37,7 @@ struct ContentView: View {
 }`;
 
 const PRODUCTS = [
-  { name: "OuroHX", body: "Themes, colours, the spring and curves, haptic moments and fold posture. For your app." },
+  { name: "OuroHX", body: "Components, themes, colours, the spring and curves, haptic moments and fold posture. For your app." },
   { name: "OuroHXTesting", body: "Snapshot tests in light, dark and Increase Contrast, and audit helpers. For your tests." },
   { name: "OuroAX", body: "Outcomes, problems and entity queries, in the shape Ouro AX gives them on the web too. For your app." },
   { name: "OuroAXTesting", body: "The X-ray's checks and reports, and Siri evaluation helpers. For your tests." },
@@ -108,14 +108,11 @@ export default function AppleStart(): JSX.Element {
 
       <AppleBand
         id="feel-reins"
-        eyebrow="Coming next"
-        title="Feel and Reins, for the brave."
+        eyebrow="Also in the package"
+        title="Feel and Reins."
         lede={
           <p>
-            {kit.feelReinsRelease
-              ? `Ouro Feel and Ouro Reins ship in ${kit.feelReinsRelease}.`
-              : "Ouro Feel and Ouro Reins are on ouro-ui-apple's main branch, and come in a later release."}{" "}
-            Until then the package line above doesn't include them; their pages show what they do.
+            {`Ouro Feel and Ouro Reins ship in ouro-ui-apple ${kit.feelReinsRelease}, as the OuroFeel and OuroReins products, so the package line above includes them.`} Their pages show what they do.
           </p>
         }
       >
