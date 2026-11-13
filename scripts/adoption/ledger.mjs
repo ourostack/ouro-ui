@@ -419,7 +419,7 @@ export function build(ctx, config, { only = null } = {}) {
       id: surface.id,
       name: surface.name,
       kind: surface.kind,
-      repo: surface.repo,
+      repo: surface.privateRepo ? null : surface.repo,
       url,
       inScope: surface.inScope !== false,
       scopeNote: surface.scopeNote ?? null,

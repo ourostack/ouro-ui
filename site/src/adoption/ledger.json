@@ -2181,7 +2181,7 @@
       "id": "drift-remote",
       "name": "Drift Remote",
       "kind": "native app",
-      "repo": "arimendelow/drift-remote",
+      "repo": null,
       "url": null,
       "inScope": true,
       "scopeNote": null,
