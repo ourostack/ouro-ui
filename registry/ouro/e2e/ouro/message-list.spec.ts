@@ -331,9 +331,7 @@ test("a reader who flicks the wheel upward while older posts load never has the 
   const atEnd = (f: (typeof frames)[number]) => (f.wheel < 0 ? f.scrollTop <= 1 : f.scrollTop >= f.maxTop - 1);
   const still = (f: (typeof frames)[number] | undefined) => f !== undefined && f.moved !== null && Math.abs(f.moved) < 0.5;
   const dead = frames.filter((f, i) => f.wheel !== 0 && !atEnd(f) && still(f) && still(frames[i + 1]));
-  // A page went in above while the reader scrolled: the scene is the one the check is about.
-  expect(await page.getByRole("article").count()).toBeGreaterThan(0);
-  expect(await page.locator("#older-0").count()).toBeGreaterThanOrEqual(0);
-  console.log(`older-history frames ${frames.length}, dead ${dead.length}, loaded ${await page.locator("[data-count]").getAttribute("data-count")}`);
+  // Pages went in above while the reader scrolled, and the scroll was not stalled on the way.
+  expect(Number(await page.locator("[data-count]").getAttribute("data-count"))).toBeGreaterThanOrEqual(500);
   expect(dead.length).toBeLessThanOrEqual(3);
 });
