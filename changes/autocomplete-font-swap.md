@@ -1,0 +1,1 @@
+- Autocomplete's suggestion list follows its trigger character when a web font finishes loading while the list is open.

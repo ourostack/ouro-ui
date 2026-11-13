@@ -564,9 +564,12 @@ test.describe("by keyboard alone", () => {
     await page.keyboard.press("Enter");
     const cook = page.getByRole("option", { name: "Cook" });
     await expect(cook).toBeVisible();
-    // The list takes focus as it opens; then arrow down, one option at a time, until Cook is the
-    // one. (WebKit can drop a key pressed in the frame the list takes focus: a move not seen is
-    // pressed again.)
+    // The list takes focus in the frame after it opens (Base UI queues the move for the next
+    // animation frame). A loaded WebKit can paint no frame for several seconds while its scripts
+    // still run, longer than an assertion waits, so wait for that frame, however late, then look.
+    // Then arrow down, one option at a time, until Cook is the one. (WebKit can drop a key pressed
+    // in the frame the list takes focus: a move not seen is pressed again.)
+    await page.evaluate(() => new Promise((frame) => requestAnimationFrame(() => requestAnimationFrame(frame))));
     await expect(page.locator("[role='listbox'] :focus, [role='listbox']:focus")).toHaveCount(1);
     const highlighted = page.locator("[role='option'][data-highlighted]");
     const now = async () => ((await highlighted.count()) ? await highlighted.textContent() : null);

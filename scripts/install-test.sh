@@ -58,6 +58,11 @@
 #   OURO_COMPONENTS             set (maybe empty) on a pull request's reduced run: the shipped tests
 #                               of those components' folders and their specs, or none when it is
 #                               empty (scripts/test-impact.mjs). Unset: every shipped test.
+#   OURO_PREPARE_ONLY           stops after the install, type check, build and every later add, with
+#                               the shipped tests installed: CI's prepare job runs this once for a
+#                               variant and preset.
+#   OURO_REUSE_APP              skips all of that and runs the shipped tests in <app-dir>, which
+#                               must be the tree a prepare run left, restored at the same path.
 #
 # Same-repo registryDependencies are written without a ref (ourostack/ouro-ui/<item>), so
 # shadcn resolves them on the default branch; refs are not inherited. To install this
@@ -234,6 +239,10 @@ if [ "$variant" = github ]; then
   exit 0
 fi
 
+if [ -n "${OURO_REUSE_APP:-}" ]; then
+  # The app a prepare job installed and checked (OURO_PREPARE_ONLY), restored at this same path.
+  cd "$app"
+else
 echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
 cd "$app"
@@ -557,13 +566,34 @@ cp -R "$root/test/install-fixture-tests/." "$app/"
 # items ouro-tests lists are added by four processes at once; the checks below judge the whole result,
 # package.json's tools included.
 mapfile -t test_items < <(node -e 'for (const item of require(process.argv[1]).registryDependencies) console.log(item)' "$registry/r/ouro-tests.json")
+# Each add installs its devDependencies with npm, and npm installs running at once in one app race on
+# package.json (#964: one read it empty and failed with EJSONPARSE; others can drop each other's additions). The stand-in npm first on PATH runs the real
+# npm one at a time; the CLI's file writes stay parallel. An npm that a package's script starts while
+# the lock is held sees OURO_SERIAL_NPM_HELD and runs at once, so it cannot wait on its own parent.
+real_npm=$(command -v npm)
+mkdir -p "$registry/serial-npm"
+cat > "$registry/serial-npm/npm" <<EOF
+#!/usr/bin/env bash
+real_npm=$(printf '%q' "$real_npm")
+lock=$(printf '%q' "$registry/serial-npm.lock")
+if [ -n "\${OURO_SERIAL_NPM_HELD:-}" ]; then
+  exec "\$real_npm" "\$@"
+fi
+until mkdir "\$lock" 2>/dev/null; do sleep 0.2; done
+trap 'rmdir "\$lock" 2>/dev/null' EXIT
+trap 'exit 130' INT TERM
+status=0
+OURO_SERIAL_NPM_HELD=1 "\$real_npm" "\$@" || status=\$?
+exit "\$status"
+EOF
+chmod +x "$registry/serial-npm/npm"
 add_pids=()
 for part in 0 1 2 3; do
   part_items=()
   for i in "${!test_items[@]}"; do
     [ $((i % 4)) -ne "$part" ] || part_items+=("${test_items[$i]}")
   done
-  "${shadcn[@]}" add --yes "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
+  PATH="$registry/serial-npm:$PATH" "${shadcn[@]}" add --yes "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
   add_pids+=($!)
 done
 add_failed=0
@@ -584,6 +614,9 @@ npx tsc -b
 npx vite build
 node "$root/scripts/install-check.mjs" "$app" "$variant" tests
 echo "::endgroup::"
+fi
+
+[ -z "${OURO_PREPARE_ONLY:-}" ] || { echo "Prepared the $variant app; the shards run the shipped tests."; exit 0; }
 
 # The shipped tests to run: every one, or a reduced run's (OURO_COMPONENTS), in one shard (OURO_SHARD).
 vitest_filters=()
@@ -654,11 +687,11 @@ while [ -n "${CI:-}" ] && pgrep -x 'apt-get|apt|dpkg' > /dev/null; do sleep 2; d
 
 echo "::group::Shipped Vitest browser tests"
 npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit
-# A shard runs one worker a project at a time, fewer than the repository's own browser shards (vitest.config.ts):
-# the installed app also type checks and builds on the same runner, and with more workers the browsers
-# starve and a test file's frame does not become ready in time.
+# A shard runs two workers a project at a time: the app's type check and build finished above, so
+# only the tests and the browsers they start share the runner (#623 capped one worker while they
+# overlapped).
 workers=()
-[ -z "${OURO_SHARD:-}" ] || workers=(--maxWorkers=1)
+[ -z "${OURO_SHARD:-}" ] || workers=(--maxWorkers=2)
 npx vitest run ${workers[@]+"${workers[@]}"} ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
 echo "::endgroup::"
 

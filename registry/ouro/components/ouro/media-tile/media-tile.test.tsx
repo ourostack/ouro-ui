@@ -19,9 +19,10 @@ function Camera() {
   return <canvas data-test-camera="" width={160} height={90} style={{ background: "linear-gradient(135deg, #3b6, #258)" }} />;
 }
 
-async function render(node: ReactNode, width = 320) {
+async function render(node: ReactNode, width = 320, style: Partial<CSSStyleDeclaration> = {}) {
   const host = document.createElement("div");
   host.style.width = `${width}px`;
+  Object.assign(host.style, style);
   document.body.append(host);
   mounted.push(host);
   const root = createRoot(host);
@@ -789,11 +790,12 @@ describe("MediaTile visibility", () => {
     };
     try {
       const report = vi.fn();
-      const { host } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320);
-      host.style.position = "fixed";
-      host.style.left = "0px";
-      host.style.top = "0px";
-      await expect.poll(() => held.at(-1)?.intersectionRatio).toBe(1);
+      // Fixed at the top before it mounts, so the browser's first look already finds it there: placed
+      // after mounting, a busy runner could look while it sat in the page's flow, and a move within the
+      // seen side of the one threshold brings no new entry. The entry is read for seen at the top, not
+      // for a ratio of 1, since the page around the test frame can clip a few pixels off its top.
+      const { host } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320, { position: "fixed", left: "0px", top: "0px" });
+      await expect.poll(() => held.at(-1) && [held.at(-1)!.boundingClientRect.top, held.at(-1)!.isIntersecting]).toEqual([0, true]);
       held.length = 0;
       host.style.top = `${innerHeight - 8}px`;
       await expect.poll(() => held.length).toBe(1);

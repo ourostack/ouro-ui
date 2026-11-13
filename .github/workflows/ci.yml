@@ -592,8 +592,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: design (${{ matrix.shard }}/3)
+        shard: [1, 2, 3, 4]
+    name: design (${{ matrix.shard }}/4)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -635,7 +635,7 @@ jobs:
         with:
           targets: site/dist
           sizes: 390x844,1440x900,3840x2160
-          shard: ${{ matrix.shard }}/3
+          shard: ${{ matrix.shard }}/4
           script: registry/ouro/check/check.ts
           config: .github/ouro-check.json
           artifact: design-check
@@ -1362,6 +1362,57 @@ jobs:
           name: lighthouse-reports
           path: .tmp/lhci/
           if-no-files-found: ignore
+  install-prep:
+    # Builds each variant's app once (scripts/install-test.sh with OURO_PREPARE_ONLY): the install,
+    # type check, build and every later add. Its shards restore that tree at the same path, in the
+    # same image as the same user, and run their share of the shipped tests against it, instead of
+    # each repeating the setup.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'queue' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [shadcn, ouro]
+        preset: [nova, vega]
+        exclude:
+          - variant: ouro
+            preset: vega
+    name: install prep (${{ matrix.variant }}, ${{ matrix.preset }})
+    env:
+      OURO_PRESET: ${{ matrix.preset }}
+      OURO_APP: /tmp/ouro-app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - name: Prepare the app
+        env:
+          VARIANT: ${{ matrix.variant }}
+          REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: OURO_PREPARE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
+      - name: Pack the app
+        run: tar -I zstd -cf "$RUNNER_TEMP/app.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/app.tar.zst"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: install-app-${{ matrix.variant }}-${{ matrix.preset }}
+          path: ${{ runner.temp }}/app.tar.zst
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
   install-shard:
     # Installs every item into a fresh Vite app with the pinned shadcn CLI and runs the app's type
     # check, build, the shipped Vitest tests and the shipped Playwright specs
@@ -1371,7 +1422,7 @@ jobs:
     # each runs its share of them (OURO_SHARD); on a reduced pull request, the selected components'
     # shipped tests, and none when it selected none (OURO_COMPONENTS). Each shard that passes
     # leaves a marker, which its variant's install check counts.
-    needs: [plan]
+    needs: [plan, install-prep]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'queue' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -1397,6 +1448,7 @@ jobs:
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
       OURO_SHARD: ${{ matrix.shard }}/4
+      OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1408,13 +1460,20 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: install-app-${{ matrix.variant }}-${{ matrix.preset }}
+          path: ${{ runner.temp }}/prepared
+      - name: Restore the prepared app
+        run: tar -I zstd -xf "$RUNNER_TEMP/prepared/app.tar.zst" -C "$(dirname "$OURO_APP")"
       - name: Install test
         env:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          OURO_REUSE_APP: "1"
         run: |
           if [ "$FULL" != true ]; then export OURO_COMPONENTS="$COMPONENTS"; fi
-          scripts/install-test.sh "$VARIANT" "$RUNNER_TEMP/app" "$REF"
+          scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
           mkdir -p "$RUNNER_TEMP/passed" && echo "$PASSED" > "$RUNNER_TEMP/passed/$PASSED"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -1427,10 +1486,10 @@ jobs:
         with:
           name: install-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
           path: |
-            ${{ runner.temp }}/app/src/index.css
-            ${{ runner.temp }}/app/components.json
-            ${{ runner.temp }}/app/package.json
-            ${{ runner.temp }}/app/playwright-report/
+            ${{ env.OURO_APP }}/src/index.css
+            ${{ env.OURO_APP }}/components.json
+            ${{ env.OURO_APP }}/package.json
+            ${{ env.OURO_APP }}/playwright-report/
           if-no-files-found: ignore
   install-gate:
     # A variant's install check: passes when each of its shards passed, as their markers show,

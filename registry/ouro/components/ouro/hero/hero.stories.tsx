@@ -62,6 +62,18 @@ export const Decorative: Story = {
   },
 };
 
+/** Something live in the picture's place, such as a video or a demo. It rises in like a picture. */
+export const LiveMedia: Story = {
+  args: {
+    picture: undefined,
+    media: (
+      <div style={{ aspectRatio: "16 / 9", display: "grid", placeItems: "center", background: "#1f3a2c", color: "#fff" }}>
+        A live demo goes here
+      </div>
+    ),
+  },
+};
+
 /** The page's content sits under the hero, and the heading is a section title (level 2). */
 export const InContext: Story = {
   args: { headingLevel: 2, title: "This week's plans", layout: "column" },

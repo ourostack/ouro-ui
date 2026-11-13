@@ -192,15 +192,23 @@ describe("MessageList actions", () => {
     }
   });
 
-  it("leaves no bar behind when the pointer leaves, the list scrolls, the window loses focus or the menu opens", async () => {
-    const { scroller } = await render(<Channel count={12} />);
-    await ready("m11");
+  it("hides the bar when the pointer leaves the messages, after it moved from one message to the next", async () => {
+    await render(<Channel count={3} />);
+    await ready("m2");
     // A press in the bar puts focus in it; moving to another message moves the one bar, and focus stays in the page.
     await userEvent.click(page.getByRole("button", { name: "Like" }));
-    await hoverMessage("m10");
+    await hoverMessage("m1");
     expect(bars()).toHaveLength(1);
-    expect(barIn("m10")).not.toBeNull();
-    expect(document.activeElement).toBe(message("m11"));
+    expect(barIn("m1")).not.toBeNull();
+    expect(document.activeElement).toBe(message("m2"));
+
+    await userEvent.unhover(document.body);
+    await expect.poll(() => bars()).toHaveLength(0);
+  });
+
+  it("hides the bar when the list scrolls under the pointer, and never shows more than one", async () => {
+    const { scroller } = await render(<Channel count={12} />);
+    await ready("m10");
 
     // Scrolled under the pointer: the bar goes from the message, and comes back only on the message the pointer is over now.
     const box = message("m10").querySelector("[data-ouro-message-content]")!.getBoundingClientRect();
@@ -211,13 +219,18 @@ describe("MessageList actions", () => {
     for (const bar of bars()) expect(bar.closest('[data-ouro="message"]')).toBe(under());
     await hoverMessage("m10");
     expect(bars()).toHaveLength(1);
+  });
 
+  it("hides the bar when the window loses focus", async () => {
+    await render(<Channel count={3} />);
+    await ready("m1");
     await act(async () => void window.dispatchEvent(new Event("blur")));
     expect(bars()).toHaveLength(0);
+  });
 
-    await act(async () => void (scroller.scrollTop = scroller.scrollHeight));
-    await userEvent.unhover(document.body);
-    await hoverMessage("m10");
+  it("hides the bar when the menu opens", async () => {
+    await render(<Channel count={3} />);
+    await ready("m1");
     await userEvent.click(page.getByRole("button", { name: "More actions" }));
     await expect.element(page.getByRole("menu", { name: "Message actions for Ana Lind" })).toBeVisible();
     expect(bars()).toHaveLength(0);

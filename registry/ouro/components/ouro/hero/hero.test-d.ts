@@ -1,10 +1,11 @@
-import { createElement, type ComponentProps } from "react";
+import { createElement, type ComponentProps, type ReactNode } from "react";
 import { expectTypeOf } from "vitest";
 import { Hero, type HeroProps } from "@/registry/ouro/components/ouro/hero/hero";
 
 // Type tests: `pnpm typecheck` compiles this file.
 
 expectTypeOf<{ title: "Dinner, sorted" }>().toExtend<HeroProps>();
+expectTypeOf<{ title: "T"; media: ReactNode }>().toExtend<HeroProps>();
 expectTypeOf<{
   title: "Dinner, sorted";
   eyebrow: "Recipes";

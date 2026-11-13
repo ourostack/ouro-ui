@@ -132,6 +132,30 @@ describe("StackedLayout", () => {
     history.replaceState(null, "", location.pathname + location.search);
   });
 
+  it("sizes the skip link in rem, so a px-sized page does not shrink it while it is hidden", async () => {
+    document.documentElement.style.fontSize = "17px";
+    try {
+      await render(
+        <div style={{ fontSize: 14 }}>
+          <StackedLayout navbar={navbar} skipLabel="Skip to recipes">
+            Page content
+          </StackedLayout>
+        </div>,
+      );
+      const skip = page.getByRole("link", { name: "Skip to recipes" });
+      const sizes = () => {
+        const style = getComputedStyle(skip.element());
+        return { fontSize: style.fontSize, lineHeight: style.lineHeight };
+      };
+      expect(sizes()).toEqual({ fontSize: "17px", lineHeight: "21.25px" });
+      await pressTab();
+      await expect.element(skip).toHaveFocus();
+      expect(sizes()).toEqual({ fontSize: "17px", lineHeight: "21.25px" });
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
   it("renders the page in a div with as, inside a page that has its own main landmark", async () => {
     await render(
       <StackedLayout as="div" navbar={navbar}>

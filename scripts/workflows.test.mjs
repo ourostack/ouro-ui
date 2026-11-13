@@ -83,7 +83,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -921,7 +921,7 @@ for (const scenario of scenarios) {
           "pr merge "*) return 1 ;;
           "pr view "*"--json number"*) echo 9 ;;
           # gh merge could not queue it (no auto-merge): queued by the API instead, at CI's commit.
-          "api graphql -f query=mutation { enqueuePullRequest(input: {pullRequestId: \\"PR_9\\", expectedHeadOid: \\"headsha\\"}) { clientMutationId } }") return 0 ;;
+          "api graphql -f query=mutation { enqueuePullRequest(input: {pullRequestId: \\"PR_9\\", expectedHeadOid: \\"headsha\\", jump: true}) { clientMutationId } }") return 0 ;;
           "pr view "*"--json id"*) echo PR_9 ;;
           # The merge queue, look by look: the release job looks twice, the queue job once before its
           # loop and once a round. Queued, then merged (or dropped) on the queue job's first round;
@@ -1366,7 +1366,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : heavyJobs.includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : heavyJobs.includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1479,10 +1479,10 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   const jobs = ciJobs();
   const block = jobs.design;
   assert.match(block, /^ {4}needs: \[plan\]$/m);
-  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/3\)$/m);
-  assert.match(block, /^ {8}shard: \[1, 2, 3\]$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/4\)$/m);
+  assert.match(block, /^ {8}shard: \[1, 2, 3, 4\]$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
-  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/3\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/4\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
   assert.doesNotMatch(block, /continue-on-error|themes:/);
   assert.match(block, /^ {6}- if: steps\.relevance\.outputs\.run != 'false'\n {8}run: pnpm site:build$/m);
   // Off a pull request (the merge queue, main, a dispatch) it always runs.
@@ -1723,12 +1723,12 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   const scriptWithShow = (env) => {
     const scratch = scratchDir("ouro-install-step-");
     const show = 'show() { if [ -n "${OURO_COMPONENTS+set}" ]; then echo "components=[$OURO_COMPONENTS] $*"; else echo "components=unset $*"; fi; }';
-    const result = spawnSync("bash", ["-e", "-c", `${show}\n${script.replace("scripts/install-test.sh", "show")}`], { cwd: root, encoding: "utf8", env: { ...process.env, ...env, RUNNER_TEMP: scratch, PASSED: "install-passed-shadcn-nova-2" } });
+    const result = spawnSync("bash", ["-e", "-c", `${show}\n${script.replace("scripts/install-test.sh", "show")}`], { cwd: root, encoding: "utf8", env: { ...process.env, ...env, RUNNER_TEMP: scratch, PASSED: "install-passed-shadcn-nova-2", OURO_APP: "/tmp/ouro-app" } });
     return { ...result, scratch };
   };
   const full = scriptWithShow({ FULL: "true", COMPONENTS: "", VARIANT: "shadcn", REF: "abc" });
   assert.equal(full.status, 0, full.stderr);
-  assert.match(full.stdout, /^components=unset shadcn .+\/app abc$/m);
+  assert.match(full.stdout, /^components=unset shadcn \/tmp\/ouro-app abc$/m);
   assert.equal(readFileSync(join(full.scratch, "passed/install-passed-shadcn-nova-2"), "utf8").trim(), "install-passed-shadcn-nova-2");
   assert.match(scriptWithShow({ FULL: "false", COMPONENTS: "", VARIANT: "ouro", REF: "abc" }).stdout, /^components=\[\] ouro /m);
   assert.match(scriptWithShow({ FULL: "false", COMPONENTS: "dialog,sheet", VARIANT: "ouro", REF: "abc" }).stdout, /^components=\[dialog,sheet\] ouro /m);
@@ -1805,7 +1805,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const mySpecs = installSpecShard(specs.slice(0, 3), { index: 2, count: 2 });
   assert.ok(mine.length > 0 && mySpecs.length > 0);
   const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
-  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=1 ${escaped(mine)}$`, "m"));
+  assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=2 ${escaped(mine)}$`, "m"));
   assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel ${escaped(mySpecs)}$`, "m"));
   const empty = run({ OURO_SHARD: "2/2" });
   assert.equal(empty.status, 1);
@@ -1853,7 +1853,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.doesNotMatch(ciJobs()["install-shard"], /OURO_BROWSER_DEPS|browser-deps/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
-  assert.match(some.stdout, /^npx vitest run --maxWorkers=1 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
+  assert.match(some.stdout, /^npx vitest run --maxWorkers=2 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
   assert.match(some.stdout, /^npx playwright test --fully-parallel --pass-with-no-tests --shard=1\/3 e2e\/ouro\/checkbox\.spec\.ts e2e\/ouro\/checkbox-group\.spec\.ts$/m);
 });
 
@@ -2841,4 +2841,20 @@ test("a stale quarantine entry, its issue closed, gets a warning to remove it an
   const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
   assert.ok(check.indexOf('node scripts/quarantine.mjs rehearsed "$rehearsed"') > check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs"));
   assert.ok(check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs") >= 0);
+});
+
+test("Release reuses the rehearsal's CI and screen-reader proof only when it tested this very tree, and otherwise runs both", () => {
+  const release = workflow("release.yml");
+  const reuse = releaseStep("Reuse the rehearsal's proof when it tested this very tree");
+  assert.match(reuse, /git rev-parse 'HEAD\^\{tree\}'/);
+  assert.match(reuse, /git\/commits\/\$rsha" --jq \.tree\.sha/);
+  assert.match(reuse, /scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)"/);
+  assert.match(reuse, /screen-reader\.yml/);
+  assert.match(reuse, /echo "reuse=false" >> "\$GITHUB_OUTPUT"/);
+  const at = (name) => release.indexOf(`name: ${name}`);
+  assert.ok(at("Push the release branch") < at("Reuse the rehearsal's proof when it tested this very tree"));
+  assert.ok(at("Reuse the rehearsal's proof when it tested this very tree") < at("Build and check the @ouro namespace for the release commit"));
+  for (const name of ["Start the screen-reader lane on the release commit", "Run CI on the release commit", "Pass the screen-reader lane on the release commit"]) {
+    assert.match(release, new RegExp(`if: steps\\.check\\.outputs\\.new == 'true' && steps\\.reuse\\.outputs\\.reuse != 'true'\\n {8}name: ${name}|name: ${name}\\n {8}if: steps\\.check\\.outputs\\.new == 'true' && steps\\.reuse\\.outputs\\.reuse != 'true'`));
+  }
 });

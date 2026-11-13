@@ -278,6 +278,64 @@ describe("Autocomplete", () => {
     expect(control.value).toBe("Shipped 🌮");
   });
 
+  it("keeps the list at the trigger when a web font finishes loading while it is open", async () => {
+    const { control } = await render(
+      <Autocomplete triggers={[peopleTrigger]}>
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    const offset = () => Math.abs(listbox()!.getBoundingClientRect().left - caretRect(control as HTMLTextAreaElement, control.value.indexOf("@")).left);
+    await type(control, "Thanks @");
+    await expect.poll(listbox).not.toBeNull();
+    await expect.poll(() => !listbox()!.hasAttribute("data-starting-style") && listbox()!.getAnimations().length === 0).toBe(true);
+    // A font that loads moves the trigger sideways, and the field's size does not change.
+    control.style.letterSpacing = "3px";
+    await act(async () => document.fonts.dispatchEvent(new Event("loadingdone")));
+    await expect.poll(offset).toBeLessThan(2);
+    // The next font that loads moves it again.
+    control.style.letterSpacing = "6px";
+    await act(async () => document.fonts.dispatchEvent(new Event("loadingdone")));
+    await expect.poll(offset).toBeLessThan(2);
+    // A font that loads after the list closed neither reopens it nor fails.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(listbox).toBeNull();
+    await act(async () => document.fonts.dispatchEvent(new Event("loadingdone")));
+    expect(listbox()).toBeNull();
+  });
+
+  it("listens for font loads only while the list is open, and stops when it closes", async () => {
+    const add = vi.spyOn(document.fonts, "addEventListener");
+    const remove = vi.spyOn(document.fonts, "removeEventListener");
+    const { control } = await render(
+      <Autocomplete triggers={[peopleTrigger]}>
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    expect(add).not.toHaveBeenCalledWith("loadingdone", expect.any(Function));
+    await type(control, "@a");
+    await expect.poll(listbox).not.toBeNull();
+    expect(add).toHaveBeenCalledWith("loadingdone", expect.any(Function));
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(listbox).toBeNull();
+    expect(remove).toHaveBeenCalledWith("loadingdone", add.mock.calls.find(([name]) => name === "loadingdone")![1]);
+  });
+
+  it("keeps the list at the trigger when the field's scroll container scrolls while it is open", async () => {
+    const { host, control } = await render(
+      <div style={{ height: 160, overflowY: "auto" }}>
+        <div style={{ height: 240 }} />
+        <Autocomplete triggers={[peopleTrigger]}>
+          <TextArea label="Message" />
+        </Autocomplete>
+      </div>,
+    );
+    await type(control, "@a");
+    await expect.poll(listbox).not.toBeNull();
+    await expect.poll(() => !listbox()!.hasAttribute("data-starting-style") && listbox()!.getAnimations().length === 0).toBe(true);
+    (host.firstElementChild as HTMLElement).scrollTop -= 40;
+    await expect.poll(() => Math.abs(listbox()!.getBoundingClientRect().top - (caretRect(control as HTMLTextAreaElement, 0).bottom + 4))).toBeLessThan(2);
+  });
+
   it("closes on Escape without passing it on, stays closed in that trigger, and opens on the next one", async () => {
     const onKeyDown = vi.fn();
     const outer = vi.fn();

@@ -2,7 +2,7 @@
 
 # Hero
 
-The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture below. The picture rises into place on mount unless `motion="none"`, and it is never shown wider than its intrinsic width.
+The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture, or something live in its place (`media`), below. The picture rises into place on mount unless `motion="none"`, and it is never shown wider than its intrinsic width.
 
 ```tsx
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
@@ -31,10 +31,12 @@ Type: `HeroProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `actions` | `ReactNode` |  | The hero's buttons or links, such as Ouro buttons. |
-| `description` | `ReactNode` |  | The lede: a short paragraph under the title. |
+| `description` | `ReactNode` |  | The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as paragraphs or a list, is set in a `<div>` so it can hold blocks. |
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is. |
 | `headingLevel` | `1 \| 2` | `1` | The title's heading level: `1` for the page's headline, `2` when the hero heads a section. |
 | `layout` | `"stage" \| "column"` | `"stage"` | `stage` centres the text over the picture; `column` aligns both to a reading column. |
+| `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. |
+| `mediaWidth` | `number` |  | The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead. |
 | `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place on mount, with reduced motion fading it in. |
 | `picture` | `HeroPicture` |  | The big picture, shown under the text. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
