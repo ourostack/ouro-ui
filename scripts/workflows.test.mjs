@@ -269,9 +269,13 @@ for (const [event, ref, expected] of [
   });
 }
 
-test("install-github checks the newest release with that release's own harness: its dependencies, fixture app, shadcn pin and runtime checks", () => {
-  // A stand-in release tree, served by a stand-in git's `archive`, and stand-ins for npm and npx.
-  const tag = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease;
+const latestRelease = () => JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease;
+
+// The install-github harness: a stand-in release tree served by git's `archive`, and stand-ins for
+// git, npm, pnpm, npx and sleep (a stand-in sleep logs its backoff and returns at once). `npxBody`
+// is the stand-in npx's bash body; it runs with BIN, CALLS and the env given.
+function runGithubInstall(npxBody, env = {}) {
+  const tag = latestRelease();
   const tree = scratchDir("ouro-tag-");
   mkdirSync(join(tree, "scripts"), { recursive: true });
   mkdirSync(join(tree, "test/install-fixture"), { recursive: true });
@@ -301,11 +305,27 @@ test("install-github checks the newest release with that release's own harness: 
   stub("git", `case "$*" in *" archive "*) tar -C "${tree}" -cf - . ;; *"rev-parse HEAD"*) echo abc123 ;; *) exit 0 ;; esac`);
   stub("npm", `echo "npm $*" >> "${calls}"`);
   stub("pnpm", `echo "pnpm $* in $(basename "$PWD")" >> "${calls}"`);
-  stub("npx", `echo "npx $*" >> "${calls}"`);
+  stub("npx", npxBody);
+  stub("sleep", `echo "sleep $*" >> "${calls}"`);
   const app = join(scratchDir("ouro-install-app-"), "app");
-  const result = spawnSync("bash", [join(root, "scripts/install-test.sh"), "github", app], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, CALLS: calls } });
+  const result = spawnSync("bash", [join(root, "scripts/install-test.sh"), "github", app], { encoding: "utf8", env: { ...process.env, ...env, PATH: `${bin}:${process.env.PATH}`, CALLS: calls, BIN: bin } });
+  const log = existsSync(calls) ? readFileSync(calls, "utf8").split("\n").filter(Boolean) : [];
+  return { tag, app, result, log };
+}
+
+// A stand-in npx whose `add` fails FAILS times with FAIL_TEXT, then succeeds; every call is logged.
+const failingAddNpx = `case "$*" in
+  *" add "*)
+    n=$(( $(cat "$BIN/adds" 2>/dev/null || echo 0) + 1 ))
+    echo "$n" > "$BIN/adds"
+    echo "npx $*" >> "$CALLS"
+    if [ "$n" -le "$FAILS" ]; then echo "$FAIL_TEXT" >&2; exit 1; fi ;;
+  *) echo "npx $*" >> "$CALLS" ;;
+esac`;
+
+test("install-github checks the newest release with that release's own harness: its dependencies, fixture app, shadcn pin and runtime checks", () => {
+  const { tag, app, result, log } = runGithubInstall(`echo "npx $*" >> "$CALLS"`);
   assert.equal(result.status, 0, result.stdout + result.stderr);
-  const log = readFileSync(calls, "utf8").split("\n").filter(Boolean);
   assert.ok(existsSync(join(app, "from-the-tag.txt")), "the fixture app is the tag's");
   assert.ok(!existsSync(join(app, "package.json")), "main's fixture app was copied in");
   assert.deepEqual(log, [
@@ -318,6 +338,43 @@ test("install-github checks the newest release with that release's own harness: 
     `tag check ${app} shadcn runtime`,
     "npx --yes vitest@9.8.6 run --passWithNoTests",
   ]);
+});
+
+test("install-github retries a dropped raw.githubusercontent.com fetch with a warning and a backoff, then passes", () => {
+  const tag = latestRelease();
+  const { result, log } = runGithubInstall(failingAddNpx, {
+    FAILS: "2",
+    FAIL_TEXT: `RegistrySourceFileError: Failed to read GitHub source file "registry/ouro/components/ouro/dialog/dialog-parts.tsx" from ourostack/ouro-ui#${tag}. GitHub ref resolution succeeded, but the CLI could not fetch from raw.githubusercontent.com.`,
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const add = `npx --yes shadcn@9.8.7 add --yes ourostack/ouro-ui/ouro-base#${tag} ourostack/ouro-ui/dialog#${tag}`;
+  assert.deepEqual(log.filter((line) => line.includes(" add ")), [add, add, add], "the same add runs again, up to two more times");
+  assert.deepEqual(log.filter((line) => line.startsWith("sleep ")), ["sleep 5", "sleep 15"]);
+  assert.match(result.stdout, /::warning::shadcn could not fetch registry\/ouro\/components\/ouro\/dialog\/dialog-parts\.tsx from raw\.githubusercontent\.com \(attempt 1 of 3 failed\)/);
+  assert.match(result.stdout, /\(attempt 2 of 3 failed\)/);
+  assert.ok(log.includes("npx tsc -b"), "the install goes on to the type check once the add passes");
+});
+
+test("install-github fails once the raw fetch has dropped on every attempt", () => {
+  const tag = latestRelease();
+  const { result, log } = runGithubInstall(failingAddNpx, {
+    FAILS: "3",
+    FAIL_TEXT: `RegistrySourceFileError: Failed to read GitHub source file "registry/ouro/components/ouro/dialog/dialog-parts.tsx" from ourostack/ouro-ui#${tag}. GitHub ref resolution succeeded, but the CLI could not fetch from raw.githubusercontent.com.`,
+  });
+  assert.notEqual(result.status, 0);
+  assert.equal(log.filter((line) => line.includes(" add ")).length, 3);
+  assert.ok(!log.includes("npx tsc -b"), "a failed add stops the install before the checks");
+});
+
+test("install-github does not retry any other add failure", () => {
+  const tag = latestRelease();
+  const { result, log } = runGithubInstall(failingAddNpx, {
+    FAILS: "3",
+    FAIL_TEXT: `RegistrySourceFileError: Failed to read GitHub source file "registry/ouro/components/ouro/dialog/dialog-parts.tsx" from ourostack/ouro-ui#${tag}. The file is not in that release.`,
+  });
+  assert.notEqual(result.status, 0);
+  assert.equal(log.filter((line) => line.includes(" add ")).length, 1, "a missing file fails at once");
+  assert.ok(!log.some((line) => line.startsWith("sleep ")), "and waits for no retry");
 });
 
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {

@@ -175,6 +175,22 @@ if [ "$variant" = next ]; then
   exit 0
 fi
 
+# shadcn add fetches each file from raw.githubusercontent.com, and a fetch drops now and then (a rerun
+# passes). Retry the same add only for that failure, with a warning each time; any other failure stays red.
+# Usage: add_retrying_raw_fetch <shadcn package spec> <address>...
+add_retrying_raw_fetch() {
+  local pin=$1 log="$registry/add.log" attempt=0 delays=(5 15) file
+  shift
+  while ! npx --yes "$pin" add --yes "$@" 2>&1 | tee "$log"; do
+    grep -q 'RegistrySourceFileError' "$log" && grep -q 'could not fetch from raw.githubusercontent.com' "$log" || return 1
+    [ "$attempt" -lt "${#delays[@]}" ] || return 1
+    file=$(sed -n 's/.*Failed to read GitHub source file "\([^"]*\)".*/\1/p' "$log" | head -n 1)
+    echo "::warning::shadcn could not fetch ${file:-a file} from raw.githubusercontent.com (attempt $((attempt + 1)) of $((${#delays[@]} + 1)) failed); retrying the same add in ${delays[$attempt]}s"
+    sleep "${delays[$attempt]}"
+    attempt=$((attempt + 1))
+  done
+}
+
 if [ "$variant" = github ]; then
   # The released components, checked by the release's own harness: its fixture app, shadcn pin and
   # install check, from the tag's tree. Main's harness can move on in ways an older release does not
@@ -201,7 +217,7 @@ if [ "$variant" = github ]; then
   [ "${#released[@]}" -gt 0 ] || { echo "$tag's registry.json lists no component"; exit 1; }
   addresses=("ourostack/ouro-ui/ouro-base#$tag")
   for item in "${released[@]}"; do addresses+=("ourostack/ouro-ui/$item#$tag"); done
-  npx --yes "$tag_shadcn" add --yes "${addresses[@]}"
+  add_retrying_raw_fetch "$tag_shadcn" "${addresses[@]}"
   echo "::endgroup::"
   echo "::group::Type check, build and $tag's runtime checks"
   npx tsc -b
