@@ -3,6 +3,7 @@ import type { CDPSession, Frame, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
 import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import { hrtime } from "node:process";
+import { setTimeout as sleep } from "node:timers/promises";
 
 export interface EmulateMediaOptions {
   reducedMotion?: "reduce" | "no-preference";
@@ -29,18 +30,61 @@ export interface DragOptions {
 
 /**
  * Wraps Playwright's `page.emulateMedia` for motion, color, contrast and forced-color preferences.
+ * This returns once the test frame's `matchMedia` matches every preference passed, so a test reads the
+ * new styles on its next line.
  * A forced-colours switch restyles the page at once, and a colour with a transition (the `press`
- * utility's) then eases to its new value, so this returns once those transitions have finished:
+ * utility's) then eases to its new value, so this also returns once those transitions have finished:
  * a test reads where each colour lands, not a colour between the two.
  *
- * @claim "this returns once those transitions have finished" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /emulateMedia returns once forced colours have settled, past any transition the switch started/)
+ * @claim "This returns once the test frame's `matchMedia` matches every preference passed" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::emulateMedia returns once the frame matches the preference, so the next line reads its styles)
+ * @claim "this also returns once those transitions have finished" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /emulateMedia returns once forced colours have settled, past any transition the switch started/)
  */
 export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, options) => {
   await ctx.page.emulateMedia(options);
-  if (!("forcedColors" in options)) return;
   const frame = await ctx.frame();
+  const queries = mediaQueries(options);
+  if (queries.length > 0) await awaitMedia(frame, queries);
+  if (!("forcedColors" in options)) return;
   await within(frame.evaluate(SETTLE_TRANSITIONS), 3000, "transitions did not settle within 3s").catch(() => undefined);
 };
+
+const MEDIA_FEATURES: Record<keyof EmulateMediaOptions, string> = {
+  reducedMotion: "prefers-reduced-motion",
+  colorScheme: "prefers-color-scheme",
+  forcedColors: "forced-colors",
+  contrast: "prefers-contrast",
+};
+
+/** The media queries a set of preferences makes true, one per preference passed. */
+function mediaQueries(options: EmulateMediaOptions): string[] {
+  return (Object.keys(MEDIA_FEATURES) as (keyof EmulateMediaOptions)[]).flatMap((key) => (options[key] === undefined ? [] : [`(${MEDIA_FEATURES[key]}: ${options[key]})`]));
+}
+
+/** How long `emulateMedia` waits for the test frame to match: as long as a poll waits. */
+const MEDIA_WAIT_MS = 10_000;
+
+/** How long `emulateMedia` gives the frame to answer one read of its media, however close the deadline. */
+const MEDIA_ANSWER_MS = 3000;
+
+/**
+ * Polls the frame's `matchMedia` from Node until the queries match. The poll runs here, not in the
+ * frame, because a test's fake timers in the frame would stall a wait that the frame's own timers drive.
+ * @claim "Polls the frame's `matchMedia` from Node until the queries match" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::emulateMedia returns while the test's fake timers are on)
+ */
+async function awaitMedia(frame: Frame, queries: string[]): Promise<void> {
+  // As long as a poll waits (the projects' 10 s), since a loaded runner can be slow to answer.
+  const deadline = performance.now() + MEDIA_WAIT_MS;
+  const unmatched = `${JSON.stringify(queries)}.find((query) => !matchMedia(query).matches)`;
+  for (;;) {
+    // Each read gets at least MEDIA_ANSWER_MS, so a read begun just before the deadline can still answer
+    // and the failure names the query that does not match, not a frame that did not answer.
+    const limit = Math.max(deadline - performance.now(), MEDIA_ANSWER_MS);
+    const missing = await within(frame.evaluate<string | undefined>(unmatched), limit, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(limit)}ms`);
+    if (missing === undefined) return;
+    if (performance.now() > deadline) throw new Error(`the test frame does not match ${missing} within ${MEDIA_WAIT_MS / 1000}s`);
+    await sleep(10);
+  }
+}
 
 /** Waits for the running transitions in a frame (`getAnimations` restyles first, starting them). */
 const SETTLE_TRANSITIONS = `Promise.all(document.getAnimations().filter((animation) => animation instanceof CSSTransition && animation.playState === "running").map((animation) => animation.finished.catch(() => undefined))).then(() => undefined)`;
