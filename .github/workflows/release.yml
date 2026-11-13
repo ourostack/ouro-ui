@@ -1,7 +1,7 @@
 name: Release
-# Cuts v<version>, once a rehearsal of it (release-rehearsal.yml) has passed on main's commit, or
-# on an earlier commit of main from which it differs only in tests and records that ship nowhere
-# (scripts/rehearsal-evidence.mjs).
+# Cuts v<version> from the commit of main that a passing rehearsal of it (release-rehearsal.yml)
+# tested: main's head, or an earlier commit of main when merges came after the rehearsal; those go
+# out in the next release (scripts/rehearsal-evidence.mjs pick).
 # The tag points at a release commit that main never receives: a branch
 # off green main whose registry.json pins every same-repo registryDependency to the tag
 # (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
@@ -85,7 +85,12 @@ jobs:
             fi
             exit 1
           fi
-          sha=$(git rev-parse HEAD)
+          # The commit a passing rehearsal of this version tested (scripts/rehearsal-evidence.mjs pick):
+          # main's head when its newest rehearsal passed, else the newest such commit of main, so
+          # merges while a rehearsal runs never make it stale; they go out in the next release.
+          # Everything below checks and releases that commit.
+          sha=$(node scripts/rehearsal-evidence.mjs pick "$TAG" "$(git rev-parse HEAD)") || { echo "::error::No passing rehearsal of $TAG on main to release. Run it first: gh workflow run release-rehearsal.yml -f version=$VERSION"; exit 1; }
+          git checkout -q --detach "$sha"
           # The workflows that report the checks main's rules require (CI, conformance exemptions:
           # scripts/required-producers.mjs), which this run dispatches where GITHUB_TOKEN starts none.
           producers=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique | .[]' | node scripts/required-producers.mjs) || { echo "::error::Could not tell which workflows report main's required checks."; exit 1; }

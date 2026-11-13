@@ -13,6 +13,10 @@
 // MAX_COMMITS commits (--deepen, which never shortens the history it has), and a full one is left alone.
 //
 //   node scripts/rehearsal-evidence.mjs <tag> <sha> [--notes <file>] [--runs <file>]
+//   node scripts/rehearsal-evidence.mjs pick <tag> <main's head> [--runs <file>]
+//
+// `pick` prints the commit release.yml cuts the release from (releaseCommit): the commit a
+// passing rehearsal tested, which need not be main's head.
 //
 // Prints the rehearsal run's id on stdout, and what it found on stderr; with GITHUB_STEP_SUMMARY set,
 // writes the run and, for an earlier commit, every file T changes to the step summary, and with
@@ -147,6 +151,44 @@ export function findEvidence({ tag, sha, runs, git, now = Date.now(), maxAgeHour
   return { ok: true, run, rehearsed, commits, files: files.map(({ path, why }) => ({ path, why })) };
 }
 
+/**
+ * The commit release.yml cuts `tag` from, given main's head `head`: `head` itself when the newest
+ * rehearsal of `tag` there passed, else the newest commit of main at most `maxCommits` before it
+ * whose newest rehearsal of `tag` passed and started at most `maxAgeHours` ago. So merges to main
+ * while a rehearsal runs never make it stale: the release is the commit it tested, and the later
+ * merges go out in the next release. `{ ok: true, run, sha }` or `{ ok: false, reason }`. Throws on
+ * a git call that fails; a shallow checkout is first deepened by `maxCommits` commits.
+ */
+export function releaseCommit({ tag, head, runs, git, now = Date.now(), maxAgeHours = MAX_AGE_HOURS, maxCommits = MAX_COMMITS }) {
+  if (!/^v\d+\.\d+\.\d+$/.test(tag ?? "")) return { ok: false, reason: `"${tag}" is not a tag such as v1.2.3` };
+  if (!hexSha.test(head ?? "")) return { ok: false, reason: `"${head}" is not a full commit SHA` };
+  if (!Array.isArray(runs)) return { ok: false, reason: "the rehearsal runs are not a list" };
+  const ofTag = runs.filter((run) => run?.displayTitle === `Release rehearsal ${tag}`);
+  const unreadable = ofTag.find((run) => !Number.isSafeInteger(run.databaseId) || !hexSha.test(run.headSha ?? ""));
+  if (unreadable) return { ok: false, reason: `a rehearsal run of ${tag} has no readable id or commit: ${JSON.stringify(unreadable)}` };
+  // The newest rehearsal on each commit decides for that commit, as findEvidence has it.
+  const newestOn = new Map();
+  for (const run of ofTag) if (!(newestOn.get(run.headSha)?.databaseId > run.databaseId)) newestOn.set(run.headSha, run);
+  const passed = [...newestOn.values()].filter((run) => run.status === "completed" && run.conclusion === "success").sort((a, b) => b.databaseId - a.databaseId);
+  if (passed.length === 0) return { ok: false, reason: `no commit's newest rehearsal of ${tag} passed` };
+  const onHead = passed.find((run) => run.headSha === head);
+  if (onHead) return { ok: true, run: onHead, sha: head };
+
+  if (must(git, ["rev-parse", "--is-shallow-repository"]).trim() === "true") must(git, ["fetch", "--no-tags", "--quiet", `--deepen=${maxCommits}`, "origin", head]);
+  for (const run of passed) {
+    const age = (now - Date.parse(run.createdAt)) / 3_600_000;
+    if (!(age >= 0 && age <= maxAgeHours)) continue;
+    if (git(["cat-file", "-e", `${run.headSha}^{commit}`]).status !== 0) continue;
+    const ancestor = git(["merge-base", "--is-ancestor", run.headSha, head]);
+    if (ancestor.status === 1) continue;
+    if (ancestor.status !== 0) throw new Error(`git merge-base --is-ancestor ${run.headSha} ${head} failed: ${ancestor.stderr.trim()}`);
+    const commits = Number(must(git, ["rev-list", "--count", `${run.headSha}..${head}`]).trim());
+    if (!Number.isSafeInteger(commits)) throw new Error(`git rev-list --count ${run.headSha}..${head} gave no count`);
+    if (commits <= maxCommits) return { ok: true, run, sha: run.headSha };
+  }
+  return { ok: false, reason: `no passing rehearsal of ${tag} is on main (${head}) or on a commit of main up to ${maxCommits} commits before it, started in the last ${maxAgeHours} hours` };
+}
+
 /** The step summary's and the release notes' account of `evidence`: `{ summary, notes }`. */
 export function describe(evidence, { sha, tag, server, repo }) {
   const { run, rehearsed, commits, files } = evidence;
@@ -181,6 +223,19 @@ export function main(args, { env = process.env, cwd = process.cwd(), now = Date.
     return value ?? "";
   };
   try {
+    if (args[0] === "pick") {
+      const runsFile = option("--runs");
+      if (runsFile === "" || args.length !== 3) throw new Error("usage: rehearsal-evidence.mjs pick <tag> <head> [--runs <file>]");
+      const [, tag, head] = args;
+      const picked = releaseCommit({ tag, head, runs: readRuns(runsFile), git: runGit(cwd), now });
+      if (!picked.ok) {
+        log(`::error::No commit to release ${tag} from: ${picked.reason}. Rehearse main's head: gh workflow run release-rehearsal.yml -f version=${tag.slice(1)}`);
+        return 1;
+      }
+      log(`Releasing ${tag} from ${picked.sha}, the commit rehearsal run ${picked.run.databaseId} tested${picked.sha === head ? " (main's head)" : `; main's head is ${head}`}.`);
+      out(picked.sha);
+      return 0;
+    }
     const notes = option("--notes");
     const runsFile = option("--runs");
     if (notes === "" || runsFile === "" || args.length !== 2) throw new Error("usage: rehearsal-evidence.mjs <tag> <sha> [--notes <file>] [--runs <file>]");
