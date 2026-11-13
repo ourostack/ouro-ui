@@ -21,6 +21,10 @@ on:
         description: "Set by a rehearsal this workflow started, once it passed: the version to release"
         required: false
         type: string
+      after:
+        description: "Set by a Release run that is ending: its run id, which does not count as a release still running"
+        required: false
+        type: string
 permissions: {}
 concurrency:
   group: release-auto
@@ -62,15 +66,18 @@ jobs:
           [ "$conclusion" = success ] || { echo "::error::The rehearsal of v$VERSION has not ended as a success (\"$conclusion\"); nothing is released."; exit 1; }
           gh workflow run release.yml --ref main -f version="$VERSION"
       - name: Start the rehearsal of the next release
-        if: ${{ inputs.rehearsed == '' && (github.event_name != 'workflow_run' || (github.event.workflow_run.name == 'Release' && github.event.workflow_run.conclusion == 'success')) }}
+        env:
+          AFTER: ${{ inputs.after }}
+        if: ${{ inputs.rehearsed == '' && (github.event_name != 'workflow_run' || github.event.workflow_run.name == 'Release') }}
         run: |
+          [[ "${AFTER:-0}" =~ ^[0-9]+$ ]] || { echo "::error::after must be a run id."; exit 1; }
           fragments=$(gh api "repos/$GITHUB_REPOSITORY/contents/changes?ref=main" --jq '[.[] | select(.name | endswith(".md"))] | length')
           [ "$fragments" -gt 0 ] || { echo "::notice::changes/ lists no change, so there is nothing to release."; exit 0; }
           preparing=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("prepare/after-"))] | length')
           [ "$preparing" -eq 0 ] || { echo "::notice::Main is waiting on the pull request that prepares it for the next release; its merge starts this again."; exit 0; }
           for workflow in release.yml release-rehearsal.yml; do
             for status in queued in_progress; do
-              running=$(gh run list --workflow "$workflow" --status "$status" --json databaseId --jq length)
+              running=$(gh run list --workflow "$workflow" --status "$status" --json databaseId --jq "[.[] | select(.databaseId != ${AFTER:-0})] | length")
               [ "$running" -eq 0 ] || { echo "::notice::$workflow is $status; the release that follows starts this again."; exit 0; }
             done
           done

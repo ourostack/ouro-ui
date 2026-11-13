@@ -2130,7 +2130,7 @@ test("a release gives each job its own permissions, and only the queue job, whic
   const release = workflow("release.yml");
   assert.match(release, /^permissions: \{\}$/m);
   const jobs = releaseJobs();
-  assert.deepEqual(Object.keys(jobs), ["release", "queue", "publish", "finish"]);
+  assert.deepEqual(Object.keys(jobs), ["release", "queue", "publish", "finish", "next"]);
   const permissions = (block) => {
     const lines = (block.split(/^ {4}permissions:\n/m)[1] ?? "").split("\n");
     const own = lines.slice(0, lines.findIndex((line) => !/^ {6}[\w-]+: \w+/.test(line)));
@@ -2140,6 +2140,7 @@ test("a release gives each job its own permissions, and only the queue job, whic
   assert.deepEqual(permissions(jobs.queue), { actions: "write", statuses: "write", "pull-requests": "read", contents: "read" });
   assert.deepEqual(permissions(jobs.publish), { contents: "write", actions: "write" });
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
+  assert.deepEqual(permissions(jobs.next), { actions: "write" });
   // The queue job checks nothing out, installs nothing and runs no script of the repository.
   const code = jobs.queue.split("\n").filter((line) => !/^\s*#/.test(line)).join("\n");
   assert.doesNotMatch(code, /^\s*(- )?uses:|pnpm|npx|node |scripts\//m);
@@ -2544,7 +2545,8 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   assert.match(start, /prepare\/after-/);
   assert.match(start, /for workflow in release\.yml release-rehearsal\.yml/);
   assert.match(start, /gh workflow run release-rehearsal\.yml --ref main -f version="\$version" -f release=true$/m);
-  assert.match(auto, /github\.event\.workflow_run\.conclusion == 'success'/, "a failed release starts nothing again");
+  assert.match(auto, /github\.event\.workflow_run\.name == 'Release'\) }}/, "a release that ended in any way lets Release auto decide again");
+  assert.doesNotMatch(auto, /workflow_run\.conclusion == 'success'\)/);
   const release = stepScript(auto, "Release a rehearsal that passed");
   assert.match(release, /\[ "\$CONCLUSION" = success \] \|\|/);
   assert.match(release, /gh workflow run release\.yml --ref main -f version=/);
@@ -2555,6 +2557,10 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   const handed = stepScript(auto, "Release the rehearsal that started here, once it has ended");
   assert.match(handed, /\[ "\$conclusion" = success \] \|\|/);
   assert.match(handed, /gh workflow run release\.yml --ref main -f version="\$VERSION"/);
+  assert.match(start, /select\(\.databaseId != \$\{AFTER:-0\}\)/, "the ending release does not count as running");
+  const release2 = workflow("release.yml");
+  assert.match(release2, /^ {2}next:\n(?: {4}.*\n| *\n)*? {4}needs: \[release, queue, publish\]\n {4}if: \$\{\{ always\(\) && needs\.release\.result != 'cancelled' \}\}$/m, "a release started by GITHUB_TOKEN starts no workflow_run, so it starts the next itself");
+  assert.equal(stepScript(release2, "Start the next release").trim(), 'gh workflow run release-auto.yml --ref main -f after="$GITHUB_RUN_ID"');
   assert.match(stepScript(workflow("release-rehearsal.yml"), "Hand the release to Release auto"), /^gh workflow run release-auto\.yml -f rehearsed="\$VERSION"\n?$/);
   assert.match(workflow("release-rehearsal.yml"), /if: \$\{\{ success\(\) && inputs\.release \}\}\n {8}name: Hand the release/);
 });
