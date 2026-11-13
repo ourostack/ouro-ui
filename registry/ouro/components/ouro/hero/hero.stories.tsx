@@ -10,6 +10,12 @@ function cover(fill: string): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+/** Both theme arts. The stories have no dark art yet, so each passes the same cover twice. */
+function art(fill: string): { light: { src: string }; dark: { src: string } } {
+  const src = cover(fill);
+  return { light: { src }, dark: { src } };
+}
+
 const meta = {
   title: "Layout/Hero",
   component: Hero,
@@ -19,7 +25,7 @@ const meta = {
     title: "Dinner, sorted",
     description: "Plan the week, shop once and cook with what you already have.",
     actions: <Button>Start planning</Button>,
-    picture: { src: cover("#2f6b4f"), width: 1536, height: 576, alt: "A green cover with a pale circle", crop: "8 / 3" },
+    picture: { ...art("#2f6b4f"), width: 1536, height: 576, alt: "A green cover with a pale circle", crop: "8 / 3" },
   },
   argTypes: {
     layout: { control: "inline-radio", options: ["stage", "column", "split"] },
@@ -51,14 +57,14 @@ export const TextOnly: Story = {
 export const SmallPicture: Story = {
   args: {
     layout: "column",
-    picture: { src: cover("#3b5b8c"), width: 640, height: 240, alt: "A blue cover with a pale circle" },
+    picture: { ...art("#3b5b8c"), width: 640, height: 240, alt: "A blue cover with a pale circle" },
   },
 };
 
 /** A decorative picture: the alt text is empty, so screen readers skip it. */
 export const Decorative: Story = {
   args: {
-    picture: { src: cover("#7a5c3e"), width: 1536, height: 576, decorative: true },
+    picture: { ...art("#7a5c3e"), width: 1536, height: 576, decorative: true },
   },
 };
 

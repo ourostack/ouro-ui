@@ -31,7 +31,8 @@ async function render(node: ReactNode) {
 
 const svg = (width: number, height: number) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'/%3E`;
 
-const wide: HeroPicture = { src: svg(1536, 576), width: 1536, height: 576, alt: "A green snake mascot" };
+const wideArt = { light: { src: svg(1536, 576) }, dark: { src: svg(1536, 576) } };
+const wide: HeroPicture = { ...wideArt, width: 1536, height: 576, alt: "A green snake mascot" };
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -172,20 +173,73 @@ describe("Hero", () => {
     expect(eager.part("image")!.hasAttribute("loading")).toBe(false);
   });
 
+  it("renders both light and dark art", async () => {
+    const light = svg(1536, 576);
+    const dark = `${svg(1536, 576)}#dark`;
+    const { host } = await render(<Hero title="Both" picture={{ ...wide, light: { src: light }, dark: { src: dark } }} />);
+    expect(host.querySelector('picture[data-theme="light"] img')!.getAttribute("src")).toBe(light);
+    expect(host.querySelector('picture[data-theme="dark"] img')!.getAttribute("src")).toBe(dark);
+  });
+
+  it("shows the dark art only under .dark, and loads the hidden art lazily", async () => {
+    const { host } = await render(<Hero title="Theme" picture={wide} />);
+    const light = host.querySelector<HTMLElement>('picture[data-theme="light"]')!;
+    const dark = host.querySelector<HTMLElement>('picture[data-theme="dark"]')!;
+    expect(getComputedStyle(light).display).not.toBe("none");
+    expect(getComputedStyle(dark).display).toBe("none");
+    expect(dark.querySelector("img")!.getAttribute("loading")).toBe("lazy");
+    document.documentElement.classList.add("dark");
+    try {
+      expect(getComputedStyle(light).display).toBe("none");
+      expect(getComputedStyle(dark).display).not.toBe("none");
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
+  it("loads the active theme's art early, and switches when .dark changes", async () => {
+    const { host } = await render(<Hero title="Early" picture={{ ...wide, priority: true }} />);
+    const image = (theme: "light" | "dark") => host.querySelector<HTMLImageElement>(`picture[data-theme="${theme}"] img`)!;
+    expect(image("light").getAttribute("fetchpriority")).toBe("high");
+    expect(image("light").hasAttribute("loading")).toBe(false);
+    expect(image("dark").getAttribute("loading")).toBe("lazy");
+    expect(image("dark").hasAttribute("fetchpriority")).toBe(false);
+    try {
+      await act(async () => document.documentElement.classList.add("dark"));
+      expect(image("dark").getAttribute("fetchpriority")).toBe("high");
+      expect(image("dark").hasAttribute("loading")).toBe(false);
+      expect(image("light").getAttribute("loading")).toBe("lazy");
+      expect(image("light").hasAttribute("fetchpriority")).toBe(false);
+    } finally {
+      await act(async () => document.documentElement.classList.remove("dark"));
+    }
+  });
+
+  it("says picture takes light and dark art, not src, and shows the fix", async () => {
+    const legacy = { src: svg(1536, 576), width: 1536, height: 576, alt: "A green snake mascot" };
+    await render(<Hero title="Legacy" picture={legacy as unknown as HeroPicture} />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Hero: picture takes light and dark art, not src. Fix: <Hero picture={{ light: { src }, dark: { src }, width, height, alt }} />.',
+    );
+  });
+
   it("writes the picture's sources in order, before the fallback image", async () => {
     const { part } = await render(
       <Hero
         title="Sources"
         picture={{
           ...wide,
-          sources: [
-            { srcSet: "/phone.avif", type: "image/avif", media: "(max-width: 40rem)" },
-            { srcSet: "/wide.jpg" },
-          ],
+          light: {
+            src: wide.light.src,
+            sources: [
+              { srcSet: "/phone.avif", type: "image/avif", media: "(max-width: 40rem)" },
+              { srcSet: "/wide.jpg" },
+            ],
+          },
         }}
       />,
     );
-    const sources = [...part("media")!.querySelectorAll("source")];
+    const sources = [...part("media")!.querySelectorAll('picture[data-theme="light"] source')];
     expect(sources.map((source) => source.getAttribute("srcset"))).toEqual(["/phone.avif", "/wide.jpg"]);
     expect(sources[0]!.getAttribute("media")).toBe("(max-width: 40rem)");
     expect(sources[1]!.hasAttribute("type")).toBe(false);
@@ -194,15 +248,15 @@ describe("Hero", () => {
   });
 
   it("hides a decorative picture from assistive technology", async () => {
-    const { part } = await render(<Hero title="Decor" picture={{ src: wide.src, width: 1536, height: 576, decorative: true }} />);
+    const { part } = await render(<Hero title="Decor" picture={{ ...wide, alt: undefined, decorative: true }} />);
     expect(part("image")!.getAttribute("alt")).toBe("");
     expect(part("media")!.querySelector("picture")!.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("says so, and keeps the picture, when it has no alt text", async () => {
-    await render(<Hero title="Bare" picture={{ src: wide.src, width: 1536, height: 576 }} />);
+    await render(<Hero title="Bare" picture={{ ...wide, alt: undefined }} />);
     expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ src, width, height, alt: "A table set for four" }} />.',
+      '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ light: { src }, dark: { src }, width, height, alt: "A table set for four" }} />.',
     );
   });
 
@@ -321,7 +375,7 @@ describe("Hero", () => {
   });
 
   it("does not ask a decorative picture for alt text", async () => {
-    await render(<Hero title="Decor" picture={{ src: wide.src, width: 1536, height: 576, decorative: true }} />);
+    await render(<Hero title="Decor" picture={{ ...wide, alt: undefined, decorative: true }} />);
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -333,7 +387,9 @@ describe("Hero", () => {
     } as unknown as HeroProps;
     await render(<Hero {...legacy} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: heading is not a prop. Fix: <Hero title="Dinner, sorted" />.');
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: image is not a prop. Fix: <Hero picture={{ src, width, height, alt }} />.');
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Hero: image is not a prop. Fix: <Hero picture={{ light: { src }, dark: { src }, width, height, alt }} />.',
+    );
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: action is not a prop. Fix: <Hero actions={<Button>Start</Button>} />.');
   });
 

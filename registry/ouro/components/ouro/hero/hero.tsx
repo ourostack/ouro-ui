@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
+import { useState, useSyncExternalStore, type CSSProperties, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -21,14 +21,39 @@ export interface HeroPictureSource {
   sizes?: string;
 }
 
+/** One theme's art for a hero picture: the `<img>` file and the `<source>` elements that go with it. */
+export interface HeroArt {
+  /** The fallback `<img>` file. */
+  src: string;
+  /** The `<img>`'s `srcset`. */
+  srcSet?: string;
+  /** The `<img>`'s `sizes`. */
+  sizes?: string;
+  /** `<source>` elements, in order: for example phone formats with a `media` query, then wide formats. */
+  sources?: HeroPictureSource[];
+}
+
+/** The theme a hero picture's art is for: `light` by default, `dark` under the `.dark` class. */
+type HeroTheme = "light" | "dark";
+
 /**
  * The hero's picture. It never shows wider than its intrinsic `width`.
  *
+ * It needs both `light` and `dark` art. The art for the page's theme is shown; the other is hidden and lazy.
+ *
+ * @claim "It needs both `light` and `dark` art" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > renders both light and dark art)
+ * @claim "The art for the page's theme is shown" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the dark art only under .dark, and loads the hidden art lazily)
  * @claim "It never shows wider than its intrinsic" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows the picture wider than its intrinsic width)
  */
 export interface HeroPicture {
-  /** The fallback `<img>` file. */
-  src: string;
+  /** The art for the light theme, shown by default. Required. */
+  light: HeroArt;
+  /**
+   * The art for the dark theme, shown under the `.dark` class. Required: a picture with one image passes it as both `light` and `dark`.
+   *
+   * @claim "shown under the `.dark` class" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the dark art only under .dark, and loads the hidden art lazily)
+   */
+  dark: HeroArt;
   /**
    * The intrinsic pixel width of the wide file. The picture is never shown wider than this.
    *
@@ -38,21 +63,21 @@ export interface HeroPicture {
   /** The intrinsic pixel height, which sets the picture's aspect ratio and stops layout shift. */
   height: number;
   /** What the picture shows. Required unless `decorative` is set. */
-  alt?: string;
+  alt?: string | undefined;
   /** Hides the picture from assistive technology, with `alt=""`. */
   decorative?: boolean;
-  /** `<source>` elements, in order: for example phone formats with a `media` query, then wide formats. */
-  sources?: HeroPictureSource[];
-  /** The `<img>`'s `srcset`. */
-  srcSet?: string;
-  /** The `<img>`'s `sizes`. */
-  sizes?: string;
-  /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. */
+  /**
+   * Loads the active theme's art early with `fetchPriority="high"`, and switches when the theme changes. Otherwise it loads lazily.
+   *
+   * @claim "Loads the active theme's art early" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > loads the active theme's art early, and switches when .dark changes)
+   */
   priority?: boolean;
   /** A wide aspect ratio, such as `"8 / 3"`, applied on wider screens. Without it the picture keeps its own ratio. */
   crop?: string;
   /** The `object-position` used when the picture is cropped. @default "50% 42%" */
   focus?: string;
+  /** Not a prop. The art is `light` and `dark`: `<Hero picture={{ light: { src }, dark: { src }, width, height, alt }} />`. */
+  src?: { 'Use picture={{ light: { src }, dark: { src }, width, height, alt }}': never };
 }
 
 /** The props Hero adds to the `<header>` attributes it passes through. */
@@ -98,8 +123,8 @@ export interface HeroOwnProps {
   heading?: { 'Use <Hero title="Dinner, sorted" />': never };
   /** Not a prop. The line above the title is `eyebrow`: `<Hero eyebrow="Recipes" />`. */
   overline?: { 'Use <Hero eyebrow="Recipes" />': never };
-  /** Not a prop. The picture is `picture`: `<Hero picture={{ src, width, height, alt }} />`. */
-  image?: { 'Use picture={{ src, width, height, alt }}': never };
+  /** Not a prop. The picture is `picture`: `<Hero picture={{ light: { src }, dark: { src }, width, height, alt }} />`. */
+  image?: { 'Use picture={{ light: { src }, dark: { src }, width, height, alt }}': never };
   /** Not a prop. The buttons are `actions`: `<Hero actions={<Button>Start</Button>} />`. */
   action?: { 'Use actions={<Button>Start</Button>}': never };
 }
@@ -109,6 +134,77 @@ export type HeroProps = Omit<HTMLAttributes<HTMLElement>, keyof HeroOwnProps> & 
 
 const riseMotion =
   "motion-safe:animate-[ouro-hero-rise_var(--ouro-duration-slow)_var(--ouro-ease-out)_both] motion-reduce:animate-[ouro-hero-fade_var(--ouro-duration-fast)_var(--ouro-ease-out)_both]";
+
+/** Whether the document is in dark mode: the `.dark` class is on `<html>`. The server renders light. */
+function subscribeToDarkClass(onChange: () => void): () => void {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
+
+function isDarkClassOn(): boolean {
+  return document.documentElement.classList.contains("dark");
+}
+
+function isDarkClassOnServer(): boolean {
+  return false;
+}
+
+function useDocumentDark(): boolean {
+  return useSyncExternalStore(subscribeToDarkClass, isDarkClassOn, isDarkClassOnServer);
+}
+
+/**
+ * One theme's `<picture>`. Both themes are rendered; the inactive one is `display: none` and lazy.
+ * The active theme is eager when `priority` is set.
+ */
+function renderPictureArt(theme: HeroTheme, picture: HeroPicture, dark: boolean): JSX.Element | null {
+  const art = picture[theme];
+  // Types require both; a JS caller that passes the old shape gets a dev warning instead of a crash.
+  if (!art) return null;
+  const active = (theme === "dark") === dark;
+  const eager = picture.priority === true && active;
+  const crop = picture.crop;
+  return (
+    <picture
+      data-theme={theme}
+      aria-hidden={picture.decorative ? true : undefined}
+      className={theme === "light" ? "block dark:hidden" : "hidden dark:block"}
+    >
+      {art.sources?.map((source) => {
+        // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
+        const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
+        return (
+          <source
+            key={key}
+            srcSet={source.srcSet}
+            type={source.type}
+            media={source.media}
+            sizes={source.sizes}
+          />
+        );
+      })}
+      <img
+        data-slot="image"
+        src={art.src}
+        srcSet={art.srcSet}
+        sizes={art.sizes}
+        width={picture.width}
+        height={picture.height}
+        alt={picture.decorative ? "" : picture.alt}
+        draggable={false}
+        fetchPriority={eager ? "high" : undefined}
+        loading={eager ? undefined : "lazy"}
+        decoding={eager ? undefined : "async"}
+        style={{ objectPosition: picture.focus ?? "50% 42%" }}
+        className={cn(
+          "block h-auto w-full object-cover select-none",
+          crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
+        )}
+      />
+    </picture>
+  );
+}
 
 const layoutRoot: Record<HeroLayout, string> = {
   stage:
@@ -157,7 +253,13 @@ const layoutMedia: Record<HeroLayout, string> = {
  *   title="Dinner, sorted"
  *   description="Plan the week, shop once, cook without the scramble."
  *   actions={<Button>Start planning</Button>}
- *   picture={{ src: "/hero.jpg", width: 1536, height: 576, alt: "A table set for four" }}
+ *   picture={{
+ *     light: { src: "/hero.jpg" },
+ *     dark: { src: "/hero-dark.jpg" },
+ *     width: 1536,
+ *     height: 576,
+ *     alt: "A table set for four",
+ *   }}
  * />
  */
 export function Hero(props: HeroProps): JSX.Element {
@@ -188,6 +290,7 @@ export function Hero(props: HeroProps): JSX.Element {
   const motion = motionProp === "none" ? "none" : "rise";
   const headingLevel = headingLevelProp === 2 ? 2 : 1;
   const [rising, setRising] = useState(motion === "rise");
+  const dark = useDocumentDark();
   useAppearanceClassNameCheck(
     "Hero",
     className,
@@ -213,10 +316,15 @@ export function Hero(props: HeroProps): JSX.Element {
             '<Hero headingLevel={2} />',
           ],
           picture !== undefined &&
+            "src" in picture && [
+              "picture takes light and dark art, not src",
+              '<Hero picture={{ light: { src }, dark: { src }, width, height, alt }} />',
+            ],
+          picture !== undefined &&
             picture.alt === undefined &&
             picture.decorative !== true && [
               "picture has no alt text",
-              '<Hero picture={{ src, width, height, alt: "A table set for four" }} />',
+              '<Hero picture={{ light: { src }, dark: { src }, width, height, alt: "A table set for four" }} />',
             ],
           picture !== undefined &&
             media != null && [
@@ -226,7 +334,10 @@ export function Hero(props: HeroProps): JSX.Element {
           subtitle !== undefined && ["subtitle is not a prop", '<Hero description="..." />'],
           heading !== undefined && ["heading is not a prop", '<Hero title="Dinner, sorted" />'],
           overline !== undefined && ["overline is not a prop", '<Hero eyebrow="Recipes" />'],
-          image !== undefined && ["image is not a prop", "<Hero picture={{ src, width, height, alt }} />"],
+          image !== undefined && [
+            "image is not a prop",
+            "<Hero picture={{ light: { src }, dark: { src }, width, height, alt }} />",
+          ],
           action !== undefined && ["action is not a prop", "<Hero actions={<Button>Start</Button>} />"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -242,39 +353,10 @@ export function Hero(props: HeroProps): JSX.Element {
       ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
       : undefined;
   const shown = picture ? (
-    <picture aria-hidden={picture.decorative ? true : undefined} className="block">
-      {picture.sources?.map((source) => {
-        // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
-        const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
-        return (
-          <source
-            key={key}
-            srcSet={source.srcSet}
-            type={source.type}
-            media={source.media}
-            sizes={source.sizes}
-          />
-        );
-      })}
-      <img
-        data-slot="image"
-        src={picture.src}
-        srcSet={picture.srcSet}
-        sizes={picture.sizes}
-        width={picture.width}
-        height={picture.height}
-        alt={picture.decorative ? "" : picture.alt}
-        draggable={false}
-        fetchPriority={picture.priority ? "high" : undefined}
-        loading={picture.priority ? undefined : "lazy"}
-        decoding={picture.priority ? undefined : "async"}
-        style={{ objectPosition: picture.focus ?? "50% 42%" }}
-        className={cn(
-          "block h-auto w-full object-cover select-none",
-          crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
-        )}
-      />
-    </picture>
+    <>
+      {renderPictureArt("light", picture, dark)}
+      {renderPictureArt("dark", picture, dark)}
+    </>
   ) : typeof media === "boolean" ? null : (
     // `media={isWide && <video … />}` passes false: no empty frame rises in its place.
     media
@@ -317,7 +399,7 @@ export function Hero(props: HeroProps): JSX.Element {
           onAnimationEnd={() => setRising(false)}
           style={pictureStyle}
           className={cn(
-            "block w-[var(--hero-width)] overflow-clip rounded-[4px]",
+            "block w-[var(--hero-width)] overflow-clip rounded-[24px] [corner-shape:squircle]",
             layoutMedia[layout],
             motion === "rise" && riseMotion,
             crop && "relative min-[40rem]:aspect-[var(--hero-crop)]",

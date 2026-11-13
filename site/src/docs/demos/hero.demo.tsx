@@ -12,7 +12,8 @@ export default function HeroDemo(): JSX.Element {
       description="Plan the week in one place, then shop from the list."
       actions={<Button>Start planning</Button>}
       picture={{
-        src: "/brand/storybook/headers/ouro-ui-core.webp",
+        light: { src: "/brand/storybook/headers/ouro-ui-core.webp" },
+        dark: { src: "/brand/storybook/headers/ouro-ui-core.webp" },
         width: 1536,
         height: 576,
         alt: "A green snake mascot in front of a plain background",

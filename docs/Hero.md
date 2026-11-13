@@ -16,7 +16,13 @@ import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
   title="Dinner, sorted"
   description="Plan the week, shop once, cook without the scramble."
   actions={<Button>Start planning</Button>}
-  picture={{ src: "/hero.jpg", width: 1536, height: 576, alt: "A table set for four" }}
+  picture={{
+    light: { src: "/hero.jpg" },
+    dark: { src: "/hero-dark.jpg" },
+    width: 1536,
+    height: 576,
+    alt: "A table set for four",
+  }}
 />
 ```
 
@@ -52,20 +58,41 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `action`: Not a prop. The buttons are `actions`: `<Hero actions={<Button>Start</Button>} />`.
 - `heading`: Not a prop. The headline is `title`: `<Hero title="Dinner, sorted" />`.
-- `image`: Not a prop. The picture is `picture`: `<Hero picture={{ src, width, height, alt }} />`.
+- `image`: Not a prop. The picture is `picture`: `<Hero picture={{ light: { src }, dark: { src }, width, height, alt }} />`.
 - `overline`: Not a prop. The line above the title is `eyebrow`: `<Hero eyebrow="Recipes" />`.
 - `subtitle`: Not a prop. The lede is `description`: `<Hero description="…" />`.
 
 ## Types
 
+### `HeroArt`
+
+One theme's art for a hero picture: the `<img>` file and the `<source>` elements that go with it.
+
+```ts
+interface HeroArt {
+  /** The fallback `<img>` file. */
+  src: string;
+  /** The `<img>`'s `srcset`. */
+  srcSet?: string;
+  /** The `<img>`'s `sizes`. */
+  sizes?: string;
+  /** `<source>` elements, in order: for example phone formats with a `media` query, then wide formats. */
+  sources?: HeroPictureSource[];
+}
+```
+
 ### `HeroPicture`
 
-The hero's picture. It never shows wider than its intrinsic `width`.
+The hero's picture. It never shows wider than its intrinsic `width`. It needs both `light` and `dark` art. The art for the page's theme is shown; the other is hidden and lazy.
 
 ```ts
 interface HeroPicture {
-  /** The fallback `<img>` file. */
-  src: string;
+  /** The art for the light theme, shown by default. Required. */
+  light: HeroArt;
+  /**
+   * The art for the dark theme, shown under the `.dark` class. Required: a picture with one image passes it as both `light` and `dark`.
+   */
+  dark: HeroArt;
   /**
    * The intrinsic pixel width of the wide file. The picture is never shown wider than this.
    */
@@ -73,21 +100,19 @@ interface HeroPicture {
   /** The intrinsic pixel height, which sets the picture's aspect ratio and stops layout shift. */
   height: number;
   /** What the picture shows. Required unless `decorative` is set. */
-  alt?: string;
+  alt?: string | undefined;
   /** Hides the picture from assistive technology, with `alt=""`. */
   decorative?: boolean;
-  /** `<source>` elements, in order: for example phone formats with a `media` query, then wide formats. */
-  sources?: HeroPictureSource[];
-  /** The `<img>`'s `srcset`. */
-  srcSet?: string;
-  /** The `<img>`'s `sizes`. */
-  sizes?: string;
-  /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. */
+  /**
+   * Loads the active theme's art early with `fetchPriority="high"`, and switches when the theme changes. Otherwise it loads lazily.
+   */
   priority?: boolean;
   /** A wide aspect ratio, such as `"8 / 3"`, applied on wider screens. Without it the picture keeps its own ratio. */
   crop?: string;
   /** The `object-position` used when the picture is cropped. @default "50% 42%" */
   focus?: string;
+  /** Not a prop. The art is `light` and `dark`: `<Hero picture={{ light: { src }, dark: { src }, width, height, alt }} />`. */
+  src?: { 'Use picture={{ light: { src }, dark: { src }, width, height, alt }}': never };
 }
 ```
 
