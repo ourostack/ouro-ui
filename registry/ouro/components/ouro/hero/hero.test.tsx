@@ -119,14 +119,15 @@ describe("Hero", () => {
           ...wide,
           sources: [
             { srcSet: "/phone.avif", type: "image/avif", media: "(max-width: 40rem)" },
-            { srcSet: "/wide.webp", type: "image/webp" },
+            { srcSet: "/wide.jpg", media: "(min-width: 40rem)" },
           ],
         }}
       />,
     );
     const sources = [...part("media")!.querySelectorAll("source")];
-    expect(sources.map((source) => source.getAttribute("srcset"))).toEqual(["/phone.avif", "/wide.webp"]);
+    expect(sources.map((source) => source.getAttribute("srcset"))).toEqual(["/phone.avif", "/wide.jpg"]);
     expect(sources[0]!.getAttribute("media")).toBe("(max-width: 40rem)");
+    expect(sources[1]!.hasAttribute("type")).toBe(false);
     expect(sources[0]!.compareDocumentPosition(part("image")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
