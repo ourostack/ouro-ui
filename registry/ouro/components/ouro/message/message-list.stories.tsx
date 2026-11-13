@@ -411,6 +411,58 @@ function LongChat() {
   );
 }
 
+const OLDER_PAGE = 200;
+const OLDER_TOTAL = 1000;
+
+/** A channel that reads a page of older posts, 800 ms late, whenever the reader is within two screens of its top. */
+function OlderChat() {
+  const [count, setCount] = useState(100);
+  const [loading, setLoading] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const first = OLDER_TOTAL - count;
+  useEffect(() => {
+    const scroller = wrap.current!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    if (loading || count >= OLDER_TOTAL) return;
+    const near = () => scroller.scrollTop < scroller.clientHeight * 2 && scroller.scrollHeight > scroller.clientHeight;
+    const ask = () => {
+      if (!near()) return;
+      scroller.removeEventListener("scroll", ask);
+      setLoading(true);
+      setTimeout(() => {
+        setCount((now) => now + OLDER_PAGE);
+        setLoading(false);
+      }, 800);
+    };
+    scroller.addEventListener("scroll", ask, { passive: true });
+    return () => scroller.removeEventListener("scroll", ask);
+  }, [count, loading]);
+  return (
+    <Surface>
+      <div ref={wrap} data-count={count}>
+        <MessageList label="Older history" style={{ height: 420 }} hasOlder={count < OLDER_TOTAL} loadingOlder={loading}>
+          {Array.from({ length: count }, (_, at) => {
+            const id = first + at;
+            return (
+              <Message key={id} id={`older-${id}`} variant="chat" role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana Lind"}>
+                {`${id % 2 ? answers[id % answers.length]! : questions[id % questions.length]!} (${id + 1})`}
+              </Message>
+            );
+          })}
+        </MessageList>
+      </div>
+    </Surface>
+  );
+}
+
+/**
+ * A channel of 1,000 posts that holds its newest 100 and reads 200 older ones, 800 ms late, whenever the reader
+ * comes within two screens of the top: the reader's place holds while each page goes in above.
+ */
+export const OlderHistory: Story = {
+  args: { label: "Older history", children: null },
+  render: () => <OlderChat />,
+};
+
 /** Shows the list's one bar on the newest post, as the pointer over it would. */
 async function hoverNewest(canvasElement: HTMLElement) {
   const newest = await frameUntil(() => canvasElement.querySelector<HTMLElement>("#post-39"));
