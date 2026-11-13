@@ -114,8 +114,11 @@ const layoutRoot: Record<HeroLayout, string> = {
   stage:
     "[--hero-width:calc(100%_-_2rem)] min-[40rem]:[--hero-width:min(80rem,calc(100%_-_4rem),max(48rem,calc((100svh_-_36rem)*8/3)))]",
   column: "[--hero-width:calc(100%_-_2rem)] min-[40rem]:[--hero-width:min(75rem,calc(100%_-_4rem))]",
-  split: "mx-auto w-[calc(100%_-_2rem)] pt-10 [--hero-width:100%] min-[40rem]:w-[min(75rem,calc(100%_-_4rem))] min-[40rem]:pt-12 min-[64rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] min-[64rem]:items-center min-[64rem]:gap-16",
+  split: "mx-auto w-[calc(100%_-_2rem)] pt-10 [--hero-width:100%] min-[40rem]:w-[min(75rem,calc(100%_-_4rem))] min-[40rem]:pt-12",
 };
+
+// Split sets the copy and the media side by side only when there is media to set beside it.
+const splitColumns = "min-[64rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] min-[64rem]:items-center min-[64rem]:gap-16";
 
 const layoutText: Record<HeroLayout, string> = {
   stage: "mx-auto grid w-[min(42rem,var(--hero-width))] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
@@ -281,7 +284,7 @@ export function Hero(props: HeroProps): JSX.Element {
       {...rest}
       data-ouro="hero"
       data-layout={layout}
-      className={cn("grid min-w-0", layoutRoot[layout], className)}
+      className={cn("grid min-w-0", layoutRoot[layout], layout === "split" && shown != null && splitColumns, className)}
     >
       <div className={layoutText[layout]}>
         {eyebrow != null ? (

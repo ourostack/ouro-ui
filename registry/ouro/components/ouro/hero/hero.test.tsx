@@ -117,6 +117,23 @@ describe("Hero", () => {
     expect(part("media")!.className).toContain("min-[64rem]:mt-0");
   });
 
+  it("sets split media beside the words on a wide screen and below them on a phone", async () => {
+    await page.viewport(1400, 900);
+    const wideHero = await render(<Hero title="Split" layout="split" media={<div style={{ height: 200 }}>Live</div>} />);
+    const words = wideHero.header.firstElementChild!.getBoundingClientRect();
+    const beside = wideHero.part("media")!.getBoundingClientRect();
+    expect(beside.left).toBeGreaterThanOrEqual(words.right);
+    await page.viewport(400, 900);
+    const phoneHero = await render(<Hero title="Split" layout="split" media={<div style={{ height: 200 }}>Live</div>} />);
+    const below = phoneHero.part("media")!.getBoundingClientRect();
+    expect(below.top).toBeGreaterThanOrEqual(phoneHero.header.firstElementChild!.getBoundingClientRect().bottom);
+  });
+
+  it("keeps a split hero without media in a single column", async () => {
+    const { header } = await render(<Hero title="Split" layout="split" media={false} />);
+    expect(header.className).not.toContain("grid-cols-");
+  });
+
   it("never shows the picture wider than its intrinsic width", async () => {
     await page.viewport(2400, 900);
     const { part } = await render(<Hero title="Wide" picture={wide} />);
