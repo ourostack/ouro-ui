@@ -121,7 +121,7 @@ const layoutRoot: Record<HeroLayout, string> = {
 const splitColumns = "min-[64rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] min-[64rem]:items-center min-[64rem]:gap-16";
 
 const layoutText: Record<HeroLayout, string> = {
-  stage: "mx-auto grid w-[min(42rem,var(--hero-width))] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
+  stage: "mx-auto grid w-[calc(100%_-_2rem)] min-[40rem]:w-[min(80rem,calc(100%_-_4rem))] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
   column: "mx-auto grid w-[var(--hero-width)] justify-items-start gap-4 text-start pt-10 min-[40rem]:pt-12",
   split: "grid w-[var(--hero-width)] min-w-0 justify-items-start gap-4 text-start",
 };
@@ -298,7 +298,7 @@ export function Hero(props: HeroProps): JSX.Element {
         {description != null ? (
           <Lede
             data-slot="description"
-            className="m-0 max-w-[60ch] text-base leading-7 text-muted-foreground text-pretty min-[40rem]:text-lg min-[40rem]:leading-8"
+            className="m-0 max-w-[70ch] text-base leading-7 text-muted-foreground text-pretty min-[40rem]:text-lg min-[40rem]:leading-8"
           >
             {description}
           </Lede>
