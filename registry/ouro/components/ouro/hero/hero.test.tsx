@@ -134,6 +134,14 @@ describe("Hero", () => {
     expect(header.className).not.toContain("grid-cols-");
   });
 
+  it("keeps stage and column media below the words on a wide screen", async () => {
+    await page.viewport(1400, 900);
+    for (const layout of ["stage", "column"] as const) {
+      const { header, part } = await render(<Hero title="Stacked" layout={layout} media={<div style={{ height: 200 }}>Live</div>} />);
+      expect(part("media")!.getBoundingClientRect().top).toBeGreaterThanOrEqual(header.firstElementChild!.getBoundingClientRect().bottom);
+    }
+  });
+
   it("never shows the picture wider than its intrinsic width", async () => {
     await page.viewport(2400, 900);
     const { part } = await render(<Hero title="Wide" picture={wide} />);

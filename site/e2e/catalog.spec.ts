@@ -62,9 +62,12 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * with which the home page measured 278,992 bytes, over the family-bar branch at bffc14e3. Then 1 KiB more (275 KiB):
  * by v1.3.10 the components the voyage pages load (the family bar's fade without script, the Navbar's one current
  * mark) had brought the home page within 200 bytes of 274 KiB, 280,398 bytes at 2495a54e, and the bar's section mark
- * on a page with its own navigation crossed it on CI.
+ * on a page with its own navigation crossed it on CI. Then 2 KiB more (277 KiB) for the registry Hero at the top of every
+ * page (Ari, 2026-11-13: one official Ouro component behind every hero): the home page measured 280,331 bytes on the
+ * hero-media branch at e9f68765 and 282,379 with the voyage hero on Hero, 2,048 bytes for the component itself, its
+ * development checks already stripped.
  */
-const CEILINGS = { voyage: 275 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { voyage: 277 * 1024, docs: 167_396 + 1024 } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's
