@@ -1253,6 +1253,20 @@ export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, {
 };
 
 /**
+ * Moves the real mouse off the test frame, so a test starts with no hover from an earlier one.
+ * The browser re-checks hover after layout (WebKit late), and a button under the pointer then
+ * fades to its hover colour. The point is outside the viewport, which the test frame fills, so the
+ * move leaves the page's own pointer listeners quiet: a point inside it would count as the person's input.
+ * The mouse projects call this before each test (testing/pointer-setup.ts).
+ * @claim "Moves the real mouse off the test frame, so a test starts with no hover from an earlier one." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::the pointer between tests > renders a button under the old pointer without hovering it, under a theme with a hover colour)
+ * @claim "The mouse projects call this before each test" registry/ouro/lib/ouro/testing/pointer-setup.ts verify:fileLine(registry/ouro/lib/ouro/testing/pointer-setup.ts, /commands\.parkPointer/)
+ * @claim "leaves the page's own pointer listeners quiet" registry/ouro/lib/ouro/use-mounted-open.test.tsx verify:testExists(registry/ouro/lib/ouro/use-mounted-open.test.tsx::useMountedOpen > does not count an overlay open before anything was pressed)
+ */
+export const parkPointer: BrowserCommand<[]> = async (ctx) => {
+  await ctx.page.mouse.move(-1, -1);
+};
+
+/**
  * Taps an element inside the test iframe with real touch input (Playwright's
  * `locator.tap`), so the page sees `pointerType: "touch"`. Needs a context with
  * `hasTouch`, as in the `touch` project.
@@ -1538,6 +1552,7 @@ export const commands = {
   drag,
   flick,
   pageZoom,
+  parkPointer,
   pointerPress,
   resetPageZoom,
   restoreTouch,
@@ -1553,6 +1568,7 @@ declare module "vitest/browser" {
     mediaState: () => Promise<MediaState>;
     restoreMedia: (state: MediaState) => Promise<void>;
     resetMedia: () => Promise<void>;
+    parkPointer: () => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;
