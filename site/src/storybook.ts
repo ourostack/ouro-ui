@@ -160,8 +160,8 @@ export function cardAlt(card: Card): string {
 
 /** The srcsets a scene's picture offers: the phone crop, and the wide scene, each in AVIF and WebP. */
 export function sceneSources(scene: SceneName, at: (path: string) => string = (path) => `${STORYBOOK}${path}`) {
-  const phone = (type: "avif" | "webp") => `${at(`phone/${scene}-384.${type}`)} 384w, ${at(`phone/${scene}-768.${type}`)} 768w`;
+  const phone = (type: "avif" | "webp") => `${at(`phone/${scene}-384.${type}`)} 384w, ${at(`phone/${scene}-768.${type}`)} 768w, ${at(`phone/${scene}-1152.${type}`)} 1152w, ${at(`phone/${scene}-1536.${type}`)} 1536w`;
   const wide = (type: "avif" | "webp") =>
-    `${at(`scenes/${scene}-640.${type}`)} 640w, ${at(`scenes/${scene}-960.${type}`)} 960w, ${type === "avif" ? at(`scenes/${scene}-1536.avif`) : at(`headers/${scene}.webp`)} 1536w`;
+    `${at(`scenes/${scene}-640.${type}`)} 640w, ${at(`scenes/${scene}-960.${type}`)} 960w, ${type === "avif" ? at(`scenes/${scene}-1536.avif`) : at(`headers/${scene}.webp`)} 1536w, ${at(`scenes/${scene}-3072.${type}`)} 3072w`;
   return { phone, wide };
 }
