@@ -257,6 +257,44 @@ describe("Chart", () => {
     }
   });
 
+  it("lists the series of a fragment, and a legend in a wrapper component, outside the SVG", async () => {
+    const LegendInWrapper = () => <ChartLegend />;
+    const { chart } = await render(
+      <Chart title="Cooking trend" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          <>
+            <XAxis dataKey="month" />
+            <Line dataKey="cooked" stroke="var(--color-cooked)" />
+            <Line dataKey="saved" stroke="var(--color-saved)" />
+          </>
+          <LegendInWrapper />
+        </LineChart>
+      </Chart>,
+    );
+    await drawn(chart);
+    await expect.poll(() => [...chart.querySelectorAll("[data-ouro-chart-legend] li")].map((item) => item.textContent)).toEqual(["Recipes cooked", "Recipes saved"]);
+    const surface = chart.querySelector("svg.recharts-surface")!.getBoundingClientRect();
+    for (const item of chart.querySelectorAll("[data-ouro-chart-legend] li")) {
+      const box = item.getBoundingClientRect();
+      expect(box.top >= surface.bottom || box.bottom <= surface.top || box.left >= surface.right || box.right <= surface.left, `${item.textContent} outside the plot`).toBe(true);
+    }
+  });
+
+  it("server HTML has the legend's slot and no legend in it", () => {
+    const html = renderToString(
+      <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          <Line dataKey="cooked" />
+          <Line dataKey="saved" />
+          <ChartLegend />
+        </LineChart>
+      </Chart>,
+    );
+    expect(html).toContain("data-ouro-chart-legend-slot");
+    expect(html).not.toContain("recharts-legend-wrapper");
+    expect(html).not.toContain('data-ouro-chart-legend=""');
+  });
+
   it("gives five series five marker shapes", async () => {
     const { chart } = await render(
       <Chart

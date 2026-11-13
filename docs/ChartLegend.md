@@ -22,7 +22,7 @@ import { ChartLegend } from "@/registry/ouro/components/ouro/chart/chart";
 
 ## Usage
 
-Use it only as a direct child of a recharts chart passed to `Chart` as children: `Chart` draws the list beside the plot, and a wrapper component would hide it.
+Use it only inside a recharts chart passed to `Chart` as children.
 
 ## Use instead when
 
