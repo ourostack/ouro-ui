@@ -387,6 +387,42 @@ describe("Composer states", () => {
     }
   });
 
+  it("with hideSendDisabledReason, keeps the reason as the box's description and says it on Enter, but draws no line for it", async () => {
+    const onSend = vi.fn();
+    const announced = watchAnnouncements();
+    const reason = "Sending is off while you review the draft.";
+    try {
+      const { host, textarea, send, root } = await render(<Composer label="Message" defaultValue="Hello" hideSendDisabledReason sendDisabledReason={reason} onSend={onSend} />);
+      const { root: plain } = await render(<Composer label="Message" defaultValue="Hello" onSend={() => {}} />);
+      expect(send.disabled).toBe(true);
+      expect(root.getAttribute("data-send-disabled")).toBe("");
+      expect(descriptions(textarea)).toEqual([reason]);
+      const hidden = host.querySelector<HTMLElement>("[data-ouro-composer-reason]")!;
+      expect(hidden.textContent).toBe(reason);
+      expect(hidden.parentElement).toBe(root);
+      expect(hidden.getBoundingClientRect().width).toBe(1);
+      expect(hidden.getBoundingClientRect().height).toBe(1);
+      expect(root.getBoundingClientRect().height).toBe(plain.getBoundingClientRect().height);
+      textarea.focus();
+      await userEvent.keyboard("{Enter}");
+      expect(onSend).not.toHaveBeenCalled();
+      await expect.poll(() => announced.count(reason)).toBe(1);
+    } finally {
+      announced.stop();
+    }
+  });
+
+  it("with hideSendDisabledReason and a description, draws the description alone under the box", async () => {
+    const reason = "Sending is off while you review the draft.";
+    const { host, textarea } = await render(
+      <Composer label="Message" defaultValue="Hello" description="Ctrl+Enter to send" hideSendDisabledReason sendDisabledReason={reason} onSend={() => {}} />,
+    );
+    expect(descriptions(textarea)).toEqual([reason, "Ctrl+Enter to send"]);
+    const shown = host.querySelector<HTMLElement>("[data-ouro-composer-description]")!;
+    expect(shown.parentElement!.textContent).toBe("Ctrl+Enter to send");
+    expect(host.querySelector<HTMLElement>("[data-ouro-composer-reason]")!.getBoundingClientRect().width).toBe(1);
+  });
+
   it("when disabled, takes no text and no send, and does not show a reason", async () => {
     const announced = watchAnnouncements();
     vi.useFakeTimers();
