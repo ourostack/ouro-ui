@@ -396,6 +396,11 @@ jobs:
             # this repository does not allow (probe #142): queue it directly, at the commit CI
             # passed on, until GitHub says it is queued.
             id=$(gh pr view "$NEXT_BRANCH" --json id --jq .id)
+            # GitHub ignores jump for a pull request that already has a queue entry (auto-merge may
+            # have queued it at the back): take it out, so the enqueue below puts it at the front.
+            if [ "$(queue_state)" = "OPEN true" ]; then
+              gh api graphql -f query="mutation { dequeuePullRequest(input: {id: \"$id\"}) { clientMutationId } }" >/dev/null || echo "::warning::Could not take #$number out of the merge queue to put it at the front."
+            fi
             for attempt in 1 2 3 4 5; do
               [ "$(queue_state)" = "OPEN false" ] || break
               gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$id\", expectedHeadOid: \"$sha\", jump: true}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue (attempt $attempt)."

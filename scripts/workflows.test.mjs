@@ -921,15 +921,18 @@ for (const scenario of scenarios) {
           "pr merge "*) return 1 ;;
           "pr view "*"--json number"*) echo 9 ;;
           # gh merge could not queue it (no auto-merge): queued by the API instead, at CI's commit.
-          "api graphql -f query=mutation { enqueuePullRequest(input: {pullRequestId: \\"PR_9\\", expectedHeadOid: \\"headsha\\", jump: true}) { clientMutationId } }") return 0 ;;
+          "api graphql -f query=mutation { enqueuePullRequest(input: {pullRequestId: \\"PR_9\\", expectedHeadOid: \\"headsha\\", jump: true}) { clientMutationId } }") touch "$QUEUE_LOOKS.back"; return 0 ;;
           "pr view "*"--json id"*) echo PR_9 ;;
           # The merge queue, look by look: the release job looks twice, the queue job once before its
           # loop and once a round. Queued, then merged (or dropped) on the queue job's first round;
           # rebuilt: still queued after two rounds, a second build's branch from the second on.
+          # Taking it out of the queue (auto-merge had queued it at the back) leaves it out until enqueued.
+          "api graphql -f query=mutation { dequeuePullRequest(input: {id: \\"PR_9\\"}) { clientMutationId } }") touch "$QUEUE_LOOKS.out" ;;
           "api graphql "*)
+            if [ -f "$QUEUE_LOOKS.out" ] && [ ! -f "$QUEUE_LOOKS.back" ]; then echo "OPEN false"; return 0; fi
             looks=$(( $(cat "$QUEUE_LOOKS") + 1 )); echo "$looks" > "$QUEUE_LOOKS"
             case "$SCENARIO:$looks" in
-              queued:[1-3]|queue-tip:[1-3]|queue-dropped:[1-3]|queue-rebuilt:[1-5]) echo "OPEN true" ;;
+              queued:[1-4]|queue-tip:[1-4]|queue-dropped:[1-4]|queue-rebuilt:[1-6]) echo "OPEN true" ;;
               not-merged:*|queue-dropped:*) echo "OPEN false" ;;
               *) echo "MERGED false" ;;
             esac ;;
@@ -999,7 +1002,11 @@ for (const scenario of scenarios) {
     assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
     // Queued by the API only while gh left the pull request open and out of the queue, a few times.
     const enqueued = result.stderr.match(/^CALL api graphql -f query=mutation \{ enqueuePullRequest.*$/gm) ?? [];
-    assert.equal(enqueued.length, scenario === "not-merged" ? 5 : 0, "enqueuePullRequest");
+    // A pull request auto-merge already queued is taken out first, since GitHub ignores jump for a
+    // queued one, and enqueued once at the front; one left out of the queue is enqueued up to five times.
+    const dequeued = result.stderr.match(/^CALL api graphql -f query=mutation \{ dequeuePullRequest.*$/gm) ?? [];
+    assert.equal(dequeued.length, scenario.startsWith("queue") || scenario === "queued" ? 1 : 0, "dequeuePullRequest");
+    assert.equal(enqueued.length, scenario === "not-merged" ? 5 : scenario.startsWith("queue") || scenario === "queued" ? 1 : 0, "enqueuePullRequest");
     if (scenario.startsWith("queue")) {
       // Queued by the workflow's token: CI runs on the queue's branch by dispatch, once on each
       // build's branch, however often the branches are looked at.
