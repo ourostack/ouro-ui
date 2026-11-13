@@ -528,6 +528,11 @@ describe("Toolbar autoHide", () => {
     const { toolbar, picture } = await render(<WithShare />);
     await userEvent.click(page.getByRole("button", { name: "Share" }));
     await expect.element(page.getByRole("dialog", { name: "Share your screen" })).toBeVisible();
+    // The dialog takes focus in a real animation frame, and focus entering it is what lends the bar its
+    // hold. Only timeouts are faked here: on a loaded runner the rest could end before that frame ran,
+    // with nothing holding the bar yet. A person meets the dialog with focus in it, so the test waits
+    // for that too.
+    await expect.poll(() => page.getByRole("dialog").element().contains(document.activeElement)).toBe(true);
     await wait(3000);
     expect(isHidden(toolbar)).toBe(false);
     await userEvent.click(page.getByRole("button", { name: "Cancel" }));
