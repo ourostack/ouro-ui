@@ -463,6 +463,71 @@ export const OlderHistory: Story = {
   render: () => <OlderChat />,
 };
 
+const DRAWN_PAGE = 144;
+
+/**
+ * A channel that draws its own messages, all in one child, and reads a page of older ones, 800 ms late, whenever the reader is
+ * within two screens of the top: the page then goes in above them a message a frame, as an app that keeps each frame short does.
+ */
+function DrawnOlderChat() {
+  // How many of the channel's newest messages the app has, and how many of those it has drawn.
+  const [count, setCount] = useState(30);
+  const [drawn, setDrawn] = useState(30);
+  const [loading, setLoading] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (drawn >= count) return;
+    const frame = requestAnimationFrame(() => setDrawn((now) => Math.min(count, now + 1)));
+    return () => cancelAnimationFrame(frame);
+  }, [count, drawn]);
+  useEffect(() => {
+    const scroller = wrap.current!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    if (loading || drawn < count || count >= OLDER_TOTAL) return;
+    const near = () => scroller.scrollTop < scroller.clientHeight * 2 && scroller.scrollHeight > scroller.clientHeight;
+    const ask = () => {
+      if (!near()) return;
+      scroller.removeEventListener("scroll", ask);
+      setLoading(true);
+      setTimeout(() => {
+        setCount((now) => Math.min(OLDER_TOTAL, now + DRAWN_PAGE));
+        setLoading(false);
+      }, 800);
+    };
+    scroller.addEventListener("scroll", ask, { passive: true });
+    return () => scroller.removeEventListener("scroll", ask);
+  }, [count, drawn, loading]);
+  const first = OLDER_TOTAL - drawn;
+  return (
+    <Surface>
+      <div ref={wrap} data-count={drawn}>
+        <MessageList label="Older history drawn" style={{ height: 600 }} hasOlder={count < OLDER_TOTAL} loadingOlder={loading}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {Array.from({ length: drawn }, (_, at) => {
+              const id = first + at;
+              return (
+                <Message key={id} id={`drawn-${id}`} variant="post" role="assistant" name={id % 2 ? "Ouro" : "Ana Lind"}>
+                  {`${answers[id % answers.length]!} ${answers[(id + 2) % answers.length]!} ${answers[(id + 4) % answers.length]!} (${id + 1})`}
+                  {id % 2 === 0 ? <div aria-hidden style={{ height: 160, marginTop: 8, borderRadius: 8, background: "var(--muted)" }} /> : null}
+                </Message>
+              );
+            })}
+          </div>
+        </MessageList>
+      </div>
+    </Surface>
+  );
+}
+
+/**
+ * A channel of 1,000 posts drawn by the app in one child, holding its newest 30, that reads 144 older ones, 800 ms late,
+ * whenever the reader comes within two screens of the top, and draws them in above a message a frame while the reader
+ * scrolls on: the wheel keeps moving the messages, and what went in above stays in reach.
+ */
+export const OlderHistoryDrawn: Story = {
+  args: { label: "Older history drawn", children: null },
+  render: () => <DrawnOlderChat />,
+};
+
 /** Shows the list's one bar on the newest post, as the pointer over it would. */
 async function hoverNewest(canvasElement: HTMLElement) {
   const newest = await frameUntil(() => canvasElement.querySelector<HTMLElement>("#post-39"));

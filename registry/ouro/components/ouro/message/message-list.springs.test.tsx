@@ -269,22 +269,23 @@ describe("MessageList springs", () => {
     await nextScroll(scroller);
     const reading = messages().find((message) => laidOut(message).top >= view.top)!;
     const place = laidOut(reading).top;
-    // Older messages load above in the same frame: the list scrolls to keep the reader's place, and
-    // no message trails that scroll, only the reader's 40px.
+    // Older messages load above in the same frame: the list keeps the reader's place by drawing the content up, without
+    // writing the scroll position while the wheel turns, and no message trails it, only the reader's 40px.
     const before = scroller.scrollTop;
-    let adjusted = nextScroll(scroller);
     await rerender(<Chat count={50} from={0} />);
-    await adjusted;
-    expect(scroller.scrollTop).toBeGreaterThan(before + 100);
+    expect(scroller.scrollTop).toBe(before);
     frames.step(16);
-    const top = scroller.scrollTop;
     expect(expectFirstFrame(messages().filter((message) => near(scroller, message)), pointer, -40)).toBeGreaterThan(3);
     expect(laidOut(reading).top).toBeCloseTo(place, 0);
     // More history while they spring: the one being read stays where it is laid out.
-    adjusted = nextScroll(scroller);
     await rerender(<Chat count={70} from={-20} />);
+    expect(scroller.scrollTop).toBe(before);
+    expect(laidOut(reading).top).toBeCloseTo(place, 0);
+    // The wheel rests: the scroll position takes what went in above in one move, which no message trails either.
+    const adjusted = nextScroll(scroller);
+    frames.step(100);
     await adjusted;
-    expect(scroller.scrollTop).toBeGreaterThan(top + 100);
+    expect(scroller.scrollTop).toBeGreaterThan(before + 200);
     expect(laidOut(reading).top).toBeCloseTo(place, 0);
     const kept = scroller.scrollTop;
     scroller.dispatchEvent(new Event("scrollend"));
