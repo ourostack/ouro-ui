@@ -71,6 +71,63 @@ describe("announce", () => {
     expect(regions()[0]!.textContent).toBe("Two");
   });
 
+  it("can cancel a pending message without cancelling a later caller's message", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const cancel = announce("Obsolete", { delayMs: 1500 });
+    expect(cancel).toBeTypeOf("function");
+    cancel!();
+    vi.advanceTimersByTime(1500);
+    expect(regions()[0]!.textContent).toBe("");
+    announce("Another caller");
+    cancel!();
+    vi.advanceTimersByTime(100);
+    expect(regions()[0]!.textContent).toBe("Another caller");
+  });
+
+  it("ignores an older cancellation after another message takes its place or finishes", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const cancel = announce("Old");
+    expect(cancel).toBeTypeOf("function");
+    announce("Latest");
+    cancel!();
+    vi.advanceTimersByTime(100);
+    expect(regions()[0]!.textContent).toBe("Latest");
+    cancel!();
+    expect(regions()[0]!.textContent).toBe("Latest");
+  });
+
+  it("lets a later message replace the current one after an older cancellation", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const cancel = announce("Old");
+    announce("Replaced");
+    cancel!();
+    announce("Latest", { delayMs: 500 });
+    vi.advanceTimersByTime(100);
+    expect(regions()[0]!.textContent).toBe("");
+    vi.advanceTimersByTime(400);
+    expect(regions()[0]!.textContent).toBe("Latest");
+  });
+
+  it("notifies the caller only after its message is written, not when cancelled or superseded", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const written: (string | null)[] = [];
+    const options = { delayMs: 1500, onWrite: () => { written.push(regions()[0]!.textContent); } };
+    announce("Saved", options);
+    vi.advanceTimersByTime(1499);
+    expect(written).toEqual([]);
+    vi.advanceTimersByTime(1);
+    expect(written).toEqual(["Saved"]);
+    const cancel = announce("Cancelled", options);
+    cancel!();
+    vi.advanceTimersByTime(1500);
+    expect(written).toEqual(["Saved"]);
+    announce("Superseded", options);
+    announce("Another caller");
+    vi.advanceTimersByTime(1500);
+    expect(regions()[0]!.textContent).toBe("Another caller");
+    expect(written).toEqual(["Saved"]);
+  });
+
   it("clears and re-sets a repeated message about 100ms later so it is spoken again", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     announce("Loading");
