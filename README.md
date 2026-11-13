@@ -369,6 +369,7 @@ Components:
 `text`,
 `text-area`,
 `text-field`,
+`thread-rail`,
 `thread-summary`,
 `time-grid`,
 `timer`,
@@ -677,6 +678,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)
 - **readFailure** — Whether a failed read's HTTP status is the service's (`"failed"`: no answer, signed out, throttled, timed out or failing, so every read waits) or this person's (`"missing"`: the service refused them alone, so they are kept as missing and no one waits). [Docs](docs/readFailure.md)
+- **ThreadRail** — A thread beside its conversation: a labelled landmark with a header and a close button. [Docs](docs/ThreadRail.md)
 - **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
 - **usePerson** — One person from a cache made with `createPeopleCache`, for a component that shows them, such as an avatar or a message's author: their entry, read while the component shows it and again whenever it runs out. [Docs](docs/usePerson.md)
 - **webStorage** — Storage for `createPeopleCache` in `localStorage`, or another `Storage`, under one key. [Docs](docs/webStorage.md)
