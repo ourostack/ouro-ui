@@ -79,6 +79,9 @@ const frames = (count = 3) =>
     next(count);
   });
 
+/** The photo's drawn width: 64px until the tile is measured, then the size its width gives. */
+const avatarWidth = (host: HTMLElement) => host.querySelector('[data-ouro="avatar"]')!.getBoundingClientRect().width;
+
 /** Pretends the page is hidden or shown, as the browser does when the window is minimised or another tab is in front. */
 function setPage(state: "hidden" | "visible") {
   Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
@@ -333,7 +336,6 @@ describe("MediaTile", () => {
     const html = renderToString(<MediaTile name="Mara Lind" />);
     const doc = new DOMParser().parseFromString(html, "text/html");
     expect(doc.querySelector('[data-ouro="avatar"]')!.className).toContain("size-16");
-    const width = (host: HTMLElement) => host.querySelector('[data-ouro="avatar"]')!.getBoundingClientRect().width;
     for (const [tileWidth, photo] of [
       [120, 32],
       [240, 48],
@@ -342,28 +344,29 @@ describe("MediaTile", () => {
       [900, 112],
     ] as const) {
       const { host } = await render(<MediaTile name="Mara Lind" />, tileWidth);
-      await expect.poll(() => width(host)).toBe(photo);
+      await expect.poll(() => avatarWidth(host)).toBe(photo);
     }
     // A size of the app's own stays.
     const { host } = await render(<MediaTile name="Mara Lind" avatar={{ size: "xs" }} />, 900);
     await frames();
-    expect(width(host)).toBe(24);
+    expect(avatarWidth(host)).toBe(24);
   });
 
   it("keeps the paused glyph off the initials: beside a small photo, on the corner of a large one", async () => {
     const overlap = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-    for (const [tileWidth, size, beside] of [
-      [120, undefined, true],
-      [240, undefined, true],
-      [400, undefined, false],
-      [900, undefined, false],
+    // The photo is 64px until the tile is measured, so each row waits for its measured width before it reads where the glyph sits.
+    for (const [tileWidth, size, photoWidth, beside] of [
+      [120, undefined, 32, true],
+      [240, undefined, 48, true],
+      [400, undefined, 64, false],
+      [900, undefined, 112, false],
       // A size of the app's own counts the same way.
-      [900, "xs", true],
-      [900, "md", true],
-      [120, "2xl", false],
+      [900, "xs", 24, true],
+      [900, "md", 40, true],
+      [120, "2xl", 72, false],
     ] as const) {
       const { host } = await render(<MediaTile name="Theo Okafor" paused avatar={size && { size }} />, tileWidth);
-      await frames();
+      await expect.poll(() => avatarWidth(host)).toBe(photoWidth);
       const initials = host.querySelector("[data-ouro-avatar-initials]")!.getBoundingClientRect();
       const photo = host.querySelector('[data-ouro="avatar"]')!.getBoundingClientRect();
       const glyph = host.querySelector("[data-ouro-media-tile-paused]")!.getBoundingClientRect();
