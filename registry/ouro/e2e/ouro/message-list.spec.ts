@@ -351,9 +351,6 @@ for (const { story, label, least } of [
       return frames.slice(Math.max(0, at - 3), at + 3).map((g) => [Math.round(g.dt), Math.round(g.wheel), Math.round(g.scrollTop), g.moved === null ? null : Math.round(g.moved * 10) / 10, g.carried]);
     });
     const counts = `${dead.length} dead frames, ${wall.length} wall frames, ${count} messages, ${frames.length} frames; around the first dead: ${JSON.stringify(around)}`;
-    // PROBE (removed before merge): what each run drew, and where the list paid what it carried.
-    const pays = frames.map((f, i) => (i > 0 && frames[i - 1]!.carried !== "" && f.carried === "" ? [i, Math.round(frames[i - 1]!.scrollTop), Math.round(f.scrollTop), Math.round(f.wheel)] : null)).filter((x) => x !== null);
-    console.log(`PROBE ${test.info().project.name} ${label}: ${counts}; pays ${pays.length}: ${JSON.stringify(pays.slice(0, 40))}; frames ms p50 ${frames.map((f) => f.dt).sort((a, b) => a - b)[Math.floor(frames.length / 2)]!.toFixed(1)}`);
     expect(count, counts).toBeGreaterThanOrEqual(least);
     expect(dead.length, counts).toBeLessThanOrEqual(3);
     expect(wall.length, counts).toBeLessThanOrEqual(3);
