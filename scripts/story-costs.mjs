@@ -1,6 +1,7 @@
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { treeFiles } from "./tree.mjs";
 
 // Sums the per-test times the browser shards record (stories-<n>of<m>.json) into the cost of each story
 // or site page, for test/slice-core.ts: node scripts/story-costs.mjs <dir of downloaded timings-browser-*>
@@ -28,7 +29,7 @@ export function costsOf(files) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dir = process.argv[2];
-  const files = readdirSync(dir, { recursive: true })
+  const files = treeFiles(dir)
     .filter((path) => /(^|\/)stories-\d+of\d+\.json$/.test(String(path)))
     .map((path) => JSON.parse(readFileSync(join(dir, String(path)), "utf8")));
   writeFileSync(pathToFileURL(join(fileURLToPath(import.meta.url), "../../test/story-costs.json")), `${JSON.stringify(costsOf(files), null, 2)}\n`);
