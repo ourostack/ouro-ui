@@ -97,10 +97,10 @@ export function morePresses(samples: readonly number[], baseline: number): boole
  */
 export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle, more?: (samples: readonly number[]) => boolean): Promise<number[]> {
   await page.evaluate(() => {
-    const store: Array<[number, number, number, number]> = [];
+    const store: Array<[number, number, number, number, string]> = [];
     (window as unknown as { __latency: typeof store }).__latency = store;
     new PerformanceObserver((list) => {
-      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration, entry.startTime, entry.processingStart, entry.processingEnd]);
+      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration, entry.startTime, entry.processingStart, entry.processingEnd, entry.name]);
     }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
   });
   const cdp = await page.context().newCDPSession(page);
@@ -123,7 +123,7 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
     const before = await interactions();
     await press(index);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-    const entries = await page.evaluate(() => (window as unknown as { __latency: Array<[number, number, number, number]> }).__latency);
+    const entries = await page.evaluate(() => (window as unknown as { __latency: Array<[number, number, number, number, string]> }).__latency);
     const durations = entries.map(([duration]) => duration);
     const pressed = (await interactions()) > before;
     expect(durations.length > 0 || pressed, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
@@ -132,8 +132,9 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       // Where an over-budget press's time went, so the next failure says whether it was the page's thread or the wait for the paint.
       const slowest = entries.find(([duration]) => duration === Math.max(...durations));
       if (slowest && slowest[0] > LATENCY.p95) {
+        // Event Timing gives a press's later entries (pointerup, click) its first event's start (pointerdown's), so their input delay runs from pointerdown.
         const { inputDelay, processing, presentation } = splitPress({ duration: slowest[0], startTime: slowest[1], processingStart: slowest[2], processingEnd: slowest[3] });
-        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint`;
+        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint (${slowest[4]} entry)`;
         test.info().annotations.push({ type: "latency-slow", description: split });
         console.log(`latency-slow ${split}`);
       }
