@@ -194,10 +194,8 @@ export function OuroProvider({ children, linkComponent, portalContainer, motion:
     () => ({ linkComponent: linkComponent ?? DefaultLink, ...(container ? { portalContainer: container } : {}), ...(motion ? { motion } : {}), quiet }),
     [linkComponent, container, motion, quiet],
   );
-  useEffect(() => {
-    registerHyperellipse();
-    // Stryker disable next-line ArrayDeclaration: registration is idempotent, so a changed dependency list repeats a no-op
-  }, []);
+  // Stryker disable next-line ArrayDeclaration: registration is idempotent, so a changed dependency list repeats a no-op
+  useEffect(() => void registerHyperellipse(), []);
   useEffect(() => {
     if (!quiet) return;
     quietProviders += 1;
