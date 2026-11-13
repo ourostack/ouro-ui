@@ -333,6 +333,35 @@ describe("MessageList windowing", () => {
     expect(sprung).toBe(false);
   });
 
+  it("holds a small drift above the reader until the wheel rests, and a page's worth at once", async () => {
+    const { scroller, rerender } = await render(<Chat items={conversation(500)} />);
+    await scrollTo(scroller, 3000);
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    const above = Number(reading.message.id.slice(1)) - 1;
+    const grow = (words: number) =>
+      conversation(500).map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(words) } : item));
+    // The reader's clock, so a loaded machine's slow render cannot let the wheel rest early.
+    let now = 1_000_000;
+    const clock = vi.spyOn(performance, "now").mockImplementation(() => now);
+    const turn = () => scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    const before = scroller.scrollTop;
+    turn();
+    await rerender(<Chat items={grow(6)} />);
+    // Written to the scroll position only once the wheel has rested.
+    expect(scroller.scrollTop).toBe(before);
+    now += 100;
+    await expect.poll(() => scroller.scrollTop).toBeGreaterThan(before);
+    await settle(scroller);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    const paid = scroller.scrollTop;
+    turn();
+    await rerender(<Chat items={grow(120)} />);
+    expect(scroller.scrollTop).toBeGreaterThan(paid + 48);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    clock.mockRestore();
+  });
+
   it("keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is", async () => {
     const { scroller, rerender } = await render(<Chat items={conversation(60, 40, true)} />);
     expect(messages(scroller)).toHaveLength(60);

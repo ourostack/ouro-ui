@@ -462,6 +462,10 @@ const STRETCH = 0.25;
  * @claim "until the browser says it ended" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > keeps a scroll the reader's until the browser says it ended, however long a frame takes)
  */
 const ARMED = 250;
+/** How long, in ms, after a wheel turn the list leaves the reader's place unwritten: a scroll position set meanwhile stops the wheel's own scroll. */
+const WHEEL_REST = 80;
+/** Drift up to this size, in px, is held back while the wheel turns: it comes from measuring a message, where a page of history above is larger. */
+const WHEEL_DRIFT = 48;
 /** A message this close to its place, in px, and this slow, in px/ms, is at rest, once the reader's scroll has ended. */
 const REST = 0.25;
 const REST_SPEED = 0.01;
@@ -1469,6 +1473,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
       setShowJump(false);
     };
     // After messages come, go, move or change size: follow the end while pinned, else hold the anchor in place.
+    // A scroll position written while the wheel turns stalls WebKit's own scroll, so a small drift (a message measured, replacing its
+    // estimate) is held back until the wheel rests, then paid in one move. A page of history above is too far to wait for.
+    let wheelAt = Number.NEGATIVE_INFINITY;
+    let later = 0;
+    const onWheel = () => {
+      wheelAt = performance.now();
+    };
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only tells the browser the listener never cancels the wheel; no test can observe it.
+    scroller.addEventListener("wheel", onWheel, { passive: true });
     const hold = () => {
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
@@ -1500,6 +1513,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         // The place is held by the messages that moved together, not one that moved away: of those, the one that moved least (with only
         // one other in view, the one that did not go), and the first of those that moved alike.
         const moved = (ranked.sort((a, b) => a.passed - b.passed || Math.abs(a.moved) - Math.abs(b.moved))[0]?.moved ?? 0) + owed;
+        // Stryker disable next-line EqualityOperator: a drift or a wheel age exactly at its limit is a tie in a real-valued clock and pixel count that no test can place.
+        if (Math.abs(moved) < WHEEL_DRIFT && performance.now() - wheelAt < WHEEL_REST) {
+          cancelAnimationFrame(later);
+          later = requestAnimationFrame(hold);
+          return;
+        }
         owed = moved;
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
@@ -1543,7 +1562,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll));
+    return () => (cancelAnimationFrame(later), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
