@@ -730,6 +730,7 @@ export function Menu(props: MenuProps): JSX.Element {
         <ContextMenu.Trigger
           render={contextTrigger}
           className={menuContextTriggerClass}
+          {...holdPageAtPress.contextMenu}
           // Base UI turns the callout off for good; Ouro UI turns it off only while pressing.
           style={{ WebkitTouchCallout: undefined }}
           onTouchStart={pressing(true)}
@@ -747,7 +748,7 @@ export function Menu(props: MenuProps): JSX.Element {
     // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides.
     <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
       {label !== undefined ? (
-        <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass}>
+        <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
           {label}
         </BaseMenu.Trigger>
       ) : (

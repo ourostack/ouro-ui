@@ -127,14 +127,14 @@ function press(trigger: HTMLElement, event: Event, untilClick: boolean) {
 }
 
 /**
- * Event props that hold the page from a press on a trigger: the primary button's pointerdown, or
- * one of `keys`; with `untilClick`, only until the trigger's click.
+ * Event props that hold the page from a press on a trigger: a pointerdown that `opens` takes (the
+ * primary button's by default), or one of `keys`; with `untilClick`, only until the trigger's click.
  */
-function pressHandlers(keys: string[], untilClick = false) {
+function pressHandlers(keys: string[], untilClick = false, opens = (event: ReactPointerEvent<HTMLElement>) => event.button === 0) {
   const opening = new Set(keys);
   return {
     onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
-      if (event.button === 0) press(event.currentTarget, event.nativeEvent, untilClick);
+      if (opens(event)) press(event.currentTarget, event.nativeEvent, untilClick);
     },
     onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => {
       if (!opening.has(event.key)) return;
@@ -148,12 +148,14 @@ function pressHandlers(keys: string[], untilClick = false) {
  * Event props for the trigger of a menu, popover, select or combobox, which hold the page from
  * the press that opens it rather than from when its popup opens: the primary button's
  * pointerdown, or a key that opens that kind of trigger's popup. `button` (Popover) takes Enter
- * and Space, which click it; `listButton` (Menu's dropdown, Select) takes those and an up or down
- * arrow; `listInput` (Combobox) takes only the arrows, as Enter in its closed input submits the
- * form and opens nothing. `dialog` (the trigger of a Dialog, ConfirmDialog, Sheet or Command, a
+ * and Space, which click it; `listButton` (Menu's dropdown and its menubar triggers, Select) takes
+ * those and an up or down arrow; `listInput` (Combobox) takes only the arrows, as Enter in its
+ * closed input submits the form and opens nothing. `dialog` (the trigger of a Dialog, ConfirmDialog, Sheet or Command, a
  * Lightbox's thumbnail, and a Button with `aria-haspopup="dialog"`) takes Enter and Space and
  * holds the page only until the trigger's click opens the dialog, whose own scroll lock holds it
- * from then; it leaves `scroll-behavior` alone. A press during a smooth scroll stops the page where it is at once, so a
+ * from then; it leaves `scroll-behavior` alone. `contextMenu` (a context menu's area) takes the
+ * right button's pointerdown and a touch's, the two gestures that open it at the pointer, and no
+ * key. A press during a smooth scroll stops the page where it is at once, so a
  * popup that opens on pointerdown does not take the release, over whatever moved under the
  * pointer, for a press outside it and close, and the release of a press on a dialog's trigger
  * lands on the trigger, so its click opens the dialog. Spread them on the trigger, with `holdPage`
@@ -170,12 +172,14 @@ function pressHandlers(keys: string[], untilClick = false) {
  * @claim "holds the page only until the trigger's click opens the dialog" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > holds the page from a dialog trigger's press until its click, leaving scroll-behavior alone)
  * @claim "lands on the trigger, so its click opens the dialog" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.test.tsx, /opens and leaves the page where the press found it, pressed mid-scroll/)
  * @claim "takes Enter and Space, which click it" registry/ouro/components/ouro/popover/popover.test.tsx verify:fileLine(registry/ouro/components/ouro/popover/popover.test.tsx, /leaves the page free at an arrow key on its trigger, which opens nothing/)
+ * @claim "takes the right button's pointerdown and a touch's, the two gestures that open it" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > holds the page from a context area's right-button press or a touch, not its primary press)
  */
 const holdPageAtPress = {
   button: pressHandlers(buttonKeys),
   listButton: pressHandlers([...buttonKeys, ...listKeys]),
   listInput: pressHandlers(listKeys),
   dialog: pressHandlers(buttonKeys, true),
+  contextMenu: pressHandlers([], false, (event) => event.button === 2 || event.pointerType === "touch"),
 };
 
 /**
