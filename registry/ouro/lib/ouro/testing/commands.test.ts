@@ -1,5 +1,5 @@
 import { commands, server } from "vitest/browser";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 test("emulateMedia switches reduced motion and color scheme", async () => {
   await commands.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
@@ -47,6 +47,18 @@ test("emulateMedia throws, naming the query, when the frame never matches it", a
     await commands.emulateMedia({ reducedMotion: "no-preference" });
   }
 }, 10_000);
+
+test("emulateMedia returns while the test's fake timers are on", async () => {
+  // The frame's timers are faked, so a wait that relied on them would never end.
+  vi.useFakeTimers();
+  try {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
+  } finally {
+    vi.useRealTimers();
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+  }
+});
 
 test.skipIf(server.browser !== "chromium")("emulateMedia returns once forced colours have settled, past any transition the switch started", async () => {
   // A fill with a transition (the `press` utility's) eases to the forced value: read at once,
