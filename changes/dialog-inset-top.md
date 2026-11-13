@@ -1,0 +1,1 @@
+- New: an app that draws its own bar across the window's top sets `--ouro-inset-top` to its height, and dialogs, their backdrop and a full-screen Lightbox open below it.
