@@ -1,0 +1,1 @@
+- Changed: CI shard times are refreshed from the latest merge-queue run, so shards finish closer together.
