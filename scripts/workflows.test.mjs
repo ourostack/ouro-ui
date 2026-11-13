@@ -2548,7 +2548,9 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   const release = stepScript(auto, "Release a rehearsal that passed");
   assert.match(release, /\[ "\$CONCLUSION" = success \] \|\|/);
   assert.match(release, /gh workflow run release\.yml --ref main -f version=/);
-  assert.doesNotMatch(auto, /retry|sleep/);
+  assert.doesNotMatch(auto, /retry/);
+  assert.match(start, /gh run watch "\$run" --exit-status/);
+  assert.match(start, /gh workflow run release\.yml --ref main -f version="\$version"/);
 });
 
 test("a release rehearsal writes the release commit as Release does, on a branch of its own, runs CI and the screen-reader lane there, tags nothing and deletes the branch", () => {

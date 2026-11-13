@@ -27,7 +27,8 @@ jobs:
       actions: write # start the rehearsal
       contents: read # read changes/ and the newest release
       pull-requests: read # see whether main waits on its preparing pull request
-    timeout-minutes: 10
+    # The rehearsal it starts, up to 150 minutes, then the dispatch of Release.
+    timeout-minutes: 170
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -59,3 +60,19 @@ jobs:
           version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
           echo "Rehearsing v$version, the release after $latest." >> "$GITHUB_STEP_SUMMARY"
           gh workflow run release-rehearsal.yml --ref main -f version="$version"
+          sha=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" refs/heads/main | cut -f1)
+          # A rehearsal dispatched with the workflow token starts no workflow_run, so this job follows it
+          # to its end and releases it, as the workflow_run step above does for one a person started.
+          run=
+          for _ in $(seq 24); do
+            run=$(gh run list --workflow release-rehearsal.yml --event workflow_dispatch --json databaseId,displayTitle,headSha --jq "[.[] | select(.displayTitle == \"Release rehearsal v$version\" and .headSha == \"$sha\")][0].databaseId // empty")
+            [ -n "$run" ] && break
+            sleep 5
+          done
+          [ -n "$run" ] || { echo "::error::The rehearsal of v$version did not start."; exit 1; }
+          echo "Rehearsal: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run" >> "$GITHUB_STEP_SUMMARY"
+          if gh run watch "$run" --exit-status --interval 60 >/dev/null; then
+            gh workflow run release.yml --ref main -f version="$version"
+          else
+            echo "::notice::The rehearsal failed; nothing is released. A merge after its cause is fixed starts the next."
+          fi
