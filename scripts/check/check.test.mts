@@ -783,6 +783,23 @@ describe("Ouro check's design rules", () => {
     assert.deepEqual(quietly.findings.filter((f) => f.rule === "jank"), []);
   });
 
+  test("judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step", async () => {
+    // A button whose first click alone takes 400 ms; the veil covers it after that click, for 1200 ms or for good.
+    const plan = (veil: string) => page(`<button id="open" type="button" aria-expanded="false">Show the plan</button><div id="panel" hidden>The plan.</div><div style="height:1200px"></div><script>const open = document.getElementById("open"); let clicks = 0; open.addEventListener("click", () => { clicks++; if (clicks === 1) { const start = performance.now(); while (performance.now() - start < 400); ${veil} } const shown = open.getAttribute("aria-expanded") === "true"; open.setAttribute("aria-expanded", String(!shown)); document.getElementById("panel").hidden = shown; });</script>`);
+    const cover = `const veil = document.createElement("div"); veil.style.cssText = "position:fixed;inset:0;z-index:9"; document.body.append(veil);`;
+    const slow = page(`<button id="open" type="button" aria-expanded="false">Show the plan</button><div id="panel" hidden>The plan.</div><div style="height:1200px"></div><script>const open = document.getElementById("open"); open.addEventListener("click", () => { const start = performance.now(); while (performance.now() - start < 400); const shown = open.getAttribute("aria-expanded") === "true"; open.setAttribute("aria-expanded", String(!shown)); document.getElementById("panel").hidden = shown; });</script>`);
+    const folder = site("full-runs", {
+      "slow.html": slow,
+      "veiled.html": plan(`${cover} setTimeout(() => veil.remove(), 1200);`),
+      "buried.html": plan(cover),
+    });
+    const result = await check({ targets: [folder], out: dir("full-runs"), sizes: [[1440, 900]], themes: ["light"], chromium, log: quiet });
+    const jank = result.findings.filter((f) => f.rule === "jank");
+    assert.deepEqual(jank.map((f) => `${f.page} ${f.element}`), ['/slow.html opening and closing button#open "Show the plan"']);
+    assert.equal(jank[0]!.samples!.length, 3);
+    assert.ok(jank[0]!.samples!.every((ms) => ms > BUDGETS.jank), JSON.stringify(jank[0]!.samples));
+  });
+
   test("https: a site moves http:// to https:// with a 301 and asks for HSTS for a year, and so does its www. name", async () => {
     const calls: string[] = [];
     // A stand-in for the web: each address answers with a status and headers, or throws as fetch does when a name

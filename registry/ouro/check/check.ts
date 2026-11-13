@@ -266,6 +266,9 @@ const MAX_STEP_SHIFT = 0.01;
 // The walk: at most WALK_EACH states of each kind a page, each stepped WALK_RUNS times, at inp's size and theme.
 const WALK_EACH = 3;
 const WALK_RUNS = 3;
+// How long a run waits for its target to be hittable again (a covered control, a dialog still closing) before its step is
+// left unjudged.
+const WALK_WAIT_MS = 2000;
 // HSTS asks a year at least, as browsers' preload list does.
 const HSTS_MIN = 31536000;
 // How long a page's finite animations may run before the rules judge it anyway.
@@ -612,7 +615,18 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   // jank: steps through each state the page offers (hover a card, open and close a popup, scroll or pan a region)
   // WALK_RUNS times, reading Ouro Feel's measures after each. A step fails when its median longest frame is over the
   // budget, or every run forces more than MAX_FORCED layouts or shifts the page more than MAX_STEP_SHIFT, so one slow
-  // run on a busy machine does not make a finding.
+  // run on a busy machine does not make a finding. A step whose target a run cannot reach (even after WALK_WAIT_MS) is
+  // not judged at all, rather than judged on fewer runs.
+  const aim = async (page: Page, ref: string): Promise<{ x: number; y: number } | null> => {
+    try {
+      const handle = await page.waitForFunction(pressPoint, { ref, never: "[data-ouro-check-never-walk]" }, { timeout: WALK_WAIT_MS, polling: 100 });
+      const point = (await handle.jsonValue()) as { x: number; y: number };
+      await handle.dispose();
+      return point;
+    } catch {
+      return null;
+    }
+  };
   const walk = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
     // At rest first, before anything is hovered or opened.
@@ -628,7 +642,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         // target where it rests.
         await page.mouse.move(0, 0);
         await page.evaluate("new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))");
-        const point = step.page ? { x: width / 2, y: height / 2 } : await page.evaluate(pressPoint, { ref: step.ref, never: "[data-ouro-check-never-walk]" });
+        const point = step.page ? { x: width / 2, y: height / 2 } : await aim(page, step.ref);
         if (!point) break;
         await page.evaluate(resetMotion);
         // Straight to the target in one move, so the pointer's path hovers nothing else on the way.
@@ -649,7 +663,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         await settle();
         runs.push(await page.evaluate(readMotion));
       }
-      if (!runs.length) continue;
+      if (runs.length < WALK_RUNS) continue;
       const frame = [...runs.map((r) => r.longestFrameMs)].sort((a, b) => a - b)[Math.floor(runs.length / 2)]!;
       const forced = Math.min(...runs.map((r) => r.forcedLayouts));
       const shift = Math.min(...runs.map((r) => r.shift));
