@@ -592,8 +592,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: design (${{ matrix.shard }}/3)
+        shard: [1, 2, 3, 4]
+    name: design (${{ matrix.shard }}/4)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -635,7 +635,7 @@ jobs:
         with:
           targets: site/dist
           sizes: 390x844,1440x900,3840x2160
-          shard: ${{ matrix.shard }}/3
+          shard: ${{ matrix.shard }}/4
           script: registry/ouro/check/check.ts
           config: .github/ouro-check.json
           artifact: design-check
