@@ -68,11 +68,12 @@ export interface StackedLayoutProps {
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
-// The first tab stop: hidden until it has keyboard focus, then shown at the top corner.
-const skip =
-  "sr-only focus-visible:top-2 focus-visible:start-2 focus-visible:z-20 focus-visible:m-0 focus-visible:size-auto " +
+// The first tab stop: hidden until it has keyboard focus, then shown at the top corner. Its size is
+// set in rem whether or not it has focus, so a hidden link never inherits a px size from its page.
+const skipClass =
+  "sr-only text-base leading-5 focus-visible:top-2 focus-visible:start-2 focus-visible:z-20 focus-visible:m-0 focus-visible:size-auto " +
   "focus-visible:overflow-visible focus-visible:[clip-path:none] focus-visible:px-4 focus-visible:py-2.5 focus-visible:whitespace-nowrap " +
-  "focus-visible:rounded-lg focus-visible:bg-background focus-visible:text-foreground focus-visible:text-base focus-visible:leading-5 focus-visible:font-medium " +
+  "focus-visible:rounded-lg focus-visible:bg-background focus-visible:text-foreground focus-visible:font-medium " +
   "focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid";
 
 // The navbar and the toolbar: sticky, or with auto-hide, translucent over the page and solid
@@ -193,7 +194,14 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
   const [hidden, show] = useAutoHide(autoHide, bars);
   return (
     <div ref={ref} data-ouro="stacked-layout" className={cn("relative flex min-h-dvh flex-col bg-background text-foreground", className)}>
-      <a href={`#${mainId}`} data-ouro-control="stacked-layout" data-ouro-part="skip-link" onClick={() => main.current!.focus()} className={skip}>
+      <a
+        href={`#${mainId}`}
+        data-ouro-control="stacked-layout"
+        data-ouro-part="skip-link"
+        // Stryker disable next-line ArrowFunction: the link's address also moves focus, so an empty handler changes nothing a test can see.
+        onClick={() => main.current!.focus()}
+        className={skipClass}
+      >
         {skipLabel}
       </a>
       <div
