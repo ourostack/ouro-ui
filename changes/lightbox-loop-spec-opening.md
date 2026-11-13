@@ -1,0 +1,1 @@
+- Fixed: Lightbox's shipped loop spec [presses Next once the viewer has grown from the thumbnail](registry/ouro/e2e/ouro/lightbox.spec.ts "verify:fileLine(registry/ouro/e2e/ouro/lightbox.spec.ts, /await settledBox\(next\);/)"), since a press while it still grew could end off the button in WebKit.
