@@ -76,7 +76,8 @@ export interface ButtonBaseProps {
    * density from the `sm` breakpoint (640px). `inline` is an action inside a line of text,
    * such as Undo in a note: it takes the text's size, leaves the line's height as it was and
    * keeps a target at least 24px tall and wide (44px on a coarse pointer). shadcn's `default`
-   * is `md`; for an icon-only button, pass the icon as children and an `aria-label`. Any other
+   * is `md`; for an icon-only button, pass the icon as children and an `aria-label`: Button sizes
+   * the icon as it sizes `startIcon`, unless the icon has a size class of its own. Any other
    * string is a type error whose message names the fix. @default "md"
    * @claim "are taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::appearance > orders sizes sm < md < lg)
    * @claim "are taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::className > lets the app's height and padding win at desktop widths too)
@@ -283,6 +284,10 @@ const looks = {
 
 const iconClass = "size-[1.25em] shrink-0";
 
+// An icon passed as children sizes like `startIcon`, unless it carries a size class of its own.
+const iconChildClass =
+  "[&>[data-ouro-label]>svg:not([class*='size-'])]:size-[1.25em] [&>[data-ouro-label]>svg]:shrink-0";
+
 const buttonTypes = ["button", "submit", "reset"] as const;
 
 function buttonHint(token: string): string {
@@ -474,7 +479,7 @@ export function Button(props: ButtonProps): JSX.Element {
   }, [pressable]);
 
   const buttonRef = useMergedRef((rest as { ref?: Ref<HTMLElement> }).ref, own);
-  const classes = cn(base, sizes[size], looks[variant][tone], fullWidth && "w-full", className);
+  const classes = cn(base, iconChildClass, sizes[size], looks[variant][tone], fullWidth && "w-full", className);
 
   // The touch target comes first and the label is positioned, so the label paints above
   // the target: the target still enlarges the hit area, and nothing covers the text

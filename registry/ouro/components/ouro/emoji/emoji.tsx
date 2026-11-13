@@ -251,12 +251,14 @@ function stopAnimations(image: HTMLImageElement): void {
 /**
  * Steps a filmstrip through its frames while `strip` is set: one Web Animation on the image's
  * `object-position`, started once the filmstrip has loaded (its height over its width is the
- * number of frames) and cancelled when it stops.
+ * number of frames) and cancelled when it stops. It is cancelled in the same commit that brings
+ * back the still image, so the still is never drawn with the strip's motion.
+ * @claim "It is cancelled in the same commit that brings back the still image" registry/ouro/components/ouro/emoji/emoji.test.tsx verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji > stops a filmstrip in the same commit that brings back the still image, never after it)
  */
 function useFilmstrip(image: { current: HTMLImageElement | null }, strip: EmojiFilmstrip | undefined): void {
   const src = strip?.src;
   const fps = strip?.fps;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (src === undefined) return;
     const own = image.current!;
     let stopped = false;

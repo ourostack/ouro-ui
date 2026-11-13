@@ -88,7 +88,10 @@ test("fades after the pointer rests, stays reachable, and comes back on a move o
   await page.clock.runFor(3000);
   await expect(toolbar).toHaveAttribute("data-hidden", "");
   await expect(toolbar.getByRole("button", { name: "Mute" })).toBeFocused();
-  await page.clock.runFor(1000);
+  // The tooltip leaves on an animation frame it asks for only once React has run the close, which a
+  // loaded runner can do after any set run of the held clock (ourostack/ouro-ui#902): let the clock
+  // run and wait for it to go.
+  await page.clock.resume();
   await expect(page.locator('[data-ouro="tooltip"]')).toHaveCount(0);
 });
 

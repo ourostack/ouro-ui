@@ -3,6 +3,7 @@ import type { CDPSession, Frame, Page } from "playwright";
 import type { BrowserCommand } from "vitest/node";
 import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import { hrtime } from "node:process";
+import { setTimeout as sleep } from "node:timers/promises";
 
 export interface EmulateMediaOptions {
   reducedMotion?: "reduce" | "no-preference";
@@ -29,24 +30,75 @@ export interface DragOptions {
 
 /**
  * Wraps Playwright's `page.emulateMedia` for motion, color, contrast and forced-color preferences.
+ * This returns once the test frame's `matchMedia` matches every preference passed, so a test reads the
+ * new styles on its next line.
  * A forced-colours switch restyles the page at once, and a colour with a transition (the `press`
- * utility's) then eases to its new value, so this returns once those transitions have finished:
+ * utility's) then eases to its new value, so this also returns once those transitions have finished:
  * a test reads where each colour lands, not a colour between the two.
  *
- * @claim "this returns once those transitions have finished" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /emulateMedia returns once forced colours have settled, past any transition the switch started/)
+ * @claim "This returns once the test frame's `matchMedia` matches every preference passed" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::emulateMedia returns once the frame matches the preference, so the next line reads its styles)
+ * @claim "this also returns once those transitions have finished" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /emulateMedia returns once forced colours have settled, past any transition the switch started/)
  */
 export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, options) => {
   await ctx.page.emulateMedia(options);
-  if (!("forcedColors" in options)) return;
   const frame = await ctx.frame();
+  const queries = mediaQueries(options);
+  if (queries.length > 0) await awaitMedia(frame, queries);
+  if (!("forcedColors" in options)) return;
   await within(frame.evaluate(SETTLE_TRANSITIONS), 3000, "transitions did not settle within 3s").catch(() => undefined);
 };
+
+const MEDIA_FEATURES: Record<keyof EmulateMediaOptions, string> = {
+  reducedMotion: "prefers-reduced-motion",
+  colorScheme: "prefers-color-scheme",
+  forcedColors: "forced-colors",
+  contrast: "prefers-contrast",
+};
+
+/** The media queries a set of preferences makes true, one per preference passed. */
+function mediaQueries(options: EmulateMediaOptions): string[] {
+  return (Object.keys(MEDIA_FEATURES) as (keyof EmulateMediaOptions)[]).flatMap((key) => (options[key] === undefined ? [] : [`(${MEDIA_FEATURES[key]}: ${options[key]})`]));
+}
+
+/** How long `emulateMedia` waits for the test frame to match: as long as a poll waits. */
+const MEDIA_WAIT_MS = 10_000;
+
+/** How long `emulateMedia` gives the frame to answer one read of its media, however close the deadline. */
+const MEDIA_ANSWER_MS = 3000;
+
+/**
+ * Polls the frame's `matchMedia` from Node until the queries match. The poll runs here, not in the
+ * frame, because a test's fake timers in the frame would stall a wait that the frame's own timers drive.
+ * @claim "Polls the frame's `matchMedia` from Node until the queries match" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::emulateMedia returns while the test's fake timers are on)
+ */
+async function awaitMedia(frame: Frame, queries: string[]): Promise<void> {
+  // As long as a poll waits (the projects' 10 s), since a loaded runner can be slow to answer.
+  const deadline = performance.now() + MEDIA_WAIT_MS;
+  const unmatched = `${JSON.stringify(queries)}.find((query) => !matchMedia(query).matches)`;
+  for (;;) {
+    // Each read gets at least MEDIA_ANSWER_MS, so a read begun just before the deadline can still answer
+    // and the failure names the query that does not match, not a frame that did not answer.
+    const limit = Math.max(deadline - performance.now(), MEDIA_ANSWER_MS);
+    const missing = await within(frame.evaluate<string | undefined>(unmatched), limit, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(limit)}ms`);
+    if (missing === undefined) return;
+    if (performance.now() > deadline) throw new Error(`the test frame does not match ${missing} within ${MEDIA_WAIT_MS / 1000}s`);
+    await sleep(10);
+  }
+}
 
 /** Waits for the running transitions in a frame (`getAnimations` restyles first, starting them). */
 const SETTLE_TRANSITIONS = `Promise.all(document.getAnimations().filter((animation) => animation instanceof CSSTransition && animation.playState === "running").map((animation) => animation.finished.catch(() => undefined))).then(() => undefined)`;
 
 /** How much longer than its `durationMs` a mouse drag runs before it logs where it is waiting. */
 export const DRAG_SLOW_MS = 3000;
+
+/**
+ * Prints a mouse drag's trace as information, and only when `OURO_TOUCH_TRACE=1` is set: the same
+ * switch as the touch commands' trace, so an app has one switch for the kit's pointer traces.
+ */
+function dragTrace(message: string) {
+  if (process.env.OURO_TOUCH_TRACE === "1") console.info(message);
+}
 
 /**
  * Drags with real mouse events through Playwright's `page.mouse`, spreading the
@@ -56,10 +108,13 @@ export const DRAG_SLOW_MS = 3000;
  * A drag still running `DRAG_SLOW_MS` past its `durationMs` logs the step the browser
  * has not answered yet and how long each step before it took, so a test that then hits
  * its time limit says where the drag stalled; if the drag finishes after all, it logs
- * every step's time. A drag that finishes in time logs nothing, and a slow one is not refused.
- * @claim "logs the step the browser" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag the browser stops answering logs the move it is stuck on and each earlier move's time, and is not refused)
- * @claim "if the drag finishes after all" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a slow mouse drag that finishes logs every step's time once it ends)
- * @claim "A drag that finishes in time logs nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag that finishes in time logs nothing)
+ * every step's time. Those lines print only with `OURO_TOUCH_TRACE=1`, as information; without
+ * it a slow drag prints nothing. A drag that finishes in time logs nothing, and a slow one is not refused.
+ * @claim "logs the step the browser" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::with OURO_TOUCH_TRACE set, a mouse drag the browser stops answering logs the move it is stuck on and each earlier move's time as information, and is not refused)
+ * @claim "Those lines print only with" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /process\.env\.OURO_TOUCH_TRACE === "1"\) console\.info\(message\)/)
+ * @claim "without it a slow drag prints nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::without OURO_TOUCH_TRACE, a mouse drag the browser stops answering prints nothing, and is not refused) verify:testExists(scripts/touch-kit-frames.test.mjs::without OURO_TOUCH_TRACE, a slow mouse drag that finishes prints nothing)
+ * @claim "if the drag finishes after all" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::with OURO_TOUCH_TRACE set, a slow mouse drag that finishes logs where it waited and every step's time as information once it ends)
+ * @claim "A drag that finishes in time logs nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag that finishes in time logs nothing, even with OURO_TOUCH_TRACE set)
  */
 export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps, durationMs, hold }) => {
   const { page } = ctx;
@@ -75,7 +130,7 @@ export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps
   let logged = false;
   const cancel = after({ kit: kitNow() + slow, real: start + slow }, () => {
     logged = true;
-    console.warn(`drag: still waiting on ${waiting} after ${since(begun)}ms, ${since(start)}ms into ${about()}. Each step before it, pauses between moves left out: ${timesText()}.`);
+    dragTrace(`drag: still waiting on ${waiting} after ${since(begun)}ms, ${since(start)}ms into ${about()}. Each step before it, pauses between moves left out: ${timesText()}.`);
   });
   const timed = async (name: string, run: () => Promise<unknown>) => {
     waiting = name;
@@ -99,7 +154,7 @@ export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps
   } finally {
     cancel();
   }
-  if (logged) console.warn(`drag: finished after ${since(start)}ms, in ${about()}. Each step, pauses between moves left out: ${timesText()}.`);
+  if (logged) dragTrace(`drag: finished after ${since(start)}ms, in ${about()}. Each step, pauses between moves left out: ${timesText()}.`);
 };
 
 export interface FlickOptions {
