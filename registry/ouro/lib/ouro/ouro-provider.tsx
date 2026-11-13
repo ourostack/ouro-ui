@@ -196,6 +196,7 @@ export function OuroProvider({ children, linkComponent, portalContainer, motion:
   );
   useEffect(() => {
     registerHyperellipse();
+    // Stryker disable next-line ArrayDeclaration: registration is idempotent, so a changed dependency list repeats a no-op
   }, []);
   useEffect(() => {
     if (!quiet) return;
