@@ -5,7 +5,7 @@
 A component's agent side: what an agent may read from it and which of its actions an agent may take, each bound to the CLI command that does the same (its twin). `defineComponentAx` declares it once beside the component; the app binds the twins with `bindAx`, because a component does not know the app's command names; the entries `bindAx` returns go into the X-ray's inventory under `ui`, and the X-ray checks every twin from outside. Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own. A component imports `defineComponentAx` from the kit's `ouro/ax/component` under the registry alias, which the shadcn CLI rewrites to the app's lib alias (`@/lib/ouro/ax/component`), and its item brings `ax-component` with it. The path is not spelled out here, since an installed file may not name the registry.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-component#v1.3.13
+npx shadcn@latest add ourostack/ouro-ui/ax-component#v1.3.14
 ```
 
 It installs `lib/ouro/ax/component.ts`, with `ax-effects`. Its tests are `ax-component-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
