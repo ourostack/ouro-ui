@@ -1536,7 +1536,7 @@ function scanScript(module, resolver, failureCopyAllow) {
     if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !inButton(node, control) && standsAlone(node)) addSpinner(node, control.display, props);
     // Counted where it is written, like a spinner: a drawn avatar is not a control. Only an intrinsic element counts, so Ouro's Avatar and its className never do.
     if (control.tags.length === 1 && classStrings.length > 0) {
-      const empty = ts.isJsxSelfClosingElement(node) || node.parent.children.every((child) => ts.isJsxText(child) && child.containsOnlyTriviaWhiteSpaces);
+      const empty = !ts.isJsxElement(node.parent) || node.parent.children.every((child) => ts.isJsxText(child) && child.containsOnlyTriviaWhiteSpaces);
       const drawn = drawnShape(baseTokens(classStrings), control.tags[0], empty);
       if (drawn) offenders.push({ category: drawn, fingerprint: [file, componentName(node), drawn, control.display, props].join("::"), file, line: lineOf(node) });
     }
