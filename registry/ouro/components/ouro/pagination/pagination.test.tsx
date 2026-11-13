@@ -544,7 +544,7 @@ describe("Pagination in a column", () => {
     await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
     // The room is the column's width plus half a pixel, so widen the first page by the rest to lay the list out exactly that wide.
     const room = Math.ceil(fullListWidth(nav));
-    pageItems(nav)[0].style.paddingRight = `${room + 0.5 - fullListWidth(nav)}px`;
+    pageItems(nav)[0]!.style.paddingRight = `${room + 0.5 - fullListWidth(nav)}px`;
     expect(fullListWidth(nav)).toBe(room + 0.5);
     column.style.width = `${room}px`;
     await settle();
@@ -557,20 +557,26 @@ describe("Pagination in a column", () => {
     expect(shown(summaryItem(nav))).toBe(false);
   });
 
-  it("keeps the summary's class on a phone when only the pages would overflow the column", async () => {
+  it("does not measure the pages on a phone, so their classes stay as the sm rule has them", async () => {
     await page.viewport(390, 844);
-    const { nav, column } = await mountIn(<Pagination page={25} pageCount={50} href={href} />, { width: 1000 });
+    const { nav, column } = await mountIn(<Pagination className="mx-2" page={25} pageCount={50} href={href} />, { width: 1000 });
     await settle();
     const widthOf = (selector: string) => itemOf(nav.querySelector(selector)!).getBoundingClientRect().width;
-    // Previous, the summary and Next fit this column. The pages' gaps, which a phone does not measure, would not.
-    column.style.width = `${Math.ceil(widthOf("[data-ouro-pagination-previous]") + widthOf("[data-ouro-pagination-summary]") + widthOf("[data-ouro-pagination-next]") + 8)}px`;
+    const expectSmClasses = () => {
+      expect(summaryItem(nav).classList.contains("sm:hidden")).toBe(true);
+      for (const item of pageItems(nav)) {
+        expect(item.classList.contains("max-sm:hidden")).toBe(true);
+        expect(item.classList.contains("hidden")).toBe(false);
+      }
+    };
+    // A column no wider than Previous and Next, with the nav's 8px margins on each side. The pages' gaps, which a phone does not measure, would overflow it.
+    column.style.width = `${Math.ceil(widthOf("[data-ouro-pagination-previous]") + widthOf("[data-ouro-pagination-next]")) + 16}px`;
     await settle();
-    expect(shown(summaryItem(nav))).toBe(true);
-    expect(summaryItem(nav).classList.contains("sm:hidden")).toBe(true);
-    for (const item of pageItems(nav)) {
-      expect(item.classList.contains("max-sm:hidden")).toBe(true);
-      expect(item.classList.contains("hidden")).toBe(false);
-    }
+    expectSmClasses();
+    // Narrower than the margins, the room is negative, and a measure of the hidden list would still find it too small.
+    column.style.width = "8px";
+    await settle();
+    expectSmClasses();
   });
 
   it("keeps focus on a control outside the pager when the summary replaces the pages", async () => {

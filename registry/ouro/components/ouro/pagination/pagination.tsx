@@ -194,6 +194,7 @@ function useListFit(navRef: RefObject<HTMLElement | null>, listRef: RefObject<HT
 
   useLayoutEffect(() => {
     measure.current = () => {
+      // Stryker disable next-line ConditionalExpression: without a page count the pager has no page numbers or summary, so a fit either way changes no class or focus.
       if (key === undefined) return;
       const nav = navRef.current!;
       const list = listRef.current!;
@@ -221,27 +222,30 @@ function useListFit(navRef: RefObject<HTMLElement | null>, listRef: RefObject<HT
     measure.current!();
   }, [fits, key, navRef, listRef]);
 
-  useLayoutEffect(() => {
-    const observer = new ResizeObserver(() => flushSync(() => measure.current!()));
-    observer.observe(navRef.current!.parentElement!);
-    observer.observe(document.documentElement);
-    // Fonts change the cells' widths and may change nothing the observer sees. A font that
-    // finishes loading measures again once it is ready, unless the nav has gone.
-    const fonts = document.fonts;
-    const refit = () =>
-      void fonts.ready.then(() => {
-        if (navRef.current === null) return;
-        measured.current = null;
-        measure.current!();
-      });
-    fonts.addEventListener("loading", refit);
-    refit();
-    return () => {
-      observer.disconnect();
-      fonts.removeEventListener("loading", refit);
-    };
+  useLayoutEffect(
+    () => {
+      const observer = new ResizeObserver(() => flushSync(() => measure.current!()));
+      observer.observe(navRef.current!.parentElement!);
+      observer.observe(document.documentElement);
+      // Fonts change the cells' widths and may change nothing the observer sees. A font that
+      // finishes loading measures again once it is ready, unless the nav has gone.
+      const fonts = document.fonts;
+      const refit = () =>
+        void fonts.ready.then(() => {
+          if (navRef.current === null) return;
+          measured.current = null;
+          measure.current!();
+        });
+      fonts.addEventListener("loading", refit);
+      refit();
+      return () => {
+        observer.disconnect();
+        fonts.removeEventListener("loading", refit);
+      };
+    },
     // Stryker disable next-line ArrayDeclaration: the nav's and the list's refs are the same objects for the nav's life, so any constant list runs this effect once, as this one does.
-  }, [navRef, listRef]);
+    [navRef, listRef],
+  );
 
   return fits;
 }
