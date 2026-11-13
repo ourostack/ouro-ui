@@ -20,7 +20,8 @@
             }
           },
           "tests": [
-            "registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in on mount, and only fades it with reduced motion"
+            "registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in on mount, and only fades it with reduced motion",
+            "registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises live media in on mount like a picture"
           ]
         }
       }

@@ -61,12 +61,24 @@ export interface HeroOwnProps {
   title: ReactNode;
   /** A short line above the title that says what kind of page this is. */
   eyebrow?: ReactNode;
-  /** The lede: a short paragraph under the title. */
+  /**
+   * The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as
+   * paragraphs or a list, is set in a `<div>` so it can hold blocks.
+   */
   description?: ReactNode;
   /** The hero's buttons or links, such as Ouro buttons. */
   actions?: ReactNode;
   /** The big picture, shown under the text. */
   picture?: HeroPicture | undefined;
+  /** Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. */
+  media?: ReactNode;
+  /**
+   * The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never
+   * upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead.
+   *
+   * @claim "so it is never upscaled" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows live media wider than mediaWidth)
+   */
+  mediaWidth?: number | undefined;
   /** `stage` centres the text over the picture; `column` aligns both to a reading column. @default "stage" */
   layout?: HeroLayout | (string & { 'Use "stage" or "column"': never }) | undefined;
   /** `rise` lifts the picture into place on mount, with reduced motion fading it in. @default "rise" */
@@ -116,9 +128,9 @@ const layoutMedia: Record<HeroLayout, string> = {
 
 /**
  * The top of a page: a headline with an optional line above it (`eyebrow`), a lede under
- * it (`description`), the page's buttons (`actions`) and a big picture below. The picture
- * rises into place on mount unless `motion="none"`, and it is never shown wider than its
- * intrinsic width.
+ * it (`description`), the page's buttons (`actions`) and a big picture, or something live in
+ * its place (`media`), below. The picture rises into place on mount unless `motion="none"`,
+ * and it is never shown wider than its intrinsic width.
  *
  * Use `PageHeader` instead for a page's top with a breadcrumb or no picture, and `Heading`
  * for a plain title with nothing around it.
@@ -143,6 +155,8 @@ export function Hero(props: HeroProps): JSX.Element {
     description,
     actions,
     picture,
+    media,
+    mediaWidth,
     layout: layoutProp = "stage",
     motion: motionProp = "rise",
     headingLevel: headingLevelProp = 1,
@@ -155,6 +169,8 @@ export function Hero(props: HeroProps): JSX.Element {
     className,
     ...rest
   } = props;
+  // A lede that is only text is a paragraph; one made of blocks needs a <div> to be valid HTML.
+  const Lede = typeof description === "string" || typeof description === "number" ? "p" : "div";
   const layout: HeroLayout = layoutProp === "column" ? "column" : "stage";
   // Stryker disable next-line StringLiteral: motion is only compared with "rise", so "" and "none" behave the same.
   const motion = motionProp === "none" ? "none" : "rise";
@@ -190,6 +206,11 @@ export function Hero(props: HeroProps): JSX.Element {
               "picture has no alt text",
               '<Hero picture={{ src, width, height, alt: "A table set for four" }} />',
             ],
+          picture !== undefined &&
+            media != null && [
+              "picture and media are both set; show one: picture for a still image, media for something live",
+              '<Hero media={<video src="..." muted autoPlay loop playsInline />} />',
+            ],
           subtitle !== undefined && ["subtitle is not a prop", '<Hero description="..." />'],
           heading !== undefined && ["heading is not a prop", '<Hero title="Dinner, sorted" />'],
           overline !== undefined && ["overline is not a prop", '<Hero eyebrow="Recipes" />'],
@@ -204,7 +225,48 @@ export function Hero(props: HeroProps): JSX.Element {
         maxWidth: `${picture.width}px`,
         ...(crop ? { "--hero-crop": crop } : {}),
       } as CSSProperties)
-    : undefined;
+    : // Stryker disable next-line ConditionalExpression: without mediaWidth the style would be "undefinedpx", which the browser drops, so the page is the same.
+      mediaWidth !== undefined
+      ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
+      : undefined;
+  const shown = picture ? (
+    <picture aria-hidden={picture.decorative ? true : undefined} className="block">
+      {picture.sources?.map((source) => {
+        // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
+        const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
+        return (
+          <source
+            key={key}
+            srcSet={source.srcSet}
+            type={source.type}
+            media={source.media}
+            sizes={source.sizes}
+          />
+        );
+      })}
+      <img
+        data-slot="image"
+        src={picture.src}
+        srcSet={picture.srcSet}
+        sizes={picture.sizes}
+        width={picture.width}
+        height={picture.height}
+        alt={picture.decorative ? "" : picture.alt}
+        draggable={false}
+        fetchPriority={picture.priority ? "high" : undefined}
+        loading={picture.priority ? undefined : "lazy"}
+        decoding={picture.priority ? undefined : "async"}
+        style={{ objectPosition: picture.focus ?? "50% 42%" }}
+        className={cn(
+          "block h-auto w-full object-cover select-none",
+          crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
+        )}
+      />
+    </picture>
+  ) : typeof media === "boolean" ? null : (
+    // `media={isWide && <video … />}` passes false: no empty frame rises in its place.
+    media
+  );
   return (
     <header
       {...rest}
@@ -222,12 +284,12 @@ export function Hero(props: HeroProps): JSX.Element {
           {title}
         </Heading>
         {description != null ? (
-          <p
+          <Lede
             data-slot="description"
             className="m-0 max-w-[60ch] text-base leading-7 text-muted-foreground text-pretty min-[40rem]:text-lg min-[40rem]:leading-8"
           >
             {description}
-          </p>
+          </Lede>
         ) : null}
         {actions != null ? (
           <div data-slot="actions" className={cn("flex flex-wrap gap-3", layoutActions[layout])}>
@@ -235,7 +297,7 @@ export function Hero(props: HeroProps): JSX.Element {
           </div>
         ) : null}
       </div>
-      {picture ? (
+      {shown != null ? (
         <div
           data-slot="media"
           data-ouro-part="media"
@@ -249,39 +311,7 @@ export function Hero(props: HeroProps): JSX.Element {
             crop && "relative min-[40rem]:aspect-[var(--hero-crop)]",
           )}
         >
-          <picture aria-hidden={picture.decorative ? true : undefined} className="block">
-            {picture.sources?.map((source) => {
-              // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
-              const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
-              return (
-                <source
-                  key={key}
-                  srcSet={source.srcSet}
-                  type={source.type}
-                  media={source.media}
-                  sizes={source.sizes}
-                />
-              );
-            })}
-            <img
-              data-slot="image"
-              src={picture.src}
-              srcSet={picture.srcSet}
-              sizes={picture.sizes}
-              width={picture.width}
-              height={picture.height}
-              alt={picture.decorative ? "" : picture.alt}
-              draggable={false}
-              fetchPriority={picture.priority ? "high" : undefined}
-              loading={picture.priority ? undefined : "lazy"}
-              decoding={picture.priority ? undefined : "async"}
-              style={{ objectPosition: picture.focus ?? "50% 42%" }}
-              className={cn(
-                "block h-auto w-full object-cover select-none",
-                crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
-              )}
-            />
-          </picture>
+          {shown}
         </div>
       ) : null}
     </header>

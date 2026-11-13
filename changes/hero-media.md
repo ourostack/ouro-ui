@@ -1,0 +1,1 @@
+- New: pass `media` to `Hero` instead of `picture` to show something live in the picture's place, such as a video or a demo; it rises in the same way, and `mediaWidth` keeps it from being drawn larger than its file. A `description` made of blocks, such as paragraphs or a list, is set in a `<div>` instead of a `<p>`.
