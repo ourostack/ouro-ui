@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.14 ourostack/ouro-ui/ouro-source-rules#v1.3.14
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.15 ourostack/ouro-ui/ouro-source-rules#v1.3.15
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -207,7 +207,7 @@ The check also holds pages to design rules that measurement can decide, after Re
 | `cramped-heading` | A heading, with the icon on its row, closer to a picture or a filled or framed box above it than half its font size (a quarter, for its own card's picture). What follows a heading belongs to it, so only the space above is judged.[^check-design] |
 | `nested-frame` | A frame inside a frame: a framed box hugging another within 6px on every side (a double border); or a rounded, filled or framed box whose child has an edge of its own (a fill, a frame, or a picture that runs to its corner, not an icon or a clear logo) and sits near its corner with a radius that isn't the outer radius less the inset, so the corners don't nest.[^check-design] |
 | `baked-corner` | A picture or video whose own pixels draw a corner inside the page's frame (the roundest clipping box it fills, past a wrapper of zero size), such as a screen recording of a window with its dark corner showing in a rounded frame.[^check-corner-frame] Read from the pixels, on the video's first frame, at two corners or more in the same colour.[^check-design] |
-| `type-scale` | More than 10 text sizes, or more than 3 font weights, on a page.[^check-design] |
+| `type-scale` | More than 10 text sizes, or more than 3 font weights, on a page.[^check-design] Text inside an element that opts out with `data-ouro-allow="type-scale"` and a reason (hand lettering, say) is left out of the counts; the rest of the page is still held to the scale. |
 | `shadow-scale` | More than 5 different shadows on a page.[^check-design] |
 | `grey-on-colour` | Grey text on a coloured background, which reads washed out: use a shade of the background's own hue.[^check-design] |
 | `heading-hierarchy` | A heading drawn larger than the heading of higher rank it sits under, each at the largest size its text is drawn at.[^check-design] |
@@ -285,14 +285,14 @@ To check an app in views it reaches by presses, such as an open chat or a call, 
 
 Each page and state loads afresh in a browser context of its own, so what one saves (an app's last view) reaches no other, a route in its address's hash included; and its finite animations run to their end, up to 2 s, before the rules judge it.[^check-settle]
 
-`layout-shift` and `first-content` read one load of each page at each size, and `inp` a few presses, so a result just over its budget can be the runner rather than the page. Check a borderline finding before you fix it: run the check on that page again, or raise `pressRepeat`. A finding well over its budget, or one that shows at several sizes, is the page.[^check-measured]
+`first-content` is measured again on a second load when its first load is over budget. It is reported only when both loads are over, at the lower of the two, so one slow load on a busy runner fails no gate.[^check-first-content] `layout-shift` reads one load of each page at each size, and `inp` a few presses, so a result just over its budget can be the runner rather than the page.[^check-measured] Check a borderline `layout-shift` or `inp` finding before you fix it: run the check on that page again, or raise `pressRepeat`. A finding well over its budget, or one that shows at several sizes, is the page.[^check-measured]
 
 A new rule can start without failing a build: waive it on all pages, with the reason, and remove the waiver once its findings are fixed.[^check-shard] This repository's own site does that while the measured rules settle.[^check-site]
 
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.14
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.15
 node lib/ouro/check/check.ts dist
 ```
 
@@ -364,7 +364,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.14
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.15
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -374,7 +374,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.14
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.15
         with:
           merge: "true"
 ```
@@ -394,7 +394,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.14
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.15
 node lib/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -465,6 +465,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [^check-sizes]: registry/ouro/check/check.ts verify:fileLine(registry/ouro/check/check.ts, /^  \[320, 640\], /) verify:fileLine(registry/ouro/check/check.ts, /\[3840, 2160\],$/) verify:fileLine(registry/ouro/check/check.ts, /^  \[640, 360\], \[720, 420\], \[900, 500\], \[1000, 600\],$/) verify:fileLine(registry/ouro/check/check.ts, /^const dprAt = \(width: number\) => \(width <= 3072 \? 2 : 1\);$/) verify:testExists(scripts/check/check.test.mts::Ouro check > draws a screen wider than 3072px at density 1, holds its pictures to that, and records the density of each finding)
 [^check-truncate]: test:test/check-in-page.test.ts::findSizeIssues: clipped-text > passes text that fits, hidden text, a block with block children, allowed clamps, and truncation whose whole text is still there; test:test/check-in-page.test.ts::findSizeIssues: clipped-text > finds text cut across by its box, and an ellipsis or a line clamp that leaves the whole text nowhere verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > passes text that fits, hidden text, a block with block children, allowed clamps, and truncation whose whole text is still there) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > finds text cut across by its box, and an ellipsis or a line clamp that leaves the whole text nowhere)
 [^check-measured]: test:scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number verify:testExists(scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number)
+[^check-first-content]: test:scripts/check/check.test.mts::Ouro check > drops a first content over budget when its second load is within budget, since one slow response is the runner verify:testExists(scripts/check/check.test.mts::Ouro check > drops a first content over budget when its second load is within budget, since one slow response is the runner)
 [^check-shift]: test:test/check-measure.test.ts::listenForMeasures > scores the largest burst of shifts no input caused, and keeps the element that moved most verify:testExists(test/check-measure.test.ts::listenForMeasures > scores the largest burst of shifts no input caused, and keeps the element that moved most)
 [^check-press]: test:test/check-measure.test.ts::markPressables > marks and names the listed controls, shown and enabled, up to the limit, and never a destructive one, a link or a form submit; test:test/check-measure.test.ts::pressPoint > gives no point where the press would click a control it never presses, such as a destructive button in a listed wrapper verify:testExists(test/check-measure.test.ts::markPressables > marks and names the listed controls, shown and enabled, up to the limit, and never a destructive one, a link or a form submit) verify:testExists(test/check-measure.test.ts::pressPoint > gives no point where the press would click a control it never presses, such as a destructive button in a listed wrapper)
 [^check-opt-in]: test:scripts/check/check.test.mts::Ouro check > presses only what a page or the config lists, never a destructive control, as often as the config says; test:test/check-measure.test.ts::markPressables > marks nothing unless it is listed for pressing verify:testExists(scripts/check/check.test.mts::Ouro check > presses only what a page or the config lists, never a destructive control, as often as the config says) verify:testExists(test/check-measure.test.ts::markPressables > marks nothing unless it is listed for pressing)

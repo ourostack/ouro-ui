@@ -355,9 +355,6 @@
   }
 
   /* Layout: the Ouro AX page's bands, beats and pairs (Tailwind's breakpoints: sm 40rem, md 48rem, lg 64rem, xl 80rem). */
-  .site-hero.ax-hero {
-    padding-block: calc(var(--spacing) * 10) calc(var(--spacing) * 16);
-  }
   .ax-band {
     padding-block: calc(var(--spacing) * 16);
   }
@@ -400,12 +397,6 @@
     }
   }
   @media (width >= 64rem) {
-    .site-hero.ax-hero {
-      padding-block: calc(var(--spacing) * 16) calc(var(--spacing) * 24);
-    }
-    .ax-hero-grid {
-      grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
-    }
     .ax-band {
       padding-block: calc(var(--spacing) * 24);
     }

@@ -1,5 +1,6 @@
 import type { JSX, ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock } from "../components/code";
 import kit from "./kit.json";
@@ -7,7 +8,7 @@ import { LayersBand } from "./layers";
 import { ReinsRace } from "./reins-race";
 import { ReinsTerminal } from "./reins-terminal";
 import { StoryOpener } from "../components/story-world";
-import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
+import { AppleBand, AppleMenu, NextPage } from "./shell";
 import "./feel-reins.css";
 
 const GUIDE = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-reins/README.md`;
@@ -120,10 +121,26 @@ export default function AppleReins(): JSX.Element {
     <div id="apple-reins" className="apple">
       <AppleMenu current="/apple/reins/" />
       <StoryOpener scene="ouro-ui-apple" line="No thumbs needed: the robot drives all three screens with ls and do." />
-      <AppleHero
-        id="apple-reins-title"
+      <Hero
+        layout="split"
         eyebrow="Ouro Reins"
         title="Hand an agent the reins."
+        description={
+          <div className="grid gap-3">
+            <p>
+              Agents used to drive apps the way a tourist drives abroad: squinting at screenshots, tapping where the label probably is. With Ouro Reins an agent reads the
+              screen as state and actions and drives it with <code className="apple-code">ls</code> and <code className="apple-code">do</code>. Headless, from
+              fixtures, with the network blocked, in milliseconds.
+            </p>
+            <p className="apple-fine">
+              The idea is Shopify's{" "}
+              <a className="apple-inline-link" href={REFLEX}>
+                Reflex
+              </a>
+              , which showed view models driven this way. We took the contract, left the macro, and brought it to SwiftUI. Thank you, Shopify.
+            </p>
+          </div>
+        }
         media={
           <div className="reins-hero-race" id="race">
             <h2 className="reins-hero-race-title">
@@ -158,20 +175,7 @@ export default function AppleReins(): JSX.Element {
             </Button>
           </>
         }
-      >
-        <p>
-          Agents used to drive apps the way a tourist drives abroad: squinting at screenshots, tapping where the label probably is. With Ouro Reins an agent reads the
-          screen as state and actions and drives it with <code className="apple-code">ls</code> and <code className="apple-code">do</code>. Headless, from
-          fixtures, with the network blocked, in milliseconds.
-        </p>
-        <p className="apple-fine">
-          The idea is Shopify's{" "}
-          <a className="apple-inline-link" href={REFLEX}>
-            Reflex
-          </a>
-          , which showed view models driven this way. We took the contract, left the macro, and brought it to SwiftUI. Thank you, Shopify.
-        </p>
-      </AppleHero>
+      />
 
       <AppleBand
         id="drive"

@@ -666,3 +666,20 @@ jobs:
           gh issue create --title "Release $TAG: main or Pages did not follow" --body "$body" || echo "::warning::Could not open the issue."
           echo "::error::$body"
           exit 1
+  next:
+    # A run that Release auto dispatched with GITHUB_TOKEN starts no workflow_run when it ends, so
+    # the release that follows is started from here, whatever this one's result, so a failed step cannot stall the train; Release auto's own checks decide.
+    # The run id says this run no longer counts as a release in progress.
+    needs: [release, queue, publish]
+    if: ${{ always() && needs.release.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # start Release auto
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Start the next release
+        run: |
+          gh workflow run release-auto.yml --ref main -f after="$GITHUB_RUN_ID"

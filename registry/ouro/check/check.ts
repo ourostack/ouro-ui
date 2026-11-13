@@ -292,6 +292,13 @@ const refused = (problem: Error): never => {
 };
 // The 75th percentile of some numbers, 0 for none.
 const p75 = (samples: number[]) => [...samples].sort((a, b) => a - b)[Math.ceil(samples.length * 0.75) - 1] ?? 0;
+// A first content over budget on both loads is reported once, at the lower of the two, from the first load's element; a
+// second load within budget leaves no finding.
+const lowerOfTwoLoads = (first: PageIssue, again: PageIssue | undefined): PageIssue | undefined => {
+  if (!again) return undefined;
+  const best = Math.min(first.value!, again.value!);
+  return { ...first, value: best, samples: [first.value!, again.value!], detail: `${best} ms to its largest content at best of two loads (${first.value} ms, then ${again.value} ms), over the budget of ${first.budget} ms` };
+};
 const keyOf = (f: Finding) => `${f.site}\u0000${f.page}\u0000${f.rule}\u0000${f.element}`;
 const spotOf = (f: Finding) => `${keyOf(f)}\u0000${f.width}x${f.height}\u0000${f.theme}`;
 const pageOf = (f: { site: string; page: string }) => `${f.site} ${f.page}`;
@@ -705,6 +712,20 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     }
     return found;
   };
+  // A first content over budget is measured again on a second load in a browser context of its own: one slow load on a
+  // busy runner is not the page. A second load that cannot reach the page keeps the first finding as it was, since
+  // nothing shows that the page was within budget.
+  const measureAgain = async (target: Target, width: number, height: number, theme: string, first: PageIssue): Promise<PageIssue | undefined> => {
+    const context = await contextFor(width, height, theme);
+    try {
+      const tab = await context.newPage();
+      if ((await reach(tab, target)).failed) return first;
+      const again = (await tab.evaluate(findLoadingIssues, budgets)).find((issue) => issue.rule === "first-content");
+      return lowerOfTwoLoads(first, again);
+    } finally {
+      await context.close();
+    }
+  };
   const checkPage = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     const runtime = listenForRuntime(page, target.url);
     const { failed, ready } = await reach(page, target);
@@ -715,7 +736,15 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       if (!ready) issues.push({ ref: "", rule: "not-ready", element: "the page", detail: `no ready signal in ${readyTimeout / 1000} s (ouro:ready, data-app-ready or a drawn h1)` });
       // The loading measures first, before any rule scrolls: a script's scroll doesn't end largest-contentful-paint as a
       // person's does, so a picture far down that a later rule scrolls to would otherwise read as the first content.
-      if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
+      if (measured) {
+        const loading = await page.evaluate(findLoadingIssues, budgets);
+        const first = loading.find((issue) => issue.rule === "first-content");
+        issues.push(...loading.filter((issue) => issue !== first));
+        if (first) {
+          const settled = await measureAgain(target, width, height, theme, first);
+          if (settled) issues.push(settled);
+        }
+      }
       // axe first: it names an element by its rarest attribute, which would otherwise be the other rules' marks, a new
       // one at each size.
       if (axe && axeAt.has(`${width}x${height}`)) {

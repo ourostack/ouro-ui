@@ -326,8 +326,9 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // type-scale and shadow-scale: what the page draws, counted once.
-  const texts = visible.filter(hasText);
+  // type-scale and shadow-scale: what the page draws, counted once. Text an element opts out of with a reason (hand
+  // lettering, say) is art, so it is left out of the size and weight counts; the rest of the page is still counted.
+  const texts = visible.filter((el) => hasText(el) && !optedOut(el, "type-scale"));
   const count = <T,>(values: T[]) => {
     const seen = new Map<T, number>();
     for (const v of values) seen.set(v, (seen.get(v) ?? 0) + 1);
@@ -336,11 +337,11 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   const sizes = count(texts.map((el) => Math.round(px(getComputedStyle(el).fontSize) * 2) / 2));
   const weights = count(texts.map((el) => Number(getComputedStyle(el).fontWeight)));
   const rarest = <T,>(seen: Map<T, number>, of: (el: Element) => T) => texts.find((el) => of(el) === [...seen].sort((a, b) => a[1] - b[1])[0]![0])!;
-  if (sizes.size > maxSizes && !optedOut(document.body, "type-scale")) {
+  if (sizes.size > maxSizes) {
     const list = [...sizes.keys()].sort((a, b) => a - b);
     issues.push({ ref: ref(rarest(sizes, (el) => Math.round(px(getComputedStyle(el).fontSize) * 2) / 2)), rule: "type-scale", element: "the page's text sizes", detail: `${list.length} sizes (${list.join(", ")} px); a type scale holds ${maxSizes} or fewer` });
   }
-  if (weights.size > maxWeights && !optedOut(document.body, "type-scale")) {
+  if (weights.size > maxWeights) {
     const list = [...weights.keys()].sort((a, b) => a - b);
     issues.push({ ref: ref(rarest(weights, (el) => Number(getComputedStyle(el).fontWeight))), rule: "type-scale", element: "the page's font weights", detail: `${list.length} weights (${list.join(", ")}); keep to ${maxWeights}` });
   }

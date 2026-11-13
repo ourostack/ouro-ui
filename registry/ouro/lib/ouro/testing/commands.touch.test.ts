@@ -76,10 +76,21 @@ test("lifts the finger in finally when a step throws mid-gesture, so the next to
       }
     })(),
   ).rejects.toThrow("mid-gesture");
-  const before = element.scrollLeft;
+  // The lifted finger can fling the scroller on to its end, where the next swipe has nowhere to go:
+  // let the fling stop (two reads agree), then start the scroller from the left again.
+  let last = -1;
+  await expect
+    .poll(() => {
+      const now = element.scrollLeft;
+      const still = now === last;
+      last = now;
+      return still;
+    })
+    .toBe(true);
+  element.scrollLeft = 0;
   const starts = watchStarts();
   await swipe();
-  await expect.poll(() => element.scrollLeft).toBeGreaterThan(before + 100);
+  await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
   expect(starts()).toEqual(["pointerdown", "touchstart"]);
 });
 
