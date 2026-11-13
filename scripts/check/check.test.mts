@@ -442,6 +442,27 @@ describe("Ouro check", () => {
     }
   });
 
+  test("counts a press that starts a navigation as leaving the page before the address changes, and presses that control no more", async () => {
+    // Each press starts a navigation to a new ?slow address that the server answers with no page (204), so the address
+    // never changes. A press that starts one must still end that control's presses.
+    let slowRequests = 0;
+    const html = page(`<h1>Leaves</h1><p>The button leaves the page.</p><button type="button" data-ouro-check-press id="leave">Leave</button><script>let presses = 0; document.getElementById("leave").addEventListener("click", () => (location.search = "?slow=" + ++presses));</script>`);
+    const server = createServer((request, response) => {
+      if (!request.url!.startsWith("/?slow=")) return response.writeHead(200, { "content-type": "text/html" }).end(html);
+      slowRequests++;
+      response.writeHead(204).end();
+    });
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    const { port } = server.address() as { port: number };
+    try {
+      await check({ targets: [`http://127.0.0.1:${port}/`], out: dir("leave"), sizes: [[1440, 900]], themes: ["light"], chromium, log: quiet });
+      assert.equal(slowRequests, 1);
+    } finally {
+      server.closeAllConnections();
+      await new Promise((done) => server.close(done));
+    }
+  });
+
   test("fails a page that answers an error or does not answer, and checks nothing else on it", async () => {
     const server = await serve(fixtures);
     const closed = await serve(fixtures);

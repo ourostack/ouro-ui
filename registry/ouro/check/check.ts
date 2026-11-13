@@ -559,41 +559,66 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await page.evaluate(outline, { ref, on: false });
   };
   // inp: presses each listed control in turn, a few times, and Escape after each press, to close what it opened. A
-  // press that leaves the page opens it again and ends that control's presses. The finding is the presses' 75th
-  // percentile, so one slow press on a busy machine does not make one; its photograph is the page after the presses.
+  // press that starts a navigation counts as leaving the page, even before the address changes: the page opens again
+  // and that control's presses end. The finding is the presses' 75th percentile, so one slow press on a busy machine
+  // does not make one; its photograph is the page after the presses.
   const press = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
     let at = page.url();
-    const mark = () => page.evaluate(markPressables, { limit: MAX_PRESSES, press: config.press ?? [], never: NEVER_PRESS });
-    let controls = await mark();
-    // By index: a page opened again is marked again, in the same order.
-    for (let i = 0; i < controls.length; i++) {
-      const { ref, element } = controls[i]!;
-      const samples: number[] = [];
-      for (let n = 0; n < repeats; n++) {
-        const point = await page.evaluate(pressPoint, { ref, never: NEVER_PRESS });
-        if (!point) break;
-        const since = (await page.evaluate("performance.now()")) as number;
-        await page.mouse.click(point.x, point.y);
-        /* node:coverage ignore next */
-        const ms = await page.evaluate(interactionSince, since).catch(() => 0);
-        await page.keyboard.press("Escape");
-        if (page.url() !== at) {
-          await reach(page, target);
-          at = page.url();
-          controls = await mark();
-          break;
+    // Counts the navigations the page's main frame requests, which a press starts before the address changes.
+    let navigations = 0;
+    const onRequest = (request: Request) => {
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) navigations++;
+    };
+    page.on("request", onRequest);
+    try {
+      const mark = () => page.evaluate(markPressables, { limit: MAX_PRESSES, press: config.press ?? [], never: NEVER_PRESS });
+      let controls = await mark();
+      const reopen = async () => {
+        await reach(page, target);
+        at = page.url();
+        controls = await mark();
+      };
+      // By index: a page opened again is marked again, in the same order.
+      for (let i = 0; i < controls.length; i++) {
+        const { ref, element } = controls[i]!;
+        const samples: number[] = [];
+        for (let n = 0; n < repeats; n++) {
+          let point;
+          try {
+            point = await page.evaluate(pressPoint, { ref, never: NEVER_PRESS });
+          /* node:coverage disable */
+          } catch (problem) {
+            // A navigation that committed before the listener saw its request ends the page's context, so the press left.
+            if (!/Execution context was destroyed|navigat/i.test((problem as Error).message)) throw problem;
+            await reopen();
+            break;
+          }
+          /* node:coverage enable */
+          if (!point) break;
+          const since = (await page.evaluate("performance.now()")) as number;
+          const requested = navigations;
+          await page.mouse.click(point.x, point.y);
+          /* node:coverage ignore next */
+          const ms = await page.evaluate(interactionSince, since).catch(() => 0);
+          await page.keyboard.press("Escape");
+          if (navigations !== requested || page.url() !== at) {
+            await reopen();
+            break;
+          }
+          samples.push(ms);
         }
-        samples.push(ms);
+        const value = p75(samples);
+        if (value > budgets.inp) {
+          found++;
+          const detail = `${value} ms from the press to its paint at the 75th percentile of ${samples.length} presses, over the budget of ${budgets.inp} ms`;
+          await record(page, target, { ref, rule: "inp", element, detail, value, budget: budgets.inp, unit: "ms", samples }, width, height, theme);
+        }
       }
-      const value = p75(samples);
-      if (value > budgets.inp) {
-        found++;
-        const detail = `${value} ms from the press to its paint at the 75th percentile of ${samples.length} presses, over the budget of ${budgets.inp} ms`;
-        await record(page, target, { ref, rule: "inp", element, detail, value, budget: budgets.inp, unit: "ms", samples }, width, height, theme);
-      }
+      return found;
+    } finally {
+      page.off("request", onRequest);
     }
-    return found;
   };
   // baked-corner: each picture and video as drawn, from its top, as far as the screen shows it, with the corners the
   // screen shows of it.
