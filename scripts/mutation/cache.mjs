@@ -256,20 +256,40 @@ export function scopeReport(report, changes, excluded = {}) {
 
 const digest = (text) => createHash("sha256").update(text).digest("hex");
 
+/** Each path's digest, leaving out a path that cannot be read. */
+function digestsOf(paths, read) {
+  const digests = {};
+  for (const path of paths) {
+    try {
+      digests[path] = digest(read(path));
+    } catch {
+      // Gone: no digest, so it counts as changed next time.
+    }
+  }
+  return digests;
+}
+
 /**
  * The report with each of `paths`' digest as this run found it (`ouroSources`), for
  * `pruneChangedFiles`: Stryker keeps a file's source only when it has mutants in the report.
  */
 export function recordSources(report, paths, read = (path) => readFileSync(join(root, path), "utf8")) {
-  const sources = {};
-  for (const path of paths) {
-    try {
-      sources[path] = digest(read(path));
-    } catch {
-      // Gone: no digest, so it counts as changed next time.
-    }
-  }
-  return { ...report, ouroSources: sources };
+  return { ...report, ouroSources: digestsOf(paths, read) };
+}
+
+/**
+ * The report with each path's test files' digests as this run found them (`ouroTests`: path to
+ * test file to digest), for `pruneChangedFiles`: Stryker does not compare the test files its
+ * mutants run against either.
+ */
+export function recordTests(report, paths, testsFor = testsOf, read = (path) => readFileSync(join(root, path), "utf8")) {
+  return { ...report, ouroTests: Object.fromEntries(paths.map((path) => [path, digestsOf(testsFor(path), read)])) };
+}
+
+/** The test files a runtime file's mutants run against: its own, then the wider ones (`testFilesFor`). */
+export function testsOf(path) {
+  const { own, wider } = testFilesFor([path]);
+  return [...own, ...wider];
 }
 
 /**
@@ -279,10 +299,15 @@ export function recordSources(report, paths, read = (path) => readFileSync(join(
  * did: Stryker would reuse a Killed on a line a change left alone, and it compares only the mutated
  * file, not what that imports. A file's state then is its source in the report or its
  * digest in `ouroSources` (recordSources); a changed file with neither counts as changed.
+ *
+ * A mutated file's results also go when one of its test files (`testsFor`, by default `testsOf`)
+ * changed, or was added or removed, since `ouroTests` recorded them (recordTests). A report with no
+ * `ouroTests` predates that record, so its results are kept as before; a mutated file it does not
+ * record counts as changed.
  */
 export function pruneChangedFiles(
   report,
-  { changed = [], read = (path) => readFileSync(join(root, path), "utf8"), exists = (path) => existsSync(join(root, path)) } = {},
+  { changed = [], read = (path) => readFileSync(join(root, path), "utf8"), exists = (path) => existsSync(join(root, path)), testsFor = testsOf } = {},
 ) {
   const files = report.files ?? {};
   const current = (path) => {
@@ -291,6 +316,14 @@ export function pruneChangedFiles(
     } catch {
       return null;
     }
+  };
+  const testsChanged = (path) => {
+    if (report.ouroTests === undefined) return false;
+    const was = report.ouroTests[path];
+    if (was === undefined) return true;
+    const now = digestsOf(testsFor(path), read);
+    const names = Object.keys(now);
+    return names.length !== Object.keys(was).length || names.some((name) => was[name] !== now[name]);
   };
   const stored = (path) => (files[path]?.source !== undefined ? digest(files[path].source) : report.ouroSources?.[path]);
   // Every file with a recorded state too: one a push reverted to the base is no longer changed, but
@@ -319,11 +352,13 @@ export function pruneChangedFiles(
     }
     return false;
   };
-  return { ...report, files: Object.fromEntries(Object.entries(files).filter(([path]) => !reachesStale(path))) };
+  return { ...report, files: Object.fromEntries(Object.entries(files).filter(([path]) => !reachesStale(path) && !testsChanged(path))) };
 }
 
 export function mergeReports(reports) {
-  const merged = { ...reports[0], files: {}, testFiles: {}, ouroSources: Object.assign({}, ...reports.map((report) => report.ouroSources ?? {})) };
+  // A report with no test digests (ouroTests) is merged without them, as before they were recorded.
+  const tests = reports.some((report) => report.ouroTests) ? Object.assign({}, ...reports.map((report) => report.ouroTests ?? {})) : undefined;
+  const merged = { ...reports[0], files: {}, testFiles: {}, ouroSources: Object.assign({}, ...reports.map((report) => report.ouroSources ?? {})), ...(tests ? { ouroTests: tests } : {}) };
   const ids = new Map();
   const canonical = (file, name) => {
     const key = `${file}\0${name}`;
