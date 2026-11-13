@@ -1,1 +1,0 @@
-- New: the `ouro-check` agent plugin ([`plugins/ouro-check`](https://github.com/ourostack/ouro-ui/tree/main/plugins/ouro-check)) teaches an agent to run Ouro check and fix what its JSON findings report. Install it with `agency plugin install github:ourostack/ouro-ui:plugins/ouro-check@main --cache-policy auto --cache-ttl 0`. It moved here from `ourostack/ouroboros-skills`.
