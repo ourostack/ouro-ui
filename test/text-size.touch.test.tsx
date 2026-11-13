@@ -139,6 +139,7 @@ async function openVia(opener: Opener, where: string, timeout: number): Promise<
   if (opener.element instanceof HTMLButtonElement) opener.element.click();
   else await opener.open();
   let added: HTMLElement[] = [];
+  // short poll: openTimeout is 10 s; a test passes a shorter one so that a dead opener fails fast.
   await vi.waitFor(
     () => {
       added = visiblePopups().filter((popup) => !before.has(popup));

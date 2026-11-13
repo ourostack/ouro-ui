@@ -112,13 +112,14 @@ describe("pressing Dive", () => {
           timeout: 10_000,
         })
         .toBe(DIVE_DEPTH);
-      await expect.poll(scene, { timeout: length(false) + 5000 }).toBeNull();
+      await expect.poll(scene).toBeNull();
       await expect.poll(() => announced.count("Back from the deep")).toBe(1);
       expect(announced.changes).toHaveLength(1);
       expect(announced.changes[0]!.region.getAttribute("role")).not.toBe("alert");
       // The page is as it was: the dialog opens again, and Dive plays again.
       await dive();
       await userEvent.keyboard("{Escape}");
+      // short poll: Escape ends the dive early; left running, it would end on its own 5.2 s later.
       await expect.poll(scene, { timeout: 2000 }).toBeNull();
       await expect.poll(() => announced.count("Back from the deep")).toBe(2);
     } finally {
@@ -142,6 +143,7 @@ describe("pressing Dive", () => {
       await expect.poll(() => document.elementFromPoint(at.x, at.y)?.closest("[data-site-dive]")).not.toBeNull();
       const body = document.body.getBoundingClientRect();
       await userEvent.click(page.elementLocator(document.body), { position: { x: at.x - body.left, y: at.y - body.top } });
+      // short poll: a click ends the dive early; left running, it would end on its own 5.2 s after it began.
       await expect.poll(scene, { timeout: 2000 }).toBeNull();
       await expect.element(hatch).not.toBeChecked();
       await expect.poll(() => announced.count("Back up, and a little wet")).toBe(1);
@@ -153,6 +155,7 @@ describe("pressing Dive", () => {
       });
       await expect.element(trigger).toHaveFocus();
       await userEvent.keyboard("{Enter}");
+      // short poll: Enter ends the dive early; left running, it would end on its own 5.2 s after it began.
       await expect.poll(scene, { timeout: 2000 }).toBeNull();
       await expect.element(page.getByRole("button", { name: "Not yet" })).not.toBeInTheDocument();
     } finally {
@@ -171,7 +174,7 @@ describe("pressing Dive", () => {
       .flatMap((animation) => (animation.effect as KeyframeEffect).getKeyframes().flatMap((frame) => Object.keys(frame)))
       .filter((property) => !["offset", "computedOffset", "easing", "composite", "opacity"].includes(property));
     expect(moving).toEqual([]);
-    await expect.poll(scene, { timeout: length(true) + 5000 }).toBeNull();
+    await expect.poll(scene).toBeNull();
   });
 });
 
@@ -210,6 +213,6 @@ describe.each(["light", "dark"] as const)("the dive's words in %s", (scheme) => 
     }
     probe.remove();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(scene, { timeout: 2000 }).toBeNull();
+    await expect.poll(scene).toBeNull();
   });
 });

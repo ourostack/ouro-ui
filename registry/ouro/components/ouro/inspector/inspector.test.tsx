@@ -1189,13 +1189,13 @@ describe("Inspector", () => {
     await drawn(3);
     const [, first, second] = pageRoots(host);
     // The outline follows the scroll on X-ray's next frame.
-    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, first!), { timeout: 5000 }).toBe(true);
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, first!)).toBe(true);
     expect(into).toHaveBeenCalledTimes(1);
     expect(into.mock.contexts[0]).toBe(first);
     expect(spotlit()[0]!.getAttribute("data-spotlight")).toBe("");
     expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "smooth" }]);
     // The first badge comes to the middle of the screen.
-    await expect.poll(() => Math.abs(first!.getBoundingClientRect().top + first!.getBoundingClientRect().height / 2 - innerHeight / 2) < 2, { timeout: 5000 }).toBe(true);
+    await expect.poll(() => Math.abs(first!.getBoundingClientRect().top + first!.getBoundingClientRect().height / 2 - innerHeight / 2) < 2).toBe(true);
     await expect.element(status()).toHaveTextContent("Showing badge");
     // The spotlit frame is the primary color in full, two pixels wide; the others stay as they were.
     const stroke = (outline: HTMLElement) => getComputedStyle(outline.querySelector("[data-ouro-inspector-frame]")!);
@@ -1212,7 +1212,7 @@ describe("Inspector", () => {
       const before = scrollY;
       await frames();
       return scrollY === before;
-    }, { timeout: 5000 }).toBe(true);
+    }).toBe(true);
     scrollTo({ top: 0, behavior: "instant" });
     await expect.poll(() => scrollY).toBe(0);
     await rerender(<Far spotlight="badge" extra={<Checkbox label="Added" />} />);
@@ -1236,12 +1236,12 @@ describe("Inspector", () => {
     );
     await drawn(3);
     const [, content] = pageRoots(host);
-    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, content!), { timeout: 5000 }).toBe(true);
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, content!)).toBe(true);
     // With nothing of the item in a main, the first anywhere.
     await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     const { host: bare } = await render(<Far spotlight="button" />);
     await drawn(3);
-    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, pageRoots(bare)[0]!), { timeout: 5000 }).toBe(true);
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, pageRoots(bare)[0]!)).toBe(true);
   });
 
   it("scrolls to the spotlit item at once with reduced motion", async () => {
@@ -1287,7 +1287,7 @@ describe("Inspector", () => {
     await drawn(4);
     await expect.element(status()).toHaveTextContent("Showing checkbox");
     const late = host.querySelector('[data-ouro="checkbox"]')!;
-    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, late), { timeout: 5000 }).toBe(true);
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, late)).toBe(true);
     expect(into.mock.contexts).toEqual([late]);
     // Another item to point out: X-ray goes to it.
     await rerender(<Far spotlight="button" extra={<Checkbox label="Late" />} />);
