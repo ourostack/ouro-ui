@@ -921,7 +921,7 @@ for (const scenario of scenarios) {
           "pr merge "*) return 1 ;;
           "pr view "*"--json number"*) echo 9 ;;
           # gh merge could not queue it (no auto-merge): queued by the API instead, at CI's commit.
-          "api graphql -f query=mutation { enqueuePullRequest(input: {pullRequestId: \\"PR_9\\", expectedHeadOid: \\"headsha\\"}) { clientMutationId } }") return 0 ;;
+          "api graphql -f query=mutation { enqueuePullRequest(input: {pullRequestId: \\"PR_9\\", expectedHeadOid: \\"headsha\\", jump: true}) { clientMutationId } }") return 0 ;;
           "pr view "*"--json id"*) echo PR_9 ;;
           # The merge queue, look by look: the release job looks twice, the queue job once before its
           # loop and once a round. Queued, then merged (or dropped) on the queue job's first round;
