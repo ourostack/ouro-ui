@@ -1133,24 +1133,26 @@ export interface PointerPressOptions {
    * @claim "presses and releases in one command" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::pointerPress click presses and releases in one command, leaving the page's scroll alone)
    */
   action: "down" | "up" | "click";
+  /** The button to press and release; the primary one unless `right`, which opens a context menu. */
+  button?: "left" | "right";
 }
 
 /**
  * Presses or releases the real mouse over an element, so `:active` styles apply.
  * Coordinates come from Playwright, so the iframe offset is already included.
  */
-export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, { selector, action }) => {
+export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, { selector, action, button = "left" }) => {
   const { page } = ctx;
   if (action === "up") {
-    await page.mouse.up();
+    await page.mouse.up({ button });
     return;
   }
   if (!selector) throw new Error(`pointerPress: ${action} needs a selector`);
   const box = await ctx.iframe.locator(selector).boundingBox();
   if (!box) throw new Error(`pointerPress: ${selector} is not visible`);
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  if (action === "click") await page.mouse.up();
+  await page.mouse.down({ button });
+  if (action === "click") await page.mouse.up({ button });
 };
 
 /**
