@@ -1,0 +1,1 @@
+- Fixed: a centered Dialog whose body scrolls opens with focus on the body's first control, or on its close button if the body lacks a control, instead of on the scrolling body.

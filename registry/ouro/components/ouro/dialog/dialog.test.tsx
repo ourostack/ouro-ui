@@ -22,6 +22,7 @@ import {
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Runs in Chromium and WebKit.
 
@@ -1479,5 +1480,65 @@ describe("DialogTrigger rendered as another element", () => {
       expect(window.scrollY).toBe(1500);
     });
   }
+});
+
+describe("first focus with a scrolling body", () => {
+  const tall = <p style={{ margin: 0, height: 2000 }}>A long note.</p>;
+  const name = () => document.querySelector<HTMLElement>('input[aria-label="Name"]');
+  const body = () => document.querySelector<HTMLElement>("[data-ouro-dialog-content]");
+  const close = () => document.querySelector<HTMLElement>("[data-ouro-dialog-close]");
+  const field = (
+    <label>
+      Name <input aria-label="Name" />
+    </label>
+  );
+  // A keyboard open: Enter on the trigger, which is what puts first focus on the first tab stop.
+  async function openByKeyboard(children: ReactNode) {
+    await render(
+      <Dialog title="Edit recipe" trigger={<Button>Edit</Button>}>
+        {children}
+      </Dialog>,
+    );
+    trigger().focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+  }
+
+  it("puts first focus on the first control in a scrolling body, not on the body", async () => {
+    await openByKeyboard(<>{field}{tall}</>);
+    await expect.poll(() => body()?.getAttribute("tabindex")).toBe("0");
+    await expect.poll(() => document.activeElement).toBe(name());
+  });
+
+  it("puts first focus on a control below the fold, not on the body", async () => {
+    await openByKeyboard(<>{tall}{field}</>);
+    await expect.poll(() => body()?.getAttribute("tabindex")).toBe("0");
+    await expect.poll(() => document.activeElement).toBe(name());
+  });
+
+  it("puts first focus on the close button when the body has no control", async () => {
+    await openByKeyboard(tall);
+    await expect.poll(() => body()?.getAttribute("tabindex")).toBe("0");
+    await expect.poll(() => document.activeElement).toBe(close());
+  });
+
+  it("keeps the scrolling body in reach of Tab", async () => {
+    await openByKeyboard(<>{field}{tall}</>);
+    await expect.poll(() => document.activeElement).toBe(name());
+    await pressTab({ shift: true });
+    await expect.poll(() => document.activeElement).toBe(body());
+  });
+
+  it("skips a disabled control and one that is hidden when it picks the first", async () => {
+    await openByKeyboard(
+      <>
+        <button disabled>Off</button>
+        <button hidden>Gone</button>
+        <button>Edit name</button>
+        {tall}
+      </>,
+    );
+    await expect.poll(() => document.activeElement?.textContent).toBe("Edit name");
+  });
 });
 
