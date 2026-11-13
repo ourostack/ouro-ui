@@ -89,7 +89,9 @@ const CEILINGS = { voyage: 277 * 1024, docs: 167_396 + 1024 } as const;
 // classes the voyage used to leave out): 41,532 bytes with it, over main at 8b8d4701.
 // The docs' rose to 43 KiB for Hero (registry/ouro/components/ouro/hero and its docs demo, #880), whose classes the
 // docs' Tailwind build carries for every page: 43,652 bytes with it, over main at ca7114f0 (the voyage leaves it out).
-const CSS_CEILINGS = { voyage: 41 * 1024, docs: 43 * 1024 } as const;
+// The voyage's rose to 41.5 KiB when its heroes moved onto that Hero (Ari, 2026-11-13: one official Ouro component behind
+// every hero), whose classes its Tailwind build now carries: the home page measured 42,029 bytes with them, on CI at 7fce58d0.
+const CSS_CEILINGS = { voyage: 41.5 * 1024, docs: 43 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
