@@ -787,12 +787,14 @@ describe("MediaTile visibility", () => {
     try {
       const report = vi.fn();
       const { host } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320);
-      await expect.poll(() => held.map((entry) => entry.intersectionRatio)).toEqual([1]);
       host.style.position = "fixed";
       host.style.left = "0px";
+      host.style.top = "0px";
+      await expect.poll(() => held.at(-1)?.intersectionRatio).toBe(1);
+      held.length = 0;
       host.style.top = `${innerHeight - 8}px`;
-      await expect.poll(() => held.length).toBe(2);
-      expect(held[1]!.intersectionRatio).toBeLessThan(0.1);
+      await expect.poll(() => held.length).toBe(1);
+      expect(held[0]!.intersectionRatio).toBeLessThan(0.1);
       await act(async () => deliver());
       await expect.poll(() => report.mock.calls).toEqual([[false, 320, 180]]);
       // Back on screen, a sliver again and back on screen once more, in one batch: the newest wins
