@@ -61,7 +61,10 @@ export interface HeroOwnProps {
   title: ReactNode;
   /** A short line above the title that says what kind of page this is. */
   eyebrow?: ReactNode;
-  /** The lede: a short paragraph under the title. */
+  /**
+   * The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as
+   * two paragraphs or a list, is set in a `<div>` so it can hold blocks.
+   */
   description?: ReactNode;
   /** The hero's buttons or links, such as Ouro buttons. */
   actions?: ReactNode;
@@ -158,6 +161,8 @@ export function Hero(props: HeroProps): JSX.Element {
     className,
     ...rest
   } = props;
+  // A lede that is only text is a paragraph; one made of blocks needs a <div> to be valid HTML.
+  const Lede = typeof description === "string" || typeof description === "number" ? "p" : "div";
   const layout: HeroLayout = layoutProp === "column" ? "column" : "stage";
   // Stryker disable next-line StringLiteral: motion is only compared with "rise", so "" and "none" behave the same.
   const motion = motionProp === "none" ? "none" : "rise";
@@ -268,12 +273,12 @@ export function Hero(props: HeroProps): JSX.Element {
           {title}
         </Heading>
         {description != null ? (
-          <p
+          <Lede
             data-slot="description"
             className="m-0 max-w-[60ch] text-base leading-7 text-muted-foreground text-pretty min-[40rem]:text-lg min-[40rem]:leading-8"
           >
             {description}
-          </p>
+          </Lede>
         ) : null}
         {actions != null ? (
           <div data-slot="actions" className={cn("flex flex-wrap gap-3", layoutActions[layout])}>

@@ -65,6 +65,29 @@ describe("Hero", () => {
     expect(part("image")!.getAttribute("alt")).toBe("A green snake mascot");
   });
 
+  it("sets a text lede in a paragraph", async () => {
+    for (const description of ["Plan the week.", 7]) {
+      const { part } = await render(<Hero title="Dinner" description={description} />);
+      expect(part("description")!.tagName).toBe("P");
+    }
+  });
+
+  it("sets a lede made of blocks in a div, so its paragraphs stay valid", async () => {
+    const { part } = await render(
+      <Hero
+        title="Dinner"
+        description={
+          <>
+            <p>Plan the week.</p>
+            <p>Shop once.</p>
+          </>
+        }
+      />,
+    );
+    expect(part("description")!.tagName).toBe("DIV");
+    expect(part("description")!.querySelectorAll("p")).toHaveLength(2);
+  });
+
   it("renders the title as an h2 when it heads a section", async () => {
     const { header } = await render(<Hero title="Plans" headingLevel={2} />);
     expect(header.querySelector("h2")!.textContent).toBe("Plans");
