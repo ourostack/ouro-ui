@@ -7,9 +7,6 @@
     },
     "/docs/chart/": {
       "overlap": "Chart's legend is Recharts' HTML legend, set in the space its SVG keeps for it, so the check reads it over the SVG's box: ourostack/ouro-ui#826."
-    },
-    "/docs/skeleton/": {
-      "repaint": "Skeleton's shimmer animates its background without end, as the component ships: ourostack/ouro-ui#827."
     }
   }
 }

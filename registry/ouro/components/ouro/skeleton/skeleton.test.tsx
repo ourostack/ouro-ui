@@ -188,17 +188,40 @@ describe("Skeleton", () => {
     }
   });
 
-  it("shimmers, and holds the shimmer still with reduced motion", async () => {
+  it("shimmers a band that moves by translate only, and holds it still in the middle with reduced motion", async () => {
     const skeleton = await render(<Skeleton />);
-    expect(getComputedStyle(skeleton).animationName).toBe("ouro-shimmer");
-    expect(getComputedStyle(skeleton).backgroundImage).toContain("gradient");
+    expect(getComputedStyle(skeleton, "::before").animationName).toBe("ouro-shimmer");
+    expect(getComputedStyle(skeleton, "::before").backgroundImage).toContain("gradient");
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    expect(getComputedStyle(skeleton).animationName).toBe("none");
+    expect(getComputedStyle(skeleton, "::before").animationName).toBe("none");
     // The band stays, still, in the middle.
-    expect(getComputedStyle(skeleton).backgroundImage).toContain("gradient");
-    expect(getComputedStyle(skeleton).backgroundPositionX).toBe("50%");
-    expect(skeleton.getAnimations()).toEqual([]);
+    expect(getComputedStyle(skeleton, "::before").translate).toBe("none");
+    expect(getComputedStyle(skeleton, "::before").backgroundImage).toContain("gradient");
+    expect(skeleton.getAnimations({ subtree: true })).toEqual([]);
   });
+
+  it("animates only translate on each band, never the background, so a page with skeletons rests between frames", async () => {
+    await render(
+      <>
+        <Skeleton />
+        <Skeleton shape="text" lines={2} />
+        <Skeleton shape="circle" />
+        <Skeleton shape="row" count={2} />
+        <Skeleton shape="card" />
+      </>,
+    );
+    const host = mounted.at(-1)!;
+    const animations = host.getAnimations({ subtree: true });
+    expect(animations.length).toBeGreaterThan(0);
+    for (const animation of animations) {
+      const effect = animation.effect as KeyframeEffect;
+      const properties = [...new Set(effect.getKeyframes().flatMap((frame) => Object.keys(frame)))].filter((key) => !["offset", "computedOffset", "easing", "composite"].includes(key));
+      expect(properties).toEqual(["translate"]);
+      expect(effect.pseudoElement).toBe("::before");
+      expect(effect.getTiming().iterations).toBe(Infinity);
+    }
+  });
+
 
   it("passes attributes through and renders on the server", async () => {
     const skeleton = await render(<Skeleton id="avatar" data-testid="avatar" />);

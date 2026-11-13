@@ -120,10 +120,10 @@
 
 @keyframes ouro-shimmer {
   from {
-    background-position: 100% 0;
+    translate: -100% 0;
   }
   to {
-    background-position: -100% 0;
+    translate: 100% 0;
   }
 }
 

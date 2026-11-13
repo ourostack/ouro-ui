@@ -125,10 +125,13 @@ export type SkeletonProps = SkeletonRectProps | SkeletonTextProps | SkeletonCirc
 
 // Class strings are literal so the app's Tailwind finds them when it compiles. A band a
 // little toward the muted foreground sweeps across the muted surface, which reads in light
-// and dark themes alike. With reduced motion the band holds still in the middle.
+// and dark themes alike. The band is a pseudo-element that moves by `translate`, which the
+// compositor runs, so a page with skeletons still paints nothing at rest. With reduced motion
+// the band holds still in the middle.
 const fill =
-  "block bg-muted bg-[linear-gradient(90deg,transparent_25%,color-mix(in_oklab,var(--muted-foreground)_12%,transparent)_50%,transparent_75%)] " +
-  "bg-size-[200%_100%] bg-no-repeat animate-[ouro-shimmer_1.6s_linear_infinite] motion-reduce:animate-none motion-reduce:bg-position-[50%_0] " +
+  "relative block overflow-hidden bg-muted " +
+  "before:absolute before:inset-0 before:content-[''] before:bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--muted-foreground)_12%,transparent)_50%,transparent)] " +
+  "before:animate-[ouro-shimmer_1.6s_linear_infinite] before:motion-reduce:animate-none " +
   // Forced colours paint the fill as the page's own Canvas, so an outline in the text colour keeps the shape.
   "forced-colors:outline forced-colors:outline-1 forced-colors:-outline-offset-1 forced-colors:outline-[CanvasText]";
 

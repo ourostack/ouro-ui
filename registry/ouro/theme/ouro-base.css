@@ -144,13 +144,13 @@
   }
 }
 
-/* Skeleton shimmer: a lighter band sweeps across the placeholder. */
+/* Skeleton shimmer: a lighter band, one placeholder wide, slides across by translate, which the compositor runs. */
 @keyframes ouro-shimmer {
   from {
-    background-position: 100% 0;
+    translate: -100% 0;
   }
   to {
-    background-position: -100% 0;
+    translate: 100% 0;
   }
 }
 
