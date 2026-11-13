@@ -2543,12 +2543,20 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   assert.match(start, /changes\/ lists no change/);
   assert.match(start, /prepare\/after-/);
   assert.match(start, /for workflow in release\.yml release-rehearsal\.yml/);
-  assert.match(start, /gh workflow run release-rehearsal\.yml --ref main -f version="\$version"$/m);
+  assert.match(start, /gh workflow run release-rehearsal\.yml --ref main -f version="\$version" -f release=true$/m);
   assert.match(auto, /github\.event\.workflow_run\.conclusion == 'success'/, "a failed release starts nothing again");
   const release = stepScript(auto, "Release a rehearsal that passed");
   assert.match(release, /\[ "\$CONCLUSION" = success \] \|\|/);
   assert.match(release, /gh workflow run release\.yml --ref main -f version=/);
-  assert.doesNotMatch(auto, /retry|sleep/);
+  assert.doesNotMatch(auto, /retry/);
+  // No job waits out the rehearsal: it hands over as its last step, and Release auto then releases it.
+  assert.doesNotMatch(auto, /gh run watch/);
+  assert.match(auto, /^ {4}timeout-minutes: 10$/m);
+  const handed = stepScript(auto, "Release the rehearsal that started here, once it has ended");
+  assert.match(handed, /\[ "\$conclusion" = success \] \|\|/);
+  assert.match(handed, /gh workflow run release\.yml --ref main -f version="\$VERSION"/);
+  assert.match(stepScript(workflow("release-rehearsal.yml"), "Hand the release to Release auto"), /^gh workflow run release-auto\.yml -f rehearsed="\$VERSION"\n?$/);
+  assert.match(workflow("release-rehearsal.yml"), /if: \$\{\{ success\(\) && inputs\.release \}\}\n {8}name: Hand the release/);
 });
 
 test("a release rehearsal writes the release commit as Release does, on a branch of its own, runs CI and the screen-reader lane there, tags nothing and deletes the branch", () => {
