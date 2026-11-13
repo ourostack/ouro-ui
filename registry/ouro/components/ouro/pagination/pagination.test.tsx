@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type ReactNode } from "react";
+import { useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -327,6 +327,105 @@ describe("Pagination", () => {
     );
     const both = { page: 1, pageCount: 2, href, onPageChange: () => {} } as unknown as PaginationProps;
     expect(() => renderToString(<Pagination {...both} />)).toThrow("[ouro-ui] Pagination: takes href or onPageChange, not both.");
+  });
+});
+
+describe("Pagination in a column", () => {
+  const navOf = (host: Element) => host.querySelector<HTMLElement>('[data-ouro="pagination"]')!;
+  const itemOf = (element: Element) => element.closest("li")!;
+  const shown = (element: Element) => getComputedStyle(element).display !== "none";
+  const pageItems = (nav: HTMLElement) => [...nav.querySelectorAll<HTMLElement>("[data-ouro-pagination-page]")].map(itemOf);
+  const summaryItem = (nav: HTMLElement) => itemOf(nav.querySelector("[data-ouro-pagination-summary]")!);
+
+  /** Mounts `node` in a div with `style`, and returns the root to render again. */
+  async function mountIn(node: ReactNode, style: CSSProperties) {
+    const host = document.createElement("div");
+    host.style.padding = "24px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<div style={style}>{node}</div>));
+    return { host, root, nav: navOf(host), column: navOf(host).parentElement! };
+  }
+
+  it("shows the summary, not overflowing, in a column too narrow for every page", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 420 });
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+    for (const item of pageItems(nav)) expect(shown(item)).toBe(false);
+    expect(nav.scrollWidth).toBeLessThanOrEqual(column.clientWidth);
+    await expect.element(page.getByRole("link", { name: "Previous" })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: "Next" })).toBeVisible();
+  });
+
+  it("shows every page in a wide column", async () => {
+    await page.viewport(1280, 800);
+    const { nav } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 1000 });
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    expect(shown(summaryItem(nav))).toBe(false);
+  });
+
+  it("keeps its natural width in a shrink-wrapped flex row, showing every page", async () => {
+    await page.viewport(1280, 800);
+    const { nav } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { display: "flex" });
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    expect(shown(summaryItem(nav))).toBe(false);
+    expect(nav.getBoundingClientRect().width).toBeGreaterThan(300);
+  });
+
+  it("switches to the summary when the column narrows, and back when it widens", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 1000 });
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    column.style.width = "420px";
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+    column.style.width = "1000px";
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    expect(shown(summaryItem(nav))).toBe(false);
+  });
+
+  it("re-measures when the page count changes while the summary shows", async () => {
+    await page.viewport(1280, 800);
+    const { root, nav } = await mountIn(<Pagination page={1} pageCount={12} href={href} />, { width: 420 });
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+    await act(async () => root.render(<div style={{ width: 420 }}><Pagination page={1} pageCount={5} href={href} /></div>));
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    expect(shown(summaryItem(nav))).toBe(false);
+    await act(async () => root.render(<div style={{ width: 420 }}><Pagination page={1} pageCount={12} href={href} /></div>));
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+  });
+
+  it("moves focus to Next when the page number that has it is replaced by the summary", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 1000 });
+    const seven = pageItems(nav).map((item) => item.querySelector<HTMLElement>("a")!).find((link) => link.textContent === "7")!;
+    seven.focus();
+    expect(document.activeElement).toBe(seven);
+    column.style.width = "420px";
+    await expect.poll(() => document.activeElement).toBe(nav.querySelector("[data-ouro-pagination-next]"));
+  });
+
+  it("moves focus to Previous when the summary replaces the last page, where Next is disabled", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(<Pagination page={12} pageCount={12} href={href} />, { width: 1000 });
+    const eleven = pageItems(nav).map((item) => item.querySelector<HTMLElement>("a")!).find((link) => link.textContent === "11")!;
+    eleven.focus();
+    column.style.width = "420px";
+    await expect.poll(() => document.activeElement).toBe(nav.querySelector("[data-ouro-pagination-previous]"));
+  });
+
+  it("keeps its fit when a font loads, and measures nothing once unmounted", async () => {
+    await page.viewport(1280, 800);
+    const { root, nav } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 420 });
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+    document.fonts.dispatchEvent(new Event("loading"));
+    await document.fonts.ready;
+    expect(shown(summaryItem(nav))).toBe(true);
+    document.fonts.dispatchEvent(new Event("loading"));
+    await act(async () => root.unmount());
+    roots.splice(roots.indexOf(root), 1);
+    await document.fonts.ready;
   });
 });
 
