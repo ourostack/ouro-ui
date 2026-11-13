@@ -1,1 +1,1 @@
-- Changed: Chart draws its legend as its own list beside the plot, outside the chart's SVG, so the legend sits outside the SVG's box.
+- Changed: Chart draws its legend in a row below the plot, outside the chart's SVG, so the plot keeps the chart's whole height and a chart with a legend is one row taller.
