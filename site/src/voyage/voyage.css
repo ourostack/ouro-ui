@@ -122,6 +122,48 @@
   .site-console-copy {
     min-width: 0;
   }
+  /* The headline's second sentence answers the first: quieter than the headline, never faint. */
+  .site-hero-line {
+    display: block;
+  }
+  .site-hero-line-second {
+    color: color-mix(in oklab, var(--muted-foreground) 75%, var(--foreground));
+  }
+  /* The eyebrow is a pill naming Ouro UI's two halves; on a phone they are named under the stage instead. */
+  .site-hero-brand {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border: 1px solid color-mix(in oklab, var(--primary) 30%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--primary) 8%, var(--background));
+    color: var(--foreground);
+    font-weight: 600;
+  }
+  @media (max-width: 40rem) {
+    .site-voyage-hero [data-slot="eyebrow"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+  /*
+   * The meadow is the Hero's media: the Hero frames it and caps it at the file's 1536px, so the scene drops its own
+   * wide-screen window. Above a phone it is the 8:3 window; on a phone the 16:9 crop keeps its own shape.
+   */
+  .site-voyage-scene.story-world {
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+  }
+  @media (width > 40rem) {
+    .site-voyage-scene .story-world-img {
+      aspect-ratio: 8 / 3;
+    }
+  }
   /*
    * The install command, whole at every width. Where the line fits, prompt, command and Copy sit in
    * one row; where it doesn't, the command breaks after "add": the short first line beside Copy,

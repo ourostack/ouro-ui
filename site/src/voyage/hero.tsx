@@ -182,14 +182,26 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
     <>
       {/*
         The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the headline above
-        it. The eyebrow names Ouro UI's two halves (the header names Ouro UI itself).
+        it, never drawn wider than the 1536px scene file. The eyebrow names Ouro UI's two halves (the header names Ouro UI
+        itself); on a phone the halves are named under the stage, so it stays for screen readers only.
       */}
       <Hero
         layout="stage"
-        eyebrow={<span data-site-eyebrow="">{EYEBROW}</span>}
-        title={VOYAGE_HERO.title.join(" ")}
+        className="site-voyage-hero"
+        eyebrow={
+          <span className="site-hero-brand" data-site-eyebrow="">
+            {EYEBROW}
+          </span>
+        }
+        title={VOYAGE_HERO.title.map((sentence, index) => (
+          <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
+            {sentence}
+            {index < VOYAGE_HERO.title.length - 1 ? " " : null}
+          </span>
+        ))}
         description={VOYAGE_HERO.subline}
-        media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} />}
+        mediaWidth={1536}
+        media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} className="site-voyage-scene" />}
       />
       <section aria-label="Install and try the porthole" className="site-console">
         <Container className="site-console-grid">
