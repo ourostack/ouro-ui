@@ -1159,7 +1159,8 @@ export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, {
 /**
  * Moves the real mouse off the test frame, so a test starts with no hover from an earlier one.
  * The browser re-checks hover after layout (WebKit late), and a button under the pointer then
- * fades to its hover colour. The point is outside the viewport, which the test frame fills.
+ * fades to its hover colour. The point is outside the viewport, which the test frame fills, so the
+ * move sends the page no pointer events: a point inside it would count as the person's input.
  * The mouse projects call this before each test (testing/pointer-setup.ts).
  * @claim "Moves the real mouse off the test frame, so a test starts with no hover from an earlier one." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::the pointer between tests > renders a button under the old pointer without hovering it, under a theme with a hover colour)
  * @claim "The mouse projects call this before each test" registry/ouro/lib/ouro/testing/pointer-setup.ts verify:fileLine(registry/ouro/lib/ouro/testing/pointer-setup.ts, /commands\.parkPointer/)
