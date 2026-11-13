@@ -1,3 +1,3 @@
 import { describeThemeAxe } from "./theme-axe.ts";
 
-describeThemeAxe("vega");
+describeThemeAxe("vega", "light");

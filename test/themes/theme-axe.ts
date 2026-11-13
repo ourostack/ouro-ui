@@ -8,11 +8,12 @@ import { compareFinding, themeFindings } from "./theme-findings.ts";
 /**
  * Every story passes axe under a third-party theme (test/theme-fixtures/<name>.css), in light and
  * dark, closed and with each overlay open: the components read only shadcn's standard tokens, so
- * any theme's own pairs carry through. One file per fixture, so CI shards them (`pnpm
- * test:themes --shard=<i>/<n>`, the `themes` project). At the desktop width only: contrast does
+ * any theme's own pairs carry through. One file per fixture and scheme, so CI shards them and runs
+ * two side by side (`pnpm test:themes --shard=<i>/<n>`, the `themes` project). At the desktop width
+ * only: contrast does
  * not change with the width, and test/stories.test.tsx scans both widths under the Ouro theme.
  */
-export function describeThemeAxe(name: string): void {
+export function describeThemeAxe(name: string, scheme: "light" | "dark"): void {
   describe(`${name} theme`, () => {
     let remove: () => void = () => {};
     beforeAll(() => {
@@ -27,7 +28,7 @@ export function describeThemeAxe(name: string): void {
       await cleanupStories();
     });
 
-    describe.each(["light", "dark"] as const)(`${name} %s`, (scheme) => {
+    describe(`${name} ${scheme}`, () => {
       it.each(selectedStories)(`$id has no axe violations under ${name} (${scheme})`, async ({ id, Story }) => {
         setScheme(scheme);
         const { violations, text } = await scanStoryViolations(id, Story);

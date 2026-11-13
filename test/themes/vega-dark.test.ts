@@ -1,3 +1,3 @@
 import { describeThemeAxe } from "./theme-axe.ts";
 
-describeThemeAxe("cookbook");
+describeThemeAxe("vega", "dark");
