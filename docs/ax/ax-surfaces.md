@@ -111,7 +111,7 @@ function main(args: readonly string[], io?: Io): Promise<number>
 
 ### `ratchet`
 
-Compares a run to the recorded baseline, which counts findings per check and file (`error.has-code:src/send.js`: 3), so rewording an error or moving it in its file changes nothing. A group with more findings than recorded fails, and so does one with fewer: the pull request that fixes a finding lowers its count, so the count only goes down.
+Compares a run to the recorded baseline, which counts findings per check and file (the group `error.has-code:src/send.js`), so rewording an error or moving it in its file leaves the baseline as it was. A group with more findings than recorded fails, and so does one with fewer: the pull request that fixes a finding lowers its count, so the count only goes down.
 
 ```ts
 function ratchet(report: SurfacesReport, baseline: Readonly<Record<string, number>>): BaselineResult

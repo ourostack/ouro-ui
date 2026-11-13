@@ -272,7 +272,7 @@ function validate(manifest: Surfaces): void {
 }
 
 interface BaselineResult {
-  /** The findings in each group that has more than the baseline records: a run with one fails. */
+  /** The findings of a group that grew past the baseline: a run with one fails. */
   added: SurfaceFinding[];
   /** Groups with fewer findings than the baseline records, as `<group>: was <n>, now <m>`: lower their counts, so the count only goes down. */
   fixed: string[];
@@ -289,9 +289,9 @@ function countFindings(report: SurfacesReport): Record<string, number> {
 }
 
 /**
- * Compares a run to the recorded baseline, which counts findings per check and file (`error.has-code:src/send.js`: 3),
- * so rewording an error or moving it in its file changes nothing. A group with more findings than recorded fails, and
- * so does one with fewer: the pull request that fixes a finding lowers its count, so the count only goes down.
+ * Compares a run to the recorded baseline, which counts findings per check and file (the group `error.has-code:src/send.js`),
+ * so rewording an error or moving it in its file leaves the baseline as it was. A group with more findings than recorded
+ * fails, and so does one with fewer: the pull request that fixes a finding lowers its count, so the count only goes down.
  *
  * @example
  * ratchet(report, { "error.has-code:src/send.js": 2 }); // { added: [], fixed: ["error.has-code:src/send.js: was 2, now 1"], known: 1, ok: false }
