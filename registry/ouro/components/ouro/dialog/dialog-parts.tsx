@@ -29,7 +29,7 @@ const DialogContext = createContext(false);
 // --ouro-inset-top is the height of an app bar the app draws across the window's top; the dialog layer starts below it.
 // On iOS the backdrop's top is anchored to the screen (useBackdropAnchor), so the inset clips it there instead.
 const backdropClass =
-  "fixed inset-0 top-(--ouro-inset-top,0px) z-1000 min-h-[calc(100dvh-var(--ouro-inset-top,0px))] bg-(--ouro-backdrop-color) opacity-(--ouro-backdrop-max) " +
+  "fixed inset-0 top-(--ouro-inset-top,0px) z-1000 min-h-dvh bg-(--ouro-backdrop-color) opacity-(--ouro-backdrop-max) " +
   "transition-opacity duration-(--ouro-duration-slow) ease-(--ouro-ease-out) " +
   "data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-base) data-ouro-instant:transition-none " +
   iosBackdrop +

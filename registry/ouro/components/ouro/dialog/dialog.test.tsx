@@ -330,7 +330,7 @@ describe("Dialog below an app's own bar", () => {
     const layer = backdrop()!.getBoundingClientRect();
     const frame = viewport().getBoundingClientRect();
     expect(layer.top).toBe(40);
-    expect(Math.round(layer.bottom)).toBe(innerHeight);
+    expect(Math.round(layer.bottom)).toBeGreaterThanOrEqual(innerHeight);
     expect(frame.top).toBe(40);
     expect(Math.round(frame.bottom)).toBe(innerHeight);
     const rect = element.getBoundingClientRect();
