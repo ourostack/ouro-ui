@@ -213,6 +213,27 @@ describe("Emoji", () => {
     expect(getComputedStyle(img).objectFit).toBe("contain");
   });
 
+  it("stops a filmstrip in the same commit that brings back the still image, never after it", async () => {
+    await motion();
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Emoji item={blink} play />));
+    const img = emoji(host);
+    await expect.poll(() => img.getAnimations().length).toBe(1);
+    // Outside act, React commits on its own task, and passive effects run in a later one; a
+    // microtask after the commit sees the DOM as the commit left it.
+    const running: number[] = [];
+    const observer = new MutationObserver(() => running.push(img.getAnimations().length));
+    observer.observe(img, { attributes: true, attributeFilter: ["src"] });
+    root.render(<Emoji item={blink} play={false} />);
+    await expect.poll(() => img.getAttribute("src")).toBe(blink.src);
+    observer.disconnect();
+    expect(running).toEqual([0]);
+  });
+
   it("plays an animated image over a filmstrip, a tone's filmstrip in that tone, leaves one frame or a broken strip still, and starts a strip once", async () => {
     await motion();
     const both: EmojiItem = { ...blink, animatedSrc: image("blink moving") };
