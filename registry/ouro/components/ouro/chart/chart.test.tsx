@@ -232,6 +232,31 @@ describe("Chart", () => {
     expect(new Set(shapes).size).toBe(2);
   });
 
+  it("keeps every legend item out of the chart's SVG, for a chart with type and one with children", async () => {
+    const withType = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    await drawn(withType.chart);
+    const withChildren = await render(
+      <Chart title="Cooking trend" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          <XAxis dataKey="month" />
+          <Line dataKey="cooked" stroke="var(--color-cooked)" />
+          <Line dataKey="saved" stroke="var(--color-saved)" />
+          <ChartLegend />
+        </LineChart>
+      </Chart>,
+    );
+    await drawn(withChildren.chart);
+    for (const { chart } of [withType, withChildren]) {
+      await expect.poll(() => chart.querySelectorAll("[data-ouro-chart-legend] li").length).toBe(2);
+      const surface = chart.querySelector("svg.recharts-surface")!.getBoundingClientRect();
+      for (const item of chart.querySelectorAll("[data-ouro-chart-legend] li")) {
+        const box = item.getBoundingClientRect();
+        const overlaps = box.left < surface.right && box.right > surface.left && box.top < surface.bottom && box.bottom > surface.top;
+        expect(overlaps, `${item.textContent} over the plot`).toBe(false);
+      }
+    }
+  });
+
   it("gives five series five marker shapes", async () => {
     const { chart } = await render(
       <Chart

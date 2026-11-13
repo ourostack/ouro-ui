@@ -1,0 +1,1 @@
+- Changed: Chart draws its legend as its own list beside the plot, outside the chart's SVG, so the legend sits outside the SVG's box.
