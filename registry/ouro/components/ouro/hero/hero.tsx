@@ -63,7 +63,7 @@ export interface HeroOwnProps {
   eyebrow?: ReactNode;
   /**
    * The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as
-   * two paragraphs or a list, is set in a `<div>` so it can hold blocks.
+   * paragraphs or a list, is set in a `<div>` so it can hold blocks.
    */
   description?: ReactNode;
   /** The hero's buttons or links, such as Ouro buttons. */
@@ -225,7 +225,8 @@ export function Hero(props: HeroProps): JSX.Element {
         maxWidth: `${picture.width}px`,
         ...(crop ? { "--hero-crop": crop } : {}),
       } as CSSProperties)
-    : mediaWidth !== undefined
+    : // Stryker disable next-line ConditionalExpression: without mediaWidth the style would be "undefinedpx", which the browser drops, so the page is the same.
+      mediaWidth !== undefined
       ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
       : undefined;
   const shown = picture ? (

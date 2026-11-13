@@ -324,7 +324,8 @@ describe("Hero", () => {
     expect(media.querySelector('[data-testid="clip"]')).not.toBeNull();
     expect(media.querySelector("picture")).toBeNull();
     expect(media.querySelector("img")).toBeNull();
-    expect(media.style.maxWidth).toBe("");
+    expect(media.hasAttribute("style")).toBe(false);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("never shows live media wider than mediaWidth", async () => {
