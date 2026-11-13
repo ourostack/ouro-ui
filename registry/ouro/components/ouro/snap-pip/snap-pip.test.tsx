@@ -300,7 +300,7 @@ describe("SnapPiP", () => {
     const watch = new MutationObserver(() => hintShown() && opened.push(performance.now()));
     watch.observe(hint(), { attributes: true, attributeFilter: ["data-open"] });
     await userEvent.hover(element);
-    await expect.poll(() => hintShown(), { timeout: HINT_DELAY + 1000 }).toBe(true);
+    await expect.poll(() => hintShown()).toBe(true);
     watch.disconnect();
     expect(arrived).toBeGreaterThan(0);
     // A timer does not fire early; the slack allows for the browser's clock rounding.
