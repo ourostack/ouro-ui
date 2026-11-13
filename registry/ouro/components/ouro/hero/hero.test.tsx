@@ -176,6 +176,7 @@ describe("Hero", () => {
   it("rises the picture in on mount, and only fades it with reduced motion", async () => {
     const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
     const slow = token("--ouro-duration-slow");
+    const fast = token("--ouro-duration-fast");
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
       // A loaded WebKit can take the setting a moment after the command returns: mount only once the page has it.
@@ -193,7 +194,7 @@ describe("Hero", () => {
       await expectMotion(media, {
         stem: "hero",
         state: "data-starting-style",
-        properties: reduced ? { opacity: slow } : { opacity: slow, transform: slow },
+        properties: reduced ? { opacity: fast } : { opacity: slow, transform: slow },
         reduced,
       });
       await expect.poll(() => media.hasAttribute("data-starting-style")).toBe(false);

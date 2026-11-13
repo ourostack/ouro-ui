@@ -64,7 +64,7 @@ export interface HeroOwnProps {
   /** `rise` lifts the picture into place on mount, with reduced motion fading it in. @default "rise" */
   motion?: "rise" | "none" | (string & { 'Use "rise" or "none"': never }) | undefined;
   /** The title's heading level: `1` for the page's headline, `2` when the hero heads a section. @default 1 */
-  headingLevel?: 1 | 2 | (number & { "Use 1 for the page headline or 2 for a section": never }) | undefined;
+  headingLevel?: 1 | 2 | (number & { 'Use 1 for the page headline or 2 for a section': never }) | undefined;
   ref?: Ref<HTMLElement> | undefined;
 
   /** Not a prop. The lede is `description`: `<Hero description="…" />`. */
@@ -74,16 +74,16 @@ export interface HeroOwnProps {
   /** Not a prop. The line above the title is `eyebrow`: `<Hero eyebrow="Recipes" />`. */
   overline?: { 'Use <Hero eyebrow="Recipes" />': never };
   /** Not a prop. The picture is `picture`: `<Hero picture={{ src, width, height, alt }} />`. */
-  image?: { "Use picture={{ src, width, height, alt }}": never };
+  image?: { 'Use picture={{ src, width, height, alt }}': never };
   /** Not a prop. The buttons are `actions`: `<Hero actions={<Button>Start</Button>} />`. */
-  action?: { "Use actions={<Button>Start</Button>}": never };
+  action?: { 'Use actions={<Button>Start</Button>}': never };
 }
 
 /** Props for {@link Hero}: its own props and the `<header>` attributes it passes through. */
 export type HeroProps = Omit<HTMLAttributes<HTMLElement>, keyof HeroOwnProps> & HeroOwnProps;
 
 const riseMotion =
-  "motion-safe:animate-[ouro-hero-rise_var(--ouro-duration-slow)_var(--ouro-ease-out)_both] motion-reduce:animate-[ouro-hero-fade_var(--ouro-duration-slow)_var(--ouro-ease-out)_both]";
+  "motion-safe:animate-[ouro-hero-rise_var(--ouro-duration-slow)_var(--ouro-ease-out)_both] motion-reduce:animate-[ouro-hero-fade_var(--ouro-duration-fast)_var(--ouro-ease-out)_both]";
 
 const layoutRoot: Record<HeroLayout, string> = {
   stage:
@@ -92,7 +92,7 @@ const layoutRoot: Record<HeroLayout, string> = {
 };
 
 const layoutText: Record<HeroLayout, string> = {
-  stage: "mx-auto grid w-full max-w-[42rem] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
+  stage: "mx-auto grid w-[min(42rem,var(--hero-width))] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
   column: "mx-auto grid w-[var(--hero-width)] justify-items-start gap-4 text-left",
 };
 
