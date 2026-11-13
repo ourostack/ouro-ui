@@ -7,7 +7,7 @@ A message for an agent or a person names only what the installed tool runs: neve
 Developer commands: `npm`, `pnpm`, `yarn` and `bun` scripts and installs (a global install is fine), `npx` of a dev tool or a file, `node`, `tsx` or another interpreter given a file in the repository, `git`, `make`, `cargo` and the other build tools, and a script run by its path. Repository paths: `src/`, `scripts/`, `registry/`, `packages/`, `apps/`, `.github/`, `node_modules/`, and in a command root files such as `package.json`. A web address is never a path.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-dev-commands#v1.3.12
+npx shadcn@latest add ourostack/ouro-ui/ax-dev-commands#v1.3.13
 ```
 
 It installs `lib/ouro/ax/dev-commands.ts`. Its tests are `ax-dev-commands-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
