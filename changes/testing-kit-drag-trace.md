@@ -1,1 +1,0 @@
-- Fixed: the testing kit's mouse `drag` prints its slow-drag trace only with `OURO_TOUCH_TRACE=1`, as information, so a slow drag that succeeds stops failing a test run that fails on warnings.
