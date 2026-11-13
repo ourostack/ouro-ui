@@ -171,7 +171,8 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         aria-label={label}
         className={cn("peer/scroll-viewport min-h-0 flex-1 rounded-[inherit] outline-none", scrollFadeClass, contain && "overscroll-contain")}
       >
-        <BaseScrollArea.Content>{children}</BaseScrollArea.Content>
+        {/* Base UI sets min-width: fit-content inline; the important class lets a vertical area keep the viewport's width. */}
+        <BaseScrollArea.Content className={orientation === "vertical" ? "min-w-0!" : undefined}>{children}</BaseScrollArea.Content>
       </BaseScrollArea.Viewport>
       {orientation !== "horizontal" && (
         <BaseScrollArea.Scrollbar orientation="vertical" className={cn(scrollbar, scrollbars.vertical)}>
