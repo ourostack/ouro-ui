@@ -790,11 +790,12 @@ describe("MediaTile visibility", () => {
     };
     try {
       const report = vi.fn();
-      // Fixed at the top before it mounts, so the browser's first look at the tile already sees all of it.
-      // Placed after mounting, a busy runner could take that first look in the page's flow, partly off
-      // screen, and moving it fully on screen then crosses no threshold, so no entry would say 1.
+      // Fixed at the top before it mounts, so the browser's first look already finds it there: placed
+      // after mounting, a busy runner could look while it sat in the page's flow, and a move within the
+      // seen side of the one threshold brings no new entry. The entry is read for seen at the top, not
+      // for a ratio of 1, since the page around the test frame can clip a few pixels off its top.
       const { host } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320, { position: "fixed", left: "0px", top: "0px" });
-      await expect.poll(() => held.at(-1)?.intersectionRatio).toBe(1);
+      await expect.poll(() => held.at(-1) && [held.at(-1)!.boundingClientRect.top, held.at(-1)!.isIntersecting]).toEqual([0, true]);
       held.length = 0;
       host.style.top = `${innerHeight - 8}px`;
       await expect.poll(() => held.length).toBe(1);
