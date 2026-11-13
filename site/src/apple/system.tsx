@@ -153,7 +153,7 @@ export function SystemBand(): JSX.Element {
         <a className="apple-inline-link" href={href("/docs/platforms/")}>
           Platforms page
         </a>{" "}
-        lists which release of each platform meets which core.
+        has the version table.
       </p>
     </AppleBand>
   );
