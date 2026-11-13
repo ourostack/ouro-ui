@@ -142,7 +142,7 @@ describe("SyncStatus", () => {
   it.each([
     ["offline", "Offline: changes are kept on this device"],
     ["error", "Not saved: the server refused the changes"],
-  ] as const)("leaves time for a control's state announcement before speaking %s or its recovery", async (status, words) => {
+  ] as const)("leaves time for a control's state announcement before speaking %s, and speaks its recovery without that wait", async (status, words) => {
     const { line, rerender } = await render(<SyncStatus status="saved" />);
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
@@ -156,7 +156,7 @@ describe("SyncStatus", () => {
 
       await rerender(<SyncStatus status="saved" />);
       expect(line.textContent).toBe("Saved");
-      vi.advanceTimersByTime(1499);
+      vi.advanceTimersByTime(99);
       expect(region.textContent).toBe("");
       vi.advanceTimersByTime(1);
       expect(region.textContent).toBe("Saved");
@@ -170,7 +170,7 @@ describe("SyncStatus", () => {
     try {
       const { line, rerender } = await render(<SyncStatus status="offline" />);
       if (pending === "saved") await rerender(<SyncStatus status="saved" />);
-      vi.advanceTimersByTime(500);
+      vi.advanceTimersByTime(50);
       await rerender(<SyncStatus status="saving" />);
       expect(line.textContent).toBe("Saving…");
       vi.advanceTimersByTime(1500);
@@ -201,7 +201,7 @@ describe("SyncStatus", () => {
       await act(() => vi.advanceTimersByTimeAsync(1500));
       expect(announced.count("Offline: changes are kept on this device")).toBe(1);
       await rerender(<SyncStatus status="saved" />);
-      await act(() => vi.advanceTimersByTimeAsync(500));
+      await act(() => vi.advanceTimersByTimeAsync(50));
       await rerender(<SyncStatus status="saving" />);
       await act(() => vi.advanceTimersByTimeAsync(1500));
       expect(announced.count("Saved")).toBe(0);

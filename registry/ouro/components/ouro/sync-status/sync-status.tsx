@@ -65,8 +65,10 @@ const words: Record<keyof SyncStatusLabels, string> = {
   retry: "Retry",
 };
 const problems = new Set<SyncState>(["offline", "error"]);
-// Match Celebrate's time for the triggering control's state announcement.
-// This fixed delay does not detect when a screen reader has finished speaking.
+// Match Celebrate's time for the triggering control's state announcement (a switch's "off").
+// This fixed delay does not detect when a screen reader has finished speaking. Recovery keeps
+// the default delay: Retry's save moves focus to this line, and VoiceOver's usage hint for it
+// starts about then and swallows a later message.
 const SPEAK_DELAY_MS = 1500;
 
 const tones: Record<SyncState, string> = {
@@ -197,10 +199,7 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
       troubled.current = true;
       return announce(word[status], { delayMs: SPEAK_DELAY_MS });
     } else if (status === "saved" && troubled.current) {
-      return announce(word.saved, {
-        delayMs: SPEAK_DELAY_MS,
-        onWrite: () => { troubled.current = false; },
-      });
+      return announce(word.saved, { onWrite: () => { troubled.current = false; } });
     }
     // The words change with the status; a new translation alone is not news.
     // eslint-disable-next-line react-hooks/exhaustive-deps
