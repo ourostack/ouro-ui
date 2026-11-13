@@ -1,1 +1,1 @@
-- Fixed: MessageList no longer writes the scroll position while the wheel turns to hold the reader's place against a small drift, which stalled WebKit's scroll while older history loaded; it pays the drift once the wheel rests.
+- Fixed: MessageList waits for the wheel to rest before it corrects a small drift of the reader's place, so WebKit's scroll keeps moving while older history loads.

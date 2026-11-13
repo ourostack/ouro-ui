@@ -464,7 +464,7 @@ const STRETCH = 0.25;
 const ARMED = 250;
 /** How long, in ms, after a wheel turn the list leaves the reader's place unwritten: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
-/** The most, in px, that is held back while the wheel turns: what measuring a message moves, not what a page of history above does. */
+/** Drift up to this size, in px, is held back while the wheel turns: it comes from measuring a message, where a page of history above is larger. */
 const WHEEL_DRIFT = 48;
 /** A message this close to its place, in px, and this slow, in px/ms, is at rest, once the reader's scroll has ended. */
 const REST = 0.25;
