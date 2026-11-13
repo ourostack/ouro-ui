@@ -1438,16 +1438,16 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/4)
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/6)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/4
+      OURO_SHARD: ${{ matrix.shard }}/6
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
@@ -1529,12 +1529,12 @@ jobs:
           fi
           failed=0
           if [ "$SHARDS" != success ]; then
-            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/4) jobs."
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/6) jobs."
             failed=1
           fi
-          for shard in 1 2 3 4; do
+          for shard in 1 2 3 4 5 6; do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
-              echo "::error::install ($VARIANT, $PRESET, $shard/4) did not pass: see that job."
+              echo "::error::install ($VARIANT, $PRESET, $shard/6) did not pass: see that job."
               failed=1
             fi
           done
