@@ -252,6 +252,15 @@ describe("hand-drawn avatar and presence dot", () => {
     it("finds an empty round dot, a presence dot by hand", () => {
         expect(categories(`export function A() { return <span className="size-2.5 rounded-full bg-green-500" />; }`)).toEqual(["hand-drawn-presence-dot"]);
     });
+    it("leaves a small round element with no fill, or with content, and a square picture box alone", () => {
+        expect(scan(`export function A() { return <span className="size-2 rounded-full" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span className="size-2 rounded-full bg-red-500">x</span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <div className="size-8 overflow-hidden rounded-md">x</div>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <img className="size-8 rounded" alt="" src="a.png" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <img className="size-8 object-cover" alt="" src="a.png" />; }`)).toEqual([]);
+        expect(categories(`export function A() { return <img className="size-8 rounded-lg" alt="" src="a.png" />; }`)).toEqual(["hand-drawn-avatar"]);
+        expect(scan(`export function A() { return <img className="size-8 rounded-sm" alt="" src="a.png" />; }`)).toEqual([]);
+    });
     it("leaves Ouro's Avatar, ordinary layout and other rounding alone", () => {
         expect(scan(`import { Avatar } from "~/components/ouro/avatar/avatar"; export function A() { return <Avatar name="Ana" className="size-8 rounded-full" />; }`)).toEqual([]);
         expect(scan(`export function A() { return <div className="rounded-lg p-4 h-4 w-full">x</div>; }`)).toEqual([]);
