@@ -46,7 +46,7 @@ test("emulateMedia throws, naming the query, when the frame never matches it", a
     window.matchMedia = real;
     await commands.emulateMedia({ reducedMotion: "no-preference" });
   }
-}, 10_000);
+}, 20_000);
 
 test("emulateMedia returns while the test's fake timers are on", async () => {
   // The frame's timers are faked, so a wait that relied on them would never end.

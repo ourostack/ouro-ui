@@ -60,18 +60,23 @@ function mediaQueries(options: EmulateMediaOptions): string[] {
   return (Object.keys(MEDIA_FEATURES) as (keyof EmulateMediaOptions)[]).flatMap((key) => (options[key] === undefined ? [] : [`(${MEDIA_FEATURES[key]}: ${options[key]})`]));
 }
 
+/** How long `emulateMedia` waits for the test frame to match: as long as a poll waits. */
+const MEDIA_WAIT_MS = 10_000;
+
 /**
  * Polls the frame's `matchMedia` from Node until the queries match. The poll runs here, not in the
  * frame, because a test's fake timers in the frame would stall a wait that the frame's own timers drive.
  * @claim "Polls the frame's `matchMedia` from Node until the queries match" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::emulateMedia returns while the test's fake timers are on)
  */
 async function awaitMedia(frame: Frame, queries: string[]): Promise<void> {
-  const deadline = performance.now() + 3000;
+  // As long as a poll waits (the projects' 10 s), since a loaded runner can be slow to answer.
+  const deadline = performance.now() + MEDIA_WAIT_MS;
   const unmatched = `${JSON.stringify(queries)}.find((query) => !matchMedia(query).matches)`;
   for (;;) {
-    const missing = await within(frame.evaluate<string | undefined>(unmatched), 3000, `the test frame did not answer for ${queries.join(" and ")} within 3s`);
+    const left = Math.max(deadline - performance.now(), 1);
+    const missing = await within(frame.evaluate<string | undefined>(unmatched), left, `the test frame did not answer for ${queries.join(" and ")} within ${MEDIA_WAIT_MS / 1000}s`);
     if (missing === undefined) return;
-    if (performance.now() > deadline) throw new Error(`the test frame does not match ${missing} within 3s`);
+    if (performance.now() > deadline) throw new Error(`the test frame does not match ${missing} within ${MEDIA_WAIT_MS / 1000}s`);
     await sleep(10);
   }
 }
