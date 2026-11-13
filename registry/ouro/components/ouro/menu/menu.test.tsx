@@ -1,8 +1,9 @@
+import axe from "axe-core";
 import { createRef, StrictMode, useState, type AnchorHTMLAttributes, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import {
@@ -1751,4 +1752,66 @@ describe("Menu and the page's scroll", () => {
       expect(moving).toBe(true);
     });
   }
+});
+
+/**
+ * Base UI puts focus guards around each popup that holds focus. Plain axe reports them, and the
+ * gate leaves them out (axeExclude).
+ */
+describe("Menu focus guards", () => {
+  const GUARD_RULES = ["aria-hidden-focus", "aria-command-name"];
+  const guards = () => [...document.querySelectorAll<HTMLElement>("[data-base-ui-focus-guard]")];
+  /** The rule axe reports the open guards under: role="button" on Apple platforms' WebKit (for VoiceOver), else aria-hidden. */
+  const guardRule = () => (guards()[0]?.getAttribute("role") === "button" ? "aria-command-name" : "aria-hidden-focus");
+
+  /** Renders `node` in a main landmark whose OuroProvider portals popups into it, as an app places a menu. */
+  async function renderInMain(node: ReactNode) {
+    const main = document.createElement("main");
+    main.innerHTML = "<h1>Recipes</h1>";
+    document.body.append(main);
+    mounted.push(main);
+    await render(<OuroProvider portalContainer={main}>{node}</OuroProvider>, main);
+  }
+
+  /**
+   * Plain axe, with nothing excluded, reports each guard under guardRule(). In Chromium the report is
+   * undecided (`incomplete`), not a violation, because axe cannot tell whether a guard is tabbable while
+   * a modal popup is open.
+   */
+  async function expectGuardsReported() {
+    expect(guards().length).toBeGreaterThan(0);
+    const rule = guardRule();
+    const results = await axe.run(document.documentElement);
+    const nodes = (list: axe.Result[]) => list.filter((result) => GUARD_RULES.includes(result.id)).flatMap((result) => result.nodes.map((node) => ({ rule: result.id, html: node.html })));
+    const reported = [...nodes(results.violations), ...nodes(results.incomplete)];
+    expect(reported.length).toBeGreaterThan(0);
+    expect(reported.every((entry) => entry.rule === rule && entry.html.includes("data-base-ui-focus-guard"))).toBe(true);
+    if (server.browser === "chromium") expect(nodes(results.violations)).toEqual([]);
+  }
+
+  const gated = () => audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) });
+
+  it("reports a context menu's focus guards to plain axe, and the gate passes with them left out", async () => {
+    await renderInMain(
+      <Menu contextTrigger={<div data-testid="area" style={{ width: 300, height: 200 }}>Recipe card text</div>}>
+        <MenuItem onClick={() => {}}>Copy</MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(document.querySelector<HTMLElement>("[data-testid=area]")!, { button: "right", position: { x: 40, y: 30 } });
+    await settled();
+    await expectGuardsReported();
+    expect(describeFindings(await gated())).toBe("");
+  });
+
+  it("reports a trigger menu's focus guards to plain axe, and the gate passes with them left out", async () => {
+    await renderInMain(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem onClick={() => {}}>Copy</MenuItem>
+      </Menu>,
+    );
+    await userEvent.click(trigger());
+    await settled();
+    await expectGuardsReported();
+    expect(describeFindings(await gated())).toBe("");
+  });
 });

@@ -21,9 +21,10 @@ export { describeFindings };
  */
 export async function scan(within?: HTMLElement): Promise<GateFinding[]> {
   // Base UI's focus-trap guards are excluded, not a rule (axeExclude, which ships to
-  // apps): in WebKit they take `role="button"` on purpose, with no name, so
-  // VoiceOver's virtual cursor fires focus on them and the modal's trap catches it
-  // (Base UI utils/FocusGuard). They are visually hidden and never reached by Tab.
+  // apps). On Apple platforms' WebKit they take `role="button"` on purpose, with no name,
+  // so VoiceOver's virtual cursor fires focus on them and the modal's trap catches it
+  // (Base UI utils/FocusGuard). Elsewhere they are aria-hidden. They are visually hidden
+  // and never reached by Tab.
   return audit({ include: [within ?? document.documentElement], exclude: axeExclude.map((selector) => [selector]) });
 }
 

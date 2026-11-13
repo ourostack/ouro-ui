@@ -10,16 +10,21 @@ import { pressTab } from "./tab";
 // first statement, which would take the JSDoc below with it.
 
 /**
- * What an axe scan leaves out while an Ouro UI Dialog, ConfirmDialog or Sheet is open:
- * Base UI's focus guards. In WebKit they take `role="button"` without a name on purpose,
- * so VoiceOver's virtual cursor stays trapped in the modal, and axe reports
- * `aria-command-name` on them. They are visually hidden.
+ * What an axe scan leaves out while a popup that holds focus is open, such as an Ouro UI Dialog or
+ * Menu: Base UI's focus guards, which Base UI puts around the popup and which are visually hidden.
+ *
+ * On Apple platforms' WebKit they take `role="button"` without a name on purpose, so VoiceOver's
+ * virtual cursor stays trapped in the popup, and axe reports `aria-command-name` on them. Elsewhere
+ * they are `aria-hidden` and axe reports `aria-hidden-focus`, in Chromium as an undecided
+ * (`incomplete`) result, since axe cannot tell whether a guard is tabbable while a modal popup is open.
  *
  * @example
  * // Playwright
  * new AxeBuilder({ page }).exclude(axeExclude)
  * // axe-core
  * axe.run({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) })
+ * @claim "Base UI's focus guards, which Base UI puts around the popup" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu focus guards > reports a context menu's focus guards to plain axe, and the gate passes with them left out)
+ * @claim "they are `aria-hidden` and axe reports `aria-hidden-focus`" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu focus guards > reports a trigger menu's focus guards to plain axe, and the gate passes with them left out)
  */
 const axeExclude: string[] = ["[data-base-ui-focus-guard]"];
 
