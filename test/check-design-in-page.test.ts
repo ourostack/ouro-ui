@@ -265,6 +265,31 @@ describe("findDesignIssues: type-scale and shadow-scale", () => {
     expect(of("type-scale", { maxSizes: 2, maxWeights: 1 })).toEqual([]);
   });
 
+  it("leaves out text an element opts out of with a reason, nested text included, and holds the page's own text to the scale", () => {
+    render(`<div data-ouro-allow="type-scale" data-ouro-allow-why="comic lettering is art"><h2 style="font-size:41px;font-weight:700">BANG</h2><p style="font-size:23px;font-weight:700">Hmm <span style="font-size:19px">nested</span></p></div><p style="font-size:12px">Chrome</p><p style="font-size:16px;font-weight:600">Body</p><p style="font-size:14px;font-weight:500">Caption</p>`);
+    expect(of("type-scale")).toEqual([]);
+    const [sizes, weights] = of("type-scale", { maxSizes: 2, maxWeights: 2 });
+    expect(sizes!.detail).toBe("3 sizes (12, 14, 16 px); a type scale holds 2 or fewer");
+    expect(weights!.detail).toBe("3 weights (400, 500, 600); keep to 2");
+  });
+
+  it("still finds the page's own text over the scale beside an opted-out lettering block", () => {
+    const chrome = Array.from({ length: 11 }, (_, i) => `<p style="font-size:${10 + i}px;font-weight:${[300, 400, 500, 600][i % 4]}">Size ${10 + i}</p>`).join("");
+    render(`<div data-ouro-allow="type-scale" data-ouro-allow-why="comic lettering is art"><h2 style="font-size:41px;font-weight:700">BANG</h2></div>${chrome}`);
+    expect(of("type-scale").map(({ detail }) => detail)).toEqual([
+      "11 sizes (10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 px); a type scale holds 10 or fewer",
+      "4 weights (300, 400, 500, 600); keep to 3",
+    ]);
+  });
+
+  it("counts text whose opt-out has a blank reason, since a reason of spaces is none", () => {
+    render(`<div data-ouro-allow="type-scale" data-ouro-allow-why="   "><h2 style="font-size:41px;font-weight:700">BANG</h2></div><p style="font-size:12px">Chrome</p><p style="font-size:16px">Body</p>`);
+    expect(of("type-scale", { maxSizes: 2, maxWeights: 1 }).map(({ detail }) => detail)).toEqual([
+      "3 sizes (12, 16, 41 px); a type scale holds 2 or fewer",
+      "2 weights (400, 700); keep to 1",
+    ]);
+  });
+
   it("holds the page to ten sizes and three weights unless told another", () => {
     render([10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((size, i) => `<p style="font-size:${size}px;font-weight:${[300, 400, 500, 700][i % 4]}">Size ${size}</p>`).join(""));
     expect(rules(findDesignIssues())).toEqual(["type-scale", "type-scale"]);
