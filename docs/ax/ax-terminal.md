@@ -5,7 +5,7 @@
 What a terminal shows a person, with a plain fallback off a terminal: colour, status marks, the time something took, next steps and a progress line for anything slow. Colour is on only for a terminal; `NO_COLOR` always turns it off, and `FORCE_COLOR` turns it on for a capture. Off a terminal, the marks are words and nothing is redrawn, so a pipe, a log or an agent gets plain text with no escape codes.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-terminal#v1.3.10
+npx shadcn@latest add ourostack/ouro-ui/ax-terminal#v1.3.11
 ```
 
 It installs `lib/ouro/ax/terminal.ts`, with `ax-outcome`, `ax-voice`. Its tests are `ax-terminal-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
