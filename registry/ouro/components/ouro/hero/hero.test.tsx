@@ -190,7 +190,7 @@ describe("Hero", () => {
       // No await before the checks: the rise lasts only as long as the slow token, which a loaded browser can finish first.
       flushSync(() => root.render(<Hero title="Rise" picture={wide} />));
       const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
-      expect(media).toHaveAttribute("data-starting-style");
+      expect(media.getAttribute("data-starting-style")).toBe("");
       await expectMotion(media, {
         stem: "hero",
         state: "data-starting-style",
@@ -204,5 +204,92 @@ describe("Hero", () => {
   it("does not move the picture in at all when motion is none", async () => {
     const { part } = await render(<Hero title="Still" picture={wide} motion="none" />);
     expect(part("media")!).not.toHaveAttribute("data-starting-style");
+  });
+
+  it("gives the picture its rise animation by default, and none with motion none", async () => {
+    const rising = await render(<Hero title="Rise" picture={wide} />);
+    expect(rising.part("media")!.className).toContain("animate-[ouro-hero-rise");
+    const still = await render(<Hero title="Still" picture={wide} motion="none" />);
+    expect(still.part("media")!.className).not.toContain("animate-[ouro-hero");
+  });
+
+  it("applies each layout's classes to its own parts only", async () => {
+    const stage = await render(
+      <Hero eyebrow="Recipes" title="Stage" actions={<button type="button">Start</button>} picture={wide} />,
+    );
+    expect(stage.header.className).toContain("min(80rem,");
+    expect(stage.header.className).not.toContain("min(72rem,");
+    expect(stage.header.firstElementChild!.className).toContain("text-center");
+    expect(stage.header.firstElementChild!.className).not.toContain("text-left");
+    expect(stage.part("actions")!.className).toContain("justify-center");
+    expect(stage.part("actions")!.className).not.toContain("justify-start");
+    expect(stage.part("media")!.className).toContain("min-[40rem]:mt-12");
+
+    const column = await render(
+      <Hero
+        eyebrow="Recipes"
+        title="Column"
+        layout="column"
+        actions={<button type="button">Start</button>}
+        picture={wide}
+      />,
+    );
+    expect(column.header.className).toContain("min(72rem,");
+    expect(column.header.className).not.toContain("min(80rem,");
+    expect(column.header.firstElementChild!.className).toContain("text-left");
+    expect(column.header.firstElementChild!.className).not.toContain("text-center");
+    expect(column.part("actions")!.className).toContain("justify-start");
+    expect(column.part("actions")!.className).not.toContain("justify-center");
+    expect(column.part("media")!.className).toContain("mx-auto mt-8");
+    expect(column.part("media")!.className).not.toContain("min-[40rem]:mt-12");
+  });
+
+  it("says nothing when the Hero is used as intended", async () => {
+    await render(
+      <Hero
+        eyebrow="Recipes"
+        title="Dinner, sorted"
+        description="Plan the week and shop once."
+        actions={<button type="button">Start planning</button>}
+        picture={wide}
+      />,
+    );
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("does not ask a decorative picture for alt text", async () => {
+    await render(<Hero title="Decor" picture={{ src: wide.src, width: 1536, height: 576, decorative: true }} />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("says heading, image and action are not props, and what to use instead", async () => {
+    const legacy = {
+      heading: "Dinner, sorted",
+      image: wide,
+      action: <button type="button">Start</button>,
+    } as unknown as HeroProps;
+    await render(<Hero {...legacy} />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: heading is not a prop. Fix: <Hero title="Dinner, sorted" />.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: image is not a prop. Fix: <Hero picture={{ src, width, height, alt }} />.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: action is not a prop. Fix: <Hero actions={<Button>Start</Button>} />.');
+  });
+
+  it("says className cannot set the look, and names the class", async () => {
+    await render(<Hero title="Colored" className="bg-red-500" />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Hero: "bg-red-500" sets appearance, and className is for layout only. Fix: remove "bg-red-500"; Hero sets its own look from the theme.',
+    );
+  });
+
+  it("keeps the picture from being dragged out of the page", async () => {
+    const { part } = await render(<Hero title="Drag" picture={wide} />);
+    expect(part("image")!.getAttribute("draggable")).toBe("false");
+  });
+
+  it("lets a cropped picture fill its frame only on wider screens", async () => {
+    const plain = await render(<Hero title="Plain" picture={wide} />);
+    expect(plain.part("image")!.className).not.toContain("min-[40rem]:absolute");
+    const cropped = await render(<Hero title="Cropped" picture={{ ...wide, crop: "8 / 3" }} />);
+    expect(cropped.part("image")!.className).toContain("min-[40rem]:absolute");
   });
 });

@@ -64,7 +64,9 @@ The hero's picture. It never shows wider than its intrinsic `width`.
 interface HeroPicture {
   /** The fallback `<img>` file. */
   src: string;
-  /** The intrinsic pixel width of the largest wide file. The picture is never shown wider than this. */
+  /**
+   * The intrinsic pixel width of the wide file. The picture is never shown wider than this.
+   */
   width: number;
   /** The intrinsic pixel height, which sets the picture's aspect ratio and stops layout shift. */
   height: number;
@@ -80,7 +82,7 @@ interface HeroPicture {
   sizes?: string;
   /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. */
   priority?: boolean;
-  /** A wide aspect ratio, such as `"8 / 3"`, applied from 40rem up. Without it the picture keeps its own ratio. */
+  /** A wide aspect ratio, such as `"8 / 3"`, applied on wider screens. Without it the picture keeps its own ratio. */
   crop?: string;
   /** The `object-position` used when the picture is cropped. @default "50% 42%" */
   focus?: string;

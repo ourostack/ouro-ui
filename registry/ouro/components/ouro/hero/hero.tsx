@@ -21,11 +21,19 @@ export interface HeroPictureSource {
   sizes?: string;
 }
 
-/** The hero's picture. It never shows wider than its intrinsic `width`. */
+/**
+ * The hero's picture. It never shows wider than its intrinsic `width`.
+ *
+ * @claim "It never shows wider than its intrinsic" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows the picture wider than its intrinsic width)
+ */
 export interface HeroPicture {
   /** The fallback `<img>` file. */
   src: string;
-  /** The intrinsic pixel width of the largest wide file. The picture is never shown wider than this. */
+  /**
+   * The intrinsic pixel width of the wide file. The picture is never shown wider than this.
+   *
+   * @claim "The picture is never shown wider than this" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows the picture wider than its intrinsic width)
+   */
   width: number;
   /** The intrinsic pixel height, which sets the picture's aspect ratio and stops layout shift. */
   height: number;
@@ -41,7 +49,7 @@ export interface HeroPicture {
   sizes?: string;
   /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. */
   priority?: boolean;
-  /** A wide aspect ratio, such as `"8 / 3"`, applied from 40rem up. Without it the picture keeps its own ratio. */
+  /** A wide aspect ratio, such as `"8 / 3"`, applied on wider screens. Without it the picture keeps its own ratio. */
   crop?: string;
   /** The `object-position` used when the picture is cropped. @default "50% 42%" */
   focus?: string;
@@ -115,6 +123,7 @@ const layoutMedia: Record<HeroLayout, string> = {
  * Use `PageHeader` instead for a page's top with a breadcrumb or no picture, and `Heading`
  * for a plain title with nothing around it.
  *
+ * @claim "it is never shown wider than its intrinsic width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows the picture wider than its intrinsic width)
  * @group Layout
  * @see https://ui.ouroboros.bot/docs/hero
  *
@@ -147,6 +156,7 @@ export function Hero(props: HeroProps): JSX.Element {
     ...rest
   } = props;
   const layout: HeroLayout = layoutProp === "column" ? "column" : "stage";
+  // Stryker disable next-line StringLiteral: motion is only compared with "rise", so "" and "none" behave the same.
   const motion = motionProp === "none" ? "none" : "rise";
   const headingLevel = headingLevelProp === 2 ? 2 : 1;
   const [rising, setRising] = useState(motion === "rise");
@@ -155,7 +165,8 @@ export function Hero(props: HeroProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; Hero sets its own look from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "Hero",
@@ -239,15 +250,19 @@ export function Hero(props: HeroProps): JSX.Element {
           )}
         >
           <picture aria-hidden={picture.decorative ? true : undefined} className="block">
-            {picture.sources?.map((source) => (
-              <source
-                key={`${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`}
-                srcSet={source.srcSet}
-                type={source.type}
-                media={source.media}
-                sizes={source.sizes}
-              />
-            ))}
+            {picture.sources?.map((source) => {
+              // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
+              const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
+              return (
+                <source
+                  key={key}
+                  srcSet={source.srcSet}
+                  type={source.type}
+                  media={source.media}
+                  sizes={source.sizes}
+                />
+              );
+            })}
             <img
               data-slot="image"
               src={picture.src}
