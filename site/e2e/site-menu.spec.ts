@@ -104,9 +104,18 @@ async function foldsStill(page: Page): Promise<void> {
     .toBe(true);
 }
 
-/** The sheet has finished moving: nothing animates on it (the "you're here" ping inside may go on), and two reads of its place agree. */
+/**
+ * The sheet has finished moving: it has left its starting style, nothing animates on it (the "you're here" ping inside
+ * may go on), and two reads of its place agree. The starting style parks it off-screen before the slide begins, where two
+ * reads would agree too.
+ */
 async function settled(page: Page): Promise<void> {
-  const place = () => sheet(page).evaluate((element) => (element.getAnimations().length > 0 ? "moving" : `${element.getBoundingClientRect().x}`));
+  const place = () =>
+    sheet(page).evaluate((element) =>
+      element.hasAttribute("data-starting-style") || element.hasAttribute("data-ending-style") || element.getAnimations().length > 0
+        ? "moving"
+        : `${element.getBoundingClientRect().x}`,
+    );
   let last = "";
   await expect
     .poll(async () => {
@@ -140,8 +149,9 @@ for (const { path, navs } of PAGES) {
     );
     await expect(sheet(page).locator('[aria-current="true"]')).toHaveAttribute("href", family.links.find((site) => site.id === "ouro-ui")!.href);
     // Nothing sticks out of the window sideways.
+    // Polled, because a loaded WebKit can still be sliding the sheet in after it has looked still.
+    await expect.poll(async () => (await sheet(page).boundingBox())!.x).toBeGreaterThanOrEqual(0);
     const box = (await sheet(page).boundingBox())!;
-    expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(PHONE.width);
   });
 }
