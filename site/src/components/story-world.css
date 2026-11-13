@@ -236,14 +236,15 @@
   }
 
   /*
-   * The home page's arrival (voyage/hero.tsx), centred: the storybook is the full-width sky, the eyebrow, headline and
-   * lede sit centred in a 42rem column, and the scene centres below them at the fold cap. --hero-width is as wide as
-   * the scene can be while its foot still clears the first screen (the 36rem is the sky above it); it is never past
-   * the scene file's 1536px, so the picture is never upscaled.
+   * The home page's arrival (voyage/hero.tsx), centred: the storybook is the full-width sky, the eyebrow, headline
+   * and lede sit centred in a 42rem column, and the scene centres below them at the fold cap. --hero-width is as wide
+   * as the scene can be while its foot still clears the first screen (the 36rem is the sky above it); the view also
+   * stops at --hero-art-max, the scene file's own width, so at 1x the picture is never upscaled.
    */
   .site-hero.site-hero-storybook {
     --hero-gap: 3rem;
     --hero-measure: 42rem;
+    --hero-art-max: 1536px;
     --hero-width: min(80rem, 100% - 4rem, max(48rem, (100svh - 36rem) * 8 / 3));
     padding-top: 0;
   }
@@ -279,7 +280,7 @@
   }
   .site-hero.site-hero-storybook .story-world-view {
     width: var(--hero-width);
-    max-width: 1536px;
+    max-width: var(--hero-art-max);
     margin: var(--hero-gap) auto 0;
     border-radius: 4px;
   }
