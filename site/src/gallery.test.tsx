@@ -132,6 +132,17 @@ describe("live demos", () => {
     await expect.poll(() => document.activeElement).toBe(location === "owned" ? control : elsewhere);
   });
 
+  // A plain svg child gets no size from Button, so it renders as nothing: draw every rendered svg, and fail on one with no box.
+  it.each(Object.keys(demos))("%s draws every svg at a nonzero size", async (name) => {
+    const host = await renderFixture(<main><LiveDemo name={name} title={name} /></main>);
+    await expect.poll(() => host.querySelector(`[data-site-demo="${name}"][data-site-demo-ready]`)).not.toBeNull();
+    await settle();
+    const empty = [...host.querySelectorAll("svg")]
+      .filter((svg) => svg.checkVisibility() && (svg.getBoundingClientRect().width === 0 || svg.getBoundingClientRect().height === 0))
+      .map((svg) => svg.outerHTML.slice(0, 160));
+    expect(empty, `${name} has an svg with no box`).toEqual([]);
+  });
+
   it("runs native required-field validation and the actual local Pasta rejection", async () => {
     await renderPage("/docs/form/");
     const name = page.getByRole("textbox", { name: "Recipe name", exact: true });
