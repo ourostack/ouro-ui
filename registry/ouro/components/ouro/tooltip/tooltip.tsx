@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { useCallback, useContext, useEffect, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import {
   floatingAlign,
@@ -199,10 +199,11 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     }
   }, []);
 
-  // Closed as the container it is in hides, such as a toolbar that fades out.
+  // Closed as the container it is in hides, such as a toolbar that fades out. A layout effect, so
+  // the close is asked in the same commit that hides the container, not a frame later.
   const hidden = useContext(TooltipsHidden);
   const actions = useRef<BaseTooltip.Root.Actions>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (hidden) actions.current!.close();
   }, [hidden]);
 

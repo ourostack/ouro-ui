@@ -84,9 +84,21 @@ test("fades after the pointer rests, stays reachable, and comes back on a move o
   await page.clock.runFor(10_000);
   await expect(toolbar).not.toHaveAttribute("data-hidden");
   // Back to the mouse: neither the focus on Mute nor the tooltip Tab showed holds it, and the tooltip goes with it.
+  await page.evaluate(() => {
+    const bar = document.querySelector('[data-ouro="toolbar"]')!;
+    const observer = new MutationObserver(() => {
+      if (!bar.hasAttribute("data-hidden")) return;
+      observer.disconnect();
+      // Mute's trigger has data-popup-open while its tooltip is open.
+      (window as unknown as { openAtFade?: boolean }).openAtFade = bar.querySelector("[data-popup-open]") !== null;
+    });
+    observer.observe(bar, { attributes: true, attributeFilter: ["data-hidden"] });
+  });
   await page.mouse.move(box.x + 80, box.y + 40);
   await page.clock.runFor(3000);
   await expect(toolbar).toHaveAttribute("data-hidden", "");
+  // The bar fades in the commit that closes its tooltip, so none is still open as it fades.
+  expect(await page.evaluate(() => (window as unknown as { openAtFade?: boolean }).openAtFade)).toBe(false);
   await expect(toolbar.getByRole("button", { name: "Mute" })).toBeFocused();
   await page.clock.runFor(1000);
   await expect(page.locator('[data-ouro="tooltip"]')).toHaveCount(0);
