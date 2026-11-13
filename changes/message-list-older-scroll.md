@@ -1,0 +1,1 @@
+- Fixed: MessageList keeps the wheel moving while older posts load (work in progress).
