@@ -1,1 +1,0 @@
-- Fixed: pressing a Menubar or context-menu trigger stops a page scroll in flight, as Menu, Popover, Select and Combobox triggers do, so the menu stays open.

@@ -1,1 +1,0 @@
-- Changed: the axe kit's `axeExclude` docs and the README say a popup that holds focus, such as a Menu, has Base UI's focus guards, which plain axe reports as `aria-hidden-focus` in Chromium and as `aria-command-name` in WebKit on Apple platforms, and that a scan should leave them out.

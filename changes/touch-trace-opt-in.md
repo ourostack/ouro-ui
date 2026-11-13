@@ -1,1 +1,0 @@
-- Changed: the touch kit's trace of a slow touch that succeeded prints only with `OURO_TOUCH_TRACE=1`, and as information rather than a warning, so a slow runner can't fail a warning-strict test run.
