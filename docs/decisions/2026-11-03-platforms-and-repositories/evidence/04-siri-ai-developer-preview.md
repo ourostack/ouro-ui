@@ -17,6 +17,7 @@ These notes summarize Apple's DocC pages, read today; follow the links for the f
 - `@AppIntent(.tool, schema:)` lifts a schema that today reaches only Shortcuts (books, journal and so on) into Siri.
 - Don't mark an intent that already uses a Siri schema, or one with no custom `perform()`.
 - Siri tells intents apart, and fills their parameters, from the `title` and `description` on each intent and each parameter ([guide](https://developer.apple.com/documentation/appintents/bringing-custom-actions-and-content-to-siri)).
+- Don't make an intent a tool when a person should start it explicitly: [ToolIntent](https://developer.apple.com/documentation/appintents/toolintent) lists "intents with side effects that a person needs to start explicitly, such as placing an order and paying for it" among poor tools. A candidate Ouro AX for Apple claim. (Added 2026-11-13.)
 
 **Entities**
 - Give every `@Property`, `@DeferredProperty` and `@ComputedProperty` a description.
@@ -62,7 +63,9 @@ These notes summarize Apple's DocC pages, read today; follow the links for the f
    - No `.tool` on an intent that already has a Siri schema.
    - Skill bundles are well formed: one per target, lowercase-hyphen names unique across bundles, only `SKILL.md`, frontmatter limited to name and description, a body of at most 10,000 characters, no intent type names in the body.
    - All of these start as `should`. Moving one to `must` needs a SiriEvaluations run that shows the failure, under the admission rule.
-4. **An HX overlap:** card snippets (custom SwiftUI views Siri shows) are an Ouro HX for Apple surface. OuroHX components should look right inside a snippet.
+4. **An HX overlap:** card snippets (custom SwiftUI views Siri shows) are an Ouro HX for Apple surface. OuroHX components should look right inside a snippet. Corrected 2026-11-13:
+   - Siri AI "might not display `IntentDialog` or `ShowsSnippetView`" when it runs an app intent ([snippets guide](https://developer.apple.com/documentation/appintents/displaying-static-and-interactive-snippets)), so OuroHX must not depend on an intent's snippet appearing in Siri AI.
+   - 27.3 adds entity cards: [`CardSnippet`](https://developer.apple.com/documentation/appintents/cardsnippet) on a [`SnippetRepresentableEntity`](https://developer.apple.com/documentation/appintents/snippetrepresentableentity), both beta. The system pre-renders them and shows them when the app isn't running, so they are the Siri AI path for an app's own UI (inference).
 5. **Constraints that shape the build:**
    - Build against the Xcode 27.3 beta SDK, keeping Xcode 27.2 for shipping lanes.
    - Siri runs need a 27.3 beta OS on an Apple Intelligence device. GitHub's macOS runners won't have that, so SiriEvaluations runs as a local lane on a device, like the screen-reader lane, and CI runs AppIntentsTesting plus a static check that the SiriEvaluations code compiles.
