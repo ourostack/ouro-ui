@@ -22,6 +22,8 @@ interface Item {
   text: string;
   streaming?: boolean;
   quote?: number;
+  /** Content of exactly this height, in pixels, instead of the text. */
+  tall?: number;
 }
 
 /** Messages `from` to `from + count - 1`; with `varied`, of five lengths, else all one line. */
@@ -62,7 +64,7 @@ function Chat({
           streaming={item.streaming}
           quote={item.quote === undefined ? undefined : { author: "Ana", excerpt: `Message ${item.quote}`, onActivate: () => onQuote?.(item.quote!) }}
         >
-          {item.text}
+          {item.tall === undefined ? item.text : <div style={{ height: item.tall }} />}
         </Message>,
       ])}
     </MessageList>
@@ -360,6 +362,38 @@ describe("MessageList windowing", () => {
     expect(scroller.scrollTop).toBeGreaterThan(paid + 48);
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
     clock.mockRestore();
+  });
+
+  it("defers a drift under the limit and a wheel under its rest, and holds both at the limit itself", async () => {
+    let above = 1;
+    const base = (drift: number) => conversation(500).map((item) => (item.id === 0 ? item : { ...item, tall: item.id === above ? 20 + drift : 20 }));
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const { scroller, rerender } = await render(<Chat items={base(0)} />);
+    await scrollTo(scroller, 3000);
+    await settle(scroller);
+    above = Number(firstVisible(scroller).message.id.slice(1)) - 1;
+    const read = async (drift: number, rest: number) => {
+      const before = scroller.scrollTop;
+      now += 10_000;
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+      now += rest;
+      await rerender(<Chat items={base(drift)} />);
+      const moved = scroller.scrollTop - before;
+      await rerender(<Chat items={base(0)} />);
+      await settle(scroller);
+      return moved;
+    };
+    // The smallest drift the list holds is the one that measures exactly the limit
+    let low = 47;
+    let high = 50;
+    while (high - low > 1 / 64) {
+      const mid = (low + high) / 2;
+      if ((await read(mid, 79)) === 0) low = mid;
+      else high = mid;
+    }
+    expect(await read(high, 79)).toBeCloseTo(48, 3);
+    expect(await read(47, 80)).toBeCloseTo(47, 0);
   });
 
   it("keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is", async () => {
