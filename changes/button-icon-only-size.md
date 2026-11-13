@@ -1,0 +1,2 @@
+- Changed: an icon-only Button sizes its svg child as it sizes `startIcon` unless the icon has a size class of its own, so a Lucide icon matches `startIcon` instead of keeping its own fixed size, and an icon without a size is drawn.
+- Fixed: a Combobox's clear button draws its cross at the size of its other icons.
