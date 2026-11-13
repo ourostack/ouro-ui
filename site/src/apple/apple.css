@@ -91,23 +91,6 @@
   }
 
   /* Hero. */
-  @media (max-width: 40rem) {
-    /* Room between the header and the eyebrow on a phone. */
-    .apple-hero {
-      padding-top: calc(var(--spacing) * 10) !important;
-    }
-  }
-  .apple-hero-grid {
-    display: grid;
-    align-items: center;
-    gap: calc(var(--spacing) * 10);
-  }
-  .apple-hero-copy {
-    display: grid;
-    align-content: start;
-    gap: calc(var(--spacing) * 5);
-    min-width: 0;
-  }
   .apple-lede {
     display: grid;
     gap: calc(var(--spacing) * 3);
@@ -138,13 +121,11 @@
     scroll-margin-top: calc(var(--spacing) * 20);
   }
   .apple-band-grid,
-  .apple-hero-grid,
   .apple-pair,
   .apple-showcase {
     grid-template-columns: minmax(0, 1fr);
   }
   .apple-band-grid > *,
-  .apple-hero-grid > *,
   .apple-pair > *,
   .apple-showcase > * {
     min-width: 0;
@@ -199,9 +180,6 @@
   }
   .apple-loop-lg {
     max-width: min(24rem, var(--apple-loop-pixels));
-  }
-  .apple-hero-media {
-    justify-self: center;
   }
   .apple-loop-frame {
     position: relative;
@@ -1128,13 +1106,6 @@
   @media (min-width: 56rem) {
     .apple-band {
       padding-block: calc(var(--spacing) * 24);
-    }
-    .apple-hero-grid {
-      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-      gap: calc(var(--spacing) * 16);
-    }
-    .apple-hero-solo {
-      grid-template-columns: minmax(0, 46rem);
     }
     .apple-pair {
       grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);

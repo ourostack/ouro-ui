@@ -1,12 +1,13 @@
 import type { JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock } from "../components/code";
 import { href } from "../paths";
 import { HapticTable } from "./haptics";
 import { Loop } from "./loop";
 import { StoryOpener } from "../components/story-world";
-import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
+import { AppleBand, AppleMenu, NextPage } from "./shell";
 import { PressTwin } from "./press-twin";
 import { SpringTwin } from "./spring-twin";
 
@@ -33,10 +34,24 @@ export default function AppleHx(): JSX.Element {
     <div id="apple-hx" className="apple">
       <AppleMenu current="/apple/hx/" />
       <StoryOpener scene="ouro-ui-apple" line="Press the green card on the phone, then on the laptop. Same spring, same little click." />
-      <AppleHero
-        id="apple-hx-title"
+      <Hero
+        layout="split"
         eyebrow="Ouro HX for Apple"
         title="Feel it before you read about it."
+        description={
+          <>
+            {claim("The foundations ship today in 0.2.1: one spring, one press, eight named haptic moments and six themes.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1" },
+              verify: [
+                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1" },
+                { equals: "site/src/apple/kit.json#release", is: "0.2.1" },
+                { count: "site/src/apple/kit.json#haptics", is: 8 },
+                { count: "site/src/apple/kit.json#themes", is: 6 },
+              ],
+            })}{" "}
+            The clips below are the real SwiftUI, captured. The twins beside them run the same idea in your browser, so you can poke it.
+          </>
+        }
         actions={
           <>
             <Button href="#spring">Poke the spring</Button>
@@ -45,21 +60,8 @@ export default function AppleHx(): JSX.Element {
             </Button>
           </>
         }
-        media={<Loop clip="hx-haptics" size="md" className="apple-hero-media" />}
-      >
-        <p>
-          {claim("The foundations ship today in 0.2.1: one spring, one press, eight named haptic moments and six themes.", {
-            source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1" },
-            verify: [
-              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1" },
-              { equals: "site/src/apple/kit.json#release", is: "0.2.1" },
-              { count: "site/src/apple/kit.json#haptics", is: 8 },
-              { count: "site/src/apple/kit.json#themes", is: 6 },
-            ],
-          })}{" "}
-          The clips below are the real SwiftUI, captured. The twins beside them run the same idea in your browser, so you can poke it.
-        </p>
-      </AppleHero>
+        media={<Loop clip="hx-haptics" size="md" className="mx-auto" />}
+      />
 
       <AppleBand
         id="spring"

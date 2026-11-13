@@ -22,7 +22,7 @@ const meta = {
     picture: { src: cover("#2f6b4f"), width: 1536, height: 576, alt: "A green cover with a pale circle", crop: "8 / 3" },
   },
   argTypes: {
-    layout: { control: "inline-radio", options: ["stage", "column"] },
+    layout: { control: "inline-radio", options: ["stage", "column", "split"] },
     motion: { control: "inline-radio", options: ["rise", "none"] },
     headingLevel: { control: "inline-radio", options: [1, 2] },
   },

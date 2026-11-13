@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock, Command } from "../components/code";
 import { href } from "../paths";
@@ -6,7 +7,7 @@ import { Container } from "../voyage/layout";
 import kit from "./kit.json";
 import { Loop } from "./loop";
 import { StoryOpener } from "../components/story-world";
-import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
+import { AppleBand, AppleMenu, NextPage } from "./shell";
 
 const FIRST_SCREEN = `import OuroHX
 
@@ -50,20 +51,27 @@ export default function AppleStart(): JSX.Element {
     <div id="apple-start" className="apple">
       <AppleMenu current="/apple/start/" />
       <StoryOpener scene="ouro-ui-apple" line="One bench, three screens, one Swift package. Pull up a seat." />
-      <AppleHero id="apple-start-title" eyebrow="Get started" title="One line of Swift.">
-        <p>Add the package in Xcode under File, Add Package Dependencies, or put this in your Package.swift:</p>
-        <CodeBlock code={kit.packageLine} label="Package.swift" wrap copy />
-        <p className="apple-fine">
-          {claim("It needs iOS 18 or macOS 15 and Swift 6.1 tools; newer things like the folding hinge and Siri AI switch on by themselves where the OS has them.", {
-            source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9" },
-            verify: [
-              { equals: "site/src/apple/kit.json#requires.iOS", is: "18" },
-              { equals: "site/src/apple/kit.json#requires.swiftTools", is: "6.1" },
-              { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9" },
-            ],
-          })}
-        </p>
-      </AppleHero>
+      <Hero
+        layout="column"
+        eyebrow="Get started"
+        title="One line of Swift."
+        description={
+          <div className="grid gap-3">
+            <p>Add the package in Xcode under File, Add Package Dependencies, or put this in your Package.swift:</p>
+            <CodeBlock code={kit.packageLine} label="Package.swift" wrap copy />
+            <p className="apple-fine">
+              {claim("It needs iOS 18 or macOS 15 and Swift 6.1 tools; newer things like the folding hinge and Siri AI switch on by themselves where the OS has them.", {
+                source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9" },
+                verify: [
+                  { equals: "site/src/apple/kit.json#requires.iOS", is: "18" },
+                  { equals: "site/src/apple/kit.json#requires.swiftTools", is: "6.1" },
+                  { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9" },
+                ],
+              })}
+            </p>
+          </div>
+        }
+      />
 
       <AppleBand id="first-screen" eyebrow="Five minutes" title="Your first screen with manners." lede={<p>A theme at the root, then a button that presses, springs and taps from the shared table.</p>}>
         <div className="apple-pair">

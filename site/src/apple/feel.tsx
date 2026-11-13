@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock } from "../components/code";
 import { TapLockDuel } from "./feel-duel";
@@ -8,7 +9,7 @@ import kit from "./kit.json";
 import genres from "./feel-genres.json";
 import { LayersBand } from "./layers";
 import { StoryOpener } from "../components/story-world";
-import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
+import { AppleBand, AppleMenu, NextPage } from "./shell";
 import "./feel-reins.css";
 
 const GUIDE = `https://github.com/ourostack/ouro-ui-apple/blob/${kit.main}/docs/ouro-feel/README.md`;
@@ -38,13 +39,24 @@ export default function AppleFeel(): JSX.Element {
     <div id="apple-feel" className="apple">
       <AppleMenu current="/apple/feel/" />
       <StoryOpener scene="ouro-ui-apple" line="The robot double-taps every switch on the bench, hunting for jank. So far the meadow is clean." />
-      <AppleHero
-        id="apple-feel-title"
+      <Hero
+        layout="split"
         eyebrow="Ouro Feel"
         title={claim("Jank has genres. Feel has a check for each.", {
           source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60" },
           verify: [{ count: "site/src/apple/feel-genres.json#genres", is: 10 }, { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60" }],
         })}
+        description={
+          <div className="grid gap-3">
+            <p>
+              A taste reviewer can tell you a screen feels off. Ouro Feel tells you which way, where, and on which build, from a UI test that runs as often as you push. It walks
+              your app the way a thumb would and leaves the humans only the real questions of taste.
+            </p>
+            <p className="apple-fine">
+              These switches are the whole idea in miniature. One has the tap lock Feel's test app plants as a bug. Your thumb notices; now Feel does too.
+            </p>
+          </div>
+        }
         media={<TapLockDuel />}
         actions={
           <>
@@ -54,15 +66,7 @@ export default function AppleFeel(): JSX.Element {
             </Button>
           </>
         }
-      >
-        <p>
-          A taste reviewer can tell you a screen feels off. Ouro Feel tells you which way, where, and on which build, from a UI test that runs as often as you push. It walks
-          your app the way a thumb would and leaves the humans only the real questions of taste.
-        </p>
-        <p className="apple-fine">
-          These switches are the whole idea in miniature. One has the tap lock Feel's test app plants as a bug. Your thumb notices; now Feel does too.
-        </p>
-      </AppleHero>
+      />
 
       <AppleBand
         id="genres"
