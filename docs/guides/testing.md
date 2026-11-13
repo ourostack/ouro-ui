@@ -121,6 +121,16 @@ await Promise.all([
 
 The part, or an element around it inside the part's own component (`[data-ouro]`), must carry the state's attribute when you call a helper (`data-checked`, or `data-swiping=left` for a value), so render outside the state and change into it; a checked row or an open overlay around the component does not count. A transition or CSS animation the browser cancels mid-way counts only when one takes its place on the same element (a transition of the same property, or a CSS animation of the same name) or 90% of its duration had passed.[^motion-cancel] The replacement may still be running when the helper next reads the part, or, on a slow frame, may have begun and ended, uncancelled, in between: the helper listens for the part's transition and animation events while it waits. A replacement for another property or animation, or one that is itself cancelled, does not count. `reduced` must match the page's reduced-motion setting (`commands.emulateMedia({ reducedMotion: "reduce" })`). A DOM `click()` keeps a pointer's press scale out of the motion you measure. Each helper also records what it proved in the test's meta; Ouro UI's own CI holds every component's declared motion to those records, and in your app nothing reads them.[^motion-records]
 
+## Waiting for a popup to settle
+
+`lib/ouro/testing/settled.ts` waits until a popup or sheet has stopped moving, so a test presses where the item rests. Call `settled` after the popup opens and before a press goes to one of its items: on a phone a menu is a bottom sheet that slides up, and a press on an item still moving can go down on one item and come up on the next, which drops the click. It waits while the element carries a starting or ending style, while a finite animation or transition runs in its subtree, and until its box holds still from one poll read to the next. An infinite animation, such as a spinner, does not hold it. Pass a function instead of an element when the popup mounts after the call.
+
+```ts
+await userEvent.click(trigger);
+await settled(() => document.querySelector('[role="menu"][data-ouro-presentation]'));
+await userEvent.click(page.getByRole("menuitemradio", { name: "Dark" }));
+```
+
 ## Proving a render lays nothing out
 
 A read of an element's size or place (`offsetHeight`, `clientWidth`, `scrollHeight`, `getBoundingClientRect()`, `getComputedStyle()` and the like) inside a React commit makes the browser lay out the page it has just changed at once, before it paints, so a component that measures on each render pays for a layout whenever anything above it renders.[^forced-layout] `lib/ouro/testing/layout-reads.ts` records them (the `offset*`, `client*` and `scroll*` sizes, `innerText`, the rectangles of elements, ranges and SVG shapes, `getComputedStyle()`, `computedStyleMap()`, `focus()`, `scrollIntoView()`, `elementFromPoint()` and the window's scroll position and size, listed in `layoutReadNames`): start `watchLayoutReads()` right before a render, stop it right after, and expect nothing for a render that changes nothing the component measures.[^layout-reads]
