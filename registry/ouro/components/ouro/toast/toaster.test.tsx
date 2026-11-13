@@ -680,6 +680,23 @@ describe("toast()", () => {
     expect(toasts()).toHaveLength(1);
   });
 
+  it("grows and shrinks a showing toast to fit new words", async () => {
+    await render(<Toaster />);
+    const item = await show("Uploading", { id: "upload", duration: 0 });
+    const height = () => parseFloat(item.style.getPropertyValue("--toast-height"));
+    const short = height();
+    expect(short).toBeGreaterThan(0);
+    const long = "Every photo in the album, its captions and the order they were taken in. ".repeat(4);
+    await act(async () => {
+      toast("Uploading", { id: "upload", description: long, duration: 0 });
+    });
+    await expect.poll(height).toBeGreaterThan(short + 40);
+    await act(async () => {
+      toast("Uploading", { id: "upload", duration: 0 });
+    });
+    await expect.poll(height).toBe(short);
+  });
+
   it("keeps a toast that has an action until it is dismissed, unless duration is given", async () => {
     await render(<Toaster />);
     fakeClock();

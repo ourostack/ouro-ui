@@ -1,0 +1,34 @@
+diff --git a/toast/root/ToastRoot.js b/toast/root/ToastRoot.js
+index 279d92eacb384a225695e63a924066aff60e7532..741ce642e798196d4edb4cd2aa0ed40cb32e4d02 100644
+--- a/toast/root/ToastRoot.js
++++ b/toast/root/ToastRoot.js
+@@ -128,6 +128,12 @@ const ToastRoot = exports.ToastRoot = /*#__PURE__*/React.forwardRef(function Toa
+     element.style.height = 'auto';
+     const height = element.offsetHeight;
+     element.style.height = previousHeight;
++    // A toast whose height has not changed needs no update: the store's update re-renders every
++    // toast, synchronously from the observers, so each toast that a removal resizes would lay the
++    // page out and render the stack again (ourostack/ouro-ui#798).
++    if (height === toast.height && toast.transitionStatus !== 'starting') {
++      return;
++    }
+     function update() {
+       store.updateToastInternal(toast.id, {
+         ref: rootRef,
+diff --git a/toast/root/ToastRoot.mjs b/toast/root/ToastRoot.mjs
+index 98741d55fa6d48466a2d0bfdcc543816e60f15e2..01566b4e7decf3b119b3c08c2e49c27f4d0479ce 100644
+--- a/toast/root/ToastRoot.mjs
++++ b/toast/root/ToastRoot.mjs
+@@ -122,6 +122,12 @@ export const ToastRoot = /*#__PURE__*/React.forwardRef(function ToastRoot(compon
+     element.style.height = 'auto';
+     const height = element.offsetHeight;
+     element.style.height = previousHeight;
++    // A toast whose height has not changed needs no update: the store's update re-renders every
++    // toast, synchronously from the observers, so each toast that a removal resizes would lay the
++    // page out and render the stack again (ourostack/ouro-ui#798).
++    if (height === toast.height && toast.transitionStatus !== 'starting') {
++      return;
++    }
+     function update() {
+       store.updateToastInternal(toast.id, {
+         ref: rootRef,
