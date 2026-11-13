@@ -211,6 +211,24 @@ describe("home page", () => {
     await expect.element(page.getByText(/Real app, real recipe, real chickpeas\.$/)).toBeVisible();
   });
 
+  it("sizes the hero's and the band's wide sources for the box each draws in, and the phone sources at the full width", async () => {
+    await renderPage("/");
+    const hero = document.querySelector("picture[data-brand-scene='ouro-hx']")!;
+    const band = document.querySelector("picture[data-brand-scene='ourostack']")!;
+    const expected = [
+      [hero, "(min-width: 200rem) min(1536px, 100rem), (min-width: 150rem) min(1536px, 90rem), (min-width: 80rem) min(1536px, 80rem), calc(100vw - 4rem)"],
+      [band, "(min-width: 200rem) max(1536px, 98.75rem), (min-width: 150rem) max(1536px, 88.875rem), (min-width: 100rem) max(1536px, 79rem), 100vw"],
+    ] as const;
+    for (const [picture, sizes] of expected) {
+      expect([...picture.querySelectorAll("source")].map((source) => [source.type, source.media, source.getAttribute("sizes")])).toEqual([
+        ["image/avif", "(max-width: 640px)", "100vw"],
+        ["image/webp", "(max-width: 640px)", "100vw"],
+        ["image/avif", "", sizes],
+        ["image/webp", "", sizes],
+      ]);
+    }
+  });
+
   it("lists what comes with every component beside the install steps, under hairlines", async () => {
     await renderPage("/");
     const install = document.getElementById("install")!;
