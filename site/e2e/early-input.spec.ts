@@ -45,7 +45,7 @@ async function recordTimeline(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const log: string[] = [];
     const frames: Array<[number, number]> = [];
-    Object.assign(window, { __timeline: log, __frames: frames });
+    Object.assign(window, { __timeline: log, __frames: frames, __ouroEarlyTrace: (line: string) => log.push(`${at()}: ${line}`) });
     const at = () => Math.round(performance.now());
     let last = 0;
     let kept = -1;
