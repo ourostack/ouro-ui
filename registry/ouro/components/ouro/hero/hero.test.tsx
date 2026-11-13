@@ -294,4 +294,59 @@ describe("Hero", () => {
     const cropped = await render(<Hero title="Cropped" picture={{ ...wide, crop: "8 / 3" }} />);
     expect(cropped.part("image")!.className).toContain("min-[40rem]:absolute");
   });
+
+  it("shows live media in the picture's place", async () => {
+    const { part } = await render(<Hero title="T" media={<video data-testid="clip" />} />);
+    const media = part("media")!;
+    expect(media.querySelector('[data-testid="clip"]')).not.toBeNull();
+    expect(media.querySelector("picture")).toBeNull();
+    expect(media.querySelector("img")).toBeNull();
+    expect(media.style.maxWidth).toBe("");
+  });
+
+  it("rises live media in on mount like a picture", async () => {
+    const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
+    const slow = token("--ouro-duration-slow");
+    const fast = token("--ouro-duration-fast");
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      // A loaded WebKit can take the setting a moment after the command returns: mount only once the page has it.
+      await expect.poll(() => matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(reduced);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      roots.push(root);
+      flushSync(() => root.render(<Hero title="Rise" media={<video data-testid="clip" />} />));
+      const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      expect(media.getAttribute("data-starting-style")).toBe("");
+      await expectMotion(media, {
+        stem: "hero",
+        state: "data-starting-style",
+        properties: reduced ? { opacity: fast } : { opacity: slow, transform: slow },
+        reduced,
+      });
+      await expect.poll(() => media.hasAttribute("data-starting-style")).toBe(false);
+    }
+    const still = await render(<Hero title="Still" media={<video data-testid="clip" />} motion="none" />);
+    expect(still.part("media")!).not.toHaveAttribute("data-starting-style");
+    expect(still.part("media")!.className).not.toContain("animate-[ouro-hero");
+  });
+
+  it("shows the picture and warns when picture and media are both set", async () => {
+    const { part } = await render(<Hero title="Both" picture={wide} media={<video data-testid="clip" />} />);
+    expect(part("image")).not.toBeNull();
+    expect(part("media")!.querySelector('[data-testid="clip"]')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Hero: picture and media are both set; show one: picture for a still image, media for something live. Fix: <Hero media={<video src="..." muted autoPlay loop playsInline />} />.',
+    );
+  });
+
+  it("renders no media wrapper when media is null or false", async () => {
+    const { part } = await render(<Hero title="Empty" media={null} />);
+    expect(part("media")).toBeNull();
+    const hidden = await render(<Hero title="Hidden" media={false} />);
+    expect(hidden.part("media")).toBeNull();
+  });
 });

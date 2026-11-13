@@ -2,7 +2,7 @@
 
 # Hero
 
-The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture below. The picture rises into place on mount unless `motion="none"`, and it is never shown wider than its intrinsic width.
+The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture, or something live in its place (`media`), below. The picture rises into place on mount unless `motion="none"`, and it is never shown wider than its intrinsic width.
 
 ```tsx
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
@@ -35,6 +35,7 @@ Type: `HeroProps`.
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is. |
 | `headingLevel` | `1 \| 2` | `1` | The title's heading level: `1` for the page's headline, `2` when the hero heads a section. |
 | `layout` | `"stage" \| "column"` | `"stage"` | `stage` centres the text over the picture; `column` aligns both to a reading column. |
+| `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and keeps its own size. Use `picture` for a still image. |
 | `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place on mount, with reduced motion fading it in. |
 | `picture` | `HeroPicture` |  | The big picture, shown under the text. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |

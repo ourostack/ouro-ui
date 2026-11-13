@@ -67,6 +67,8 @@ export interface HeroOwnProps {
   actions?: ReactNode;
   /** The big picture, shown under the text. */
   picture?: HeroPicture | undefined;
+  /** Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and keeps its own size. Use `picture` for a still image. */
+  media?: ReactNode;
   /** `stage` centres the text over the picture; `column` aligns both to a reading column. @default "stage" */
   layout?: HeroLayout | (string & { 'Use "stage" or "column"': never }) | undefined;
   /** `rise` lifts the picture into place on mount, with reduced motion fading it in. @default "rise" */
@@ -116,9 +118,9 @@ const layoutMedia: Record<HeroLayout, string> = {
 
 /**
  * The top of a page: a headline with an optional line above it (`eyebrow`), a lede under
- * it (`description`), the page's buttons (`actions`) and a big picture below. The picture
- * rises into place on mount unless `motion="none"`, and it is never shown wider than its
- * intrinsic width.
+ * it (`description`), the page's buttons (`actions`) and a big picture, or something live in
+ * its place (`media`), below. The picture rises into place on mount unless `motion="none"`,
+ * and it is never shown wider than its intrinsic width.
  *
  * Use `PageHeader` instead for a page's top with a breadcrumb or no picture, and `Heading`
  * for a plain title with nothing around it.
@@ -143,6 +145,7 @@ export function Hero(props: HeroProps): JSX.Element {
     description,
     actions,
     picture,
+    media,
     layout: layoutProp = "stage",
     motion: motionProp = "rise",
     headingLevel: headingLevelProp = 1,
@@ -190,6 +193,11 @@ export function Hero(props: HeroProps): JSX.Element {
               "picture has no alt text",
               '<Hero picture={{ src, width, height, alt: "A table set for four" }} />',
             ],
+          picture !== undefined &&
+            media != null && [
+              "picture and media are both set; show one: picture for a still image, media for something live",
+              '<Hero media={<video src="..." muted autoPlay loop playsInline />} />',
+            ],
           subtitle !== undefined && ["subtitle is not a prop", '<Hero description="..." />'],
           heading !== undefined && ["heading is not a prop", '<Hero title="Dinner, sorted" />'],
           overline !== undefined && ["overline is not a prop", '<Hero eyebrow="Recipes" />'],
@@ -205,6 +213,44 @@ export function Hero(props: HeroProps): JSX.Element {
         ...(crop ? { "--hero-crop": crop } : {}),
       } as CSSProperties)
     : undefined;
+  const shown = picture ? (
+    <picture aria-hidden={picture.decorative ? true : undefined} className="block">
+      {picture.sources?.map((source) => {
+        // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
+        const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
+        return (
+          <source
+            key={key}
+            srcSet={source.srcSet}
+            type={source.type}
+            media={source.media}
+            sizes={source.sizes}
+          />
+        );
+      })}
+      <img
+        data-slot="image"
+        src={picture.src}
+        srcSet={picture.srcSet}
+        sizes={picture.sizes}
+        width={picture.width}
+        height={picture.height}
+        alt={picture.decorative ? "" : picture.alt}
+        draggable={false}
+        fetchPriority={picture.priority ? "high" : undefined}
+        loading={picture.priority ? undefined : "lazy"}
+        decoding={picture.priority ? undefined : "async"}
+        style={{ objectPosition: picture.focus ?? "50% 42%" }}
+        className={cn(
+          "block h-auto w-full object-cover select-none",
+          crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
+        )}
+      />
+    </picture>
+  ) : typeof media === "boolean" ? null : (
+    // `media={isWide && <video … />}` passes false: no empty frame rises in its place.
+    media
+  );
   return (
     <header
       {...rest}
@@ -235,7 +281,7 @@ export function Hero(props: HeroProps): JSX.Element {
           </div>
         ) : null}
       </div>
-      {picture ? (
+      {shown != null ? (
         <div
           data-slot="media"
           data-ouro-part="media"
@@ -249,39 +295,7 @@ export function Hero(props: HeroProps): JSX.Element {
             crop && "relative min-[40rem]:aspect-[var(--hero-crop)]",
           )}
         >
-          <picture aria-hidden={picture.decorative ? true : undefined} className="block">
-            {picture.sources?.map((source) => {
-              // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
-              const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
-              return (
-                <source
-                  key={key}
-                  srcSet={source.srcSet}
-                  type={source.type}
-                  media={source.media}
-                  sizes={source.sizes}
-                />
-              );
-            })}
-            <img
-              data-slot="image"
-              src={picture.src}
-              srcSet={picture.srcSet}
-              sizes={picture.sizes}
-              width={picture.width}
-              height={picture.height}
-              alt={picture.decorative ? "" : picture.alt}
-              draggable={false}
-              fetchPriority={picture.priority ? "high" : undefined}
-              loading={picture.priority ? undefined : "lazy"}
-              decoding={picture.priority ? undefined : "async"}
-              style={{ objectPosition: picture.focus ?? "50% 42%" }}
-              className={cn(
-                "block h-auto w-full object-cover select-none",
-                crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
-              )}
-            />
-          </picture>
+          {shown}
         </div>
       ) : null}
     </header>
