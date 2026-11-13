@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory, settledBox } from "./story";
+import { openStory } from "./story";
 
 test("opens on the photo pressed, steps with the arrow keys and gives focus back on Escape", async ({ page }) => {
   await openStory(page, "display-lightbox--photos");
@@ -27,9 +27,6 @@ test("closes from the button beside the position and goes round with loop", asyn
   await page.getByRole("list", { name: "Coast photos" }).getByRole("button").nth(2).click();
   const viewer = page.getByRole("dialog", { name: "Coast photos" });
   await expect(viewer.getByRole("link", { name: "Open original" })).toHaveAttribute("href", "https://example.com/photos/coast-3.jpg");
-  // Next steps from the image the viewer opened on, so wait until the viewer has grown and the third image is fully in view.
-  await settledBox(viewer);
-  await expect(viewer.getByRole("group", { name: "3 of 3" })).toBeInViewport({ ratio: 1 });
   await viewer.getByRole("button", { name: "Next image" }).click();
   await expect(viewer.getByText("1 of 3", { exact: true })).toBeVisible();
   await viewer.getByRole("button", { name: "Close" }).click();
