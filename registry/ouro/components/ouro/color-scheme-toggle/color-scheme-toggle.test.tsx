@@ -6,6 +6,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { ColorSchemeToggle } from "@/registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle";
 import { ColorSchemeProvider } from "@/registry/ouro/lib/ouro/color-scheme";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { settled } from "@/registry/ouro/lib/ouro/testing/settled";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -32,26 +33,7 @@ async function render(node: ReactNode) {
 const dark = () => html.classList.contains("dark");
 const option = (name: string) => page.getByRole("menuitemradio", { name });
 
-/**
- * Waits until the open menu has finished rising. On a phone width it is a bottom sheet that slides
- * up for 500ms, and a press on an option still moving can go down on one item and come up on the
- * next, which drops the click. The popup must run no animation, and its top must hold still
- * between two reads a poll apart.
- */
-async function menuSettled() {
-  let last: number | undefined;
-  await expect
-    .poll(() => {
-      const menu = document.querySelector<HTMLElement>('[role="menu"][data-ouro-presentation]');
-      if (!menu || menu.hasAttribute("data-starting-style")) return false;
-      const top = menu.getBoundingClientRect().top;
-      const idle = menu.getAnimations({ subtree: true }).every((animation) => animation.playState !== "running");
-      const still = idle && top === last;
-      last = top;
-      return still;
-    })
-    .toBe(true);
-}
+const menuSettled = () => settled(() => document.querySelector<HTMLElement>('[role="menu"][data-ouro-presentation]'));
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {

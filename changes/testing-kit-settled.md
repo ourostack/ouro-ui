@@ -1,0 +1,1 @@
+- Testing kit: `settled` waits until a popup or sheet has stopped moving, so a test presses where the item rests.

@@ -11,6 +11,7 @@ import { rubberband } from "@/registry/ouro/lib/ouro/spring";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
+import { settled } from "@/registry/ouro/lib/ouro/testing/settled";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Touch drags are in reorderable.touch.test.tsx. Here the keyboard runs in Chromium and
@@ -76,26 +77,7 @@ const moves = () =>
 const move = (name: string) => page.getByRole("menuitem", { name, exact: true });
 const menuOpen = () => expect.element(page.getByRole("menu")).toBeVisible();
 const menuClosed = () => expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
-/**
- * Waits until the open menu has finished its entrance before a press goes to one of its moves. Below
- * 640px the menu is a bottom sheet that slides up for 500ms, and a press on an item that is still
- * moving can go down on one item and come up on the next, which drops the click. The popup must run
- * no animation, and its top must hold still between two reads a poll apart.
- */
-async function menuSettled() {
-  let last: number | undefined;
-  await expect
-    .poll(() => {
-      const menu = document.querySelector<HTMLElement>('[role="menu"][data-ouro-presentation]');
-      if (!menu || menu.hasAttribute("data-starting-style")) return false;
-      const top = menu.getBoundingClientRect().top;
-      const idle = menu.getAnimations({ subtree: true }).every((animation) => animation.playState !== "running");
-      const still = idle && top === last;
-      last = top;
-      return still;
-    })
-    .toBe(true);
-}
+const menuSettled = () => settled(() => document.querySelector<HTMLElement>('[role="menu"][data-ouro-presentation]'));
 
 /** Focuses a handle the way the keyboard does. */
 async function focus(name: string) {
