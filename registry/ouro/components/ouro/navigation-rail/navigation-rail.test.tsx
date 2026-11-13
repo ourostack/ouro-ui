@@ -1,5 +1,5 @@
 import { flushSync } from "react-dom";
-import { type ComponentProps, type ReactNode } from "react";
+import { Profiler, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +27,9 @@ const StayLink: OuroLinkComponent = ({ onClick, ...props }: ComponentProps<OuroL
   />
 );
 
+/** Lets the resize observer report what the first commit laid out, a frame later, and the fit it sets commit. */
+const settle = () => act(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+
 /** Renders `node` in a host `height` px tall, as an app's full-height row would hold the rail. */
 async function render(node: ReactNode, height = 600) {
   const host = document.createElement("div");
@@ -38,6 +41,7 @@ async function render(node: ReactNode, height = 600) {
   roots.push(root);
   const wrap = (next: ReactNode) => <OuroProvider linkComponent={StayLink}>{next}</OuroProvider>;
   await act(async () => root.render(wrap(node)));
+  await settle();
   return {
     host,
     root,
@@ -594,6 +598,35 @@ describe("NavigationRail fit", () => {
     newIcon.stop();
     expect(newIcon.names()).toEqual([]);
     expect(rail.items[1]!.querySelector("[data-icon]")!.getAttribute("data-icon")).toBe("chat-new");
+  });
+
+  it("lays nothing out and renders once in its first commit, and renders again only for a fit that differs", async () => {
+    for (const [height, fits] of [
+      [600, true],
+      [tight, false],
+    ] as const) {
+      const rail = await render(null, height);
+      let renders = 0;
+      const reads = watchLayoutReads();
+      rail.renderNow(
+        <Profiler id="rail" onRender={() => void renders++}>
+          <NavigationRail label="Main" items={many} currentPath="/chat" />
+        </Profiler>,
+      );
+      reads.stop();
+      expect(reads.names()).toEqual([]);
+      expect(renders).toBe(1);
+      // The first commit shows every item; the list clips those that do not fit until the resize observer measures.
+      expect(rail.more).toBeNull();
+      await settle();
+      if (fits) {
+        expect(renders).toBe(1);
+        expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "Calendar", "Files", "Notes", "Tasks", "Help"]);
+      } else {
+        expect(renders).toBeGreaterThan(1);
+        expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "Calendar", "More"]);
+      }
+    }
   });
 
   it("fits again before paint when a label changes", async () => {

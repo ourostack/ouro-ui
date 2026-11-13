@@ -342,10 +342,11 @@ function fitInputs(items: readonly NavigationRailEntry[], current: number, hideL
 }
 
 // The fit of the rail's list, measured before paint when what decides it changes, and when the
-// list or an entry changes size. Server HTML shows every item; the client measures what fits
-// before it paints. A measure reads layout, which inside a commit lays the page out at once, so
-// a render that changes no input measures nothing; sizes are left to the resize observer, whose
-// callback runs once the page is laid out.
+// list or an entry changes size. A measure reads layout, which inside a commit lays the page out at
+// once, so the first commit (server HTML hydrating, or a client mount) and a render that changes no
+// input measure nothing: the list shows every item, clipping what does not fit, and the resize
+// observer, whose callback runs once the page is laid out and reports each element it starts to
+// watch, measures then, and sets a fit only when it differs.
 function useFit(list: { readonly current: HTMLUListElement | null }, items: readonly NavigationRailEntry[], current: number, inputs: string): Fit {
   // Stryker disable next-line ArrayDeclaration: a place that is no item's moves and cuts nothing, as an empty list does.
   const [fit, setFit] = useState<Fit>({ hidden: [], truncated: [], squeezed: [] });
@@ -355,20 +356,25 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
   const measure = useRef<() => void>(null);
   const observer = useRef<ResizeObserver | null>(null);
   const observed = useRef(new WeakSet<Element>());
-  // Before paint, so a client render never shows items that do not fit. The observer calls the
-  // latest measure, which reads the entries and current item of the render that set it: until
-  // `inputs` change, any later render's give the same fit.
+  // The fit the last commit showed, so a measure that finds it again renders nothing.
+  const shown = useRef(fit);
+  const committed = useRef(false);
+  // Every later commit measures before paint, so a change never shows items that do not fit. The
+  // observer calls the latest measure, which reads the entries and current item of the render that
+  // set it: until `inputs` change, any later render's give the same fit.
   useLayoutEffect(() => {
+    shown.current = fit;
     measure.current = () => {
       const element = list.current!;
       // Not laid out (hidden by the app): nothing to measure.
       if (element.getClientRects().length === 0) return;
       const next = measureFit(element, items, current, sizes.current);
-      setFit((last) => {
-        const moved = !same(last.hidden, next.hidden) || !same(last.truncated, next.truncated);
-        // Stryker disable next-line LogicalOperator,ConditionalExpression,BooleanLiteral: a name left in `squeezed` sets no label smaller until a label of that name, as wide, comes back.
-        return moved || !same(last.squeezed, next.squeezed) ? next : last;
-      });
+      const last = shown.current;
+      const moved = !same(last.hidden, next.hidden) || !same(last.truncated, next.truncated);
+      // Stryker disable next-line LogicalOperator,ConditionalExpression: a name left in `squeezed` sets no label smaller until a label of that name, as wide, comes back.
+      if (!moved && same(last.squeezed, next.squeezed)) return;
+      shown.current = next;
+      setFit(next);
     };
     observer.current ??= new ResizeObserver(() => measure.current!());
     // Each element once: observing one again makes the observer report it again (WebKit does) and measure for nothing.
@@ -379,7 +385,8 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
       observed.current.add(element);
       observer.current.observe(element);
     }
-    measure.current!();
+    if (committed.current) measure.current!();
+    committed.current = true;
     // A new fit can change sizes the measure read (More shows, a label is set smaller), so it measures again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputs, fit]);
