@@ -1,0 +1,1 @@
+- Changed: `Text` [wraps with `text-wrap: pretty`, so a paragraph does not end on one stranded word](registry/ouro/components/ouro/text/text.test.tsx "verify:testExists(registry/ouro/components/ouro/text/text.test.tsx::Text > wraps prettily so a paragraph does not end on one word, and drops it with truncate)"). `truncate` and `lines` keep their own wrapping.
