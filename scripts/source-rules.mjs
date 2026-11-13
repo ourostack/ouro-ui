@@ -328,6 +328,30 @@ export function physicalUtilities(path, text, allowed = physicalAllowed[path] ??
   return found;
 }
 
+/**
+ * The `render` attributes whose value is a function bound by name in the file, as "line: name".
+ * Base UI warns in development when such a function's name starts with a capital, and a minifier
+ * gives a named function whatever short name it likes; an inline arrow has no name to rename.
+ */
+export function namedRenderFunctions(path, text) {
+  const source = parse(path, text);
+  const functions = new Set();
+  const renders = [];
+  const visit = (node) => {
+    if (ts.isFunctionDeclaration(node) && node.name) functions.add(node.name.text);
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))) {
+      functions.add(node.name.text);
+    }
+    if (ts.isJsxAttribute(node) && ts.isIdentifier(node.name) && node.name.text === "render" && node.initializer && ts.isJsxExpression(node.initializer)) {
+      const value = node.initializer.expression;
+      if (value && ts.isIdentifier(value)) renders.push({ line: source.getLineAndCharacterOfPosition(value.getStart(source)).line + 1, name: value.text });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return renders.filter(({ name }) => functions.has(name)).map(({ line, name }) => `${line}: ${name}`);
+}
+
 /** Labels a component shows for a set time on the real clock: CopyButton's and ShareButton's confirmations. */
 const timedLabels = ["Copied", "Link copied", "Copy blocked", "Couldn't share"];
 

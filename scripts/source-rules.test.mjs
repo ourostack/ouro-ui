@@ -9,7 +9,7 @@ import postcss from "postcss";
 import { findOffendersInSource } from "../registry/ouro/source-rules/source-rules.mjs";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, realClockEscapeKeys, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, realClockEscapeKeys, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -158,6 +158,24 @@ test("no registry file has a comment before its first statement, which the shadc
     .filter(({ path, text }) => leadingComment(path, text) !== "")
     .map(({ path, text }) => `${path}: ${leadingComment(path, text).split("\n")[0]}`);
   assert.deepEqual(problems, [], "Move the comment after the imports, as JSDoc on the first export it explains.");
+});
+
+test("no runtime file passes a named function as a render prop, which a minifier can give a capitalised name Base UI warns about", () => {
+  const files = tracked("registry/ouro/components/**/*.ts", "registry/ouro/components/**/*.tsx", "registry/ouro/lib/**/*.ts", "registry/ouro/lib/**/*.tsx")
+    .filter((path) => !/\.(test|test-d|stories)\.tsx?$/.test(path))
+    .map(read);
+  assert.ok(files.length > 40);
+  const problems = files.flatMap(({ path, text }) => namedRenderFunctions(path, text).map((found) => `${path}:${found}`));
+  assert.deepEqual(problems, [], "Pass an inline arrow as render, such as render={(props) => <button {...props} />}: its name is empty whatever the minifier does.");
+});
+
+test("namedRenderFunctions flags a render prop bound to a named function, and nothing else", () => {
+  const named = 'const unlabelled = (props: object) => <button {...props} />;\nconst r = <Part render={unlabelled} />;';
+  assert.deepEqual(namedRenderFunctions("a.tsx", named), ["2: unlabelled"]);
+  assert.deepEqual(namedRenderFunctions("a.tsx", "function Icon(props: object) { return <svg {...props} />; }\nconst r = <Part render={Icon} />;"), ["2: Icon"]);
+  assert.deepEqual(namedRenderFunctions("a.tsx", "const r = <Part render={(props) => <button {...props} />} />;"), []);
+  assert.deepEqual(namedRenderFunctions("a.tsx", "const element = <Button />;\nconst r = <Part render={element} />;"), []);
+  assert.deepEqual(namedRenderFunctions("a.tsx", "function Panel({ trigger }: { trigger: JSX.Element }) { return <Part render={trigger} />; }"), []);
 });
 
 test("hasClientDirective finds \"use client\" only as the first statement", () => {
