@@ -7,7 +7,7 @@ Ouro UI's tests install beside each component and run in your app, in real brows
 | Package | Needs | Ouro UI's CI runs |
 | --- | --- | --- |
 | `vitest`, `@vitest/browser-playwright` | 4.1.11 or later, in browser mode[^minimums] | 5.0.3[^ci-versions] |
-| `playwright`, `@playwright/test` | 1.58.1 or later, with Chromium and WebKit installed (`npx playwright install chromium webkit`)[^minimums] | 1.63.0[^ci-versions] |
+| `playwright`, `@playwright/test` | 1.58.1 or later, with Chromium and WebKit installed (`npx playwright install chromium webkit`)[^minimums] | 1.65.0[^ci-versions] |
 | `storybook`, `@storybook/react-vite` | 10.2.10 or later, only for the stories and the specs in `e2e/ouro`[^minimums] | 10.6.1[^ci-versions] |
 | `axe-core` | 4.13.0 or later: `audit` and the census throw on an older one, naming the version it found[^axe-minimum] | 4.13.0[^ci-axe] |
 
@@ -213,7 +213,7 @@ test("opening the filters paints within 100 ms", async ({ page, browserName }) =
 Ouro's own test measures a real click the same way, in Vitest's browser mode.[^interaction-test] Event Timing rounds a duration to 8 ms, and where it has no entry the fallback measures to the start of the second frame after the event, up to a frame past the paint, so leave a budget some room rather than comparing the two to the millisecond.[^interaction-rounding] A report counts from the event to the paint after the handlers ran, so a budget covers the work an interaction does in its handlers, not work it starts for later, such as a request.[^interaction]
 
 [^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/) verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
-[^ci-versions]: package.json verify:equals(package.json#devDependencies.vitest)=5.0.3 verify:equals(package.json#devDependencies.playwright)=1.63.0 verify:equals(package.json#devDependencies.storybook)=10.6.1
+[^ci-versions]: package.json verify:equals(package.json#devDependencies.vitest)=5.0.3 verify:equals(package.json#devDependencies.playwright)=1.65.0 verify:equals(package.json#devDependencies.storybook)=10.6.1
 [^ci-axe]: pnpm-lock.yaml verify:fileLine(pnpm-lock.yaml, /^  axe-core@4\.13\.0:$/)
 [^axe-minimum]: registry/ouro/lib/ouro/testing/axe-version.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > refuses an axe-core older than the kit's minimum, naming the version it needs and the version it found) verify:testExists(scripts/kits/census-page.test.mjs::collectCensus > refuses an axe-core older than the kit's minimum before it loads axe into the page, naming the version it found) verify:testExists(scripts/registry.test.mjs::the ouro-testing message names axe-core's minimum, the one audit checks when it runs)
 [^vitest-4-section]: docs/guides/testing.md verify:fileLine(docs/guides/testing.md, /^## .*Vitest 4/)
