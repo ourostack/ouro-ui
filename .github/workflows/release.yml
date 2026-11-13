@@ -583,20 +583,20 @@ jobs:
               ;;
           esac
           echo "main_sha=$tip" >> "$GITHUB_OUTPUT"
-  publish:
-    # Deletes the branch that prepared main, deploys Pages from main's verified tip and checks what
-    # is published.
-    needs: [release, queue]
+  pages:
+    # Deploys Pages as soon as the tag is out and checks the @ouro namespace it serves, beside the
+    # queue job, which waits for the pull request that prepares main. Pages' build names GitHub's
+    # newest release, this one, whatever main says, and main only moves through the merge queue,
+    # which tests each commit it lets in.
+    needs: release
     runs-on: ubuntu-latest
     permissions:
-      contents: write # delete the branch that prepared main
       actions: write # deploy Pages
-    # The Pages deploy (5 minutes) and the two checks of what it serves, each waiting up to 15
-    # minutes: 35, and 1.5 times that 53 (scripts/workflows.test.mjs).
-    timeout-minutes: 55
+    # The Pages deploy (5 minutes) and the check of what it serves, waiting up to 15 minutes: 20,
+    # and 1.5 times that 30 (scripts/workflows.test.mjs).
+    timeout-minutes: 30
     env:
       TAG: v${{ inputs.version }}
-      NEXT_BRANCH: prepare/after-v${{ inputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -610,22 +610,11 @@ jobs:
       - name: Install dependencies for the public proofs
         run: |
           pnpm i --frozen-lockfile
-      - name: Delete the branch that prepared main
+      - name: Deploy Pages and check the namespace it serves
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$NEXT_BRANCH" >/dev/null || echo "::notice::Could not delete $NEXT_BRANCH; delete it by hand."
-      - name: Deploy Pages and check what is published
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERIFIED_MAIN_SHA: ${{ needs.queue.outputs.main_sha }}
-        run: |
-          # Pages follows CI on a push to main, and no push happened here, so deploy it now: its
-          # build names GitHub's newest release, this one. Then read what people and agents
-          # read, the site's llms.txt and main's README, and fail when an install command
-          # there still names another release.
-          tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
-          [ -n "$VERIFIED_MAIN_SHA" ] && [ "$tip" = "$VERIFIED_MAIN_SHA" ] || { echo "::error::Main moved or has no verified CI; Pages will not deploy. Pass CI on the current tip before deploying."; exit 1; }
+          # Pages follows CI on a push to main, and no push happened here, so deploy it now.
           before=$(gh run list --workflow pages.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')
           gh workflow run pages.yml --ref main
           run=
@@ -637,16 +626,48 @@ jobs:
           [ "$run" != "$before" ] || { echo "::error::Pages did not start. Run it by hand: gh workflow run pages.yml --ref main"; exit 1; }
           gh run watch "$run" --exit-status --interval 30
           unset GH_TOKEN
-          node scripts/published-release.mjs "$TAG" --wait 900
-          # And the @ouro namespace Pages now serves is this release, every item byte for byte
-          # as built from the tag.
+          # The @ouro namespace Pages now serves is this release, every item byte for byte as built
+          # from the tag.
           node scripts/public-registry.mjs verify-live "$TAG" --wait 900
+  publish:
+    # Deletes the branch that prepared main and, once main names the release, checks what is
+    # published: the site's llms.txt and main's README.
+    needs: [release, queue, pages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # delete the branch that prepared main
+    # The check of the two published pages, waiting up to 15 minutes: 20, and 1.5 times that 30
+    # (scripts/workflows.test.mjs).
+    timeout-minutes: 30
+    env:
+      TAG: v${{ inputs.version }}
+      NEXT_BRANCH: prepare/after-v${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Delete the branch that prepared main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$NEXT_BRANCH" >/dev/null || echo "::notice::Could not delete $NEXT_BRANCH; delete it by hand."
+      - name: Check what is published
+        run: |
+          # What people and agents read, the site's llms.txt and main's README: fail when an
+          # install command there still names another release.
+          node scripts/published-release.mjs "$TAG" --wait 900
   finish:
     # A release whose tag is out but whose main or Pages did not follow (a failed or cancelled job,
     # a timeout included, after the tag): an issue says so, and the run fails. Nothing to do when
     # no tag was pushed (the release job cleans up after itself) or the tag was already released.
-    needs: [release, queue, publish]
-    if: ${{ always() && needs.release.outputs.new != 'false' && (needs.release.result != 'success' || needs.queue.result != 'success' || needs.publish.result != 'success') }}
+    needs: [release, queue, pages, publish]
+    if: ${{ always() && needs.release.outputs.new != 'false' && (needs.release.result != 'success' || needs.queue.result != 'success' || needs.pages.result != 'success' || needs.publish.result != 'success') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read # see whether the tag was pushed
@@ -656,7 +677,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: v${{ inputs.version }}
-      RESULTS: "release: ${{ needs.release.result }}, queue: ${{ needs.queue.result }}, publish: ${{ needs.publish.result }}"
+      RESULTS: "release: ${{ needs.release.result }}, queue: ${{ needs.queue.result }}, pages: ${{ needs.pages.result }}, publish: ${{ needs.publish.result }}"
     steps:
       - name: Report a release main and Pages did not follow
         run: |
