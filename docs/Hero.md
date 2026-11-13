@@ -35,7 +35,8 @@ Type: `HeroProps`.
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is. |
 | `headingLevel` | `1 \| 2` | `1` | The title's heading level: `1` for the page's headline, `2` when the hero heads a section. |
 | `layout` | `"stage" \| "column"` | `"stage"` | `stage` centres the text over the picture; `column` aligns both to a reading column. |
-| `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and keeps its own size. Use `picture` for a still image. |
+| `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. |
+| `mediaWidth` | `number` |  | The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead. |
 | `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place on mount, with reduced motion fading it in. |
 | `picture` | `HeroPicture` |  | The big picture, shown under the text. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |

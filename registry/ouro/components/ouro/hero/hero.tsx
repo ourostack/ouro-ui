@@ -70,8 +70,15 @@ export interface HeroOwnProps {
   actions?: ReactNode;
   /** The big picture, shown under the text. */
   picture?: HeroPicture | undefined;
-  /** Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and keeps its own size. Use `picture` for a still image. */
+  /** Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. */
   media?: ReactNode;
+  /**
+   * The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never
+   * upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead.
+   *
+   * @claim "so it is never upscaled" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows live media wider than mediaWidth)
+   */
+  mediaWidth?: number | undefined;
   /** `stage` centres the text over the picture; `column` aligns both to a reading column. @default "stage" */
   layout?: HeroLayout | (string & { 'Use "stage" or "column"': never }) | undefined;
   /** `rise` lifts the picture into place on mount, with reduced motion fading it in. @default "rise" */
@@ -149,6 +156,7 @@ export function Hero(props: HeroProps): JSX.Element {
     actions,
     picture,
     media,
+    mediaWidth,
     layout: layoutProp = "stage",
     motion: motionProp = "rise",
     headingLevel: headingLevelProp = 1,
@@ -217,7 +225,9 @@ export function Hero(props: HeroProps): JSX.Element {
         maxWidth: `${picture.width}px`,
         ...(crop ? { "--hero-crop": crop } : {}),
       } as CSSProperties)
-    : undefined;
+    : mediaWidth !== undefined
+      ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
+      : undefined;
   const shown = picture ? (
     <picture aria-hidden={picture.decorative ? true : undefined} className="block">
       {picture.sources?.map((source) => {

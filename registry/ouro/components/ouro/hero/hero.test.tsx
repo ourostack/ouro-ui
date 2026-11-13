@@ -327,6 +327,18 @@ describe("Hero", () => {
     expect(media.style.maxWidth).toBe("");
   });
 
+  it("never shows live media wider than mediaWidth", async () => {
+    await page.viewport(2400, 900);
+    const { part } = await render(
+      <Hero title="Wide" mediaWidth={1536} media={<div data-testid="scene" className="h-10 w-full" />} />,
+    );
+    const media = part("media")!;
+    expect(media.style.maxWidth).toBe("1536px");
+    expect(media.getBoundingClientRect().width).toBeLessThanOrEqual(1536);
+    const both = await render(<Hero title="Both" mediaWidth={400} picture={wide} />);
+    expect(both.part("media")!.style.maxWidth).toBe("1536px");
+  });
+
   it("rises live media in on mount like a picture", async () => {
     const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
     const slow = token("--ouro-duration-slow");
