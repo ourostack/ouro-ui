@@ -15,6 +15,8 @@ The `-tests` items list these as devDependencies without a version. The shadcn C
 
 The tests do not run in jsdom or happy-dom. They drag, flick and measure, so they need a browser.
 
+The kit's traces of a slow mouse drag and a slow touch print only when the test run sets `OURO_TOUCH_TRACE=1`, and then as information, so a slow test that still passes does not fail a run that fails on warnings.[^kit-trace]
+
 ## Install and run
 
 ```sh
@@ -232,3 +234,4 @@ Ouro's own test measures a real click the same way, in Vitest's browser mode.[^i
 [^layout-reads]: registry/ouro/lib/ouro/testing/layout-reads.ts verify:testExists(registry/ouro/lib/ouro/testing/layout-reads.test.ts::watchLayoutReads > records each read that lays the page out, with what it was read from, in order) verify:testExists(registry/ouro/lib/ouro/testing/layout-reads.test.ts::watchLayoutReads > nests: each watch records from its own start to its own stop, in either order, and the last puts the browser's reads back) verify:testExists(registry/ouro/lib/ouro/testing/layout-reads.test.ts::watchLayoutReads > puts the browser's own reads back on stop, and at the end of the test)
 [^layout-reads-rail]: registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx verify:testExists(registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx::NavigationRail fit > lays nothing out when it renders again with only a new count, or with the same items)
 [^forced-layout]: registry/ouro/lib/ouro/testing/layout-reads.test.ts verify:testExists(registry/ouro/lib/ouro/testing/layout-reads.test.ts::watchLayoutReads > reads a size changed a moment ago at once, which the browser can answer only by laying the page out first)
+[^kit-trace]: registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /process\.env\.OURO_TOUCH_TRACE === "1"\) console\.info\(message\)/) verify:testExists(scripts/touch-kit-frames.test.mjs::without OURO_TOUCH_TRACE, a slow mouse drag that finishes prints nothing)

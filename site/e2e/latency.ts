@@ -92,15 +92,15 @@ export function morePresses(samples: readonly number[], baseline: number): boole
  * click-to-paint time in ms, LATENCY.more presses more when `more` says so of the first samples (morePresses). Event Timing reports nothing under 16 ms (its durationThreshold floor),
  * so a press with no entry counts as 16 ms, if the browser's interaction count says it happened; a
  * press with neither is a broken measurement, and fails. Setting up a press runs at full speed, and
- * so does its tail (the porthole's repaint after the press), so a press is measured from a settled page, as
- * a person's would be a beat later.
+ * so does its tail (the porthole's repaint after the press), and the page then settles again at the
+ * throttle before the press, so a press is measured from a settled page, as a person's would be a beat later.
  */
 export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle, more?: (samples: readonly number[]) => boolean): Promise<number[]> {
   await page.evaluate(() => {
-    const store: Array<[number, number, number, number]> = [];
+    const store: Array<[number, number, number, number, string]> = [];
     (window as unknown as { __latency: typeof store }).__latency = store;
     new PerformanceObserver((list) => {
-      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration, entry.startTime, entry.processingStart, entry.processingEnd]);
+      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration, entry.startTime, entry.processingStart, entry.processingEnd, entry.name]);
     }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
   });
   const cdp = await page.context().newCDPSession(page);
@@ -120,10 +120,14 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   for (let index = 0; index < presses; index++) {
     if (setUp) await unthrottled(() => setUp(index));
     await page.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
+    // The press starts from a page settled at the throttle too: the set-up's settle ran at full speed, so
+    // whatever still runs once the throttle is back ends before the press, as it would before a person's
+    // press a beat later, rather than becoming the press's input delay.
+    await settle();
     const before = await interactions();
     await press(index);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-    const entries = await page.evaluate(() => (window as unknown as { __latency: Array<[number, number, number, number]> }).__latency);
+    const entries = await page.evaluate(() => (window as unknown as { __latency: Array<[number, number, number, number, string]> }).__latency);
     const durations = entries.map(([duration]) => duration);
     const pressed = (await interactions()) > before;
     expect(durations.length > 0 || pressed, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
@@ -132,8 +136,9 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
       // Where an over-budget press's time went, so the next failure says whether it was the page's thread or the wait for the paint.
       const slowest = entries.find(([duration]) => duration === Math.max(...durations));
       if (slowest && slowest[0] > LATENCY.p95) {
+        // Event Timing gives a press's later entries (pointerup, click) its first event's start (pointerdown's), so their input delay runs from pointerdown.
         const { inputDelay, processing, presentation } = splitPress({ duration: slowest[0], startTime: slowest[1], processingStart: slowest[2], processingEnd: slowest[3] });
-        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint`;
+        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint (${slowest[4]} entry)`;
         test.info().annotations.push({ type: "latency-slow", description: split });
         console.log(`latency-slow ${split}`);
       }
