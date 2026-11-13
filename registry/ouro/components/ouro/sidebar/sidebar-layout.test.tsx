@@ -112,6 +112,31 @@ describe("SidebarLayout", () => {
     history.replaceState(null, "", location.pathname + location.search);
   });
 
+  it("sizes the skip link in rem, so it follows the root font size whether or not it has focus", async () => {
+    document.documentElement.style.fontSize = "17px";
+    try {
+      // A px-sized ancestor, as a page's own text size can be: the hidden link must not inherit it.
+      await render(
+        <div style={{ fontSize: 14 }}>
+          <SidebarLayout sidebar={sidebar}>Page content</SidebarLayout>
+        </div>,
+      );
+      const skip = page.getByRole("link", { name: "Skip to content" });
+      const sizes = () => {
+        const style = getComputedStyle(skip.element());
+        return { fontSize: style.fontSize, lineHeight: style.lineHeight };
+      };
+      expect(sizes()).toEqual({ fontSize: "17px", lineHeight: "21.25px" });
+      await pressTab();
+      await expect.element(skip).toHaveFocus();
+      expect(sizes()).toEqual({ fontSize: "17px", lineHeight: "21.25px" });
+      document.documentElement.style.fontSize = "16px";
+      expect(sizes()).toEqual({ fontSize: "16px", lineHeight: "20px" });
+    } finally {
+      document.documentElement.style.fontSize = "";
+    }
+  });
+
   it("renders the page in a div with as, inside a page that has its own main landmark", async () => {
     await render(
       <SidebarLayout as="div" sidebar={sidebar}>

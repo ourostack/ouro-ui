@@ -8,7 +8,7 @@ import { changedLines, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnit
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
-import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, scopeReport, shardCost, shardCount, strykerTimeout, testSeconds, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, recordTests, scopeReport, shardCost, shardCount, strykerTimeout, testSeconds, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -437,6 +437,43 @@ test("pruneChangedFiles also drops a changed file's kept results when a changed 
   // The digests survive a merge.
   assert.deepEqual(mergeReports([found, { files: {}, testFiles: {}, ouroSources: { "x.tsx": "1" } }]).ouroSources, { ...found.ouroSources, "x.tsx": "1" });
 });
+
+// A small fake repository for the test-file cases below: a component with its own test file, and another component.
+const dialog = "registry/ouro/components/ouro/dialog/dialog.tsx";
+const dialogTests = "registry/ouro/components/ouro/dialog/dialog.test.tsx";
+const dialogMore = "registry/ouro/components/ouro/dialog/dialog-more.test.tsx";
+const other = "registry/ouro/components/ouro/other/other.tsx";
+const otherTests = "registry/ouro/components/ouro/other/other.test.tsx";
+const repo = { [dialog]: "dialog", [dialogTests]: "it('opens')", [dialogMore]: "it('closes')", [other]: "other", [otherTests]: "it('other')" };
+const testsOfRepo = (path) => (path === dialog ? [dialogTests] : [otherTests]);
+
+test("pruneChangedFiles drops a mutated file's kept results when one of its test files changed, or was added or removed, and keeps them when nothing did", () => {
+  const found = recordTests(
+    { files: Object.fromEntries([dialog, other].map((path) => [path, { source: repo[path], mutants: [{ id: "0", status: "Killed" }] }])) },
+    [dialog, other],
+    testsOfRepo,
+    (path) => repo[path],
+  );
+  const kept = (current, testsFor = testsOfRepo) =>
+    Object.keys(pruneChangedFiles(found, { testsFor, read: (path) => ({ ...repo, ...current })[path], exists: (path) => path in repo }).files).sort();
+  assert.deepEqual(kept({}), [dialog, other], "nothing changed: everything kept");
+  assert.deepEqual(kept({ [dialogTests]: "it('opens', () => {})" }), [other], "a changed test file of the dialog drops the dialog's results");
+  assert.deepEqual(kept({ [otherTests]: "it('other', () => {})" }), [dialog], "a changed test file of another component drops only its results");
+  assert.deepEqual(kept({}, (path) => (path === dialog ? [dialogTests, dialogMore] : [otherTests])), [other], "a test file added drops the dialog's results");
+  assert.deepEqual(kept({}, (path) => (path === dialog ? [] : [otherTests])), [other], "a test file removed drops the dialog's results");
+});
+
+test("pruneChangedFiles keeps the results of a report with no test digests, as before, and drops a mutated file it records no test digests for", () => {
+  const sources = Object.fromEntries([dialog, other].map((path) => [path, { source: repo[path], mutants: [{ id: "0", status: "Killed" }] }]));
+  const changed = { ...repo, [dialogTests]: "it('opens', () => {})" };
+  const read = (path) => changed[path];
+  const exists = (path) => path in repo;
+  assert.deepEqual(Object.keys(pruneChangedFiles({ files: sources }, { read, exists, testsFor: testsOfRepo }).files).sort(), [dialog, other], "no ouroTests: nothing to compare, so nothing is dropped");
+  const partial = { files: sources, ouroTests: recordTests({ files: {} }, [other], testsOfRepo, (path) => repo[path]).ouroTests };
+  assert.deepEqual(Object.keys(pruneChangedFiles(partial, { read, exists, testsFor: testsOfRepo }).files), [other], "a mutated file with no test digests recorded counts as changed");
+  assert.equal(mergeReports([{ files: {}, testFiles: {} }]).ouroTests, undefined, "a merge of reports with no test digests has none");
+});
+
 
 test("splitRange cuts a long range into parts of about the given mutants, only where no node runs past the cut", () => {
   const text = [

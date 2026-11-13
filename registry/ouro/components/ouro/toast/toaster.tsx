@@ -2,7 +2,7 @@
 
 import { Toast } from "@base-ui/react/toast";
 import type { BaseUIEvent } from "@base-ui/react/types";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type JSX, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type JSX, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
@@ -608,8 +608,11 @@ function toastHandoff(element: HTMLDivElement): FocusHandoffOptions {
   return { within: region, fallback: cameFrom.get(region) ?? null };
 }
 
-/** One toast. The swipe is Ouro's own, so Base UI's is off. */
-function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string }): JSX.Element {
+/**
+ * One toast. The swipe is Ouro's own, so Base UI's is off. Memoised so that a toast whose object
+ * Base UI kept skips the render when another toast leaves.
+ */
+const ToastItem = memo(function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string }): JSX.Element {
   const { close } = Toast.useToastManager();
   const destructive = item.type === "destructive";
   const swipe = useSwipeAway(() => close(item.id), item.transitionStatus === "ending");
@@ -648,7 +651,7 @@ function ToastItem({ item, closeLabel }: { item: ToastObject; closeLabel: string
       </Toast.Content>
     </Toast.Root>
   );
-}
+});
 
 const NO_SWIPE: [] = [];
 /** How far, in px, a toast let go without a flick must be from rest to leave. */

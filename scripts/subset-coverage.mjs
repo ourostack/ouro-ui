@@ -61,8 +61,14 @@ export function setsTouching(registry, items) {
   return sets.filter((set) => subset(registry, set).items.some((name) => items.includes(name)));
 }
 
-/** The sets shard `index` (from 1) of `count` checks: every `count`th, from its own index. */
-export const shardSets = (chosen, { index, count }) => chosen.filter((_, position) => position % count === index - 1);
+/**
+ * The sets shard `index` (from 1) of `count` checks. With six shards the dearest sets go to the
+ * shards whose browser tests finish first (measured: the forms set and the union cost about 118 s
+ * each, the others 51 to 70 s, and shards 4 and 5 run the longest tests); otherwise every `count`th.
+ */
+const sixShardOrder = [5, 1, 3, 2, 6];
+export const shardSets = (chosen, { index, count }) =>
+  chosen.filter((_, position) => (count === 6 && position < sixShardOrder.length ? sixShardOrder[position] : (position % count) + 1) === index);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const all = process.argv.slice(2);

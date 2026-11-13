@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory } from "./story";
+import { openStory, settledBox } from "./story";
 
 test("reorders with the keyboard: Space picks a row up, the arrows move it, Space drops it, Escape puts it back", async ({ page }) => {
   await openStory(page, "lists-reorderable--in-context");
@@ -44,6 +44,7 @@ test("reorders without a drag: a click on the handle opens a menu of moves", asy
   const handles = page.locator("[data-ouro-reorderable-handle]");
   await page.getByRole("button", { name: "Reorder Sear the ribs" }).click();
   await expect(page.getByRole("menuitem", { name: "Move up" })).toHaveAttribute("data-disabled");
+  await settledBox(page.getByRole("menu"));
   await page.getByRole("menuitem", { name: "Move to bottom" }).click();
   await expect(page.locator("[data-ouro-announcer]")).toHaveText("Sear the ribs moved. Position 4 of 4.");
   await expect(handles.nth(3)).toHaveAttribute("aria-label", "Reorder Sear the ribs");
@@ -79,6 +80,8 @@ test.describe("by touch", () => {
     await openStory(page, "lists-reorderable--in-context");
     await page.getByRole("button", { name: "Reorder Sear the ribs" }).tap();
     await expect(page.getByRole("menu")).toBeVisible();
+    // Below 640px the menu is a bottom sheet that slides up. A tap on a move still moving can come up on the next item and drop the click, so wait until it has stopped.
+    await settledBox(page.getByRole("menu"));
     await page.getByRole("menuitem", { name: "Move to bottom" }).tap();
     await expect(page.getByTestId("saved-order")).toHaveText("Saved order: soften, wine, braise, sear");
   });

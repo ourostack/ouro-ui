@@ -265,6 +265,35 @@ describe("keepEarlyInput", () => {
     expect(heard).toEqual(["Soup"]);
   });
 
+  it("puts text back again when React's commit writes its own value over a replay, and lets it go once React holds it", async () => {
+    const { window, document } = page('<input type="search" placeholder="Filter" />');
+    const field = document.querySelector("input")!;
+    const traces: string[] = [];
+    window.__ouroEarlyTrace = (line) => traces.push(line);
+    field.value = "tabs";
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    // React's props for the field as it hydrated: its state is empty until its commit takes the reader's text.
+    const props = { value: "" };
+    hydrate(field);
+    Object.assign(field, { "__reactProps$test": props });
+    let committed = false;
+    field.addEventListener("input", () => {
+      if (committed) props.value = field.value;
+    });
+    await frames3();
+    // The replay landed before React's commit, so React did not take it.
+    expect(field.value).toBe("tabs");
+    expect(window.__ouroEarlyInput).toBe(1);
+    committed = true;
+    field.value = props.value;
+    expect(field.value).toBe("");
+    await frames3();
+    expect(field.value).toBe("tabs");
+    expect(props.value).toBe("tabs");
+    expect(window.__ouroEarlyInput).toBe(0);
+    expect(traces).toEqual(["React wrote over the kept text in Filter; putting it back", "kept text in Filter is applied (replayed 2 times)"]);
+  });
+
   it("lets kept text go once the reader types into the hydrated field", async () => {
     const { window, document } = page('<input type="search" />');
     const field = document.querySelector("input")!;

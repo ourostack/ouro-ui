@@ -12,6 +12,17 @@ export interface EmulateMediaOptions {
   contrast?: "more" | "no-preference";
 }
 
+/** The media features `emulateMedia` sets, with their values. */
+export type MediaState = Required<EmulateMediaOptions>;
+
+/** A page's media before any emulation, which Playwright's `emulateMedia` documents as its defaults for these features. */
+const DEFAULT_MEDIA: MediaState = { reducedMotion: "no-preference", colorScheme: "light", forcedColors: "none", contrast: "no-preference" };
+
+/** The value the kit last emulated for a page's features; a feature not yet emulated has the browser's default. */
+const emulatedMedia = new WeakMap<object, MediaState>();
+
+const currentMedia = (page: object): MediaState => emulatedMedia.get(page) ?? DEFAULT_MEDIA;
+
 export interface DragOptions {
   /** Viewport coordinates of the pointer-down point. */
   from: [number, number];
@@ -34,19 +45,49 @@ export interface DragOptions {
  * new styles on its next line.
  * A forced-colours switch restyles the page at once, and a colour with a transition (the `press`
  * utility's) then eases to its new value, so this also returns once those transitions have finished:
- * a test reads where each colour lands, not a colour between the two.
+ * a test reads where each colour lands, not a colour between the two. The kit keeps the value it
+ * set, so `mediaState` and `restoreMedia` can put them back.
  *
  * @claim "This returns once the test frame's `matchMedia` matches every preference passed" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::emulateMedia returns once the frame matches the preference, so the next line reads its styles)
  * @claim "this also returns once those transitions have finished" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /emulateMedia returns once forced colours have settled, past any transition the switch started/)
  */
 export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, options) => {
+  await applyMedia(ctx, options);
+};
+
+/**
+ * The page's media as the kit last emulated it; a feature not yet emulated reads as the browser's
+ * default. A test or setup reads it before a change, to put it back with `restoreMedia`.
+ */
+export const mediaState: BrowserCommand<[]> = async (ctx) => ({ ...currentMedia(ctx.page) });
+
+/**
+ * Puts back the media a `mediaState` read. It emulates only the features that differ from the
+ * page's current media, so a restore after a test that changed a feature's value is a single call.
+ */
+export const restoreMedia: BrowserCommand<[MediaState]> = async (ctx, state) => {
+  const current = currentMedia(ctx.page);
+  const changed: EmulateMediaOptions = {};
+  for (const feature of Object.keys(DEFAULT_MEDIA) as (keyof MediaState)[]) {
+    if (current[feature] !== state[feature]) Object.assign(changed, { [feature]: state[feature] });
+  }
+  if (Object.keys(changed).length > 0) await applyMedia(ctx, changed);
+};
+
+/** Puts the browser's defaults back, for the start of a test file. */
+export const resetMedia: BrowserCommand<[]> = async (ctx) => {
+  await restoreMedia(ctx, DEFAULT_MEDIA);
+};
+
+async function applyMedia(ctx: Parameters<BrowserCommand<[]>>[0], options: EmulateMediaOptions): Promise<void> {
   await ctx.page.emulateMedia(options);
+  emulatedMedia.set(ctx.page, { ...currentMedia(ctx.page), ...options });
   const frame = await ctx.frame();
   const queries = mediaQueries(options);
   if (queries.length > 0) await awaitMedia(frame, queries);
   if (!("forcedColors" in options)) return;
   await within(frame.evaluate(SETTLE_TRANSITIONS), 3000, "transitions did not settle within 3s").catch(() => undefined);
-};
+}
 
 const MEDIA_FEATURES: Record<keyof EmulateMediaOptions, string> = {
   reducedMotion: "prefers-reduced-motion",
@@ -1501,11 +1542,32 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   }
 };
 
-export const commands = { compositedLayers, emulateMedia, doubleTap, drag, flick, pageZoom, parkPointer, pointerPress, resetPageZoom, restoreTouch, setPageZoom, tap, touchDrag, touchStep };
+export const commands = {
+  compositedLayers,
+  emulateMedia,
+  mediaState,
+  restoreMedia,
+  resetMedia,
+  doubleTap,
+  drag,
+  flick,
+  pageZoom,
+  parkPointer,
+  pointerPress,
+  resetPageZoom,
+  restoreTouch,
+  setPageZoom,
+  tap,
+  touchDrag,
+  touchStep,
+};
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     emulateMedia: (options: EmulateMediaOptions) => Promise<void>;
+    mediaState: () => Promise<MediaState>;
+    restoreMedia: (state: MediaState) => Promise<void>;
+    resetMedia: () => Promise<void>;
     parkPointer: () => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;

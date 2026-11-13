@@ -34,6 +34,9 @@
 //   gone when the check looks. Such a test holds the page's clock (vi.useFakeTimers, holdClock) or
 //   records the state as it happens (watchAnnouncements, watchToasts). A test that means to run on
 //   the real clock says why in a `// real clock: <reason>` comment.
+// - shortPollTimeouts: a poll (expect.poll, expect.element, vi.waitFor) that gives up sooner than the
+//   projects' 10 s, or with a timeout that is not a literal, or with vi.waitFor's 1 s default. A poll
+//   that is a deliberate bound says why in a `// short poll: <reason>` comment on the line before.
 //
 // scripts/source-rules.test.mjs applies them to the repository; scripts/install-check.mjs
 // compares the comments of each installed file with its source.
@@ -598,5 +601,64 @@ export function timerBoundReads(path, text) {
     ts.forEachChild(node, (child) => walk(child, scope));
   };
   walk(source, []);
+  return found;
+}
+
+/** The test and spec files shortPollTimeouts reads, as git pathspecs. */
+export const pollTimeoutFiles = ["registry/**/*.test.ts", "registry/**/*.test.tsx", "registry/**/*.spec.ts", "site/**/*.test.ts", "site/**/*.test.tsx", "site/**/*.spec.ts", "test/*.test.ts", "test/*.test.tsx", "test/**/*.test.ts", "test/**/*.test.tsx"];
+
+/** The timeout the projects give every poll (ouroTestProjects' expect.poll): a poll may not cut it short. */
+const pollFloorMs = 10_000;
+
+/**
+ * The polls in a test or spec that give up sooner than the projects' 10 s, as "line: statement":
+ * `expect.poll(fn, options)` and `expect.element(locator, options)` whose timeout is under 10 000 ms
+ * or not a literal, and `vi.waitFor(fn, options)`, whose options may also be a number, and which
+ * has no timeout at all (Vitest's 1 s default). Options are read where they are an object literal,
+ * or a const of the same file that is one, and a timeout may name a same-file numeric const. A poll
+ * that is a deliberate bound says why in a `// short poll: <reason>` comment on the line before its
+ * statement, and is left alone.
+ */
+export function shortPollTimeouts(path, text) {
+  const source = parse(path, text);
+  const constants = new Map();
+  const declare = (node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) constants.set(node.name.text, node.initializer);
+    ts.forEachChild(node, declare);
+  };
+  declare(source);
+  const resolve = (node) => (ts.isIdentifier(node) && constants.has(node.text) ? constants.get(node.text) : node);
+  // The timeout the options name: undefined when they leave it out, NaN when it is not a number literal.
+  const timeoutOf = (options) => {
+    if (!options) return undefined;
+    const node = resolve(options);
+    if (ts.isNumericLiteral(node)) return Number(node.text);
+    if (!ts.isObjectLiteralExpression(node)) return NaN;
+    const property = node.properties.find((each) => each.name && ts.isIdentifier(each.name) && each.name.text === "timeout");
+    if (!property) return undefined;
+    const value = resolve(ts.isShorthandPropertyAssignment(property) ? property.name : property.initializer);
+    return ts.isNumericLiteral(value) ? Number(value.text) : NaN;
+  };
+  const isShort = (call) => {
+    const timeout = timeoutOf(call.arguments[1]);
+    if (timeout === undefined) return call.expression.getText(source).replace(/\s+/g, "") === "vi.waitFor";
+    return !(timeout >= pollFloorMs);
+  };
+  // The statement a poll is in: its `// short poll:` comment leads that statement.
+  const statementOf = (node) => {
+    let at = node;
+    while (!ts.isStatement(at)) at = at.parent;
+    return at;
+  };
+  const found = [];
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && /^(expect\.(poll|element)|vi\.waitFor)$/.test(node.expression.getText(source).replace(/\s+/g, "")) && isShort(node)) {
+      const statement = statementOf(node);
+      const escaped = (ts.getLeadingCommentRanges(text, statement.getFullStart()) ?? []).some((range) => /^\/\/\s*short poll:\s*\S/.test(text.slice(range.pos, range.end)));
+      if (!escaped) found.push(`${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}: ${statement.getText(source).split("\n")[0].trim()}`);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
   return found;
 }

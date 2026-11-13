@@ -161,6 +161,40 @@ jobs:
           git commit -am "Release $TAG"
           git push --force origin "$BRANCH"
       - if: steps.check.outputs.new == 'true'
+        id: reuse
+        name: Reuse the rehearsal's proof when it tested this very tree
+        run: |
+          # The rehearsal wrote the release commit with the same script and ran CI and the
+          # screen-reader lane on it. When its commit has this commit's tree, that proof is for
+          # these bytes: the same checks are judged on its runs instead of being run again.
+          # Anything else, a different tree, a missing run or a check that did not pass, takes
+          # the full path below, unchanged.
+          echo "reuse=false" >> "$GITHUB_OUTPUT"
+          rbranch="release/$TAG-rehearsal"
+          tree=$(git rev-parse 'HEAD^{tree}')
+          shas=$(gh run list --workflow ci.yml --branch "$rbranch" --event workflow_dispatch --limit 20 --json headSha,createdAt --jq 'sort_by(.createdAt) | reverse | [.[].headSha] | unique | .[]') || shas=
+          for rsha in $shas; do
+            [ "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$rsha" --jq .tree.sha 2>/dev/null || true)" = "$tree" ] || continue
+            runs=
+            for workflow in $PRODUCERS; do
+              id=$(gh run list --workflow "$workflow" --branch "$rbranch" --event workflow_dispatch --commit "$rsha" --json databaseId,createdAt --jq 'sort_by(.createdAt) | last | .databaseId // empty')
+              runs="$runs $id"
+            done
+            [[ "$runs" != *"  "* && -n "${runs// }" ]] || continue
+            # shellcheck disable=SC2086 # one argument per run
+            scripts/required-ci.sh --also "install (shadcn@latest, nova)" $runs || continue
+            lane=$(gh run list --workflow screen-reader.yml --branch "$rbranch" --event workflow_dispatch --json databaseId,headSha,conclusion,createdAt --jq "[.[] | select(.headSha == \"$rsha\" and .conclusion == \"success\")] | sort_by(.createdAt) | last | .databaseId // empty")
+            [ -n "$lane" ] || continue
+            echo "reuse=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "Reused the rehearsal's proof: its commit \`$rsha\` has this release commit's tree (\`$tree\`)."
+              for id in $runs; do echo "- CI run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$id"; done
+              echo "- Screen-reader lane: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$lane"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          done
+          echo "No rehearsal commit has this tree with CI and the screen-reader lane passed: running both on the release commit."
+      - if: steps.check.outputs.new == 'true'
         name: Build and check the @ouro namespace for the release commit
         run: |
           # What Pages will serve at /r/ for this release: the namespace built from this commit
@@ -169,7 +203,7 @@ jobs:
           # screen-reader lane and the tag.
           scripts/namespace.sh "$RUNNER_TEMP/ns" "$TAG"
           node scripts/public-registry.mjs verify-build "$RUNNER_TEMP/ns" HEAD
-      - if: steps.check.outputs.new == 'true'
+      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
         name: Start the screen-reader lane on the release commit
         run: |
           # Dispatched before CI, so the two run side by side; "Pass the screen-reader lane"
@@ -178,7 +212,7 @@ jobs:
           before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
           gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
           echo "SR_BEFORE=$before" >> "$GITHUB_ENV"
-      - if: steps.check.outputs.new == 'true'
+      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
         name: Run CI on the release commit
         run: |
           sha=$(git rev-parse HEAD)
@@ -197,7 +231,7 @@ jobs:
             scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run || { echo "- After the retry, CI still failed." >> "$GITHUB_STEP_SUMMARY"; exit 1; }
             echo "- After the retry, CI passed the checks main's rules require." >> "$GITHUB_STEP_SUMMARY"
           fi
-      - if: steps.check.outputs.new == 'true'
+      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
         name: Pass the screen-reader lane on the release commit
         run: |
           # The release commit is tagged only when VoiceOver and NVDA pass on that exact commit
@@ -364,7 +398,7 @@ jobs:
             id=$(gh pr view "$NEXT_BRANCH" --json id --jq .id)
             for attempt in 1 2 3 4 5; do
               [ "$(queue_state)" = "OPEN false" ] || break
-              gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$id\", expectedHeadOid: \"$sha\"}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue (attempt $attempt)."
+              gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$id\", expectedHeadOid: \"$sha\", jump: true}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue (attempt $attempt)."
               sleep "${POLL_SECONDS:-10}"
             done
             state=$(queue_state)

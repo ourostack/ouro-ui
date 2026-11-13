@@ -3,9 +3,10 @@
  * a control from the server's HTML, it has no handler: a tap on the menu button, a theme picker, Search or a live
  * example did nothing, and text typed into a field was wiped when React hydrated it. The head script keeps them, and
  * on the first frame each control has hydrated it presses the control again, or puts the text back, as the reader left
- * it. React keeps its fiber on each node it hydrates, under a key of its own, which is how the script tells; and as a
- * control's effects run after it hydrates (a select pressed before then opened with no popup to show), each is answered a
- * frame after it is first seen hydrated, in a task of its own.
+ * it, and a text is let go only once React holds it (its rendered value), since React's commit can write its own value
+ * back over a replay that landed before it. React keeps its fiber on each node it hydrates, under a key of its own,
+ * which is how the script tells; and as a control's effects run after it hydrates (a select pressed before then opened
+ * with no popup to show), each is answered a frame after it is first seen hydrated, in a task of its own.
  */
 
 /** The controls whose press needs the page's JavaScript. Links answer on their own. */
@@ -29,8 +30,8 @@ export const EARLY_PATIENCE = 10_000;
 /** How long a pressed control waits, in ms, for the page to answer before it looks let go anyway. */
 export const EARLY_ANSWER = 1000;
 
-/** What the head script keeps on the window, for the page to hurry hydration while anything waits. */
-export type EarlyInputWindow = Window & { __ouroEarlyInput?: number };
+/** What the head script keeps on the window: a count of what waits (the page hurries hydration for it), and a trace hook. */
+export type EarlyInputWindow = Window & { __ouroEarlyInput?: number; __ouroEarlyTrace?: (line: string) => void };
 
 /**
  * Keeps the last tap and each field's text from before their controls hydrate, and answers them once they have.
@@ -55,6 +56,12 @@ export function keepEarlyInput(
   const document = page.document;
   let since = 0;
   const fiber = (node: Element) => Object.keys(node).some((key) => key.indexOf("__reactFiber$") === 0);
+  // What React holds for a field: the `value` it last rendered, under the key it keeps the node's props on. Undefined
+  // where React holds none (no props, or a field the page leaves uncontrolled), so there is nothing to confirm.
+  const heldValue = (node: Element): unknown => {
+    const key = Object.keys(node).find((name) => name.indexOf("__reactProps$") === 0);
+    return key ? (node as unknown as Record<string, { value?: unknown } | undefined>)[key]?.value : undefined;
+  };
   // Seen hydrated on a frame before this one: its effects have had a frame to run.
   const seen = new Set<Element>();
   const ready = (node: Element) => {
@@ -81,9 +88,31 @@ export function keepEarlyInput(
     if (!still) control.style.scale = "var(--ouro-press-scale, 0.97)";
     control.style.opacity = "0.8";
   };
-  const texts: Array<{ field: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement; value: string }> = [];
+  const texts: Array<{ field: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement; value: string; replays: number }> = [];
+  // Set while the script puts text back, so the input event it sends is not the reader's typing.
+  let replaying = false;
   let frame = 0;
   const waiting = () => (tap ? 1 : 0) + texts.length;
+  const replay = (kept: (typeof texts)[number]) => {
+    if (kept.replays > 0) page.__ouroEarlyTrace?.(`React wrote over the kept text in ${label(kept.field)}; putting it back`);
+    kept.replays += 1;
+    replaying = true;
+    try {
+      // React may have set the field back to its own value, or, hydrating, left the reader's text in the field with
+      // its own state still empty. Either way the page hears the text as typed: the field's own setter clears what
+      // React last knew of it, the element's sets the text, and an input event follows, which React reads as a change.
+      const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(kept.field), "value")!.set!;
+      kept.field.value = "";
+      setter.call(kept.field, kept.value);
+      kept.field.dispatchEvent(new Event("input", { bubbles: true }));
+      kept.field.dispatchEvent(new Event("change", { bubbles: true }));
+    } catch {
+      // A field that will not take it keeps what it has; the rest are still answered.
+    } finally {
+      replaying = false;
+    }
+  };
+  const label = (field: Element) => field.getAttribute("placeholder") || field.getAttribute("aria-label") || field.tagName.toLowerCase();
   const answer = () => {
     frame = 0;
     // Past its patience nothing kept is coming: the control's look goes back and the tap and text are let go.
@@ -95,18 +124,14 @@ export function keepEarlyInput(
       const kept = texts[index]!;
       if (!kept.field.isConnected) texts.splice(index, 1);
       else if (ready(kept.field)) {
-        texts.splice(index, 1);
-        try {
-          // React may have set the field back to its own value, or, hydrating, left the reader's text in the field with
-          // its own state still empty. Either way the page hears the text as typed: the field's own setter clears what
-          // React last knew of it, the element's sets the text, and an input event follows, which React reads as a change.
-          const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(kept.field), "value")!.set!;
-          kept.field.value = "";
-          setter.call(kept.field, kept.value);
-          kept.field.dispatchEvent(new Event("input", { bubbles: true }));
-          kept.field.dispatchEvent(new Event("change", { bubbles: true }));
-        } catch {
-          // A field that will not take it keeps what it has; the rest are still answered.
+        // A replay can land before React commits the field's hydration, and that commit writes React's own value back
+        // over the text. So the text is put back again once the field shows React's value, and it is let go only once
+        // React holds the text, which the page's state confirms, not a frame's wait.
+        if (kept.replays === 0 || kept.field.value !== kept.value) replay(kept);
+        const held = heldValue(kept.field);
+        if (typeof held !== "string" || held === kept.value) {
+          texts.splice(index, 1);
+          page.__ouroEarlyTrace?.(`kept text in ${label(kept.field)} is applied (replayed ${kept.replays} time${kept.replays === 1 ? "" : "s"})`);
         }
       }
     }
@@ -191,6 +216,7 @@ export function keepEarlyInput(
     true,
   );
   const typed = (event: Event) => {
+    if (replaying) return;
     const field = event.target as Element | null;
     if (!field || !field.matches || !field.matches(fields) || !field.closest(scope)) return;
     const kept = field as HTMLInputElement;
@@ -200,7 +226,7 @@ export function keepEarlyInput(
       return;
     }
     for (const entry of texts) if (entry.field === kept) entry.value = kept.value;
-    if (!texts.some((entry) => entry.field === kept)) texts.push({ field: kept, value: kept.value });
+    if (!texts.some((entry) => entry.field === kept)) texts.push({ field: kept, value: kept.value, replays: 0 });
     soon();
   };
   document.addEventListener(

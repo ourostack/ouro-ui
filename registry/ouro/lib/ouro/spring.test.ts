@@ -305,7 +305,7 @@ describe("spring", () => {
       frames.release();
       const seen: number[] = [];
       const handle = spring({ from: 0, to: 10, onUpdate: (value) => seen.push(value) });
-      await expect.poll(() => handle.running, { timeout: 5000 }).toBe(false);
+      await expect.poll(() => handle.running).toBe(false);
       expect(seen.at(-1)).toBe(10);
     });
 

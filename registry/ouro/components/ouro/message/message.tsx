@@ -239,7 +239,7 @@ export interface MessageOwnProps {
    * so at most one bar shows and none stays behind. Escape hides it.
    *
    * @claim "In a `MessageList` the list draws" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > draws one bar for the whole list, on the message the pointer is over, and listens the same for a hundred messages as for two)
-   * @claim "so at most one bar shows" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > leaves no bar behind when the pointer leaves, the list scrolls, the window loses focus or the menu opens)
+   * @claim "so at most one bar shows" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > hides the bar when the list scrolls under the pointer, and never shows more than one)
    * @claim "It is a toolbar: one Tab" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > is one Tab stop, and the arrow keys, Home and End move between its buttons)
    * @claim "The bar shows while the pointer" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > shows the bar on hover and while focus is in the message, and hides it otherwise)
    */

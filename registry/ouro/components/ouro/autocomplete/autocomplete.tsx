@@ -5,7 +5,6 @@ import {
   cloneElement,
   isValidElement,
   useEffect,
-  useCallback,
   useId,
   useMemo,
   useRef,
@@ -227,11 +226,28 @@ export function Autocomplete(props: AutocompleteProps): JSX.Element {
 
   // The list's anchor: the trigger character, measured each time the list is placed. It
   // keeps the last trigger while the list closes, so the list leaves from where it was.
+  // A web font that loads moves the trigger without resizing the field, and only a new
+  // anchor object makes Base UI place the list again.
   const { anchorAt } = state;
-  const anchor = useCallback(() => {
-    const element = controlRef.current!;
-    return { getBoundingClientRect: () => caretRect(element, anchorAt), contextElement: element };
-  }, [anchorAt]);
+  const [fontsLoaded, setFontsLoaded] = useState(0);
+  useEffect(() => {
+    if (!open) return;
+    // Stryker disable next-line ArithmeticOperator,ArrowFunction: the count is never read; any change rebuilds the anchor, and a font load after the first moves the list through the tracking that rebuild set up.
+    const onFontLoad = () => setFontsLoaded((count) => count + 1);
+    document.fonts.addEventListener("loadingdone", onFontLoad);
+    return () => document.fonts.removeEventListener("loadingdone", onFontLoad);
+  }, [open]);
+  const anchor = useMemo(
+    () => ({
+      getBoundingClientRect: () => caretRect(controlRef.current!, anchorAt),
+      get contextElement() {
+        return controlRef.current!;
+      },
+    }),
+    // A font load changes no value the anchor reads; it makes a new object, which Base UI places again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [anchorAt, fontsLoaded],
+  );
 
   return (
     <>
@@ -453,7 +469,7 @@ interface SuggestionListProps {
   query: string | undefined;
   items: readonly AutocompleteItem[];
   current: number;
-  anchor: () => { getBoundingClientRect: () => DOMRect; contextElement: Element };
+  anchor: { getBoundingClientRect: () => DOMRect; contextElement: Element };
   onHover: (index: number) => void;
   onPick: (item: AutocompleteItem) => void;
 }

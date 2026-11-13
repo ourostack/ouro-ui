@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Request } from "@playwright/test";
 import { pressTab } from "../../registry/ouro/e2e/ouro/story";
 import family from "../src/family.json" with { type: "json" };
 import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
@@ -21,15 +21,32 @@ async function store(page: Page, value: { preset?: string; mode?: string }): Pro
 /** The two voyage pages: the home page (the stage, the ships, the themes) and the Nautilus's own (the story and Chapter I). */
 const PAGES = ["./", "nautilus/"] as const;
 
+/** The requests each page has started and not yet finished, counted from its first settleBeforeLeaving. */
+const inFlight = new WeakMap<Page, Set<Request>>();
+
 /**
  * Lets the page finish loading before a test navigates it again. WebKit's goto sometimes fails with
  * "WebKit encountered an internal error" when it replaces a voyage page whose islands are still
  * loading their chunks: 9 of 10,800 same-page navigations failed this way, and none of 5,400 that
  * waited for the network to go quiet first (probe #345). A person reads a page once it has loaded,
  * which is what these tests check, not a navigation in the middle of loading.
+ *
+ * The "networkidle" load state is reached once per navigation, so it does not wait for what the page
+ * fetches after that: a lazy picture or an island's chunk that a test's scroll brings near the
+ * screen (#654). So the page's own requests are counted too, and the wait lasts until none is open.
  */
 async function settleBeforeLeaving(page: Page): Promise<void> {
-  if (page.url().startsWith("http")) await page.waitForLoadState("networkidle");
+  let pending = inFlight.get(page);
+  if (!pending) {
+    const requests = new Set<Request>();
+    page.on("request", (request) => requests.add(request));
+    page.on("requestfinished", (request) => requests.delete(request));
+    page.on("requestfailed", (request) => requests.delete(request));
+    inFlight.set(page, (pending = requests));
+  }
+  if (!page.url().startsWith("http")) return;
+  await page.waitForLoadState("networkidle");
+  await expect.poll(() => [...pending].map((request) => request.url()), { message: "the page's requests finish before it is left" }).toEqual([]);
 }
 
 async function open(page: Page, path: (typeof PAGES)[number] = "./"): Promise<void> {
