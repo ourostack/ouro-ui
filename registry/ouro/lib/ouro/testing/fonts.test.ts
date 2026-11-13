@@ -19,13 +19,13 @@ afterEach(() => {
 });
 
 describe("loadFonts", () => {
-  it("settles a declared font face, which the browser otherwise loads only once text uses it", async () => {
-    const face = declareFace("DrainProbe", 'url("data:font/woff2;base64,AAAA") format("woff2")');
+  it("loads a declared font face, which the browser otherwise loads only once text uses it", async () => {
+    const face = declareFace("DrainProbe", 'local("Helvetica"), local("Arial"), local("Liberation Sans"), local("DejaVu Sans")');
     expect(face.status).toBe("unloaded");
 
     await loadFonts();
 
-    expect(face.status).toBe("error");
+    expect(face.status).toBe("loaded");
   });
 
   it("settles a face whose file is missing without rejecting", async () => {
