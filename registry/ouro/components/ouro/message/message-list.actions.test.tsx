@@ -233,7 +233,7 @@ describe("MessageList actions", () => {
     await ready("m1");
     await userEvent.click(page.getByRole("button", { name: "More actions" }));
     await expect.element(page.getByRole("menu", { name: "Message actions for Ana Lind" })).toBeVisible();
-    await expect.poll(() => bars()).toHaveLength(0);
+    expect(bars()).toHaveLength(0);
   });
 
   it("opens one menu from the bar's button and a right-click, with the reactions on top, and the same menu again for another message", async () => {
