@@ -722,6 +722,8 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.13   # with their nod
 
 Guides: [Ouro AX](docs/guides/ax.md), [make your CLI conformant](docs/guides/ax-adopt.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
 
+**Build with it, and give back what you learn.** Every interface an agent or person uses, in your tools and your products alike, can follow Ouro UI's guidance: Ouro HX for screens, Ouro AX for agents. When an interface teaches you something general, contribute it back here as a principle, a component or a check with a test, kept generic, so every product and tool that uses Ouro UI gets it. A tool that needs an instruction booklet is a design bug: put the guidance in its surface (tool descriptions, replies, errors, automatic hooks).
+
 ## Where things live
 
 The site moved from ui.ouro.bot to ui.ouroboros.bot.[^host] Old addresses still land, forwarded to the same path on the new host, but new links use ui.ouroboros.bot. The repository, `@ouro` namespace and install addresses are unchanged.
