@@ -310,7 +310,16 @@ async function clickExactly(element: HTMLElement): Promise<void> {
   const own = element.getAttribute("data-testid");
   element.setAttribute("data-testid", id);
   try {
-    await userEvent.click(page.getByTestId(id));
+    const box = element.getBoundingClientRect();
+    const center = { x: box.width / 2, y: box.height / 2 };
+    const hit = element.ownerDocument.elementFromPoint(box.left + center.x, box.top + center.y);
+    let position: { x: number; y: number } | undefined;
+    if (hit !== null && element.contains(hit)) {
+      // Scrolling an already hittable bar's whole box into view can hide that pointer-revealed bar.
+      const style = getComputedStyle(element);
+      position = { x: center.x - Number.parseFloat(style.borderLeftWidth), y: center.y - Number.parseFloat(style.borderTopWidth) };
+    }
+    await userEvent.click(page.getByTestId(id), position === undefined ? undefined : { position });
   } finally {
     if (own === null) element.removeAttribute("data-testid");
     else element.setAttribute("data-testid", own);

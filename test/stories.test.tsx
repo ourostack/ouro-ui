@@ -18,6 +18,60 @@ afterEach(async () => {
   await parkPointer();
 });
 
+it.each([
+  { name: "bordered", scale: 1, x: 80, y: 104 },
+  { name: "scaled", scale: 1.5, x: 100, y: 116 },
+])("clicks the center of the intended $name opener and restores its own test id", async ({ scale, x, y }) => {
+  const presses: { target: EventTarget | null; trusted: boolean; x: number; y: number }[] = [];
+  let clicks = 0;
+  const host = await renderStory(() => (
+    <>
+      <button
+        type="button" aria-label="Exact opener" aria-haspopup="menu" data-testid="original-opener"
+        style={{ position: "fixed", left: 40, top: 80, width: 80, height: 48, boxSizing: "border-box", border: "8px solid", transform: `scale(${scale})`, transformOrigin: "top left" }}
+        onPointerDown={(event) => presses.push({ target: event.target, trusted: event.nativeEvent.isTrusted, x: event.clientX, y: event.clientY })}
+        onClick={() => { clicks++; }}
+      >
+        Open
+      </button>
+      <button type="button" aria-label="Exact opener" aria-haspopup="menu" style={{ display: "none" }}>Hidden duplicate</button>
+    </>
+  ));
+  const trigger = host.querySelector("button")!;
+  const [opener] = overlayOpeners("Message/Chat", host, {}, false);
+  expect(opener?.element).toBe(trigger);
+  await opener!.open();
+  expect(clicks).toBe(1);
+  expect(presses).toEqual([{ target: trigger, trusted: true, x, y }]);
+  expect(trigger.getAttribute("data-testid")).toBe("original-opener");
+});
+
+it("scrolls an offscreen opener into view through the ordinary exact-target click", async () => {
+  let clicked: { target: EventTarget | null; trusted: boolean } | undefined;
+  const host = await renderStory(() => (
+    <div style={{ position: "fixed", left: 40, top: 80, width: 160, height: 100, overflow: "auto" }}>
+      <div style={{ position: "relative", height: 800 }}>
+        <button
+          type="button" aria-label="Offscreen opener" aria-haspopup="menu"
+          style={{ position: "absolute", left: 0, top: 600, width: 80, height: 48 }}
+          onClick={(event) => { clicked = { target: event.target, trusted: event.nativeEvent.isTrusted }; }}
+        >
+          Open
+        </button>
+      </div>
+    </div>
+  ));
+  const scroller = host.firstElementChild!;
+  const trigger = host.querySelector("button")!;
+  expect(scroller.scrollTop).toBe(0);
+  expect(trigger.getBoundingClientRect().top).toBeGreaterThan(scroller.getBoundingClientRect().bottom);
+  const [opener] = overlayOpeners("Message/Chat", host, {}, false);
+  await opener!.open();
+  expect(scroller.scrollTop).toBeGreaterThan(0);
+  expect(clicked).toEqual({ target: trigger, trusted: true });
+  expect(trigger.hasAttribute("data-testid")).toBe(false);
+});
+
 it("covers every story file, each with stories", () => {
   // test/stories.tsx finds the files by glob; the reference stories and Button must be among them.
   expect(Object.keys(storyFiles)).toEqual(expect.arrayContaining(["Button", "SheetFeel"]));
