@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { BUDGETS, caption, check, dprAt, EXIT, group, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, SIZES, summary, transportIssues, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
+import { blank, BUDGETS, caption, check, dprAt, EXIT, group, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, SIZES, summary, transportIssues, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 
@@ -788,6 +788,39 @@ describe("Ouro check's command", () => {
     assert.match(one, /^\| · \| `s \/a\.html` \|/m);
     assert.doesNotMatch(one, /Fixed since/);
     assert.doesNotMatch(summary({ targets: [], sizes: two, themes: ["light"], pages: [], findings: [], fixed: [], candidates: [], shots: [], allowances: [] }), /Every finding/);
+  });
+});
+
+describe("Ouro check's blank page", () => {
+  // A page whose goto fails as Playwright's does when a navigation the page started itself wins, for the first `lost` tries.
+  const racing = (lost: number, message = 'page.goto: Navigation to "about:blank" is interrupted by another navigation to "http://127.0.0.1/inp-pass.html?moved"') => {
+    const calls: string[] = [];
+    return {
+      calls,
+      page: {
+        goto: async (url: string) => {
+          calls.push(`goto ${url}`);
+          if (calls.filter((call) => call.startsWith("goto")).length <= lost) throw new Error(message);
+          return null;
+        },
+        waitForLoadState: async (state?: string) => void calls.push(`wait ${state}`),
+      },
+    };
+  };
+
+  test("lets a navigation the page started itself finish, then opens the blank page again", async () => {
+    const { page, calls } = racing(2);
+    await blank(page as never);
+    assert.deepEqual(calls, ["goto about:blank", "wait load", "goto about:blank", "wait load", "goto about:blank"]);
+  });
+
+  test("gives up on the blank page after its last try, and passes any other failure on at once", async () => {
+    const lost = racing(3);
+    await assert.rejects(blank(lost.page as never), /is interrupted by another navigation/);
+    assert.equal(lost.calls.filter((call) => call.startsWith("goto")).length, 3);
+    const other = racing(1, "page.goto: Target page, context or browser has been closed");
+    await assert.rejects(blank(other.page as never), /has been closed/);
+    assert.deepEqual(other.calls, ["goto about:blank"]);
   });
 });
 
