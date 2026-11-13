@@ -712,12 +712,14 @@ function useAutoHide(
   }, [delay, given, rootRef]);
 
   // The app's value is what the bar has now. When the app shows the bar, as for its own call
-  // shortcuts, it fades again after a new rest.
+  // shortcuts, it fades again after a new rest. The app passing back what the bar asked for is no
+  // new return: the bar started its rest as it asked, and that render can come after time has moved on.
   useEffect(() => {
     if (controlled === undefined) return;
+    const asked = latest.current.wish === controlled;
     latest.current.wish = controlled;
     // Stryker disable next-line ConditionalExpression: a rest that ends while the bar is hidden asks for what it has, so starting one then changes nothing.
-    if (!controlled) restart.current?.();
+    if (!controlled && !asked) restart.current?.();
   }, [controlled]);
 
   // The blur goes once the fade has finished (at once with no transition); it is read only while
