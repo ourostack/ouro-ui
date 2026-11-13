@@ -1525,6 +1525,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const onWheel = () => {
       wheelAt = performance.now();
       // A wheel pushing at an end scrolls nothing, so no scroll event says the reader got there.
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: with nothing carried, paying pays nothing; the check only spares reading the layout on every turn of the wheel.
       if (carriedRef.current !== 0 && nearEnd()) pay();
     };
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only tells the browser the listener never cancels the wheel; no test can observe it.
@@ -1611,7 +1612,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
       pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.
-      if (carriedRef.current !== 0 && nearEnd()) pay();
+      if (nearEnd()) pay();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
       if (farthest() === end) keepAnchor();
       setShowJump(!pinned.current);
