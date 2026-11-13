@@ -11,7 +11,7 @@ await Promise.all([loadPageCode("/"), loadPageCode("/nautilus/")]);
 const nemo = () => document.querySelector<HTMLElement>('[data-egg="nemo"]');
 const leagues = () => document.querySelector<HTMLElement>('[data-egg="leagues"]');
 /** Waits for a toast with this title. */
-const toasted = (title: string) => expect.poll(() => document.querySelector('[data-ouro="toaster"]')?.textContent ?? "", { timeout: 5000 }).toContain(title);
+const toasted = (title: string) => expect.poll(() => document.querySelector('[data-ouro="toaster"]')?.textContent ?? "").toContain(title);
 
 beforeEach(async () => {
   sessionStorage.clear();
@@ -84,6 +84,7 @@ describe.each(["/", "/nautilus/"])("Captain Nemo on %s", (path) => {
     // Moving: the ship sails and the bubbles rise.
     expect(document.getAnimations().some((animation) => (animation as CSSAnimation).animationName === "egg-sail")).toBe(true);
     await userEvent.keyboard("{Escape}");
+    // short poll: Escape ends Nemo early; left running, he would sail on for 6.5 s.
     await expect.poll(nemo, { timeout: 2000 }).toBeNull();
     await userEvent.keyboard("nemo");
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -104,6 +105,7 @@ describe("Captain Nemo with reduced motion", () => {
     expect(bubble.bottom).toBeLessThanOrEqual(innerHeight);
     // A press anywhere ends it, and the page keeps the press.
     await userEvent.click(document.body);
+    // short poll: a press ends Nemo early; left still, he would stay for 4 s.
     await expect.poll(nemo, { timeout: 2000 }).toBeNull();
   });
 });

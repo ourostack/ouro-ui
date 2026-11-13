@@ -9,7 +9,7 @@ import postcss from "postcss";
 import { findOffendersInSource } from "../registry/ouro/source-rules/source-rules.mjs";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, realClockEscapeKeys, realClockEscapes, realClockProblems, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, pollTimeoutFiles, realClockEscapeKeys, realClockEscapes, realClockProblems, shortPollTimeouts, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -495,6 +495,49 @@ test("no test or spec waits for a state that lasts a set time on the real clock"
   const files = tracked(...timerBoundFiles);
   const reads = files.map(read).flatMap(({ path, text }) => timerBoundReads(path, text).map((line) => `${path}: ${line}`));
   assert.deepEqual(reads, [], "Hold the page's clock (vi.useFakeTimers, holdClock) or record the state as it happens (watchAnnouncements, watchToasts); see timerBoundReads in scripts/source-rules.mjs.");
+});
+
+test("shortPollTimeouts finds a poll that gives up sooner than the projects' 10 s, or with a timeout it cannot read", () => {
+  const poll = (body) => shortPollTimeouts("a.test.tsx", `it("t", async () => {\n${body}\n});`);
+  assert.deepEqual(poll("await expect.poll(() => x, { timeout: 2000 }).toBe(1);"), ["2: await expect.poll(() => x, { timeout: 2000 }).toBe(1);"]);
+  assert.equal(poll("await expect.poll(() => x, { timeout: length(false) + 5000 }).toBeNull();").length, 1);
+  assert.equal(poll("await expect.element(page.getByText('a'), { timeout: 3000 }).toBeVisible();").length, 1);
+  assert.equal(poll("await expect.poll(() => x, {\n  timeout: 2000,\n}).toBe(1);").length, 1);
+  assert.deepEqual(poll("await expect.poll(() => x, { timeout: 10_000 }).toBe(1);"), []);
+  assert.deepEqual(poll("await expect.poll(() => x, { timeout: 10000 }).toBe(1);"), []);
+  assert.deepEqual(poll("await expect.poll(() => x, { timeout: 12_000 }).toBe(1);"), []);
+  assert.equal(poll("const limit = 2000;\nawait expect.poll(() => x, { timeout: limit }).toBe(1);").length, 1);
+  assert.deepEqual(poll("const limit = 10_000;\nawait expect.poll(() => x, { timeout: limit }).toBe(1);"), []);
+  assert.deepEqual(poll("await expect.poll(() => x).toBe(1);"), []);
+  assert.deepEqual(poll("await expect.poll(() => x, { interval: 20 }).toBe(1);"), []);
+});
+
+test("shortPollTimeouts reads vi.waitFor's own default, a number, and a same-file options const", () => {
+  const wait = (body, head = "") => shortPollTimeouts("a.test.tsx", `${head}\nit("t", async () => {\n${body}\n});`);
+  assert.equal(wait("await vi.waitFor(() => expect(x).toBe(1));").length, 1, "1 s by default");
+  assert.equal(wait("await vi.waitFor(() => expect(x).toBe(1), 500);").length, 1);
+  assert.deepEqual(wait("await vi.waitFor(() => expect(x).toBe(1), 10_000);"), []);
+  assert.deepEqual(wait("await vi.waitFor(() => expect(x).toBe(1), { timeout: 10_000, interval: 20 });"), []);
+  assert.equal(wait("await vi.waitFor(() => expect(x).toBe(1), { timeout, interval: 20 });").length, 1, "a timeout passed in");
+  assert.equal(wait("await vi.waitFor(() => expect(x).toBe(1), waitOptions);", "const waitOptions = { timeout: 2000 };").length, 1);
+  assert.deepEqual(wait("await vi.waitFor(() => expect(x).toBe(1), waitOptions);", "const waitOptions = { timeout: 10_000, interval: 20 };"), []);
+});
+
+test("shortPollTimeouts lets a deliberate bound through, when its comment gives a reason on the line before the statement", () => {
+  const poll = (body) => shortPollTimeouts("a.spec.ts", `test("t", async () => {\n${body}\n});`);
+  assert.deepEqual(poll("// short poll: a dropped key never changes the highlight, so each step gives up after 1 s.\nawait expect.poll(now, { timeout: 1000 }).not.toBe(before).catch(() => undefined);"), []);
+  assert.deepEqual(poll("for (let step = 0; step < 12; step++) {\n  // short poll: each step gives up after 1 s.\n  await expect.poll(now, { timeout: 1000 }).not.toBe(before);\n}"), []);
+  assert.deepEqual(poll("// short poll: a toast's arrival is due by its own deadline.\nconst toasted = () => expect.poll(now, { timeout: 2000 }).toContain('a');"), []);
+  // An empty reason, or any other comment, is no escape.
+  assert.equal(poll("// short poll:\nawait expect.poll(now, { timeout: 1000 }).toBe(1);").length, 1);
+  assert.equal(poll("// a short wait\nawait expect.poll(now, { timeout: 1000 }).toBe(1);").length, 1);
+  assert.equal(poll("await expect.poll(now, { timeout: 1000 }).toBe(1);\n// short poll: too late, it leads the next statement.").length, 1);
+});
+
+test("no test or spec gives a poll a timeout under the projects' 10 s, unless it says why", () => {
+  assert.ok(tracked(...pollTimeoutFiles).includes("test/text-size.touch.test.tsx"), "pollTimeoutFiles reaches the top-level tests in test/");
+  const polls = tracked(...pollTimeoutFiles).map(read).flatMap(({ path, text }) => shortPollTimeouts(path, text).map((line) => `${path}:${line}`));
+  assert.deepEqual(polls, [], "Drop the timeout (the projects give every poll 10 s), or, for a deliberate bound, put `// short poll: <reason>` on the line before the statement. See shortPollTimeouts in scripts/source-rules.mjs.");
 });
 
 /** The class tokens in a file that use a hover variant without `pointer-fine:` before it. */

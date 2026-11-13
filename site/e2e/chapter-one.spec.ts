@@ -573,6 +573,7 @@ test.describe("by keyboard alone", () => {
     for (let step = 0; step < 12 && (await now()) !== "Cook"; step++) {
       const before = await now();
       await page.keyboard.press("ArrowDown");
+      // short poll: a key WebKit drops never moves the highlight, so each step gives up after 1 s and presses again.
       await expect.poll(now, { timeout: 1000 }).not.toBe(before).catch(() => undefined);
     }
     await expect(cook).toHaveAttribute("data-highlighted", "");
