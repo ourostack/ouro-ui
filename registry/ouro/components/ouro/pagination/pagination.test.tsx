@@ -518,7 +518,8 @@ describe("Pagination in a column", () => {
     );
     const scroller = column.parentElement!;
     const seven = pageItems(nav).map((item) => item.querySelector<HTMLElement>("a")!).find((link) => link.textContent === "7")!;
-    seven.focus();
+    // The test's own focus must not scroll: WebKit can reveal the focused link after the reset below.
+    seven.focus({ preventScroll: true });
     scroller.scrollLeft = 0;
     column.style.width = "420px";
     await expect.poll(() => document.activeElement).toBe(nav.querySelector("[data-ouro-pagination-next]"));
