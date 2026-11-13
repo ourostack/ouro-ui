@@ -65,6 +65,9 @@ const words: Record<keyof SyncStatusLabels, string> = {
   retry: "Retry",
 };
 const problems = new Set<SyncState>(["offline", "error"]);
+// Match Celebrate's time for the triggering control's state announcement.
+// This fixed delay does not detect when a screen reader has finished speaking.
+const SPEAK_DELAY_MS = 1500;
 
 const tones: Record<SyncState, string> = {
   saved: "text-[color-mix(in_oklab,var(--muted-foreground)_88%,var(--foreground))]",
@@ -192,10 +195,12 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
   useEffect(() => {
     if (problems.has(status)) {
       troubled.current = true;
-      announce(word[status]);
+      return announce(word[status], { delayMs: SPEAK_DELAY_MS });
     } else if (status === "saved" && troubled.current) {
-      troubled.current = false;
-      announce(word.saved);
+      return announce(word.saved, {
+        delayMs: SPEAK_DELAY_MS,
+        onWrite: () => { troubled.current = false; },
+      });
     }
     // The words change with the status; a new translation alone is not news.
     // eslint-disable-next-line react-hooks/exhaustive-deps
