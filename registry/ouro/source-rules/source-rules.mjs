@@ -966,7 +966,9 @@ function drawnShape(tokens, tag, empty) {
     if (match) sizes.set(token.split("-")[0], Number(match[1]));
   }
   const side = sizes.get("size") ?? (sizes.has("h") && sizes.get("h") === sizes.get("w") ? sizes.get("h") : undefined);
-  if (side === undefined || tokens.some((token) => SPIN_CLASS.test(token))) return undefined;
+  if (tokens.some((token) => SPIN_CLASS.test(token))) return undefined;
+  // A round picture is an avatar whatever size it is given (a card's person picture sizes itself by style or its parent).
+  if (side === undefined) return tag === "img" && tokens.includes("rounded-full") ? "hand-drawn-avatar" : undefined;
   const round = tokens.filter((token) => ROUND_CLASS.test(token));
   if (round.length === 0) return undefined;
   if (side <= 3 && round.includes("rounded-full") && empty && tokens.some((token) => /^bg-/.test(token))) return "hand-drawn-presence-dot";

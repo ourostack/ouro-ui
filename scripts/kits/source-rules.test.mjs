@@ -240,6 +240,15 @@ describe("hand-drawn avatar and presence dot", () => {
         expect(categories(`export function A() { return <img className="size-8 rounded-full object-cover" src="a.jpg" alt="Ana" />; }`)).toEqual(["hand-drawn-avatar"]);
         expect(categories(`export function A() { return <div className="h-10 w-10 overflow-hidden rounded-full">AL</div>; }`)).toEqual(["hand-drawn-avatar"]);
     });
+    it("finds a round picture that takes its size from elsewhere", () => {
+        expect(categories(`export function A({ url }) { return <img src={url} alt="" className="rounded-full" />; }`)).toEqual(["hand-drawn-avatar"]);
+    });
+    it("leaves pills, icon badges and square pictures alone", () => {
+        expect(scan(`export function A() { return <img src="a.png" alt="" className="block rounded-sm" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span className="rounded-full bg-card px-3 py-1 text-xs">Today</span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span role="img" aria-label="Muted" className="flex size-7 items-center justify-center rounded-full bg-white"><svg /></span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span aria-hidden="true" className="h-5 w-1 shrink-0 rounded-full" />; }`)).toEqual([]);
+    });
     it("finds an empty round dot, a presence dot by hand", () => {
         expect(categories(`export function A() { return <span className="size-2.5 rounded-full bg-green-500" />; }`)).toEqual(["hand-drawn-presence-dot"]);
     });
