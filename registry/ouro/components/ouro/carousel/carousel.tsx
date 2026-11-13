@@ -216,7 +216,10 @@ export function Carousel(props: CarouselProps): JSX.Element {
     const rtl = getComputedStyle(viewport).direction === "rtl";
     const box = viewport.getBoundingClientRect();
     const rect = slide.getBoundingClientRect();
-    viewport.scrollTo({ left: viewport.scrollLeft + (rtl ? rect.right - box.right : rect.left - box.left), behavior });
+    // The rects include any transform the carousel is drawn in (a Lightbox viewer starts at 90%), so
+    // the distance is taken back to layout pixels, the units scrollLeft uses.
+    const scale = viewport.offsetWidth > 0 ? box.width / viewport.offsetWidth : 1;
+    viewport.scrollTo({ left: viewport.scrollLeft + ((rtl ? rect.right - box.right : rect.left - box.left) / scale), behavior });
   };
 
   // Start on defaultIndex. The server renders the first slide in view.

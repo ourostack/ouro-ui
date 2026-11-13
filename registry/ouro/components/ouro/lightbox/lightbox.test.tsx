@@ -24,6 +24,9 @@ const kitchen: LightboxImage[] = [
   { src: picture(1000, 1000, "#a75"), alt: "The breakfast nook", thumbnail: picture(200, 200, "#a75") },
 ];
 
+/** Eight pictures, for a viewer that opens on a late one. */
+const eight: LightboxImage[] = Array.from({ length: 8 }, (_, index) => ({ src: picture(900, 600, `hsl(${index * 40} 40% 50%)`), alt: `Photo ${index + 1}` }));
+
 async function render(node: ReactNode, width = 600) {
   const host = document.createElement("div");
   host.style.width = `${width}px`;
@@ -325,6 +328,15 @@ describe("Lightbox fetching", () => {
 });
 
 describe("Lightbox navigation", () => {
+  it("opens on a late image of a run with its entrance running, and shows that image", async () => {
+    // Motion allowed, so the viewer grows from 90% as a reader sees it.
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const { host } = await render(lightbox({ images: eight }));
+    await openAt(host, 6);
+    expect(position()).toBe("7 of 8");
+    expect(slideInView()).toBe(6);
+  });
+
   it("steps with the arrow keys from anywhere in the viewer, in reading order", async () => {
     const { host } = await render(lightbox());
     await openAt(host, 1);

@@ -420,6 +420,43 @@ describe("Carousel navigation", () => {
   });
 });
 
+describe("Carousel inside a scaled element", () => {
+  it("starts on defaultIndex when it mounts under a transform, as a Lightbox viewer does while it opens", async () => {
+    const { viewport, slides } = await render(
+      <div style={{ transform: "scale(0.9)", transformOrigin: "0 0" }}>
+        <Carousel label="Photos" defaultIndex={6}>
+          {photos(8)}
+        </Carousel>
+      </div>,
+    );
+    expect(slideAtStart(viewport, slides)).toBe(6);
+  });
+
+  it("starts on defaultIndex wherever it sits on the page", async () => {
+    const { viewport, slides } = await render(
+      <div style={{ marginLeft: 200 }}>
+        <Carousel label="Photos" defaultIndex={2}>
+          {photos(5)}
+        </Carousel>
+      </div>,
+    );
+    expect(slideAtStart(viewport, slides)).toBe(2);
+  });
+
+  it("does not scroll to NaN from a viewport with no layout, as when it mounts hidden", async () => {
+    const scrollTo = vi.spyOn(Element.prototype, "scrollTo");
+    const { viewport } = await render(
+      <div style={{ display: "none" }}>
+        <Carousel label="Photos" defaultIndex={2}>
+          {photos(4)}
+        </Carousel>
+      </div>,
+    );
+    expect(scrollTo).toHaveBeenCalledWith({ left: 0, behavior: "instant" });
+    expect(viewport.scrollLeft).toBe(0);
+  });
+});
+
 describe("Carousel announcements", () => {
   it("announces the new position politely, once per change", async () => {
     const record = recordAnnouncements("Photo");
