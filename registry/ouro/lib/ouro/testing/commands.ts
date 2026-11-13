@@ -1157,15 +1157,17 @@ export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, {
 };
 
 /**
- * Moves the real mouse off the test frame, so a test starts with no hover from an earlier one.
- * The browser re-checks hover after layout (WebKit late), and a button under the pointer then
- * fades to its hover colour. The point is outside the viewport, which the test frame fills.
+ * Moves the real mouse to the viewport's bottom-right pixel, so a test starts with no hover from an
+ * earlier one. The browser re-checks hover after layout (WebKit late), and a button under the
+ * pointer then fades to its hover colour. That pixel stays inside the page, as a point outside the
+ * viewport would not, and tests place what they render from the top left.
  * The mouse projects call this before each test (testing/pointer-setup.ts).
- * @claim "Moves the real mouse off the test frame, so a test starts with no hover from an earlier one." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::the pointer between tests > renders a button under the old pointer without hovering it, under a theme with a hover colour)
+ * @claim "Moves the real mouse to the viewport's bottom-right pixel, so a test starts with no hover from an earlier one." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::the pointer between tests > renders a button under the old pointer without hovering it, under a theme with a hover colour)
  * @claim "The mouse projects call this before each test" registry/ouro/lib/ouro/testing/pointer-setup.ts verify:fileLine(registry/ouro/lib/ouro/testing/pointer-setup.ts, /commands\.parkPointer/)
  */
 export const parkPointer: BrowserCommand<[]> = async (ctx) => {
-  await ctx.page.mouse.move(-1, -1);
+  const size = ctx.page.viewportSize();
+  await ctx.page.mouse.move(size ? size.width - 1 : 0, size ? size.height - 1 : 0);
 };
 
 /**

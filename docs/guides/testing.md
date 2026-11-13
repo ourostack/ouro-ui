@@ -40,7 +40,7 @@ export default mergeConfig(
 );
 ```
 
-`ouroTestProjects` returns three projects: `ouro-chromium`, `ouro-webkit` and `ouro-touch` (Chromium as a 390x844 touch phone, for files named `*.touch.test.tsx`).[^projects] In the two mouse projects, the mouse moves off the test frame before each test, so no test starts over an element an earlier test left hovered.[^pointer-park] Run them with `npx vitest run`, and the specs with `npx playwright test e2e/ouro`.
+`ouroTestProjects` returns three projects: `ouro-chromium`, `ouro-webkit` and `ouro-touch` (Chromium as a 390x844 touch phone, for files named `*.touch.test.tsx`).[^projects] In the two mouse projects, the mouse moves to the bottom-right corner of the viewport before each test, so no test starts over an element an earlier test left hovered.[^pointer-park] Run them with `npx vitest run`, and the specs with `npx playwright test e2e/ouro`.
 
 To measure coverage of the installed files, use the same settings as Ouro UI's repository:
 
