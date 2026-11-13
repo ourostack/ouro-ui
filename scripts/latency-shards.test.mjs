@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { LATENCY_SHARDS, latencySpecs, shardPaths } from "./latency-shards.mjs";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 test("every latency spec file runs in exactly one shard, and no shard names a file that is gone", () => {
   const listed = LATENCY_SHARDS.flatMap((shard) => shard.files);
@@ -20,7 +24,7 @@ test("shardPaths gives the shard's files as paths, and refuses a shard that does
 });
 
 test("ci.yml runs one latency shard per entry, each over its own spec files", () => {
-  const workflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const workflow = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
   const shards = workflow.match(/^ {4}name: latency \(\$\{\{ matrix\.shard \}\}\/(\d+)\)\n[\s\S]*?^ {8}shard: \[([\d, ]+)\]$/m);
   assert.deepEqual(shards[2].split(",").map(Number), LATENCY_SHARDS.map((_, index) => index + 1));
   assert.equal(Number(shards[1]), LATENCY_SHARDS.length);
