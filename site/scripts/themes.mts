@@ -9,8 +9,9 @@
 //                                           budget is off, or cookbook.css's synced part was edited
 //   node site/scripts/themes.mts sync-cookbook <spoonjoy-v2 checkout>
 //                                           copies Spoonjoy's token blocks from its
-//                                           app/styles/tailwind.css into cookbook.css, recording
-//                                           the commit and the blocks' checksum
+//                                           app/styles/sj-tokens.css and tailwind.css into
+//                                           cookbook.css, recording the commit and the blocks'
+//                                           checksum
 //   node site/scripts/themes.mts --check --upstream <spoonjoy-v2 checkout>
 //                                           also fails when that checkout's blocks differ
 import { createHash } from "node:crypto";
@@ -309,33 +310,45 @@ const COOKBOOK_ADDITIONS = [
 ];
 
 /**
- * Spoonjoy's token blocks from its app/styles/tailwind.css, verbatim: the first :root block (its
- * fonts, the --sj-* palette and its copies of the Ouro tokens), the first .dark block, and the
- * `:root, .dark` block that maps shadcn's names onto the palette.
+ * Spoonjoy's token blocks, verbatim, as one :root, one .dark and the `:root, .dark` mapping. The
+ * :root and .dark come from app/styles/sj-tokens.css (the fonts and the --sj-* palette, generated from
+ * Ouro's Cookbook theme) and from app/styles/tailwind.css's first :root and .dark (the warning colour
+ * and the motion tokens). The mapping block, which points shadcn's names at the palette, is tailwind.css's.
+ * Each missing block fails by naming its file.
  */
-export function extractSpoonjoy(css: string): string {
-  const find = (selector: RegExp, from = 0) => {
-    const rest = css.slice(from);
-    const match = selector.exec(rest);
-    if (!match) throw new Error(`Spoonjoy's tailwind.css has no ${selector} block`);
+export function extractSpoonjoy(tailwindCss: string, tokensCss: string): string {
+  const find = (file: string, label: string, selector: RegExp, css: string, from = 0) => {
+    const match = selector.exec(css.slice(from));
+    if (!match) throw new Error(`Spoonjoy's app/styles/${file} has no ${label} block`);
     const start = from + match.index;
     const end = css.indexOf("\n}", start);
-    if (end === -1) throw new Error(`Spoonjoy's ${selector} block does not end`);
-    return { text: css.slice(start, end + 2), end: end + 2 };
+    if (end === -1) throw new Error(`Spoonjoy's app/styles/${file} ${label} block does not end`);
+    const text = css.slice(start, end + 2);
+    return { inner: text.slice(text.indexOf("{") + 1, -1), end: end + 2 };
   };
-  const root = find(/^:root \{$/m);
-  const dark = find(/^\.dark \{$/m, root.end);
-  const mapping = find(/^:root,\n\.dark \{$/m, dark.end);
-  return [root.text, dark.text, mapping.text].join("\n\n");
+  const palette = find("sj-tokens.css", ":root", /^:root \{$/m, tokensCss);
+  const paletteDark = find("sj-tokens.css", ".dark", /^\.dark \{$/m, tokensCss, palette.end);
+  const root = find("tailwind.css", ":root", /^:root \{$/m, tailwindCss);
+  const dark = find("tailwind.css", ".dark", /^\.dark \{$/m, tailwindCss, root.end);
+  const mapping = find("tailwind.css", ":root, .dark mapping", /^:root,\n\.dark \{$/m, tailwindCss, dark.end);
+  return [`:root {${palette.inner.trimEnd()}${root.inner}}`, `.dark {${paletteDark.inner.trimEnd()}${dark.inner}}`, `:root,\n.dark {${mapping.inner}}`].join("\n\n");
+}
+
+/** Spoonjoy's token blocks from a spoonjoy-v2 checkout. */
+export function readSpoonjoy(checkout: string): string {
+  return extractSpoonjoy(
+    readFileSync(join(checkout, "app/styles/tailwind.css"), "utf8"),
+    readFileSync(join(checkout, "app/styles/sj-tokens.css"), "utf8"),
+  );
 }
 
 /** cookbook.css from Spoonjoy's blocks and where they came from. */
 export function cookbookCss(blocks: string, commit: string): string {
   return [
     "/*",
-    " * Cookbook: Spoonjoy's own tokens, synced from spoonjoy/spoonjoy-v2's app/styles/tailwind.css at",
-    ` * commit ${commit} by \`node site/scripts/themes.mts sync-cookbook <checkout>\`. Don't edit the`,
-    " * synced part; CI checks its checksum. Spoonjoy defines no --card, --chart-*, --sidebar-*,",
+    " * Cookbook: Spoonjoy's own tokens, synced from spoonjoy/spoonjoy-v2's app/styles/sj-tokens.css and",
+    ` * tailwind.css at commit ${commit} by \`node site/scripts/themes.mts sync-cookbook <checkout>\`.`,
+    " * Don't edit the synced part; CI checks its checksum. Spoonjoy defines no --card, --chart-*, --sidebar-*,",
     " * --font-heading or --shadow-* of shadcn's names and no --ouro-action, so the last block maps them",
     " * onto its palette.",
     ` * sha256 of the synced part: ${sha256(blocks)}`,
@@ -395,7 +408,7 @@ function main(args: string[]): void {
   if (args[0] === "sync-cookbook") {
     const checkout = args[1];
     if (!checkout) throw new Error("usage: themes.mts sync-cookbook <spoonjoy-v2 checkout>");
-    const blocks = extractSpoonjoy(readFileSync(join(checkout, "app/styles/tailwind.css"), "utf8"));
+    const blocks = readSpoonjoy(checkout);
     const commit = execFileSync("git", ["-C", checkout, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     writeFileSync(join(themesDir, "cookbook.css"), cookbookCss(blocks, commit));
     console.log(`cookbook.css synced from spoonjoy-v2 ${commit.slice(0, 12)}`);
@@ -407,7 +420,7 @@ function main(args: string[]): void {
   const upstream = args.indexOf("--upstream");
   if (upstream !== -1) {
     const checkout = args[upstream + 1]!;
-    const theirs = extractSpoonjoy(readFileSync(join(checkout, "app/styles/tailwind.css"), "utf8"));
+    const theirs = readSpoonjoy(checkout);
     if (theirs !== cookbookParts(readFileSync(join(themesDir, "cookbook.css"), "utf8")).blocks) {
       problems.push(`cookbook.css is behind ${checkout}; run sync-cookbook`);
     }

@@ -1,10 +1,10 @@
 /*
- * Cookbook: Spoonjoy's own tokens, synced from spoonjoy/spoonjoy-v2's app/styles/tailwind.css at
- * commit 493f42d7f44fb011254e76157a6353b71ebd61ed by `node site/scripts/themes.mts sync-cookbook <checkout>`. Don't edit the
- * synced part; CI checks its checksum. Spoonjoy defines no --card, --chart-*, --sidebar-*,
+ * Cookbook: Spoonjoy's own tokens, synced from spoonjoy/spoonjoy-v2's app/styles/sj-tokens.css and
+ * tailwind.css at commit b1c6bc68440bc25944655d2cd157cc973ca25e33 by `node site/scripts/themes.mts sync-cookbook <checkout>`.
+ * Don't edit the synced part; CI checks its checksum. Spoonjoy defines no --card, --chart-*, --sidebar-*,
  * --font-heading or --shadow-* of shadcn's names and no --ouro-action, so the last block maps them
  * onto its palette.
- * sha256 of the synced part: 19ed9d314595e75e198f8f0b16548163ba9a5974ae5e848b411277272d500fce
+ * sha256 of the synced part: 23e8049eb341d0ebb58e0be7310b0b0848386cda1380934bff2ddd0032ec678e
  */
 /* synced from Spoonjoy: begin */
 :root {
@@ -12,8 +12,6 @@
   --font-sj-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-sj-body: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-sj-ui: "IBM Plex Sans Condensed", "Avenir Next Condensed", ui-sans-serif, system-ui, sans-serif;
-
-  /* Cookbook palette: clean bone paper and charcoal are the anchors; accents are sparse and role-bound. */
   --sj-bone: #fbfaf4;
   --sj-bone-lift: #fffefa;
   --sj-vellum: #e8e9df;
@@ -22,8 +20,6 @@
   --sj-brass: #9b6834;
   --sj-action: #28231d;
   --sj-action-deep: #1f1b17;
-  /* The primary button: its label, and its hover/pressed and disabled fills. Every pair passes
-     WCAG AA 4.5:1 (test/styles/primary-button-contrast.test.ts). */
   --sj-on-action: var(--sj-bone);
   --sj-action-hover: var(--sj-action-deep);
   --sj-action-disabled: #6b655c;
@@ -49,10 +45,6 @@
   --sj-photo-shade-soft: color-mix(in srgb, var(--sj-photo-charcoal) 42%, transparent);
   --sj-photo-glass: color-mix(in srgb, var(--sj-bone) 10%, transparent);
   --sj-photo-line: color-mix(in srgb, var(--sj-bone) 24%, transparent);
-  /* The main action on a shaded photo, in both themes: a light amber with a charcoal label. The
-     page's own action merges with the shaded photo in light mode (charcoal, 1:1) and clears 3:1 by
-     only 0.07 in dark mode (#b9854b amber, pressed on a phone), measured by
-     e2e/journeys/landing-readability.journey.ts. */
   --sj-photo-action: #d6a46a;
   --sj-photo-action-hover: #e2b57f;
   --sj-on-photo-action: var(--sj-photo-charcoal);
@@ -97,14 +89,10 @@
   --sj-brass: #c4945c;
   --sj-action: #b9854b;
   --sj-action-deep: #95683a;
-  /* A dark label on the amber: the light one measured 2.61:1. Hover lightens instead of deepening,
-     so the dark label keeps its contrast. */
   --sj-on-action: var(--sj-charcoal);
   --sj-action-hover: #cc9a62;
   --sj-action-disabled: #463d33;
   --sj-on-action-disabled: var(--sj-charcoal-soft);
-  /* Bumped from #d26850 (4.24:1 on --sj-panel-solid) to pass WCAG AA (≥4.5:1)
-   * — it's the error-text color, so it has to be readable. */
   --sj-tomato: #e58263;
   --sj-herb: #a4b578;
   --sj-ink: var(--sj-bone);
