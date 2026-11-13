@@ -19,9 +19,10 @@ function Camera() {
   return <canvas data-test-camera="" width={160} height={90} style={{ background: "linear-gradient(135deg, #3b6, #258)" }} />;
 }
 
-async function render(node: ReactNode, width = 320) {
+async function render(node: ReactNode, width = 320, style: Partial<CSSStyleDeclaration> = {}) {
   const host = document.createElement("div");
   host.style.width = `${width}px`;
+  Object.assign(host.style, style);
   document.body.append(host);
   mounted.push(host);
   const root = createRoot(host);
@@ -789,10 +790,10 @@ describe("MediaTile visibility", () => {
     };
     try {
       const report = vi.fn();
-      const { host } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320);
-      host.style.position = "fixed";
-      host.style.left = "0px";
-      host.style.top = "0px";
+      // Fixed at the top before it mounts, so the browser's first look at the tile already sees all of it.
+      // Placed after mounting, a busy runner could take that first look in the page's flow, partly off
+      // screen, and moving it fully on screen then crosses no threshold, so no entry would say 1.
+      const { host } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320, { position: "fixed", left: "0px", top: "0px" });
       await expect.poll(() => held.at(-1)?.intersectionRatio).toBe(1);
       held.length = 0;
       host.style.top = `${innerHeight - 8}px`;
