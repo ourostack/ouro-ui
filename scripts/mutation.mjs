@@ -17,7 +17,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
-import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds } from "./mutation/cache.mjs";
+import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, recordTests, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds } from "./mutation/cache.mjs";
 import { ignoreReason } from "./mutation/plugins.mjs";
 
 export { runtimeSource, testFilesFor };
@@ -407,7 +407,7 @@ async function main(args) {
   } finally {
     // What this run owns, alone: Stryker also writes every kept mutant it did not run, with the
     // status it had, which another shard's fresh result must not meet in the merge.
-    if (existsSync(incrementalFile)) writeFileSync(incrementalFile, JSON.stringify(recordSources(scopeReport(JSON.parse(readFileSync(incrementalFile, "utf8")), changes, excluded), changedFiles)));
+    if (existsSync(incrementalFile)) writeFileSync(incrementalFile, JSON.stringify(recordTests(recordSources(scopeReport(JSON.parse(readFileSync(incrementalFile, "utf8")), changes, excluded), changedFiles), Object.keys(testsByFile))));
   }
   results = results.filter((mutant) => inScope(mutant, changes, excluded));
   const surviving = survivors(results);
