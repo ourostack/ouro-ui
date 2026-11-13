@@ -1,1 +1,0 @@
-- Fixed: the shipped tests no longer cut a poll short: each [waits the projects' 10 s](registry/ouro/lib/ouro/testing/vitest.ts "verify:testExists(scripts/source-rules.test.mjs::no test or spec gives a poll a timeout under the projects' 10 s, unless it says why)") for a state to arrive, and a poll that must fail fast says why in a `// short poll:` comment.
