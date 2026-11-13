@@ -84,8 +84,8 @@ test("a stored preset paints from the server HTML, before the client entry runs"
   await expect(bare.locator('#themes [data-site-preset="abyss"]')).toHaveCSS("box-shadow", /inset/);
   await expect(bare.locator('#themes [data-site-preset="pearl"]')).not.toHaveCSS("box-shadow", /inset/);
   // The hero's row of theme dots says the same.
-  await expect(bare.locator('.site-hero [data-site-preset="abyss"]')).toHaveAttribute("aria-pressed", "true");
-  await expect(bare.locator('.site-hero [data-site-preset="live"]')).toHaveAttribute("aria-pressed", "false");
+  await expect(bare.locator('.site-console [data-site-preset="abyss"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(bare.locator('.site-console [data-site-preset="live"]')).toHaveAttribute("aria-pressed", "false");
   await blocked.close();
 });
 

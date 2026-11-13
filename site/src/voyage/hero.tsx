@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import proof, { install } from "virtual:site-proof";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
@@ -14,7 +15,7 @@ import { StoryWorld } from "../components/story-world";
 import { Stage } from "./stage/stage";
 import { ThemeDots } from "./theme-dots";
 
-/** The hero scene's width: its 80rem cap, scaled by the root type on a wide screen and never past the 1536px file width (story-world.css `--hero-width`). In rem, so a larger browser font never makes it guess too small. */
+/** The hero scene's width: Hero's stage width (its 80rem cap, scaled by the root type on a wide screen), never past the 1536px file width. In rem, so a larger browser font never makes it guess too small. */
 const HERO_SCENE_SIZES = "(min-width: 200rem) min(1536px, 100rem), (min-width: 150rem) min(1536px, 90rem), (min-width: 80rem) min(1536px, 80rem), calc(100vw - 4rem)";
 
 /** What the hero says the library is, before anything else: its name. */
@@ -175,61 +176,52 @@ function Halves(): JSX.Element {
   );
 }
 
-/** The first viewport: Ouro's meadow with the headline in its sky, then how to add HX, beside the porthole stage. */
-export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
+/** The first viewport: Ouro's meadow with the headline in its sky, then how to add HX and the porthole stage beneath it. */
+export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
   return (
-    <section aria-labelledby="hero-title" className="site-hero site-hero-storybook">
+    <>
       {/*
-        The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the
-        headline in its sky; the porthole, the showcase, follows. The eyebrow names Ouro UI's two halves (the
-        header names Ouro UI itself); on a phone the halves are named under the stage, so it stays for screen readers only.
+        The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the headline above
+        it. The eyebrow names Ouro UI's two halves (the header names Ouro UI itself).
       */}
-      <StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES}>
-        <Container>
-          <p className="site-eyebrow site-hero-eyebrow max-sm:sr-only" data-site-eyebrow="">
-            <span className="site-hero-brand">{EYEBROW}</span>
-          </p>
-          <h1 id="hero-title" className="site-h1 site-hero-title">
-            {VOYAGE_HERO.title.map((sentence, index) => (
-              <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
-                {sentence}
-                {index < VOYAGE_HERO.title.length - 1 ? " " : null}
-              </span>
-            ))}
-          </h1>
-          <p className="site-lede site-hero-sky-lede">{VOYAGE_HERO.subline}</p>
-        </Container>
-      </StoryWorld>
-      <Container className="site-hero-grid">
-        <div className="site-hero-copy">
-          {/* On a phone the theme dots open the copy, above the command, so the stage's first control comes sooner. */}
-          <div className="max-sm:flex max-sm:flex-col">
-            <div className="max-w-[36rem]">
-              <Install />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-3 lg:mt-6">
-              <Button href={href("/nautilus/")} size="lg">
-                Come aboard
-              </Button>
-              <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
-                Browse components
-              </Button>
-            </div>
-            <div className="mt-6 max-sm:order-first max-sm:mt-0 lg:mt-9">
-              <p className="mb-2.5 text-sm text-muted-foreground max-sm:sr-only">Pick a coat of paint. The whole page changes with it.</p>
-              <ThemeDots label="Theme" nameClassName="max-sm:hidden" />
+      <Hero
+        layout="stage"
+        eyebrow={<span data-site-eyebrow="">{EYEBROW}</span>}
+        title={VOYAGE_HERO.title.join(" ")}
+        description={VOYAGE_HERO.subline}
+        media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} />}
+      />
+      <section aria-label="Install and try the porthole" className="site-console">
+        <Container className="site-console-grid">
+          <div className="site-console-copy">
+            {/* On a phone the theme dots open the copy, above the words, so the stage's first control comes sooner. */}
+            <div className="max-sm:flex max-sm:flex-col">
+              <div className="max-w-[36rem]">
+                <Install />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3 lg:mt-6">
+                <Button href={href("/nautilus/")} size="lg">
+                  Come aboard
+                </Button>
+                <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
+                  Browse components
+                </Button>
+              </div>
+              <div className="mt-6 max-sm:order-first max-sm:mt-0 lg:mt-9">
+                <p className="mb-2.5 text-sm text-muted-foreground max-sm:sr-only">Pick a coat of paint. The whole page changes with it.</p>
+                <ThemeDots label="Theme" nameClassName="max-sm:hidden" />
+              </div>
             </div>
           </div>
-        </div>
-        <div className="site-hero-stage">
-          <HydrateInTurn name="stage">
-            <Stage onXray={onXray} />
-          </HydrateInTurn>
-        </div>
-        <Halves />
-        {/* After the stage on a phone; on a wide screen, at the foot of the copy, level with the console's. */}
-        <Proof />
-      </Container>
-    </section>
+          <div className="site-console-stage">
+            <HydrateInTurn name="stage">
+              <Stage onXray={onXray} />
+            </HydrateInTurn>
+          </div>
+          <Halves />
+          <Proof />
+        </Container>
+      </section>
+    </>
   );
 }

@@ -89,47 +89,22 @@
   }
 
   /*
-   * The hero: copy on the left, the exhibit on the right; stacked in reading order on a phone. Its
-   * sea: a quiet wash of the primary colour, brightest behind the porthole, so the stage lights
-   * the page around it (each preset's own primary).
+   * The console: how to add HX, the buttons and the paint, beside the porthole stage on a wide screen;
+   * stacked in reading order on a phone. It follows the Hero, which owns the headline and the meadow.
    */
-  .site-hero {
-    --site-sea: color-mix(in oklab, var(--primary) 5%, var(--background));
-    --site-sea-light: color-mix(in oklab, var(--primary) 16%, transparent);
+  .site-console {
     padding-block: 1rem 4rem;
-    background:
-      radial-gradient(52rem 34rem at calc(50% + 22rem) 30%, var(--site-sea-light), transparent 70%),
-      linear-gradient(to bottom, var(--site-sea), var(--background) 92%);
-  }
-  .dark .site-hero {
-    --site-sea: color-mix(in oklab, var(--primary) 7%, var(--background));
-    --site-sea-light: color-mix(in oklab, var(--primary) 14%, transparent);
-  }
-  /* On a very wide screen the scene is a window in the page, so the glow behind the porthole goes: the sea alone. */
-  @media (width >= 100rem) {
-    .site-hero {
-      background: linear-gradient(to bottom, var(--site-sea), var(--background) 92%);
-    }
-  }
-  @media (max-width: 63.99rem) {
-    .site-hero {
-      background: linear-gradient(to bottom, var(--site-sea), var(--background) 60%);
-    }
   }
   /*
    * A phone's first screen holds the headline, the install command and both buttons. The stage starts
    * at the fold, so the porthole is not wholly on that screen. Everything above the stage is set close.
    */
   @media (max-width: 40rem) {
-    .site-hero {
+    .site-console {
       padding-top: 0.5rem;
     }
-    .site-hero-grid {
+    .site-console-grid {
       gap: 0.75rem;
-    }
-    .site-hero:not(.site-hero-storybook) .site-lede {
-      font-size: 1rem;
-      line-height: 1.45;
     }
     /* The release sits on the caption's line; the rest of the caption waits for a wider screen. */
     .site-install-foot {
@@ -139,41 +114,13 @@
       display: none;
     }
   }
-  .site-hero-grid {
+  .site-console-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
-  .site-hero-copy {
+  .site-console-copy {
     min-width: 0;
-  }
-  .site-hero-eyebrow {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    line-height: 1.4;
-    letter-spacing: 0;
-    text-transform: none;
-    color: var(--muted-foreground);
-  }
-  .site-hero-line {
-    display: block;
-  }
-  /* The second sentence answers the first: quieter than the headline, never faint. */
-  .site-hero-line-second {
-    color: color-mix(in oklab, var(--muted-foreground) 75%, var(--foreground));
-  }
-  .site-hero-brand {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.125rem 0.625rem;
-    border: 1px solid color-mix(in oklab, var(--primary) 30%, var(--border));
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--primary) 8%, var(--background));
-    color: var(--foreground);
-    font-weight: 600;
   }
   /*
    * The install command, whole at every width. Where the line fits, prompt, command and Copy sit in
@@ -335,22 +282,21 @@
     color: var(--muted-foreground);
   }
   @media (min-width: 64rem) {
-    .site-hero {
+    .site-console {
       padding-block: 1.5rem 5rem;
     }
-    .site-hero-grid {
+    .site-console-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       grid-template-rows: auto 1fr auto;
       column-gap: 3.5rem;
       row-gap: 2rem;
     }
-    /* The eyebrow and the stage's top share a line; below it, the two columns share bands. */
-    .site-hero-copy {
+    /* The copy sits beside the stage; below the copy's top, the two columns share bands. */
+    .site-console-copy {
       grid-column: 1;
       grid-row: 1;
-      padding-top: 0.75rem;
     }
-    .site-hero-stage {
+    .site-console-stage {
       grid-column: 2;
       grid-row: 1 / span 3;
     }

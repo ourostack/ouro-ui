@@ -185,7 +185,7 @@ for (const stall of [0, 2500]) {
     await recordTimeline(page);
     const { release } = await hold(page, ENTRY);
     await page.goto("./", { waitUntil: "commit" });
-    const speed = page.locator(".site-hero-stage").getByRole("radio").first();
+    const speed = page.locator(".site-console-stage").getByRole("radio").first();
     await expect(speed).toHaveAttribute("aria-checked", "false");
     await speed.click();
     await releaseNoted(page, release);
@@ -193,7 +193,7 @@ for (const stall of [0, 2500]) {
     // The answer is the page's own state, not a clock: the radio's attribute turning true, however long a stall takes.
     // real clock: only a tap never answered ends this, after a cap far past any stall; it is no latency bar, and it
     // throws, so the page's timeline (`explained`) is attached to the failure.
-    await explained(page, () => page.waitForFunction(() => document.querySelector(".site-hero-stage [role='radio']")?.getAttribute("aria-checked") === "true", undefined, { timeout: 20_000 }).then(() => undefined));
+    await explained(page, () => page.waitForFunction(() => document.querySelector(".site-console-stage [role='radio']")?.getAttribute("aria-checked") === "true", undefined, { timeout: 20_000 }).then(() => undefined));
   });
 }
 
