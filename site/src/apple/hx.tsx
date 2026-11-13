@@ -60,7 +60,7 @@ export default function AppleHx(): JSX.Element {
             </Button>
           </>
         }
-        media={<Loop clip="hx-haptics" size="md" />}
+        media={<Loop clip="hx-haptics" size="md" className="mx-auto" />}
       />
 
       <AppleBand

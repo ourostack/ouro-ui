@@ -13,34 +13,32 @@ export function AxHero({ exhibit }: { exhibit: ReactNode }): JSX.Element {
   return (
     <>
       <StoryOpener scene="playwright-focus-proof" line="Mid-morning in the meadow. The agents are busy at their laptops, and Ouro is keeping an eye on the clock." />
-      <section aria-label="A morning with an agent">
-        <Hero
-          layout="column"
-          eyebrow="Ouro AX"
-          title="A morning with an agent"
-          description={
-            <>
-              Ouro HX is for the screens people use. Ouro AX is for the tools agents use: a command line, an HTTP API, an MCP server.{" "}
-              Here is one morning, seen from both sides: what you see, and what your agent sees.
-              <span className="mt-3 block text-sm text-muted-foreground">
-                {claim("The tool here is the kit's own example; every line it prints is real output from the kit, checked in CI.", {
-                  source: [{ file: "site/src/ax/transcripts.json" }, { test: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" }],
-                  verify: { testExists: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" },
-                })}
-              </span>
-            </>
-          }
-          actions={
-            <>
-              <Button href="#be-the-agent">{"Be the agent"}</Button>
-              <Button href={href("/docs/ax/")} variant="outline" tone="secondary">
-                Read the guide
-              </Button>
-            </>
-          }
-          media={exhibit}
-        />
-      </section>
+      <Hero
+        layout="column"
+        eyebrow="Ouro AX"
+        title="A morning with an agent"
+        description={
+          <>
+            Ouro HX is for the screens people use. Ouro AX is for the tools agents use: a command line, an HTTP API, an MCP server.{" "}
+            Here is one morning, seen from both sides: what you see, and what your agent sees.
+            <span className="mt-3 block text-sm text-muted-foreground">
+              {claim("The tool here is the kit's own example; every line it prints is real output from the kit, checked in CI.", {
+                source: [{ file: "site/src/ax/transcripts.json" }, { test: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" }],
+                verify: { testExists: "site/src/ax/ax.test.tsx::Ouro AX page > every transcript is what the kit's example tool prints, run through the kit" },
+              })}
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <Button href="#be-the-agent">{"Be the agent"}</Button>
+            <Button href={href("/docs/ax/")} variant="outline" tone="secondary">
+              Read the guide
+            </Button>
+          </>
+        }
+        media={exhibit}
+      />
     </>
   );
 }
