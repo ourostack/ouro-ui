@@ -49,6 +49,14 @@ const SETTLE_TRANSITIONS = `Promise.all(document.getAnimations().filter((animati
 export const DRAG_SLOW_MS = 3000;
 
 /**
+ * Prints a mouse drag's trace as information, and only when `OURO_TOUCH_TRACE=1` is set: the same
+ * switch as the touch commands' trace, so an app has one switch for the kit's pointer traces.
+ */
+function dragTrace(message: string) {
+  if (process.env.OURO_TOUCH_TRACE === "1") console.info(message);
+}
+
+/**
  * Drags with real mouse events through Playwright's `page.mouse`, spreading the
  * moves over `durationMs` so velocity-based gestures see a realistic speed.
  * Coordinates are relative to the top-level page (Vitest renders tests in an
@@ -56,10 +64,13 @@ export const DRAG_SLOW_MS = 3000;
  * A drag still running `DRAG_SLOW_MS` past its `durationMs` logs the step the browser
  * has not answered yet and how long each step before it took, so a test that then hits
  * its time limit says where the drag stalled; if the drag finishes after all, it logs
- * every step's time. A drag that finishes in time logs nothing, and a slow one is not refused.
- * @claim "logs the step the browser" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag the browser stops answering logs the move it is stuck on and each earlier move's time, and is not refused)
- * @claim "if the drag finishes after all" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a slow mouse drag that finishes logs every step's time once it ends)
- * @claim "A drag that finishes in time logs nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag that finishes in time logs nothing)
+ * every step's time. Those lines print only with `OURO_TOUCH_TRACE=1`, as information; without
+ * it a slow drag prints nothing. A drag that finishes in time logs nothing, and a slow one is not refused.
+ * @claim "logs the step the browser" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::with OURO_TOUCH_TRACE set, a mouse drag the browser stops answering logs the move it is stuck on and each earlier move's time as information, and is not refused)
+ * @claim "Those lines print only with" registry/ouro/lib/ouro/testing/commands.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /process\.env\.OURO_TOUCH_TRACE === "1"\) console\.info\(message\)/)
+ * @claim "without it a slow drag prints nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::without OURO_TOUCH_TRACE, a mouse drag the browser stops answering prints nothing, and is not refused) verify:testExists(scripts/touch-kit-frames.test.mjs::without OURO_TOUCH_TRACE, a slow mouse drag that finishes prints nothing)
+ * @claim "if the drag finishes after all" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::with OURO_TOUCH_TRACE set, a slow mouse drag that finishes logs where it waited and every step's time as information once it ends)
+ * @claim "A drag that finishes in time logs nothing" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a mouse drag that finishes in time logs nothing, even with OURO_TOUCH_TRACE set)
  */
 export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps, durationMs, hold }) => {
   const { page } = ctx;
@@ -75,7 +86,7 @@ export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps
   let logged = false;
   const cancel = after({ kit: kitNow() + slow, real: start + slow }, () => {
     logged = true;
-    console.warn(`drag: still waiting on ${waiting} after ${since(begun)}ms, ${since(start)}ms into ${about()}. Each step before it, pauses between moves left out: ${timesText()}.`);
+    dragTrace(`drag: still waiting on ${waiting} after ${since(begun)}ms, ${since(start)}ms into ${about()}. Each step before it, pauses between moves left out: ${timesText()}.`);
   });
   const timed = async (name: string, run: () => Promise<unknown>) => {
     waiting = name;
@@ -99,7 +110,7 @@ export const drag: BrowserCommand<[DragOptions]> = async (ctx, { from, to, steps
   } finally {
     cancel();
   }
-  if (logged) console.warn(`drag: finished after ${since(start)}ms, in ${about()}. Each step, pauses between moves left out: ${timesText()}.`);
+  if (logged) dragTrace(`drag: finished after ${since(start)}ms, in ${about()}. Each step, pauses between moves left out: ${timesText()}.`);
 };
 
 export interface FlickOptions {
