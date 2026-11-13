@@ -291,9 +291,21 @@ describe("SnapPiP", () => {
 
   it("shows the hint when the pointer rests on it, keeps it while the pointer moves onto it, and never on touch", async () => {
     const element = await render(self());
+    // The hint opens HINT_DELAY after the pointer rests, so a read of "not yet" right after the hover
+    // races that delay on a loaded runner. Record when the pointer arrives and when the hint opens,
+    // as they happen, and check the gap instead.
+    let arrived = 0;
+    pip().addEventListener("pointerover", () => (arrived ||= performance.now()), { once: true });
+    const opened: number[] = [];
+    const watch = new MutationObserver(() => hintShown() && opened.push(performance.now()));
+    watch.observe(hint(), { attributes: true, attributeFilter: ["data-open"] });
     await userEvent.hover(element);
-    expect(hintShown()).toBe(false);
     await expect.poll(() => hintShown(), { timeout: HINT_DELAY + 1000 }).toBe(true);
+    watch.disconnect();
+    expect(arrived).toBeGreaterThan(0);
+    // A timer does not fire early; the slack allows for the browser's clock rounding.
+    const [shownAt = 0] = opened;
+    expect(shownAt - arrived).toBeGreaterThanOrEqual(HINT_DELAY - 5);
     // Onto the hint, across the gap: it stays.
     await userEvent.hover(hint().firstElementChild!);
     await wait(50);
