@@ -30,7 +30,7 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
   assert.deepEqual(split.utilities, ["press"]);
   assert.deepEqual(
     split.keyframes.map((text) => /@keyframes\s+([\w-]+)/.exec(text)[1]),
-    ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-shimmer", "ouro-scroll-fade-left", "ouro-scroll-fade-right", "ouro-hero-rise", "ouro-hero-fade"],
+    ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-shimmer-band", "ouro-scroll-fade-left", "ouro-scroll-fade-right", "ouro-hero-rise", "ouro-hero-fade"],
   );
   const css = outputs["ouro-base.css"];
   const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
@@ -38,7 +38,7 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
   for (const line of [...declarations(split.inline), ...declarations(split.blocks.find((block) => block.selector === ":root").body)]) {
     assert.ok(rootLines.includes(line), line);
   }
-  for (const name of ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-shimmer", "ouro-scroll-fade-left", "ouro-scroll-fade-right"]) assert.ok(css.includes(`@keyframes ${name} {`), name);
+  for (const name of ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-shimmer-band", "ouro-scroll-fade-left", "ouro-scroll-fade-right"]) assert.ok(css.includes(`@keyframes ${name} {`), name);
   assert.ok(css.includes("Tailwind utilities left out: press."));
   assert.throws(() => baseCss(":root { --a: 1; }"), /no @theme inline block/);
   assert.throws(() => baseCss("@theme inline { --a: 1; }\n.dark { --a: 2; }"), /no :root block/);
