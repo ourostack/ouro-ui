@@ -131,7 +131,7 @@ export type SkeletonProps = SkeletonRectProps | SkeletonTextProps | SkeletonCirc
 const fill =
   "relative block overflow-hidden bg-muted " +
   "before:absolute before:inset-0 before:content-[''] before:bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--muted-foreground)_12%,transparent)_50%,transparent)] " +
-  "before:animate-[ouro-shimmer_1.6s_linear_infinite] before:motion-reduce:animate-none " +
+  "before:animate-[ouro-shimmer-band_1.6s_linear_infinite] before:motion-reduce:animate-none " +
   // Forced colours paint the fill as the page's own Canvas, so an outline in the text colour keeps the shape.
   "forced-colors:outline forced-colors:outline-1 forced-colors:-outline-offset-1 forced-colors:outline-[CanvasText]";
 

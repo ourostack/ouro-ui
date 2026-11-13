@@ -190,7 +190,7 @@ describe("Skeleton", () => {
 
   it("shimmers a band that moves by translate only, and holds it still in the middle with reduced motion", async () => {
     const skeleton = await render(<Skeleton />);
-    expect(getComputedStyle(skeleton, "::before").animationName).toBe("ouro-shimmer");
+    expect(getComputedStyle(skeleton, "::before").animationName).toBe("ouro-shimmer-band");
     expect(getComputedStyle(skeleton, "::before").backgroundImage).toContain("gradient");
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(skeleton, "::before").animationName).toBe("none");

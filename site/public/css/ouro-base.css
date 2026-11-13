@@ -118,7 +118,7 @@
   }
 }
 
-@keyframes ouro-shimmer {
+@keyframes ouro-shimmer-band {
   from {
     translate: -100% 0;
   }
