@@ -83,7 +83,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -1301,7 +1301,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : heavyJobs.includes(name) ? heavyRuns : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs, "latency-shard"].includes(name) ? heavyRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1366,7 +1366,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : heavyJobs.includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs, "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
