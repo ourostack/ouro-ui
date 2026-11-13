@@ -17,7 +17,7 @@ These notes summarize Apple's DocC pages, read today; follow the links for the f
 - `@AppIntent(.tool, schema:)` lifts a schema that today reaches only Shortcuts (books, journal and so on) into Siri.
 - Don't mark an intent that already uses a Siri schema, or one with no custom `perform()`.
 - Siri tells intents apart, and fills their parameters, from the `title` and `description` on each intent and each parameter ([guide](https://developer.apple.com/documentation/appintents/bringing-custom-actions-and-content-to-siri)).
-- Don't make an intent a tool when a person should start it explicitly: [ToolIntent](https://developer.apple.com/documentation/appintents/toolintent) lists "intents with side effects that a person needs to start explicitly, such as placing an order and paying for it" among poor tools. A candidate Ouro AX for Apple claim. (Added 2026-11-13.)
+- Don't make an intent a tool when a person should start it explicitly: [ToolIntent](https://developer.apple.com/documentation/appintents/toolintent) (iOS 27.3 beta) lists "intents with side effects that a person needs to start explicitly, such as placing an order and paying for it" among poor tools. A candidate Ouro AX for Apple claim. (Added 2026-11-13.)
 
 **Entities**
 - Give every `@Property`, `@DeferredProperty` and `@ComputedProperty` a description.

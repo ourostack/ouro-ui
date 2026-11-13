@@ -56,7 +56,7 @@ Apple's agent path in the 27 releases is App Intents and nothing else: entities,
 
 ## 3. Other platforms
 
-- **Android:** AppFunctions runs on Android 16+. Google calls it "the mobile equivalent of tools within MCP" and now brands it "Android MCP". Gemini can use it only through an Early Access Program ([docs](https://developer.android.com/ai/appfunctions)). (Corrected 2026-11-13: this said "experimental"; the Jetpack library reached 1.0.0-beta01 on 2026-10-21 and 1.0.0-rc01 on 2026-11-04, [release notes](https://developer.android.com/jetpack/androidx/releases/appfunctions).)
+- **Android:** AppFunctions runs on Android 16+. Google calls it "the mobile equivalent of tools within MCP" and now brands it "Android MCP". Gemini can use it only through an Early Access Program ([docs](https://developer.android.com/ai/appfunctions)). (Corrected 2026-11-13: this said "experimental", as the overview page still does; Google called it beta at Android Dev Summit, and the Jetpack library reached 1.0.0-beta01 on 2026-10-21 and 1.0.0-rc01 on 2026-11-04, [release notes](https://developer.android.com/jetpack/androidx/releases/appfunctions).)
 - **Windows:** the On-device Agent Registry registers app MCP servers, which run contained (prerelease, [Learn](https://learn.microsoft.com/en-us/windows/ai/mcp/overview)). App Actions are separate ([Learn](https://learn.microsoft.com/windows/ai/app-actions)).
 - On Apple, the realistic pattern is App Intents locally plus a remote MCP server, as Spoonjoy does (inference).
 
