@@ -58,6 +58,9 @@ function Frame({
 }) {
   return (
     <>
+      <button type="button" data-test-back="">
+        Back
+      </button>
       <button type="button" data-test-harness="" onClick={onOpen}>
         Show thread
       </button>
@@ -93,6 +96,7 @@ describe("ThreadRail", () => {
     const { rail } = await render(<ThreadRail label="Thread" onClose={noop} />);
     await expect.element(page.getByRole("complementary", { name: "Thread" })).toBeVisible();
     expect(rail.querySelector("h2")?.textContent).toBe("Thread");
+    expect(rail.tabIndex).toBe(-1);
   });
 
   it("shows the detail and meta under the heading, and leaves out what is not given", async () => {
@@ -111,11 +115,13 @@ describe("ThreadRail", () => {
     await pressTab();
     expect(document.activeElement).toBe(close);
     await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toContain("Close thread");
+    expect(document.querySelector('[data-ouro="tooltip"] kbd')?.textContent).toContain("Esc");
   });
 
-  it("names the close button by closeLabel", async () => {
+  it("names the close button by closeLabel, and draws a cross in it", async () => {
     const { close } = await render(<ThreadRail label="Thread" closeLabel="Hide replies" onClose={noop} />);
     expect(close.getAttribute("aria-label")).toBe("Hide replies");
+    expect(close.querySelector("svg")).not.toBeNull();
   });
 
   it("calls onClose when the close button is pressed", async () => {
@@ -203,6 +209,39 @@ describe("ThreadRail Escape", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it("closes on Escape from a control drawn in a portal, which is not a popup", async () => {
+    const onClose = vi.fn();
+    await render(
+      <ThreadRail label="Thread" onClose={onClose}>
+        {createPortal(<button type="button">Copy</button>, document.body)}
+      </ThreadRail>,
+    );
+    document.querySelector<HTMLElement>("body > button")!.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes on Escape when the rail sits inside a dialog", async () => {
+    const onClose = vi.fn();
+    const { rail } = await render(
+      <div role="dialog" aria-label="Page">
+        <ThreadRail label="Thread" onClose={onClose} />
+      </div>,
+    );
+    rail.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents the default action of the Escape it handles", async () => {
+    const onClose = vi.fn();
+    const { rail } = await render(<ThreadRail label="Thread" onClose={onClose} />);
+    const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    rail.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("does not close on Escape that a control inside the rail already handled", async () => {
     const onClose = vi.fn();
     const { rail } = await render(
@@ -256,13 +295,13 @@ describe("ThreadRail focus", () => {
   });
 
   it("returns focus to returnFocus when it is given", async () => {
-    const elsewhere: RefObject<HTMLElement | null> = { current: null };
-    const { host } = await render(<Stateful returnFocus={elsewhere} />);
-    elsewhere.current = host.querySelector<HTMLElement>("[data-test-elsewhere]");
+    const back: RefObject<HTMLElement | null> = { current: null };
+    const { host } = await render(<Stateful returnFocus={back} />);
+    back.current = host.querySelector<HTMLElement>("[data-test-back]");
     host.querySelector<HTMLButtonElement>("[data-test-harness]")!.focus();
     await userEvent.keyboard("{Enter}");
     await userEvent.keyboard("{Escape}");
-    expect(document.activeElement).toBe(elsewhere.current);
+    expect(document.activeElement).toBe(back.current);
   });
 
   it("leaves focus where it went when focus moved out of the rail first", async () => {
@@ -272,6 +311,16 @@ describe("ThreadRail focus", () => {
     host.querySelector<HTMLElement>("[data-test-elsewhere]")!.focus();
     await rerender(<Frame open={false} />);
     expect(document.activeElement).toBe(host.querySelector("[data-test-elsewhere]"));
+  });
+
+  it("does not move focus when the page held it, outside the rail, as the rail closes", async () => {
+    const { host, rerender } = await render(<Frame open={false} />);
+    host.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await rerender(<Frame open />);
+    (document.activeElement as HTMLElement).blur();
+    expect(document.activeElement).toBe(document.body);
+    await rerender(<Frame open={false} />);
+    expect(document.activeElement).toBe(document.body);
   });
 
   it("hands focus to a control nearby when nothing returns it", async () => {
@@ -298,13 +347,14 @@ describe("ThreadRail dev messages", () => {
     );
   });
 
-  it("warns about open, onOpenChange and a missing label", async () => {
+  it("warns about open, onOpenChange and a missing label, each with its fix", async () => {
     const guessed = { open: true, onOpenChange: noop, label: undefined, onClose: noop } as unknown as ThreadRailProps;
     await render(<ThreadRail {...guessed} />);
     const messages = warn.mock.calls.map((call: unknown[]) => String(call[0]));
-    expect(messages).toHaveLength(3);
-    expect(messages[0]).toContain("[ouro-ui] ThreadRail: label is missing, so screen readers cannot name the rail.");
-    expect(messages[1]).toContain("open is not a prop");
-    expect(messages[2]).toContain("onOpenChange is not a prop");
+    expect(messages).toEqual([
+      '[ouro-ui] ThreadRail: label is missing, so screen readers cannot name the rail. Fix: <ThreadRail label="Thread" onClose={close}>.',
+      '[ouro-ui] ThreadRail: open is not a prop; the rail shows while it is rendered. Fix: {thread && <ThreadRail label="Thread" onClose={close}>}.',
+      "[ouro-ui] ThreadRail: onOpenChange is not a prop. Fix: <ThreadRail onClose={() => setOpen(false)}>.",
+    ]);
   });
 });

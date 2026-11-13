@@ -47,6 +47,8 @@ export interface ThreadRailProps {
 const POPUP = '[role="menu"], [role="listbox"], [role="dialog"]';
 /** Text a person types into: Escape there is not a request to close. */
 const TEXT_ENTRY = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
+// Stryker disable next-line ArrayDeclaration: equivalent; the effect runs once, on mount, with any list that never changes
+const MOUNT_ONLY: readonly never[] = [];
 
 /** Whether the target sits in a popup between it and the rail, or in one drawn outside the rail's DOM. */
 function inPopup(target: Element, rail: Element): boolean {
@@ -124,6 +126,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
 
   // Mount only: the rail takes focus when it opens, and gives focus back when it closes. The
   // opener is remembered only when the rail took focus from it.
+  /* eslint-disable react-hooks/exhaustive-deps -- the effect runs once, on mount: the focus an open rail takes is decided then */
   useLayoutEffect(() => {
     const element = railRef.current!;
     const returned = returnFocus;
@@ -135,9 +138,8 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
       if (!element.contains(document.activeElement)) return;
       [returned?.current, opener.current].find((candidate) => candidate?.isConnected && !element.contains(candidate))?.focus();
     };
-    // Only on mount: the focus an open rail takes and returns is decided when it opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, MOUNT_ONLY);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Escape closes the rail unless it is pressed in a text field or a popup inside the rail, or
   // something already handled it.
