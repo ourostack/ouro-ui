@@ -1,5 +1,5 @@
 import { expect, test } from "../ouro-fixtures";
-import { openStory } from "./story";
+import { openStory, settledBox } from "./story";
 
 test("opens on the photo pressed, steps with the arrow keys and gives focus back on Escape", async ({ page }) => {
   await openStory(page, "display-lightbox--photos");
@@ -27,7 +27,11 @@ test("closes from the button beside the position and goes round with loop", asyn
   await page.getByRole("list", { name: "Coast photos" }).getByRole("button").nth(2).click();
   const viewer = page.getByRole("dialog", { name: "Coast photos" });
   await expect(viewer.getByRole("link", { name: "Open original" })).toHaveAttribute("href", "https://example.com/photos/coast-3.jpg");
-  await viewer.getByRole("button", { name: "Next image" }).click();
+  // Pressed once the viewer has grown from the thumbnail: a press while it still grows can end
+  // off the button, so it is no click (ourostack/ouro-ui#909).
+  const next = viewer.getByRole("button", { name: "Next image" });
+  await settledBox(next);
+  await next.click();
   await expect(viewer.getByText("1 of 3", { exact: true })).toBeVisible();
   await viewer.getByRole("button", { name: "Close" }).click();
   await expect(viewer).toBeHidden();
