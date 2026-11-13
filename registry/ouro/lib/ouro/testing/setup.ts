@@ -1,4 +1,5 @@
-import { afterAll, afterEach, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, vi } from "vitest";
+import { commands } from "vitest/browser";
 
 // Vitest setup for Ouro UI's browser tests: test output stays clean, so anything a test
 // writes to the console fails that test: a React act() warning, a development message from
@@ -9,6 +10,13 @@ import { afterAll, afterEach, vi } from "vitest";
 // is a separate setup file (testing/vitest.ts).
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
+
+// Playwright keeps a page's media emulation until a test changes it, so a test that sets reduced
+// motion or contrast would change the tests after it: a press feedback that waits on `motion-safe:`
+// never shows. Every test starts from the browser's defaults.
+beforeEach(() =>
+  commands.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none", colorScheme: "light", contrast: "no-preference" }),
+);
 
 /**
  * A browser reports "ResizeObserver loop completed with undelivered notifications" as a window

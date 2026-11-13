@@ -1,4 +1,5 @@
 import { expect, it, vi } from "vitest";
+import { commands } from "vitest/browser";
 
 // The two tests run in order: the first leaves the page's clock fake, as a test that times out
 // while it holds the clock does, and the setup file's afterEach gives the second the real one.
@@ -10,4 +11,15 @@ it("setup: a test may end with the page's clock still fake", () => {
 it("setup: the next test starts on the real clock", async () => {
   expect(vi.isFakeTimers()).toBe(false);
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
+});
+
+// The same order again, for media: the first test leaves reduced motion on, and the next starts
+// with the browser's default.
+it("setup: a test may end with reduced motion emulated", async () => {
+  await commands.emulateMedia({ reducedMotion: "reduce" });
+  expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
+});
+
+it("setup: the next test starts with the browser's media defaults", () => {
+  expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(false);
 });
