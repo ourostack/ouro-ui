@@ -2836,3 +2836,19 @@ test("a stale quarantine entry, its issue closed, gets a warning to remove it an
   assert.ok(check.indexOf('node scripts/quarantine.mjs rehearsed "$rehearsed"') > check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs"));
   assert.ok(check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs") >= 0);
 });
+
+test("Release reuses the rehearsal's CI and screen-reader proof only when it tested this very tree, and otherwise runs both", () => {
+  const release = workflow("release.yml");
+  const reuse = releaseStep("Reuse the rehearsal's proof when it tested this very tree");
+  assert.match(reuse, /git rev-parse 'HEAD\^\{tree\}'/);
+  assert.match(reuse, /git\/commits\/\$rsha" --jq \.tree\.sha/);
+  assert.match(reuse, /scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)"/);
+  assert.match(reuse, /screen-reader\.yml/);
+  assert.match(reuse, /echo "reuse=false" >> "\$GITHUB_OUTPUT"/);
+  const at = (name) => release.indexOf(`name: ${name}`);
+  assert.ok(at("Push the release branch") < at("Reuse the rehearsal's proof when it tested this very tree"));
+  assert.ok(at("Reuse the rehearsal's proof when it tested this very tree") < at("Build and check the @ouro namespace for the release commit"));
+  for (const name of ["Start the screen-reader lane on the release commit", "Run CI on the release commit", "Pass the screen-reader lane on the release commit"]) {
+    assert.match(release, new RegExp(`if: steps\\.check\\.outputs\\.new == 'true' && steps\\.reuse\\.outputs\\.reuse != 'true'\\n {8}name: ${name}|name: ${name}\\n {8}if: steps\\.check\\.outputs\\.new == 'true' && steps\\.reuse\\.outputs\\.reuse != 'true'`));
+  }
+});

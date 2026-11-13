@@ -1,4 +1,5 @@
-import { afterAll, afterEach, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
+import { commands } from "vitest/browser";
 
 // Vitest setup for Ouro UI's browser tests: test output stays clean, so anything a test
 // writes to the console fails that test: a React act() warning, a development message from
@@ -9,6 +10,33 @@ import { afterAll, afterEach, vi } from "vitest";
 // is a separate setup file (testing/vitest.ts).
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
+
+// Media emulation (reduced motion, forced colours, colour scheme, contrast) stays on the page after
+// the test that set it. So each file starts from the browser's defaults, and each test puts back the
+// media it found, which keeps a setting its file makes in `beforeAll` for all of its tests.
+// A browser command answers through a WebSocket message, and code that runs on from it runs inside that
+// message's dispatch, with `window.event` set. So each hook ends on a real timer's task, which no event
+// dispatches, and the test starts as code outside an event handler does (taken before a test can fake it).
+const realSetTimeout = globalThis.setTimeout;
+const leaveEvent = () => new Promise<void>((resolve) => realSetTimeout(resolve, 0));
+
+beforeAll(async () => {
+  await commands.resetMedia();
+  await leaveEvent();
+});
+
+let mediaBeforeTest: Awaited<ReturnType<typeof commands.mediaState>> | undefined;
+beforeEach(async () => {
+  mediaBeforeTest = await commands.mediaState();
+  await leaveEvent();
+});
+// Runs after the file's own afterEach, so a test that changed media in its body or a `beforeEach`
+// is put back before the next test.
+afterEach(async () => {
+  if (mediaBeforeTest) await commands.restoreMedia(mediaBeforeTest);
+  mediaBeforeTest = undefined;
+  await leaveEvent();
+});
 
 /**
  * A browser reports "ResizeObserver loop completed with undelivered notifications" as a window
