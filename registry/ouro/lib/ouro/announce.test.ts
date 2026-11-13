@@ -96,6 +96,18 @@ describe("announce", () => {
     expect(regions()[0]!.textContent).toBe("Latest");
   });
 
+  it("lets a later message replace the current one after an older cancellation", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const cancel = announce("Old");
+    announce("Replaced");
+    cancel!();
+    announce("Latest", { delayMs: 500 });
+    vi.advanceTimersByTime(100);
+    expect(regions()[0]!.textContent).toBe("");
+    vi.advanceTimersByTime(400);
+    expect(regions()[0]!.textContent).toBe("Latest");
+  });
+
   it("notifies the caller only after its message is written, not when cancelled or superseded", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const written: (string | null)[] = [];
