@@ -2555,6 +2555,10 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   const handed = stepScript(auto, "Release the rehearsal that started here, once it has ended");
   assert.match(handed, /\[ "\$conclusion" = success \] \|\|/);
   assert.match(handed, /gh workflow run release\.yml --ref main -f version="\$VERSION"/);
+  assert.match(start, /select\(\.databaseId != \$\{AFTER:-0\}\)/, "the ending release does not count as running");
+  const release2 = workflow("release.yml");
+  assert.match(release2, /^ {2}next:\n(?: {4}.*\n| *\n)*? {4}needs: \[release, queue, publish\]\n {4}if: \$\{\{ needs\.release\.result == 'success' && needs\.queue\.result == 'success' && needs\.publish\.result == 'success' \}\}$/m, "a release started by GITHUB_TOKEN starts no workflow_run, so it starts the next itself");
+  assert.equal(stepScript(release2, "Start the next release").trim(), 'gh workflow run release-auto.yml --ref main -f after="$GITHUB_RUN_ID"');
   assert.match(stepScript(workflow("release-rehearsal.yml"), "Hand the release to Release auto"), /^gh workflow run release-auto\.yml -f rehearsed="\$VERSION"\n?$/);
   assert.match(workflow("release-rehearsal.yml"), /if: \$\{\{ success\(\) && inputs\.release \}\}\n {8}name: Hand the release/);
 });
