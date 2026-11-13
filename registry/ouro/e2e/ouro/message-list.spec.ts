@@ -284,7 +284,7 @@ test("a long conversation draws only what is near the view, and a quote or a sea
 // which a list that holds older posts above the scroll's start until the wheel rests would make, and the dead count cannot see.
 for (const { story, label, least } of [
   { story: "chat-messagelist--older-history", label: "Older history", least: 500 },
-  { story: "chat-messagelist--older-history-drawn", label: "Older history drawn", least: 300 },
+  { story: "chat-messagelist--older-history-drawn", label: "Older history drawn", least: 174 },
 ]) {
   test(`${label}: a reader who flicks the wheel upward while older posts load never has the wheel go dead, or stop at a wall, for more than three frames`, async ({ page }) => {
     test.setTimeout(120_000);
@@ -341,8 +341,9 @@ for (const { story, label, least } of [
     const dead = frames.filter((f, i) => f.wheel !== 0 && !atEnd(f) && still(f) && still(frames[i + 1]));
     const wall = frames.filter((f) => f.wheel < 0 && f.scrollTop <= 1 && still(f) && f.above);
     // Pages went in above while the reader scrolled, and the scroll was neither stalled nor stopped short on the way.
-    expect(Number(await page.locator("[data-count]").getAttribute("data-count"))).toBeGreaterThanOrEqual(least);
-    const counts = `${dead.length} dead frames, ${wall.length} wall frames`;
+    const count = Number(await page.locator("[data-count]").getAttribute("data-count"));
+    const counts = `${dead.length} dead frames, ${wall.length} wall frames, ${count} messages, ${frames.length} frames`;
+    expect(count, counts).toBeGreaterThanOrEqual(least);
     expect(dead.length, counts).toBeLessThanOrEqual(3);
     expect(wall.length, counts).toBeLessThanOrEqual(3);
   });

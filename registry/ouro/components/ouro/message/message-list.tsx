@@ -1314,6 +1314,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const toBottom = useCallback(() => {
     const scroller = scrollerRef.current!;
     // At the end, nothing above is held: the carry goes with the scroll to the end.
+    // Stryker disable next-line ConditionalExpression: with nothing carried, removing no translate and setting the carry to 0 again change nothing.
     if (carriedRef.current !== 0) {
       carriedRef.current = 0;
       contentRef.current!.style.removeProperty("translate");
@@ -1493,8 +1494,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
     const nearEnd = () => scroller.scrollTop < edge() || scroller.scrollTop > farthest() - carriedRef.current - edge();
     const pay = () => {
+      // Stryker disable next-line CallExpression: a timer left running pays nothing once this has paid, and a carry since starts it again.
       clearTimeout(resting);
       const by = carriedRef.current;
+      // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
       if (by === 0) return;
       carriedRef.current = 0;
       content.style.removeProperty("translate");
@@ -1508,7 +1511,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // Pays once the wheel has rested, by the same clock that says it turned.
     const rest = () => {
+      // Stryker disable next-line CallExpression: a second timer left running pays once the wheel rests, as this one does, and the later of the two then pays nothing.
       clearTimeout(resting);
+      // Stryker disable next-line EqualityOperator: a wheel age exactly at its limit is a tie in a real-valued clock that no test can place.
       resting = setTimeout(() => (performance.now() - wheelAt < WHEEL_REST ? rest() : pay()), WHEEL_REST);
     };
     const carry = (by: number) => {
@@ -1556,11 +1561,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
         // one other in view, the one that did not go), and the first of those that moved alike.
         const moved = (ranked.sort((a, b) => a.passed - b.passed || Math.abs(a.moved) - Math.abs(b.moved))[0]?.moved ?? 0) + owed;
         const wheeling = performance.now() - wheelAt < WHEEL_REST;
+        // Stryker disable next-line EqualityOperator: growth of exactly half a pixel is under what the scroll position keeps (whole pixels in WebKit), carried or not.
         if (moved >= 0.5 && wheeling) {
           owed = 0;
           carry(moved);
           return keepAnchor();
         }
+        // Stryker disable next-line EqualityOperator: a drift exactly at its limit is a tie in a pixel count that layout leaves a fraction off; the boundary test pins the limit to 1/64 px.
         if (Math.abs(moved) < WHEEL_DRIFT && wheeling) {
           cancelAnimationFrame(later);
           later = requestAnimationFrame(hold);

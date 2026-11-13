@@ -82,6 +82,7 @@ async function render(node: ReactNode) {
   await settle(scroller);
   return {
     host,
+    root,
     scroller,
     rerender: async (next: ReactNode) => {
       await act(async () => root.render(next));
@@ -356,6 +357,11 @@ describe("MessageList windowing", () => {
       expect(scroller.scrollTop).toBe(before);
       expect(content.style.translate).not.toBe("");
       expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+      // Neither the wheel turning on nor a scroll away from either end pays it.
+      turn();
+      scroller.dispatchEvent(new Event("scroll"));
+      expect(content.style.translate).not.toBe("");
+      expect(scroller.scrollTop).toBe(before);
       // Written to the scroll position in one move once the wheel has rested.
       now += 100;
       await expect.poll(() => content.style.translate).toBe("");
@@ -368,18 +374,25 @@ describe("MessageList windowing", () => {
   it("pays what it holds as the reader nears either end, so what went in above is in reach while the wheel still turns", async () => {
     const actions = createRef<MessageListActions>();
     let from = 100;
-    const { scroller, rerender } = await render(<Chat items={conversation(300 - from, from)} windowing={false} actionsRef={actions} />);
+    const chat = () => <Chat items={conversation(300 - from, from)} windowing={false} actionsRef={actions} />;
+    const { scroller, root, rerender } = await render(chat());
     const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
-    const now = 1_000_000;
+    let now = 1_000_000;
     vi.spyOn(performance, "now").mockImplementation(() => now);
     const turn = () => scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    // Where a message is laid out, less its spring: this clock holds the springs still.
+    const laid = (message: HTMLElement) => message.getBoundingClientRect().top - Number(/translateY\((-?[\d.]+)px\)/.exec(message.style.transform)?.[1] ?? 0);
+    const reader = () => {
+      const { message } = firstVisible(scroller);
+      return { message, top: laid(message) };
+    };
     // Twenty older messages go in above while the wheel turns: held by the content drawn up, away from either end.
     const older = async () => {
       from -= 20;
-      await rerender(<Chat items={conversation(300 - from, from)} windowing={false} actionsRef={actions} />);
+      await rerender(chat());
     };
     await scrollTo(scroller, 300);
-    const reading = firstVisible(scroller);
+    let reading = reader();
     turn();
     await older();
     expect(scroller.scrollTop).toBe(300);
@@ -388,21 +401,27 @@ describe("MessageList windowing", () => {
     await act(async () => void (scroller.scrollTop = 40));
     await expect.poll(() => content.style.translate).toBe("");
     expect(scroller.scrollTop).toBeGreaterThan(1000);
-    // Where it is laid out, less its spring (this clock holds the springs still): where the reader's 260px put it.
-    const laidOut = reading.message.getBoundingClientRect().top - Number(/translateY\((-?[\d.]+)px\)/.exec(reading.message.style.transform)?.[1] ?? 0);
-    expect(Math.abs(laidOut - reading.top - 260)).toBeLessThanOrEqual(ROUNDING);
-    // A wheel that reaches the top pays before its scroll is reported: a wheel at the top scrolls nothing, so reports none.
-    await scrollTo(scroller, 300);
+    expect(Math.abs(laid(reading.message) - reading.top - 260)).toBeLessThanOrEqual(ROUNDING);
+    // A wheel that reaches the top pays before its scroll is reported (a wheel at the top scrolls nothing, so reports none), and
+    // what goes in above in the same task, before that report, is held from where the list scrolled itself to.
+    await scrollTo(scroller, 400);
+    reading = reader();
     turn();
     await older();
     expect(content.style.translate).not.toBe("");
+    from -= 20;
     await act(async () => {
-      scroller.scrollTop = 40;
+      scroller.scrollTop = 90;
       turn();
+      expect(content.style.translate).toBe("");
+      root.render(chat());
     });
-    expect(content.style.translate).toBe("");
     expect(scroller.scrollTop).toBeGreaterThan(1000);
-    // Near the bottom, what goes in above is paid at once, so the bottom never shows empty space.
+    expect(content.style.translate).not.toBe("");
+    expect(Math.abs(laid(reading.message) - reading.top - 310)).toBeLessThanOrEqual(ROUNDING);
+    // The wheel rests, and near the bottom what goes in above is paid at once, so the bottom never shows empty space.
+    now += 10_000;
+    await expect.poll(() => content.style.translate).toBe("");
     await scrollTo(scroller, scroller.scrollHeight - scroller.clientHeight - 60);
     const nearBottom = scroller.scrollTop;
     turn();
@@ -417,7 +436,7 @@ describe("MessageList windowing", () => {
     await act(async () => actions.current!.jumpToNewest());
     expect(content.style.translate).toBe("");
     await settle(scroller);
-    expect(scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight).toBeLessThanOrEqual(1);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
   });
 
   it("defers a shrink under the limit and a wheel under its rest, and holds both at the limit itself", async () => {

@@ -466,8 +466,8 @@ export const OlderHistory: Story = {
 const DRAWN_PAGE = 144;
 
 /**
- * A channel that draws its own messages, all in one child, and reads a page of older ones, 800 ms late, whenever the reader is
- * within two screens of the top: the page then goes in above them a message a frame, as an app that keeps each frame short does.
+ * A channel that draws its own messages, all in one child, and reads a page of older ones, 800 ms late, whenever the reader's
+ * wheel turns within two screens of the top: the page then goes in above them a message a frame, as an app that keeps each frame short does.
  */
 function DrawnOlderChat() {
   // How many of the channel's newest messages the app has, and how many of those it has drawn.
@@ -484,17 +484,19 @@ function DrawnOlderChat() {
     const scroller = wrap.current!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
     if (loading || drawn < count || count >= OLDER_TOTAL) return;
     const near = () => scroller.scrollTop < scroller.clientHeight * 2 && scroller.scrollHeight > scroller.clientHeight;
+    // Asked for by the reader's wheel, not by any scroll: a page drawn a message a frame keeps the list moving, which a scroll
+    // from code (bringing a message into view) should not start.
     const ask = () => {
       if (!near()) return;
-      scroller.removeEventListener("scroll", ask);
+      scroller.removeEventListener("wheel", ask);
       setLoading(true);
       setTimeout(() => {
         setCount((now) => Math.min(OLDER_TOTAL, now + DRAWN_PAGE));
         setLoading(false);
       }, 800);
     };
-    scroller.addEventListener("scroll", ask, { passive: true });
-    return () => scroller.removeEventListener("scroll", ask);
+    scroller.addEventListener("wheel", ask, { passive: true });
+    return () => scroller.removeEventListener("wheel", ask);
   }, [count, drawn, loading]);
   const first = OLDER_TOTAL - drawn;
   return (
@@ -520,7 +522,7 @@ function DrawnOlderChat() {
 
 /**
  * A channel of 1,000 posts drawn by the app in one child, holding its newest 30, that reads 144 older ones, 800 ms late,
- * whenever the reader comes within two screens of the top, and draws them in above a message a frame while the reader
+ * whenever the reader's wheel turns within two screens of the top, and draws them in above a message a frame while the reader
  * scrolls on: the wheel keeps moving the messages, and what went in above stays in reach.
  */
 export const OlderHistoryDrawn: Story = {
