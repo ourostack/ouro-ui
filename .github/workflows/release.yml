@@ -398,7 +398,7 @@ jobs:
             id=$(gh pr view "$NEXT_BRANCH" --json id --jq .id)
             for attempt in 1 2 3 4 5; do
               [ "$(queue_state)" = "OPEN false" ] || break
-              gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$id\", expectedHeadOid: \"$sha\"}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue (attempt $attempt)."
+              gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$id\", expectedHeadOid: \"$sha\", jump: true}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue (attempt $attempt)."
               sleep "${POLL_SECONDS:-10}"
             done
             state=$(queue_state)
