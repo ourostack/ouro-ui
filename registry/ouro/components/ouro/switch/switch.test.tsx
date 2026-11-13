@@ -265,8 +265,9 @@ describe("Switch look and motion", () => {
         const offFill = rgb(offStyle.backgroundColor, over);
         const onFill = rgb(getComputedStyle(on!).backgroundColor, over);
         expect(contrast(onFill, offFill)).toBeGreaterThanOrEqual(3);
-        // And the thumbs differ too.
-        expect(rgb(getComputedStyle(offThumb!).backgroundColor, over)).not.toEqual(rgb(getComputedStyle(onThumb!).backgroundColor, over));
+        // The glass thumb is a little stronger when on, and both wear a rim.
+        expect(getComputedStyle(offThumb!).backgroundColor).not.toEqual(getComputedStyle(onThumb!).backgroundColor);
+        expect(getComputedStyle(offThumb!).boxShadow).not.toBe("none");
         measured[scheme] = page;
       } finally {
         document.documentElement.classList.remove("dark");

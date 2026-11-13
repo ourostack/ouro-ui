@@ -58,6 +58,12 @@
   --ouro-shadow-sheet-left: 8px 0 32px rgb(0 0 0 / 0.12);
   --ouro-shadow-sheet-right: -8px 0 32px rgb(0 0 0 / 0.12);
   --ouro-layer: 50;
+  --ouro-glass: #ffffff;
+  --ouro-glass-tint: 34%;
+  --ouro-glass-blur: 6px;
+  --ouro-glass-rim: rgb(255 255 255 / 0.85);
+  --ouro-glass-edge: rgb(0 0 0 / 0.1);
+  --ouro-glass-solid: #ffffff;
 }
 
 .dark {
@@ -76,6 +82,10 @@
   --avatar-7: #c3a6ec;
   --avatar-8: #ef85e2;
   --ouro-backdrop-color: #000000;
+  --ouro-glass-tint: 12%;
+  --ouro-glass-rim: rgb(255 255 255 / 0.3);
+  --ouro-glass-edge: rgb(0 0 0 / 0.35);
+  --ouro-glass-solid: #e9e6e1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -95,6 +105,10 @@
     --avatar-7: #c3a6ec;
     --avatar-8: #ef85e2;
     --ouro-backdrop-color: #000000;
+    --ouro-glass-tint: 12%;
+    --ouro-glass-rim: rgb(255 255 255 / 0.3);
+    --ouro-glass-edge: rgb(0 0 0 / 0.35);
+    --ouro-glass-solid: #e9e6e1;
   }
 }
 

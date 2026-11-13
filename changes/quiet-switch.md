@@ -1,0 +1,1 @@
+- The Switch's thumb is a Liquid Glass lens (the `--ouro-glass*` tokens in `ouro-base`), and a solid surface with reduced transparency or more contrast.
