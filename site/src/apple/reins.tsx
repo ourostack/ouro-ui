@@ -122,7 +122,7 @@ export default function AppleReins(): JSX.Element {
       <AppleMenu current="/apple/reins/" />
       <StoryOpener scene="ouro-ui-apple" line="No thumbs needed: the robot drives all three screens with ls and do." />
       <Hero
-        layout="column"
+        layout="split"
         eyebrow="Ouro Reins"
         title="Hand an agent the reins."
         description={

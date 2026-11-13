@@ -40,7 +40,7 @@ export default function AppleFeel(): JSX.Element {
       <AppleMenu current="/apple/feel/" />
       <StoryOpener scene="ouro-ui-apple" line="The robot double-taps every switch on the bench, hunting for jank. So far the meadow is clean." />
       <Hero
-        layout="column"
+        layout="split"
         eyebrow="Ouro Feel"
         title={claim("Jank has genres. Feel has a check for each.", {
           source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60" },

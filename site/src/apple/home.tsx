@@ -19,7 +19,7 @@ export default function AppleHome(): JSX.Element {
       <AppleMenu current="/apple/" />
       <StoryOpener scene="ouro-ui-apple" line="One green card on a phone, a tablet and a laptop. The robot checked: it feels the same on all three." />
       <Hero
-        layout="column"
+        layout="split"
         eyebrow="Ouro UI for Apple"
         title={
           <>

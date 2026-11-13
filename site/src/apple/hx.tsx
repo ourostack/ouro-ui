@@ -35,7 +35,7 @@ export default function AppleHx(): JSX.Element {
       <AppleMenu current="/apple/hx/" />
       <StoryOpener scene="ouro-ui-apple" line="Press the green card on the phone, then on the laptop. Same spring, same little click." />
       <Hero
-        layout="column"
+        layout="split"
         eyebrow="Ouro HX for Apple"
         title="Feel it before you read about it."
         description={

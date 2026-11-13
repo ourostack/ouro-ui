@@ -6,8 +6,8 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 
-/** How the hero is laid out: `stage` centres the text over a wide picture; `column` aligns both to a reading column. */
-export type HeroLayout = "stage" | "column";
+/** How the hero is laid out: `stage` centres the text over a wide picture; `column` aligns both to a reading column; `split` sets the copy beside the media. */
+export type HeroLayout = "stage" | "column" | "split";
 
 /** One `<source>` element of a hero picture, in the order given. */
 export interface HeroPictureSource {
@@ -79,8 +79,13 @@ export interface HeroOwnProps {
    * @claim "so it is never upscaled" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows live media wider than mediaWidth)
    */
   mediaWidth?: number | undefined;
-  /** `stage` centres the text over the picture; `column` aligns both to a reading column. @default "stage" */
-  layout?: HeroLayout | (string & { 'Use "stage" or "column"': never }) | undefined;
+  /**
+   * `stage` centres the text over the picture; `column` aligns both to a reading column; `split` puts the copy and the media side by side from 64rem, and stacks them like `column` below that, for a page whose picture or live media belongs next to its words.
+   *
+   * @claim "puts the copy and the media side by side from 64rem" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > switches to the split layout, with copy and media side by side from 64rem)
+   * @default "stage"
+   */
+  layout?: HeroLayout | (string & { 'Use "stage", "column" or "split"': never }) | undefined;
   /** `rise` lifts the picture into place on mount, with reduced motion fading it in. @default "rise" */
   motion?: "rise" | "none" | (string & { 'Use "rise" or "none"': never }) | undefined;
   /** The title's heading level: `1` for the page's headline, `2` when the hero heads a section. @default 1 */
@@ -108,22 +113,26 @@ const riseMotion =
 const layoutRoot: Record<HeroLayout, string> = {
   stage:
     "[--hero-width:calc(100%_-_2rem)] min-[40rem]:[--hero-width:min(80rem,calc(100%_-_4rem),max(48rem,calc((100svh_-_36rem)*8/3)))]",
-  column: "[--hero-width:calc(100%_-_2rem)] min-[40rem]:[--hero-width:min(72rem,calc(100%_-_4rem))]",
+  column: "[--hero-width:calc(100%_-_2rem)] min-[40rem]:[--hero-width:min(75rem,calc(100%_-_4rem))]",
+  split: "mx-auto w-[calc(100%_-_2rem)] pt-10 [--hero-width:100%] min-[40rem]:w-[min(75rem,calc(100%_-_4rem))] min-[40rem]:pt-12 min-[64rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] min-[64rem]:items-center min-[64rem]:gap-16",
 };
 
 const layoutText: Record<HeroLayout, string> = {
   stage: "mx-auto grid w-[min(42rem,var(--hero-width))] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
-  column: "mx-auto grid w-[var(--hero-width)] justify-items-start gap-4 text-start",
+  column: "mx-auto grid w-[var(--hero-width)] justify-items-start gap-4 text-start pt-10 min-[40rem]:pt-12",
+  split: "grid w-[var(--hero-width)] min-w-0 justify-items-start gap-4 text-start",
 };
 
 const layoutActions: Record<HeroLayout, string> = {
   stage: "justify-center",
   column: "justify-start",
+  split: "justify-start",
 };
 
 const layoutMedia: Record<HeroLayout, string> = {
   stage: "mx-auto mt-8 min-[40rem]:mt-12",
   column: "mx-auto mt-8",
+  split: "mx-auto mt-8 min-[64rem]:mt-0",
 };
 
 /**
@@ -171,7 +180,7 @@ export function Hero(props: HeroProps): JSX.Element {
   } = props;
   // A lede that is only text is a paragraph; one made of blocks needs a <div> to be valid HTML.
   const Lede = typeof description === "string" || typeof description === "number" ? "p" : "div";
-  const layout: HeroLayout = layoutProp === "column" ? "column" : "stage";
+  const layout: HeroLayout = layoutProp === "column" ? "column" : layoutProp === "split" ? "split" : "stage";
   // Stryker disable next-line StringLiteral: motion is only compared with "rise", so "" and "none" behave the same.
   const motion = motionProp === "none" ? "none" : "rise";
   const headingLevel = headingLevelProp === 2 ? 2 : 1;
@@ -189,7 +198,7 @@ export function Hero(props: HeroProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           layout !== layoutProp && [
-            `layout="${String(layoutProp)}" is not a layout; use "stage" or "column"`,
+            `layout="${String(layoutProp)}" is not a layout; use "stage", "column" or "split"`,
             '<Hero layout="column" />',
           ],
           motion !== motionProp && [

@@ -102,6 +102,19 @@ describe("Hero", () => {
   it("switches to the column layout", async () => {
     const { header } = await render(<Hero title="Notes" layout="column" />);
     expect(header.getAttribute("data-layout")).toBe("column");
+    expect(header.firstElementChild!.className).toContain("pt-10 min-[40rem]:pt-12");
+  });
+
+  it("switches to the split layout, with copy and media side by side from 64rem", async () => {
+    const { header, part } = await render(
+      <Hero title="Split" layout="split" actions={<button type="button">Start</button>} media={<div>Live</div>} />,
+    );
+    expect(header.getAttribute("data-layout")).toBe("split");
+    expect(header.className).toContain("min-[64rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]");
+    expect(header.className).toContain("[--hero-width:100%]");
+    expect(header.firstElementChild!.className).toContain("text-start");
+    expect(part("actions")!.className).toContain("justify-start");
+    expect(part("media")!.className).toContain("min-[64rem]:mt-0");
   });
 
   it("never shows the picture wider than its intrinsic width", async () => {
@@ -173,7 +186,7 @@ describe("Hero", () => {
       <Hero title="Odd" layout={"banana" as HeroProps["layout"]} motion={"wobble" as HeroProps["motion"]} headingLevel={3 as HeroProps["headingLevel"]} />,
     );
     expect(header.getAttribute("data-layout")).toBe("stage");
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: layout="banana" is not a layout; use "stage" or "column". Fix: <Hero layout="column" />.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: layout="banana" is not a layout; use "stage", "column" or "split". Fix: <Hero layout="column" />.');
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: motion="wobble" is not a motion; use "rise" or "none". Fix: <Hero motion="none" />.');
     expect(warn).toHaveBeenCalledWith(
       "[ouro-ui] Hero: headingLevel={3} is not a heading level; use 1 for the page headline or 2 for a section. Fix: <Hero headingLevel={2} />.",
@@ -259,7 +272,7 @@ describe("Hero", () => {
         picture={wide}
       />,
     );
-    expect(column.header.className).toContain("min(72rem,");
+    expect(column.header.className).toContain("min(75rem,");
     expect(column.header.className).not.toContain("min(80rem,");
     expect(column.header.firstElementChild!.className).toContain("text-start");
     expect(column.header.firstElementChild!.className).not.toContain("text-center");
