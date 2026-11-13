@@ -1,0 +1,1 @@
+- New: the [Ouro AX guide](docs/guides/ax.md#when-a-page-asks-to-open-an-app) says what an agent surface that drives a browser does when a page tries to open a desktop app: refuse it the same way on any site, follow the page's own web option by role and name, and report which app was refused, what it did instead and the next command.
