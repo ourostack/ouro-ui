@@ -559,6 +559,14 @@ describe("NavigationRail overflow", () => {
 });
 
 describe("NavigationRail fit", () => {
+  /** A monospaced font made with fontTools: every character is half an em wide, so no font the machine has changes a label's width. */
+  const monoFontUrl = "data:font/ttf;base64,AAEAAAAKAIAAAwAgT1MvMkUARA4AAAEoAAAAYGNtYXAAjgHtAAABkAAAAPJnbHlmYNzXGwAAAowAAAAaaGVhZC9CrdwAAACsAAAANmhoZWEFFgFgAAAA5AAAACRobXR4AfQAMgAAAYgAAAAIbG9jYQAAAA0AAAKEAAAACG1heHAABQAGAAABCAAAACBuYW1l7kyEYgAAAqgAAABvcG9zdAADAAAAAAMYAAAAIAABAAAAAQAAD3/3DF8PPPUAAwPoAAAAAOccNSAAAAAA5xw1IAAyAAABwgK8AAAAAwACAAAAAAAAAAEAAAMg/zgAAAH0ADIAMgHCAAEAAAAAAAAAAAAAAAAAAAABAAEAAAADAAQAAQAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAwH0AZAABQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAPz8/PwAAACAAfgMg/zgAAAMgAMgAAAAAAAAAAAAAAAAAAAAgAAAB9AAAAAAAMgAAAAIAAAADAAAAFAADAAEAAAAUAAQA3gAAAAQABAABAAAAfv//AAAAIP//AAAAAQAEAAAAAQACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAIAAgACAAAAAAAAAAAADQABADIAAAHCArwAAwAAMyERITIBkP5wArwAAAAAAAAEADYAAQAAAAAAAQAMAAAAAQAAAAAAAgAHAAwAAwABBAkAAQAYABMAAwABBAkAAgAOACtPdXJvUmFpbE1vbm9SZWd1bGFyAE8AdQByAG8AUgBhAGkAbABNAG8AbgBvAFIAZQBnAHUAbABhAHIAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  const monoFace = async (family: string, sizeAdjust: string) => {
+    // A blob: URL, which browsers fetch as a font file; a data: URL or buffer may skip the loading event the rail measures on.
+    const url = URL.createObjectURL(await (await fetch(monoFontUrl)).blob());
+    return { face: new FontFace(family, `url(${url})`, { sizeAdjust } as FontFaceDescriptors), url };
+  };
+
   /** Room for three rows and More, as in the overflow tests. */
   const tight = 16 + 4 * 56 + 3 * 4;
   const withCount = (count: number) => many.map((entry) => (entry.type !== "separator" && entry.label === "Activity" ? { ...entry, count } : entry));
@@ -654,26 +662,30 @@ describe("NavigationRail fit", () => {
 
 
   it("brings back a hidden item when a font loads in which its label fits one line, though nothing it observes changes size", async () => {
-    // A face half as wide as the page's: the hidden two-line label fits one line, and the shown one-line ones stay one line.
-    const face = new FontFace("OuroRailNarrow", 'local("DejaVu Sans"), local("Helvetica"), local("Arial"), local("Liberation Sans")', { sizeAdjust: "50%" } as FontFaceDescriptors);
+    // The page's text is the wide face until the narrow one loads. At 11px the hidden two-line label is 99px wide in the wide face and 50px in the narrow one, which fits the 56px column.
+    const wide = await monoFace("OuroRailWide", "100%");
+    const narrow = await monoFace("OuroRailNarrow", "50%");
     const entries = ["Activity", "Chat", "Notes for the team", "Calendar", "Files"].map((label) => ({ label, href: `/${label}`, icon: icon(label) }));
-    const rail = await render(
-      <div style={{ display: "flex", fontFamily: "OuroRailNarrow, sans-serif" }}>
-        <NavigationRail label="Main" items={entries} />
-      </div>,
-      tight,
-    );
-    expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "More"]);
-    await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-    document.fonts.add(face);
+    document.fonts.add(wide.face);
     try {
       await act(async () => {
-        await face.load();
-        await document.fonts.ready;
+        await wide.face.load();
       });
+      const rail = await render(
+        <div lang="zxx" style={{ display: "flex", fontFamily: "OuroRailNarrow, OuroRailWide" }}>
+          <NavigationRail label="Main" items={entries} />
+        </div>,
+        tight,
+      );
+      expect(rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "More"]);
+      await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      document.fonts.add(narrow.face);
       await expect.poll(() => rail.shown.map(labelOf)).toEqual(["Activity", "Chat", "Notes for the team", "More"]);
     } finally {
-      document.fonts.delete(face);
+      document.fonts.delete(narrow.face);
+      document.fonts.delete(wide.face);
+      URL.revokeObjectURL(narrow.url);
+      URL.revokeObjectURL(wide.url);
     }
   });
 
