@@ -2130,7 +2130,7 @@ test("a release gives each job its own permissions, and only the queue job, whic
   const release = workflow("release.yml");
   assert.match(release, /^permissions: \{\}$/m);
   const jobs = releaseJobs();
-  assert.deepEqual(Object.keys(jobs), ["release", "queue", "publish", "finish"]);
+  assert.deepEqual(Object.keys(jobs), ["release", "queue", "publish", "finish", "next"]);
   const permissions = (block) => {
     const lines = (block.split(/^ {4}permissions:\n/m)[1] ?? "").split("\n");
     const own = lines.slice(0, lines.findIndex((line) => !/^ {6}[\w-]+: \w+/.test(line)));
@@ -2140,6 +2140,7 @@ test("a release gives each job its own permissions, and only the queue job, whic
   assert.deepEqual(permissions(jobs.queue), { actions: "write", statuses: "write", "pull-requests": "read", contents: "read" });
   assert.deepEqual(permissions(jobs.publish), { contents: "write", actions: "write" });
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
+  assert.deepEqual(permissions(jobs.next), { actions: "write" });
   // The queue job checks nothing out, installs nothing and runs no script of the repository.
   const code = jobs.queue.split("\n").filter((line) => !/^\s*#/.test(line)).join("\n");
   assert.doesNotMatch(code, /^\s*(- )?uses:|pnpm|npx|node |scripts\//m);
