@@ -121,10 +121,17 @@ describe("Ouro check", () => {
     assert.equal(shifted.element, "div#board");
     const late = measured.find((f) => f.rule === "first-content")!;
     assert.ok(late.value! >= 3000 && late.unit === "ms" && late.element.startsWith('p#late "This paragraph'), late.detail);
+    // Over budget on the second load too, so each is reported once, at the lower of its two loads.
+    for (const f of measured.filter((f) => f.rule === "first-content")) {
+      assert.equal(f.samples?.length, 2, f.detail);
+      assert.ok(f.samples!.every((s) => s > BUDGETS["first-content"]), f.detail);
+      assert.equal(f.value, Math.min(...f.samples!));
+      assert.match(f.detail, /^\d+ ms to its largest content at best of two loads \(\d+ ms, then \d+ ms\), over the budget of 2500 ms$/);
+    }
     for (const f of measured.filter((f) => f.closeUp)) assert.ok(existsSync(join(out, f.closeUp!)), f.closeUp);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
     assert.ok(report.findings.some((f) => f.rule === "inp" && f.value === pressed[0]!.value && f.budget === 200 && f.unit === "ms" && f.samples!.length === 5));
-    assert.ok(report.findings.filter((f) => f.rule !== "inp").every((f) => !("samples" in f)));
+    assert.ok(report.findings.filter((f) => f.rule !== "inp" && f.rule !== "first-content").every((f) => !("samples" in f)));
     assert.ok(report.findings.filter((f) => f.rule === "overlap" || f.rule === "axe").every((f) => !("value" in f)));
     assert.ok(result.shots.some((s) => s.page === "/inp-fail.html" && s.width === 1280 && s.theme === "dark" && s.count === 1));
 
@@ -144,6 +151,51 @@ describe("Ouro check", () => {
     assert.deepEqual(relaxed.findings.filter((f) => f.value !== undefined), []);
     const off = await check({ targets: [folder], out: dir("measured"), pages: "*-fail.html", sizes: [[1440, 900]], themes: ["light"], measured: false, chromium, log: quiet });
     assert.deepEqual(off.findings, []);
+  });
+
+  test("drops a first content over budget when its second load is within budget, since one slow response is the runner", async () => {
+    const picture = readFileSync(join(fixtures, "picture-960.png"));
+    const held: string[] = [];
+    const server = createServer((request, response) => {
+      if (request.url !== "/slow.png") {
+        return response.writeHead(200, { "content-type": "text/html" }).end('<!doctype html><html lang="en"><meta charset="utf-8"><title>Slow picture</title><main><h1>Slow picture</h1><img src="/slow.png" width="960" height="540" alt="A wide field" style="display:block;width:100%;height:auto"></main>');
+      }
+      // Held for three seconds on the first request only, as a busy runner holds one load.
+      held.push(request.url);
+      const send = () => response.writeHead(200, { "content-type": "image/png" }).end(picture);
+      if (held.length === 1) setTimeout(send, 3000);
+      else send();
+    });
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    const { port } = server.address() as { port: number };
+    try {
+      const result = await check({ targets: [`http://127.0.0.1:${port}/`], out: dir("second-load"), sizes: [[390, 844]], themes: ["light"], config: { walk: false }, chromium, log: quiet });
+      assert.deepEqual(result.findings.filter((f) => f.rule === "first-content"), []);
+      assert.equal(held.length, 2);
+    } finally {
+      await new Promise((done) => server.close(done));
+    }
+  });
+
+  test("keeps a first content over budget when its second load does not reach the page", async () => {
+    // The first load's two requests for the page (the check's HEAD and the browser's GET) answer; each later one fails.
+    let asked = 0;
+    const server = createServer((request, response) => {
+      if (request.url !== "/") return response.writeHead(404).end();
+      asked++;
+      if (asked > 2) return response.writeHead(500).end("gone");
+      response.writeHead(200, { "content-type": "text/html" }).end(readFileSync(join(fixtures, "first-content-fail.html")));
+    });
+    await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+    const { port } = server.address() as { port: number };
+    try {
+      const result = await check({ targets: [`http://127.0.0.1:${port}/`], out: dir("second-fails"), sizes: [[390, 844]], themes: ["light"], chromium, log: quiet });
+      const found = result.findings.filter((f) => f.rule === "first-content");
+      assert.equal(found.length, 1);
+      assert.ok(found[0]!.value! >= 3000 && found[0]!.samples === undefined, found[0]!.detail);
+    } finally {
+      await new Promise((done) => server.close(done));
+    }
   });
 
   test("presses only what a page or the config lists, never a destructive control, as often as the config says", async () => {
