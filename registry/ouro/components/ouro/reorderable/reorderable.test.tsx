@@ -76,6 +76,26 @@ const moves = () =>
 const move = (name: string) => page.getByRole("menuitem", { name, exact: true });
 const menuOpen = () => expect.element(page.getByRole("menu")).toBeVisible();
 const menuClosed = () => expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+/**
+ * Waits until the open menu has finished its entrance before a press goes to one of its moves. Below
+ * 640px the menu is a bottom sheet that slides up for 500ms, and a press on an item that is still
+ * moving can go down on one item and come up on the next, which drops the click. The popup must run
+ * no animation, and its top must hold still between two reads a poll apart.
+ */
+async function menuSettled() {
+  let last: number | undefined;
+  await expect
+    .poll(() => {
+      const menu = document.querySelector<HTMLElement>('[role="menu"][data-ouro-presentation]');
+      if (!menu || menu.hasAttribute("data-starting-style")) return false;
+      const top = menu.getBoundingClientRect().top;
+      const idle = menu.getAnimations({ subtree: true }).every((animation) => animation.playState !== "running");
+      const still = idle && top === last;
+      last = top;
+      return still;
+    })
+    .toBe(true);
+}
 
 /** Focuses a handle the way the keyboard does. */
 async function focus(name: string) {
@@ -375,6 +395,7 @@ describe("Reorderable", () => {
       await press("{Enter}");
       await expect.poll(() => Object.keys(moves())).toEqual(["Monter", "Descendre", "Tout en haut", "Tout en bas"]);
       await expect.poll(() => document.querySelector("[data-ouro-menu-close]")?.textContent ?? "Fermer").toBe("Fermer");
+      await menuSettled();
       await userEvent.click(move("Descendre"));
       await expect.poll(said).toBe("Sear déplacé, 2 sur 4");
     });
@@ -393,6 +414,7 @@ describe("Reorderable", () => {
       // The click picked nothing up.
       expect(grip.hasAttribute("data-grabbed")).toBe(false);
       expect(moves()).toEqual({ "Move up": true, "Move down": true, "Move to top": true, "Move to bottom": true });
+      await menuSettled();
       await userEvent.click(move("Move down"));
       expect(order(element)).toEqual(["Sear", "Deglaze", "Soften", "Braise"]);
       await expect.poll(said).toBe("Soften moved. Position 3 of 4.");
@@ -431,6 +453,7 @@ describe("Reorderable", () => {
         await userEvent.click(handle("Soften"));
         await menuOpen();
         expect(document.querySelector('[role="menu"]')!.getAttribute("data-ouro-presentation")).not.toBe("sheet");
+        await menuSettled();
         await userEvent.click(move("Move down"));
         await menuClosed();
         // The positive control: a Menu that holds the page, opened after, locks it, and the watch
@@ -457,6 +480,7 @@ describe("Reorderable", () => {
       await menuOpen();
       // The first row cannot go up.
       expect(moves()).toEqual({ "Move up": false, "Move down": true, "Move to top": false, "Move to bottom": true });
+      await menuSettled();
       await userEvent.click(move("Move to bottom"));
       expect(order(element)).toEqual(["Soften", "Deglaze", "Braise", "Sear"]);
       await expect.poll(said).toBe("Sear moved. Position 4 of 4.");
@@ -465,12 +489,14 @@ describe("Reorderable", () => {
       await menuOpen();
       // Now last, it cannot go down.
       expect(moves()).toEqual({ "Move up": true, "Move down": false, "Move to top": true, "Move to bottom": false });
+      await menuSettled();
       await userEvent.click(move("Move up"));
       expect(order(element)).toEqual(["Soften", "Deglaze", "Sear", "Braise"]);
       await expect.poll(said).toBe("Sear moved. Position 3 of 4.");
       await menuClosed();
       await userEvent.click(grip);
       await menuOpen();
+      await menuSettled();
       await userEvent.click(move("Move to top"));
       expect(order(element)).toEqual(["Sear", "Soften", "Deglaze", "Braise"]);
       await expect.poll(said).toBe("Sear moved. Position 1 of 4.");
