@@ -1,7 +1,6 @@
 "use client";
 
 import { Tooltip } from "@base-ui/react/tooltip";
-import { registerHyperellipse } from "hyperellipse";
 import { useEffect, useMemo, type JSX, type ReactNode, type RefObject } from "react";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { DefaultLink, OuroContext, useOuro, type OuroContextValue, type OuroLinkComponent, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
@@ -195,7 +194,7 @@ export function OuroProvider({ children, linkComponent, portalContainer, motion:
     [linkComponent, container, motion, quiet],
   );
   // Stryker disable next-line ArrayDeclaration: registration is idempotent, so a changed dependency list repeats a no-op
-  useEffect(() => void registerHyperellipse(), []);
+  useEffect(() => void import("hyperellipse").then((polyfill) => polyfill.registerHyperellipse()), []);
   useEffect(() => {
     if (!quiet) return;
     quietProviders += 1;

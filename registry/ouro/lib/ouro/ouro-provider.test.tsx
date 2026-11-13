@@ -302,7 +302,7 @@ describe("OuroProvider quiet", () => {
   it("registers the squircle polyfill once on the client", async () => {
     vi.mocked(registerHyperellipse).mockClear();
     await mount(<OuroProvider>x</OuroProvider>);
-    expect(registerHyperellipse).toHaveBeenCalledTimes(1);
+    await expect.poll(() => vi.mocked(registerHyperellipse)).toHaveBeenCalledTimes(1);
   });
 
 });
