@@ -125,6 +125,15 @@ describe("Pagination", () => {
     expect(html).toMatch(/aria-current="page"[^>]*href="\?page=2"|href="\?page=2"[^>]*aria-current="page"/);
   });
 
+  it("server HTML leaves the page list to the sm rule rather than hiding it, before anything is measured", () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<Pagination page={6} pageCount={12} href={href} />);
+    const pageItem = host.querySelector("[data-ouro-pagination-page]")!.closest("li")!;
+    expect(pageItem.classList.contains("max-sm:hidden")).toBe(true);
+    expect(pageItem.classList.contains("hidden")).toBe(false);
+    expect(host.querySelector("[data-ouro-pagination-summary]")!.closest("li")!.classList.contains("sm:hidden")).toBe(true);
+  });
+
   it("shows every page when they fit", async () => {
     const { cells } = await render(<Pagination page={4} pageCount={7} href={href} />);
     expect(cells).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
@@ -337,6 +346,13 @@ describe("Pagination in a column", () => {
   const pageItems = (nav: HTMLElement) => [...nav.querySelectorAll<HTMLElement>("[data-ouro-pagination-page]")].map(itemOf);
   const summaryItem = (nav: HTMLElement) => itemOf(nav.querySelector("[data-ouro-pagination-summary]")!);
 
+  /** The page list's width in full, as the component measures it: every cell and the gaps between them. */
+  const fullListWidth = (nav: HTMLElement) => {
+    const list = nav.querySelector("ul")!;
+    const cells = [...list.children].filter((item) => !item.querySelector("[data-ouro-pagination-summary]"));
+    return cells.reduce((sum, cell) => sum + cell.getBoundingClientRect().width, 0) + parseFloat(getComputedStyle(list).columnGap) * (cells.length - 1);
+  };
+
   /** Two frames: the observers' first calls, which a change made before them would otherwise stand in for, run at the layout the page had at mount. */
   const settle = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
@@ -507,6 +523,73 @@ describe("Pagination in a column", () => {
     column.style.width = "420px";
     await expect.poll(() => document.activeElement).toBe(nav.querySelector("[data-ouro-pagination-next]"));
     expect(scroller.scrollLeft).toBe(0);
+  });
+
+  it("fits the pages to the column's room less its padding and the nav's margins, to the pixel", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(<Pagination className="mx-2" page={6} pageCount={12} href={href} />, { width: 1000, paddingLeft: 8, paddingRight: 8 });
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    const full = Math.round(fullListWidth(nav));
+    // The room is the column's width less 8px of padding and 8px of margin on each side: 32px in all.
+    column.style.width = `${full - 4 + 32}px`;
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+    column.style.width = `${full + 32}px`;
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    expect(shown(summaryItem(nav))).toBe(false);
+  });
+
+  it("keeps every page at the room's exact edge, and brings them back there after the summary", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 1000 });
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    // The room is the column's width plus half a pixel, so widen the first page by the rest to lay the list out exactly that wide.
+    const room = Math.ceil(fullListWidth(nav));
+    pageItems(nav)[0].style.paddingRight = `${room + 0.5 - fullListWidth(nav)}px`;
+    expect(fullListWidth(nav)).toBe(room + 0.5);
+    column.style.width = `${room}px`;
+    await settle();
+    expect(pageItems(nav).every(shown)).toBe(true);
+    expect(shown(summaryItem(nav))).toBe(false);
+    column.style.width = "420px";
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+    column.style.width = `${room}px`;
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    expect(shown(summaryItem(nav))).toBe(false);
+  });
+
+  it("keeps the summary's class on a phone when only the pages would overflow the column", async () => {
+    await page.viewport(390, 844);
+    const { nav, column } = await mountIn(<Pagination page={25} pageCount={50} href={href} />, { width: 1000 });
+    await settle();
+    const widthOf = (selector: string) => itemOf(nav.querySelector(selector)!).getBoundingClientRect().width;
+    // Previous, the summary and Next fit this column. The pages' gaps, which a phone does not measure, would not.
+    column.style.width = `${Math.ceil(widthOf("[data-ouro-pagination-previous]") + widthOf("[data-ouro-pagination-summary]") + widthOf("[data-ouro-pagination-next]") + 8)}px`;
+    await settle();
+    expect(shown(summaryItem(nav))).toBe(true);
+    expect(summaryItem(nav).classList.contains("sm:hidden")).toBe(true);
+    for (const item of pageItems(nav)) {
+      expect(item.classList.contains("max-sm:hidden")).toBe(true);
+      expect(item.classList.contains("hidden")).toBe(false);
+    }
+  });
+
+  it("keeps focus on a control outside the pager when the summary replaces the pages", async () => {
+    await page.viewport(1280, 800);
+    const { host, nav, column } = await mountIn(
+      <>
+        <Pagination page={6} pageCount={12} href={href} />
+        <button type="button" data-test-harness>
+          Outside
+        </button>
+      </>,
+      { width: 1000 },
+    );
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    const outside = host.querySelector("button")!;
+    outside.focus();
+    column.style.width = "420px";
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+    expect(document.activeElement).toBe(outside);
   });
 });
 
