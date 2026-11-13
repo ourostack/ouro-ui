@@ -202,7 +202,7 @@ export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
       </StoryWorld>
       <Container className="site-hero-grid">
         <div className="site-hero-copy">
-          {/* On a phone the theme dots open the copy, above the words, so the stage's first control comes sooner. */}
+          {/* On a phone the theme dots open the copy, above the command, so the stage's first control comes sooner. */}
           <div className="max-sm:flex max-sm:flex-col">
             <div className="max-w-[36rem]">
               <Install />
