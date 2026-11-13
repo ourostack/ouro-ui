@@ -21,6 +21,9 @@ import { expect, test, type Page } from "@playwright/test";
 //
 // Event Timing reports durations in 8 ms steps, so every sample is a multiple of 8 and a median of
 // 20 a multiple of 4: a bound sits between steps or it is really the step below it.
+//
+// Before a control's presses, measure() also logs its runner's speed at full CPU speed (runnerSpeed), so
+// a slow runner shows in the log beside its latency.
 
 /** The budget, the number of presses and the throttle every latency spec measures with. */
 export const LATENCY = {
@@ -88,6 +91,35 @@ export function morePresses(samples: readonly number[], baseline: number): boole
 }
 
 /**
+ * How fast the runner is, measured in the page at full CPU speed: the time a fixed integer loop takes (script, ms)
+ * and the median gap between animation frames while the page is idle (frame, ms). A run's latency numbers only
+ * mean something beside its runner's speed, since a runner that is slow everywhere makes every press slow, so
+ * each control logs this before its presses.
+ */
+export async function runnerSpeed(page: Page): Promise<{ script: number; frame: number }> {
+  return page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const started = performance.now();
+        let hash = 0;
+        for (let i = 0; i < 5_000_000; i++) hash = Math.imul(hash ^ i, 2654435761) >>> 0;
+        // Kept on the window so the loop's result is used and the engine cannot drop the loop.
+        (window as unknown as { __runnerHash: number }).__runnerHash = hash;
+        const script = performance.now() - started;
+        const stamps: number[] = [];
+        const tick = (time: number) => {
+          stamps.push(time);
+          if (stamps.length < 21) return requestAnimationFrame(tick);
+          const gaps = stamps.slice(1).map((stamp, index) => stamp - stamps[index]!).toSorted((a, b) => a - b);
+          const median = (gaps[9]! + gaps[10]!) / 2;
+          resolve({ script: Math.round(script * 10) / 10, frame: Math.round(median * 10) / 10 });
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+}
+
+/**
  * Presses a control warmUps + samples times on a throttled CPU and returns each counted press's
  * click-to-paint time in ms, LATENCY.more presses more when `more` says so of the first samples (morePresses). Event Timing reports nothing under 16 ms (its durationThreshold floor),
  * so a press with no entry counts as 16 ms, if the browser's interaction count says it happened; a
@@ -113,6 +145,10 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   };
   /** How many interactions the page has had (Event Timing's count, which has no duration floor). */
   const interactions = () => page.evaluate(() => (performance as Performance & { interactionCount: number }).interactionCount);
+  // A new CDP session starts at full speed, so the probe runs before the throttle is set.
+  const speed = await runnerSpeed(page);
+  test.info().annotations.push({ type: "latency-runner", description: `${label}: script ${speed.script} ms, frame ${speed.frame} ms (full speed)` });
+  console.log(`latency-runner ${label}: script ${speed.script} ms, frame ${speed.frame} ms (full speed)`);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
   if (prepare) await unthrottled(prepare);
   const samples: number[] = [];
