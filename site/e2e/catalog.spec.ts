@@ -84,7 +84,9 @@ const CEILINGS = { voyage: 275 * 1024, docs: 167_396 + 1024 } as const;
 // Contrast still draws where outlines went: 42,104 bytes with them, over main at 8459a4d8.
 // The voyage's rose to 41 KiB for the skip link every page opens with (registry/ouro/components/ouro/skip-link, whose
 // classes the voyage used to leave out): 41,532 bytes with it, over main at 8b8d4701.
-const CSS_CEILINGS = { voyage: 41 * 1024, docs: 42 * 1024 + 512 } as const;
+// The docs' rose to 43 KiB for Hero (registry/ouro/components/ouro/hero and its docs demo, #880), whose classes the
+// docs' Tailwind build carries for every page: 43,652 bytes with it, over main at ca7114f0 (the voyage leaves it out).
+const CSS_CEILINGS = { voyage: 41 * 1024, docs: 43 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
