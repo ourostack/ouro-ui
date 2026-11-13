@@ -337,6 +337,9 @@ describe("Pagination in a column", () => {
   const pageItems = (nav: HTMLElement) => [...nav.querySelectorAll<HTMLElement>("[data-ouro-pagination-page]")].map(itemOf);
   const summaryItem = (nav: HTMLElement) => itemOf(nav.querySelector("[data-ouro-pagination-summary]")!);
 
+  /** Two frames: the observers' first calls, which a change made before them would otherwise stand in for, run at the layout the page had at mount. */
+  const settle = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
   /** Mounts `node` in a div with `style`, and returns the root to render again. */
   async function mountIn(node: ReactNode, style: CSSProperties) {
     const host = document.createElement("div");
@@ -426,6 +429,84 @@ describe("Pagination in a column", () => {
     await act(async () => root.unmount());
     roots.splice(roots.indexOf(root), 1);
     await document.fonts.ready;
+  });
+
+  it("measures again when a font loads and the labels are wider than they were measured", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 500 });
+    await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+    await settle();
+    // Letter spacing is inherited, so the labels widen while the column and the nav keep their sizes, and no observer fires.
+    column.style.letterSpacing = "5px";
+    document.fonts.dispatchEvent(new Event("loading"));
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+  });
+
+  it("measures again once the fonts are ready after mount", async () => {
+    await page.viewport(1280, 800);
+    let resolve!: (fonts: FontFaceSet) => void;
+    const ready = new Promise<FontFaceSet>((done) => (resolve = done));
+    Object.defineProperty(document.fonts, "ready", { configurable: true, get: () => ready });
+    try {
+      const { nav, column } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 500 });
+      await expect.poll(() => pageItems(nav).every(shown)).toBe(true);
+      await settle();
+      column.style.letterSpacing = "5px";
+      resolve(document.fonts);
+      await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+    } finally {
+      Reflect.deleteProperty(document.fonts, "ready");
+    }
+  });
+
+  it("stops listening for fonts when it unmounts, and measures nothing when a font loads after", async () => {
+    await page.viewport(1280, 800);
+    const { root } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 420 });
+    const removeListener = vi.spyOn(document.fonts, "removeEventListener");
+    try {
+      document.fonts.dispatchEvent(new Event("loading"));
+      await act(async () => root.unmount());
+      roots.splice(roots.indexOf(root), 1);
+      expect(removeListener).toHaveBeenCalledWith("loading", expect.any(Function));
+      await document.fonts.ready;
+    } finally {
+      removeListener.mockRestore();
+    }
+  });
+
+  it("re-measures when the viewport widens while the column stays the same width", async () => {
+    await page.viewport(390, 844);
+    const { nav } = await mountIn(<Pagination page={6} pageCount={12} href={href} />, { width: 420 });
+    await settle();
+    await page.viewport(1280, 800);
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+  });
+
+  it("shows the summary when the only page has focus and neither Next nor Previous can take it", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(<Pagination page={1} pageCount={1} href={href} />, { width: 1000 });
+    nav.querySelector<HTMLElement>("[data-ouro-pagination-page]")!.focus();
+    column.style.width = "150px";
+    await expect.poll(() => shown(summaryItem(nav))).toBe(true);
+  });
+
+  it("moves focus to Next without scrolling the page's scroller", async () => {
+    await page.viewport(1280, 800);
+    const { nav, column } = await mountIn(
+      <div style={{ width: 300, overflow: "auto" }}>
+        <div style={{ width: 1000 }}>
+          <Pagination page={6} pageCount={12} href={href} />
+        </div>
+      </div>,
+      {},
+    );
+    const scroller = column.parentElement!;
+    const seven = pageItems(nav).map((item) => item.querySelector<HTMLElement>("a")!).find((link) => link.textContent === "7")!;
+    seven.focus();
+    scroller.scrollLeft = 0;
+    column.style.width = "420px";
+    await expect.poll(() => document.activeElement).toBe(nav.querySelector("[data-ouro-pagination-next]"));
+    expect(scroller.scrollLeft).toBe(0);
   });
 });
 

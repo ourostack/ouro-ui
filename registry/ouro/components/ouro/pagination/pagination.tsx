@@ -240,6 +240,7 @@ function useListFit(navRef: RefObject<HTMLElement | null>, listRef: RefObject<HT
       observer.disconnect();
       fonts.removeEventListener("loading", refit);
     };
+    // Stryker disable next-line ArrayDeclaration: the nav's and the list's refs are the same objects for the nav's life, so any constant list runs this effect once, as this one does.
   }, [navRef, listRef]);
 
   return fits;
@@ -360,6 +361,7 @@ export function Pagination(props: PaginationProps): JSX.Element {
 
   const pages = pageCount === undefined ? [] : cells(page, pageCount, Math.max(0, Math.floor(siblings)));
   // What decides the width of the full list: its cells and the two labels. The nav's own classes do not.
+  // Stryker disable next-line ConditionalExpression: without a count there are no page numbers or summary to show or hide, so a fit either way changes no class or focus.
   const fitKey = pageCount === undefined ? undefined : JSON.stringify([pages, previousLabel, nextLabel]);
   const navRef = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
