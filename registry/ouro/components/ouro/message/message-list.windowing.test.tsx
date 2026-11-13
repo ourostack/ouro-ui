@@ -439,6 +439,32 @@ describe("MessageList windowing", () => {
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
   });
 
+  it("keeps the wheel turning through the frame it turned in, however long that frame takes", async () => {
+    const { scroller, root } = await render(<Chat items={conversation(500)} />);
+    await scrollTo(scroller, 3000);
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    const above = Number(reading.message.id.slice(1)) - 1;
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const grown = conversation(500).map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(120) } : item));
+    const before = scroller.scrollTop;
+    // A frame far longer than the rest, in which the wheel turned: its next events would wait behind it, so the wheel still turns.
+    await act(async () => {
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+      now += 10_000;
+      root.render(<Chat items={grown} />);
+    });
+    expect(content.style.translate).not.toBe("");
+    expect(scroller.scrollTop).toBe(before);
+    // A later frame begins with no wheel: it has rested, and the scroll position takes what was held.
+    await expect.poll(() => content.style.translate).toBe("");
+    expect(scroller.scrollTop).toBeGreaterThan(before);
+    await settle(scroller);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  });
+
   it("defers a shrink under the limit and a wheel under its rest, and holds both at the limit itself", async () => {
     let above = 1;
     const base = (shrink: number) => conversation(500).map((item) => (item.id === 0 ? item : { ...item, tall: item.id === above ? 80 - shrink : 20 }));
@@ -455,6 +481,8 @@ describe("MessageList windowing", () => {
       now += 10_000;
       scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
       now += rest;
+      // Two frames, so only the time decides whether the wheel has rested.
+      await frame();
       await rerender(<Chat items={base(shrink)} />);
       const moved = before - scroller.scrollTop;
       now += 10_000;

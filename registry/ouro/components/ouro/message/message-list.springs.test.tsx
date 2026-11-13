@@ -281,10 +281,14 @@ describe("MessageList springs", () => {
     await rerender(<Chat count={70} from={-20} />);
     expect(scroller.scrollTop).toBe(before);
     expect(laidOut(reading).top).toBeCloseTo(place, 0);
-    // The wheel rests: the scroll position takes what went in above in one move, which no message trails either.
-    const adjusted = nextScroll(scroller);
+    // The wheel rests: the scroll position takes what went in above in one move, in a frame, which no message trails either.
     frames.step(100);
-    await adjusted;
+    await expect
+      .poll(() => {
+        frames.step(16);
+        return scroller.scrollTop;
+      })
+      .toBeGreaterThan(before + 200);
     expect(scroller.scrollTop).toBeGreaterThan(before + 200);
     expect(laidOut(reading).top).toBeCloseTo(place, 0);
     const kept = scroller.scrollTop;

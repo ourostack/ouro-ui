@@ -462,7 +462,7 @@ const STRETCH = 0.25;
  * @claim "until the browser says it ended" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > keeps a scroll the reader's until the browser says it ended, however long a frame takes)
  */
 const ARMED = 250;
-/** How long, in ms, after a wheel turn the list leaves the reader's place unwritten: a scroll position set meanwhile stops the wheel's own scroll. */
+/** How long, in ms, after a wheel turn the list leaves the reader's place unwritten, and past the frame it turned in: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
 /** Drift up to this size, in px, is held back while the wheel turns: it comes from measuring a message, where a page of history above is larger. */
 const WHEEL_DRIFT = 48;
@@ -1487,14 +1487,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // frame) are held by drawing the content that far up instead, a `translate` the wheel's own scroll never meets, and the scroll
     // position takes it in one move once the wheel rests, or as the reader nears an end, so what went in above is always in reach.
     let wheelAt = Number.NEGATIVE_INFINITY;
-    let later = 0;
+    // The frame the wheel last turned in. Where a frame takes longer than the rest (a slow machine drawing much), the wheel's next
+    // events wait behind it, so the wheel turns until the time has passed and a later frame has begun.
+    let wheelFrame: CSSNumberish | null = null;
+    const turning = () => performance.now() - wheelAt < WHEEL_REST || document.timeline.currentTime === wheelFrame;
     let resting: ReturnType<typeof setTimeout> | undefined;
+    let restFrame = 0;
+    let later = 0;
     // How close to an end, in px, the reader comes before the scroll position takes what is carried: a few frames of a fast wheel.
     const edge = () => scroller.clientHeight / 4;
     // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
     const nearEnd = () => scroller.scrollTop < edge() || scroller.scrollTop > farthest() - carriedRef.current - edge();
     const pay = () => {
-      // Stryker disable next-line CallExpression: a timer left running pays nothing once this has paid, and a carry since starts it again.
+      // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
       clearTimeout(resting);
       const by = carriedRef.current;
       // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
@@ -1509,12 +1514,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // taken is left out of the reader's, so a change waiting for the resize observer is still held.
       taken += applied;
     };
-    // Pays once the wheel has rested, by the same clock that says it turned.
+    // Pays once the wheel has rested: after the rest, in a frame, so a page drawing nothing still begins one to tell by.
     const rest = () => {
-      // Stryker disable next-line CallExpression: a second timer left running pays once the wheel rests, as this one does, and the later of the two then pays nothing.
+      // Stryker disable next-line CallExpression: a second rest left waiting pays once the wheel rests, as this one does, and the later of the two then pays nothing.
       clearTimeout(resting);
-      // Stryker disable next-line EqualityOperator: a wheel age exactly at its limit is a tie in a real-valued clock that no test can place.
-      resting = setTimeout(() => (performance.now() - wheelAt < WHEEL_REST ? rest() : pay()), WHEEL_REST);
+      resting = setTimeout(() => (restFrame = requestAnimationFrame(() => (turning() ? rest() : pay()))), WHEEL_REST);
     };
     const carry = (by: number) => {
       carriedRef.current += by;
@@ -1524,6 +1528,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const onWheel = () => {
       wheelAt = performance.now();
+      wheelFrame = document.timeline.currentTime;
       // A wheel pushing at an end scrolls nothing, so no scroll event says the reader got there.
       // Stryker disable next-line ConditionalExpression,LogicalOperator: with nothing carried, paying pays nothing; the check only spares reading the layout on every turn of the wheel.
       if (carriedRef.current !== 0 && nearEnd()) pay();
@@ -1561,7 +1566,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         // The place is held by the messages that moved together, not one that moved away: of those, the one that moved least (with only
         // one other in view, the one that did not go), and the first of those that moved alike.
         const moved = (ranked.sort((a, b) => a.passed - b.passed || Math.abs(a.moved) - Math.abs(b.moved))[0]?.moved ?? 0) + owed;
-        const wheeling = performance.now() - wheelAt < WHEEL_REST;
+        const wheeling = turning();
         // Stryker disable next-line EqualityOperator: growth of exactly half a pixel is under what the scroll position keeps (whole pixels in WebKit), carried or not.
         if (moved >= 0.5 && wheeling) {
           owed = 0;
@@ -1619,7 +1624,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (cancelAnimationFrame(later), clearTimeout(resting), (carriedRef.current = 0), content.style.removeProperty("translate"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (cancelAnimationFrame(later), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
