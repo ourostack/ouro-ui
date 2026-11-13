@@ -191,3 +191,15 @@
       100% 100%;
   }
 }
+/* A hero's media rises a little as it arrives; reduced motion only fades it. */
+@keyframes ouro-hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
+@keyframes ouro-hero-fade {
+  from {
+    opacity: 0;
+  }
+}
