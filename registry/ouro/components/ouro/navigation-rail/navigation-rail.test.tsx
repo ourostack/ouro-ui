@@ -600,7 +600,7 @@ describe("NavigationRail fit", () => {
     expect(rail.items[1]!.querySelector("[data-icon]")!.getAttribute("data-icon")).toBe("chat-new");
   });
 
-  it("lays nothing out and renders once in its first commit, and renders again only for a fit that differs", async () => {
+  it("lays nothing out and renders once in its first commit, and paints its fit in its first frame", async () => {
     for (const [height, fits] of [
       [600, true],
       [tight, false],
@@ -616,8 +616,16 @@ describe("NavigationRail fit", () => {
       reads.stop();
       expect(reads.names()).toEqual([]);
       expect(renders).toBe(1);
-      // The first commit shows every item; the list clips those that do not fit until the resize observer measures.
       expect(rail.more).toBeNull();
+      // A resize observer made after the rail's runs after it in the same frame, before paint: what it sees is what the first frame paints.
+      const painted = await new Promise<(string | null)[]>((done) => {
+        const after = new ResizeObserver(() => {
+          after.disconnect();
+          done(rail.shown.map(labelOf));
+        });
+        after.observe(rail.nav.querySelector("ul")!);
+      });
+      expect(painted).toEqual(fits ? ["Activity", "Chat", "Calendar", "Files", "Notes", "Tasks", "Help"] : ["Activity", "Chat", "Calendar", "More"]);
       await settle();
       if (fits) {
         expect(renders).toBe(1);

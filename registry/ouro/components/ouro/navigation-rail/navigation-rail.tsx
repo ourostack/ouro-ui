@@ -1,5 +1,6 @@
 "use client";
 
+import { flushSync } from "react-dom";
 import { useLayoutEffect, useMemo, useRef, useState, type JSX, type KeyboardEvent, type MouseEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -344,9 +345,10 @@ function fitInputs(items: readonly NavigationRailEntry[], current: number, hideL
 // The fit of the rail's list, measured before paint when what decides it changes, and when the
 // list or an entry changes size. A measure reads layout, which inside a commit lays the page out at
 // once, so the first commit (server HTML hydrating, or a client mount) and a render that changes no
-// input measure nothing: the list shows every item, clipping what does not fit, and the resize
-// observer, whose callback runs once the page is laid out and reports each element it starts to
-// watch, measures then, and sets a fit only when it differs.
+// input measure nothing. The resize observer, whose callback runs once the page is laid out and
+// reports each element it starts to watch, measures then, before the first paint, and sets a fit
+// only when it differs: a rail whose items fit renders once, and one that overflows paints with its
+// items already under More.
 function useFit(list: { readonly current: HTMLUListElement | null }, items: readonly NavigationRailEntry[], current: number, inputs: string): Fit {
   // Stryker disable next-line ArrayDeclaration: a place that is no item's moves and cuts nothing, as an empty list does.
   const [fit, setFit] = useState<Fit>({ hidden: [], truncated: [], squeezed: [] });
@@ -376,7 +378,8 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
       shown.current = next;
       setFit(next);
     };
-    observer.current ??= new ResizeObserver(() => measure.current!());
+    // Its callback runs after layout and before paint, so a fit it finds commits there, and the frame paints it.
+    observer.current ??= new ResizeObserver(() => flushSync(() => measure.current!()));
     // Each element once: observing one again makes the observer report it again (WebKit does) and measure for nothing.
     for (const element of [list.current!, ...list.current!.children]) {
       // Stryker disable next-line ConditionalExpression: in Chromium, observing an element again does nothing; elsewhere the measure it starts finds the same fit.
