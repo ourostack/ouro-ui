@@ -1,6 +1,7 @@
 "use client";
 
 import { Tooltip } from "@base-ui/react/tooltip";
+import { registerHyperellipse } from "hyperellipse";
 import { useEffect, useMemo, type JSX, type ReactNode, type RefObject } from "react";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { DefaultLink, OuroContext, useOuro, type OuroContextValue, type OuroLinkComponent, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
@@ -193,6 +194,9 @@ export function OuroProvider({ children, linkComponent, portalContainer, motion:
     () => ({ linkComponent: linkComponent ?? DefaultLink, ...(container ? { portalContainer: container } : {}), ...(motion ? { motion } : {}), quiet }),
     [linkComponent, container, motion, quiet],
   );
+  useEffect(() => {
+    registerHyperellipse();
+  }, []);
   useEffect(() => {
     if (!quiet) return;
     quietProviders += 1;
