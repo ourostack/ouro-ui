@@ -127,7 +127,7 @@ Prior art:
 
 ## When a page asks to open an app
 
-A surface that drives a browser for an agent meets pages that try to open a desktop app. Zoom, Teams, Slack, Figma and Spotify point the page at an app address such as `zoomus:` and offer a web option for when that fails. The app is the person's to open, so refuse the launch the same way on any site, without a rule for each one, and keep the agent moving:
+A surface that drives a browser for an agent meets pages that try to open a desktop app. Zoom, Teams, Slack, Figma and Spotify point the page at an app address such as `zoomus:` and offer a web option for when that fails. The app is the person's to open, so refuse the launch the same way on any site, and keep the agent moving:
 
 - Let the refusal fail the way an app that is not installed fails. Pages with a timer fallback then take their web path on their own.
 - If the page only offers a button, follow the page's own web option, found by its role and name ("Join from browser", "Continue in browser"), once. Never take a download, a desktop-app or a "switch browsers" control.
