@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkSurfaces, extractSurfaces, leadsWithFix, main, ratchet, surfacesText, type Surfaces } from "./surfaces.ts";
+import { checkSurfaces, countFindings, extractSurfaces, leadsWithFix, main, ratchet, surfacesText, type Surfaces } from "./surfaces.ts";
 
 const made: string[] = [];
 after(() => made.forEach((dir) => rmSync(dir, { recursive: true, force: true })));
@@ -96,20 +96,34 @@ test("a manifest that is not one fails with the fix", () => {
   assert.throws(() => checkSurfaces(manifest({ replies: [{ id: "r", fields: [] } as never] })), /reply "r" needs "action"/);
 });
 
-test("the ratchet fails a new finding and a fixed one still listed, so the count only goes down", () => {
-  const report = checkSurfaces(manifest({ errors: [{ id: "a", text: "Empty.", code: "empty" }, { id: "b", text: "Pass --x.", code: "b" }] }));
-  assert.equal(ratchet(report, ["error.leads-with-fix:a"]).ok, true);
-  const added = ratchet(report, []);
-  assert.deepEqual(added.added.map((f) => f.key), ["error.leads-with-fix:a"]);
-  assert.equal(added.ok, false);
-  const fixed = ratchet(report, ["error.leads-with-fix:a", "error.leads-with-fix:gone"]);
-  assert.deepEqual(fixed.fixed, ["error.leads-with-fix:gone"]);
-  assert.equal(fixed.ok, false);
-  assert.match(surfacesText(report, fixed, { baselinePath: "base.json" }), /^FAIL: 1 finding in 2 surfaces: 1 in the baseline, 0 new, 1 fixed and still listed\.\nFix: delete these lines from base\.json/);
-  assert.match(surfacesText(report, fixed), /^FAIL: .*\nFix: delete these lines from the baseline /);
+test("the ratchet counts findings per check and file, and fails a group that grew and one that shrank", () => {
+  const report = checkSurfaces(
+    manifest({
+      errors: [
+        { id: "src/a.js#one", text: "Empty.", code: "one", where: "src/a.js:3" },
+        { id: "src/a.js#two", text: "Also empty.", code: "two" },
+        { id: "src/b.js#three", text: "Pass --x.", code: "three" },
+      ],
+    }),
+  );
+  const held = { "error.leads-with-fix:src/a.js": 2 };
+  const same = ratchet(report, held);
+  assert.deepEqual([same.ok, same.known, same.added, same.fixed], [true, 2, [], []]);
+  const grew = ratchet(report, { "error.leads-with-fix:src/a.js": 1 });
+  assert.deepEqual(grew.added.map((f) => f.key), ["error.leads-with-fix:src/a.js#one", "error.leads-with-fix:src/a.js#two"]);
+  assert.deepEqual([grew.ok, grew.known], [false, 1]);
+  assert.equal(ratchet(report, {}).added.length, 2);
+  const shrank = ratchet(report, { "error.leads-with-fix:src/a.js": 3, "error.has-code:gone.js": 1 });
+  assert.deepEqual(shrank.fixed, ["error.has-code:gone.js: was 1, now 0", "error.leads-with-fix:src/a.js: was 3, now 2"]);
+  assert.equal(shrank.ok, false);
+  const reworded = checkSurfaces(manifest({ errors: [{ id: "src/a.js#renamed", text: "Empty.", code: "x" }, { id: "src/a.js#other", text: "Nope.", code: "y" }] }));
+  assert.equal(ratchet(reworded, held).ok, true);
+  assert.deepEqual(countFindings(report), { "error.leads-with-fix:src/a.js": 2 });
+  assert.match(surfacesText(report, shrank, { baselinePath: "base.json" }), /^FAIL: 2 findings in 3 surfaces: 2 in the baseline, 0 new, 2 fixed and still listed\.\nFix: lower these counts in base\.json \(run the check with --update\), so the count only goes down:\n {2}error\.has-code:gone\.js: was 1, now 0/);
+  assert.match(surfacesText(report, shrank), /^FAIL: .*\nFix: lower these counts in the baseline /);
   const placed = checkSurfaces(manifest({ errors: [{ id: "a", text: "Empty.", code: "empty", where: "src/a.js:3" }] }));
-  assert.match(surfacesText(placed, null), /\nerror\.leads-with-fix a \(src\/a\.js:3\): has no fix\./);
-  assert.match(surfacesText(report, null), /^FAIL: 1 finding in 2 surfaces\.\nerror\.leads-with-fix a: has no fix\. Fix: add/);
+  assert.match(surfacesText(placed, null), /^FAIL: 1 finding in 1 surface\.\nerror\.leads-with-fix a \(src\/a\.js:3\): has no fix\. Fix: add/);
+  assert.match(surfacesText(checkSurfaces(manifest({ errors: [{ id: "a", text: "Empty.", code: "empty" }] })), null), /\nerror\.leads-with-fix a: has no fix\./);
 });
 
 const call = async (...args: string[]) => {
@@ -154,10 +168,10 @@ test("a baseline is written once, fails what is new, and only ever shrinks", asy
   const empty = join(dir, "empty.json");
   writeFileSync(file, JSON.stringify(manifest({})));
   assert.match((await call("check", file, "--baseline", empty, "--init")).out, /^ok: wrote 0 findings to /);
-  assert.match(readFileSync(empty, "utf8"), /"findings": \[\]/);
+  assert.match(readFileSync(empty, "utf8"), /"findings": \{\}/);
   write(["a", "b"]);
   assert.match((await call("check", file, "--baseline", base, "--init")).out, /^ok: wrote 2 findings to /);
-  assert.deepEqual(JSON.parse(readFileSync(base, "utf8")), { ax: "surfaces-baseline/1", findings: ["error.leads-with-fix:a", "error.leads-with-fix:b"] });
+  assert.deepEqual(JSON.parse(readFileSync(base, "utf8")), { ax: "surfaces-baseline/2", findings: { "error.leads-with-fix:a": 1, "error.leads-with-fix:b": 1 } });
   const again = await call("check", file, "--baseline", base, "--init");
   assert.equal(again.code, 2);
   assert.match(again.err, /already exists/);
@@ -178,15 +192,19 @@ test("a baseline is written once, fails what is new, and only ever shrinks", asy
   write(["a"]);
   const stale = await call("check", file, "--baseline", base);
   assert.equal(stale.code, 3);
-  assert.match(stale.out, /error\.leads-with-fix:b/);
+  assert.match(stale.out, /error\.leads-with-fix:b: was 1, now 0/);
   const shrunk = await call("check", file, "--baseline", base, "--update");
   assert.equal(shrunk.code, 0);
   assert.match(shrunk.out, /^ok: .* now lists 1 finding, 1 fewer\./);
-  assert.deepEqual(JSON.parse(readFileSync(base, "utf8")).findings, ["error.leads-with-fix:a"]);
+  assert.deepEqual(JSON.parse(readFileSync(base, "utf8")).findings, { "error.leads-with-fix:a": 1 });
   writeFileSync(base, "{}");
   const broken = await call("check", file, "--baseline", base);
   assert.equal(broken.code, 1);
-  assert.match(broken.err, /is not a surfaces-baseline\/1 file\. Fix: run the check with --baseline/);
+  assert.match(broken.err, /is not a surfaces-baseline\/2 file\. Fix: run the check with --baseline/);
+  for (const findings of ["null", '{"x": "1"}']) {
+    writeFileSync(base, `{"ax":"surfaces-baseline/2","findings":${findings}}`);
+    assert.equal((await call("check", file, "--baseline", base)).code, 1);
+  }
 });
 
 test("extract reads the words after a throw, an Error constructor or an error property, with a code and a stable id", async () => {

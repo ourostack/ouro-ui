@@ -1,5 +1,6 @@
 export {
   checkSurfaces,
+  countFindings,
   extractSurfaces,
   FIX_VERBS,
   leadsWithFix,
@@ -89,7 +90,7 @@ interface SurfacesLimits {
 /** The manifest's version, written as its `ax` field. */
 const SURFACES_VERSION = "surfaces/1" as const;
 /** The baseline file's version. */
-const SURFACES_BASELINE_VERSION = "surfaces-baseline/1" as const;
+const SURFACES_BASELINE_VERSION = "surfaces-baseline/2" as const;
 
 const SURFACES_DEFAULT_LIMITS: SurfacesLimits = Object.freeze({
   toolDescription: 600,
@@ -116,8 +117,10 @@ interface SurfaceFinding {
   problem: string;
   /** What to change. */
   fix: string;
-  /** `<check>:<surface>`, the ratchet's key. */
+  /** `<check>:<surface>`. */
   key: string;
+  /** `<check>:<file>`, the ratchet's unit: rewording an error leaves it as it was. */
+  group: string;
 }
 
 interface SurfacesReport {
@@ -183,7 +186,7 @@ const SCRIPT_RUN = /\b(?:run|execute|invoke|launch|start|use)\s+[`"']?(?:[\w~.$/
 const CODE = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 
 function say(check: string, surface: string, where: string | undefined, problem: string, fix: string): SurfaceFinding {
-  return { check, surface, where: where ?? null, problem, fix, key: `${check}:${surface}` };
+  return { check, surface, where: where ?? null, problem, fix, key: `${check}:${surface}`, group: `${check}:${surface.split("#")[0]}` };
 }
 
 /**
@@ -269,28 +272,40 @@ function validate(manifest: Surfaces): void {
 }
 
 interface BaselineResult {
-  /** Findings that are not in the baseline: a run with one fails. */
+  /** The findings in each group that has more than the baseline records: a run with one fails. */
   added: SurfaceFinding[];
-  /** Baseline keys nothing finds any more: delete them, so the count only goes down. */
+  /** Groups with fewer findings than the baseline records, as `<group>: was <n>, now <m>`: lower their counts, so the count only goes down. */
   fixed: string[];
   /** Findings the baseline records. */
   known: number;
   ok: boolean;
 }
 
+/** The findings per group, which is what the baseline file records. */
+function countFindings(report: SurfacesReport): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const f of report.findings) counts[f.group] = (counts[f.group] ?? 0) + 1;
+  return counts;
+}
+
 /**
- * Compares a run to the recorded baseline. A new finding fails, and so does a baseline entry nothing finds any more:
- * the pull request that fixes a finding removes its line, so the count only goes down.
+ * Compares a run to the recorded baseline, which counts findings per check and file (`error.has-code:src/send.js`: 3),
+ * so rewording an error or moving it in its file changes nothing. A group with more findings than recorded fails, and
+ * so does one with fewer: the pull request that fixes a finding lowers its count, so the count only goes down.
  *
  * @example
- * ratchet(report, ["error.has-code:send-empty"]); // { added: [], fixed: ["error.has-code:send-empty"], known: 0, ok: false }
+ * ratchet(report, { "error.has-code:src/send.js": 2 }); // { added: [], fixed: ["error.has-code:src/send.js: was 2, now 1"], known: 1, ok: false }
  */
-function ratchet(report: SurfacesReport, baseline: readonly string[]): BaselineResult {
-  const recorded = new Set(baseline);
-  const found = new Set(report.findings.map((f) => f.key));
-  const added = report.findings.filter((f) => !recorded.has(f.key));
-  const fixed = [...recorded].filter((key) => !found.has(key)).sort();
-  return { added, fixed, known: report.findings.length - added.length, ok: added.length === 0 && fixed.length === 0 };
+function ratchet(report: SurfacesReport, baseline: Readonly<Record<string, number>>): BaselineResult {
+  const counts = countFindings(report);
+  const grown = new Set(Object.keys(counts).filter((group) => counts[group]! > (baseline[group] ?? 0)));
+  const added = report.findings.filter((f) => grown.has(f.group));
+  const fixed = Object.keys(baseline)
+    .filter((group) => (counts[group] ?? 0) < baseline[group]!)
+    .sort()
+    .map((group) => `${group}: was ${baseline[group]}, now ${counts[group] ?? 0}`);
+  const known = Object.keys(counts).reduce((total, group) => total + Math.min(counts[group]!, baseline[group] ?? 0), 0);
+  return { added, fixed, known, ok: added.length === 0 && fixed.length === 0 };
 }
 
 /**
@@ -308,8 +323,8 @@ function surfacesText(report: SurfacesReport, result: BaselineResult | null, opt
   }
   for (const f of shown) lines.push(`${f.check} ${f.surface}${f.where ? ` (${f.where})` : ""}: ${errorMessage({ thing: f.surface, problem: f.problem, fix: f.fix }).replace(`${f.surface}: `, "")}`);
   if (result && result.fixed.length) {
-    lines.push(`Fix: delete these lines from ${options.baselinePath ?? "the baseline"} (run the check with --update), so the count only goes down:`);
-    for (const key of result.fixed) lines.push(`  ${key}`);
+    lines.push(`Fix: lower these counts in ${options.baselinePath ?? "the baseline"} (run the check with --update), so the count only goes down:`);
+    for (const entry of result.fixed) lines.push(`  ${entry}`);
   }
   return lines.join("\n");
 }
@@ -457,18 +472,19 @@ function parseFlags(args: readonly string[]): { positional: string[]; flags: Map
 
 const usageError = (thing: string, problem: string, fix: string) => `surfaces: ${errorMessage({ thing, problem, fix })}\n`;
 
-function readBaseline(path: string): string[] {
+function readBaseline(path: string): Record<string, number> {
   const parsed = JSON.parse(readFileSync(path, "utf8")) as { ax?: string; findings?: unknown };
-  if (parsed.ax !== SURFACES_BASELINE_VERSION || !Array.isArray(parsed.findings) || parsed.findings.some((k) => typeof k !== "string")) {
+  const counts = parsed.findings;
+  if (parsed.ax !== SURFACES_BASELINE_VERSION || typeof counts !== "object" || counts === null || Object.values(counts).some((n) => !Number.isInteger(n))) {
     throw new Error(errorMessage({ thing: path, problem: `it is not a ${SURFACES_BASELINE_VERSION} file`, fix: `run the check with --baseline ${path} --init to write one` }));
   }
-  return parsed.findings as string[];
+  return counts as Record<string, number>;
 }
 
-function writeBaseline(path: string, keys: readonly string[]): void {
+function writeBaseline(path: string, counts: Readonly<Record<string, number>>): void {
   mkdirSync(dirname(path), { recursive: true });
-  const body = [...keys].sort().map((k) => `    ${JSON.stringify(k)}`).join(",\n");
-  writeFileSync(path, `{\n  "ax": "${SURFACES_BASELINE_VERSION}",\n  "findings": [${body ? `\n${body}\n  ` : ""}]\n}\n`);
+  const body = Object.keys(counts).sort().map((group) => `    ${JSON.stringify(group)}: ${counts[group]}`).join(",\n");
+  writeFileSync(path, `{\n  "ax": "${SURFACES_BASELINE_VERSION}",\n  "findings": {${body ? `\n${body}\n  ` : ""}}\n}\n`);
 }
 
 /**
@@ -518,7 +534,7 @@ async function main(args: readonly string[], io: Io = process): Promise<number> 
         exists = false;
       }
       if (exists) return refuse(usageError(baselinePath, "already exists, and a baseline is only ever written once", "use --update to shrink it; never add a finding to it"));
-      writeBaseline(baselinePath, report.findings.map((f) => f.key));
+      writeBaseline(baselinePath, countFindings(report));
       io.stdout.write(`ok: wrote ${count(report.findings.length, "finding")} to ${baselinePath}. From now on a new finding fails.\n`);
       return 0;
     }
@@ -528,7 +544,7 @@ async function main(args: readonly string[], io: Io = process): Promise<number> 
         io.stdout.write(`${surfacesText(report, { ...result, fixed: [] }, { baselinePath })}\nFix: fix the new findings above; a baseline never takes one.\n`);
         return FINDINGS_EXIT_CODE.code;
       }
-      writeBaseline(baselinePath, report.findings.map((f) => f.key));
+      writeBaseline(baselinePath, countFindings(report));
       io.stdout.write(`ok: ${baselinePath} now lists ${count(report.findings.length, "finding")}, ${result.fixed.length} fewer.\n`);
       return 0;
     }

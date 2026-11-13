@@ -130,7 +130,7 @@ Prior art:
 
 A repository that has not adopted the kit can still hold its agent-facing words to Ouro AX. `ax-surfaces` reads a manifest of them, `{ "ax": "surfaces/1", "tool": "notes", "errors": [...], "tools": [...], "replies": [...], "texts": [...] }`, and finds an error that does not open with what to do, an error with no stable `code`, a tool description that does not say when to use the tool or runs past 600 characters, an action reply with no field that says what happened, and any message that sends the agent to run a script.[^surfaces-checks] `node lib/ouro/ax/surfaces.ts extract src --tool notes --out surfaces.json` writes a first manifest from JavaScript or TypeScript source, as a start to edit.
 
-Record today's findings once, then let CI hold the line: `node lib/ouro/ax/surfaces.ts check surfaces.json --baseline surfaces-baseline.json --init` writes the baseline, and every later `check` with `--baseline` exits 3 on a finding the baseline does not list, and on a listed finding that is fixed, so the pull request that fixes one deletes its line (`--update`) and the count only goes down.[^surfaces-ratchet]
+Record today's findings once, then let CI hold the line: `node lib/ouro/ax/surfaces.ts check surfaces.json --baseline surfaces-baseline.json --init` writes the baseline, and every later `check` with `--baseline` exits 3 on a finding the baseline does not list, and on a listed finding that is fixed, so the pull request that fixes one lowers its count (`--update`) and the count only goes down. The baseline counts findings per check and file, so rewording an error does not change it.[^surfaces-ratchet]
 
 ## A voice
 

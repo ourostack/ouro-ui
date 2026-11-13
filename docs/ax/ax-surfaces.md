@@ -45,6 +45,14 @@ checkSurfaces({ ax: "surfaces/1", tool: "notes", errors: [{ id: "send-empty", te
 // [{ check: "error.leads-with-fix", surface: "send-empty", ... }]
 ```
 
+### `countFindings`
+
+The findings per group, which is what the baseline file records.
+
+```ts
+function countFindings(report: SurfacesReport): Record<string, number>
+```
+
 ### `ErrorSurface`
 
 ```ts
@@ -103,16 +111,16 @@ function main(args: readonly string[], io?: Io): Promise<number>
 
 ### `ratchet`
 
-Compares a run to the recorded baseline. A new finding fails, and so does a baseline entry nothing finds any more: the pull request that fixes a finding removes its line, so the count only goes down.
+Compares a run to the recorded baseline, which counts findings per check and file (`error.has-code:src/send.js`: 3), so rewording an error or moving it in its file changes nothing. A group with more findings than recorded fails, and so does one with fewer: the pull request that fixes a finding lowers its count, so the count only goes down.
 
 ```ts
-function ratchet(report: SurfacesReport, baseline: readonly string[]): BaselineResult
+function ratchet(report: SurfacesReport, baseline: Readonly<Record<string, number>>): BaselineResult
 ```
 
 Example:
 
 ```ts
-ratchet(report, ["error.has-code:send-empty"]); // { added: [], fixed: ["error.has-code:send-empty"], known: 0, ok: false }
+ratchet(report, { "error.has-code:src/send.js": 2 }); // { added: [], fixed: ["error.has-code:src/send.js: was 2, now 1"], known: 1, ok: false }
 ```
 
 ### `ReplySurface`
@@ -144,6 +152,7 @@ interface SurfaceFinding {
   problem: string;
   fix: string;
   key: string;
+  group: string;
 }
 ```
 
@@ -176,7 +185,7 @@ interface Surfaces {
 The baseline file's version.
 
 ```ts
-const SURFACES_BASELINE_VERSION: "surfaces-baseline/1"
+const SURFACES_BASELINE_VERSION: "surfaces-baseline/2"
 ```
 
 ### `SURFACES_DEFAULT_LIMITS`
