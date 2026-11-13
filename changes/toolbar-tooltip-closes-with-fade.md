@@ -1,0 +1,1 @@
+- Fixed: a Toolbar's tooltip closes in the same update that fades the bar, so [the bar fades out with its tooltip already closed](registry/ouro/e2e/ouro/toolbar.spec.ts "verify:testExists(registry/ouro/e2e/ouro/toolbar.spec.ts::fades after the pointer rests, stays reachable, and comes back on a move over the stage or when Tab reaches it)").

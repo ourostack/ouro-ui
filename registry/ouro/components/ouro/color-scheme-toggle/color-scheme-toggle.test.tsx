@@ -32,6 +32,27 @@ async function render(node: ReactNode) {
 const dark = () => html.classList.contains("dark");
 const option = (name: string) => page.getByRole("menuitemradio", { name });
 
+/**
+ * Waits until the open menu has finished rising. On a phone width it is a bottom sheet that slides
+ * up for 500ms, and a press on an option still moving can go down on one item and come up on the
+ * next, which drops the click. The popup must run no animation, and its top must hold still
+ * between two reads a poll apart.
+ */
+async function menuSettled() {
+  let last: number | undefined;
+  await expect
+    .poll(() => {
+      const menu = document.querySelector<HTMLElement>('[role="menu"][data-ouro-presentation]');
+      if (!menu || menu.hasAttribute("data-starting-style")) return false;
+      const top = menu.getBoundingClientRect().top;
+      const idle = menu.getAnimations({ subtree: true }).every((animation) => animation.playState !== "running");
+      const still = idle && top === last;
+      last = top;
+      return still;
+    })
+    .toBe(true);
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -72,6 +93,7 @@ describe("ColorSchemeToggle", () => {
     );
     await userEvent.click(trigger);
     await expect.element(page.getByRole("menu")).toBeVisible();
+    await menuSettled();
     await userEvent.click(option("Dark"));
     await expect.poll(dark).toBe(true);
     expect(localStorage.getItem("ouro-color-scheme")).toBe("dark");
@@ -82,6 +104,7 @@ describe("ColorSchemeToggle", () => {
     await expect.poll(() => document.activeElement).toBe(trigger);
     await userEvent.click(trigger);
     await expect.element(option("Dark")).toHaveAttribute("aria-checked", "true");
+    await menuSettled();
     await userEvent.click(option("System"));
     await expect.poll(dark).toBe(false);
     expect(localStorage.getItem("ouro-color-scheme")).toBe("system");
@@ -120,6 +143,7 @@ describe("ColorSchemeToggle", () => {
     await userEvent.click(trigger);
     // The menu opens, then the choice switches the page: each is waited for, not assumed.
     await expect.element(page.getByRole("menu")).toBeVisible();
+    await menuSettled();
     await userEvent.click(option("Night"));
     await expect.poll(dark).toBe(true);
     await expect.element(page.getByRole("menu")).not.toBeInTheDocument();

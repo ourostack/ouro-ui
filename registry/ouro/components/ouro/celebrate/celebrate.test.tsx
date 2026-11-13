@@ -94,7 +94,7 @@ describe("Celebrate", () => {
       expect(celebrate.getAttribute("data-quiet")).toBe("");
       expect(host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(0);
       expect(host.querySelector('[data-ouro-part="message"]')!.textContent).toBe("Inbox cleared");
-      await expect.poll(() => announced.count("Inbox cleared"), { timeout: 3000 }).toBe(1);
+      await expect.poll(() => announced.count("Inbox cleared")).toBe(1);
       await act(async () => root.render(<Celebrate show message="Inbox cleared" />));
       expect(host.querySelector('[data-ouro="celebrate"]')!.hasAttribute("data-quiet")).toBe(false);
       expect(host.querySelectorAll('[data-ouro-part="piece"]')).toHaveLength(12);
@@ -164,10 +164,12 @@ describe("Celebrate", () => {
       // The message must not compete immediately with the triggering control's announcement.
       await new Promise((resolve) => setTimeout(resolve, SPEAK_DELAY_MS - 300));
       expect(announced.count("List cleared")).toBe(0);
+      // short poll: the message comes once its delay has passed, not seconds later.
       await expect.poll(() => announced.count("List cleared"), { timeout: 2000 }).toBe(1);
       await act(async () => root.render(<Celebrate show message="List cleared" className="mt-2" />));
       await act(async () => root.render(<Celebrate show={false} message="List cleared" />));
       await act(async () => root.render(<Celebrate show message="List cleared" />));
+      // short poll: the next message comes after the same delay, not seconds later.
       await expect.poll(() => announced.count("List cleared"), { timeout: SPEAK_DELAY_MS + 1000 }).toBe(2);
     } finally {
       announced.stop();
@@ -229,7 +231,7 @@ describe("Celebrate cap", () => {
     try {
       const { root, host, result } = await bursts({ cap: { times: 1, per: "day" }, capKey: "cleared" });
       expect(result).toBe(true);
-      await expect.poll(() => announced.count("Inbox cleared"), { timeout: 5000 }).toBe(1);
+      await expect.poll(() => announced.count("Inbox cleared")).toBe(1);
       await act(async () => root.render(node(false)));
       await frames();
       // Shown again within the day: no confetti, not even for a frame, and the message is heard.
@@ -238,7 +240,7 @@ describe("Celebrate cap", () => {
       await frames();
       expect(pieces(host)).toBe(0);
       expect(host.querySelector('[data-ouro-part="message"]')!.textContent).toBe("Inbox cleared");
-      await expect.poll(() => announced.count("Inbox cleared"), { timeout: 5000 }).toBe(2);
+      await expect.poll(() => announced.count("Inbox cleared")).toBe(2);
       await act(async () => root.render(node(false)));
       await frames();
       now += 24 * 60 * 60 * 1000;

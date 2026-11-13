@@ -21,6 +21,11 @@ on:
         description: "The version to rehearse, x.y.z without the v"
         required: true
         type: string
+      release:
+        description: "Set by Release auto: when the rehearsal passes, start the release of this version"
+        required: false
+        default: false
+        type: boolean
 permissions: {}
 concurrency:
   group: release-rehearsal-${{ inputs.version }}
@@ -125,3 +130,7 @@ jobs:
       - if: always()
         name: Delete the rehearsal branch
         run: git push origin --delete "$BRANCH" || echo "::notice::Could not delete $BRANCH; delete it by hand."
+      - if: ${{ success() && inputs.release }}
+        name: Hand the release to Release auto
+        run: |
+          gh workflow run release-auto.yml -f rehearsed="$VERSION"

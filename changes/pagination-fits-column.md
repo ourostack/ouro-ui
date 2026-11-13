@@ -1,1 +1,0 @@
-- Fixed: Pagination switches to its compact summary when its full list doesn't fit the space it has, not only below the viewport's sm breakpoint, so it stays inside a narrow column.

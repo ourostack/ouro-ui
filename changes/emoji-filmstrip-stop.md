@@ -1,1 +1,0 @@
-- Fixed: an Emoji's filmstrip stops in the same render that brings back its still image, so the still image is not drawn mid-step.

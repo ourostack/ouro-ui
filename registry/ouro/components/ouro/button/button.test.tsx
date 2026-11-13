@@ -573,6 +573,56 @@ describe("inline size", () => {
   });
 });
 
+describe("icon-only size", () => {
+  it.each([
+    ["has no width or height", {}],
+    ["is Lucide's 24px icon", { width: 24, height: 24 }],
+  ])("sizes an icon-only button's icon, whose svg %s, as startIcon does", async (_, attributes) => {
+    const { host } = await render(
+      <>
+        <Button aria-label="Add">
+          <Star {...attributes} />
+        </Button>
+        <Button startIcon={Star}>Add</Button>
+      </>,
+    );
+    const [iconOnly, withStart] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
+    const icon = iconOnly!.querySelector("svg")!.getBoundingClientRect();
+    const reference = withStart!.querySelector("svg")!.getBoundingClientRect();
+    expect(icon.width).toBeGreaterThan(0);
+    expect(icon.width).toBe(reference.width);
+    expect(icon.height).toBe(reference.height);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("sizes an icon-only link's icon as startIcon does", async () => {
+    const { host } = await render(
+      <>
+        <Button href="/add" aria-label="Add">
+          <Star />
+        </Button>
+        <Button href="/add" startIcon={Star}>
+          Add
+        </Button>
+      </>,
+    );
+    const [iconOnly, withStart] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
+    const icon = iconOnly!.querySelector("svg")!.getBoundingClientRect();
+    expect(icon.width).toBeGreaterThan(0);
+    expect(icon.width).toBe(withStart!.querySelector("svg")!.getBoundingClientRect().width);
+  });
+
+  it("keeps the size an icon sets for itself", async () => {
+    const { button } = await render(
+      <Button aria-label="Add">
+        <Star className="size-8" />
+      </Button>,
+    );
+    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    expect(button.querySelector("svg")!.getBoundingClientRect().width).toBe(2 * rootFontSize);
+  });
+});
+
 describe("density", () => {
   afterEach(async () => {
     await page.viewport(414, 896);
