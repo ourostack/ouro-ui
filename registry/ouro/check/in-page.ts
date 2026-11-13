@@ -27,7 +27,7 @@ const ALIASES: Record<string, string> = {
   "data-long-lines-ok": "long-lines",
   "data-clip-ok": "clipped-text",
   "data-scroll-x": "sideways-scroll",
-  "data-size-ignore": "sideways-scroll clipped-text long-lines blurry-image stretched-image",
+  "data-size-ignore": "sideways-scroll clipped-text long-lines stretched-image",
   "data-image-fade-ok": "image-fade",
 };
 
@@ -126,7 +126,9 @@ function listAllowances(aliases: Record<string, string>): Allowance[] {
   const found: Allowance[] = [];
   for (const el of document.querySelectorAll("[data-ouro-allow][data-ouro-allow-why]")) {
     const reason = el.getAttribute("data-ouro-allow-why")!.trim();
-    if (reason) found.push({ rules: el.getAttribute("data-ouro-allow")!, element: describe(el), reason });
+    // blurry-image is never allowed, so naming it allows nothing: the size check reports the attempt instead.
+    const rules = el.getAttribute("data-ouro-allow")!.split(/\s+/).filter((rule) => rule && rule !== "blurry-image").join(" ");
+    if (reason && rules) found.push({ rules, element: describe(el), reason });
   }
   for (const [name, rules] of Object.entries(aliases)) {
     for (const el of document.querySelectorAll(`[${name}]`)) {

@@ -164,7 +164,7 @@ describe("findSizeIssues: blurry-image", () => {
     expect(await findSizeIssues({ tolerance: 1.1, minImage: 96 })).toEqual([]);
   });
 
-  it("passes pictures with enough pixels, SVG, small, hidden, broken and allowed pictures", async () => {
+  it("passes pictures with enough pixels, SVG, small, hidden and broken pictures", async () => {
     const big = await picture(400, 200);
     const small = await picture(100, 50);
     render(`
@@ -173,11 +173,58 @@ describe("findSizeIssues: blurry-image", () => {
       <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/%3E" alt="svg" style="width:200px;height:200px">
       <img src="${small}" alt="small" style="width:60px;height:30px">
       <img src="${small}" alt="hidden" hidden style="width:200px;height:100px">
-      <span data-size-ignore="a soft backdrop on purpose"><img src="${small}" alt="alias" style="width:200px;height:100px"></span>
-      <img src="${small}" alt="allowed" data-ouro-allow="blurry-image" data-ouro-allow-why="a soft backdrop on purpose" style="width:200px;height:100px">
       <img alt="no source yet" style="width:200px;height:100px">`);
     await decodeImages();
     expect(await findSizeIssues({ density: 2 })).toEqual([]);
+  });
+
+  it("holds the drawn width times the density to the file's width exactly, with half a pixel for rounding", async () => {
+    const file = await picture(200, 100);
+    render(`
+      <img src="${file}" alt="at the line" style="width:100px;height:50px">
+      <img src="${file}" alt="a pixel past" style="width:101px;height:50.5px">`);
+    await decodeImages();
+    const issues = await findSizeIssues({ density: 2, minImage: 0 });
+    expect(issues.map(({ element, detail }) => [element, detail])).toEqual([['img "a pixel past"', "drawn 101×51 from 200×100; at 2x it needs 202px wide"]]);
+    expect(await findSizeIssues({ density: 1, minImage: 0 })).toEqual([]);
+  });
+
+  it("gives each blurry picture's numbers for the images report: a selector, its file, its pixels, its box and what it needs", async () => {
+    const small = await picture(100, 50);
+    render(`<section id="art"><p>Words</p><figure><img src="${small}" alt="first" style="width:100px;height:50px"><img src="${small}" alt="second" style="width:200px;height:100px"></figure></section>`);
+    host.querySelector("#art")!.removeAttribute("id");
+    host.firstElementChild!.setAttribute("id", "art 1");
+    await decodeImages();
+    const [first, second] = await findSizeIssues({ density: 2 });
+    expect(first!.image).toEqual({ selector: "#art\\ 1 > figure > img:nth-of-type(1)", src: small, naturalWidth: 100, naturalHeight: 50, renderedWidth: 100, renderedHeight: 50, density: 2, requiredWidth: 200 });
+    expect(second!.image).toMatchObject({ selector: "#art\\ 1 > figure > img:nth-of-type(2)", renderedWidth: 200, requiredWidth: 400 });
+    expect(document.querySelector(second!.image!.selector)).toBe(host.querySelectorAll("img")[1]);
+    host.remove();
+    render(`<div><img src="${small}" alt="no id above" style="width:200px;height:100px"></div>`);
+    await decodeImages();
+    const [issue] = await findSizeIssues({ density: 2 });
+    expect(issue!.image!.selector).toMatch(/^body > div(:nth-of-type\(\d+\))? > div > img$/);
+    expect(document.querySelector(issue!.image!.selector)).toBe(host.querySelector("img"));
+  });
+
+  it("cannot be waived: reports an attempt to allow it, and still finds the picture", async () => {
+    const small = await picture(100, 50);
+    render(`
+      <span data-size-ignore="a soft backdrop on purpose"><img src="${small}" alt="alias" style="width:200px;height:100px"></span>
+      <img src="${small}" alt="allowed" data-ouro-allow="blurry-image stretched-image" data-ouro-allow-why="a soft backdrop on purpose" style="width:200px;height:100px">
+      <img src="${small}" alt="all" data-ouro-allow="all" data-ouro-allow-why="everything on purpose" style="width:200px;height:100px">`);
+    await decodeImages();
+    const issues = await findSizeIssues({ density: 2 });
+    expect(issues.map(({ rule, element }) => [rule, element])).toEqual([
+      ["blurry-image", 'img "allowed" [data-ouro-allow="blurry-image stretched-image"]'],
+      ["blurry-image", 'img "alias"'],
+      ["blurry-image", 'img "allowed"'],
+      ["blurry-image", 'img "all"'],
+    ]);
+    expect(issues[0]!.detail).toBe(
+      "blurry-image cannot be waived: remove it from data-ouro-allow and give the picture a larger source, or a srcset whose largest file covers its drawn width at 2x",
+    );
+    expect(issues[0]!.image).toBeUndefined();
   });
 
   it("falls back to the drawn picture's size when its source no longer loads, and names a data: picture by its alt", async () => {
@@ -203,6 +250,66 @@ describe("findSizeIssues: blurry-image", () => {
     await Promise.all([...document.images].map((img) => img.decode()));
     await decodeImages();
     expect(await findSizeIssues({ density: 2 })).toMatchObject([{ rule: "blurry-image", element: "fixtures/picture-160.png" }]);
+  });
+});
+
+describe("findSizeIssues: blurry-image, for a CSS background", () => {
+  const issues = async (density = 2) => (await findSizeIssues({ density })).map(({ rule, element, detail }) => [rule, element, detail]);
+
+  it("finds a raster background drawn larger than its file at the density, by its background-size", async () => {
+    const file = await picture(200, 100);
+    const box = "width:400px;height:200px";
+    render(`
+      <div aria-label="Cover" style="${box};background:url(${file}) center/cover"></div>
+      <div aria-label="Contain" style="${box};background:url(${file}) no-repeat center/contain"></div>
+      <div aria-label="Natural" style="${box};background-image:url(${file})"></div>
+      <div aria-label="Width" style="${box};background:url(${file}) 0 0/50% auto"></div>
+      <div aria-label="Height" style="${box};background:url(${file}) 0 0/auto 100px"></div>
+      <div aria-label="Both" style="${box};background:url(${file}) 0 0/300px 50px"></div>
+      <span aria-label="Inline" style="background:url(${file}) 0 0/300px 50px">An inline box</span>`);
+    expect(await issues()).toEqual([
+      ["blurry-image", 'div "Cover" background', "a background drawn 400×200 from 200×100; at 2x it needs 800px wide"],
+      ["blurry-image", 'div "Contain" background', "a background drawn 400×200 from 200×100; at 2x it needs 800px wide"],
+      ["blurry-image", 'div "Natural" background', "a background drawn 200×100 from 200×100; at 2x it needs 400px wide"],
+      ["blurry-image", 'div "Width" background', "a background drawn 200×100 from 200×100; at 2x it needs 400px wide"],
+      ["blurry-image", 'div "Height" background', "a background drawn 200×100 from 200×100; at 2x it needs 400px wide"],
+      ["blurry-image", 'div "Both" background', "a background drawn 300×50 from 200×100; at 2x it needs 600px wide"],
+      ["blurry-image", 'span "Inline" background', "a background drawn 300×50 from 200×100; at 2x it needs 600px wide"],
+    ]);
+    expect(await issues(1)).toEqual([
+      ["blurry-image", 'div "Cover" background', "a background drawn 400×200 from 200×100; at 1x it needs 400px wide"],
+      ["blurry-image", 'div "Contain" background', "a background drawn 400×200 from 200×100; at 1x it needs 400px wide"],
+      ["blurry-image", 'div "Both" background', "a background drawn 300×50 from 200×100; at 1x it needs 300px wide"],
+      ["blurry-image", 'span "Inline" background', "a background drawn 300×50 from 200×100; at 1x it needs 300px wide"],
+    ]);
+  });
+
+  it("reads an image-set's finest file at its own density, and each layer of several", async () => {
+    const coarse = await picture(200, 100);
+    const fine = await picture(800, 400);
+    const box = "width:400px;height:200px";
+    render(`
+      <div aria-label="Set" style="${box};background:image-set(url(${coarse}) 1x, url(${fine}) 2x) center/cover"></div>
+      <div aria-label="Thin set" style="${box};background:image-set(url(${coarse}) 1x, url(${coarse}) 2x) center/cover"></div>
+      <div aria-label="Layers" style="${box};background:linear-gradient(#000,#fff), url(${fine}) center/cover, url(${coarse}) center/cover"></div>`);
+    expect(await issues()).toEqual([
+      ["blurry-image", 'div "Thin set" background', "a background drawn 400×200 from 200×100; at 2x it needs 800px wide"],
+      ["blurry-image", 'div "Layers" background', "a background drawn 400×200 from 200×100; at 2x it needs 800px wide"],
+    ]);
+  });
+
+  it("passes SVG, gradients, small, hidden and broken backgrounds, and names one with an address by its folders", async () => {
+    const file = await picture(200, 100);
+    const box = "width:400px;height:200px";
+    const svg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/%3E";
+    render(`
+      <div style="${box};background:url(&quot;${svg}&quot;) center/cover"></div>
+      <div style="${box};background:linear-gradient(red,blue)"></div>
+      <div style="width:400px;height:200px;background:url(${file}) 0 0/60px 30px"></div>
+      <div hidden style="${box};background:url(${file}) center/cover"></div>
+      <div style="${box};background:url(data:image/png;base64,broken) center/cover"></div>
+      <div style="width:320px;height:160px;background:url(${new URL("../scripts/check/fixtures/picture-160.png", import.meta.url).href}) center/cover"></div>`);
+    expect(await issues()).toEqual([["blurry-image", "fixtures/picture-160.png (background)", "a background drawn 320×180 from 160×90; at 2x it needs 640px wide"]]);
   });
 });
 
@@ -282,17 +389,24 @@ describe("findSizeIssues: blurry-image, for a video", () => {
     }
   });
 
-  it("passes sharp, small, hidden, allowed and empty videos", async () => {
+  it("passes sharp, small, hidden and empty videos", async () => {
     const box = "display:block;width:200px;height:150px";
     render(`
       <video src="${CLIP}" muted style="${box}"></video>
       <video src="${CLIP}" muted style="display:block;width:60px;height:34px;object-fit:fill"></video>
       <video src="${CLIP}" muted hidden style="${box};object-fit:none"></video>
-      <span data-size-ignore="a soft backdrop on purpose"><video src="${CLIP}" muted style="${box};object-fit:none"></video></span>
-      <video src="${CLIP}" muted data-ouro-allow="blurry-image" data-ouro-allow-why="a soft backdrop on purpose" style="${box};object-fit:none"></video>
       <video muted style="${box}"></video>`);
     await Promise.all(videos().filter((video) => video.src).map(sized));
     expect(await findSizeIssues({ density: 2 })).toEqual([]);
+  });
+
+  it("finds a blurry video however it is allowed", async () => {
+    const box = "display:block;width:200px;height:150px;object-fit:none";
+    render(`
+      <span data-size-ignore="a soft backdrop on purpose"><video src="${CLIP}" muted style="${box}"></video></span>
+      <video src="${CLIP}" muted data-ouro-allow="blurry-image" data-ouro-allow-why="a soft backdrop on purpose" style="${box}"></video>`);
+    await Promise.all(videos().map(sized));
+    expect((await findSizeIssues({ density: 2 })).map(({ element }) => element)).toEqual(['video [data-ouro-allow="blurry-image"]', "media/hx-press.webm", "media/hx-press.webm"]);
   });
 });
 
@@ -716,10 +830,12 @@ describe("aliases", () => {
     expect(await findSizeIssues()).toMatchObject([{ rule: "broken-image", element: 'img "Backdrop"' }]);
   });
 
-  it("lists every opt-out with a reason, and none without one", () => {
+  it("lists every opt-out with a reason, and none without one, nor blurry-image, which no opt-out allows", () => {
     render(`
       <p id="ticker" data-ouro-allow="long-lines clipped-text" data-ouro-allow-why="a ticker">${LONG}</p>
       <p data-ouro-allow="overlap" data-ouro-allow-why="">No reason</p>
+      <img data-ouro-allow="blurry-image stretched-image" data-ouro-allow-why="a placeholder" alt="Stretched">
+      <img data-ouro-allow="blurry-image" data-ouro-allow-why="a soft backdrop" alt="Soft">
       <div class="a b c d" data-overlap-ignore="  a stamp " aria-label="Stamp"></div>
       <img data-size-ignore="a soft backdrop" alt="Backdrop">
       <span data-long-lines-ok="">No reason</span>
@@ -733,10 +849,11 @@ describe("aliases", () => {
     expect(host.querySelector("[data-overlap-ignore]")!.getAttribute("data-overlap-ignore")).toBe("  a stamp ");
     expect(allowances).toEqual([
       { rules: "long-lines clipped-text", element: `p#ticker "${LONG.slice(0, 40)}…"`, reason: "a ticker" },
+      { rules: "stretched-image", element: 'img "Stretched"', reason: "a placeholder" },
       { rules: "overlap", element: 'div.a.b.c "Stamp" [data-overlap-ignore]', reason: "a stamp" },
       { rules: "clipped-text", element: "span [data-clip-ok]", reason: "a code" },
       { rules: "sideways-scroll", element: "div [data-scroll-x]", reason: "a timeline" },
-      { rules: "sideways-scroll clipped-text long-lines blurry-image stretched-image", element: 'img "Backdrop" [data-size-ignore]', reason: "a soft backdrop" },
+      { rules: "sideways-scroll clipped-text long-lines stretched-image", element: 'img "Backdrop" [data-size-ignore]', reason: "a soft backdrop" },
       { rules: "image-fade", element: 'img "Cut-out" [data-image-fade-ok]', reason: "a cut-out on purpose" },
     ]);
   });

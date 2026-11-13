@@ -1,13 +1,14 @@
 export { findSizeIssues };
-export type { Measure, PageIssue, SizeCheckOptions };
+export type { ImageMeasure, Measure, PageIssue, SizeCheckOptions };
 
 // Runs in the page (page.evaluate), so nothing in it may close over anything outside the function. With
 // overlap-check.ts (text on text or on a picture) and axe, check.ts holds pages to these at every size:
 //
 //   sideways-scroll  the page is wider than the screen; names the outermost elements that stick out
 //   clipped-text     a block of text cut off by its box: overflow, an ellipsis or a line clamp
-//   blurry-image     a raster picture or a video drawn larger than its file's own pixels allow at the screen's density,
-//                    at most 2
+//   blurry-image     a raster picture, a video or a raster CSS background drawn larger than its file's own pixels allow
+//                    at the screen's density, at most 2: its drawn width × density must not pass its file's width (half
+//                    a pixel's slack for rounding). It cannot be waived: an attempt to is itself a finding
 //   stretched-image  a raster picture or a video the page draws out of its own shape (object-fit: fill, an <img>'s
 //                    default, with a width and a height that don't keep its ratio), by more than 5% and 2px
 //   long-lines       only where the project declares a measure (`measures`): an element whose lines run past it
@@ -15,8 +16,9 @@ export type { Measure, PageIssue, SizeCheckOptions };
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and data-ouro-allow-why="<reason>"; an allow without
 // a reason does not count. For an app whose own rules keep data-ouro-* for Ouro's components, plain aliases do the same,
 // each with its reason as its value, and stay: data-scroll-x (sideways-scroll), data-clip-ok (clipped-text),
-// data-long-lines-ok (long-lines) and data-size-ignore (all four of these rules, blurry-image and stretched-image; a broken
-// picture is broken at any size, so it is never ignored).
+// data-long-lines-ok (long-lines) and data-size-ignore (sideways-scroll, clipped-text, long-lines and stretched-image). A
+// picture too small for where it is drawn is never let through, and a broken picture is broken at any size, so neither is
+// ever ignored.
 // `element` names the element the same way at every size, so a sweep can say where it shows; `detail` has this size's
 // numbers; `ref` marks it (data-ouro-check-ref) so the runner can photograph it.
 
@@ -30,6 +32,21 @@ interface PageIssue {
   budget?: number;
   unit?: string;
   samples?: number[];
+  image?: ImageMeasure;
+}
+
+// A blurry picture's numbers, for a report a person or a tool can make larger art from: where it is (a CSS selector),
+// the file it drew (currentSrc), the file's own pixels, the box it is drawn in (CSS pixels), the density, and the
+// width the file needs to be.
+interface ImageMeasure {
+  selector: string;
+  src: string;
+  naturalWidth: number;
+  naturalHeight: number;
+  renderedWidth: number;
+  renderedHeight: number;
+  density: number;
+  requiredWidth: number;
 }
 
 // A declared measure: the elements it holds (a CSS selector, or null for the page's prose: p, li, dd, blockquote,
@@ -48,7 +65,7 @@ interface SizeCheckOptions {
   stretch?: number;
 }
 
-async function findSizeIssues({ measures = [], density = Math.min(2, window.devicePixelRatio), tolerance = 1.1, minImage = 96, stretch = 0.05 }: SizeCheckOptions = {}): Promise<PageIssue[]> {
+async function findSizeIssues({ measures = [], density = Math.min(2, window.devicePixelRatio), tolerance = 1, minImage = 96, stretch = 0.05 }: SizeCheckOptions = {}): Promise<PageIssue[]> {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -85,6 +102,16 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
       if (s.display === "none" || s.visibility === "hidden" || Number(s.opacity) <= 0.05) return false;
     }
     return true;
+  };
+  // A path a person can paste into the console: the nearest id, else the body, then each tag in turn.
+  const selectorOf = (el: Element) => {
+    const parts: string[] = [];
+    for (let n = el; ; n = n.parentElement!) {
+      if (n.id) return [`#${CSS.escape(n.id)}`, ...parts].join(" > ");
+      if (n === document.body) return ["body", ...parts].join(" > ");
+      const same = [...n.parentElement!.children].filter((c) => c.localName === n.localName);
+      parts.unshift(same.length > 1 ? `${n.localName}:nth-of-type(${same.indexOf(n) + 1})` : n.localName);
+    }
   };
   const inlineOnly = (el: Element) => [...el.children].every((c) => /^inline|^contents$/.test(getComputedStyle(c).display) || c.matches("br, wbr"));
 
@@ -132,7 +159,32 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     }
   }
 
-  // Blurry pictures. naturalWidth is in CSS pixels, divided by the srcset density the browser chose, so the file's own
+  // Blurry pictures. Missing pixels are never a design choice, so no allow lets one through: an element that tries is a
+  // finding of its own, which names the fix.
+  for (const el of document.querySelectorAll("[data-ouro-allow]")) {
+    if (!reasonOf(el, "data-ouro-allow").split(/\s+/).includes("blurry-image")) continue;
+    issues.push({
+      ref: ref(el),
+      rule: "blurry-image",
+      element: `${describe(el)}${quoted(el)} [data-ouro-allow="${reasonOf(el, "data-ouro-allow")}"]`,
+      detail: "blurry-image cannot be waived: remove it from data-ouro-allow and give the picture a larger source, or a srcset whose largest file covers its drawn width at 2x",
+    });
+  }
+  // The finding for a picture whose file is `pw`×`ph` drawn at `scale` (CSS pixels a file pixel) in a box `r`, when the
+  // file is narrower than the drawn width at the density. Half a pixel is layout's rounding.
+  const blur = (el: Element, src: string, [pw, ph]: [number, number], scale: number, r: DOMRect, element: string, kind: string) => {
+    const need = pw * scale * density;
+    if (need <= pw * tolerance + 0.5) return;
+    const requiredWidth = Math.ceil(need);
+    issues.push({
+      ref: ref(el),
+      rule: "blurry-image",
+      element,
+      detail: `${kind}drawn ${Math.round(r.width)}×${Math.round(r.height)} from ${pw}×${ph}${kind === "a video " ? " frames" : ""}; at ${density}x it needs ${requiredWidth}px wide`,
+      image: { selector: selectorOf(el), src, naturalWidth: pw, naturalHeight: ph, renderedWidth: Math.round(r.width), renderedHeight: Math.round(r.height), density, requiredWidth },
+    });
+  };
+  // naturalWidth is in CSS pixels, divided by the srcset density the browser chose, so the file's own
   // pixels come from loading the chosen source into an Image of its own.
   // By its path's last two folders, never its host: a run's local server has a new port each time. A data: or blob:
   // picture has no lasting address, so it goes by its name.
@@ -166,18 +218,11 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     const pw = file.naturalWidth || img.naturalWidth;
     const ph = file.naturalHeight || img.naturalHeight;
     stretched(img, fit, [pw, ph], nameOf(img, src));
-    if ((r.width < minImage && r.height < minImage) || optedOut(img, "blurry-image", ["data-size-ignore"])) continue;
+    if (r.width < minImage && r.height < minImage) continue;
     const sx = r.width / pw;
     const sy = r.height / ph;
     const scale = fit === "contain" || fit === "scale-down" ? Math.min(sx, sy) : fit === "none" ? 1 : Math.max(sx, sy);
-    if (scale * density > tolerance) {
-      issues.push({
-        ref: ref(img),
-        rule: "blurry-image",
-        element: nameOf(img, src),
-        detail: `drawn ${Math.round(r.width)}×${Math.round(r.height)} from ${pw}×${ph}; at ${density}x it needs ${Math.ceil(pw * scale * density)}px wide`,
-      });
-    }
+    blur(img, src, [pw, ph], scale, r, nameOf(img, src), "");
   }
 
   // Blurry videos: a video's frames are videoWidth × videoHeight pixels, drawn by object-fit (contain unless the page says
@@ -188,7 +233,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     const r = video.getBoundingClientRect();
     const fit = getComputedStyle(video).objectFit;
     // Asking a video for its size can take seconds, so only one a rule could find something on is asked.
-    const blurry = (r.width >= minImage || r.height >= minImage) && !optedOut(video, "blurry-image", ["data-size-ignore"]);
+    const blurry = r.width >= minImage || r.height >= minImage;
     if (!blurry && (fit !== "fill" || optedOut(video, "stretched-image", ["data-size-ignore"]))) continue;
     const src = video.currentSrc || video.src || video.querySelector("source")?.src || "";
     let [pw, ph] = [video.videoWidth, video.videoHeight];
@@ -207,13 +252,57 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     if (!blurry) continue;
     const [sx, sy] = [r.width / pw, r.height / ph];
     const scale = fit === "none" ? 1 : fit === "cover" || fit === "fill" ? Math.max(sx, sy) : Math.min(sx, sy);
-    if (scale * density > tolerance) {
-      issues.push({
-        ref: ref(video),
-        rule: "blurry-image",
-        element: name,
-        detail: `a video drawn ${Math.round(r.width)}×${Math.round(r.height)} from ${pw}×${ph} frames; at ${density}x it needs ${Math.ceil(pw * scale * density)}px wide`,
-      });
+    blur(video, src, [pw, ph], scale, r, name, "a video ");
+  }
+
+  // Blurry backgrounds: each raster url() layer of an element's background-image (in an image-set, its finest file), drawn
+  // as its background-size says in the element's padding box. SVG and gradients have no pixels to run out of.
+  const layers = (text: string) => {
+    const out: string[] = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === "(") depth++;
+      else if (text[i] === ")") depth--;
+      else if (text[i] === "," && !depth) {
+        out.push(text.slice(start, i).trim());
+        start = i + 1;
+      }
+    }
+    return [...out, text.slice(start).trim()];
+  };
+  const length = (value: string, whole: number) => (value === "auto" ? null : value.endsWith("%") ? (parseFloat(value) / 100) * whole : parseFloat(value));
+  for (const el of document.body.querySelectorAll("*")) {
+    const s = getComputedStyle(el);
+    if (!s.backgroundImage.includes("url(") || !shown(el)) continue;
+    const sizes = layers(s.backgroundSize);
+    const r = el.getBoundingClientRect();
+    const [bw, bh] = [el.clientWidth || r.width, el.clientHeight || r.height];
+    const all = layers(s.backgroundImage);
+    for (const [i, layer] of all.entries()) {
+      // The file and the density it is drawn at: url("…") is 1x; image-set(url("…") 2x, …) is its finest.
+      const files = [...layer.matchAll(/url\("((?:[^"\\]|\\.)*)"\)\s*(?:([\d.]+)(?:x|dppx))?/g)].map(([, url, res]) => ({ url: url!.replace(/\\(.)/g, "$1"), res: Number(res ?? 1) }));
+      const best = files.sort((a, b) => b.res - a.res)[0];
+      if (!best || /\.svg(\?|#|$)|^data:image\/svg/.test(best.url)) continue;
+      const file = new Image();
+      file.src = best.url;
+      const loaded = await file.decode().then(() => true, () => false);
+      if (!loaded) continue;
+      const [pw, ph] = [file.naturalWidth, file.naturalHeight];
+      const [iw, ih] = [pw / best.res, ph / best.res];
+      const size = sizes[i % sizes.length]!;
+      let dw: number, dh: number;
+      if (size === "cover" || size === "contain") {
+        const k = (size === "cover" ? Math.max : Math.min)(bw / iw, bh / ih);
+        [dw, dh] = [iw * k, ih * k];
+      } else {
+        const [x, y = "auto"] = size.split(/\s+/);
+        const [w, h] = [length(x!, bw), length(y, bh)];
+        [dw, dh] = w === null && h === null ? [iw, ih] : w === null ? [(h! * iw) / ih, h!] : h === null ? [w, (w * ih) / iw] : [w, h];
+      }
+      if (dw < minImage && dh < minImage) continue;
+      const name = /^(data|blob):/.test(best.url) ? `${describe(el)}${quoted(el)} background` : `${nameOf(el, best.url)} (background)`;
+      blur(el, best.url, [pw, ph], Math.max(dw / pw, dh / ph), new DOMRect(0, 0, dw, dh), name, "a background ");
     }
   }
 

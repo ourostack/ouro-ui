@@ -54,7 +54,7 @@ Run the check again with the earlier report, and it writes a captioned before an
 node lib/ouro/check/check.ts dist --before ouro-check/report.json --out ouro-check-after
 ```
 
-Put the before and after in the pull request as the proof. A finding you keep on purpose gets `data-ouro-allow="<rule>"` and `data-ouro-allow-why="<reason>"` on the element; one without a reason does not count. To let a new rule report without failing while its findings are fixed, waive it in `ouro-check.json` with the reason, and remove the waiver with the last fix.
+Put the before and after in the pull request as the proof. A finding you keep on purpose gets `data-ouro-allow="<rule>"` and `data-ouro-allow-why="<reason>"` on the element; one without a reason does not count. `blurry-image` can't be waived: an allow or a waiver of it is itself a problem, so give the picture a larger source; `--images-report <file.json>` lists the blurry pictures with the files they drew and the widths they need. To let a new rule report without failing while its findings are fixed, waive it in `ouro-check.json` with the reason, and remove the waiver with the last fix.
 
 ## What it can't tell you
 

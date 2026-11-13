@@ -172,7 +172,7 @@
     },
     {
       "file": "registry/ouro/check/check.ts",
-      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers and budgets (default ouro-check.json, when it exists) --no-axe skip axe-core --no-measured skip the measured rules, and press nothing --ready-event <name> an event the page fires once it has drawn, besides ouro:ready",
+      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers and budgets (default ouro-check.json, when it exists) --no-axe skip axe-core --no-measured skip the measured rules, and press nothing --ready-event <name> an event the page fires once it has drawn, besides ouro:ready --images-report <file> also write, as JSON, each picture too small for where it is drawn: its page, a selector, the file it drew, that file's pixels, its drawn width, the density and the width it needs",
       "reason": "Ouro check's --help lists its options; the \"no\" it reads as a claim is the --no-axe and --no-measured flags' names"
     },
     {
