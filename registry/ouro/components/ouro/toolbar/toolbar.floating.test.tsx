@@ -957,10 +957,14 @@ describe("Toolbar hidden", () => {
 
   it("does nothing without autoHide", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { toolbar } = await render(<Toolbar label="Call controls" hidden onHiddenChange={() => {}} items={controls} />);
+    const { toolbar, rerender } = await render(<Toolbar label="Call controls" hidden onHiddenChange={() => {}} items={controls} />);
     await wait(5000);
     expect(isHidden(toolbar)).toBe(false);
     expect(parseDuration(getComputedStyle(toolbar).transitionDuration)).toBe(0);
+    // The app showing it starts no rest, since there is none to start.
+    await rerender(<Toolbar label="Call controls" hidden={false} onHiddenChange={() => {}} items={controls} />);
+    await wait(5000);
+    expect(isHidden(toolbar)).toBe(false);
   });
 });
 
