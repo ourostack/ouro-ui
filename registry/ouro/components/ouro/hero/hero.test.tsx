@@ -220,7 +220,7 @@ describe("Hero", () => {
     expect(stage.header.className).toContain("min(80rem,");
     expect(stage.header.className).not.toContain("min(72rem,");
     expect(stage.header.firstElementChild!.className).toContain("text-center");
-    expect(stage.header.firstElementChild!.className).not.toContain("text-left");
+    expect(stage.header.firstElementChild!.className).not.toContain("text-start");
     expect(stage.part("actions")!.className).toContain("justify-center");
     expect(stage.part("actions")!.className).not.toContain("justify-start");
     expect(stage.part("media")!.className).toContain("min-[40rem]:mt-12");
@@ -236,7 +236,7 @@ describe("Hero", () => {
     );
     expect(column.header.className).toContain("min(72rem,");
     expect(column.header.className).not.toContain("min(80rem,");
-    expect(column.header.firstElementChild!.className).toContain("text-left");
+    expect(column.header.firstElementChild!.className).toContain("text-start");
     expect(column.header.firstElementChild!.className).not.toContain("text-center");
     expect(column.part("actions")!.className).toContain("justify-start");
     expect(column.part("actions")!.className).not.toContain("justify-center");

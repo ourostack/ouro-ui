@@ -101,7 +101,7 @@ const layoutRoot: Record<HeroLayout, string> = {
 
 const layoutText: Record<HeroLayout, string> = {
   stage: "mx-auto grid w-[min(42rem,var(--hero-width))] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
-  column: "mx-auto grid w-[var(--hero-width)] justify-items-start gap-4 text-left",
+  column: "mx-auto grid w-[var(--hero-width)] justify-items-start gap-4 text-start",
 };
 
 const layoutActions: Record<HeroLayout, string> = {
