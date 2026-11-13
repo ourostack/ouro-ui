@@ -1,0 +1,29 @@
+{
+  "order": 2660,
+  "components": [
+    "hero"
+  ],
+  "motion": {
+    "hero": {
+      "states": {
+        "data-starting-style": {
+          "kind": "motion",
+          "parts": {
+            "media": {
+              "properties": [
+                "opacity",
+                "transform"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in on mount, and only fades it with reduced motion"
+          ]
+        }
+      }
+    }
+  }
+}

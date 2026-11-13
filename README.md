@@ -304,6 +304,7 @@ Components:
 `file-field`,
 `form`,
 `heading`,
+`hero`,
 `hover-card`,
 `image-cropper`,
 `image-field`,
@@ -621,6 +622,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Layout
 
 - **AspectRatio** — A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads. [Docs](docs/AspectRatio.md)
+- **Hero** — The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture below. [Docs](docs/Hero.md)
 - **PageHeader** — The top of a page: its title with an optional line above it (`eyebrow`), a description under it, the page's actions beside it, and a trail and an image above. [Docs](docs/PageHeader.md)
 - **Resizable** — Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console. [Docs](docs/Resizable.md)
 - **ResizableHandle** — The draggable line between two panels in a `ResizablePanelGroup`, a focusable window splitter (`role="separator"`) for the panel before it. [Docs](docs/ResizableHandle.md)
