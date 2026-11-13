@@ -375,6 +375,7 @@ describe("Composer states", () => {
       expect(send.disabled).toBe(true);
       expect(textarea.disabled).toBe(false);
       await expect.element(page.getByText(reason)).toBeVisible();
+      expect(root.querySelector<HTMLElement>("[data-ouro-composer-reason]")!.getBoundingClientRect().height).toBeGreaterThan(1);
       expect(descriptions(textarea)).toEqual([reason, "Ctrl+Enter to send"]);
       textarea.focus();
       textarea.setSelectionRange(5, 5);
@@ -421,6 +422,13 @@ describe("Composer states", () => {
     const shown = host.querySelector<HTMLElement>("[data-ouro-composer-description]")!;
     expect(shown.parentElement!.textContent).toBe("Ctrl+Enter to send");
     expect(host.querySelector<HTMLElement>("[data-ouro-composer-reason]")!.getBoundingClientRect().width).toBe(1);
+  });
+
+  it("with hideSendDisabledReason and no reason, draws no reason element and no line", async () => {
+    const { host, root } = await render(<Composer label="Message" defaultValue="Hello" hideSendDisabledReason onSend={() => {}} />);
+    const { root: plain } = await render(<Composer label="Message" defaultValue="Hello" onSend={() => {}} />);
+    expect(host.querySelector("[data-ouro-composer-reason]")).toBeNull();
+    expect(root.getBoundingClientRect().height).toBe(plain.getBoundingClientRect().height);
   });
 
   it("when disabled, takes no text and no send, and does not show a reason", async () => {
