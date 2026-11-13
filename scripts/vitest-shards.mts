@@ -60,5 +60,15 @@ export class TimingsReporter implements Reporter {
     const dir = join(root, ".tmp/timings");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `vitest-${shard.index}of${shard.count}.json`), `${JSON.stringify(times, null, 2)}\n`);
+    // Each test of a sliced suite (one per story and check), so a split can weigh stories by cost.
+    const tests: Record<string, number> = {};
+    for (const module of testModules) {
+      if (!slicedSuites.includes(posix(relative(root, module.moduleId)))) continue;
+      for (const test of module.children.allTests()) {
+        const duration = test.result().state === "skipped" ? undefined : test.diagnostic()?.duration;
+        if (duration !== undefined) tests[`${module.project.name} ${test.fullName}`] = Math.round(duration);
+      }
+    }
+    writeFileSync(join(dir, `stories-${shard.index}of${shard.count}.json`), `${JSON.stringify(tests, null, 2)}\n`);
   }
 }
