@@ -7,7 +7,7 @@ A failure says what happened and precisely why (the system and its answer: "The 
 Vague: "couldn't", "could not", "something went wrong", "unable to", "failed to load", "an error occurred", and a text that is only a bare "Error" or "Upload failed", unless the cause follows the phrase in the same sentence ("Couldn't send: you're offline. Try again when you're back online.", "… because …"; not "Couldn't send: try again"). A negation or an action before the word ("No errors", "Retry failed") passes. The source rules kit (ouro-source-rules) keeps the identical list for an app's UI copy; change both together. A text that is precise and still holds a phrase ("The card service says your card could not be charged. Use another card.") goes on an allow-list, each entry with its reason.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-precise-copy#v1.3.11
+npx shadcn@latest add ourostack/ouro-ui/ax-precise-copy#v1.3.12
 ```
 
 It installs `lib/ouro/ax/precise-copy.ts`. Its tests are `ax-precise-copy-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
