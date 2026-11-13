@@ -154,8 +154,8 @@ function pressHandlers(keys: string[], untilClick = false, opens = (event: React
  * Lightbox's thumbnail, and a Button with `aria-haspopup="dialog"`) takes Enter and Space and
  * holds the page only until the trigger's click opens the dialog, whose own scroll lock holds it
  * from then; it leaves `scroll-behavior` alone. `contextMenu` (a context menu's area) takes the
- * right button's pointerdown and a touch's, the two gestures that open it at the pointer, and no
- * key. A press during a smooth scroll stops the page where it is at once, so a
+ * right button's pointerdown and no key; not a touch, which may start a scroll over the area, and
+ * stops a scroll in flight by itself. A press during a smooth scroll stops the page where it is at once, so a
  * popup that opens on pointerdown does not take the release, over whatever moved under the
  * pointer, for a press outside it and close, and the release of a press on a dialog's trigger
  * lands on the trigger, so its click opens the dialog. Spread them on the trigger, with `holdPage`
@@ -172,14 +172,14 @@ function pressHandlers(keys: string[], untilClick = false, opens = (event: React
  * @claim "holds the page only until the trigger's click opens the dialog" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > holds the page from a dialog trigger's press until its click, leaving scroll-behavior alone)
  * @claim "lands on the trigger, so its click opens the dialog" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:fileLine(registry/ouro/components/ouro/dialog/dialog.test.tsx, /opens and leaves the page where the press found it, pressed mid-scroll/)
  * @claim "takes Enter and Space, which click it" registry/ouro/components/ouro/popover/popover.test.tsx verify:fileLine(registry/ouro/components/ouro/popover/popover.test.tsx, /leaves the page free at an arrow key on its trigger, which opens nothing/)
- * @claim "takes the right button's pointerdown and a touch's, the two gestures that open it" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > holds the page from a context area's right-button press or a touch, not its primary press)
+ * @claim "takes the right button's pointerdown and no key; not a touch" registry/ouro/lib/ouro/page-scroll-hold.test.ts verify:testExists(registry/ouro/lib/ouro/page-scroll-hold.test.ts::holdPageAtPress > holds the page from a context area's right-button press, not its primary press or a touch, which may start a scroll)
  */
 const holdPageAtPress = {
   button: pressHandlers(buttonKeys),
   listButton: pressHandlers([...buttonKeys, ...listKeys]),
   listInput: pressHandlers(listKeys),
   dialog: pressHandlers(buttonKeys, true),
-  contextMenu: pressHandlers([], false, (event) => event.button === 2 || event.pointerType === "touch"),
+  contextMenu: pressHandlers([], false, (event) => event.button === 2),
 };
 
 /**
