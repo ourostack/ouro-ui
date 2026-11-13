@@ -593,6 +593,7 @@ export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
   // Recharts measures the plot before it renders its children, by which time the slot is mounted. A null
   // target would make Legend fall back to the list inside the chart's own wrapper, so render nothing then.
   /* istanbul ignore if @preserve -- the slot mounts before Recharts measures the plot, so a target is always set when this renders */
+  // Stryker disable next-line ConditionalExpression: the slot mounts before Recharts measures the plot, so this never runs with a null target and forcing it false changes nothing.
   if (legendTarget === null) return null;
   return <Legend verticalAlign="bottom" portal={legendTarget} content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
 }
