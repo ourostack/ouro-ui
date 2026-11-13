@@ -9,6 +9,45 @@ test("emulateMedia switches reduced motion and color scheme", async () => {
   expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(false);
 });
 
+test("emulateMedia returns once the frame matches the preference, so the next line reads its styles", async () => {
+  // Read on the very next line, with no await between: a frame that has not re-evaluated its media
+  // queries still gives the old value here, which is the race this test guards.
+  const style = document.createElement("style");
+  style.textContent = ".media-probe{transition-property:height}@media (prefers-reduced-motion: reduce){.media-probe{transition-property:opacity}}.scheme-probe{transition-property:height}@media (prefers-color-scheme: dark){.scheme-probe{transition-property:color}}";
+  const motion = document.createElement("div");
+  motion.className = "media-probe";
+  const scheme = document.createElement("div");
+  scheme.className = "scheme-probe";
+  document.head.append(style);
+  document.body.append(motion, scheme);
+  try {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    expect(getComputedStyle(motion).transitionProperty).toBe("opacity");
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    expect(getComputedStyle(motion).transitionProperty).toBe("height");
+    await commands.emulateMedia({ colorScheme: "dark" });
+    expect(getComputedStyle(scheme).transitionProperty).toBe("color");
+    await commands.emulateMedia({ colorScheme: "light" });
+    expect(getComputedStyle(scheme).transitionProperty).toBe("height");
+  } finally {
+    motion.remove();
+    scheme.remove();
+    style.remove();
+  }
+});
+
+test("emulateMedia throws, naming the query, when the frame never matches it", async () => {
+  // Stub the frame's matchMedia so the reduced-motion query never matches, whatever the page emulates.
+  const real = window.matchMedia;
+  window.matchMedia = ((query: string) => (query === "(prefers-reduced-motion: reduce)" ? { matches: false } : real.call(window, query))) as typeof window.matchMedia;
+  try {
+    await expect(commands.emulateMedia({ reducedMotion: "reduce" })).rejects.toThrow("does not match (prefers-reduced-motion: reduce)");
+  } finally {
+    window.matchMedia = real;
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+  }
+}, 10_000);
+
 test.skipIf(server.browser !== "chromium")("emulateMedia returns once forced colours have settled, past any transition the switch started", async () => {
   // A fill with a transition (the `press` utility's) eases to the forced value: read at once,
   // it is a colour between the two, which no rule set.
