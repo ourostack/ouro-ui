@@ -1,1 +1,0 @@
-- Fixed: Toolbar's shipped fade spec lets the held clock run until the tooltip has gone, [instead of reading the tooltip after a set run of the clock](registry/ouro/e2e/ouro/toolbar.spec.ts "verify:fileLine(registry/ouro/e2e/ouro/toolbar.spec.ts, /await page.clock.resume\(\);/)"), which failed at random in WebKit.

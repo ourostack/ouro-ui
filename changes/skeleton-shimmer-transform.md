@@ -1,1 +1,0 @@
-- Changed: Skeleton's shimmer moves a band with a transform instead of animating the background, so a page with skeletons can rest between frames.
