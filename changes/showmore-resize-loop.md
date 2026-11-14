@@ -1,0 +1,1 @@
+- Fix: ShowMore no longer raises WebKit's "ResizeObserver loop completed with undelivered notifications" window error. It reads and commits its fit in the next animation frame's callback instead of inside the observer's, and its button is still in the first painted frame.
