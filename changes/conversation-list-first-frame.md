@@ -1,1 +1,1 @@
-- ConversationList draws the rows its first view reaches in the first frame and the rest after that frame has painted, so a short list first paints sooner.
+- ConversationList draws only the rows its view and overscan reach, from the first frame, in a long list, so the first frame is the finished screen and nothing is added after it.
