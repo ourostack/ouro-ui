@@ -40,22 +40,26 @@ export interface DocsOpener {
 }
 
 /**
- * A scene by day and at night, for Hero: the wide scene in AVIF then WebP, its whole width at every size, so the picture
- * holds the one shape its width and height give and nothing moves when it arrives. A band of it, framed on the friends'
+ * A scene by day and at night, for Hero: below 640px its phone crop, cut to hold the whole of the scene's friends, and above
+ * that the wide scene, each in AVIF then WebP. Each source carries its own width and height, so the picture holds the shape
+ * of the file it shows and nothing moves when it arrives. On wider screens a band of the wide scene, framed on the friends'
  * faces (storybook.ts, `band`), unless the page shows the whole scene. The scene is the page's setting, not its content,
  * so it is decorative: the title says what the page is.
  */
 export function docsPictures(scene: SceneName, tall = false): HeroPictures {
   const at = (path: string) => href(`${STORYBOOK}${path}`);
-  const { height, band } = SCENES[scene];
+  const { height, band, phoneHeight, night: nightScene } = SCENES[scene];
   const picture = (night: boolean) => {
-    const { wide, header } = sceneSources(scene, at, night);
+    const { phone, wide, header } = sceneSources(scene, at, night);
+    const phoneBox = { media: "(max-width: 640px)", sizes: "calc(100vw - 2rem)", width: 768, height: night ? nightScene.phoneHeight : phoneHeight };
     return {
       src: header,
       width: 1536,
       height,
       decorative: true,
       sources: [
+        { type: "image/avif", srcSet: phone("avif"), ...phoneBox },
+        { type: "image/webp", srcSet: phone("webp"), ...phoneBox },
         { type: "image/avif", srcSet: wide("avif"), sizes: COLUMN_SIZES },
         { type: "image/webp", srcSet: wide("webp"), sizes: COLUMN_SIZES },
       ],
@@ -86,7 +90,7 @@ export function DocsShell({ current, opener, children }: { current: string; open
         </aside>
         <div className="min-w-0">
           {opener && (
-            <section aria-labelledby="page-title">
+            <section aria-labelledby="page-title" data-brand-scene={opener.scene}>
               <Hero
                 layout="column"
                 fullWidth

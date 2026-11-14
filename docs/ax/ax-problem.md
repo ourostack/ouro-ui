@@ -52,7 +52,7 @@ function commandLine(words: readonly string[]): string
 
 ### `didYouMean`
 
-The candidate an agent most likely meant: a unique prefix, or the nearest within two edits; null when none is close.
+The candidate an agent most likely meant: the nearest within two edits, else a unique prefix; null when neither applies.
 
 ```ts
 function didYouMean(word: string, candidates: readonly string[]): string | null
