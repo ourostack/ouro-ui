@@ -173,6 +173,26 @@ test("code search waits its turn and retries a refusal", () => {
   assert.ok(waits.includes(30000));
 });
 
+test("code search stops waiting once its time budget is spent, so the hourly run finishes", () => {
+  let clock = NOW.getTime();
+  let calls = 0;
+  const context = createContext({
+    gh: () => {
+      calls += 1;
+      throw new Error("gh: try again in 60s (HTTP 429)");
+    },
+    now: () => new Date(clock),
+    sleep: (ms) => {
+      clock += ms;
+    },
+    searchBudgetMs: 5 * 60_000,
+  });
+  for (let i = 0; i < 40; i += 1) assert.throws(() => context.search(`q${i}`, "o/r"), /rate limited|429/);
+  assert.ok(clock - NOW.getTime() <= 5 * 60_000 + 6500, `waited ${clock - NOW.getTime()} ms, more than the budget`);
+  assert.throws(() => context.search("late", "o/r"), /code search's time budget/);
+  assert.ok(calls < 40, `asked GitHub ${calls} times after the budget ran out`);
+});
+
 test("code search waits as long as GitHub says on an HTTP 429, within a cap", () => {
   const messages = ["gh: try again in 14.98s (HTTP 429)", "gh: try again in 732.6s (HTTP 429)", "gh: try again in 588ms (HTTP 429)"];
   const waits = [];
