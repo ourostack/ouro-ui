@@ -738,6 +738,7 @@
     "registry/ouro/e2e/ouro/color-scheme-toggle.spec.ts": 5569,
     "registry/ouro/e2e/ouro/combobox.spec.ts": 22123,
     "registry/ouro/e2e/ouro/command.spec.ts": 30795,
+    "registry/ouro/e2e/ouro/composed-surface.spec.ts": 14741,
     "registry/ouro/e2e/ouro/composer.spec.ts": 34769,
     "registry/ouro/e2e/ouro/confirm-dialog.spec.ts": 15313,
     "registry/ouro/e2e/ouro/conversation-list.spec.ts": 8304,

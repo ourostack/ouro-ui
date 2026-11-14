@@ -10,11 +10,11 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 |---|---|---|---|---|
 | Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | Not yet: [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows) is waiting for a builder |
 
-Components: Web has 121 of 121, Apple has 8 of 121, Android has 0 of 121, Windows has 0 of 121.[^matrix]
+Components: Web has 122 of 122, Apple has 8 of 122, Android has 0 of 122, Windows has 0 of 122.[^matrix]
 
 Claims covered: Web 7 of 13, Apple 13 of 13, Android 0 of 13, Windows 0 of 13.[^matrix]
 
-Gap cells: 387.[^matrix]
+Gap cells: 390.[^matrix]
 
 ### Components
 
@@ -140,6 +140,7 @@ Gap cells: 387.[^matrix]
 | [a2ui-surface](https://ui.ouroboros.bot/docs/a2ui-surface/) | `a2ui-surface` | Not yet | Not yet | Not yet |
 | [thread-rail](https://ui.ouroboros.bot/docs/thread-rail/) | `thread-rail` | Not yet | Not yet | Not yet |
 | [ouro-mcp-app](https://ui.ouroboros.bot/docs/ouro-mcp-app/) | `ouro-mcp-app` | Not yet | Not yet | Not yet |
+| [composed-surface](https://ui.ouroboros.bot/docs/composed-surface/) | `composed-surface` | Not yet | Not yet | Not yet |
 | [unread-dot](https://ui.ouroboros.bot/docs/unread-dot/) | `unread-dot` | Not yet | Not yet | Not yet |
 
 ### Claims

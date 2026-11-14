@@ -1,6 +1,7 @@
 import { ComposedSurface } from "@/components/ouro/composed-surface/composed-surface";
+import type { ComposedNode } from "@/lib/ouro/a2ui-core";
 
-const tree = {
+const tree: ComposedNode = {
   id: "root",
   component: "Card",
   props: {},

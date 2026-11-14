@@ -1,6 +1,6 @@
 "use client";
 
-import { type JSX, useCallback, useEffect, useMemo } from "react";
+import { type JSX, useEffect, useMemo } from "react";
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { ComposedTree, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
 import { actionMessage, resolveMessages, type LabelContext, type Problem } from "@/registry/ouro/lib/ouro/a2ui-core";
@@ -112,10 +112,8 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
   // Stryker disable next-line ConditionalExpression: surfaces[undefined] is undefined too; the check is for the index type.
   const tree = id === undefined ? undefined : surfaces[id];
   // A press, as the A2UI action message it names: the button is its source component.
-  const onComposedPress = useCallback<ComposedSurfaceProps["onPress"]>(
-    (press, button) => onAction(actionMessage({ surfaceId: id!, sourceComponentId: button.id, button, timestamp: now(), confirmed: press.confirmed === true }) as unknown as A2UIActionMessage),
-    [id, onAction],
-  );
+  const onComposedPress: ComposedSurfaceProps["onPress"] = (press, button) =>
+    onAction(actionMessage({ surfaceId: id!, sourceComponentId: button.id, button, timestamp: now(), confirmed: press.confirmed === true }) as unknown as A2UIActionMessage);
   useEffect(() => {
     if (problems) onProblems?.(problems);
   }, [problems, onProblems]);

@@ -3,6 +3,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { ComposedSurface, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Row } from "@/registry/ouro/components/ouro/stack/row";
+import { Stack } from "@/registry/ouro/components/ouro/stack/stack";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { actionButtonProps, loadCatalog, validateTree, type ComposedNode, type Obj, type PersonPress } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -147,6 +151,73 @@ describe("ComposedSurface", () => {
     await userEvent.click(order);
     expect(onHandoff).toHaveBeenCalledWith({ action: "order_ingredients", how: "with Order ingredients on the recipe in the app" });
     expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it("draws a Stack as a column or a wrapping row, Text muted or plain, an Image on its own, and a List with or without numbers", async () => {
+    const host = await render(
+      <ComposedSurface
+        {...props({
+          tree: node("root", "Stack", { direction: "vertical", gap: "small" }, [
+            node("row", "Stack", { direction: "horizontal", gap: "small" }, [node("a", "Text", { text: "a", tone: "default" })]),
+            node("muted", "Text", { text: "muted", tone: "muted" }),
+            node("plain", "Text", { text: "plain", tone: "default" }),
+            node("photo", "Image", { url: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", description: "Square", aspect: "square" }),
+            node("items", "List", { items: ["orzo", "butter"], ordered: false }),
+          ]),
+        })}
+      />,
+    );
+    const ref = await render(
+      <>
+        <Stack gap="sm" />
+        <Row wrap gap="sm" />
+        <Text tone="muted">x</Text>
+        <Text>x</Text>
+      </>,
+    );
+    const column = host.querySelector('[data-ouro="composed-surface"] > *')!;
+    const [row, muted, plain, photo, list] = [...column.children];
+    expect(column.className).toBe(ref.children[0]!.className);
+    expect(row!.className).toBe(ref.children[1]!.className);
+    expect(muted!.className).toBe(ref.children[2]!.className);
+    expect(plain!.className).toBe(ref.children[3]!.className);
+    expect(photo!.getAttribute("data-ouro")).toBe("aspect-ratio");
+    expect(photo!.querySelector("img")!.getAttribute("alt")).toBe("Square");
+    expect(list!.tagName).toBe("UL");
+    expect(list!.className).toContain("list-disc");
+  });
+
+  it("puts a Card's first Image in its media slot, and a Card that opens with anything else, or holds nothing, has no media", async () => {
+    const host = await render(<ComposedSurface {...props()} />);
+    const img = host.querySelector('[data-ouro="card"] img')!;
+    expect(page.getByRole("heading", { level: 1 }).element().parentElement!.contains(img)).toBe(false);
+    const plain = await render(<ComposedSurface {...props({ tree: node("root", "Card", {}, [node("name", "Heading", { text: "No photo", level: 2 }), node("photo", "Image", { url: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", description: "Later", aspect: "square" })]) })} />);
+    const card = plain.querySelector('[data-ouro="card"]')!;
+    expect(card.querySelectorAll("img")).toHaveLength(1);
+    expect(card.querySelector("h2")!.parentElement!.contains(card.querySelector("img"))).toBe(true);
+    const empty = await render(<ComposedSurface {...props({ tree: node("root", "Card") })} />);
+    expect(empty.querySelector('[data-ouro="card"]')).not.toBeNull();
+    expect(empty.querySelector("img")).toBeNull();
+  });
+
+  it("draws the primary button solid and the others soft, as HX's own buttons", async () => {
+    const host = await render(<ComposedSurface {...props()} />);
+    const ref = await render(
+      <>
+        <Button tone="primary" variant="solid">
+          x
+        </Button>
+        <Button tone="secondary" variant="soft">
+          x
+        </Button>
+      </>,
+    );
+    const [solid, soft] = [...ref.querySelectorAll("button")];
+    const shop = host.querySelector('button[data-action="add_recipe_to_shopping_list"]')!;
+    const share = host.querySelector('button[data-action="share_recipe"]')!;
+    expect([shop.getAttribute("data-variant"), share.getAttribute("data-variant")]).toEqual(["solid", "soft"]);
+    expect(shop.className).toBe(solid!.className);
+    expect(share.className).toBe(soft!.className);
   });
 
   it("draws the new tree when it changes", async () => {
