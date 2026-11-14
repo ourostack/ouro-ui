@@ -624,25 +624,28 @@ describe("Ouro check's command", () => {
       axe: false,
       measured: false,
       readyEvents: ["a", "b"],
-      help: false,
+      imagesReport: undefined,
     });
     assert.deepEqual(parseArgs(["merge", "a", "b", "--out", "o", "--config", "c.json"]), { ...parseArgs(["a"]), merge: true, targets: ["a", "b"], out: "o", config: "c.json" });
     assert.equal(parseArgs(["a", "--images-report", "images.json"]).imagesReport, "images.json");
     assert.equal(parseArgs(["merge", "a", "--images-report", "images.json"]).imagesReport, "images.json");
-    assert.equal(parseArgs(["--help"]).help, true);
-    assert.equal(parseArgs(["merge", "-h"]).help, true);
+    assert.deepEqual(parseArgs(["--help"]).targets, []);
+    assert.deepEqual(parseArgs(["merge", "-h"]).targets, []);
     assert.equal(parseArgs(["a"]).sizes, SIZES);
     for (const [argv, message] of [
       [["a", "--out"], /--out needs a value/],
       [["a", "--out", "--no-axe"], /--out needs a value/],
       [["a", "--themes", "light,sepia"], /not "sepia"/],
-      [["a", "--shard", "3/2"], /--shard takes k\/n, such as 1\/4, not "3\/2"/],
+      [["a", "--themes", ""], /takes light, dark or both/],
+      [["a", "--shard", "3/2"], /takes k\/n, such as 1\/4, not "3\/2"/],
       [["a", "--shard", "0/2"], /not "0\/2"/],
       [["a", "--shard", "half"], /not "half"/],
       [["a", "--sizes", "390x844,wide"], /not "wide"/],
-      [["a", "--wat"], /Unknown option --wat/],
-      [["merge", "a", "--shard", "1/2"], /merge takes --out, --config and --images-report, not --shard/],
+      [["a", "--sizes", ""], /takes WxH pairs/],
+      [["a", "--wat"], /there is no --wat/],
+      [["merge", "a", "--shard", "1/2"], /there is no --shard/],
       [["a", "--images-report"], /--images-report needs a value/],
+      [["a", "--out", "x", "--out", "y"], /--out is given twice/],
       [[], /Name a URL or a built folder/],
       [["merge"], /Name the out folders to merge/],
     ] as [string[], RegExp][]) {
@@ -650,13 +653,24 @@ describe("Ouro check's command", () => {
     }
   });
 
-  test("prints its usage for --help, and with a usage problem exits 2", async () => {
+  test("prints the kit's help for --help, and refuses an unknown flag in one line that names its fix, with exit 2", async () => {
     const help = await run(["--help"]);
     assert.equal(help.code, 0);
-    assert.match(help.out, /^Usage: node lib\/ouro\/check\/check\.ts/);
+    assert.match(help.out, /^ouro-check: checks every page/);
+    assert.match(help.out, /--ready-event <name>\.\.\./);
     const wrong = await run(["--wat"]);
     assert.equal(wrong.code, 2);
-    assert.match(wrong.err, /^Unknown option --wat\.\n\nUsage:/);
+    assert.match(wrong.err, /^ouro-check: check: there is no --wat; its flags are --pages, /);
+    assert.equal(wrong.err.split("\n").length, 1);
+  });
+
+  test("refuses a target that is no folder or URL in one line that names the fix, and a mistyped merge names merge", async () => {
+    const chek = await run(["chek", ...fast]);
+    assert.equal(chek.code, 2);
+    assert.equal(chek.err, `ouro-check: check: "chek" is not a folder or an http(s) URL. Fix: ouro-check <built folder or URL>.`);
+    const mrege = await run(["mrege", ...fast]);
+    assert.equal(mrege.code, 2);
+    assert.equal(mrege.err, `ouro-check: check: "mrege" is not a folder or an http(s) URL. Fix: ouro-check merge <out folders>.`);
   });
 
   test("exits 3 on gated findings, writes the step summary, and exits 0 when the config waives them", async () => {
@@ -687,7 +701,18 @@ describe("Ouro check's command", () => {
     assert.equal(merged.code, 0, merged.err);
     const regated = await run(["merge", "second", "--out", "merged", "--config", join(cwd, "none.json")], { cwd });
     assert.equal(regated.code, 2);
-    assert.match(regated.err, /^Reading .*none\.json stopped the check: /);
+    assert.match(regated.err, /reading .*none\.json stopped the check: /);
+  });
+
+  test("--json prints the outcome alone and exits 3 on gated findings, with the progress lines on stderr", async () => {
+    const cwd = dir("json");
+    const failing = await run([folder, ...fast, "--json"], { cwd, env: { BROWSER_EXECUTABLE: browser } });
+    assert.equal(failing.code, 3, failing.err);
+    const outcome = JSON.parse(failing.out) as { action: string; state: string; summary: string };
+    assert.equal(outcome.action, "check");
+    assert.equal(outcome.state, "needs-human");
+    assert.match(outcome.summary, /\d+ finding\(s\), \d+ gated/);
+    assert.match(failing.err, /✗ 390×844/);
   });
 
   test("exits 2 when Playwright, axe-core, the config, the earlier report, a shard's report or the pages are missing, and 1 when it cannot run", async () => {
@@ -695,11 +720,11 @@ describe("Ouro check's command", () => {
     // The file system's root has no node_modules, so nothing resolves from it.
     const noFolder = await run([join(scratch, "no-such-folder"), ...fast]);
     assert.equal(noFolder.code, 2);
-    assert.match(noFolder.err, /no-such-folder is not a folder or an http\(s\) URL\./);
+    assert.match(noFolder.err, /no-such-folder" is not a folder or an http\(s\) URL\. Fix: ouro-check <built folder or URL>\./);
     // The check itself failing is no finding: 1, an error, not 3.
     const crash = await run([folder, ...fast, "--no-axe", "--out", "crash"], { env: { BROWSER_EXECUTABLE: join(scratch, "no-browser") } });
     assert.equal(crash.code, 1);
-    assert.match(crash.err, /^Ouro check stopped before it finished: /);
+    assert.match(crash.err, /^ouro-check: check: stopped before it finished: /);
     const noPlaywright = await run([folder], { from: ["/"] });
     assert.equal(noPlaywright.code, 2);
     assert.match(noPlaywright.err, /needs Playwright/);
@@ -708,11 +733,11 @@ describe("Ouro check's command", () => {
     assert.match(noAxe.err, /runs axe-core/);
     const withAxe = await run([folder, ...fast, "--out", "axe", "--before", "missing.json"], { from: ["/", root], env: { AXE_CORE: require.resolve("axe-core/axe.min.js") } });
     assert.equal(withAxe.code, 2);
-    assert.match(withAxe.err, /^Reading .*missing\.json stopped the check: /);
+    assert.match(withAxe.err, /reading .*missing\.json stopped the check: /);
     writeFileSync(join(scratch, "wide.json"), JSON.stringify({ measure: { "**": "wide" } }));
     const badMeasure = await run([folder, "--config", "wide.json"]);
     assert.equal(badMeasure.code, 2);
-    assert.match(badMeasure.err, /wide\.json: the measure for "\*\*" is "wide"; give a number of px, ch or chars, such as "800px", "75ch" or "100 chars"\.$/);
+    assert.match(badMeasure.err, /wide\.json: the measure for "\*\*" is "wide"\. Fix: give a number of px, ch or chars, such as "800px", "75ch" or "100 chars"\.$/);
     writeFileSync(join(scratch, "number.json"), JSON.stringify({ measure: { "main p": 800 } }));
     assert.equal((await run([folder, "--config", "number.json"])).code, 2);
     writeFileSync(join(scratch, "list.json"), JSON.stringify({ measure: ["100 chars"] }));
@@ -751,10 +776,10 @@ describe("Ouro check's command", () => {
     assert.match(noReport.err, /report\.json/);
     const noPages = await run([folder, ...fast, "--pages", "nothing/**"]);
     assert.equal(noPages.code, 2);
-    assert.match(noPages.err, /^No pages to check in .* matching nothing\/\*\*\.$/);
+    assert.match(noPages.err, /No pages to check in .* matching nothing\/\*\*\.$/);
     const empties = site("empties", {});
     const none = await run([empties, ...fast, "--no-axe"]);
-    assert.match(none.err, /^No pages to check in [^ ]*empties\.$/);
+    assert.match(none.err, /No pages to check in [^ ]*empties\.$/);
     // A shard with nothing to sweep is not a problem: the merge needs its report.
     const share = await run([folder, "--sizes", "390x844", "--themes", "light", "--pages", "fine.html", "--shard", "2/2", "--out", "share"]);
     assert.equal(share.code, 0, share.err);

@@ -302,7 +302,7 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.17
 node lib/ouro/check/check.ts dist
 ```
 
-`ouro-check` installs `lib/ouro/check/` and names `playwright` and `axe-core` as devDependencies, without a version.[^kit-versions] It writes `ouro-check/report.json`, `summary.md`, a contact sheet of every size a page was checked at in `sheets/`, and a captioned close-up of each finding in `findings/`, at most 40 a page.[^check-many] Its exit code is the one every Ouro tool gives, from the Ouro AX kit's table, so it can gate CI:[^check-exit]
+`ouro-check` installs `lib/ouro/check/`, with the [Ouro AX](ax.md) files it runs on beside it in `lib/ouro/ax/`, and names `playwright` and `axe-core` as devDependencies, without a version.[^kit-versions] It writes `ouro-check/report.json`, `summary.md`, a contact sheet of every size a page was checked at in `sheets/`, and a captioned close-up of each finding in `findings/`, at most 40 a page.[^check-many] Its exit code is the one every Ouro tool gives, from the Ouro AX kit's table, so it can gate CI:[^check-exit]
 
 | Exit | Meaning |
 | --- | --- |
