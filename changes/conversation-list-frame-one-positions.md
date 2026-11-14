@@ -1,0 +1,1 @@
+- Fixed: a windowed ConversationList lays its first rows out in normal flow, so no row or header moves after the first painted frame.
