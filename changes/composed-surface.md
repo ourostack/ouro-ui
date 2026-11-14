@@ -1,0 +1,1 @@
+- New: ComposedSurface draws Ouro's composed tree, core's format-neutral ComposedNode, with Ouro HX. A2UISurface now resolves A2UI messages into that tree and draws it with ComposedSurface's renderer.

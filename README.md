@@ -358,6 +358,7 @@ Components:
 `color-scheme-toggle`,
 `combobox`,
 `command`,
+`composed-surface`,
 `composer`,
 `confirm-dialog`,
 `conversation-list`,
@@ -672,7 +673,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Display
 
-- **A2UISurface** — Shows the UI an agent composed in A2UI, with Ouro HX. [Docs](docs/A2UISurface.md)
+- **A2UISurface** — Shows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it as ComposedSurface does, and sends a press as A2UI's action message. [Docs](docs/A2UISurface.md)
 - **Alert** — An inline message in the page: something saved, something failed, something to know before going on. [Docs](docs/Alert.md)
 - **Avatar** — A person's picture, or their initials until it loads or when it fails, in a color picked from the name. [Docs](docs/Avatar.md)
 - **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
@@ -680,6 +681,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Card** — A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer. [Docs](docs/Card.md)
 - **Carousel** — A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. [Docs](docs/Carousel.md)
 - **CodeBlock** — Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it. [Docs](docs/CodeBlock.md)
+- **ComposedSurface** — Draws Ouro's composed tree with Ouro HX, whatever format it came in: core's `ComposedNode`, from A2UI messages, an MCP tool result's `structuredContent.ouro`, or your own code. [Docs](docs/ComposedSurface.md)
 - **DescriptionList** — One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. [Docs](docs/DescriptionList.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
