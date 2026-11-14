@@ -349,6 +349,7 @@ function measureFit(element: HTMLUListElement, items: readonly NavigationRailEnt
   const kept = keptItems(items, current, withMore, gap, room);
   // Labels hidden under More, or by hideLabels, measure nothing and are never set smaller.
   // The labels of items about to move under More are left out too, so the one measure gives the fit that settles.
+  // Stryker disable next-line MethodExpression: the spread only makes the NodeList an array; the filter that follows keeps the same labels
   const shownLabels = [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")].filter((text) => kept.has(Number(text.dataset.ouroNavigationRailLabel)));
   const labels = shownLabels.filter((text) => text.clientWidth > 1);
   const isSqueezed = (text: HTMLElement) => text.hasAttribute("data-ouro-navigation-rail-squeezed");
