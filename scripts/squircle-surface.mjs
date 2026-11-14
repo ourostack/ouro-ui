@@ -1,5 +1,5 @@
-const N = 8;
-const f = (v) => +v.toFixed(4);
+const N = 4;
+const f = (v) => +v.toFixed(2);
 const curve = Array.from({ length: N + 1 }, (_, k) => {
   const th = ((Math.PI / 2) * k) / N;
   return [1 - Math.sqrt(Math.cos(th)), 1 - Math.sqrt(Math.sin(th))];
@@ -8,15 +8,14 @@ const mul = (r, a) => `${r}*${f(a)}`;
 
 /** Points of a squircle (superellipse, exponent 4) box inset by `i` with corner size `r`, as CSS lengths. */
 export function squirclePoints(i, r) {
-  const L = i;
-  const T = i;
-  const Rt = `100% - ${i}`;
-  const B = `100% - ${i}`;
+  const zero = i === "0px";
+  const lo = (m) => (+m === 0 ? (zero ? "0" : i) : `calc(${zero ? "" : `${i} + `}${mul(r, m)})`);
+  const hi = (m) => (+m === 0 ? (zero ? "100%" : `calc(100% - ${i})`) : `calc(100% - ${zero ? "" : `${i} + `}${mul(r, m)})`);
   const p = [];
-  for (const [a, b] of curve) p.push([`calc(${L} + ${mul(r, a)})`, `calc(${T} + ${mul(r, b)})`]);
-  for (const [a, b] of curve) p.push([`calc(${Rt} - ${mul(r, b)})`, `calc(${T} + ${mul(r, a)})`]);
-  for (const [a, b] of curve) p.push([`calc(${Rt} - ${mul(r, a)})`, `calc(${B} - ${mul(r, b)})`]);
-  for (const [a, b] of curve) p.push([`calc(${L} + ${mul(r, b)})`, `calc(${B} - ${mul(r, a)})`]);
+  for (const [a, b] of curve) p.push([lo(f(a)), lo(f(b))]);
+  for (const [a, b] of curve) p.push([hi(f(b)), lo(f(a))]);
+  for (const [a, b] of curve) p.push([hi(f(a)), hi(f(b))]);
+  for (const [a, b] of curve) p.push([lo(f(b)), hi(f(a))]);
   return p;
 }
 
