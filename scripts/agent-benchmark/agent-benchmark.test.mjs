@@ -192,8 +192,9 @@ test("the page counts each model and interface from its latest run, and names th
   const counted = currentTrials([first, second]);
   assert.deepEqual(counted.map((t) => [t.arm, t.success]), [["action-model", true], ["browser", true]]);
   const page = renderPage([second, first]);
-  assert.match(page, /Superseded, still published\.\*\* `2026-11-13-first`/);
-  assert.match(page, /\*\*Cost\.\*\* 1\.0 AI units/);
+  assert.match(page, /- Superseded, still published: `2026-11-13-first`/);
+  assert.match(page, /- Cost: 1\.0 AI units/);
+  assert.doesNotMatch(page, /\*\*/, "the site's Markdown renderer has no bold");
 });
 
 test("an infrastructure error is counted apart and left out of the pass rate", () => {
