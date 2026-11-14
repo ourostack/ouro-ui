@@ -77,6 +77,7 @@ const textAreaSizes = {
  * @internal
  */
 function supportsFieldSizing(): boolean {
+  // Stryker disable next-line ConditionalExpression,OptionalChaining: a server render has no CSS or navigator.supports to ask, and every browser that runs the effect has both.
   return canFieldSize(navigator.userAgent, globalThis.CSS?.supports?.("field-sizing", "content") === true);
 }
 

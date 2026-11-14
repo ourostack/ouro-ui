@@ -299,10 +299,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     const textarea = textareaRef.current!;
     if (autoGrow && native) fitHeightNative(textarea, rows, maxRows);
     else if (autoGrow) {
-      textarea.style.removeProperty("field-sizing");
-      textarea.style.minHeight = "";
-      textarea.style.maxHeight = "";
       fitHeight(textarea, rows, maxRows);
+    // Stryker disable next-line ConditionalExpression: clearing styles that were never set changes nothing.
     } else if (grew.current) {
       textarea.style.height = "";
       textarea.style.overflowY = "";
@@ -312,7 +310,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     }
     grew.current = autoGrow;
   };
-  useLayoutEffect(fit, [autoGrow, native, rows, maxRows, size, variant, native ? undefined : rest.value]);
+  const watched = native ? undefined : rest.value;
+  useLayoutEffect(fit, [autoGrow, native, rows, maxRows, size, variant, watched]);
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     // A controlled field fits once its value arrives, in the effect above.
     if (autoGrow && !native && !controlled) fitHeight(event.currentTarget, rows, maxRows);
@@ -329,6 +328,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // observation the browser cannot deliver in the same frame, which it reports on the window
   // as "ResizeObserver loop completed with undelivered notifications".
   useEffect(() => {
+    // Stryker disable next-line ConditionalExpression: observing on the native path only refits to the same height.
     if (!autoGrow || native) return;
     const textarea = textareaRef.current!;
     let width = textarea.offsetWidth;
@@ -344,6 +344,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
+    // Stryker disable next-line ArrayDeclaration: an empty list keeps the first rows and maxRows, which the width refit tests change.
   }, [autoGrow, native, rows, maxRows]);
 
   const setRef = useMergedRef(ref, textareaRef);
