@@ -246,9 +246,12 @@ export class Looks {
     }
   }
 
-  // A picture is worth taking until five pages have given one for its key, which keeps the cost flat.
+  // Pictures are slow, so a key gets three of them from instances whose properties agree, and up to five more
+  // from instances whose properties already differ from the first one seen.
   wants(look: Look): boolean {
-    return (this.pictures.get(`${look.key}|${look.size}|${look.behind}`)?.length ?? 0) < 5;
+    const taken = this.pictures.get(`${look.key}|${look.size}|${look.behind}`)?.length ?? 0;
+    const first = this.groups.get(look.key)?.[0];
+    return taken < 3 || (taken < 5 && first !== undefined && first.sig !== look.sig);
   }
 
   get keys(): number {
