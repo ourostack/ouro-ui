@@ -411,6 +411,9 @@ export function itemForFile(path: string): string | null {
     return "ouro-images";
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
     return "ouro-testing";
+  } else if (path.startsWith(`${libDir}squircle/`)) {
+    // The squircle polyfill's engine (hyperellipse, MIT), vendored with its tests and imported relatively.
+    return devFile.test(file) ? "lib-squircle-polyfill-tests" : "lib-squircle-polyfill";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
     return libItem(file);
   } else if (path.startsWith(e2eDir)) {
