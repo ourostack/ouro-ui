@@ -222,7 +222,7 @@ export function OuroAx(): JSX.Element {
             })}
           </Figure>
         </ul>
-        <p className="mt-12 mb-0 text-muted-foreground" data-site-works-with="">
+        <p className="mt-12 mb-0 text-sm text-muted-foreground" data-site-works-with="">
           <strong className="font-medium text-foreground">{WORKS_WITH.label}</strong>{" "}
           {WORKS_WITH.formats.map((format, index) => (
             <span key={format.href}>
