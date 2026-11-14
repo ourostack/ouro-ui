@@ -71,7 +71,7 @@ const iconClass =
  *
  * @internal
  * @claim "Closed, it stays mounted and hidden" registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > lets the browser's page search find and open it, and hides it plainly where until-found is unsupported)
- * @claim "The panel: it grows from 0" registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > animates the panel to its measured height, and not with reduced motion)
+ * @claim "The panel: it grows from 0" registry/ouro/components/ouro/collapsible/collapsible.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/collapsible.test.tsx::Collapsible > animates the panel open with a grid row, and not with reduced motion)
  */
 const panelClass =
   "grid w-full grid-rows-[0fr] data-open:grid-rows-[1fr] " +

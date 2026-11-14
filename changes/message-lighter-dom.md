@@ -1,1 +1,1 @@
-- Message draws a text-only message in 12 elements, not 13: it no longer wraps the bubble in a row of its own when it has no actions bar.
+- Message [draws a text-only message in fewer elements](registry/ouro/components/ouro/message/message.weight.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message.weight.test.tsx::draws a text-only chat message in no more elements than its budget, with no wrapper around a lone bubble)"): it no longer wraps the bubble in a row of its own when it has no actions bar.
