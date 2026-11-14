@@ -43,8 +43,14 @@ The maker on the home page, under "Or mix your own paint", writes these lines fo
 
 The other variables cover the rest of the room: `--background` and `--foreground` for the page, `--card` and `--popover` for raised surfaces, `--muted` and `--muted-foreground` for quiet text, `--border` and `--input` for lines, `--destructive` for danger, `--chart-1` to `--chart-5` for data. Ouro HX also reads `--font-heading` for headings and the `--shadow-xs` to `--shadow-xl` scale for depth.
 
+Headings are set a little tighter at each larger size, which suits a sans-serif.[^tighter] A serif heading font has less room between its letters, so with one in `--font-heading`, set `--ouro-heading-tracking` in `:root` to the share of that tightening to keep: `0.5` for half, `0` for the font's own spacing. It defaults to `1`.[^tracking]
+
 Set light values in `:root` and dark values in `.dark`. Ouro HX switches with the `dark` class on `<html>`, as shadcn/ui does.
 
 ## Live
 
 The site's Live theme is Pearl under your own sky. It reads only your device's clock and time zone, so nothing asks for your location. At dawn the page turns rosy, by day it is Pearl's blue, at dusk it goes golden and at night it lights indigo lanterns. The porthole's sky, sun and sea follow along. Your own app can do the same by swapping a few of the variables above on a timer.
+
+[^tracking]: registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading tracking > scales the tightening by the theme's --ouro-heading-tracking, so a serif heading font can keep its own spacing)
+
+[^tighter]: registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading tracking > tightens as the text grows: none at body size, more at each larger size)
