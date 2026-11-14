@@ -39,7 +39,7 @@ setTimeout(() => { clearInterval(id); const secs = (performance.now() - start) /
   const per = (a, b) => Object.fromEntries(Object.entries(b).map(([k, v]) => [k, typeof v === "number" ? +((v - a[k]) / secs).toFixed(2) : Object.fromEntries(Object.entries(v).map(([kk, n]) => [kk, +((n - (a[k][kk] || 0)) / secs).toFixed(2)]).filter(([, n]) => n))]));
   done({ secs, lateMsPerSec: +(late / secs).toFixed(1), ticksPerSec: +(ticks / secs).toFixed(1), perSecond: per(before, after) }); }, 5000);`;
 
-const typing = `const done = arguments[arguments.length - 1]; const field = document.querySelector('input[type=email], input[type=text], input:not([type])'); field.focus();
+const typing = `const done = arguments[arguments.length - 1]; const field = document.querySelector('input[type=email], input[type=text], input:not([type])') ?? document.body.appendChild(Object.assign(document.createElement('input'), { type: 'text' })); field.focus();
 const samples = []; const channel = new MessageChannel();
 const settle = () => new Promise((r) => requestAnimationFrame(() => { channel.port2.onmessage = () => r(); channel.port1.postMessage(0); }));
 (async () => { for (let i = 0; i < 60; i++) { const t = performance.now(); document.execCommand("insertText", false, "a"); await settle(); samples.push(performance.now() - t); await new Promise((r) => setTimeout(r, 30)); }
