@@ -2204,3 +2204,14 @@ test("Release auto releases a commit once main's push CI and lane have ended, na
   assert.match(auto, /--workflow ci\.yml --commit "\$sha" --event push/);
   assert.match(auto, /\[ "\$RUN_EVENT" = push \]/);
 });
+
+test("install prep caches a base keyed on the runtime files, then adds the shipped tests over it", () => {
+  const ciText = readFileSync(".github/workflows/ci.yml", "utf8");
+  const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
+  const baseKey = prep.match(/key: install-base-[^\n]*/)[0];
+  for (const left of ["!registry/**/*.test.tsx", "!registry/**/*.stories.tsx", "!registry/ouro/e2e/**"]) assert.ok(baseKey.includes(left), left);
+  assert.ok(prep.includes("OURO_BASE_ONLY=1"));
+  assert.ok(prep.includes("OURO_DELTA=1 OURO_PREPARE_ONLY=1"));
+  const script = readFileSync("scripts/install-test.sh", "utf8");
+  assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
+});
