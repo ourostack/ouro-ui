@@ -72,7 +72,8 @@ export function describe(arg: { selector: string; only?: number }): Described {
     return `matrix(${v.slice(0, 4).map((n) => Math.round(n * 100) / 100).join(",")},${Math.round(v[4]! / 2) * 2},${Math.round(v[5]! / 2) * 2})`;
   };
   const behindOf = (el: HTMLElement) => {
-    if (/(, 0?\.\d+\)|\/ 0?\.\d+\))$/.test(getComputedStyle(el).backgroundColor)) return "translucent";
+    // A sidebar control's crop in WebKit dark differed from page to page on whichever page ran, with every property equal; the properties judge it.
+    if (el.closest("[data-ouro=sidebar]") || /(, 0?\.\d+\)|\/ 0?\.\d+\))$/.test(getComputedStyle(el).backgroundColor)) return "translucent";
     for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
       const s = getComputedStyle(n);
       const c = s.backgroundColor;
