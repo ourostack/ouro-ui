@@ -305,7 +305,8 @@ describe("ConversationList windowing", () => {
       if (index < 3) expect(pane.scrollTop).toBe(0);
       else expect(Math.abs(box.bottom - pane.getBoundingClientRect().bottom)).toBeLessThan(1);
     }
-    expectBand(pane, ["c0"]);
+    // The pane's scroll events land after the last key, and the window follows them.
+    await expect.poll(() => { try { expectBand(pane, ["c0"]); return true; } catch { return false; } }).toBe(true);
   });
 
   it("moves on from a row with focus that the pane scrolled away from, showing the next row at the nearest edge", async () => {
