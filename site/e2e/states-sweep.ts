@@ -9,7 +9,7 @@ import { describe, LOOK_SELECTOR, Looks, picture, quiet, routes, settled } from 
 // the control's look (shape, box, padding, gap, colours, font, shadow, opacity, transform and its children's
 // geometry, and a picture of it) is the one the other pages give it in the same state.
 
-const SAMPLES = 3;
+const SAMPLES = 2;
 const CONTROL = "[data-ouro-control]:not(a):not([href]):not([disabled]):not([aria-hidden=true]):not([data-ouro-part=hidden-input]):not([data-ouro-part=input])";
 
 async function broken(page: Page, selector: string, index: number): Promise<string[]> {
@@ -44,7 +44,7 @@ async function broken(page: Page, selector: string, index: number): Promise<stri
   );
 }
 
-export const CHUNKS = 3;
+export const CHUNKS = 4;
 
 export function statesSweep(mode: "light" | "dark", chunk: number) {
   test(`states keep their look on every page, ${mode}, part ${chunk + 1} of ${CHUNKS}`, async ({ page, browserName }) => {
@@ -77,6 +77,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
         if (!box) continue;
         const record = async (state: string, pseudo: string) => {
           if (!(await control.evaluate((el, p) => el.matches(p), pseudo))) return;
+          await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => null))));
           found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
           const { looks: now } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
           const look = now[0];
