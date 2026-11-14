@@ -49,8 +49,8 @@ function a2uiMessages(result: Record<string, unknown>): unknown[] | undefined {
 
 /** The text a tool result gives an agent and a text-only host. */
 function resultText(result: Record<string, unknown>): string | undefined {
-  const content = Array.isArray(result.content) ? (result.content as unknown[]) : [];
-  const texts = content.flatMap((block) => (isRecord(block) && block.type === "text" && typeof block.text === "string" ? [block.text] : []));
+  if (!Array.isArray(result.content)) return undefined;
+  const texts = (result.content as unknown[]).flatMap((block) => (isRecord(block) && block.type === "text" && typeof block.text === "string" ? [block.text] : []));
   return texts.length ? texts.join("\n") : undefined;
 }
 
@@ -89,6 +89,7 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
   const [messages, setMessages] = useState<readonly unknown[] | undefined>(undefined);
   const [status, setStatus] = useState<Status | undefined>(undefined);
   const [connection, setConnection] = useState<McpAppConnection | undefined>(undefined);
+  // Stryker disable next-line BooleanLiteral: read only after the handshake has set it.
   const openLinks = useRef(false);
   const root = useRef<HTMLDivElement>(null);
   const name = appInfo?.name ?? DEFAULT_APP_INFO.name;
@@ -134,6 +135,7 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
       () => setStatus({ tone: "destructive", title: "This card can't be shown", description: "The host didn't connect to it." }),
     );
     return () => {
+      // Stryker disable next-line OptionalChaining,CallExpression: React has removed the root by now, and a detached element doesn't resize; disconnecting frees the observer.
       observer?.disconnect();
       c.close();
     };
@@ -167,8 +169,8 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
   const reportProblems = useCallback(
     (problems: readonly A2UIProblem[]) => {
       // The agent composed the card, so it hears what to correct.
-      void connection
-        ?.request("ui/update-model-context", {
+      void connection!
+        .request("ui/update-model-context", {
           content: [{ type: "text", text: `The card didn't pass the checks for composed UI: ${problems.map((p) => `${p.path}: ${p.message}`).join(" ")}` }],
           structuredContent: { a2uiProblems: problems },
         })

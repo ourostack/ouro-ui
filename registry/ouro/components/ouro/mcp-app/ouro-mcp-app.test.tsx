@@ -193,6 +193,8 @@ describe("OuroMcpApp", () => {
     // A change without a theme, or with one HX has no look for, leaves the theme as it is.
     await host.deliver({ method: "ui/notifications/host-context-changed", params: { displayMode: "fullscreen" } });
     await host.deliver({ method: "ui/notifications/host-context-changed", params: { theme: "sepia" } });
+    // Only a context change carries the theme.
+    await host.deliver({ method: "ui/notifications/tool-input", params: { theme: "dark" } });
     expect(root.style.colorScheme).toBe("light");
     await host.deliver({ method: "ui/notifications/host-context-changed", params: { theme: "dark" } });
     expect(root.classList.contains("dark")).toBe(true);
@@ -212,14 +214,14 @@ describe("OuroMcpApp", () => {
       </div>,
     );
     await vi.waitFor(() => expect(host.notifications("ui/notifications/size-changed")).toEqual([{ width: 301, height: 121 }]));
-    expect(container.querySelector('[data-ouro="ouro-mcp-app"]')!.className).toContain("h-[120.3px]");
+    expect(container.querySelector('[data-ouro="ouro-mcp-app"]')!.className).toBe("grid min-w-0 gap-4 h-[120.3px]");
     (container.firstElementChild as HTMLElement).style.width = "200px";
     await vi.waitFor(() => expect(host.notifications("ui/notifications/size-changed")).toEqual([{ width: 301, height: 121 }, { width: 200, height: 121 }]));
   });
 
   it("calls a write action's own tool with the prepared input, and shows what the tool said", async () => {
     const calls: unknown[] = [];
-    const host = testHost({ replies: { "tools/call": (params) => (calls.push(params), { result: { content: [{ type: "text", text: "Added 6 ingredients." }, { type: "image" }, { type: "text", text: "For 4." }] } }) } });
+    const host = testHost({ replies: { "tools/call": (params) => (calls.push(params), { result: { content: [{ type: "text", text: "Added 6 ingredients." }, null, { type: "image", text: "A photo." }, { type: "text", text: 4 }, { type: "text", text: "For 4." }] } }) } });
     const { container } = await openCard(host);
     await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
     await expect.element(page.getByText(/Added 6 ingredients\./)).toBeInTheDocument();
@@ -319,14 +321,35 @@ describe("OuroMcpApp", () => {
   it("tells the agent what to correct when its card fails the checks, and shows the person a short alert", async () => {
     const host = testHost({ replies: { "ui/update-model-context": () => ({ error: { code: -32000, message: "Not now" } }) } });
     await open(host);
-    const invalid = [{ version: "1.0", createSurface: { surfaceId: "card", catalogId: catalog.catalogId, components: [{ id: "root", component: "Button", label: "Buy now" }] } }];
+    const invalid = [{ version: "1.0", createSurface: { surfaceId: "card", catalogId: catalog.catalogId, components: [{ id: "root", component: "Button", label: "Buy now" }, { id: "clip", component: "Video", url: "https://example.com/a.mp4" }] } }];
     await host.deliver({ method: "ui/notifications/tool-result", params: toolResult(invalid) });
     await expect.element(page.getByText("This card can't be shown")).toBeInTheDocument();
     await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(1));
     const [update] = host.requests("ui/update-model-context") as { content: { type: string; text: string }[]; structuredContent: { a2uiProblems: { path: string; message: string }[] } }[];
     const problems = update!.structuredContent.a2uiProblems;
-    expect(problems.length).toBeGreaterThan(0);
+    expect(problems.length).toBeGreaterThan(1);
     expect(update!.content).toEqual([{ type: "text", text: `The card didn't pass the checks for composed UI: ${problems.map((p) => `${p.path}: ${p.message}`).join(" ")}` }]);
+  });
+
+  it("tells the person where to do a person-only action when the host's openLinks isn't an object", async () => {
+    const host = testHost({ init: { result: { hostCapabilities: { openLinks: [] } } } });
+    await openCard(host, { handoffUrl: () => "https://kitchen.example.com/order" });
+    await userEvent.click(page.getByRole("button", { name: "Order ingredients" }));
+    await expect.element(page.getByText("Order ingredients is yours to do")).toBeInTheDocument();
+    expect(host.requests("ui/open-link")).toEqual([]);
+  });
+
+  it("reconnects to a new host, and reads a new catalog's actions", async () => {
+    const first = testHost();
+    const { root } = await open(first);
+    const actions = catalog.metadata.extensions.bot_ouroboros_hx.actions;
+    const renamed = { ...catalog, metadata: { extensions: { bot_ouroboros_hx: { actions: { ...actions, order_ingredients: { ...actions.order_ingredients, label: "Order groceries" } } } } } };
+    const second = testHost();
+    await act(() => root.render(<OuroMcpApp catalog={renamed} host={second.link} />));
+    await vi.waitFor(() => expect(second.notifications("ui/notifications/initialized")).toHaveLength(1));
+    await second.deliver({ method: "ui/notifications/tool-result", params: toolResult(card("Charred Lemon Orzo")) });
+    await userEvent.click(page.getByRole("button", { name: "Order groceries" }));
+    await expect.element(page.getByText("Order groceries is yours to do")).toBeInTheDocument();
   });
 
   it("stops listening and sizing when it unmounts", async () => {
