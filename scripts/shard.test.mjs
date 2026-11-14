@@ -4,8 +4,9 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
 
@@ -53,10 +54,7 @@ test("the script tests that drive a browser are those that import Playwright's r
   assert.equal(drivesBrowser("scripts/touch-kit-frames.test.mjs"), false);
   const cli = (...args) => spawnSync(process.execPath, [join(root, "scripts/shard.mjs"), ...args], { cwd: root, encoding: "utf8" }).stdout.trim().split("\n");
   const browser = cli("scripts-browser");
-  const shards = [cli("scripts", "1/2"), cli("scripts", "2/2")].flat();
   assert.ok(browser.includes("scripts/agent-usability/score.test.mjs"));
-  assert.deepEqual([...shards, ...browser].sort(), scriptTestFiles().sort());
-  assert.equal(new Set([...shards, ...browser]).size, scriptTestFiles().length);
 });
 
 test("with groups, each group's files spread as evenly as the shards allow, then the least in all", () => {
@@ -111,18 +109,13 @@ test("refresh reads every timing report under a folder, keeping the longer time 
   assert.deepEqual(readTimings("scripts", join(dir, "missing.json")), {});
 });
 
-test("every script test file is in pnpm test:scripts, so one of the script test shards runs it", () => {
-  const listed = scriptTestFiles();
-  const found = ["scripts", "site/scripts"].flatMap((dir) =>
-    treeFiles(join(root, dir))
-      .filter((file) => file.endsWith(".test.mjs"))
-      .map((file) => `${dir}/${file}`)
-      // The kits' tests run inside scripts/kits.test.mjs, under Node's coverage.
-      .filter((file) => !file.startsWith("scripts/kits/")),
-  );
-  assert.deepEqual([...listed].sort(), [...new Set(found)].sort());
-  // CI's two shards each take some of them.
-  for (const index of [1, 2]) assert.ok(shardKeys(listed, { index, count: 2 }, readTimings("scripts")).length > 0);
+test("every script test file the runner finds runs in exactly one scripts shard, and the shards run nothing else", () => {
+  const found = scriptTestFiles();
+  const cli = (...args) => spawnSync(process.execPath, [join(root, "scripts/shard.mjs"), ...args], { cwd: root, encoding: "utf8" }).stdout.trim().split("\n");
+  // CI runs three script shards side by side; scripts-browser runs the files that drive a browser.
+  const ran = [cli("scripts", "1/3"), cli("scripts", "2/3"), cli("scripts", "3/3"), cli("scripts-browser")].flat();
+  // Sorted and compared whole, so a file in two shards, or a file no shard runs, fails.
+  assert.deepEqual(ran.sort(), found);
 });
 
 /** A test file as Vitest's sequencer sees it. */

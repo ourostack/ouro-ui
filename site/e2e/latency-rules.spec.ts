@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectWithinBudget, measure, morePresses, runnerFactor, splitPress, summarise } from "./latency";
+import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, pastCap, runnerFactor, splitPress, summarise } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -112,6 +112,35 @@ test.describe("a page whose button is slow on purpose", () => {
     const { samples } = await measure(page, "every press", presses, LATENCY.throttle, (first) => morePresses(first, 48));
     expect(samples).toHaveLength(LATENCY.samples);
     expect(() => expectWithinBudget("every press", samples, 48)).toThrow();
+  });
+});
+
+test("a probe past the cap calls for a re-measure, read from the probe alone", () => {
+  const cap = LATENCY.probeQuiet * LATENCY.maxFactor;
+  expect(pastCap([cap, cap, cap + 8])).toBe(false);
+  expect(pastCap([cap + 8, cap + 8, cap])).toBe(true);
+});
+
+test.describe("a runner the probe reads past the cap", () => {
+  test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
+  const quiet = LATENCY.probeQuiet;
+  // A quiet reading so low that any runner reads past the cap, as an overloaded one does.
+  test.beforeEach(() => void ((LATENCY as { probeQuiet: number }).probeQuiet = 1));
+  test.afterEach(() => void ((LATENCY as { probeQuiet: number }).probeQuiet = quiet));
+
+  test("re-measures a fast control too, carrying its presses on, and fails it as too loaded to judge when the probe is past the cap again", async ({ page }) => {
+    await page.setContent(`<button id="b">Press</button><output id="o"></output>`);
+    await page.evaluate(() => document.getElementById("b")!.addEventListener("click", () => (document.getElementById("o")!.textContent = String(Math.random()))));
+    const pressed: number[] = [];
+    const presses = { press: async (index: number) => void (pressed.push(index), await page.locator("#b").click()) };
+    const failure = await expectPressesWithinBudget(page, "overloaded", presses, 48).then(
+      () => null,
+      (error: Error) => error.message,
+    );
+    expect(failure).toContain("overloaded: runner too loaded to judge: probe");
+    // Measured twice, the second carrying on from the first's last index rather than starting again at 0.
+    expect(pressed).toEqual(Array.from({ length: pressed.length }, (_, index) => index));
+    expect(pressed.length).toBe(2 * (LATENCY.warmUps + LATENCY.samples));
   });
 });
 

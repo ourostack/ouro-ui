@@ -9,6 +9,7 @@ import { assemble } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
 
 // The workflows publish the registry and push to the repository, so what they run must not
@@ -800,8 +801,7 @@ test("a release checks last that Pages serves the tag's @ouro namespace byte for
 });
 
 test("the release runs the public-registry tests with the script tests", () => {
-  const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"];
-  assert.match(scripts, / scripts\/public-registry\.test\.mjs /);
+  assert.ok(scriptTestFiles().includes("scripts/public-registry.test.mjs"));
 });
 
 /** ci.yml's jobs, by name, each the text of its block. */
@@ -1048,9 +1048,18 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   const step = block.slice(block.search(/^ {6}- name: Claims\n/m)).split(/\n {6}- /)[0];
   assert.match(step, /^ {10}PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}$/m);
   const script = `git() { printf 'CALL git %s\\n' "$*" >&2; }\n${stepScript(block, "Claims")}`;
-  const pull = runStep(script, { BASE_REF: "main" });
+  const pull = runStep(script, { BASE_REF: "main", GITHUB_SHA: "f00d" });
   assert.equal(pull.status, 0);
-  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=1 origin main\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
+  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=2 origin f00d\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
+  // Against the merge's first parent, main as GitHub merged the pull request into it, never main's tip, which may have
+  // moved since: its changes would read as the pull request's (#726).
+  const exemptions = workflow("claims.yml").slice(workflow("claims.yml").search(/^ {6}- name: Exemptions against the base\n/m));
+  for (const name of ["CLAIMS_BASE_REF", "REAL_CLOCK_BASE_REF", "PATCH_GUARD_BASE_REF"]) {
+    assert.doesNotMatch(step, new RegExp(`${name}="origin/`));
+    assert.doesNotMatch(exemptions, new RegExp(`${name}="origin/`));
+  }
+  assert.match(exemptions, /git fetch --no-tags --depth=2 origin "\$GITHUB_SHA"\n {10}CLAIMS_BASE_REF="HEAD\^1" node scripts\/claims\.mjs ratchet\n {10}REAL_CLOCK_BASE_REF="HEAD\^1" node scripts\/real-clock-ratchet\.mjs/);
+  assert.equal(step.match(/(?:CLAIMS|REAL_CLOCK|PATCH_GUARD)_BASE_REF="HEAD\^1"/g)?.length, 4);
   // A failing ratchet fails the job.
   assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
   assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
@@ -1119,7 +1128,7 @@ test("the script test shards run every file of pnpm test:scripts between them", 
   assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
   assert.match(block, new RegExp(`^ {6}TIMINGS: \\.tmp/timings/scripts-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
   assert.match(stepScript(block, "Script tests"), /^node scripts\/run-script-tests\.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=\.\/scripts\/timings-node-reporter\.mjs --test-reporter-destination="\$TIMINGS" \$\(node scripts\/shard\.mjs scripts "\$SHARD"\)$/m);
-  const { readTimings, scriptTestFiles, shardKeys } = await import("./shard.mjs");
+  const { readTimings, shardKeys } = await import("./shard.mjs");
   const all = Array.from({ length: count }, (_, index) => shardKeys(scriptTestFiles(), { index: index + 1, count }, readTimings("scripts"))).flat();
   assert.deepEqual(all.sort(), scriptTestFiles().sort());
 });
@@ -1709,7 +1718,7 @@ test("the screen-reader packages are pinned exactly, and test:sr runs its own co
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   for (const name of ["@guidepup/guidepup", "@guidepup/playwright", "@guidepup/setup"]) assert.match(pkg.devDependencies[name] ?? "", /^\d+\.\d+\.\d+$/, name);
   assert.equal(pkg.scripts["test:sr"], "playwright test --config playwright.screen-reader.config.ts");
-  assert.match(pkg.scripts["test:scripts"], /scripts\/sr-classify\.test\.mjs/);
+  assert.ok(scriptTestFiles().includes("scripts/sr-classify.test.mjs"));
 });
 
 test("the site's end-to-end specs run against the build served as GitHub Pages serves it, over HTTP/2 and TLS", async () => {
@@ -2203,4 +2212,15 @@ test("Release auto releases a commit once main's push CI and lane have ended, na
   assert.match(auto, /--workflow screen-reader\.yml --commit "\$sha" --event push/);
   assert.match(auto, /--workflow ci\.yml --commit "\$sha" --event push/);
   assert.match(auto, /\[ "\$RUN_EVENT" = push \]/);
+});
+
+test("install prep caches a base keyed on the runtime files, then adds the shipped tests over it", () => {
+  const ciText = readFileSync(".github/workflows/ci.yml", "utf8");
+  const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
+  const baseKey = prep.match(/key: install-base-[^\n]*/)[0];
+  for (const left of ["!registry/**/*.test.tsx", "!registry/**/*.stories.tsx", "!registry/ouro/e2e/**"]) assert.ok(baseKey.includes(left), left);
+  assert.ok(prep.includes("OURO_BASE_ONLY=1"));
+  assert.ok(prep.includes("OURO_DELTA=1 OURO_PREPARE_ONLY=1"));
+  const script = readFileSync("scripts/install-test.sh", "utf8");
+  assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
 });

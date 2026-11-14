@@ -2,7 +2,7 @@
 
 # Skeleton
 
-A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion the shimmer holds still.
+A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion, or `shimmer={false}`, the shimmer holds still.
 
 ```tsx
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
@@ -32,10 +32,11 @@ Pick the shape of what is coming: `shape="text"` with `lines` and Text's `size` 
 
 The props the modes share. Type: `SkeletonProps`.
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `className` | `string` | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
-| `ref` | `Ref<HTMLSpanElement>` | Reaches the rendered element. |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
+| `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
+| `shimmer` | `boolean` | `true` | Whether the band sweeps across the placeholder. `false` draws it still, as reduced motion does. Choose it for a long list of pictures loading at once, where a sweep on each may slow scrolling. |
 
 ## Modes
 
