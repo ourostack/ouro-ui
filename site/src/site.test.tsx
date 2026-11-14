@@ -6,6 +6,7 @@ import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
+import { renderToStaticMarkup } from "react-dom/server";
 import { parse, prose, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
@@ -659,6 +660,18 @@ describe("guides and exports without an item", () => {
 });
 
 describe("docs running text", () => {
+  it("draws **bold** as strong text without its asterisks, with code and links inside it, and leaves asterisks in code alone", async () => {
+    const container = document.createElement("p");
+    container.innerHTML = renderToStaticMarkup(<>{prose("A **Browser driving (Playwright, `aria`):** 90, [see](x.md), and `**kept**` as written.")}</>);
+    const strong = container.querySelector("strong")!;
+    expect(strong.textContent).toBe("Browser driving (Playwright, aria):");
+    expect(strong.querySelector("code")?.textContent).toBe("aria");
+    expect(container.textContent).toBe("A Browser driving (Playwright, aria): 90, see, and **kept** as written.");
+    await renderPage("/docs/agent-interfaces/");
+    expect(document.querySelector("main")!.textContent).not.toContain("**");
+    expect(document.querySelectorAll("main li strong").length).toBeGreaterThan(0);
+  });
+
   it("holds a paragraph's and a lead's last two words on one line, a hyphenated word whole, and leaves code, links and a long last word free", async () => {
     const tail = (text: string) => {
       const last = prose(text).at(-1);
