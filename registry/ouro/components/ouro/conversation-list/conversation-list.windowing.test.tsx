@@ -133,7 +133,7 @@ describe("ConversationList windowing", () => {
     await frames();
     for (const id of ["c2", "c3", "c150"]) {
       const reads = watchLayoutReads();
-      await act(async () => view.root.render(list(id)));
+      flushSync(() => view.root.render(list(id)));
       reads.stop();
       expect(reads.names()).toEqual([]);
       await frames();
