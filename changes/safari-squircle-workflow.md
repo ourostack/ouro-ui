@@ -1,1 +1,1 @@
-- New: a dispatch-only workflow measures the squircle polyfill in real Safari on a hosted macOS runner, idle work and typing p95 with it off and on.
+- New: a dispatch-only workflow measures the squircle polyfill in real Safari on a hosted macOS runner, idle work and typing latency with it off and on.
