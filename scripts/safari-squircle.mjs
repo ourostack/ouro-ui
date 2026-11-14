@@ -51,6 +51,8 @@ async function measure(withPolyfill) {
     await driver.manage().setTimeouts({ script: 60000, pageLoad: 60000 });
     await driver.get(url);
     await driver.wait(async () => driver.executeScript("return document.documentElement.hasAttribute('data-site-ready')"), 30000);
+    const many = Number(process.env.SQUIRCLE_INJECT ?? 400);
+    await driver.executeScript(`const w=document.createElement('div');w.style.cssText='padding:8px';for(let i=0;i<${many};i++){const e=document.createElement(i%3?'button':'div');e.textContent='x'+i;e.style.cssText='border-radius:12px;corner-shape:squircle;border:1px solid #888;background:#eee;box-shadow:0 1px 3px #0003;padding:4px 8px;margin:2px;display:inline-block';w.appendChild(e)}document.body.appendChild(w)`);
     await driver.executeScript(instrument);
     const native = await driver.executeScript("return [navigator.userAgent, CSS.supports('corner-shape','squircle')]");
     if (withPolyfill) {
