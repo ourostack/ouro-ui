@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { recordMatched } from "./waivers";
-import { describe, LOOK_SELECTOR, Looks, picture, quiet, routes, settled } from "./looks";
+import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, settled } from "./looks";
 
 // Every control, as each page shows it, is put through hover, keyboard focus and press, in both engines and
 // both themes. Controls are deduped by component, part, variant, size and checked or disabled state, and a
@@ -48,78 +48,82 @@ async function broken(page: Page, selector: string, index: number): Promise<stri
 export const CHUNKS = 4;
 
 export function statesSweep(mode: "light" | "dark", chunk: number) {
-  test(`states keep their look on every page, ${mode}, part ${chunk + 1} of ${CHUNKS}`, async ({ page, browserName }) => {
+  test(`states keep their look on every page, ${mode}, part ${chunk + 1} of ${CHUNKS}`, async ({ page, context, browserName }) => {
     test.setTimeout(900_000);
     page.setDefaultTimeout(5_000);
-    await page.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "pearl", mode: m })), mode);
+    await context.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "pearl", mode: m })), mode);
     const found: string[] = [];
     const looks = new Looks();
     const taken = new Map<string, number>();
+    const guard = routeGuard(context, page);
     for (const path of routes().filter((_, n) => n % CHUNKS === chunk)) {
-      await page.goto(path);
-      await settled(page);
-      await quiet(page);
-      const { looks: rest } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
-      const candidates = await page.evaluate(
-        ([all, control]) =>
-          [...document.querySelectorAll<HTMLElement>(all as string)].flatMap((el, i) => {
-            const r = el.getBoundingClientRect();
-            return el.matches(control as string) && r.width > 0 && r.height > 0 ? [i] : [];
-          }),
-        [LOOK_SELECTOR, CONTROL] as const,
-      );
-      for (const i of candidates) {
-        const key = rest.find((l) => l.index === i)?.key;
-        if (!key || (taken.get(key) ?? 0) >= SAMPLES) continue;
-        taken.set(key, (taken.get(key) ?? 0) + 1);
-        const control = page.locator(LOOK_SELECTOR).nth(i);
-        await control.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" }));
-        const box = await control.boundingBox();
-        if (!box) continue;
-        const marks = () => control.evaluate((el) => el.getAttributeNames().filter((n) => n.startsWith("data-") || n.startsWith("aria-")).map((n) => `${n}=${el.getAttribute(n)}`).sort().join(" "));
-        const before = await marks();
-        const record = async (state: string, pseudo: string) => {
-          if (!(await control.evaluate((el, p) => el.matches(p), pseudo))) return;
-          // A press that picks the control (a calendar day) changes what it is, so it no longer has this state's look.
-          if ((await marks()) !== before) return;
-          // A transition can start a frame or two after the state does, so wait until none runs for several frames.
-          await page.evaluate(async () => {
-            const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-            const deadline = Date.now() + 2_000;
-            let quiet = 0;
-            while (quiet < 3 && Date.now() < deadline) {
-              await frame();
-              const running = document.getAnimations().filter((a) => a instanceof CSSTransition);
-              if (running.length === 0) quiet++;
-              else {
-                quiet = 0;
-                await Promise.race([Promise.all(running.map((a) => a.finished.catch(() => null))), new Promise((done) => setTimeout(done, 500))]);
+      await guard.visit(path, async (page) => {
+        await page.goto(path);
+        await settled(page);
+        await quiet(page);
+        const { looks: rest } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
+        const candidates = await page.evaluate(
+          ([all, control]) =>
+            [...document.querySelectorAll<HTMLElement>(all as string)].flatMap((el, i) => {
+              const r = el.getBoundingClientRect();
+              return el.matches(control as string) && r.width > 0 && r.height > 0 ? [i] : [];
+            }),
+          [LOOK_SELECTOR, CONTROL] as const,
+        );
+        for (const i of candidates) {
+          const key = rest.find((l) => l.index === i)?.key;
+          if (!key || (taken.get(key) ?? 0) >= SAMPLES) continue;
+          taken.set(key, (taken.get(key) ?? 0) + 1);
+          const control = page.locator(LOOK_SELECTOR).nth(i);
+          await control.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" }));
+          const box = await control.boundingBox();
+          if (!box) continue;
+          const marks = () => control.evaluate((el) => el.getAttributeNames().filter((n) => n.startsWith("data-") || n.startsWith("aria-")).map((n) => `${n}=${el.getAttribute(n)}`).sort().join(" "));
+          const before = await marks();
+          const record = async (state: string, pseudo: string) => {
+            if (!(await control.evaluate((el, p) => el.matches(p), pseudo))) return;
+            // A press that picks the control (a calendar day) changes what it is, so it no longer has this state's look.
+            if ((await marks()) !== before) return;
+            // A transition can start a frame or two after the state does, so wait until none runs for several frames.
+            await page.evaluate(async () => {
+              const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+              const deadline = Date.now() + 2_000;
+              let quiet = 0;
+              while (quiet < 3 && Date.now() < deadline) {
+                await frame();
+                const running = document.getAnimations().filter((a) => a instanceof CSSTransition);
+                if (running.length === 0) quiet++;
+                else {
+                  quiet = 0;
+                  await Promise.race([Promise.all(running.map((a) => a.finished.catch(() => null))), new Promise((done) => setTimeout(done, 500))]);
+                }
               }
-            }
-          });
-          if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await marks()) !== before) return;
-          found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
-          const { looks: now, escapes } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
-          found.push(...escapes.map((e) => `${path} ${state}: ${e}`));
-          const look = now[0];
-          if (!look) return;
-          const tagged = { ...look, key: `${look.key}|${state}` };
-          looks.add(path, tagged, tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null);
-        };
-        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-        await record("hover", ":hover");
-        await page.mouse.down();
-        await record("active", ":active");
-        await page.mouse.move(0, 0);
-        await page.mouse.up();
-        await page.keyboard.press("Shift");
-        await control.focus();
-        await record("focus", ":focus-visible");
-        await control.blur();
-      }
+            });
+            if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await marks()) !== before) return;
+            found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
+            const { looks: now, escapes } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
+            found.push(...escapes.map((e) => `${path} ${state}: ${e}`));
+            const look = now[0];
+            if (!look) return;
+            const tagged = { ...look, key: `${look.key}|${state}` };
+            looks.add(path, tagged, tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null);
+          };
+          await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+          await record("hover", ":hover");
+          await page.mouse.down();
+          await record("active", ":active");
+          await page.mouse.move(0, 0);
+          await page.mouse.up();
+          await page.keyboard.press("Shift");
+          await control.focus();
+          await record("focus", ":focus-visible");
+          await control.blur();
+        }
+      });
     }
     console.log(`${browserName} ${mode}: ${looks.keys} control states, ${looks.crops} pictures`);
     for (const f of [...new Set(found), ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
+    expect.soft(guard.skipped.length, `routes skipped as too slow: ${guard.skipped.join(", ")}`).toBeLessThanOrEqual(3);
     recordMatched(`states-${mode}-${chunk}-${browserName}`);
     expect.soft([...new Set(found)], "a control leaves its shape in a state").toEqual([]);
     expect.soft(looks.differences(), "a control's properties differ from page to page in a state").toEqual([]);

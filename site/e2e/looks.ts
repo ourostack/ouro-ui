@@ -1,6 +1,6 @@
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { expect, type Page } from "@playwright/test";
+import { type BrowserContext, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { waived } from "./waivers.ts";
 
@@ -215,6 +215,33 @@ export async function quiet(page: Page): Promise<void> {
   await page.addStyleTag({
     content: "*,*::before,*::after{-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important;transition:none!important;animation:none!important}",
   });
+}
+
+// One route gets a minute. A browser call that never returns (WebKit's mouse.up, a screenshot of a page that
+// navigated) would otherwise hold the whole shard to its 15-minute limit; the route is logged as skipped,
+// its page is closed so the hung call ends, and the sweep goes on with a fresh page.
+export function routeGuard(context: BrowserContext, first: Page, ms = 60_000) {
+  let current = first;
+  const skipped: string[] = [];
+  const visit = async (path: string, body: (page: Page) => Promise<void>) => {
+    const page = current;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<"late">((done) => {
+      timer = setTimeout(() => done("late"), ms);
+    });
+    try {
+      if ((await Promise.race([body(page).then(() => "done" as const), late])) === "late") {
+        skipped.push(path);
+        console.log(`SKIPPED ${path}: took over ${ms / 1000}s`);
+        await page.close().catch(() => {});
+        current = await context.newPage();
+        current.setDefaultTimeout(5_000);
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  return { visit, skipped };
 }
 
 export async function picture(page: Page, index: number): Promise<{ data: Buffer; width: number; height: number } | null> {
