@@ -1,0 +1,1 @@
+- The install test adds the ouro-tests items with more processes at once, to cut the prepare step.

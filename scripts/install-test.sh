@@ -563,7 +563,7 @@ echo "::endgroup::"
 echo "::group::The testing setup and ouro-tests"
 cp -R "$root/test/install-fixture-tests/." "$app/"
 # The CLI writes the ~640 files one at a time in one process, about three minutes on a runner, so the
-# items ouro-tests lists are added by four processes at once; the checks below judge the whole result,
+# items ouro-tests lists are added by eight processes at once; the checks below judge the whole result,
 # package.json's tools included.
 mapfile -t test_items < <(node -e 'for (const item of require(process.argv[1]).registryDependencies) console.log(item)' "$registry/r/ouro-tests.json")
 # Each add installs its devDependencies with npm, and npm installs running at once in one app race on
@@ -588,16 +588,16 @@ exit "\$status"
 EOF
 chmod +x "$registry/serial-npm/npm"
 add_pids=()
-for part in 0 1 2 3; do
+for part in 0 1 2 3 4 5 6 7; do
   part_items=()
   for i in "${!test_items[@]}"; do
-    [ $((i % 4)) -ne "$part" ] || part_items+=("${test_items[$i]}")
+    [ $((i % 8)) -ne "$part" ] || part_items+=("${test_items[$i]}")
   done
   PATH="$registry/serial-npm:$PATH" "${shadcn[@]}" add --yes "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
   add_pids+=($!)
 done
 add_failed=0
-for part in 0 1 2 3; do
+for part in 0 1 2 3 4 5 6 7; do
   wait "${add_pids[$part]}" || add_failed=1
   cat "$registry/add-$part.log"
 done
