@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 import { auditPage } from "./audit";
+import { assetHashes, distGzip, distHashes, stableGzip } from "./bytes";
 import { diagnostics } from "./diagnostics";
 
 interface BuildEntry {
@@ -211,10 +212,22 @@ test("real production hydration keeps label/control IDs while the uncached selec
   }
 });
 
+test("a chunk measures the same in builds that differ only in the hash of a chunk it imports, and more when its code grows", () => {
+  const build = (hash: string, extra = "") => {
+    const files = [`assets/message-list-${hash}.js`, "assets/stage-Q1w2E3r4.js", "assets/entry-Zx9_Yv8-.js"];
+    const source = `import{M as e}from"./message-list-${hash}.js";import"./entry-Zx9_Yv8-.js";const t=["assets/message-list-${hash}.js"];export function s(){${extra}return e(t)}`;
+    return stableGzip(source, assetHashes(files));
+  };
+  expect(assetHashes(["assets/message-list-8xipXzQa.js", "assets/Accordion-O-CKa_p-.js", "fonts/geist.woff2"])).toEqual(["8xipXzQa", "O-CKa_p-"]);
+  expect(build("8xipXzQa")).toBe(build("Ab3_dE-9"));
+  expect(build("8xipXzQa", "if(e.gap>320)return null;")).toBeGreaterThan(build("Ab3_dE-9"));
+});
+
 test("each page loads only its own JavaScript closure, within its ceiling, and never Recharts first", async ({ page }, info) => {
   const errors = diagnostics(page);
   const manifest = buildManifest();
   const moduleMap = JSON.parse(readFileSync(resolve("site/dist/.vite/chunk-modules.json"), "utf8")) as Record<string, string[]>;
+  const hashes = distHashes();
   const report: Record<string, unknown> = {};
   const sheets: Record<string, string[]> = {};
   for (const [name, kind, path, ready] of [
@@ -261,7 +274,8 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     const isPolyfill = (file: string) => (moduleMap[file] ?? []).length > 0 && (moduleMap[file] ?? []).every((module) => module.startsWith("registry/ouro/lib/ouro/squircle"));
     const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-") && !island.has(file) && !isPolyfill(file));
     expect(loaded.sort(), `${name} loads its closure and nothing else`).toEqual(expected);
-    const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
+    // Chunk hashes are measured as one placeholder, so a module renamed by another's change costs nothing (bytes.ts).
+    const gzip = expected.reduce((sum, file) => sum + distGzip(file, hashes), 0);
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     report[name] = { gzip, ceiling: CEILINGS[kind], files: expected.length, css, cssCeiling: CSS_CEILINGS[kind] };
     expect(gzip, `${name} initial JavaScript, gzip bytes`).toBeLessThanOrEqual(CEILINGS[kind]);
@@ -360,7 +374,8 @@ for (const island of ISLANDS) {
     expect(withRecharts.length > 0, `${island.chapter} ${island.recharts ? "loads" : "never loads"} Recharts`).toBe(island.recharts);
     const sharedHx = added.filter((file) => !withRecharts.includes(file) && hxOnly(file) && importedFromOutside(file));
     const counted = added.filter((file) => !withRecharts.includes(file) && !sharedHx.includes(file));
-    const size = (file: string) => gzipSync(readFileSync(resolve("site/dist", file))).byteLength;
+    const hashes = distHashes();
+    const size = (file: string) => distGzip(file, hashes);
     const sum = (files: readonly string[]) => files.reduce((total, file) => total + size(file), 0);
     const gzip = sum(counted);
     const breakdown = counted.map((file) => `${file} ${size(file)}`).join(", ");
