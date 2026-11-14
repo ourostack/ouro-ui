@@ -607,7 +607,7 @@ export const EmojiInNames: Story = {
 };
 
 /**
- * A chat with an AI agent: its rounded hexagon avatar (no presence dot, since an agent has none) and a quiet
+ * A chat with an AI agent: its tile avatar with a presence dot and a quiet
  * "AI agent" tag after its name, which screen readers hear after the name.
  */
 export const Agent: Story = {
@@ -619,7 +619,7 @@ export const Agent: Story = {
         role="assistant"
         name="Halden"
         nameTag="AI agent"
-        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" />}
+        avatar={<Avatar name="Halden" alt="" size="sm" shape="agent" />}
         time="3:24 PM"
         dateTime="2026-05-04T15:24"
       >
@@ -633,7 +633,7 @@ export const Agent: Story = {
         role="assistant"
         name="Halden"
         nameTag="AI agent"
-        avatar={<Avatar name="Halden" alt="" size="sm" shape="hexagon" />}
+        avatar={<Avatar name="Halden" alt="" size="sm" shape="agent" />}
         time="3:31 PM"
         dateTime="2026-05-04T15:31"
       >

@@ -94,14 +94,19 @@ export interface HeroOwnProps {
    * @claim "It runs the full width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > runs the lede the full width of the text column in each layout)
    */
   description?: ReactNode;
-  /** The hero's buttons or links, such as Ouro buttons. */
+  /**
+   * The hero's buttons or links, such as Ouro buttons. They sit right under the lede, its next
+   * element, on the lede's edge, set a little further from it than the lines of text are from
+   * each other. Pass the page's main button here, not in `description`.
+   *
+   * @claim "They sit right under the lede" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > sets the actions right under the lede, a step further from it than the lines of text, on the lede's edge)
+   */
   actions?: ReactNode;
   /**
    * The big picture, shown under the text: `{ light, dark }`, the same scene by day and at
-   * night, swapped with the page's dark mode. A single picture still works and shows in both
-   * modes, but it is deprecated: pass `{ light, dark }`. A later release makes `{ light, dark }` required.
+   * night, swapped with the page's dark mode. Both are required: a hero has night art.
    */
-  picture?: HeroPictures | HeroPicture | undefined;
+  picture?: HeroPictures | undefined;
   /** Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. */
   media?: ReactNode;
   /**
@@ -128,10 +133,13 @@ export interface HeroOwnProps {
   layout?: HeroLayout | (string & { 'Use "stage", "column" or "split"': never }) | undefined;
   /**
    * `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The
-   * rise is a CSS animation, so it plays from server-rendered HTML before any JavaScript runs; the
-   * keyframes and durations come from `ouro-base`.
+   * rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from
+   * server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to
+   * import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`,
+   * `--ouro-duration-fast` and `--ouro-ease-out`.
    *
    * @claim "so it plays from server-rendered HTML" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in from server-rendered HTML before any JavaScript runs, and only fades it with reduced motion)
+   * @claim "it needs no keyframes and no stylesheet" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes: its own transition, on ouro-base's durations and easing)
    * @default "rise"
    */
   motion?: "rise" | "none" | (string & { 'Use "rise" or "none"': never }) | undefined;
@@ -145,8 +153,8 @@ export interface HeroOwnProps {
   heading?: { 'Use <Hero title="Dinner, sorted" />': never };
   /** Not a prop. The line above the title is `eyebrow`: `<Hero eyebrow="Recipes" />`. */
   overline?: { 'Use <Hero eyebrow="Recipes" />': never };
-  /** Not a prop. The picture is `picture`: `<Hero picture={{ src, width, height, alt }} />`. */
-  image?: { 'Use picture={{ src, width, height, alt }}': never };
+  /** Not a prop. The picture is `picture`: `<Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />`. */
+  image?: { 'Use picture={{ light, dark }}': never };
   /** Not a prop. The buttons are `actions`: `<Hero actions={<Button>Start</Button>} />`. */
   action?: { 'Use actions={<Button>Start</Button>}': never };
 }
@@ -154,8 +162,10 @@ export interface HeroOwnProps {
 /** Props for {@link Hero}: its own props and the `<header>` attributes it passes through. */
 export type HeroProps = Omit<HTMLAttributes<HTMLElement>, keyof HeroOwnProps> & HeroOwnProps;
 
+// The rise is a transition from @starting-style, in the hero's own classes, so it needs no keyframes
+// and no script. Its durations and easing are ouro-base's tokens, which every app loads.
 const riseMotion =
-  "motion-safe:animate-[ouro-hero-rise_var(--ouro-duration-slow)_var(--ouro-ease-out)_both] motion-reduce:animate-[ouro-hero-fade_var(--ouro-duration-fast)_var(--ouro-ease-out)_both]";
+  "starting:opacity-0 motion-safe:[transition:opacity_var(--ouro-duration-slow)_var(--ouro-ease-out),transform_var(--ouro-duration-slow)_var(--ouro-ease-out)] motion-safe:starting:[transform:translateY(1rem)] motion-reduce:[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)]";
 
 const layoutRoot: Record<HeroLayout, string> = {
   stage:
@@ -292,8 +302,8 @@ export function Hero(props: HeroProps): JSX.Element {
     ...rest
   } = props;
   // A lede that is only text is a paragraph; one made of blocks needs a <div> to be valid HTML.
-  const light = picture && "light" in picture ? picture.light : picture;
-  const dark = picture && "light" in picture ? picture.dark : undefined;
+  const light = picture?.light;
+  const dark = picture?.dark;
   const Lede = typeof description === "string" || typeof description === "number" ? "p" : "div";
   const layout: HeroLayout = layoutProp === "column" ? "column" : layoutProp === "split" ? "split" : "stage";
   // Stryker disable next-line StringLiteral: motion is only compared with "rise", so "" and "none" behave the same.
@@ -330,6 +340,11 @@ export function Hero(props: HeroProps): JSX.Element {
               "picture has no alt text",
               '<Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />',
             ],
+          picture !== undefined &&
+            (light === undefined || dark === undefined) && [
+              "picture needs light and dark art, the same scene by day and at night",
+              "<Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />",
+            ],
           light !== undefined &&
             media != null && [
               "picture and media are both set; show one: picture for a still image, media for something live",
@@ -338,7 +353,7 @@ export function Hero(props: HeroProps): JSX.Element {
           subtitle !== undefined && ["subtitle is not a prop", '<Hero description="..." />'],
           heading !== undefined && ["heading is not a prop", '<Hero title="Dinner, sorted" />'],
           overline !== undefined && ["overline is not a prop", '<Hero eyebrow="Recipes" />'],
-          image !== undefined && ["image is not a prop", "<Hero picture={{ src, width, height, alt }} />"],
+          image !== undefined && ["image is not a prop", "<Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />"],
           action !== undefined && ["action is not a prop", "<Hero actions={<Button>Start</Button>} />"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -353,6 +368,7 @@ export function Hero(props: HeroProps): JSX.Element {
       mediaWidth !== undefined
       ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
       : undefined;
+  // Untyped code can still leave out the dark art: it is warned, and the light art then shows in both modes.
   const shown = light ? (
     <>
       {renderPicture(light, crop, dark ? "light" : undefined)}
@@ -390,7 +406,8 @@ export function Hero(props: HeroProps): JSX.Element {
           </Lede>
         ) : null}
         {actions != null ? (
-          <div data-slot="actions" className={cn("flex flex-wrap gap-3", layoutActions[layout])}>
+          // A step further from the lede than the lines of text are from each other, so the buttons read as the lede's next move.
+          <div data-slot="actions" className={cn("mt-2 flex flex-wrap gap-3", layoutActions[layout])}>
             {actions}
           </div>
         ) : null}
@@ -400,7 +417,7 @@ export function Hero(props: HeroProps): JSX.Element {
           data-slot="media"
           data-ouro-part="media"
           data-starting-style={rising ? "" : undefined}
-          onAnimationEnd={() => setRising(false)}
+          onTransitionEnd={() => setRising(false)}
           style={pictureStyle}
           className={cn(
             "block w-[var(--hero-width)] overflow-clip rounded-[4px]",

@@ -14,7 +14,7 @@ node scripts/claims.mjs ratchet    # claims.config.json's exemptions against CLA
 
 Where they run:
 
-- The `ci` check runs `pnpm claims:check`, in its `checks` job. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] After editing the description to name an exemption, push again: a re-run of the job reads the description its run started with.
+- The `ci` check runs `pnpm claims:check`, in its `checks` job. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] The job reads the description as it is when it runs, so after editing the description to name an exemption, re-run the job.[^live-body]
 - The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow]
 - The Claim addresses workflow runs `pnpm claims:check --network` every week.[^addresses-workflow]
 
@@ -136,6 +136,7 @@ The ratchet compares these lists, and the list of required checks, with the base
 
 [^repo-passes]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::checkClaims over the repository: every surface passes)
 [^ci]: .github/workflows/ci.yml verify:fileLine(.github/workflows/ci.yml, /CLAIMS_BASE_REF="origin\/\$BASE_REF" pnpm claims:check --network=changed/) verify:testExists(scripts/workflows.test.mjs::the required ci job runs the claims ratchet on a pull request, against its base, with its description) verify:testExists(scripts/claims.test.mjs::ciJob reads the required checks at the base ref, so a pull request cannot add its own)
+[^live-body]: scripts/workflows.test.mjs verify:testExists(scripts/workflows.test.mjs::the claims steps read a pull request's description as it is now, and the event's copy when GitHub does not answer)
 [^claims-workflow]: .github/workflows/claims.yml verify:fileLine(.github/workflows/claims.yml, /types: \[opened, edited, synchronize, reopened\]/) verify:fileLine(.github/workflows/claims.yml, /node scripts\/claims.mjs ratchet/) verify:testExists(scripts/claims.test.mjs::the lint command reads a pull request's title and body from the environment)
 [^addresses-workflow]: .github/workflows/claims-urls.yml verify:fileLine(.github/workflows/claims-urls.yml, /pnpm claims:check --network$/) verify:fileLine(.github/workflows/claims-urls.yml, /cron: "23 5 \* \* 1"/)
 [^triggers]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::triggers: numbers, versions, dates and the words that make a sentence a factual claim) verify:testExists(scripts/claims.test.mjs::triggers: spelled-out numbers, each, no and zero, always and never, and fully) verify:testExists(scripts/claims.test.mjs::Markdown: code is not read; generated regions, headings and tables are)

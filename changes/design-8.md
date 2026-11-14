@@ -1,0 +1,1 @@
+- CI's design check now splits across more jobs, so a pull request waits less for its screen check.

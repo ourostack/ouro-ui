@@ -305,7 +305,7 @@ export function AgentPresence(props: AgentPresenceProps): JSX.Element | null {
           <ul className="m-0 grid list-none gap-3 p-0">
             {agents.map((agent) => (
               <li key={agent.id} ref={handoff} className="flex items-center gap-3">
-                <Avatar name={agent.name} alt="" shape="hexagon" size="sm" />
+                <Avatar name={agent.name} alt="" shape="agent" size="sm" />
                 <span className="grid min-w-0 flex-1 gap-0.5">
                   <span className="text-sm font-medium text-foreground">{agent.name}</span>
                   {agent.doing ? <span className={doingClass}>{agent.doing}</span> : null}

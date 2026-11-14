@@ -1049,6 +1049,35 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   assert.ok(JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8")).includes("ci"));
 });
 
+test("the claims steps read a pull request's description as it is now, and the event's copy when GitHub does not answer", () => {
+  // A re-run replays the event the run started with, so a description edited since reaches the ratchets only when read live.
+  assert.match(ciJobs().checks, /^ {4}permissions:\n {6}contents: read\n {6}pull-requests: read\n/m);
+  assert.match(workflow("claims.yml"), /^permissions:\n {2}contents: read\n {2}pull-requests: read\n/m);
+  const steps = [
+    [ciJobs().checks, "Claims"],
+    [workflow("claims.yml"), "Claims in the title and body"],
+    [workflow("claims.yml"), "Exemptions against the base"],
+  ];
+  for (const [block, name] of steps) {
+    const read = (gh) =>
+      runStep(`git() { :; }\ngh() { ${gh} }\nnode() { printf 'TEXT %s / %s\\n' "\${PR_TITLE-}" "$PR_BODY" >&2; }\npnpm() { node; }\n${stepScript(block, name)}`, {
+        BASE_REF: "main",
+        PR: "7",
+        PR_TITLE: "Old title",
+        PR_BODY: "from the event",
+      });
+    const live = read(`case "$*" in *title*) echo "New title" ;; *) echo "edited since" ;; esac;`);
+    assert.equal(live.status, 0, `${name}: ${live.calls}`);
+    assert.match(live.calls, /^TEXT .* \/ edited since$/m, name);
+    assert.doesNotMatch(live.calls, /from the event/, name);
+    const down = read("return 1;");
+    assert.equal(down.status, 0, `${name}: ${down.calls}`);
+    assert.match(down.calls, /^TEXT .* \/ from the event$/m, name);
+  }
+  const title = runStep(`gh() { case "$*" in *title*) echo "New title" ;; *) echo "edited since" ;; esac; }\npnpm() { printf 'TEXT %s\\n' "$PR_TITLE" >&2; }\n${stepScript(workflow("claims.yml"), "Claims in the title and body")}`, { PR: "7", PR_TITLE: "Old title" });
+  assert.match(title.calls, /^TEXT New title$/m);
+});
+
 /** A matrix job's shard count, from its `shard` list, which must count 1 to n. */
 function shardCount(block) {
   const shards = matrixValues(block, "shard").map(Number);
@@ -1118,10 +1147,10 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   const jobs = ciJobs();
   const block = jobs.design;
   assert.match(block, /^ {4}needs: \[plan\]$/m);
-  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/4\)$/m);
-  assert.match(block, /^ {8}shard: \[1, 2, 3, 4\]$/m);
+  assert.match(block, /^ {4}name: design \(\$\{\{ matrix\.shard \}\}\/8\)$/m);
+  assert.match(block, /^ {8}shard: \[1, 2, 3, 4, 5, 6, 7, 8\]$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
-  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/4\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
+  assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/8\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
   assert.doesNotMatch(block, /continue-on-error|themes:/);
   assert.match(block, /^ {6}- if: steps\.relevance\.outputs\.run != 'false'\n {8}run: pnpm site:build$/m);
   // Off a pull request (the merge queue, main, a dispatch) it always runs.
