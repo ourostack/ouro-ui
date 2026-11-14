@@ -1740,14 +1740,14 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - run: scripts/install-test.sh github "$RUNNER_TEMP/app"
   fresh-main:
-    # Last before the gate, on a pull request only: with no merge queue, two pull requests that
+    # Starts with the run, in parallel with everything else, on a pull request only (on a push it would merge main into main): with no merge queue, two pull requests that
     # each pass can break main together. This merges main as it is now into the pull request's head
     # and runs the checks that combine across changes (generated files, the registry, the site's
     # build and its CSS size ceilings), then reads main again, and tests a newer main when it
     # moved, so a result for a main that is no longer main never passes (scripts/fresh-main.mjs).
     # ci-budget, the required check after it, fails when this fails.
-    needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && !contains(needs.*.result, 'failure') }}
+    needs: [plan]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -1787,7 +1787,7 @@ jobs:
     # runs, and the runner time the run took from the shared pool. A required check (ruleset
     # 24881709) that fails only a pull request: on a merge group or a push it only warns, so it
     # never bounces a queue entry.
-    needs: [plan, ci, fresh-main]
+    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
