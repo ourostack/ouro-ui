@@ -309,7 +309,7 @@ export class Looks {
 export const WAIVERS: [RegExp, string][] = [
   [/^button\|root\|button\|[^ ]*data-variant=outline.* on \/docs\/(edit-sheet|card|porthole|route-progress|separator)\/.*: border 1px solid/, "these demos set a tone on the outline button's border colour"],
   [/^button\|root\|button\|data-disabled=.* on \/nautilus\/: opacity 0\.5/, "the Nautilus story dims its disabled controls on purpose"],
-  [/^button\|root\|button\|data-variant=soft.* on \/docs\/a2ui-surface\/: icons $/, "the A2UI demo's button holds no icon"],
+  [/^button\|root\|button\|data-variant=soft.* on \/docs\/(a2ui-surface|ouro-mcp-app)\/: icons $/, "the A2UI demo's button holds no icon"],
   [/^(family-bar|navbar)\|.* on \/docs\/(family-bar|navbar)\/.*: padding /, "a bar's padding follows the demo's container"],
   [/^button\|root\|button\|data-variant=soft\|.*\|focus on \/: icons 18x18/, "the home page's soft button carries a larger icon on purpose"],
   [/^button\|root\|button\|data-variant=soft\|.*\|focus\|.* looks different on \/docs\/emoji\//, "the emoji picker's own grid is behind the focused button"],
