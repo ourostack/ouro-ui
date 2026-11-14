@@ -25,6 +25,14 @@ expectTypeOf<{ eyebrow: "Recipes" }>().not.toExtend<HeroProps>();
 // A picture needs its size, so the media box can never be wider than the image.
 expectTypeOf<{ title: "T"; picture: { src: "/a.webp"; alt: "x" } }>().not.toExtend<HeroProps>();
 
+// Light and dark art: the same scene by day and at night, each with its size.
+expectTypeOf<{
+  title: "T";
+  picture: { light: { src: "/a.webp"; width: 1536; height: 576; alt: "x"; priority: true }; dark: { src: "/a-night.webp"; width: 1536; height: 576 } };
+}>().toExtend<HeroProps>();
+expectTypeOf<{ title: "T"; picture: { light: { src: "/a.webp"; width: 1536; height: 576; alt: "x" } } }>().not.toExtend<HeroProps>();
+expectTypeOf<{ title: "T"; picture: { light: { src: "/a.webp"; width: 1536; height: 576 }; dark: { src: "/a-night.webp" } } }>().not.toExtend<HeroProps>();
+
 // Guessed props and values name the fix.
 expectTypeOf<{ title: "T"; subtitle: "x" }>().not.toExtend<HeroProps>();
 expectTypeOf<{ title: "T"; overline: "x" }>().not.toExtend<HeroProps>();

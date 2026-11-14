@@ -30,6 +30,7 @@ describe("findOffendersInSource: each category", () => {
             "render-index",
             "gated-load",
             "hand-drawn-hero",
+            "hand-drawn-corner",
             "vague-failure-copy",
             "hand-drawn-avatar",
             "hand-drawn-presence-dot",
@@ -2481,5 +2482,22 @@ describe("hand-drawn hero", () => {
             'export const D = () => <div className="hero">x</div>;',
         ].join("\n");
         expect(categories(source)).not.toContain("hand-drawn-hero");
+    });
+});
+
+describe("hand-drawn corner radius", () => {
+    it("flags a fixed radius written in a class on an intrinsic element, naming the theme's scale", () => {
+        const found = scan('export const A = () => <div className="rounded-[12px] p-4">x</div>;\nexport const B = () => <div className="sm:rounded-t-[0.5rem]">x</div>;');
+        expect(found.map((offender) => offender.category)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes the scale's classes, theme variables, circles, zero and registry components", () => {
+        const source = [
+            'export const A = () => <div className="rounded-lg">x</div>;',
+            'export const B = () => <div className="rounded-[var(--radius)]">x</div>;',
+            'export const C = () => <div className="rounded-[50%] rounded-[9999px] rounded-[0]">x</div>;',
+            'export const D = () => <Card className="rounded-[12px]">x</Card>;',
+            'export const E = () => <div className="rounded-[calc(var(--radius)-2px)]">x</div>;',
+        ].join("\n");
+        expect(categories(source)).toEqual([]);
     });
 });

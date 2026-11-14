@@ -4,9 +4,9 @@ import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
-/** A cover as an inline SVG, so the story makes no request. */
-function cover(fill: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 576"><rect width="1536" height="576" fill="${fill}"/><circle cx="768" cy="288" r="150" fill="#fff" fill-opacity=".85"/></svg>`;
+/** A cover as an inline SVG, so the story makes no request. At night the circle is a dim moon. */
+function cover(fill: string, moon = "#fff"): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 576"><rect width="1536" height="576" fill="${fill}"/><circle cx="768" cy="288" r="150" fill="${moon}" fill-opacity=".85"/></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
@@ -19,7 +19,10 @@ const meta = {
     title: "Dinner, sorted",
     description: "Plan the week, shop once and cook with what you already have.",
     actions: <Button>Start planning</Button>,
-    picture: { src: cover("#2f6b4f"), width: 1536, height: 576, alt: "A green cover with a pale circle", crop: "8 / 3" },
+    picture: {
+      light: { src: cover("#2f6b4f"), width: 1536, height: 576, alt: "A green cover with a pale circle", crop: "8 / 3" },
+      dark: { src: cover("#10261c", "#c9d6cf"), width: 1536, height: 576 },
+    },
   },
   argTypes: {
     layout: { control: "inline-radio", options: ["stage", "column", "split"] },
@@ -34,7 +37,7 @@ type Story = StoryObj<typeof meta>;
 /** Try every prop. */
 export const Playground: Story = {};
 
-/** The default stage: a centred title over a picture that never grows past its own size. */
+/** The default stage: a centred title over a picture that never grows past its own size. Its night art shows in dark mode. */
 export const Stage: Story = {};
 
 /** The column layout: text left-aligned in the same column as its picture, which sits under the text. */
@@ -51,14 +54,20 @@ export const TextOnly: Story = {
 export const SmallPicture: Story = {
   args: {
     layout: "column",
-    picture: { src: cover("#3b5b8c"), width: 640, height: 240, alt: "A blue cover with a pale circle" },
+    picture: {
+      light: { src: cover("#3b5b8c"), width: 640, height: 240, alt: "A blue cover with a pale circle" },
+      dark: { src: cover("#16233a", "#c9d0dc"), width: 640, height: 240 },
+    },
   },
 };
 
 /** A decorative picture: the alt text is empty, so screen readers skip it. */
 export const Decorative: Story = {
   args: {
-    picture: { src: cover("#7a5c3e"), width: 1536, height: 576, decorative: true },
+    picture: {
+      light: { src: cover("#7a5c3e"), width: 1536, height: 576, decorative: true },
+      dark: { src: cover("#2e2217", "#d8cfc6"), width: 1536, height: 576 },
+    },
   },
 };
 
@@ -72,6 +81,17 @@ export const LiveMedia: Story = {
       </div>
     ),
   },
+};
+
+/** Inside a page column that already sets the width: `fullWidth` lines the hero up with the page's own edges. */
+export const FullWidth: Story = {
+  args: { layout: "column", fullWidth: true },
+  render: (args) => (
+    <div style={{ display: "grid", gap: 24, width: "min(56rem, 100%)", marginInline: "auto", color: "var(--foreground)" }}>
+      <Hero {...args} />
+      <p style={{ margin: 0 }}>The post starts here, on the same edge as the hero.</p>
+    </div>
+  ),
 };
 
 /** The page's content sits under the hero, and the heading is a section title (level 2). */

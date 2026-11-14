@@ -337,17 +337,22 @@ describe("Switch look and motion", () => {
   ] as const)("moves the thumb only toward where it is going, and stays inside the track, when a pointer turns the switch %s", async (_name, startChecked) => {
     const { track, thumb } = await render(<Switch label="Wi-Fi" defaultChecked={startChecked} />);
     await settled(thumb);
-    const inner = () => {
+    // Both measured against the track's inner edge, in the same frame: a page that reflows around the switch (a scrollbar
+    // that comes or goes shifts centred content by half its width) moves track and thumb together, and is no motion of the
+    // thumb's.
+    const origin = () => {
       const box = track.getBoundingClientRect();
-      const border = Number.parseFloat(getComputedStyle(track).borderLeftWidth);
-      return { left: box.left + border, right: box.right - border };
+      const style = getComputedStyle(track);
+      const left = Number.parseFloat(style.borderLeftWidth);
+      return { at: box.left + left, width: box.width - left - Number.parseFloat(style.borderRightWidth) };
     };
     const edges = () => {
       const box = thumb.getBoundingClientRect();
-      return { left: box.left, right: box.right };
+      const { at } = origin();
+      return { left: box.left - at, right: box.right - at, at };
     };
     const direction = startChecked ? -1 : 1;
-    const samples: { left: number; right: number }[] = [];
+    const samples: { left: number; right: number; at: number }[] = [];
     await commands.pointerPress({ selector: '[role="switch"]', action: "down" });
     await new Promise((resolve) => setTimeout(resolve, 300));
     const pressed = edges();
@@ -362,15 +367,17 @@ describe("Switch look and motion", () => {
     sampling = false;
     await settled(thumb);
     const frames = [pressed, ...samples, edges()];
-    const bounds = inner();
+    const bounds = { left: 0, right: origin().width };
     for (const frame of frames) {
       expect(frame.left).toBeGreaterThanOrEqual(bounds.left - 0.5);
       expect(frame.right).toBeLessThanOrEqual(bounds.right + 0.5);
     }
     // Neither edge ever moves against the direction of travel by more than a pixel.
+    // The frames, with where the track was on the page, so a failure says whether the thumb or the page moved.
+    const seen = frames.map((f) => `${f.left.toFixed(1)}..${f.right.toFixed(1)} at ${f.at.toFixed(1)}`).join(", ");
     for (let index = 1; index < frames.length; index++) {
-      expect((frames[index]!.left - frames[index - 1]!.left) * direction).toBeGreaterThanOrEqual(-1);
-      expect((frames[index]!.right - frames[index - 1]!.right) * direction).toBeGreaterThanOrEqual(-1);
+      expect((frames[index]!.left - frames[index - 1]!.left) * direction, seen).toBeGreaterThanOrEqual(-1);
+      expect((frames[index]!.right - frames[index - 1]!.right) * direction, seen).toBeGreaterThanOrEqual(-1);
     }
     expect(track.getAttribute("aria-checked")).toBe(String(!startChecked));
   });

@@ -51,6 +51,7 @@ A component that finds no `ouro-base` tokens still installs, type checks and bui
 
 - Test tools (`vitest`, `@vitest/browser-playwright`, `playwright`, `@playwright/test`, `storybook`, `@storybook/react-vite`) come only with the `-tests` items, and without a version: the CLI installs one only when your `package.json` has no entry for it, so a version you pinned stays, and nothing is upgraded or downgraded. v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`).[^v0.7.0] The versions the tests need are in [Testing](testing.md).
 - Runtime packages carry a caret range, such as `@base-ui/react@^1.8.0`, so a new app never gets a breaking major.[^caret-ranges] shadcn@4.21.1 hands that range to your package manager on every add.[^caret-ranges] A version inside the range stays installed; an exact pin or a `~` range on one of these packages is rewritten to a caret range, so pin it again after an add if you need to.
+- The registry in your lockfile's `resolved` URLs is whatever npm is configured to use on the machine that ran the add, so a machine-wide private registry ends up in the lockfile. A project `.npmrc` with `registry=https://registry.npmjs.org/`, or a lockfile generated in CI, keeps it out.
 
 ## The tests are optional
 

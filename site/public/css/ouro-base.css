@@ -62,7 +62,7 @@
   --ouro-glass-tint: 34%;
   --ouro-glass-blur: 6px;
   --ouro-glass-rim: rgb(255 255 255 / 0.85);
-  --ouro-glass-edge: rgb(0 0 0 / 0.1);
+  --ouro-glass-edge: rgb(20 18 16 / 0.1);
   --ouro-glass-solid: #ffffff;
 }
 
@@ -84,7 +84,7 @@
   --ouro-backdrop-color: #000000;
   --ouro-glass-tint: 12%;
   --ouro-glass-rim: rgb(255 255 255 / 0.3);
-  --ouro-glass-edge: rgb(0 0 0 / 0.35);
+  --ouro-glass-edge: rgb(8 6 4 / 0.35);
   --ouro-glass-solid: #e9e6e1;
 }
 
@@ -107,7 +107,7 @@
     --ouro-backdrop-color: #000000;
     --ouro-glass-tint: 12%;
     --ouro-glass-rim: rgb(255 255 255 / 0.3);
-    --ouro-glass-edge: rgb(0 0 0 / 0.35);
+    --ouro-glass-edge: rgb(8 6 4 / 0.35);
     --ouro-glass-solid: #e9e6e1;
   }
 }
