@@ -59,6 +59,8 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const d = ctx.getImageData(0, 0, 1, 1).data;
     return `${d[0]},${d[1]},${d[2]},${d[3]}`;
   };
+  // Components whose full-radius shape is the squircle on purpose; dots, lights, thumbs and pills are not.
+  const SQUIRCLE_BY_DESIGN = new Set(["avatar", "avatar-group", "checkbox", "checklist", "skeleton", "media-tile"]);
   const behindOf = (el: HTMLElement) => {
     for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
       const c = getComputedStyle(n).backgroundColor;
@@ -86,6 +88,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
       const shape = cs.getPropertyValue("corner-shape");
       if (!painted || !shape || shape === "superellipse(1)" || shape === "round") continue;
       const owner = el.closest<HTMLElement>("[data-ouro]")?.dataset["ouro"] ?? "page";
+      if (SQUIRCLE_BY_DESIGN.has(owner)) continue;
       escapes.push(`${owner}|${el.dataset["ouroPart"] ?? el.tagName.toLowerCase()}|${Math.round(rect.width)}x${Math.round(rect.height)}: round part (radius ${Math.round(radius)}px) is drawn ${shape}`);
     }
   }
