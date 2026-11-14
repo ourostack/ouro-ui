@@ -1,0 +1,1 @@
+- New: the source rules find a switch drawn by hand with `role="switch"`, so an app can move it to the registry's `Switch`.
