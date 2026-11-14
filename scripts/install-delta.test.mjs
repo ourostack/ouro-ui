@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { closure, manifestOf, plan, readItems } from "./install-delta.mjs";
@@ -60,4 +60,9 @@ test("the install delta reads built items without the folder their dependencies 
     write("one", ["/tmp/y/two.json"], "changed");
     assert.notEqual(readItems(dir).one.hash, first.one.hash);
   }
+});
+
+test("the install test adds a delta's items by their built address, never a bare name the shadcn registry would be asked for", () => {
+  const script = readFileSync(new URL("./install-test.sh", import.meta.url), "utf8");
+  assert.match(script, /console\.log\(process\.argv\[2\] \+ "\/" \+ item \+ "\.json"\)' "\$delta_plan" "\$registry\/r"/);
 });
