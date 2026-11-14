@@ -62,7 +62,7 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.34:** Ouro check has new gated rules for text that wraps by accident, `lone-word`, `tall-heading`, `one-word-line`, `hard-break` and `narrow-heading`, and `dark-art`, a dark page that shows its light theme's hero art, so a run that passed can now report findings.[^upgrade-wrap-checks] Balance headings and wrap prose pretty, give hero art a night twin, or mark a finding you keep on purpose with `data-ouro-allow` and a reason.[^upgrade-wrap-checks] `check.ts` imports a new file, `wrap-check.ts`: if your app pins the check's files in a list, add `registry/ouro/check/wrap-check.ts` to it.[^upgrade-wrap-checks]
 
-- **After v1.3.33 (Dialog):** a `Dialog` opened from the keyboard whose body has nothing to focus now gives first focus to a field in its footer (an input, a text area or a select), where it gave it to Close, so a test that expected Close there now finds the field.[^upgrade-dialog-footer-field]
+- **After v1.3.45 (Dialog):** a `Dialog` opened from the keyboard whose body has nothing to focus now gives first focus to a field in its footer (an input, a text area or a select), where it gave it to Close, so a test that expected Close there now finds the field.[^upgrade-dialog-footer-field]
 
 #### 0. Commit first
 
