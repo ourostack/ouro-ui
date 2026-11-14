@@ -376,9 +376,14 @@ jobs:
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
-    name: scripts (browser)
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    name: scripts (browser ${{ matrix.shard }}/4)
     env:
-      TIMINGS: .tmp/timings/scripts-browser.json
+      SHARD: ${{ matrix.shard }}/4
+      TIMINGS: .tmp/timings/scripts-browser-${{ matrix.shard }}of4.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -394,11 +399,11 @@ jobs:
           mkdir -p .tmp/timings
           # Word splitting is wanted: the paths have no spaces.
           # shellcheck disable=SC2046
-          node scripts/run-script-tests.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=./scripts/timings-node-reporter.mjs --test-reporter-destination="$TIMINGS" $(node scripts/shard.mjs scripts-browser)
+          node scripts/run-script-tests.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=./scripts/timings-node-reporter.mjs --test-reporter-destination="$TIMINGS" $(node scripts/shard.mjs scripts-browser "$SHARD")
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: timings-scripts-browser
+          name: timings-scripts-browser-${{ matrix.shard }}
           path: .tmp/timings/
           include-hidden-files: true
           if-no-files-found: ignore
