@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { URL } from "node:url";
 import { build } from "vite";
 import { Builder } from "selenium-webdriver";
 
