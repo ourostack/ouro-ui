@@ -102,9 +102,15 @@ import ts from "typescript";
 //   of ==, !=, === and !== and `case` labels, the value of an attribute or object property named
 //   in NOT_COPY_ATTRIBUTE (className and the like, data-*, id, key, type, href, src, to, name, role,
 //   htmlFor, as), and a string that is one lowercase token ("error", "load-failed": a status, not
-//   copy). A template with a substitution, or JSX text beside other children (`{count} failed`), is
-//   never bare. `failureCopyAllow` lets a precise text through, each entry with its reason. It
-//   counts where the text is written and never makes the component around it a hand-rolled control.
+//   copy). Also not copy: the first argument of includes, startsWith, endsWith, has and test (a
+//   string matched against, not shown), a string in a `new Set([...])` that is only used for
+//   `.has(…)` membership, and the class name in `x.name || "Error"`. A heading or label that names
+//   the topic ("Errors", "Machine errors", "Common failures": at most two words before a plural,
+//   none an action) is not a bare failure either. A template with a substitution, or JSX text
+//   beside other children (`{count} failed`), is never bare. `failureCopyAllow` lets a precise text
+//   through, each entry with its reason, and is where a protocol's own wording ("Parse error")
+//   goes. It counts where the text is written and never makes the component around it a
+//   hand-rolled control.
 // - uses-hand-rolled-control: a JSX use of an imported app component that is offending, counted at
 //   the call site. A component is offending when an offender sits inside it, or it renders an
 //   offending component (same file or imported), to a fixed point across modules: a wrapper
@@ -227,6 +233,11 @@ export const LEAD_FAILURE = /^[^\p{L}\p{N}]*(?:\p{L}[\p{L}'’-]*\s+){0,2}(?:err
 // Words before "error" or "failed" that make the text other than a failure: a negation ("No errors",
 // "Nothing failed") or an action ("Show errors", "Retry failed").
 export const NOT_BARE_LEADS = ["no", "nothing", "zero", "none", "show", "hide", "retry", "clear"];
+// A heading or label that names a topic: a plural "errors" or "failures" with at most two words
+// before it, none of them an action (TOPIC_VERBS), so "Errors" and "Machine errors" pass and
+// "Fix errors" does not.
+const TOPIC_LABEL = /^[^\p{L}\p{N}]*((?:\p{L}[\p{L}'’-]*\s+){0,2})(?:errors|failures)[^\p{L}\p{N}]*$/iu;
+const TOPIC_VERBS = ["fix", "view", "see", "check", "handle", "resolve", "dismiss", "ignore", "skip", "report", "review", "reset", "copy", "send", "catch", "log", "get", "got", "had", "has", "have", "is", "are", "was", "were", "be", "found", "make", "made"];
 const SENTENCE_END = /[.!?](?=\s|$)/u;
 const WORD = /\p{L}[\p{L}\p{N}'’-]*/gu;
 
@@ -245,6 +256,12 @@ export function statesCause(rest) {
 }
 
 const leadWords = (text) => [...text.toLowerCase().matchAll(WORD)].map((match) => match[0]);
+
+// Whether a whole text is a heading or label that names a topic ("Machine errors"), not a failure.
+const isTopicLabel = (text) => {
+  const match = TOPIC_LABEL.exec(text.trim());
+  return match !== null && !leadWords(match[1]).some((word) => TOPIC_VERBS.includes(word));
+};
 
 /**
  * The vague failure phrase in `text`, by its canonical name, or undefined. Every occurrence of a
@@ -265,7 +282,7 @@ export function vagueFailurePhrase(text, { whole = true } = {}) {
   const word = (failure) => (/\berrors?\b/i.test(failure) ? "bare error" : "bare failed");
   const lead = LEAD_FAILURE.exec(trimmed);
   if (lead && !leadWords(lead[0]).some((w) => NOT_BARE_LEADS.includes(w))) return statesCause(trimmed.slice(lead[0].length - lead[1].length)) ? undefined : word(lead[0]);
-  if (!whole || !BARE_FAILURE.test(trimmed)) return undefined;
+  if (!whole || !BARE_FAILURE.test(trimmed) || isTopicLabel(trimmed)) return undefined;
   if (leadWords(trimmed).slice(0, -1).some((w) => NOT_BARE_LEADS.includes(w))) return undefined;
   return word(trimmed);
 }
@@ -1024,6 +1041,61 @@ const EQUALITY = new Set([
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
 ]);
 const copySpace = (text) => text.replace(APOSTROPHE_ENTITY, "'").replace(/\s+/g, " ").trim();
+// A string that is the first argument of a membership test is matched against, not shown.
+const MEMBERSHIP_METHODS = new Set(["includes", "startsWith", "endsWith", "has", "test"]);
+const isMembershipArgument = (call, node) =>
+  call.arguments[0] === node && ts.isPropertyAccessExpression(call.expression) && MEMBERSHIP_METHODS.has(call.expression.name.text);
+// `error.name || "Error"`: a class name for a missing name, not a message.
+const ERROR_CLASS_NAME = /^(?:[A-Z][a-z]*)*(?:Error|Exception)$/;
+const isNameFallback = (binary, node) =>
+  (binary.operatorToken.kind === ts.SyntaxKind.BarBarToken || binary.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) &&
+  binary.right === node &&
+  ts.isPropertyAccessExpression(binary.left) &&
+  binary.left.name.text === "name" &&
+  ts.isStringLiteral(node) &&
+  ERROR_CLASS_NAME.test(node.text);
+
+const membershipArraysByFile = new WeakMap();
+const isSetOf = (node) =>
+  ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "Set" && node.arguments?.length === 1 && ts.isArrayLiteralExpression(node.arguments[0]);
+// The `.has(…)` receiver: `x.has(…)` with x the node.
+const isMembershipReceiver = (node) =>
+  ts.isPropertyAccessExpression(node.parent) &&
+  node.parent.expression === node &&
+  node.parent.name.text === "has" &&
+  ts.isCallExpression(node.parent.parent) &&
+  node.parent.parent.expression === node.parent;
+
+// The array literals of the Sets a file only tests membership in: `new Set([...]).has(x)` inline, and a
+// `const` Set that is not exported and whose every use in the file is `Name.has(…)`. The walk is by name,
+// not by scope, so another binding of the same name that is used some other way keeps the Set read.
+function membershipArraysOf(sourceFile) {
+  if (membershipArraysByFile.has(sourceFile)) return membershipArraysByFile.get(sourceFile);
+  const arrays = new Set();
+  const candidates = [];
+  const used = new Set();
+  const visit = (node) => {
+    if (isSetOf(node) && isMembershipReceiver(node)) arrays.add(node.arguments[0]);
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      isSetOf(node.initializer) &&
+      node.parent.flags & ts.NodeFlags.Const &&
+      !(ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export)
+    ) {
+      candidates.push({ name: node.name.text, array: node.initializer.arguments[0] });
+    }
+    if (ts.isIdentifier(node) && !(ts.isVariableDeclaration(node.parent) && node.parent.name === node) && !isMembershipReceiver(node)) {
+      used.add(node.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  for (const { name, array } of candidates) if (!used.has(name)) arrays.add(array);
+  membershipArraysByFile.set(sourceFile, arrays);
+  return arrays;
+}
 
 // Whether a string or template stands where copy would: not a module specifier, a type, a key, a
 // tagged template, a compared value, or the value of an attribute or property in NOT_COPY_ATTRIBUTE.
@@ -1040,7 +1112,9 @@ function isCopyPosition(node) {
     parent.name === node ||
     (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) ||
     (ts.isCallExpression(parent) && (parent.expression.kind === ts.SyntaxKind.ImportKeyword || parent.expression.getText() === "require")) ||
-    (ts.isBinaryExpression(parent) && EQUALITY.has(parent.operatorToken.kind))
+    (ts.isCallExpression(parent) && isMembershipArgument(parent, node)) ||
+    (ts.isBinaryExpression(parent) && (EQUALITY.has(parent.operatorToken.kind) || isNameFallback(parent, node))) ||
+    (ts.isArrayLiteralExpression(parent) && membershipArraysOf(node.getSourceFile()).has(parent))
   ) {
     return false;
   }
