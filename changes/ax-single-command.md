@@ -1,0 +1,1 @@
+- New: Ouro AX's `defineCli` takes `command` for a tool with one thing to do, which runs with no command word: `ouro-images <folder>`. A tool with `commands` still refuses a word it doesn't know.

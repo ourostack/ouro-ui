@@ -70,3 +70,37 @@ test("person-only words are listed in the overview and in help --json, with the 
   assert.deepEqual(helpJson(cli).personOnly, []);
   assert.doesNotMatch(renderOverview(cli), /Only the person/);
 });
+
+test("a one-command tool's overview and command help name the tool and its usage, never a command word", () => {
+  const images = defineCli({
+    name: "ouro-images",
+    about: ["Writes the sizes of a folder of pictures."],
+    command: defineCommand({
+      name: "images",
+      summary: "Write each picture at the sizes the site uses.",
+      effect: "private",
+      args: [{ name: "folder", description: "The folder of pictures.", required: true }],
+      flags: { out: { type: "string", description: "Where the sizes go." } },
+      run: () => 1,
+    }),
+  });
+  assert.equal(
+    renderOverview(images),
+    [
+      "Writes the sizes of a folder of pictures.",
+      "",
+      "Only you see these",
+      "  <folder> [--out <out>]          Write each picture at the sizes the site uses.",
+      "",
+      "Output: --json on every command. Exit codes: 0 ok, 1 error, 2 usage. Errors: one line that says what",
+      "to do instead.",
+      "Details: ouro-images --help",
+      "",
+    ].join("\n"),
+  );
+  assert.match(renderCommand(images, images.commands[0]!), /^ouro-images: Write each picture at the sizes the site uses\.\n\nDefinition\n {2}ouro-images <folder> \[--out <out>\]\n/);
+  assert.deepEqual(helpJson(images).commands[0], { ...helpJson(images).commands[0], usage: "ouro-images <folder> [--out <out>]", single: true });
+  assert.equal("single" in helpJson(cli).commands[0]!, false);
+  const poster = defineCli({ name: "ouro-post", about: ["p"], command: defineCommand({ name: "post", summary: "Post.", effect: "others", why: "required", run: () => 1 }) });
+  assert.match(renderOverview(poster, { othersNote: " (asked only)", footer: ["Footer."] }), /^p\n\nOther people see these \(asked only\)\n {2}--why "<who asked you, and what they said>" \[--dry-run\]\n {34}Post\.\n\nFooter\.\n$/);
+});

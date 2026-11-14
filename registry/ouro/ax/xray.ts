@@ -475,6 +475,8 @@ const refusedNote = (safety: Safety) => `not run: the target is not proven a moc
 
 interface CliCommand {
   name: string;
+  /** The words a call starts with: none for the one command of a tool defined with `command` (`single` in help JSON). */
+  words: string[];
   effect: string | null;
   readOnly: boolean | null;
   usage: string[];
@@ -499,7 +501,7 @@ function commandsOf(help: Record<string, unknown>, name: string): CliCommand[] {
     const cmd = String(c["name"]);
     const raw = Array.isArray(c["usage"]) ? c["usage"].map(String) : typeof c["usage"] === "string" ? [c["usage"]] : [cmd];
     const usage = raw.map((u) => (u.startsWith(`${name} `) ? u.slice(name.length + 1) : u));
-    return { name: cmd, effect: typeof c["effect"] === "string" ? c["effect"] : null, readOnly: typeof c["readOnly"] === "boolean" ? c["readOnly"] : null, usage, scope: typeof c["scope"] === "string" ? c["scope"] : null };
+    return { name: cmd, words: c["single"] === true ? [] : cmd.split(" "), effect: typeof c["effect"] === "string" ? c["effect"] : null, readOnly: typeof c["readOnly"] === "boolean" ? c["readOnly"] : null, usage, scope: typeof c["scope"] === "string" ? c["scope"] : null };
   });
 }
 
@@ -560,11 +562,13 @@ async function checkCli(ctx: Context) {
     // Without help JSON, commands come from the text: an indented word, two spaces, then words.
     for (const l of overviewLines) {
       const m = /^ {2,4}([a-z][\w-]*):? {2,}\S/.exec(l);
-      if (m?.[1]) commands.push({ name: m[1], effect: null, readOnly: null, usage: [m[1]], scope: null });
+      if (m?.[1]) commands.push({ name: m[1], words: [m[1]], effect: null, readOnly: null, usage: [m[1]], scope: null });
     }
   }
   const names = commands.map((c) => c.name);
   const unique = [...new Set(names)];
+  /** A tool with one command: its command has no words, so every word is an argument. */
+  const single = commands.some((c) => c.words.length === 0);
   recordInventory(rec, "cli.inventory", ctx.inventory?.cli ? compareInventory(ctx.inventory.cli, names) : null, "help --json");
 
   if (help) {
@@ -602,7 +606,7 @@ async function checkCli(ctx: Context) {
   rec.add("cli.overview-short", "--help", overviewLines.length <= 60 ? "pass" : "fail", `${overviewLines.length} lines`);
   const helpText: Record<string, string> = {};
   for (const n of unique) {
-    const c = await call([...n.split(" "), "--help"]);
+    const c = await call([...commands.find((x) => x.name === n)!.words, "--help"]);
     helpText[n] = c.stdout;
     const ok = c.code === 0 && c.stdout.trim() !== "" && !c.stderr.trim();
     rec.add("cli.command-help", n, ok ? "pass" : "fail", ok ? `${lines(c.stdout).length} lines` : brief(c));
@@ -628,8 +632,9 @@ async function checkCli(ctx: Context) {
     rec.add("cli.error-teaches", surface, t ? "pass" : "fail", t ? clip(firstLine(c.stderr)) : `${brief(c)}: names no command or flag to try`);
   };
 
-  // An unknown command.
-  {
+  // An unknown command. A tool with one command has none: its extra words are its arguments, so there is nothing to refuse.
+  if (single) rec.add("cli.unknown-command", NO_SUCH_COMMAND, "skip", "a tool with one command takes its words as arguments, so none is refused as an unknown command");
+  else {
     const c = await call([NO_SUCH_COMMAND]);
     const heads = [...new Set(unique.map((n) => n.split(" ")[0]!))];
     const listed = heads.filter((n) => named(c.stderr, n)).length;
@@ -640,8 +645,9 @@ async function checkCli(ctx: Context) {
     if (c.code !== 0) errorChecks(NO_SUCH_COMMAND, c);
   }
 
-  // Ambiguous verbs, only when help JSON says what every command is: an unknown CLI's bare `delete` might act.
-  for (const v of help ? AMBIGUOUS.filter((x) => !names.includes(x)) : []) {
+  // Ambiguous verbs, only when help JSON says what every command is: an unknown CLI's bare `delete` might act. A tool
+  // with one command takes them as arguments, so there is nothing to check.
+  for (const v of help && !single ? AMBIGUOUS.filter((x) => !names.includes(x)) : []) {
     const c = await call([v]);
     const hits = unique.filter((n) => n !== "help" && named(c.stderr, n));
     const ok = c.code !== 0 && !c.timedOut && hits.length >= 1;
@@ -656,8 +662,7 @@ async function checkCli(ctx: Context) {
   const readPlan = (cmd: CliCommand) => {
     for (const u of cmd.usage) {
       const w = requiredWords(u);
-      const head = cmd.name.split(" ");
-      if (head.some((x, i) => w[i] !== x)) continue;
+      const head = cmd.words;
       const rest = w.slice(head.length);
       if (rest.some((t) => t.startsWith("-") || t.includes("|") || t.includes("#") || (t.includes("<") && !/^<[^<>]+>$/.test(t)))) continue;
       const ph = rest.filter((t) => t.startsWith("<"));
@@ -684,7 +689,7 @@ async function checkCli(ctx: Context) {
       }
       words = words.map((t) => (t.startsWith("<") ? v : t));
     }
-    const args = [...cmd.name.split(" "), ...words];
+    const args = [...cmd.words, ...words];
     reads.push({ cmd, args });
     const c = await call([...args, "--json"]);
     if (c.timedOut) {
@@ -708,9 +713,9 @@ async function checkCli(ctx: Context) {
     }
   }
   for (const { cmd, plan } of plans) {
-    if (plan || cmd.usage.some((u) => requiredWords(u).length === cmd.name.split(" ").length)) continue;
+    if (plan || cmd.usage.some((u) => requiredWords(u).length === cmd.words.length)) continue;
     // Every usage needs something: the bare command must fail and say what.
-    const c = await call(cmd.name.split(" "));
+    const c = await call(cmd.words);
     const ok = c.code !== 0 && !c.timedOut && (usageCode === null || c.code === usageCode);
     rec.add("cli.missing-arg", cmd.name, ok ? "pass" : "fail", `${brief(c)}${usageCode !== null && c.code !== usageCode && c.code !== 0 ? `; usage exit code is ${usageCode}` : ""}`);
     if (c.code !== 0) errorChecks(`${cmd.name} (no argument)`, c);
@@ -765,10 +770,10 @@ async function checkCli(ctx: Context) {
   const convRef = ["conversation", "chat", "room", "channel"].map((k) => samples[k]).find(Boolean);
   if (waiter && convRef) {
     const waitedCode = exitCodes?.find((e) => /wait|didn.t happen|timed? ?out/i.test(JSON.stringify([e["name"], e["short"], e["meaning"]])))?.["code"];
-    const c = await call([waiter.name, convRef, "--timeout", "1s"], null, Math.max(opts.timeoutMs, 15_000));
+    const c = await call([...waiter.words, convRef, "--timeout", "1s"], null, Math.max(opts.timeoutMs, 15_000));
     const ok = !c.timedOut && c.code !== usageCode && (c.code === 0 || (waitedCode !== undefined && c.code === Number(waitedCode)) || /resume|--cursor|nothing (yet|happened)/i.test(c.stdout + c.stderr));
     rec.add("cli.wait-on-refs", `${waiter.name} <conversation>`, ok ? "pass" : "fail", brief(c));
-    const t = await call([waiter.name, convRef, "--timeout", "1s", "--json"], null, Math.max(opts.timeoutMs, 15_000));
+    const t = await call([...waiter.words, convRef, "--timeout", "1s", "--json"], null, Math.max(opts.timeoutMs, 15_000));
     const j = parseJson(t.stdout);
     const v = j.ok && isWait(j.value) ? validateWait(j.value) : null;
     rec.add("cli.wait-typed", `${waiter.name} <conversation> --json`, v?.ok ? "pass" : "fail", v ? (v.ok ? `wait/1, state ${String((j as { value: { state: string } }).value.state)}` : v.errors.join("; ")) : `${brief(t)}; not a wait/1`);
@@ -784,7 +789,7 @@ async function checkCli(ctx: Context) {
     for (const cmd of others) for (const id of ["cli.others-need-why", "cli.wrong-ref-first", "cli.others-preview", "cli.outcome", "cli.fact-before-voice", "cli.audience-named"]) rec.add(id, cmd.name, "skip", refusedNote(ctx.safety));
   }
   for (const cmd of ctx.safety.ok ? others : []) {
-    const head = cmd.name.split(" ");
+    const head = cmd.words;
     const words = usageWords(cmd.usage[0]!.replace(/\[[^[\]]*\]/g, " "));
     let input: string | null = null;
     const target: string[] = [];
@@ -871,10 +876,10 @@ async function checkCli(ctx: Context) {
     return w[0] === name ? w.slice(1) : w;
   };
   const listed = help ? commands : [];
-  /** The command the leading words name, the longest first, as help --json lists it. */
+  /** The command the leading words name, the longest first, as help --json lists it (none for a one-command tool's words). */
   const commandOf = (ws: readonly string[]): CliCommand | null => {
-    for (let n = ws.length; n > 0; n--) {
-      const found = listed.find((c) => c.name === ws.slice(0, n).join(" "));
+    for (let n = ws.length; n >= 0; n--) {
+      const found = listed.find((c) => c.words.join(" ") === ws.slice(0, n).join(" "));
       if (found) return found;
     }
     return null;
