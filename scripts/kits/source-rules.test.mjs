@@ -586,7 +586,6 @@ describe("vague-failure-copy", () => {
             "A error occurred": "an error occurred",
             "Sorry, an unknown error": "an error occurred",
             "Error": "bare error",
-            "Errors": "bare error",
             "  Error!  ": "bare error",
             "Error:": "bare error",
             "Upload failed": "bare failed",
@@ -595,8 +594,6 @@ describe("vague-failure-copy", () => {
             "Couldn't send.": "couldn't",
             "Couldn't send:": "couldn't",
             "Error: something went wrong": "something went wrong",
-            "Sync errors": "bare error",
-            // A cause in the same sentence, of two words or a substitution, that is not a next step or a vague word.
             "Couldn't send: try again.": "couldn't",
             "Something went wrong: please try again later.": "something went wrong",
             "Something went wrong. Error code: E42": "something went wrong",
@@ -693,6 +690,53 @@ describe("vague-failure-copy", () => {
         return <div className={status ? "Error" : "x"} itemClassName="Failed" data-state="Upload failed" id="Error" key="Failed" type="Error"
           href="/could not" src="unable to" to="Error" name="Error" role="Error" htmlFor="Error" as="Error" />;
       }`)).toEqual([]);
+    });
+    it("skips the first argument of a membership test: includes, startsWith, endsWith, has and test", () => {
+        expect(vague(`export function A(error, ok, pattern) {
+          if (error.message.includes("UNIQUE constraint failed")) return 1;
+          if (error.message.startsWith("OAuth request error:") || error.message.endsWith(\`Load failed\`)) return 2;
+          if (pattern.test("could not")) return 3;
+          return show(ok.includes("Could not save"), "Could not save") || alert("Load failed") || error.message.includes(message);
+        }`)).toEqual(["could not::Could not save", "bare failed::Load failed"]);
+    });
+    it("skips a string in a Set that is only used for membership: inline, or a const Set used for nothing but .has", () => {
+        expect(vague(`const RETRY = new Set(["Could not", "Load failed"]);
+          const ELSEWHERE = new Set(["Could not save"]);
+          export const EXPORTED = new Set(["Something went wrong"]);
+          const LOGGED = new Set(["Couldn't send"]);
+          export function A(code) {
+            return new Set(["Unable to save"]).has(code) || RETRY.has(code) || ELSEWHERE.size;
+          }
+          export function B(code) { return LOGGED.has(code) && console.log(LOGGED) && EXPORTED.has(code); }`)).toEqual(["could not::Could not save", "something went wrong::Something went wrong", "couldn't::Couldn't send"]);
+    });
+    it("skips the class name in a name fallback, and nothing else after error.name", () => {
+        expect(vague(`export function A(error) {
+          return <p>{error.name || "Error"} {error?.name ?? "TypeError"} {error.name || "AggregateError"}</p>;
+        }`)).toEqual([]);
+        expect(vague(`export function A(error) {
+          return [error.code || "Error", error.name || "Failed", error.name || "Something went wrong", "Error" || error.name, error.name || "Could not save"];
+        }`)).toEqual(["bare error::Error", "bare failed::Failed", "something went wrong::Something went wrong", "bare error::Error", "could not::Could not save"]);
+    });
+    it("skips a heading or label that only names the topic: a plural errors or failures, no action before it", () => {
+        expect(vague(`export function Table() { return <>
+          <h2>Errors</h2>
+          <th>Machine errors</th>
+          <h3>Common failures</h3>
+          <p>Sync errors.</p>
+          <th>{"Payment failures"}</th>
+        </>; }`)).toEqual([]);
+        expect(vague(`export function Table() { return <>
+          <h2>Error</h2>
+          <th>Machine error</th>
+          <button>Fix errors</button>
+          <p>We had errors</p>
+          <th>Failed</th>
+        </>; }`)).toEqual(["bare error::Error", "bare error::Machine error", "bare error::Fix errors", "bare error::We had errors", "bare failed::Failed"]);
+    });
+    it("still flags a protocol's own wording, which failureCopyAllow lets through with its reason", () => {
+        const source = `export const parseError = { code: -32700, message: "Parse error" };`;
+        expect(vague(source)).toEqual(["bare error::Parse error"]);
+        expect(vague(source, { failureCopyAllow: [{ match: "Parse error", reason: "JSON-RPC 2.0 mandates this message" }] })).toEqual([]);
     });
     it("counts copy in a handler, under an element, at the top level and in a computed property's value", () => {
         expect(vague(`
