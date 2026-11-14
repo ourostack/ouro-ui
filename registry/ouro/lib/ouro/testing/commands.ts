@@ -116,12 +116,24 @@ async function awaitMedia(frame: Frame, queries: string[]): Promise<void> {
   // As long as a poll waits (the projects' 10 s), since a loaded runner can be slow to answer.
   const deadline = performance.now() + MEDIA_WAIT_MS;
   const unmatched = `${JSON.stringify(queries)}.find((query) => !matchMedia(query).matches)`;
+  // The query the frame last said it does not match.
+  let unmatchedBefore: string | undefined;
   for (;;) {
     // Each read gets at least MEDIA_ANSWER_MS, so a read begun just before the deadline can still answer
     // and the failure names the query that does not match, not a frame that did not answer.
     const limit = Math.max(deadline - performance.now(), MEDIA_ANSWER_MS);
-    const missing = await within(frame.evaluate<string | undefined>(unmatched), limit, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(limit)}ms`);
+    let missing: string | undefined;
+    try {
+      missing = await within(frame.evaluate<string | undefined>(unmatched), limit, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(limit)}ms`);
+    } catch (problem) {
+      // A frame that said what it does not match, then stalled on the last read (a loaded runner), still does not match it.
+      if (unmatchedBefore !== undefined && performance.now() > deadline) {
+        throw new Error(`the test frame does not match ${unmatchedBefore} within ${MEDIA_WAIT_MS / 1000}s (and its last read did not answer within ${Math.round(limit)}ms)`, { cause: problem });
+      }
+      throw problem;
+    }
     if (missing === undefined) return;
+    unmatchedBefore = missing;
     if (performance.now() > deadline) throw new Error(`the test frame does not match ${missing} within ${MEDIA_WAIT_MS / 1000}s`);
     await sleep(10);
   }
