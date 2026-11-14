@@ -183,6 +183,26 @@ describe("Hero", () => {
     }
   });
 
+  it("sets the actions right under the lede, a step further from it than the lines of text, on the lede's edge", async () => {
+    await page.viewport(1440, 900);
+    for (const layout of ["stage", "column", "split"] as const) {
+      const { header, part } = await render(
+        <Hero eyebrow="Recipes" title="Dinner" layout={layout} description="Plan the week." actions={<button type="button">Start</button>} media={<div style={{ height: 120 }}>Live</div>} />,
+      );
+      const lede = part("description")!;
+      const actions = part("actions")!;
+      expect(lede.nextElementSibling).toBe(actions);
+      const textGap = lede.getBoundingClientRect().top - header.querySelector("h1")!.getBoundingClientRect().bottom;
+      expect(actions.getBoundingClientRect().top - lede.getBoundingClientRect().bottom).toBe(textGap + 8);
+      const button = actions.querySelector("button")!.getBoundingClientRect();
+      const words = document.createRange();
+      words.selectNodeContents(lede);
+      const line = words.getBoundingClientRect();
+      if (layout === "stage") expect(button.left + button.width / 2).toBeCloseTo(line.left + line.width / 2, 0);
+      else expect(button.left).toBe(line.left);
+    }
+  });
+
   it("takes its container's width with fullWidth, with no gutter or cap of its own", async () => {
     await page.viewport(1440, 900);
     for (const layout of ["stage", "column", "split"] as const) {

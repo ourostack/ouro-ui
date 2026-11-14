@@ -94,7 +94,13 @@ export interface HeroOwnProps {
    * @claim "It runs the full width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > runs the lede the full width of the text column in each layout)
    */
   description?: ReactNode;
-  /** The hero's buttons or links, such as Ouro buttons. */
+  /**
+   * The hero's buttons or links, such as Ouro buttons. They sit right under the lede, its next
+   * element, on the lede's edge, set a little further from it than the lines of text are from
+   * each other. Pass the page's main button here, not in `description`.
+   *
+   * @claim "They sit right under the lede" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > sets the actions right under the lede, a step further from it than the lines of text, on the lede's edge)
+   */
   actions?: ReactNode;
   /**
    * The big picture, shown under the text: `{ light, dark }`, the same scene by day and at
@@ -390,7 +396,8 @@ export function Hero(props: HeroProps): JSX.Element {
           </Lede>
         ) : null}
         {actions != null ? (
-          <div data-slot="actions" className={cn("flex flex-wrap gap-3", layoutActions[layout])}>
+          // A step further from the lede than the lines of text are from each other, so the buttons read as the lede's next move.
+          <div data-slot="actions" className={cn("mt-2 flex flex-wrap gap-3", layoutActions[layout])}>
             {actions}
           </div>
         ) : null}
