@@ -1,0 +1,69 @@
+{
+  "model": "grok-4-7",
+  "modelId": "grok-4.7",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "task": "check-off",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "list_items",
+    "update_item",
+    "update_item"
+  ],
+  "textReadChars": 448,
+  "wallMs": 3789,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 6336,
+    "output": 126,
+    "cacheRead": 5888,
+    "cacheWrite": 0,
+    "reasoning": 75,
+    "total": 6462
+  },
+  "costAiu": 0.4596,
+  "costSource": "runtime",
+  "finalMessage": "I ticked off the eggs and the spinach on your list.",
+  "transcript": {
+    "messages": [
+      "I ticked off the eggs and the spinach on your list."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_items",
+        "args": {},
+        "ms": 3,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "update_item",
+        "args": {
+          "id": "i1",
+          "checked": true
+        },
+        "ms": 0,
+        "resultChars": 2,
+        "result": "{}"
+      },
+      {
+        "name": "update_item",
+        "args": {
+          "id": "i2",
+          "checked": true
+        },
+        "ms": 0,
+        "resultChars": 2,
+        "result": "{}"
+      }
+    ]
+  },
+  "redacted": false
+}

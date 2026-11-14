@@ -24,6 +24,13 @@ import { expect, test, type Page } from "@playwright/test";
 //
 // Before a control's presses, measure() also logs its runner's speed at full CPU speed (runnerSpeed), so
 // a slow runner shows in the log beside its latency.
+//
+// A shared runner is sometimes slow all over: every control on it slower together, the time going to the wait for the
+// next paint (ourostack/ouro-ui#798). So beside each control, at the same throttle, measure() presses a calibration
+// probe of its own (openProbe), in a page of its own with none of the app's code, pressed before the control's presses and after
+// them. Its median over a quiet runner's (LATENCY.probeQuiet) is the runner's factor (runnerFactor), at least 1 and at
+// most LATENCY.maxFactor, and the control's p95 bound and median ceiling are each times it. A quiet runner's factor is
+// 1, so its bounds are the ones above; a slow app is as slow beside the probe on any runner, so it still fails.
 
 /** The budget, the number of presses and the throttle every latency spec measures with. */
 export const LATENCY = {
@@ -37,6 +44,13 @@ export const LATENCY = {
   warmUps: 2,
   /** How many times slower than the runner the CPU is. */
   throttle: 4,
+  /**
+   * The calibration probe's median on a quiet CI runner, in ms: the most it read on runners with nothing beside them
+   * (48 to 64 ms, ourostack/ouro-ui#798), so a quiet runner keeps the bounds as they are.
+   */
+  probeQuiet: 64,
+  /** The most a slow runner's factor stretches the bounds: a runner slower than this is still judged at this. */
+  maxFactor: 1.5,
 } as const;
 
 /** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1, or warmUps + samples + more - 1 when 20 more are pressed. */
@@ -66,15 +80,30 @@ export function splitPress(entry: { startTime: number; processingStart: number; 
   return { inputDelay, processing, presentation: Math.round(entry.duration) - inputDelay - processing };
 }
 
-/** The 95th percentile and the median of a control's samples, and whether they are within budget. */
-export function summarise(samples: readonly number[], baseline: number): { p95: number; median: number; within: boolean; report: string } {
+/**
+ * How much slower the runner is than a quiet one, from the calibration probe's presses beside a control: the probe's
+ * median over LATENCY.probeQuiet, at least 1 and at most LATENCY.maxFactor. The probe is page work of its own, so it
+ * slows with the runner and never with the app.
+ */
+export function runnerFactor(probe: readonly number[]): number {
+  return Math.round(Math.min(LATENCY.maxFactor, Math.max(1, median(probe) / LATENCY.probeQuiet)) * 100) / 100;
+}
+
+/**
+ * The 95th percentile and the median of a control's samples, and whether they are within budget: LATENCY.p95 and the
+ * median's ceiling, each times the runner's factor (runnerFactor), so a runner the probe measured slower is not
+ * taken for a slower app. A quiet runner's factor is 1.
+ */
+export function summarise(samples: readonly number[], baseline: number, factor = 1): { p95: number; median: number; within: boolean; report: string } {
   const sorted = samples.toSorted((a, b) => a - b);
   const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
   const middle = sorted.length / 2;
   const median = sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
-  const ceiling = medianCeiling(baseline);
-  const within = p95 <= LATENCY.p95 && median <= ceiling;
-  return { p95, median, within, report: `p95 ${p95} ms (≤ ${LATENCY.p95}), median ${median} ms (≤ ${ceiling}, baseline ${baseline}); samples in order: ${samples.join(", ")}` };
+  const bound = LATENCY.p95 * factor;
+  const ceiling = medianCeiling(baseline) * factor;
+  const within = p95 <= bound && median <= ceiling;
+  const runner = factor > 1 ? `; the runner measured ${factor}× slower than a quiet one, so the bounds are ${factor}× theirs` : "";
+  return { p95, median, within, report: `p95 ${p95} ms (≤ ${bound}), median ${median} ms (≤ ${ceiling}, baseline ${baseline})${runner}; samples in order: ${samples.join(", ")}` };
 }
 
 /**
@@ -83,11 +112,11 @@ export function summarise(samples: readonly number[], baseline: number): { p95: 
  * the median within its ceiling. A slow press or two cannot move a median, so a median over its ceiling fails at
  * once, and so do three or more presses over 100 ms.
  */
-export function morePresses(samples: readonly number[], baseline: number): boolean {
-  const { within, median } = summarise(samples, baseline);
+export function morePresses(samples: readonly number[], baseline: number, factor = 1): boolean {
+  const { within, median } = summarise(samples, baseline, factor);
   if (samples.length !== LATENCY.samples || within) return false;
   const all = LATENCY.samples + LATENCY.more;
-  return median <= medianCeiling(baseline) && samples.filter((sample) => sample > LATENCY.p95).length <= all - Math.ceil(all * 0.95);
+  return median <= medianCeiling(baseline) * factor && samples.filter((sample) => sample > LATENCY.p95 * factor).length <= all - Math.ceil(all * 0.95);
 }
 
 /**
@@ -119,6 +148,59 @@ export async function runnerSpeed(page: Page): Promise<{ script: number; frame: 
   );
 }
 
+/** How many times the calibration probe is pressed before a control's presses and after them; the first of each is a warm-up. */
+export const PROBE_PRESSES = 4;
+
+/**
+ * Opens the calibration probe in a page of its own, beside the app's, with none of the app's code: a fixed panel of 480
+ * boxes and a button whose press restyles every box and changes their size, so it costs style, layout, paint and
+ * raster as a control's press does. Its own page means an app-wide slowdown (a global listener, a provider's render, a
+ * stylesheet) never slows the probe, so it can't raise the factor and hide a regression. It has its own Event Timing
+ * observer, as the app's page has.
+ */
+async function openProbe(page: Page): Promise<Page> {
+  const probe = await page.context().newPage();
+  await probe.setContent("<!doctype html><title>latency probe</title><body style='margin:0'></body>");
+  await probe.evaluate(() => {
+    const store: number[][] = [];
+    (window as unknown as { __latency: number[][] }).__latency = store;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration]);
+    }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
+    const panel = document.createElement("div");
+    panel.style.cssText = "position:fixed;inset-block-start:0;inset-inline-start:0;inline-size:600px;block-size:420px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px;padding:4px;background:#fff;overflow:hidden;contain:strict";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "probe";
+    button.setAttribute("data-latency-probe-press", "");
+    button.style.cssText = "inline-size:60px;block-size:24px";
+    panel.append(button);
+    for (let i = 0; i < 480; i++) {
+      const box = document.createElement("span");
+      box.textContent = `item ${i}`;
+      box.style.cssText = `padding:2px 4px;border-radius:6px;font:12px system-ui;background:linear-gradient(90deg,hsl(${i % 360} 70% 80%),hsl(${(i * 7) % 360} 70% 70%));box-shadow:0 1px 2px #0003`;
+      panel.append(box);
+    }
+    let flipped = false;
+    button.addEventListener("click", () => {
+      flipped = !flipped;
+      for (const box of panel.querySelectorAll<HTMLElement>("span")) {
+        box.style.fontSize = flipped ? "13px" : "12px";
+        box.style.filter = flipped ? "hue-rotate(40deg)" : "none";
+      }
+    });
+    document.body.append(panel);
+  });
+  return probe;
+}
+
+/** The median of a list of numbers. */
+function median(values: readonly number[]): number {
+  const sorted = values.toSorted((a, b) => a - b);
+  const middle = sorted.length / 2;
+  return sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
+
 /**
  * Presses a control warmUps + samples times on a throttled CPU and returns each counted press's
  * click-to-paint time in ms, LATENCY.more presses more when `more` says so of the first samples (morePresses). Event Timing reports nothing under 16 ms (its durationThreshold floor),
@@ -127,7 +209,13 @@ export async function runnerSpeed(page: Page): Promise<{ script: number; frame: 
  * so does its tail (the porthole's repaint after the press), and the page then settles again at the
  * throttle before the press, so a press is measured from a settled page, as a person's would be a beat later.
  */
-export async function measure(page: Page, label: string, { press, prepare, setUp }: Presses, throttle: number = LATENCY.throttle, more?: (samples: readonly number[]) => boolean): Promise<number[]> {
+export async function measure(
+  page: Page,
+  label: string,
+  { press, prepare, setUp }: Presses,
+  throttle: number = LATENCY.throttle,
+  more?: (samples: readonly number[], factor: number) => boolean,
+): Promise<{ samples: number[]; probe: number[]; factor: number }> {
   await page.evaluate(() => {
     const store: Array<[number, number, number, number, string]> = [];
     (window as unknown as { __latency: typeof store }).__latency = store;
@@ -151,6 +239,30 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
   console.log(`latency-runner ${label}: script ${speed.script} ms, frame ${speed.frame} ms (full speed)`);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
   if (prepare) await unthrottled(prepare);
+  // The calibration probe's presses, at the same throttle as the control's: the first of each round is a warm-up.
+  const probeRound = async (): Promise<number[]> => {
+    const probe = await openProbe(page);
+    const durations: number[] = [];
+    try {
+      const probeCdp = await page.context().newCDPSession(probe);
+      await probeCdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
+      const settleProbe = () => probe.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
+      for (let index = 0; index < PROBE_PRESSES; index++) {
+        await probe.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
+        await settleProbe();
+        await probe.locator("[data-latency-probe-press]").click();
+        await probe.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
+        const entries = await probe.evaluate(() => (window as unknown as { __latency: number[][] }).__latency);
+        if (index > 0) durations.push(entries.length > 0 ? Math.max(...entries.map(([duration]) => duration!)) : 16);
+      }
+    } finally {
+      await probe.close();
+    }
+    await page.bringToFront();
+    await settle();
+    return durations;
+  };
+  const probeBefore = await probeRound();
   const samples: number[] = [];
   let presses = LATENCY.warmUps + LATENCY.samples;
   for (let index = 0; index < presses; index++) {
@@ -179,26 +291,33 @@ export async function measure(page: Page, label: string, { press, prepare, setUp
         console.log(`latency-slow ${split}`);
       }
     }
-    if (samples.length === LATENCY.samples && presses === LATENCY.warmUps + LATENCY.samples && more?.(samples)) {
+    if (samples.length === LATENCY.samples && presses === LATENCY.warmUps + LATENCY.samples && more?.(samples, runnerFactor(probeBefore))) {
       presses += LATENCY.more;
       test.info().annotations.push({ type: "latency-more", description: `${label}: ${LATENCY.more} presses more after the first ${LATENCY.samples}: ${samples.join(", ")}` });
     }
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
+  const probeAfter = await probeRound();
+  const probe = [...probeBefore, ...probeAfter];
+  const factor = runnerFactor(probe);
+  const line = `${label}: median ${median(probe)} ms (quiet ${LATENCY.probeQuiet}), factor ${factor}; before ${probeBefore.join(", ")}; after ${probeAfter.join(", ")}`;
+  test.info().annotations.push({ type: "latency-probe", description: line });
+  console.log(`latency-probe ${line}`);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-  return samples;
+  return { samples, probe, factor };
 }
 
-/** Holds a control's samples to the budget and its baseline's median ceiling, reporting every sample, pass or fail. */
-export function expectWithinBudget(label: string, samples: readonly number[], baseline: number): void {
-  const { p95, median, report } = summarise(samples, baseline);
+/** Holds a control's samples to the budget and its baseline's median ceiling, each times the runner's factor, reporting every sample, pass or fail. */
+export function expectWithinBudget(label: string, samples: readonly number[], baseline: number, factor = 1): void {
+  const { p95, median, report } = summarise(samples, baseline, factor);
   test.info().annotations.push({ type: "latency", description: `${label}: ${report}` });
   console.log(`latency ${label}: ${report}`);
-  expect(p95, `${label} ${report}`).toBeLessThanOrEqual(LATENCY.p95);
-  expect(median, `${label} ${report}`).toBeLessThanOrEqual(medianCeiling(baseline));
+  expect(p95, `${label} ${report}`).toBeLessThanOrEqual(LATENCY.p95 * factor);
+  expect(median, `${label} ${report}`).toBeLessThanOrEqual(medianCeiling(baseline) * factor);
 }
 
-/** Measures a control (with LATENCY.more presses more when its first samples call for them) and holds it to the budget. */
+/** Measures a control (with LATENCY.more presses more when its first samples call for them) and holds it to the budget, at the runner's factor. */
 export async function expectPressesWithinBudget(page: Page, label: string, presses: Presses, baseline: number): Promise<void> {
-  expectWithinBudget(label, await measure(page, label, presses, LATENCY.throttle, (samples) => morePresses(samples, baseline)), baseline);
+  const { samples, factor } = await measure(page, label, presses, LATENCY.throttle, (first, before) => morePresses(first, baseline, before));
+  expectWithinBudget(label, samples, baseline, factor);
 }

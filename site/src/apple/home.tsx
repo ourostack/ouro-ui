@@ -219,12 +219,12 @@ export default function AppleHome(): JSX.Element {
       <Container className="apple-soon">
         <p className="site-eyebrow">Where it stands</p>
         <p className="apple-soon-line">
-          {claim("Ouro UI for Apple 0.5.0 has five components, the foundations, the X-ray, Ouro Feel, Ouro Reins and OuroA2UI (agent-composed UI). It is pre-1.0.", {
+          {claim("Ouro UI for Apple 0.5.1 has five components, the foundations, the X-ray, Ouro Feel, Ouro Reins and OuroA2UI (agent-composed UI). It is pre-1.0.", {
             source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#whats-in-the-box" },
             verify: [
-              { equals: "site/src/apple/kit.json#release", is: "0.5.0" },
+              { equals: "site/src/apple/kit.json#release", is: "0.5.1" },
               { count: "site/src/apple/kit.json#components", is: 5 },
-              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0" },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1" },
               { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#whats-in-the-box" },
             ],
           })}

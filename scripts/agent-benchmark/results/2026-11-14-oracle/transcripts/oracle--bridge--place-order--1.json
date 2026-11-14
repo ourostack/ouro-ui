@@ -1,0 +1,21 @@
+{
+  "model": "oracle",
+  "arm": "bridge",
+  "task": "place-order",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "steps": 0,
+  "toolsUsed": [],
+  "textReadChars": 0,
+  "wallMs": 3,
+  "tokens": null,
+  "costAiu": 0,
+  "transcript": {
+    "messages": [],
+    "toolCalls": []
+  }
+}

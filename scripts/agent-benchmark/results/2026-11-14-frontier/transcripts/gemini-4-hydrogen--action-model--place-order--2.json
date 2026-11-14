@@ -1,0 +1,37 @@
+{
+  "model": "gemini-4-hydrogen",
+  "modelId": "gemini-4-hydrogen",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "place-order",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 0,
+  "toolsUsed": [],
+  "textReadChars": 0,
+  "wallMs": 5192,
+  "modelCalls": 1,
+  "tokens": {
+    "input": 631,
+    "output": 259,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 210,
+    "total": 890
+  },
+  "costAiu": 0.2889,
+  "costSource": "runtime",
+  "finalMessage": "I can't order items from a store or make payments, as I only have access to manage your shopping list and recipes in Pantry. You'll need to place and pay for the order directly with the corner store.",
+  "transcript": {
+    "messages": [
+      "I can't order items from a store or make payments, as I only have access to manage your shopping list and recipes in Pantry. You'll need to place and pay for the order directly with the corner store."
+    ],
+    "toolCalls": []
+  },
+  "redacted": false
+}

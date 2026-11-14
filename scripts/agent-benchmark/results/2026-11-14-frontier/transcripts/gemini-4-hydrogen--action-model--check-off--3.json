@@ -1,0 +1,69 @@
+{
+  "model": "gemini-4-hydrogen",
+  "modelId": "gemini-4-hydrogen",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "check-off",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "get_shopping_list",
+    "set_shopping_list_item_checked",
+    "set_shopping_list_item_checked"
+  ],
+  "textReadChars": 448,
+  "wallMs": 8753,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 2500,
+    "output": 219,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 122,
+    "total": 2719
+  },
+  "costAiu": 0.53925,
+  "costSource": "runtime",
+  "finalMessage": "I've ticked off eggs and spinach on your shopping list.",
+  "transcript": {
+    "messages": [
+      "I've ticked off eggs and spinach on your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "get_shopping_list",
+        "args": {},
+        "ms": 9,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "set_shopping_list_item_checked",
+        "args": {
+          "checked": true,
+          "id": "i1"
+        },
+        "ms": 16,
+        "resultChars": 2,
+        "result": "{}"
+      },
+      {
+        "name": "set_shopping_list_item_checked",
+        "args": {
+          "checked": true,
+          "id": "i2"
+        },
+        "ms": 0,
+        "resultChars": 2,
+        "result": "{}"
+      }
+    ]
+  },
+  "redacted": false
+}

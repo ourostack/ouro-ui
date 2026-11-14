@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectWithinBudget, measure, morePresses, splitPress, summarise } from "./latency";
+import { LATENCY, expectWithinBudget, measure, morePresses, runnerFactor, splitPress, summarise } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -39,6 +39,24 @@ test("a control slow in more than one press of 20 fails with the presses more, a
   expect(() => expectWithinBudget("every press slow", at(120, 20), 48)).toThrow();
 });
 
+test("a runner the probe measures slower stretches the bounds by its factor, at most 1.5 times, and a quiet one by none", () => {
+  // Quiet: the probe at or under its quiet median leaves the bounds as they are.
+  expect(runnerFactor(at(48, 10))).toBe(1);
+  expect(runnerFactor(at(64, 10))).toBe(1);
+  // A quarter slower than a quiet runner, and a runner past the cap, judged at the cap.
+  expect(runnerFactor(at(80, 10))).toBe(1.25);
+  expect(runnerFactor(at(200, 10))).toBe(LATENCY.maxFactor);
+  // Every press 112 ms: over 100 ms on a quiet runner, within 125 ms on one a quarter slower.
+  expect(summarise(at(112, 20), 64).within).toBe(false);
+  expect(summarise(at(112, 20), 64, 1.25).within).toBe(true);
+  // A control that really is slow still fails on the slowest runner the factor allows for.
+  expect(summarise(at(152, 20), 64, LATENCY.maxFactor).within).toBe(false);
+  expect(() => expectWithinBudget("slow on a slow runner", at(152, 20), 64, LATENCY.maxFactor)).toThrow();
+  // The median's ceiling stretches too: twice the baseline, times the factor.
+  expect(summarise(at(80, 20), 32, 1.25).within).toBe(true);
+  expect(summarise(at(88, 20), 32, 1.25).within).toBe(false);
+});
+
 test.describe("a page whose button is slow on purpose", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
 
@@ -62,16 +80,36 @@ test.describe("a page whose button is slow on purpose", () => {
 
   test("slow in one press of ten, it is pressed 20 more times and still fails", async ({ page }) => {
     const presses = await slowButton(page, (index) => index >= LATENCY.warmUps && (index - LATENCY.warmUps) % 10 === 9);
-    const samples = await measure(page, "one in ten", presses, LATENCY.throttle, (first) => morePresses(first, 48));
+    const { samples } = await measure(page, "one in ten", presses, LATENCY.throttle, (first) => morePresses(first, 48));
     // The two slow presses of the first 20 call for 20 more, unless the runner slowed a third, which fails as it is.
     if (samples.slice(0, LATENCY.samples).filter((sample) => sample > LATENCY.p95).length === 2) expect(samples).toHaveLength(LATENCY.samples + LATENCY.more);
     expect(samples.filter((sample) => sample > LATENCY.p95).length).toBeGreaterThanOrEqual(3);
     expect(() => expectWithinBudget("one in ten", samples, 48)).toThrow();
   });
 
+  test("an app-wide slowdown, a busy listener on the whole document, never reaches the probe, and still fails", async ({ page }) => {
+    // Longer than any probe press a loaded runner has read, so a probe press it reached could not pass for runner load.
+    const busy = 400;
+    await page.setContent(`<button id="b">Press</button><output id="o"></output>`);
+    // As a provider might add it: every pointerdown on the page busy-waits, whatever was pressed.
+    await page.evaluate((busy) => {
+      document.addEventListener("pointerdown", () => {
+        const end = performance.now() + busy;
+        while (performance.now() < end);
+      });
+      document.getElementById("b")!.addEventListener("click", () => (document.getElementById("o")!.textContent = String(Math.random())));
+    }, busy);
+    const { samples, probe, factor } = await measure(page, "app-wide", { press: () => page.locator("#b").click() }, LATENCY.throttle, (first, before) => morePresses(first, 48, before));
+    expect(Math.min(...samples)).toBeGreaterThanOrEqual(busy);
+    // The probe runs in a page of its own, with none of this page's code, so no press of it waits on the listener. Its
+    // factor is the runner's alone: 1 on a quiet runner, more beside other work, as on an end-to-end shard's workers.
+    expect(Math.max(...probe)).toBeLessThan(busy);
+    expect(() => expectWithinBudget("app-wide", samples, 48, factor)).toThrow();
+  });
+
   test("slow in every press, it fails on its first 20", async ({ page }) => {
     const presses = await slowButton(page, () => true);
-    const samples = await measure(page, "every press", presses, LATENCY.throttle, (first) => morePresses(first, 48));
+    const { samples } = await measure(page, "every press", presses, LATENCY.throttle, (first) => morePresses(first, 48));
     expect(samples).toHaveLength(LATENCY.samples);
     expect(() => expectWithinBudget("every press", samples, 48)).toThrow();
   });

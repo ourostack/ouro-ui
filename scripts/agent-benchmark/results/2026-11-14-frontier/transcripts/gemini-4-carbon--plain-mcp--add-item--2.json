@@ -1,0 +1,59 @@
+{
+  "model": "gemini-4-carbon",
+  "modelId": "gemini-4-carbon",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "task": "add-item",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 2,
+  "toolsUsed": [
+    "list_items",
+    "add_item"
+  ],
+  "textReadChars": 473,
+  "wallMs": 24712,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 2192,
+    "output": 356,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 287,
+    "total": 2548
+  },
+  "costAiu": 0.7944,
+  "costSource": "runtime",
+  "finalMessage": "I've added 2 cartons of oat milk to your shopping list.",
+  "transcript": {
+    "messages": [
+      "I've added 2 cartons of oat milk to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_items",
+        "args": {},
+        "ms": 0,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "oat milk",
+          "quantity": 2,
+          "unit": "carton"
+        },
+        "ms": 3,
+        "resultChars": 29,
+        "result": "{\"id\":\"i6\",\"name\":\"oat milk\"}"
+      }
+    ]
+  },
+  "redacted": false
+}
