@@ -192,8 +192,8 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const visible = rect.width >= 6 && rect.height >= 6 && rect.width <= 400 && rect.height <= 300 && cs.visibility !== "hidden";
     const isCrop = visible && el.getAttribute("data-ouro") !== "heading" && (el.hasAttribute("data-ouro") || el.hasAttribute("data-ouro-control"));
     const behind = behindOf(el);
-    const size = sizeOf;
-    const pictureKey = `${key}|${sizeOf}|${behind}`;
+    const size = `${sizeOf}${(el.textContent ?? "").trim().slice(0, 40) ? `|${(el.textContent ?? "").trim().slice(0, 40)}` : ""}`;
+    const pictureKey = `${key}|${size}|${behind}`;
     const pictured = isCrop && behind !== "translucent" && !seenPictured.has(pictureKey);
     if (pictured) seenPictured.add(pictureKey);
     looks.push({ index, key, sig, pictured, size, behind });
