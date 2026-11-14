@@ -1272,11 +1272,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: sweeps (${{ matrix.shard }}/4)
+        shard: [1, 2, 3, 4, 5, 6]
+    name: sweeps (${{ matrix.shard }}/6)
     env:
-      SHARD: ${{ matrix.shard }}/4
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of4.json
+      SHARD: ${{ matrix.shard }}/6
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of6.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

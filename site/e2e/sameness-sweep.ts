@@ -9,14 +9,14 @@ import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, set
 // differs from the one the rest share is a page-level rule changing a component. A part that must sit inside
 // its container (a switch's thumb in its track, a radio's dot in its circle) does.
 
-export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webkit") {
-  test(`one look per component on every page, ${mode}, ${engine}`, async ({ page, context, browserName }) => {
+export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webkit", part = 1, parts = 1) {
+  test(`one look per component on every page, ${mode}, ${engine}${parts > 1 ? `, part ${part} of ${parts}` : ""}`, async ({ page, context, browserName }) => {
     test.skip(browserName !== engine, `${engine} only`);
     test.setTimeout(900_000);
     await context.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "pearl", mode: m })), mode);
     const looks = new Looks();
     const escapes: string[] = [];
-    const pages = routes();
+    const pages = routes().filter((_, i) => i % parts === part - 1);
     const guard = routeGuard(context, page);
     page.setDefaultTimeout(5_000);
     for (const path of pages) {
@@ -32,7 +32,7 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
     console.log(`${browserName} ${mode}: ${looks.keys} component states, ${looks.crops} pictures, over ${pages.length} pages`);
     for (const f of [...escapes, ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
     expect.soft(guard.skipped.length, `routes skipped as too slow: ${guard.skipped.join(", ")}`).toBeLessThanOrEqual(3);
-    recordMatched(`sameness-${mode}-${engine}`);
+    recordMatched(`sameness-${mode}-${engine}${parts > 1 ? `-${part}` : ""}`);
     expect.soft(escapes, "a part leaves its container").toEqual([]);
     expect.soft(looks.differences(), "a component's properties differ from page to page").toEqual([]);
     expect.soft(looks.pixelDifferences(), "a component's picture differs from page to page").toEqual([]);
