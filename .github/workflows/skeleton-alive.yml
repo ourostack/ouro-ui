@@ -1,0 +1,33 @@
+name: Skeleton alive
+# Prototype probe: dead wheel frames of each "alive" cue against the still control, in WebKit on a hosted macOS runner.
+on:
+  push:
+    branches: [skeleton-alive]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  alive:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [breathe, delayed-breathe, region-line]
+    name: ${{ matrix.mode }}
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install webkit
+      - name: Measure
+        env:
+          CI: "true"
+          OURO_ALIVE_MODE: ${{ matrix.mode }}
+        run: pnpm exec playwright test --config playwright.probes.config.ts --project webkit skeleton-alive 2>&1 | tee out.txt; grep RESULT out.txt >> "$GITHUB_STEP_SUMMARY" || true
