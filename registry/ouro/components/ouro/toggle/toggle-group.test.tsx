@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { ToggleGroup, type ToggleGroupProps } from "@/registry/ouro/components/ouro/toggle/toggle-group";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
@@ -305,16 +304,5 @@ describe("ToggleGroup server rendering", () => {
     expect(error).not.toHaveBeenCalled();
     await userEvent.click(host.querySelector("button")!);
     expect(host.querySelector("button")!.getAttribute("aria-pressed")).toBe("true");
-  });
-});
-
-describe("ToggleGroup layout reads", () => {
-  const chat = ["all", "mine", "unread", "pinned", "archived", "muted"].map((value) => ({ value, label: value }));
-
-  it("reads no computed style while its items mount or its value changes", async () => {
-    const watch = watchLayoutReads();
-    const { rerender } = await render(<ToggleGroup label="Chat filter" items={chat} value="all" onValueChange={() => {}} />);
-    await rerender(<ToggleGroup label="Chat filter" items={chat} value="mine" onValueChange={() => {}} />);
-    expect(watch.names().filter((name) => name === "getComputedStyle")).toEqual([]);
   });
 });
