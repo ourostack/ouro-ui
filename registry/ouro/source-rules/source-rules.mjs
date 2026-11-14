@@ -302,13 +302,13 @@ export const HAND_DRAWN_PRESENCE_DOT_FIX =
   'Show presence as <Avatar presence="available" presenceLabel="Ana Lind, Available" ...>, which draws each state in its own shape and tone on the avatar\'s corner and says it aloud. For an unread or status marker that is not presence, use <Badge>.';
 /** What the hand-drawn-hero rule tells an app to do. */
 export const HAND_DRAWN_HERO_FIX =
-  "Use Hero from the registry (`<Hero title=\"...\" picture={...} />`), so its picture, frame and layout, and any change to heroes, reach this one too.";
+  "Use Hero from the registry (`<Hero title=\"...\" picture={{ light, dark }} />`), so its light and dark art, squircle frame and layout, and any change to heroes, reach this one too.";
 /** What the hand-drawn-corner rule tells an app to do. */
 export const HAND_DRAWN_CORNER_FIX =
-  "Take the radius from the theme: a scale class (rounded-md, rounded-lg, rounded-xl) or var(--radius), so a change to the corners, squircles included, reaches this one too. A circle stays rounded-full.";
+  "Take the radius from the theme: a scale class (rounded-md, rounded-lg, rounded-xl) or var(--radius), so it takes the squircle corner shape (--ouro-corner-shape) and the raised radius with every other corner. A circle stays rounded-full, and a deliberate round corner is [corner-shape:round].";
 /** What the hand-drawn-switch rule tells an app to do. */
 export const HAND_DRAWN_SWITCH_FIX =
-  "Use Switch from the registry (`<Switch label=\"...\" checked={on} onCheckedChange={setOn} />`), so its look, focus, touch target and any change to switches reach this one too.";
+  "Use Switch from the registry (`<Switch label=\"...\" checked={on} onCheckedChange={setOn} />`), so it gets the Quiet glass look (the --ouro-glass tokens), focus, touch target and any change to switches.";
 
 // What each category's message says, for the categories whose fix is not an Ouro component.
 const CATEGORY_MESSAGES = {
