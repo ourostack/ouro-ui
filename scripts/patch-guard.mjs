@@ -45,8 +45,18 @@ export function problems({ changed, body = "", root = "." }) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const base = process.env.PATCH_GUARD_BASE_REF;
-  const changed = base ? execFileSync("git", ["diff", "--name-only", `${base}...HEAD`, "--", "patches"], { encoding: "utf8" }).split("\n").filter(Boolean) : [];
+  const changed = base ? changedPatches(base) : [];
   const found = problems({ changed, body: process.env.PR_BODY ?? "" });
   for (const line of found) console.error(line);
   process.exit(found.length ? 1 : 0);
+}
+
+// CI fetches the base at depth 1, which leaves no merge base: the plain two-dot diff then stands in.
+function changedPatches(base) {
+  const run = (range) => execFileSync("git", ["diff", "--name-only", range, "--", "patches"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).split("\n").filter(Boolean);
+  try {
+    return run(`${base}...HEAD`);
+  } catch {
+    return run(`${base}..HEAD`);
+  }
 }
