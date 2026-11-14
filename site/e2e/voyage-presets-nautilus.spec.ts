@@ -22,7 +22,7 @@ test.describe("every preset, light and dark", () => {
   for (const path of PAGES) {
     for (const preset of PRESET_NAMES) {
       for (const mode of ["light", "dark"] as const) {
-        test(`${preset} ${mode} passes the strict audit on the built page${path === "./" ? "" : ` ${path}`}`, async ({ page, browserName }) => {
+        test(`${preset} ${mode} passes the strict audit on the built page ${path}`, async ({ page, browserName }) => {
           // The strict audit of the whole page takes WebKit 10 to 30 seconds on CI runners, by how busy they are.
           test.slow(browserName === "webkit");
           const errors = diagnostics(page);
