@@ -1,25 +1,20 @@
 name: Release auto
 # Starts the next release on its own, so a merge to main reaches consumers without anyone dispatching
-# a workflow. It runs when main moves and when a release ends, and it
-# starts the rehearsal (release-rehearsal.yml) of the next patch version when
-# changes/ lists a change the newest release's notes lack and no release or rehearsal is running. A rehearsal this workflow started dispatches this workflow again as its last step, and that run dispatches Release once the rehearsal's run has ended (a run the workflow token dispatches starts no workflow_run),
-# which cuts the commit that rehearsal tested (scripts/rehearsal-evidence.mjs pick); merges that
-# came after go out in the next release, which this workflow starts when Release ends. A failed
-# rehearsal or release starts nothing again by itself: the next merge does, after the failure's
-# cause is fixed. It adds no gate and relaxes none: the rehearsal and the release run everything
-# they always did.
+# a workflow. It runs when a push to main finishes CI or the screen-reader lane, and when a release
+# ends. When changes/ lists a change the newest release's notes lack, no release is running, and
+# both CI and the screen-reader lane have finished on that commit with the lane passed, it
+# dispatches Release (release.yml) for the next patch version on that exact commit, so the suite
+# that tested the commit on main is the proof and nothing runs twice. Release judges CI's required
+# checks itself. If several commits land while a release runs, the release that follows takes the
+# commit whose runs finished last, which is the newest to finish. A failed release starts nothing by
+# itself: the next push's green runs do, once the cause is fixed. It adds no gate and relaxes none.
 on:
-  push:
-    branches: [main]
   workflow_run:
-    workflows: [Release, Release rehearsal]
+    workflows: [CI, Screen reader]
     types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
-      rehearsed:
-        description: "Set by a rehearsal this workflow started, once it passed: the version to release"
-        required: false
-        type: string
       after:
         description: "Set by a Release run that is ending: its run id, which does not count as a release still running"
         required: false
@@ -32,63 +27,47 @@ jobs:
   start:
     runs-on: ubuntu-latest
     permissions:
-      actions: write # start the rehearsal
+      actions: write # start Release
       contents: read # read changes/ and the newest release
-      pull-requests: read # see whether main waits on its preparing pull request
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      AFTER: ${{ inputs.after }}
+      EVENT: ${{ github.event_name }}
+      RUN_EVENT: ${{ github.event.workflow_run.event }}
+      RUN_SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - name: Release a rehearsal that passed
-        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Release rehearsal' }}
-        env:
-          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-          TITLE: ${{ github.event.workflow_run.display_title }}
-        run: |
-          [ "$CONCLUSION" = success ] || { echo "::notice::The rehearsal ended $CONCLUSION; nothing is released. A merge after its cause is fixed starts the next."; exit 0; }
-          [[ "$TITLE" =~ ^Release\ rehearsal\ v([0-9]+\.[0-9]+\.[0-9]+)$ ]] || { echo "::error::Cannot read the version from \"$TITLE\"."; exit 1; }
-          gh workflow run release.yml --ref main -f version="${BASH_REMATCH[1]}"
-      - name: Release the rehearsal that started here, once it has ended
-        if: ${{ inputs.rehearsed != '' }}
-        env:
-          VERSION: ${{ inputs.rehearsed }}
-        run: |
-          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::rehearsed must be x.y.z, without the v."; exit 1; }
-          # The rehearsal dispatched this as its last step, so its run ends within seconds; Release
-          # reads only a rehearsal whose run has completed (scripts/rehearsal-evidence.mjs).
-          for _ in $(seq 30); do
-            conclusion=$(gh run list --workflow release-rehearsal.yml --event workflow_dispatch --json displayTitle,conclusion --jq "[.[] | select(.displayTitle == \"Release rehearsal v$VERSION\")][0].conclusion // empty")
-            [ -z "$conclusion" ] || break
-            sleep 10
-          done
-          [ "$conclusion" = success ] || { echo "::error::The rehearsal of v$VERSION has not ended as a success (\"$conclusion\"); nothing is released."; exit 1; }
-          gh workflow run release.yml --ref main -f version="$VERSION"
-      - name: Start the rehearsal of the next release
-        env:
-          AFTER: ${{ inputs.after }}
-        if: ${{ inputs.rehearsed == '' && (github.event_name != 'workflow_run' || github.event.workflow_run.name == 'Release') }}
+      - name: Release the newest commit whose runs passed
         run: |
           [[ "${AFTER:-0}" =~ ^[0-9]+$ ]] || { echo "::error::after must be a run id."; exit 1; }
+          if [ "$EVENT" = workflow_run ]; then
+            [ "$RUN_EVENT" = push ] || { echo "::notice::Only a push to main starts a release."; exit 0; }
+            sha=$RUN_SHA
+          else
+            sha=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" refs/heads/main | cut -f1)
+          fi
           # Fragments stay in changes/ after a release, so a change is new when the newest release's notes lack its line (scripts/changes.mjs).
           notes=$(gh release view --json body --jq .body)
           fresh=0
-          for name in $(gh api "repos/$GITHUB_REPOSITORY/contents/changes?ref=main" --jq '.[] | select(.name | endswith(".md")) | .name'); do
+          for name in $(gh api "repos/$GITHUB_REPOSITORY/contents/changes?ref=$sha" --jq '.[] | select(.name | endswith(".md")) | .name'); do
             while IFS= read -r line; do
               [[ "$line" == "- "* ]] || continue
               grep -qxF -- "$line" <<<"$notes" || fresh=$((fresh + 1))
-            done < <(gh api -H "Accept: application/vnd.github.raw" "repos/$GITHUB_REPOSITORY/contents/changes/$name?ref=main")
+            done < <(gh api -H "Accept: application/vnd.github.raw" "repos/$GITHUB_REPOSITORY/contents/changes/$name?ref=$sha")
           done
           [ "$fresh" -gt 0 ] || { echo "::notice::changes/ lists no change the newest release lacks, so there is nothing to release."; exit 0; }
-          for workflow in release.yml release-rehearsal.yml; do
-            for status in queued in_progress; do
-              running=$(gh run list --workflow "$workflow" --status "$status" --json databaseId --jq "[.[] | select(.databaseId != ${AFTER:-0})] | length")
-              [ "$running" -eq 0 ] || { echo "::notice::$workflow is $status; the release that follows starts this again."; exit 0; }
-            done
+          # Both of main's runs for the commit must have ended, the lane passed; the later of the two finishing starts this.
+          lane=$(gh run list --workflow screen-reader.yml --commit "$sha" --event push --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')
+          [ "$lane" -gt 0 ] || { echo "::notice::The screen-reader lane has not passed on $sha yet; its end starts this again."; exit 0; }
+          ci=$(gh run list --workflow ci.yml --commit "$sha" --event push --json status,conclusion --jq '[.[] | select(.status == "completed" and .conclusion != "cancelled")] | length')
+          [ "$ci" -gt 0 ] || { echo "::notice::CI has not finished on $sha yet; its end starts this again."; exit 0; }
+          for status in queued in_progress; do
+            running=$(gh run list --workflow release.yml --status "$status" --json databaseId --jq "[.[] | select(.databaseId != ${AFTER:-0})] | length")
+            [ "$running" -eq 0 ] || { echo "::notice::Release is $status; the release that follows starts this again."; exit 0; }
           done
           latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
           [[ "$latest" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || { echo "::error::The newest release, \"$latest\", is not a tag such as v1.2.3."; exit 1; }
           version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
-          echo "Rehearsing v$version, the release after $latest." >> "$GITHUB_STEP_SUMMARY"
-          gh workflow run release-rehearsal.yml --ref main -f version="$version" -f release=true
-          sha=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" refs/heads/main | cut -f1)
+          echo "Releasing v$version, the release after $latest, from main's $sha." >> "$GITHUB_STEP_SUMMARY"
+          gh workflow run release.yml --ref main -f version="$version" -f sha="$sha"

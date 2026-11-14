@@ -229,6 +229,25 @@ describe("home page", () => {
     }
   });
 
+  it("shows each storybook scene at night in dark mode, from its own files, lazily, and only the shown one is drawn or heard", async () => {
+    await renderPage("/");
+    for (const scene of ["ouro-hx", "ourostack"]) {
+      const day = document.querySelector(`picture[data-brand-scene='${scene}']`)!;
+      const night = document.querySelector(`picture[data-brand-scene='${scene}-dark']`)!;
+      expect(night.parentElement).toBe(day.parentElement);
+      expect([...night.querySelectorAll("source")].every((source) => source.srcset.split(", ").every((entry) => entry.includes(`/${scene}-dark`)))).toBe(true);
+      const [dayImage, nightImage] = [day.querySelector("img")!, night.querySelector("img")!];
+      expect([nightImage.loading, nightImage.fetchPriority === "high"]).toEqual(["lazy", false]);
+      expect(nightImage.alt).toBe(dayImage.alt.replace(/\bat dawn\b/, "at night"));
+      const shown = () => [getComputedStyle(day).display, getComputedStyle(night).display];
+      document.documentElement.classList.remove("dark");
+      expect(shown()).toEqual(["block", "none"]);
+      document.documentElement.classList.add("dark");
+      expect(shown()).toEqual(["none", "block"]);
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
   it("lists what comes with every component beside the install steps, under hairlines", async () => {
     await renderPage("/");
     const install = document.getElementById("install")!;
@@ -656,7 +675,7 @@ describe("platforms", () => {
     const rows = [...document.querySelectorAll("main table tbody tr")].map((row) => [...row.querySelectorAll("td")].slice(0, 3).map(text));
     expect(rows).toEqual([
       ["For web", "v1.3.7", "core v0.5.0, for its tokens"],
-      ["For Apple", "v0.4.1", "core v0.4.0"],
+      ["For Apple", "v0.5.0", "core v0.4.0"],
       ["For Android", "none yet", "none yet"],
       ["For Windows", "none yet", "none yet"],
     ]);
@@ -664,7 +683,7 @@ describe("platforms", () => {
 
   it("gives the Apple page its install line, and what is coming with Siri AI", async () => {
     await renderPage("/docs/platforms/apple/");
-    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.4.1")');
+    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.0")');
     for (const name of ["What ships today", "What is coming"]) await expect.element(page.getByRole("heading", { level: 2, name })).toBeVisible();
     for (const words of ["Tool intents.", "App skills.", "SiriEvaluations.", "The App Intents X-ray."]) expect(document.body.innerText).toContain(words);
   });

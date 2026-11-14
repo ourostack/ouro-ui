@@ -186,6 +186,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.16:** the testing kit moves the mouse off the page before each test in the mouse projects, so a test that relied on a hover left by the one before now hovers itself.[^upgrade-v1.3.17]
 
+- **After v1.3.17:** `ouro-images` installs to `@lib/ouro/images/`, beside the Ouro AX kit it now runs on, where it was `~/lib/ouro/images/`, so re-adding it leaves the old copy behind: delete `lib/ouro/images/` at your project root once nothing imports it, and point any script that ran it at the new path.[^upgrade-images-ax] A refused option prints one line with the fix and exits 2.[^upgrade-images-ax]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -287,6 +289,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-v1.3.13]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13)
 [^upgrade-v1.3.15]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15)
 [^upgrade-v1.3.17]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17)
+[^upgrade-images-ax]: scripts/registry.mts; scripts/images/images.test.mts verify:fileLine(scripts/registry.mts, /@lib\/ouro\/images\//) verify:testExists(scripts/images/images.test.mts::Ouro images' command > refuses what it cannot run with one line that names the fix, and exits 2)
 <!-- upgrade:end -->
 
 ### Items
@@ -405,6 +408,7 @@ Components:
 `text`,
 `text-area`,
 `text-field`,
+`thread-rail`,
 `thread-summary`,
 `time-grid`,
 `timer`,
@@ -718,6 +722,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)
 - **readFailure** — Whether a failed read's HTTP status is the service's (`"failed"`: no answer, signed out, throttled, timed out or failing, so every read waits) or this person's (`"missing"`: the service refused them alone, so they are kept as missing and no one waits). [Docs](docs/readFailure.md)
+- **ThreadRail** — A thread beside its conversation: a labelled landmark with a header and a close button. [Docs](docs/ThreadRail.md)
 - **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
 - **usePerson** — One person from a cache made with `createPeopleCache`, for a component that shows them, such as an avatar or a message's author: their entry, read while the component shows it and again whenever it runs out. [Docs](docs/usePerson.md)
 - **webStorage** — Storage for `createPeopleCache` in `localStorage`, or another `Storage`, under one key. [Docs](docs/webStorage.md)

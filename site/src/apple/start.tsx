@@ -112,7 +112,8 @@ export default function AppleStart(): JSX.Element {
         title="Feel and Reins."
         lede={
           <p>
-            {`Ouro Feel and Ouro Reins ship in ouro-ui-apple ${kit.feelReinsRelease}, as the OuroFeel and OuroReins products, so the package line above includes them.`} Their pages show what they do.
+            {`Ouro Feel and Ouro Reins ship in ouro-ui-apple ${kit.feelReinsRelease}, as the OuroFeel and OuroReins products, so the package line above includes them.`} Their pages show what they do.{" "}
+            {`OuroA2UI ships in ouro-ui-apple ${kit.release} as the OuroA2UI product, for an app where an agent composes UI for a person.`}
           </p>
         }
       >

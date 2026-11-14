@@ -22,7 +22,7 @@ export { thumbClass, trackClass };
 const trackClass =
   "group relative m-0 box-border inline-flex h-6 w-10 shrink-0 items-center p-0 sm:pointer-fine:h-5 sm:pointer-fine:w-9 " +
   "[--ouro-switch-thumb:calc(var(--spacing)*5)] sm:pointer-fine:[--ouro-switch-thumb:calc(var(--spacing)*4)] " +
-  "[corner-shape:round] rounded-full border-2 border-solid border-muted-foreground bg-transparent data-checked:border-primary data-checked:bg-primary " +
+  "[--corner-shape:round] [corner-shape:round] rounded-full border-2 border-solid border-muted-foreground bg-transparent data-checked:border-primary data-checked:bg-primary " +
   "transition-[background-color,border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "cursor-default select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
@@ -44,7 +44,7 @@ const trackClass =
  * @claim "The thumb slides 16px in the" registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > stretches by scaling and slides on translate, never by animating its width, with one timing for both)
  */
 const thumbClass =
-  "pointer-events-none block size-(--ouro-switch-thumb) [corner-shape:round] rounded-full " +
+  "pointer-events-none block size-(--ouro-switch-thumb) [--corner-shape:round] [corner-shape:round] rounded-full " +
   // The Quiet switch's lens: the glass tint over the track with a rim inside, a hairline outside and the theme's small shadow.
   "bg-[color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] [backdrop-filter:blur(var(--ouro-glass-blur))_saturate(1.6)] " +
   "[box-shadow:inset_0_0_0_.75px_var(--ouro-glass-rim),0_0_0_.5px_var(--ouro-glass-edge),var(--shadow-sm)] " +

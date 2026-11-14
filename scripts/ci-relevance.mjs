@@ -7,6 +7,8 @@
 //   browser   CI's browser shards (`pnpm test`, .github/workflows/ci.yml), and so the coverage they
 //             measure and the browser-fallback shards that decide it
 //   screens   Screens (.github/workflows/screens.yml): Ouro check over the site as it builds
+//   installs  CI's install test (install-prep, install-shard, install, install-upgrade)
+//   heavy     CI's heavy tier (themes, visual, theme-install, latency, lighthouse)
 //
 // Each target lists the paths it never reads. A change runs the target unless every file it
 // changes is one of those, so a path nobody listed, a new folder or a renamed file runs it: it
@@ -25,12 +27,34 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** A test, type test or story anywhere: the site build and Ouro check load none of them. */
 const testOrStory = /(^|\/)[^/]+\.(test\.(ts|tsx|mts|mjs)|test-d\.ts|stories\.tsx)$/;
 
+/** What neither the install test nor the heavy tier reads: only prose, other workflows and Node script tests. */
+const quiet = [
+  [/^changes\/[^/]+\.md$/, "a change fragment, which only scripts/changes.mjs reads"],
+  [/^AGENTS\.md$/, "the contributors' rules"],
+  [/^flows\//, "a Flow review flow"],
+  [/^feel\//, "Ouro Feel, which its own workflow runs (feel.yml)"],
+  [/^plugins\//, "an agent plugin, which only scripts/agent-plugin.test.mjs and the claims check read"],
+  [/^scripts\/.+\.test\.mjs$/, "a Node script test (pnpm test:scripts)"],
+  [/^scripts\/agent-usability\//, "the agent-usability test, which runs in Node"],
+  [/^\.github\/workflows\/(?!ci\.yml$)/, "another workflow"],
+];
+
 /**
  * Per target, what it runs and the paths it never reads, each with the reason the plan prints.
  * `readers` are the files whose literal paths `scripts/ci-relevance.test.mjs` holds against the
  * list, so a reader that starts loading a listed path fails a test until the list makes room for it.
  */
 export const targets = {
+  installs: {
+    name: "the install test",
+    unread: quiet,
+    readers: [/^scripts\/install-[^/]+\.mjs$/],
+  },
+  heavy: {
+    name: "the heavy tier",
+    unread: quiet,
+    readers: [/^site\/scripts\/[^/]+\.mts$/],
+  },
   browser: {
     name: "the browser shards",
     // The Vitest projects the shards run: {registry,test}/**/*.test.{ts,tsx} and site/**/*.test.{ts,tsx}
