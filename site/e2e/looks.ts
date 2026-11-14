@@ -219,6 +219,8 @@ export async function quiet(page: Page): Promise<void> {
   await page.addStyleTag({
     content: "*,*::before,*::after{-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important;transition:none!important;animation:none!important}",
   });
+  // A transition already running (a switch a page toggles on its own) ends on the next frame, not at once.
+  await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
 }
 
 // One route gets a minute. A browser call that never returns (WebKit's mouse.up, a screenshot of a page that
