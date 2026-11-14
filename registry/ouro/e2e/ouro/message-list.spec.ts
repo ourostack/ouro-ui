@@ -286,7 +286,7 @@ for (const { story, label, least } of [
   { story: "chat-messagelist--older-history", label: "Older history", least: 500 },
   { story: "chat-messagelist--older-history-drawn", label: "Older history drawn", least: 174 },
 ]) {
-  test(`${label}: a reader who flicks the wheel upward while older posts load never has the wheel go dead, or stop at a wall, for more than three frames`, async ({ page }) => {
+  test(`${label}: a reader who flicks the wheel upward while older posts load never has the wheel go dead, or stop at a wall, for more than three frames`, async ({ page }, testInfo) => {
     test.setTimeout(120_000);
     await openStory(page, story);
     const scroller = page.getByRole("region", { name: label });
@@ -352,6 +352,7 @@ for (const { story, label, least } of [
     });
     const longest = Math.round(Math.max(0, ...frames.slice(1).map((f) => f.dt)));
     const counts = `${dead.length} dead frames, ${wall.length} wall frames, longest frame ${longest} ms, ${count} messages, ${frames.length} frames; around the first dead: ${JSON.stringify(around)}`;
+    await testInfo.attach("frames.json", { body: JSON.stringify(frames.map((f) => [Math.round(f.dt * 10) / 10, Math.round(f.wheel), Math.round(f.scrollTop), f.moved === null ? null : Math.round(f.moved * 10) / 10])), contentType: "application/json" });
     expect(count, counts).toBeGreaterThanOrEqual(least);
     expect(dead.length, counts).toBeLessThanOrEqual(3);
     expect(wall.length, counts).toBeLessThanOrEqual(3);
@@ -360,7 +361,7 @@ for (const { story, label, least } of [
 }
 
 // Plain scroll, with pictures loading as the reader goes: the same dead frame count, and no frame a reader would feel as a stall.
-test("Pictures loading: a reader who flicks the wheel up and down the channel has no dead frame and no frame over 250 ms", async ({ page }) => {
+test("Pictures loading: a reader who flicks the wheel up and down the channel has no dead frame and no frame over 250 ms", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await openStory(page, "chat-messagelist--pictures-loading");
   const scroller = page.getByRole("region", { name: "Pictures loading" });
@@ -417,6 +418,7 @@ test("Pictures loading: a reader who flicks the wheel up and down the channel ha
   const dead = frames.filter((f, i) => f.wheel !== 0 && !atEnd(f) && still(f) && still(frames[i + 1]));
   const longest = Math.round(Math.max(0, ...frames.slice(1).map((f) => f.dt)));
   const counts = `${dead.length} dead frames, longest frame ${longest} ms, ${frames.length} frames; dead at ${JSON.stringify(dead.slice(0, 5).map((f) => [Math.round(f.dt), Math.round(f.wheel), Math.round(f.scrollTop), Math.round(f.maxTop), f.moved === null ? null : Math.round(f.moved * 10) / 10]))}`;
+  await testInfo.attach("frames.json", { body: JSON.stringify(frames.map((f) => [Math.round(f.dt * 10) / 10, Math.round(f.wheel), Math.round(f.scrollTop), f.moved === null ? null : Math.round(f.moved * 10) / 10])), contentType: "application/json" });
   expect(dead.length, counts).toBe(0);
   expect(longest, counts).toBeLessThan(250);
 });

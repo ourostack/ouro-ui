@@ -1,0 +1,49 @@
+name: MessageList frames
+# Probe: runs the MessageList scroll scenes in WebKit on a hosted macOS runner, repeated, with per-frame timings and a trace uploaded; dispatch by hand only.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to measure
+        required: false
+        default: main
+        type: string
+      repeat:
+        description: Runs of each scene
+        required: false
+        default: "5"
+        type: string
+permissions:
+  contents: read
+jobs:
+  frames:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      max-parallel: 1
+      matrix:
+        scene: ["Older history", "Pictures loading"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install webkit
+      - name: Measure
+        env:
+          CI: "true"
+          REPEAT: ${{ inputs.repeat }}
+          SCENE: ${{ matrix.scene }}
+        run: |
+          pnpm exec playwright test registry/ouro/e2e/ouro/message-list.spec.ts --project=webkit --grep "$SCENE" --repeat-each "$REPEAT" --retries 0 --workers 1 --trace on --reporter=list,json || true
+        continue-on-error: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frames-${{ strategy.job-index }}
+          path: test-results
