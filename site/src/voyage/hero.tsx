@@ -194,7 +194,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
           </span>
         }
         title={VOYAGE_HERO.title.map((sentence, index) => (
-          <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
+          <span key={sentence} className={index === 0 ? undefined : "site-hero-line-second"}>
             {sentence}
             {index < VOYAGE_HERO.title.length - 1 ? " " : null}
           </span>

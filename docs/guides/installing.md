@@ -8,7 +8,7 @@ In an app with Tailwind CSS v4 and an `@/*` path alias, run shadcn's `init` once
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.16
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.17
 ```
 
 `ouro-base` is the only Ouro UI item that writes to your stylesheet (the file `components.json` names in `tailwind.css`), apart from the optional `ouro-theme`. It adds what a shadcn theme lacks and the components need:
@@ -38,19 +38,20 @@ To change a token afterwards, edit it where the CLI wrote it, or set it in a `:r
 ## Adding components
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.16
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.17
 ```
 
 A component installs its own files in `components/ouro/<component>/`, the components it renders, and only the helpers it imports, one file each in `lib/ouro/`.[^lands] Its install message names what came with it. It adds the npm packages it imports (`@base-ui/react`, `clsx`, `tailwind-merge`) and nothing for tests.
 
 A component that finds no `ouro-base` tokens still installs, type checks and builds, but renders without them: a `Sheet` with no backdrop, layer or spring, a field with no border.[^theme-check] In development, the first Ouro UI component to mount checks the page once and logs `[ouro-ui] theme: ouro-base is not in this page's CSS …` with the command to run. Production builds contain no such check.[^dev-strip]
 
-`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.3.16` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
+`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.3.17` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
 
 ## What an add changes in package.json
 
 - Test tools (`vitest`, `@vitest/browser-playwright`, `playwright`, `@playwright/test`, `storybook`, `@storybook/react-vite`) come only with the `-tests` items, and without a version: the CLI installs one only when your `package.json` has no entry for it, so a version you pinned stays, and nothing is upgraded or downgraded. v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`).[^v0.7.0] The versions the tests need are in [Testing](testing.md).
 - Runtime packages carry a caret range, such as `@base-ui/react@^1.8.0`, so a new app never gets a breaking major.[^caret-ranges] shadcn@4.21.1 hands that range to your package manager on every add.[^caret-ranges] A version inside the range stays installed; an exact pin or a `~` range on one of these packages is rewritten to a caret range, so pin it again after an add if you need to.
+- The registry in your lockfile's `resolved` URLs is whatever npm is configured to use on the machine that ran the add, so a machine-wide private registry ends up in the lockfile. A project `.npmrc` with `registry=https://registry.npmjs.org/`, or a lockfile generated in CI, keeps it out.
 
 ## The tests are optional
 
@@ -58,7 +59,7 @@ Each component has a `<name>-tests` item with its Vitest browser tests, type tes
 
 ## Updating
 
-List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.16 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
+List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.17 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
 
 ## Vite and React Router apps: the "use client" notice
 

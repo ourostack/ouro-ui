@@ -122,9 +122,10 @@ export interface LightboxBaseProps {
   /**
    * The viewer covers the whole screen at every width, with no frame around it, rather than
    * sitting in a dialog with the page around it. Use it where pictures are the point, as in a
-   * chat's photos.
+   * chat's photos. Below an app's `--ouro-inset-top` bar it starts under the bar, as a dialog does.
    *
    * @claim "The viewer covers the whole screen at" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > covers the whole screen with no frame, from the thumbnails or controlled)
+   * @claim "Below an app's `--ouro-inset-top` bar it starts" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > starts below --ouro-inset-top and fills the rest of the window)
    */
   fullScreen?: boolean | undefined;
 

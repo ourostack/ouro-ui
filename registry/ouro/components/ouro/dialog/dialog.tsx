@@ -228,6 +228,7 @@ function firstFocus(popup: HTMLElement): HTMLElement {
  * ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule
  * of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
  * Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
+ * An app that draws its own bar across the window's top sets `--ouro-inset-top` to that bar's height, and a centered dialog, its backdrop and a full-screen Lightbox open below it.
  *
  * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
@@ -254,6 +255,8 @@ function firstFocus(popup: HTMLElement): HTMLElement {
  * @claim "Once open, a centered dialog" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog's top edge while its content changes > moves up only as far as it must when it grows past the screen's bottom margin)
  * @claim "It stacks above the page at" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "a centered dialog, its backdrop and a full-screen Lightbox open below it" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog below an app's own bar > starts the backdrop and the centered viewport below --ouro-inset-top, and centres in the space under it)
+ * @claim "a centered dialog, its backdrop and a full-screen Lightbox open below it" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > starts below --ouro-inset-top and fills the rest of the window)
  * @claim "Testing accessibility: in WebKit, Base UI's" test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded the accessibility gate finds nothing)
  */
 export function Dialog(props: DialogProps): JSX.Element {

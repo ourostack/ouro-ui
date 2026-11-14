@@ -11,7 +11,7 @@ export const startPages = [
   { href: "/docs/", label: "Overview" },
   { href: "/docs/installing/", label: "Installing" },
   { href: "/docs/switching-from-shadcn/", label: "Switching from shadcn" },
-  { href: "/docs/updating/", label: "Updating installed components" },
+  { href: "/docs/updating/", label: "Updating components" },
 ];
 
 const exportPages = pageIndex.filter((page) => page.kind === "export");

@@ -1,0 +1,10 @@
+export type Side = { state: "checked" | "partly" | "none"; open: string };
+export type ComponentRow = { id: string; tier: string; appliesTo: string[]; web: Side; apple: Side };
+export type SurfaceRow = { id: string; name: string; platform: string; claims: string[] };
+export type Totals = { claims: number; web: { checked: number; partly: number; none: number }; apple: { checked: number; partly: number; none: number } };
+export const SURFACES: Record<string, { name: string; platform: string }>;
+export function sideState(text: unknown): Side;
+export function componentRows(claimsFile: { claims: Array<{ id: string; tier: string; appliesTo: string[]; checks?: { web?: string; apple?: string } }> }): ComponentRow[];
+export function surfaceRows(actionClaimsFile: { claims: Array<{ id: string; appliesTo: string[] }> }): SurfaceRow[];
+export function totals(rows: ComponentRow[]): Totals;
+export function cellText(side: Side): string;

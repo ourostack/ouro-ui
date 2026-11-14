@@ -83,7 +83,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -439,10 +439,10 @@ const job = (name) => {
   return scheduled.slice(start, next === -1 ? undefined : start + 1 + next);
 };
 
-test("Scheduled install fails when main's ouro.latestRelease is not GitHub's newest release", () => {
+test("Scheduled install installs GitHub's newest release and checks the site names it", () => {
   const latest = job("latest");
-  assert.match(latest, /gh api "repos\/\$REPO\/releases\/latest" --jq \.tag_name/);
-  assert.match(latest, /\[ "\$newest" = "\$TAG" \] \|\| \{ echo "::error::/);
+  assert.match(workflow("scheduled-install.yml"), /gh api "repos\/\${{ github\.repository }}\/releases\/latest" --jq \.tag_name/);
+  assert.match(latest, /node scripts\/published-release\.mjs "\${{ needs\.refs\.outputs\.tag }}"/);
 });
 
 test("Scheduled install reports any failure in one issue, with issues: write on that job only", () => {
@@ -565,6 +565,14 @@ test("published-release verification refuses unfinished main, drafts, prerelease
   assert.match(missing.stderr, /release not found/);
 });
 
+test("Pages deploys on every push to main from that commit, never after main's CI", () => {
+  const pages = workflow("pages.yml");
+  assert.match(pages, /\non:\n {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:/);
+  assert.doesNotMatch(pages, /workflow_run/);
+  assert.match(pages, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(pages, /\$tip" = "\$HEAD_SHA"/);
+});
+
 test("Pages names GitHub's newest release before it builds, whatever main's package.json says", () => {
   const pages = workflow("pages.yml");
   const name = pages.indexOf('gh api "repos/$REPO/releases/latest" --jq .tag_name');
@@ -575,42 +583,11 @@ test("Pages names GitHub's newest release before it builds, whatever main's pack
   assert.ok(pages.indexOf("scripts/namespace.sh _site/r") > set, "and before the namespace builds");
 });
 
-test("Release opens the pull request that prepares main with a title and body that pass the claims lint, the new tag sourced from package.json", () => {
-  const prepare = releaseStep("Prepare main for the next release");
-  const [, title, body] = prepare.match(/--title "([^"]+)" \\\n\s*--body "([^"]+)"/) ?? [];
-  assert.ok(body, "release.yml opens the pull request with --title and --body");
-  // The step runs after latest-release.mjs set "$TAG", so package.json's latestRelease is the tag;
-  // the repository's own value stands in for it here.
-  const tag = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease;
-  const opened = body.replaceAll("$TAG", tag);
-  const appended = prepare.match(/gh pr edit "\$NEXT_BRANCH" --body "\$pr_body\n((?:[^"\\]|\\.)*)"/)?.[1];
-  assert.ok(appended, "release.yml adds the approval command to the body when it cannot approve");
-  const edited = `${opened}\n${appended.replaceAll("\\`", "`").replaceAll("$cmd", "gh api -X POST repos/o/r/actions/runs/39754777487/approve")}`;
-  for (const text of [opened, edited]) {
-    const lint = spawnSync(process.execPath, ["scripts/claims.mjs", "lint", "--pr"], { cwd: root, encoding: "utf8", env: { ...process.env, PR_TITLE: title, PR_BODY: text } });
-    assert.equal(lint.status, 0, lint.stdout + lint.stderr);
-  }
-});
-
 test("CI cancels only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
   const text = workflow("ci.yml");
   const block = text.split("\nconcurrency:\n")[1].split(/\n(?=\S)/)[0];
   assert.equal(block, ["  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}", "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}"].join("\n"));
   assert.doesNotMatch(text.split("\njobs:\n")[1], /^\s+concurrency:/m, "no job has a group of its own that could cancel it");
-});
-
-test("Release merges the pull request that prepares main, then runs CI there, so main names the release", () => {
-  const release = workflow("release.yml");
-  assert.match(release, /scripts\/required-ci\.sh \$runs \|\| \{[^\n]+exit 1; \}\n +gh pr merge "\$NEXT_BRANCH" --squash \|\| true\n/);
-  // gh's exit code also fails on local branch cleanup, so the pull request's state decides, and
-  // the branch is deleted through the API afterwards.
-  assert.doesNotMatch(release, /gh pr merge[^\n]*--delete-branch/);
-  assert.match(release, /gh pr view "\$NUMBER" --json state --jq \.state\)" = MERGED/);
-
-  // Pages deploys main's new tip only after CI on it has run.
-  assert.match(release, /gh workflow run "\$workflow" --ref main/);
-  assert.ok(release.indexOf('state_of "$context" "$jobs"', release.indexOf('gh workflow run "$workflow" --ref main')) > 0);
-  assert.ok(release.indexOf("gh workflow run pages.yml --ref main") > release.indexOf('gh workflow run "$workflow" --ref main'));
 });
 
 test("Release takes main's CI from main's runs on its commit: a push, a dispatch on main, and the merge queue's run", () => {
@@ -698,8 +675,10 @@ test("Release deploys Pages itself and fails when the published llms.txt or READ
   const release = workflow("release.yml");
   const deploy = release.indexOf("gh workflow run pages.yml --ref main");
   const check = release.indexOf('node scripts/published-release.mjs "$TAG" --wait');
-  assert.ok(deploy > release.indexOf('gh release create "$TAG"'), "Pages is deployed after the release is created");
-  assert.ok(check > deploy, "and the published pages are checked last");
+  assert.ok(deploy > release.indexOf('git tag "$TAG"'), "Pages is deployed once the tag is out, in a job of its own");
+  assert.match(release, /^ {2}pages:\n(?: {4}#.*\n)* {4}needs: release$/m, "which does not wait for the pull request that prepares main");
+  assert.match(release, /^ {4}needs: \[release, pages\]$/m, "and the published page is checked once Pages has deployed");
+  assert.ok(check > deploy);
 });
 
 /** The rehearsal "Check the version, the tag and main's CI" records for the notes (scripts/rehearsal-evidence.mjs). */
@@ -768,10 +747,9 @@ test("Release tags nothing when its notes would be over GitHub's limit", () => {
 
 test("every wait of Release, and of its rehearsal, on a CI run judges only the checks main's rules require, through scripts/required-ci.sh", () => {
   // ci-budget, which the rules do not require, failed CI on "Prepare main" for v1.2.0 (run 39754777487) and stopped the release.
-  for (const name of ["Check the version, the tag and main's CI", "Run CI on the release commit", "Prepare main for the next release", "Pass the merge queue and CI on main"]) {
+  for (const name of ["Check the version, the tag and main's CI", "Run CI on the release commit"]) {
     const step = releaseStep(name);
-    // The queue job runs no code from the repository, so it judges the jobs itself (state_of), as the script does.
-    assert.match(step, name === "Pass the merge queue and CI on main" ? /\[ "\$\(state_of "\$context" "\$jobs"\)" = success \]/ : /scripts\/required-ci\.sh (--also "[^"]+" )?\$(run|runs)\b/, name);
+    assert.match(step, /scripts\/required-ci\.sh (--also "[^"]+" )?\$(run|runs)\b/, name);
     assert.doesNotMatch(step, /gh run watch "\$(run|ci)"[^\n]*--exit-status|--workflow (ci\.yml|"\$workflow")[^\n]*conclusion/, name);
   }
   assert.doesNotMatch(stepScript(workflow("release-rehearsal.yml"), "Run CI and the screen-reader lane on the rehearsal commit"), /gh run watch "\$ci"/);
@@ -887,164 +865,14 @@ const releaseStep = (name) => {
   return lines.slice(0, end === -1 ? undefined : end).map((line) => line.slice(10)).join("\n");
 };
 
-const scenarios = ["success", "queued", "queue-rebuilt", "queue-tip", "pr-ci-failed", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "queue-dropped", "approval-failed", "tip-advanced"];
-for (const scenario of scenarios) {
-  const passes = ["success", "queued", "queue-rebuilt", "queue-tip"].includes(scenario);
-  test(`Release's main CI gate ${passes ? "permits" : "blocks"} Pages (${scenario})`, () => {
-    // Execute the workflow's actual shell, substituting only GitHub/network operations: the release
-    // job's end of "Prepare main", then the queue job, then the publish job, each job's outputs
-    // passed on as GitHub does. gh merge exits non-zero even when state says MERGED, exercising
-    // independent readback.
-    const prepare = releaseStep("Prepare main for the next release");
-    const gate = prepare.slice(prepare.indexOf("sha=$(git rev-parse HEAD)\nruns="));
-    const queue = releaseStep("Pass the merge queue and CI on main");
-    const remove = releaseStep("Delete the branch that prepared main");
-    const deploy = releaseStep("Deploy Pages and check what is published");
-    const install = workflow("release.yml").includes("name: Install dependencies for the public proofs")
-      ? releaseStep("Install dependencies for the public proofs")
-      : "";
-    const fixture = scratchDir("ouro-release-main-gate-");
-    const output = join(fixture, "output.txt");
-    const summary = join(fixture, "summary.md");
-    const looks = join(fixture, "queue-looks.txt");
-    writeFileSync(output, "");
-    writeFileSync(summary, "");
-    writeFileSync(looks, "0");
-    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
-      gh() {
-        printf 'CALL %s\\n' "$*" >&2
-        case "$*" in
-          "api -X POST "*"/approve") [ "$SCENARIO" != approval-failed ] ;;
-          # gh run watch fails a run any job of which failed (ci-budget's, here): the jobs decide.
-          "run watch 1 "*|"run watch 2 "*) return 1 ;;
-          "run view 1 --json status "*|"run view 2 --json status "*) echo completed ;;
-          "pr merge "*) return 1 ;;
-          "pr view "*"--json number"*) echo 9 ;;
-          # gh merge could not queue it (no auto-merge): queued by the API instead, at CI's commit.
-          "api graphql -f query=mutation { enqueuePullRequest(input: {pullRequestId: \\"PR_9\\", expectedHeadOid: \\"headsha\\", jump: true}) { clientMutationId } }") return 0 ;;
-          "pr view "*"--json id"*) echo PR_9 ;;
-          # The merge queue, look by look: the release job looks twice, the queue job once before its
-          # loop and once a round. Queued, then merged (or dropped) on the queue job's first round;
-          # rebuilt: still queued after two rounds, a second build's branch from the second on.
-          "api graphql "*)
-            looks=$(( $(cat "$QUEUE_LOOKS") + 1 )); echo "$looks" > "$QUEUE_LOOKS"
-            case "$SCENARIO:$looks" in
-              queued:[1-3]|queue-tip:[1-3]|queue-dropped:[1-3]|queue-rebuilt:[1-5]) echo "OPEN true" ;;
-              not-merged:*|queue-dropped:*) echo "OPEN false" ;;
-              *) echo "MERGED false" ;;
-            esac ;;
-          "api repos/ourostack/ouro-ui/rules/branches/main "*) printf '%s\\n' ci "install (shadcn, nova)" install-github lighthouse ;;
-          "api repos/ourostack/ouro-ui/git/matching-refs/heads/gh-readonly-queue/main/pr-9-"*)
-            refs=$(( $(cat "$QUEUE_LOOKS.refs" 2>/dev/null || echo 0) + 1 )); echo "$refs" > "$QUEUE_LOOKS.refs"
-            echo refs/heads/gh-readonly-queue/main/pr-9-abc
-            if [ "$SCENARIO" = queue-rebuilt ] && [ "$refs" -ge 2 ]; then echo refs/heads/gh-readonly-queue/main/pr-9-def; fi ;;
-          "workflow run ci.yml --ref gh-readonly-queue/main/pr-9-"*) return 0 ;;
-          # The dispatched runs on the queue's branches, finished, and their jobs.
-          "run list --workflow ci.yml --branch gh-readonly-queue/main/pr-9-abc "*) echo "7 completed 1111111111111111111111111111111111111111" ;;
-          "run list --workflow ci.yml --branch gh-readonly-queue/main/pr-9-def "*) echo "8 completed 2222222222222222222222222222222222222222" ;;
-          # The CI runs the gates wait on (1: the pull request's, 2: main's tip), judged on the required checks.
-          "api repos/ourostack/ouro-ui/actions/runs/1/jobs"*) if [ "$SCENARIO" = pr-ci-failed ]; then printf 'ci\tfailure\n'; else printf 'ci\tsuccess\ninstall (shadcn, nova)\tsuccess\ninstall-github\tskipped\nlighthouse\tsuccess\nci-budget\tfailure\n'; fi ;;
-          "api repos/ourostack/ouro-ui/actions/runs/2/jobs"*) if [ "$SCENARIO" = ci-failed ]; then printf 'ci\tsuccess\ninstall (shadcn, nova)\tsuccess\nlighthouse\tfailure\n'; else printf 'ci\tsuccess\ninstall (shadcn, nova)\tsuccess\ninstall-github\tsuccess\nlighthouse\tsuccess\nci-budget\tfailure\n'; fi ;;
-          "api repos/ourostack/ouro-ui/actions/runs/7/jobs"*) printf 'ci\\tsuccess\\ninstall (shadcn, nova)\\tsuccess\\ninstall-github\\tskipped\\nlighthouse\\tsuccess\\nplan\\tsuccess\\n' ;;
-          "api repos/ourostack/ouro-ui/actions/runs/8/jobs"*) printf 'ci\\tfailure\\nlighthouse\\tskipped\\n' ;;
-          "api -X POST repos/ourostack/ouro-ui/statuses/"*) return 0 ;;
-          "pr view "*"--json state"*) if [ "$SCENARIO" = not-merged ] || [ "$SCENARIO" = queue-dropped ]; then echo OPEN; else echo MERGED; fi ;;
-          "pr view "*"--json body"*) echo body ;;
-          "pr edit "*|"api -X DELETE "*) return 0 ;;
-          # Main fast-forwarded to the queue's commit, or moved past it.
-          "api "*"commits/main"*) if [ "$SCENARIO" = queue-tip ]; then echo 1111111111111111111111111111111111111111; else echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; fi ;;
-          "workflow run ci.yml --ref main") [ "$SCENARIO" != dispatch-failed ] ;;
-          "workflow run ci.yml --ref prepare/"*) return 0 ;;
-          "run list --workflow ci.yml --branch prepare/after-v9.9.9 "*) echo 1 ;;
-          "run list --workflow ci.yml "*) if [ "$SCENARIO" != ci-missing ]; then echo 2; fi ;;
-          "run list --workflow pages.yml "*) if [ "$pages" = 1 ]; then echo 4; else echo 3; fi ;;
-          "workflow run pages.yml --ref main") pages=1 ;;
-          "run watch 4 "*) return 0 ;;
-          *) echo "Unexpected gh call: $*" >&2; return 99 ;;
-        esac
-      }
-      seq() { printf '%s\\n' 1 2 3 4 5; }
-      sleep() { :; }
-      export -f gh seq sleep
-      pnpm() {
-        [ "$*" = "i --frozen-lockfile" ] || return 99
-        touch "$DEPENDENCIES_READY"
-      }
-      node() {
-        if [ -n "\${GH_TOKEN:-}" ]; then
-          echo "Public proof inherited the publishing token" >&2
-          return 98
-        fi
-        if [ "$1" = scripts/public-registry.mjs ] && [ ! -f "$DEPENDENCIES_READY" ]; then
-          echo "Cannot find package postcss: publish dependencies were not installed" >&2
-          return 1
-        fi
-        printf 'PUBLISHED %s\\n' "$*"
-      }
-      git() { echo headsha; }
-      pages=0
-      ${gate}
-      NUMBER=$(sed -n 's/^number=//p' "$GITHUB_OUTPUT")
-      ${queue}
-      VERIFIED_MAIN_SHA=$(sed -n 's/^main_sha=//p' "$GITHUB_OUTPUT")
-      if [ "$SCENARIO" = tip-advanced ]; then VERIFIED_MAIN_SHA=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; fi
-      ${install}
-      ${remove}
-      GH_TOKEN=publishing-token
-      ${deploy}
-    `], {
-      cwd: root, encoding: "utf8",
-      env: { ...process.env, GH_TOKEN: "", SCENARIO: scenario, PRODUCERS: "ci.yml", NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks, DEPENDENCIES_READY: join(fixture, "dependencies-ready") },
-    });
-    assert.doesNotMatch(result.stderr, /Unexpected gh call:/);
-    // Queued by the API only while gh left the pull request open and out of the queue, a few times.
-    const enqueued = result.stderr.match(/^CALL api graphql -f query=mutation \{ enqueuePullRequest.*$/gm) ?? [];
-    assert.equal(enqueued.length, scenario === "not-merged" ? 5 : 0, "enqueuePullRequest");
-    if (scenario.startsWith("queue")) {
-      // Queued by the workflow's token: CI runs on the queue's branch by dispatch, once on each
-      // build's branch, however often the branches are looked at.
-      const dispatched = result.stderr.match(/^CALL workflow run ci\.yml --ref gh-readonly-queue\/.+$/gm);
-      assert.deepEqual(dispatched, ["CALL workflow run ci.yml --ref gh-readonly-queue/main/pr-9-abc", ...(scenario === "queue-rebuilt" ? ["CALL workflow run ci.yml --ref gh-readonly-queue/main/pr-9-def"] : [])]);
-      // The queue counts no check of a dispatched run (probe #142), so each finished run's required
-      // checks, and only those, are reported once as commit statuses on the commit the queue builds:
-      // a job of that name that passed, or one of the jobs that skip there by design; anything else,
-      // a missing job included, fails.
-      const statuses = result.stderr.match(/^CALL api -X POST repos\/ourostack\/ouro-ui\/statuses\/.+$/gm).map((line) => line.replace(/ -f target_url=\S+ -f description=.*$/, ""));
-      const posted = (sha, entries) => entries.map(([state, context]) => `CALL api -X POST repos/ourostack/ouro-ui/statuses/${sha} -f state=${state} -f context=${context}`);
-      assert.deepEqual(statuses, [
-        ...posted("1111111111111111111111111111111111111111", [["success", "ci"], ["success", "install (shadcn, nova)"], ["success", "install-github"], ["success", "lighthouse"]]),
-        ...(scenario === "queue-rebuilt" ? posted("2222222222222222222222222222222222222222", [["failure", "ci"], ["failure", "install (shadcn, nova)"], ["failure", "install-github"], ["failure", "lighthouse"]]) : []),
-      ]);
-      assert.match(result.stderr, /-f target_url=https:\/\/github\.com\/ourostack\/ouro-ui\/actions\/runs\/7 -f description=CI run 7 on the merge queue's branch: success$/m);
-      if (scenario === "queue-rebuilt") assert.match(result.stderr, /-f context=install \(shadcn, nova\) -f target_url=\S+ -f description=CI run 8 on the merge queue's branch: no such job$/m);
-      assert.match(result.stderr, /CALL api graphql -f query=query \{ repository\(owner: "ourostack", name: "ouro-ui"\) \{ pullRequest\(number: 9\) \{ state isInMergeQueue \} \} \}/);
-    } else {
-      assert.doesNotMatch(result.stderr, /gh-readonly-queue/);
-    }
-    // Main whose tip is the queue's passing commit needs no CI run of its own.
-    assert.equal(/CALL workflow run ci\.yml --ref main/.test(result.stderr), passes && scenario !== "queue-tip" || ["ci-failed", "ci-missing", "dispatch-failed", "tip-advanced"].includes(scenario));
-    if (passes) {
-      assert.equal(result.status, 0, result.stderr);
-      assert.match(readFileSync(output, "utf8"), new RegExp(`^main_sha=${scenario === "queue-tip" ? "1{40}" : "a{40}"}$`, "m"));
-      assert.match(result.stderr, /CALL workflow run pages.yml --ref main/);
-      assert.match(result.stdout, /PUBLISHED scripts\/published-release.mjs v9.9.9 --wait 900\nPUBLISHED scripts\/public-registry.mjs verify-live v9.9.9 --wait 900\n/);
-      assert.match(result.stderr, /CALL api -X DELETE repos\/ourostack\/ouro-ui\/git\/refs\/heads\/prepare\/after-v9.9.9/);
-    } else {
-      assert.notEqual(result.status, 0, result.stderr);
-      assert.doesNotMatch(result.stderr, /CALL workflow run pages.yml/);
-      assert.match(result.stdout, /::error::/, result.stderr);
-    }
-  });
-}
-
 test("public proof dependencies are installed without the publishing token, and an install failure stops the job", () => {
-  const publish = workflow("release.yml").split("\n  publish:\n")[1].split("\n  finish:\n")[0];
+  const publish = workflow("release.yml").split("\n  pages:\n")[1].split("\n  finish:\n")[0];
   const manager = publish.indexOf("uses: pnpm/action-setup@");
   assert.ok(manager >= 0 && manager < publish.indexOf("uses: actions/setup-node@"));
   assert.ok(publish.indexOf("name: Install dependencies for the public proofs") > manager);
   assert.doesNotMatch(publish.split("\n    steps:\n")[0], /^\s+GH_TOKEN:/m);
   for (const step of publish.split(/\n(?= {6}- )/).filter((step) => step.includes("GH_TOKEN:"))) {
-    assert.match(step, /name: (Delete the branch that prepared main|Deploy Pages and check what is published)\n/);
+    assert.match(step, /name: (Delete the branch that prepared main|Deploy Pages and check the namespace it serves)\n/);
   }
   const install = releaseStep("Install dependencies for the public proofs");
   const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c",
@@ -1067,9 +895,9 @@ test("a release builds the @ouro namespace from its commit and checks it byte fo
 });
 
 test("a release checks last that Pages serves the tag's @ouro namespace byte for byte, after the published pages", () => {
-  const deploy = releaseStep("Deploy Pages and check what is published");
+  const deploy = releaseStep("Deploy Pages and check the namespace it serves");
   const lines = deploy.trimEnd().split("\n");
-  assert.deepEqual(lines.filter((line) => line.startsWith("node ")), ['node scripts/published-release.mjs "$TAG" --wait 900', 'node scripts/public-registry.mjs verify-live "$TAG" --wait 900']);
+  assert.deepEqual(lines.filter((line) => line.startsWith("node ")), ['node scripts/public-registry.mjs verify-live "$TAG" --wait 900']);
   assert.equal(lines.at(-1), 'node scripts/public-registry.mjs verify-live "$TAG" --wait 900');
   assert.ok(deploy.indexOf("verify-live") > deploy.indexOf('gh run watch "$run"'), "after the Pages deploy finishes");
 });
@@ -1077,17 +905,6 @@ test("a release checks last that Pages serves the tag's @ouro namespace byte for
 test("the release runs the public-registry tests with the script tests", () => {
   const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"];
   assert.match(scripts, / scripts\/public-registry\.test\.mjs /);
-});
-
-test("Release passes the verified main SHA to Pages and does not bypass the ruleset", () => {
-  const release = workflow("release.yml");
-  assert.match(release, /id: prepare/);
-  assert.match(release, /VERIFIED_MAIN_SHA: \$\{\{ needs\.queue\.outputs\.main_sha \}\}/);
-  assert.doesNotMatch(release, /gh pr merge[^\n]*--admin/);
-});
-
-test("Scheduled install checks that the published llms.txt and README name the newest release", () => {
-  assert.match(job("latest"), /node scripts\/published-release\.mjs "\$newest"/);
 });
 
 /** ci.yml's jobs, by name, each the text of its block. */
@@ -1158,86 +975,22 @@ for (const [event, ref, baseRef, headRef, expected] of [
   });
 }
 
-test("a pull request into main leaves the install test to the merge queue, unless it changes the install test, and its install checks still report", () => {
+test("a pull request into main runs the install test and the heavy tier in full, whatever it changes", () => {
   const plan = stepScript(ciJobs().plan, "Plan the tests");
   const changed = (files) => `git() { printf '%s\\n' ${files.map((file) => `'${file}'`).join(" ")}; }\n${plan}`;
   const pr = { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" };
-  // A component pull request: its folder, its registry entry and its README catalog line. The
-  // stand-in node exits 0, as `readme-steps.mjs same` does when the README's steps did not change.
-  const component = ["registry/ouro/components/ouro/dialog/dialog.tsx", "registry.json", "README.md"];
-  assert.equal(runStep(changed(component), pr).output.installs, "queue");
-  const readme = runStep(changed(component), pr, { nodeStatus: 1 });
-  assert.equal(readme.output.installs, "here", "a README whose Next.js steps changed");
-  assert.match(readme.calls, /^CALL node scripts\/readme-steps\.mjs same HEAD\^1$/m);
-  // Every file the install test runs or reads, each one alone, and the jobs that run it.
-  const installFiles = [".github/workflows/ci.yml", "package.json", "pnpm-lock.yaml", "UPGRADING.md", "docs/OuroProvider.md", "test/install-fixture/package.json", "test/install-fixture-tests/vitest.config.ts", "test/install-fixture-next/src/app/page.tsx", "test/install-fixture-upgrade/vitest.config.ts"];
-  const script = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
-  const used = [...new Set([...script.matchAll(/\$root\/(scripts\/[\w.-]+)/g)].map((match) => match[1]))];
-  // ...and the local modules those scripts import.
-  const imported = used.flatMap((file) => [...readFileSync(join(root, file), "utf8").matchAll(/from "\.\/([\w.-]+)"/g)].map((match) => `scripts/${match[1]}`)).filter((file) => existsSync(join(root, file)));
-  for (const file of ["scripts/registry.mts", "scripts/latest-release.mjs", "scripts/shard.mjs", "scripts/readme-steps.mjs"]) assert.ok(used.includes(file), `${file} among ${used.join(", ")}`);
-  assert.ok(imported.includes("scripts/source-rules.mjs"), imported.join(", "));
-  for (const file of new Set(["scripts/install-test.sh", "scripts/shard-timings.json", ...used, ...imported, ...installFiles])) {
-    assert.equal(runStep(changed([file]), pr).output.installs, "here", file);
+  for (const files of [["registry/ouro/components/ouro/dialog/dialog.tsx", "registry.json", "README.md"], ["README.md"], ["changes/x.md"]]) {
+    const { output } = runStep(changed(files), pr);
+    assert.equal(output.installs, "here", files.join(", "));
+    assert.equal(output.heavy, "here", files.join(", "));
   }
-  // Everything else runs the install test: the merge queue, main, dispatched runs and release branches (no installs output).
-  for (const env of [{ EVENT: "merge_group", REF: "refs/heads/gh-readonly-queue/main/pr-9-abc" }, { EVENT: "push", REF: "refs/heads/main" }, { ...pr, HEAD_REF: "release/v1.1.0" }]) {
-    assert.equal(runStep(changed(["registry/ouro/components/ouro/dialog/dialog.tsx"]), env).output.installs, undefined, env.EVENT);
-  }
-  const jobs = ciJobs();
-  assert.match(jobs.plan, /^ {6}installs: \$\{\{ steps\.plan\.outputs\.installs \}\}$/m);
-  // The shards, which no rule requires, skip; each check the rules require runs and passes with a notice.
-  assert.match(jobs["install-shard"], new RegExp(`^ {4}if: ${queuedInstalls.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
-  const gate = stepScript(jobs["install-gate"], "Every shard passed");
-  const deferred = runStep(gate, { INSTALLS: "queue", SHARDS: "skipped", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") });
-  assert.equal(deferred.status, 0);
-  assert.match(deferred.stdout, /^::notice::The install test runs in the merge queue/m);
-  assert.equal(runStep(gate, { INSTALLS: "", SHARDS: "skipped", VARIANT: "shadcn", PRESET: "nova", RUNNER_TEMP: join(root, ".tmp") }).status, 1, "with the install test due here, a skipped shard fails the check");
-  for (const id of ["install", "install-upgrade"]) {
-    const steps = jobs[id].split("\n    steps:\n")[1].split(/\n(?= {6}- )/);
-    assert.equal(steps[0].split("\n")[0], "      - if: needs.plan.outputs.installs == 'queue'", id);
-    for (const step of steps.slice(1)) assert.match(step.split("\n")[0], /^ {6}- if: (failure\(\) && )?needs\.plan\.outputs\.installs != 'queue'$/, `${id}: ${step.split("\n")[1]}`);
-  }
-});
-
-test("a pull request into main leaves the heavy tier to the merge queue, unless it changes the heavy tier's own files", () => {
-  const plan = stepScript(ciJobs().plan, "Plan the tests");
-  const changed = (files) => `git() { printf '%s\\n' ${files.map((file) => `'${file}'`).join(" ")}; }\n${plan}`;
-  const pr = { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" };
-  assert.equal(runStep(changed(["registry/ouro/components/ouro/dialog/dialog.tsx", "registry.json", "README.md"]), pr).output.heavy, "queue");
-  // The workflow, the lockfile and shared config, and each heavy job's own inputs, each one alone.
-  for (const file of [".github/workflows/ci.yml", "package.json", "pnpm-lock.yaml", "vitest.config.ts", "playwright.latency.config.ts", "site/e2e/latency.spec.ts", "site/lighthouserc.json", "site/scripts/serve-pages.mjs", "site/scripts/theme-install-test.sh", "site/theme-install/package.json", "test/themes/contrast.test.ts", "test/theme-fixtures/nova.css", "test/__screenshots__/button.png", "test/button.visual.test.tsx", "registry/ouro/lib/ouro/testing/setup.ts", "registry/ouro/lib/ouro/testing/vitest.ts", "scripts/vitest-shards.mts", "test/theme-fixtures.ts", "test/story-axe.ts", "test/stories.tsx", "test/slice.ts", "test/conformance/commands.ts", "test/install-fixture/package.json", "test/install-fixture-themes/app.css", "site/src/themes/themes.json", "site/src/voyage/stage/copy.ts", "registry/ouro/theme/ouro.css"]) {
-    assert.equal(runStep(changed([file]), pr).output.heavy, "here", file);
-  }
-  // Every file those checks load is in the list: the theme scans, the visual tests and the Vitest
-  // config, the stylesheet it loads, and everything they import, relative or through "@/", all the way down.
-  const resolve = (from, spec) => {
-    const base = spec.startsWith("@/") ? spec.slice(2) : join(dirname(from), spec);
-    return [base, ...["ts", "tsx", "mts", "mjs", "js"].map((ext) => `${base}.${ext}`), `${base}/index.ts`, `${base}/index.tsx`].find((file) => existsSync(join(root, file)) && !file.endsWith("/"));
-  };
-  const seen = new Set();
-  const visit = (file) => {
-    if (seen.has(file)) return;
-    seen.add(file);
-    if (!/\.(m?[jt]sx?)$/.test(file)) return;
-    for (const [, spec] of readFileSync(join(root, file), "utf8").matchAll(/(?:from |import\(?\s*)"((?:\.{1,2}|@)\/[^"]+)"/g)) {
-      const found = resolve(file, spec);
-      if (found) visit(found.replace(/\\/g, "/"));
-    }
-  };
-  for (const file of ["vitest.config.ts", "app.css", "tsconfig.json", "test/screenshots.visual.test.tsx", ...readdirSync(join(root, "test/themes")).map((file) => `test/themes/${file}`)]) visit(file);
-  // The registry's runtime source is what the merge queue tests (a component, a block, lib/): only its testing library and theme are the tier's own.
-  const outside = [...seen].filter((file) => !file.startsWith("registry/") || /^registry\/ouro\/(lib\/ouro\/testing|theme)\//.test(file));
-  assert.ok(outside.length > 20, outside.join(", "));
-  for (const file of outside) assert.equal(runStep(changed([file]), pr).output.heavy, "here", file);
-  // A diff it cannot read runs the tier here.
   const unread = runStep(`git() { return 1; }\n${plan}`, pr);
+  assert.equal(unread.output.installs, "here");
   assert.equal(unread.output.heavy, "here");
-  assert.match(unread.stdout, /::warning::Could not read the pull request's changes, so the heavy tier runs here/);
-  // The merge queue, main, dispatched runs and release branches run the heavy tier in full (no heavy output).
-  for (const env of [{ EVENT: "merge_group", REF: "refs/heads/gh-readonly-queue/main/pr-9-abc" }, { EVENT: "push", REF: "refs/heads/main" }, { EVENT: "workflow_dispatch", REF: "refs/heads/main" }, { ...pr, HEAD_REF: "release/v1.1.0" }]) {
-    assert.equal(runStep(changed(["registry/ouro/components/ouro/dialog/dialog.tsx"]), env).output.heavy, undefined, env.EVENT);
-  }
+  // No job is conditioned on a queue, so a skipped required check can never stand in for a run.
+  const text = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
+  assert.doesNotMatch(text, /outputs\.(installs|heavy) [!=]= 'queue'/);
+  assert.doesNotMatch(text, /heavy-queued/);
 });
 
 test("CI's plan runs everything when planning fails", () => {
@@ -1283,7 +1036,7 @@ test("a push to main whose commit the merge queue already tested runs only insta
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   // heavy-queued, the heavy tier's notices, runs only on a pull request whose plan said heavy=queue,
   // which a push to main never does.
-  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, heavyQueued].includes(condition(jobs[id])));
+  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns].includes(condition(jobs[id])));
   assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
@@ -1301,7 +1054,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : heavyJobs.includes(name) ? heavyRuns : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs, "latency-shard"].includes(name) ? heavyRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1331,17 +1084,14 @@ function checkNames(block, id) {
 const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 
 /** install-shard's: it also skips on a pull request whose install test waits for the merge queue (the plan's `installs`). */
-const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'queue' }}";
+const queuedInstalls = untested;
 
 /** The browser shards': they also skip on a pull request that changes nothing they read (the plan's `browser`). */
 const browserRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}";
 
 /** The heavy tier's jobs: on a pull request that changes nothing they read (the plan's heavy=queue) they skip and heavy-queued reports their checks; they run everywhere else. */
 const heavyJobs = ["themes", "visual", "theme-install", "latency", "lighthouse"];
-const heavyRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}";
-
-/** heavy-queued's: only on a pull request whose plan left the heavy tier to the merge queue. */
-const heavyQueued = "${{ !cancelled() && needs.plan.outputs.heavy == 'queue' }}";
+const heavyRuns = untested;
 
 /** The mutation shards': they also skip when the plan counts none (no changed path is runtime source). */
 const mutationRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}";
@@ -1366,7 +1116,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : heavyJobs.includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs, "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1374,9 +1124,6 @@ test("every required check is still a job that reports, under the name the rules
   // exactly the themes shards' checks, under a condition exclusive with theirs, and nothing else.
   for (const id of heavyJobs) for (const name of checkNames(jobs[id], id)) assert.ok(requiredChecks.includes(name), `${name} is required`);
   for (const id of heavyJobs.filter((id) => id !== "themes")) assert.doesNotMatch(jobs[id].match(/^ {4}name: (.+)$/m)?.[1] ?? "", /matrix/, id);
-  assert.equal(jobs["heavy-queued"].match(/^ {4}if: (.+)$/m)?.[1], heavyQueued);
-  assert.match(jobs["heavy-queued"], /^ {4}needs: \[plan\]$/m);
-  assert.deepEqual(checkNames(jobs["heavy-queued"], "heavy-queued"), checkNames(jobs.themes, "themes"));
   // GitHub reports a skipped job whose name is only an expression under the bare expression
   // ("matrix.check"), which no job's name matches, so the budget would fail it as unmatched.
   for (const [id, block] of Object.entries(jobs)) assert.doesNotMatch(block.match(/^ {4}name: (.+)$/m)?.[1] ?? id, /^\$\{\{[^}]*\}\}$/, `${id}'s name has text besides an expression`);
@@ -1950,8 +1697,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
   for (const [id, block] of Object.entries(jobs)) {
-    // A themes shard's check matches its job and heavy-queued, its twin; the two never both run (the required checks' test).
-    for (const name of checkNames(block, id)) assert.deepEqual(graph.filter((node) => node.pattern.test(name)).map((node) => node.id), id === "themes" || id === "heavy-queued" ? ["themes", "heavy-queued"] : [id], name);
+    for (const name of checkNames(block, id)) assert.deepEqual(graph.filter((node) => node.pattern.test(name)).map((node) => node.id), [id], name);
   }
 });
 
@@ -2126,26 +1872,22 @@ const releaseJobs = () =>
       .map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]),
   );
 
-test("a release gives each job its own permissions, and only the queue job, which runs no repository code, may write commit statuses", () => {
+test("a release gives each job its own permissions, and none may write commit statuses or pull requests", () => {
   const release = workflow("release.yml");
   assert.match(release, /^permissions: \{\}$/m);
   const jobs = releaseJobs();
-  assert.deepEqual(Object.keys(jobs), ["release", "queue", "publish", "finish", "next"]);
+  assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next"]);
   const permissions = (block) => {
     const lines = (block.split(/^ {4}permissions:\n/m)[1] ?? "").split("\n");
     const own = lines.slice(0, lines.findIndex((line) => !/^ {6}[\w-]+: \w+/.test(line)));
     return Object.fromEntries(own.map((line) => line.trim().match(/^([\w-]+): (\w+)/).slice(1)));
   };
-  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "write", "pull-requests": "write", issues: "write" });
-  assert.deepEqual(permissions(jobs.queue), { actions: "write", statuses: "write", "pull-requests": "read", contents: "read" });
-  assert.deepEqual(permissions(jobs.publish), { contents: "write", actions: "write" });
+  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "write", issues: "write" });
+  assert.deepEqual(permissions(jobs.pages), { actions: "write" });
+  assert.deepEqual(permissions(jobs.publish), {});
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
   assert.deepEqual(permissions(jobs.next), { actions: "write" });
-  // The queue job checks nothing out, installs nothing and runs no script of the repository.
-  const code = jobs.queue.split("\n").filter((line) => !/^\s*#/.test(line)).join("\n");
-  assert.doesNotMatch(code, /^\s*(- )?uses:|pnpm|npx|node |scripts\//m);
-  // Only the required checks' names are reported, from the ruleset main has.
-  assert.match(jobs.queue, /gh api "repos\/\$GITHUB_REPOSITORY\/rules\/branches\/main"/);
+  for (const block of Object.values(jobs)) assert.doesNotMatch(block, /statuses: write|pull-requests: write/);
 });
 
 test("a release's tag never stays out without main and Pages following unnoticed, a timeout included", () => {
@@ -2153,14 +1895,14 @@ test("a release's tag never stays out without main and Pages following unnoticed
   // The release job cleans up after a failure or a cancel, a timeout's included.
   assert.match(jobs.release, /^ {6}- if: \(failure\(\) \|\| cancelled\(\)\) && steps\.check\.outputs\.new == 'true'\n {8}name: Clean up after a failure$/m);
   // The finish job runs whatever happened before it, and reports a pushed tag main and Pages did not follow.
-  assert.match(jobs.finish, /^ {4}needs: \[release, queue, publish\]$/m);
+  assert.match(jobs.finish, /^ {4}needs: \[release, pages, publish\]$/m);
   const condition = jobs.finish.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)?.[1];
-  const runs = (release, queue, publish, fresh = "true") =>
-    runInNewContext(condition.replace("always()", "true"), { needs: { release: { result: release, outputs: { new: fresh } }, queue: { result: queue }, publish: { result: publish } } });
-  assert.equal(runs("success", "success", "success"), false);
-  assert.equal(runs("success", "cancelled", "skipped"), true);
-  assert.equal(runs("success", "success", "failure"), true);
-  assert.equal(runs("cancelled", "skipped", "skipped", undefined), true);
+  const runs = (release, publish, fresh = "true", pages = "success") =>
+    runInNewContext(condition.replace("always()", "true"), { needs: { release: { result: release, outputs: { new: fresh } }, pages: { result: pages }, publish: { result: publish } } });
+  assert.equal(runs("success", "success"), false);
+  assert.equal(runs("success", "failure"), true);
+  assert.equal(runs("success", "success", "true", "failure"), true);
+  assert.equal(runs("cancelled", "skipped", undefined), true);
   // The check step's own output, from its script against a stand-in git and gh: a rerun for a
   // version that is already released did nothing, so finish stays out of it and the run is green;
   // a new release's tag that main and Pages did not follow still brings finish in.
@@ -2184,19 +1926,19 @@ test("a release's tag never stays out without main and Pages following unnoticed
   };
   const rerun = checked(true);
   assert.deepEqual(rerun, { new: "false" });
-  assert.equal(runs("success", "skipped", "skipped", rerun.new), false);
+  assert.equal(runs("success", "skipped", rerun.new, "skipped"), false);
   const fresh = checked(false);
   assert.deepEqual(fresh, { producers: "ci.yml", new: "true" });
-  assert.equal(runs("success", "skipped", "skipped", fresh.new), true);
+  assert.equal(runs("success", "skipped", fresh.new, "skipped"), true);
   const script = releaseStep("Report a release main and Pages did not follow");
   const report = (tagged) =>
     spawnSync("bash", ["-e", "-c", `gh() { printf 'CALL %s\\n' "$*" >&2; case "$1 $2" in "api repos/o/r/git/ref/tags/v9.9.9") [ "$TAGGED" = true ] ;; "issue create") return 0 ;; esac; }\n${script}`], {
       encoding: "utf8",
-      env: { ...process.env, TAGGED: String(tagged), GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "5", TAG: "v9.9.9", RESULTS: "release: success, queue: cancelled, publish: skipped" },
+      env: { ...process.env, TAGGED: String(tagged), GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "5", TAG: "v9.9.9", RESULTS: "release: success, pages: cancelled, publish: skipped" },
     });
   const tagged = report(true);
   assert.equal(tagged.status, 1);
-  assert.match(tagged.stderr, /CALL issue create --title Release v9\.9\.9: main or Pages did not follow --body v9\.9\.9 is tagged, but main or Pages did not follow \(release: success, queue: cancelled, publish: skipped\): https:\/\/github\.com\/o\/r\/actions\/runs\/5\./);
+  assert.match(tagged.stderr, /CALL issue create --title Release v9\.9\.9: main or Pages did not follow --body v9\.9\.9 is tagged, but Pages did not follow \(release: success, pages: cancelled, publish: skipped\): https:\/\/github\.com\/o\/r\/actions\/runs\/5\./);
   assert.match(tagged.stdout, /^::error::v9\.9\.9 is tagged/m);
   const untagged = report(false);
   assert.equal(untagged.status, 0);
@@ -2301,17 +2043,15 @@ test("each release job's time limit is at least 1.5 times what it waits for, the
   const jobs = releaseJobs();
   const limit = (job) => Number(jobs[job].match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
   // The release job: CI on the release commit, once more for a quarantined test's retry
-  // (scripts/quarantine.mjs), the lane, CI on the pull request that prepares main.
+  // (scripts/quarantine.mjs), the lane.
   const retry = ci;
   assert.ok(limit("release") >= Math.ceil(1.5 * (2 * ci + retry + 2 * lane + namespaceChecks)), `release: timeout-minutes ${limit("release")}`);
   // The rehearsal: CI on the rehearsal commit and its retry, beside the lane, and the namespace checks.
   const rehearse = Number(workflow("release-rehearsal.yml").match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
   assert.ok(rehearse >= Math.ceil(1.5 * (ci + retry + lane + namespaceChecks)) && rehearse <= 360, `rehearse: timeout-minutes ${rehearse}`);
-  // The queue job: CI on the queue's commit, once more after a rebuild, and on main when main moved
-  // past the queue's commit.
-  assert.ok(limit("queue") >= 3 * ci, `queue: timeout-minutes ${limit("queue")}`);
-  // The publish job: the Pages deploy and the two checks of what it serves.
-  assert.ok(limit("publish") >= Math.ceil(1.5 * (pagesDeploy + 2 * publishedWait)), `publish: timeout-minutes ${limit("publish")}`);
+  // The pages job: the Pages deploy and the check of the namespace it serves; the publish job: the check of the two published pages.
+  assert.ok(limit("pages") >= Math.ceil(1.5 * (pagesDeploy + publishedWait)), `pages: timeout-minutes ${limit("pages")}`);
+  assert.ok(limit("publish") >= Math.ceil(1.5 * publishedWait), `publish: timeout-minutes ${limit("publish")}`);
   for (const job of Object.keys(jobs)) assert.ok(limit(job) > 0 && limit(job) <= 360, `${job}: GitHub's limit for a job`);
 });
 
@@ -2341,6 +2081,7 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
 
 test("the workflows beside CI cancel only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
   const blocks = {
+    "apple-release.yml": "  group: apple-release-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "conformance-exemptions.yml": "  group: conformance-exemptions-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
@@ -2513,7 +2254,7 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   assert.match(pushStep, /^ {10}scripts\/release-commit\.sh "\$VERSION"$/m);
   assert.doesNotMatch(pushStep, /^ +node scripts\/(registry\.mts --release|latest-release\.mjs set)/m);
   const script = readFileSync(join(root, "scripts/release-commit.sh"), "utf8");
-  for (const line of ['node scripts/latest-release.mjs set "v$version"', "pnpm run docs", 'node scripts/registry.mts --release "$version"', "node scripts/changes.mjs assemble changes > CHANGES.md"]) assert.ok(script.includes(`\n${line}\n`), line);
+  for (const line of ['node scripts/latest-release.mjs set "v$version"', "pnpm run docs", 'node scripts/registry.mts --release "$version"', "node scripts/changes.mjs assemble changes \"$notes\" > CHANGES.md"]) assert.ok(script.includes(`\n${line}\n`), line);
   // The rehearsal, in the checks job (part of the required ci check), after everything else there.
   const block = ciJobs().checks;
   const step = stepScript(block, "Release rehearsal");
@@ -2541,8 +2282,8 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   assert.match(auto, /^ {4}workflows: \[Release, Release rehearsal\]\n {4}types: \[completed\]$/m);
   assert.match(auto, /^permissions: \{\}$/m);
   const start = stepScript(auto, "Start the rehearsal of the next release");
-  assert.match(start, /changes\/ lists no change/);
-  assert.match(start, /prepare\/after-/);
+  assert.match(start, /changes\/ lists no change the newest release lacks/);
+  assert.doesNotMatch(auto, /prepare\/after-/);
   assert.match(start, /for workflow in release\.yml release-rehearsal\.yml/);
   assert.match(start, /gh workflow run release-rehearsal\.yml --ref main -f version="\$version" -f release=true$/m);
   assert.match(auto, /github\.event\.workflow_run\.name == 'Release'\) }}/, "a release that ended in any way lets Release auto decide again");
@@ -2559,7 +2300,7 @@ test("Release auto starts the rehearsal of the next patch when main has a change
   assert.match(handed, /gh workflow run release\.yml --ref main -f version="\$VERSION"/);
   assert.match(start, /select\(\.databaseId != \$\{AFTER:-0\}\)/, "the ending release does not count as running");
   const release2 = workflow("release.yml");
-  assert.match(release2, /^ {2}next:\n(?: {4}.*\n| *\n)*? {4}needs: \[release, queue, publish\]\n {4}if: \$\{\{ always\(\) && needs\.release\.result != 'cancelled' \}\}$/m, "a release started by GITHUB_TOKEN starts no workflow_run, so it starts the next itself");
+  assert.match(release2, /^ {2}next:\n(?: {4}.*\n| *\n)*? {4}needs: \[release, pages, publish\]\n {4}if: \$\{\{ always\(\) && needs\.release\.result != 'cancelled' \}\}$/m, "a release started by GITHUB_TOKEN starts no workflow_run, so it starts the next itself");
   assert.equal(stepScript(release2, "Start the next release").trim(), 'gh workflow run release-auto.yml --ref main -f after="$GITHUB_RUN_ID"');
   assert.match(stepScript(workflow("release-rehearsal.yml"), "Hand the release to Release auto"), /^gh workflow run release-auto\.yml -f rehearsed="\$VERSION"\n?$/);
   assert.match(workflow("release-rehearsal.yml"), /if: \$\{\{ success\(\) && inputs\.release \}\}\n {8}name: Hand the release/);

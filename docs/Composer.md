@@ -60,6 +60,7 @@ Type: `ComposerProps`.
 | `expandedRows` | `number` | `6` | Lines the expanded box starts with. |
 | `expandLabel` | `string` | `"Expand"` | The expand button's name, which its tooltip shows too. |
 | `formatting` | `boolean` |  | Teams' formatting keys in the box: ⌘B bold, ⌘I italic, ⌘U underline, ⌘⌥X strikethrough and ⌘⇧C code (Ctrl for ⌘, Alt for ⌥, off Apple platforms), each as a `ComposerFormat`. `composerShortcuts` (from `composer-styles`) has the keys, for your toolbar's tooltips. |
+| `hideSendDisabledReason` | `boolean` |  | Keeps the `sendDisabledReason` line from being drawn under the box. Sending stays off, the reason is still the box's description for screen readers, and Enter still says it. For two composers side by side, so the reason shows under the one being written in only. |
 | `highlights` | `readonly TextAreaHighlight[]` |  | Ranges of the text to mark in place, as TextArea's `highlights`: words an assistant suggested, spelling notes. |
 | `label` (required) | `string` |  | What the message box is for, read as its name: "Message Mia", "Reply in thread". Required: the box shows `placeholder`, which is not a label. |
 | `maxRows` | `number` | `10` | Lines it grows to before it scrolls. |
@@ -73,7 +74,7 @@ Type: `ComposerProps`.
 | `quote` | `ComposerQuote` |  | The message this one replies to, shown inside the box above the text until it is sent or removed: a bar, the author, a line of what they wrote and a remove button. Screen readers hear it as part of the text's description. Escape in the empty box removes it, as the remove button does, and that Escape goes no further, so a dialog around the composer stays open. The quote fades in (opacity only, and not at all with reduced motion) and takes no focus: focus stays in the box. It stays after a send, so clear it in `onSend`. |
 | `ref` | `Ref<HTMLTextAreaElement>` |  | The `<textarea>`. |
 | `rows` | `number` | `1` | Lines the box starts with; it grows as the person writes. |
-| `sendDisabledReason` | `string` |  | Sending is off, and why: "Sending is off while you review the draft". The person can still write; the send button is disabled, the reason shows under the box and is read with it, and pressing Enter says it again. |
+| `sendDisabledReason` | `string` |  | Sending is off, and why: "Sending is off while you review the draft". The person can still write; the send button is disabled, the reason shows under the box and is read with it, and pressing Enter says it again. `hideSendDisabledReason` leaves the line out. |
 | `sending` | `boolean` |  | The message is on its way: the send button shows a spinner, and nothing more sends until it is done. |
 | `sendingLabel` | `string` | `"Sending"` | What screen readers hear when `sending` turns on. |
 | `sendLabel` | `string` | `"Send"` | The send button's name, which its tooltip shows too. |

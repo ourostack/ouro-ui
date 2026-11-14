@@ -53,7 +53,7 @@ const indicatorClass =
  * @claim "A thumb: a 20px knob with" registry/ouro/components/ouro/slider/slider.touch.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.touch.test.tsx::gives the thumb a 44px hit area and the control a 44px height, also on a landscape phone)
  */
 const thumbClass =
-  "relative box-border size-5 rounded-full border-2 border-solid border-primary bg-background select-none " +
+  "relative box-border size-5 [corner-shape:round] rounded-full border-2 border-solid border-primary bg-background select-none " +
   "shadow-(--shadow-sm) " +
   "outline-ring outline-offset-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-solid " +
   "[transition:scale_var(--ouro-duration-press)_var(--ouro-ease-out),border-color_var(--ouro-duration-fast)_ease] " +

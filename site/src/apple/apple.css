@@ -415,6 +415,46 @@
     }
   }
 
+  /* Tables of what web and Apple each have (system.tsx). */
+  .apple-table-wrap {
+    grid-column: 1 / -1;
+    overflow-x: auto;
+  }
+  .apple-table {
+    width: 100%;
+    min-width: 36rem;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    text-align: start;
+  }
+  .apple-table th,
+  .apple-table td {
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4) calc(var(--spacing) * 3) 0;
+    border-bottom: 1px solid var(--apple-hairline);
+    vertical-align: top;
+  }
+  .apple-table thead th {
+    color: var(--muted-foreground);
+    font-weight: 500;
+  }
+  .apple-table tbody th {
+    font-weight: 600;
+  }
+  .apple-table-sub {
+    display: block;
+    color: var(--muted-foreground);
+    font-weight: 400;
+  }
+  .apple-table-caption {
+    padding-block-end: calc(var(--spacing) * 3);
+    color: var(--foreground);
+    text-align: start;
+  }
+  .apple-table td[data-state="partly"],
+  .apple-table td[data-state="none"] {
+    color: var(--muted-foreground);
+  }
+
   .apple-next {
     padding-block: calc(var(--spacing) * 10) calc(var(--spacing) * 20);
   }
