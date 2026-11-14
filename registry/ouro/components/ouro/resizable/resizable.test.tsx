@@ -397,6 +397,15 @@ describe("Resizable autoSaveId", () => {
     expect(JSON.parse(localStorage.getItem("ouro-resizable:editor")!)).toEqual([55, 45]);
   });
 
+  it("saves under the autoSaveId of the latest render", async () => {
+    const screen = await render(<Editor autoSaveId="first" />);
+    await screen.rerender(<Editor autoSaveId="second" />);
+    screen.handles[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(localStorage.getItem("ouro-resizable:second")).not.toBeNull();
+    expect(localStorage.getItem("ouro-resizable:first")).toBeNull();
+  });
+
   it.each([
     ["not JSON", "{"],
     ["the wrong count", "[50, 25, 25]"],
