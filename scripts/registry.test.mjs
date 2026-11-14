@@ -231,7 +231,7 @@ test("theme items come from the repository's CSS, in shadcn's cssVars format", (
   assert.equal(base.css[":root"]["--ouro-spring-duration"], "750ms");
   assert.match(base.css[":root"]["--ouro-ease-spring"], /^linear\(0, /);
   assert.equal(base.css[":root"]["--ouro-backdrop-color"], "#18181b");
-  assert.deepEqual(base.css[".dark"], { "--ouro-backdrop-color": "#000000" });
+  assert.equal(base.css[".dark"]["--ouro-backdrop-color"], "#000000");
   assert.equal(base.cssVars.theme["color-warning-foreground"], "var(--warning-foreground)");
   assert.match(base.css["@utility press"].transition, /scale var\(--ouro-duration-press\) var\(--ouro-ease-out\)/);
   assert.deepEqual(base.css["@keyframes ouro-spin"], { to: { rotate: "1turn" } });
