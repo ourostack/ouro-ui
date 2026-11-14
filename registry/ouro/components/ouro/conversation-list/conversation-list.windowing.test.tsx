@@ -33,7 +33,9 @@ afterEach(async () => {
 });
 
 /** Renders into a 360 by 400 pixel pane that scrolls, as an app's sidebar does, under a header 60 pixels tall. */
-async function render(node: ReactNode, height = 400) {
+const frames = () => act(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+
+async function render(node: ReactNode, height = 400, scrollsOutside = false, settle = true) {
   const header = document.createElement("div");
   header.style.height = "60px";
   const pane = document.createElement("div");
@@ -43,10 +45,14 @@ async function render(node: ReactNode, height = 400) {
   const root = createRoot(pane);
   roots.push(root);
   await act(async () => root.render(node));
+  if (settle) await frames();
   return {
     pane,
     root,
-    rerender: (next: ReactNode) => act(async () => root.render(next)),
+    rerender: async (next: ReactNode) => {
+      await act(async () => root.render(next));
+      await frames();
+    },
     list: () => pane.querySelector<HTMLUListElement>('[data-ouro="conversation-list"] > ul')!,
     rows: () => [...pane.querySelectorAll<HTMLButtonElement>('[data-ouro-part="row"]')],
     ids: () => [...pane.querySelectorAll<HTMLButtonElement>('[data-ouro-part="row"]')].map((row) => row.querySelector("[data-ouro-conversation-title]")!.textContent),
@@ -93,6 +99,31 @@ function expectBand(pane: HTMLElement, kept: readonly string[]) {
 }
 
 describe("ConversationList windowing", () => {
+  it("forces no layout while a windowed list mounts, and then sets its window from the observer's first callback", async () => {
+    const reads = watchLayoutReads();
+    const view = await render(<ConversationList label="Conversations" items={many(200)} onSelect={() => {}} />, 400, false, false);
+    const mount = reads.names();
+    reads.stop();
+    expect(mount).toEqual([]);
+    const first = view.rows().length;
+    await scrollPane(view.pane, 3000);
+    expect(view.rows().length).toBeGreaterThan(0);
+    expect(first).toBeGreaterThan(0);
+    await expect.poll(() => parseFloat(view.rows()[0]!.parentElement!.style.top)).toBe(0);
+  });
+
+  it("never shows a list with no items for an open section whose rows are all outside the window", async () => {
+    const sections: ConversationListSection[] = [{ id: "a", title: "First" }];
+    const view = await render(<ConversationList label="Chats" items={many(300, () => ({ section: "a" }))} sections={sections} onSelect={() => {}} />);
+    await scrollPane(view.pane, 6000);
+    await scrollPane(view.pane, 6000);
+    const header = view.pane.querySelector<HTMLButtonElement>('[data-ouro-part="section"]')!;
+    const lists = [...view.pane.querySelectorAll('[role="list"], ul')].filter((list) => list.querySelectorAll(":scope > li").length === 0);
+    expect(lists).toEqual([]);
+    expect(document.getElementById(header.getAttribute("aria-controls")!)).not.toBeNull();
+    for (const row of view.pane.querySelectorAll("li[aria-posinset]")) expect(row.getAttribute("aria-setsize")).not.toBeNull();
+  });
+
   it("lays nothing out when it renders again with the same rows, and measures a row that changes size once the page is laid out", async () => {
     const list = (count: number) => <ConversationList label="Conversations" items={many(200, (index) => (index === 0 ? { unread: count % 2 === 0 } : {}))} onSelect={() => {}} />;
     const view = await render(list(0));
@@ -192,6 +223,7 @@ describe("ConversationList windowing", () => {
     });
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+    await frames();
     expectBand(host, []);
   });
 
@@ -434,6 +466,7 @@ describe("ConversationList windowing", () => {
     roots.push(root);
     await act(async () => root.render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />));
     const count = () => host.querySelectorAll('[data-ouro-part="row"]').length;
+    await frames();
     const tall = count();
     const [width, height] = [innerWidth, innerHeight];
     await page.viewport(width, 300);

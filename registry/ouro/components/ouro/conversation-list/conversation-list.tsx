@@ -502,6 +502,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const synced = useRef<{ inputs: string; heights: ReadonlyMap<string, number> } | null>(null);
   const rows = useRef<ResizeObserver | null>(null);
   const revealed = useRef<string | null>(null);
+  // Whether the open row changed since the last sync, which then checks it is in view.
+  const opening = useRef(false);
   const focusNext = useRef<string | null>(null);
   // The row to keep in view while the heights around it settle, and where in the view.
   const keepInView = useRef<{ key: string; block: "nearest" | "center" } | null>(null);
@@ -639,26 +641,49 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   };
 
   // The boxes that clip the list, which scroll it and whose size sets its view, and the box that scrolls it.
+  // Nothing is read while the list mounts: the first rows render in flow at their estimates, and the observer's first
+  // callback, which comes with the page already laid out, finds the boxes, measures the rows and sets the window.
   useLayoutEffect(() => {
     if (!windowed) return;
     const list = listRef.current!;
-    const found: HTMLElement[] = [];
-    for (let node = list.parentElement; node; node = node.parentElement) if (getComputedStyle(node).overflowY !== "visible") found.push(node);
-    clips.current = found;
-    scroller.current = found.find((clip) => /auto|scroll/.test(getComputedStyle(clip).overflowY)) ?? document.scrollingElement;
+    let found: HTMLElement[] = [];
+    let frame = 0;
     const onScroll = (event: Event) => {
       // Stryker disable next-line ConditionalExpression: a scroll elsewhere would only read a view that has not changed.
       if (event.target === document || found.includes(event.target as HTMLElement)) sync.current!();
     };
-    const onResize = () => sync.current!();
-    document.addEventListener("scroll", onScroll, { capture: true });
-    addEventListener("resize", onResize);
+    const onResize = () => {
+      if (!clips.current) {
+        let scrolls: HTMLElement | undefined;
+        for (let node = list.parentElement; node; node = node.parentElement) {
+          const { overflowY } = getComputedStyle(node);
+          if (overflowY === "visible") continue;
+          found.push(node);
+          if (!scrolls && /auto|scroll/.test(overflowY)) scrolls = node;
+        }
+        clips.current = found;
+        scroller.current = scrolls ?? document.scrollingElement;
+        document.addEventListener("scroll", onScroll, { capture: true });
+        addEventListener("resize", onResize);
+        // Boxes above the list are observed after this frame, or the observer reports their first sizes as a loop.
+        frame = requestAnimationFrame(() => {
+          for (const clip of found) resizes.observe(clip);
+        });
+      }
+      sync.current!();
+    };
     const resizes = new ResizeObserver(onResize);
-    for (const clip of found) resizes.observe(clip);
+    // Stryker disable next-line CallExpression: the rows observed on the first sync also deliver the first callback; observing the list only adds its own later resizes
+    resizes.observe(list);
     rows.current = resizes;
     return () => {
       rows.current = null;
       synced.current = null;
+      clips.current = null;
+      // Stryker disable next-line ArrayDeclaration: the effect re-runs with a fresh array; cleanup only drops references
+      found = [];
+      // Stryker disable next-line CallExpression: a frame cancelled late observes boxes of a disconnected observer, which does nothing
+      cancelAnimationFrame(frame);
       document.removeEventListener("scroll", onScroll, { capture: true });
       removeEventListener("resize", onResize);
       resizes.disconnect();
@@ -672,17 +697,19 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     if (!windowed) return;
     // The open conversation's row comes to the middle of the view when it opens out of view, as it may not have
     // rendered yet; one that opens in view stays where it is.
-    if (opened !== current) {
-      const row = controls.current.get(current)?.getBoundingClientRect();
-      const listTop = listRef.current!.getBoundingClientRect().top;
-      const { top, bottom } = view();
-      if (row && (row.top - listTop < top || row.bottom - listTop > bottom)) {
-        keepInView.current = { key: current, block: "center" };
-      }
-    }
+    if (opened !== current) opening.current = true;
     // Measures what rendered, moves focus to the row the keyboard reached once it has, keeps a row that must show in
     // view while the heights around it settle, and renders the slots in view; on every render, scroll and resize.
     sync.current = () => {
+      if (opening.current) {
+        opening.current = false;
+        const row = controls.current.get(current)?.getBoundingClientRect();
+        const listTop = listRef.current!.getBoundingClientRect().top;
+        const { top, bottom } = view();
+        if (row && (row.top - listTop < top || row.bottom - listTop > bottom)) {
+          keepInView.current = { key: current, block: "center" };
+        }
+      }
       const changed = measure();
       const reached = focusNext.current && controls.current.get(focusNext.current);
       if (reached) {
@@ -702,7 +729,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     for (const control of controls.current.values()) rows.current!.observe(control.parentElement!);
     if (synced.current?.inputs === inputs && synced.current.heights === heights) return;
     synced.current = { inputs, heights };
-    sync.current();
+    // Until the observer's first callback has found the boxes around the list, nothing is read.
+    if (clips.current) sync.current();
   });
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
@@ -821,11 +849,16 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 className={windowed ? "m-0 p-0" : "m-0 p-0 not-first:mt-2"}
               >
                 {!windowed ? header : rendered(key) && <div {...slot(key)}>{header}</div>}
-                {open && (
-                  <ul id={groupId} aria-label={section.title} className={windowed ? "m-0 list-none p-0" : cn(listClass, "mt-0.5")}>
-                    {shownRows}
-                  </ul>
-                )}
+                {open &&
+                  // Stryker disable next-line ConditionalExpression,EqualityOperator: an empty <div> and an empty <ul> differ only for assistive tech, which the accessibility-tree test covers for open sections with rows outside the window
+                  (shownRows.length > 0 ? (
+                    <ul id={groupId} aria-label={section.title} className={windowed ? "m-0 list-none p-0" : cn(listClass, "mt-0.5")}>
+                      {shownRows}
+                    </ul>
+                  ) : (
+                    // The section's rows are all outside the window: no list, so none reads as empty, but the header's aria-controls still finds this.
+                    <div id={groupId} />
+                  ))}
               </li>
             );
           })}
