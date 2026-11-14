@@ -103,7 +103,7 @@ test("refresh reads every timing report under a folder, keeping the longer time 
   writeFileSync(join(dir, "timings-browser-2/other.json"), JSON.stringify({ ignored: 1 }));
   mkdirSync(join(dir, "timings-e2e-3"), { recursive: true });
   writeFileSync(join(dir, "timings-e2e-3/e2e-3of3.json"), JSON.stringify({ "site/e2e/stage.spec.ts": 2000 }));
-  assert.deepEqual(collectTimings(dir), { vitest: { "ouro-chromium a.test.tsx": 10, "site site.test.tsx": 7 }, scripts: { "scripts/a.test.mjs": 3 }, e2e: { "site/e2e/stage.spec.ts": 2000 } });
+  assert.deepEqual(collectTimings(dir), { vitest: { "ouro-chromium a.test.tsx": 10, "site site.test.tsx": 7 }, scripts: { "scripts/a.test.mjs": 3 }, e2e: { "site/e2e/stage.spec.ts": 2000 }, subset: {} });
   const file = join(dir, "timings.json");
   writeFileSync(file, JSON.stringify({ vitest: { x: 1 } }));
   assert.deepEqual(readTimings("vitest", file), { x: 1 });
