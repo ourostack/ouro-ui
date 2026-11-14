@@ -8,7 +8,7 @@ import { describe, LOOK_SELECTOR, Looks, picture, quiet, routes, settled } from 
 // differs from the one the rest share is a page-level rule changing a component. A part that must sit inside
 // its container (a switch's thumb in its track, a radio's dot in its circle) does.
 
-for (const mode of ["light", "dark"] as const) {
+export function samenessSweep(mode: "light" | "dark") {
   test(`one look per component on every page, ${mode}`, async ({ page, browserName }) => {
     test.setTimeout(900_000);
     await page.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "pearl", mode: m })), mode);

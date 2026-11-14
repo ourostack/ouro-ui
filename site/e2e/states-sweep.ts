@@ -44,9 +44,9 @@ async function broken(page: Page, selector: string, index: number): Promise<stri
   );
 }
 
-const CHUNKS = 3;
+export const CHUNKS = 3;
 
-for (const mode of ["light", "dark"] as const) for (let chunk = 0; chunk < CHUNKS; chunk++) {
+export function statesSweep(mode: "light" | "dark", chunk: number) {
   test(`states keep their look on every page, ${mode}, part ${chunk + 1} of ${CHUNKS}`, async ({ page, browserName }) => {
     test.setTimeout(900_000);
     page.setDefaultTimeout(5_000);

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { expect, type Page } from "@playwright/test";
 import sharp from "sharp";
 
-// The shared half of the site's cross-page checks (sameness.spec.ts, states.spec.ts): the routes of the
+// The shared half of the site's cross-page checks (sameness-sweep.ts, states-sweep.ts): the routes of the
 // build, a description of how an Ouro element looks (its box, padding, gap, colours, font, shadow, opacity,
 // transform, corners, border, outline and the geometry of its children), a picture of it with its text
 // hidden, and the comparison that flags an instance that differs from the ones that share its component,
