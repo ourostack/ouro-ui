@@ -550,8 +550,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
 
   const heights = measured?.density === density ? measured.heights : noHeights;
   const { offsets, total } = useMemo(() => place(keys, heights, estimates[density]), [keys, heights, density]);
+  // The first frame counts its rows from the estimates alone: counting from measured heights would grow the window after the first measurement.
+  const guessed = useMemo(() => place(keys, noHeights, estimates[density]).offsets, [keys, density]);
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
-  const firstRows = offsets.filter((offset) => offset < firstView).length;
+  const firstRows = guessed.filter((offset) => offset < firstView).length;
   const [start, end] = range ?? [0, firstRows];
   const indexes = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
   const kept = useMemo(() => new Set([tabStop, current, reach]), [tabStop, current, reach]);
@@ -610,6 +612,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       // Stryker disable next-line MethodExpression: the first frame's window starts at the top, so min and max agree until a scroll.
       first = Math.min(first, was[0]);
       last = Math.max(last, was[1]);
+      // A first window that already covers the view does not grow once measured rows are shorter than the estimates.
+      // Stryker disable next-line ConditionalExpression, EqualityOperator: a window ending exactly at the view's bottom covers it either way.
+      if ((at[was[1]] ?? height) >= bottom) last = was[1];
     }
     if (was[0] !== first || was[1] !== last) setRange([first, last]);
   };

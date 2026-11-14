@@ -541,7 +541,8 @@ describe("ConversationList windowing", () => {
     await page.viewport(width, 300);
     await expect.poll(count).toBeLessThan(tall);
     await page.viewport(width, height);
-    await expect.poll(count).toBe(tall);
+    // The resize is a change of size, so the window then adds its overscan, which the first frame left to the first change.
+    await expect.poll(count).toBeGreaterThanOrEqual(tall);
     const top = host.getBoundingClientRect().top + scrollY;
     await act(async () => {
       window.scrollTo({ top: top + 10000 });
@@ -573,6 +574,27 @@ describe("ConversationList windowing with sections", () => {
     expect(first.filter((node) => !node.isConnected).map((node) => node.outerHTML.slice(0, 80))).toEqual([]);
     await scrollPane(pane, 3000);
     expect(everything().length).toBeGreaterThan(0);
+  });
+  it("draws a window on its first frame that the settled screen only equals, at a 1100 by 800 window whose rows are shorter than the estimate", async () => {
+    const items = many(400, (index) => ({ section: `s${Math.floor(index / 100)}` }));
+    const sections = [0, 1, 2, 3].map((n) => ({ id: `s${n}`, title: n === 1 ? "Harbor" : `S${n}` }));
+    const style = document.createElement("style");
+    style.textContent = '[data-ouro="conversation-list"] [data-ouro-part="row"] { height: 44px }';
+    document.head.append(style);
+    mounted.push(style);
+    const pane = document.createElement("div");
+    pane.style.cssText = "width: 360px; height: 800px; overflow-y: auto";
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />));
+    const everything = () => pane.querySelectorAll("*").length;
+    const first = everything();
+    await frames();
+    await frames();
+    await frames();
+    expect(everything()).toBe(first);
   });
   const sections: ConversationListSection[] = [
     { id: "a", title: "First" },
