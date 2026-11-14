@@ -609,6 +609,13 @@ describe("Hero", () => {
     const [nightLight, nightDark] = [...nightFirst.part("media")!.querySelectorAll("img")];
     expect(nightLight!.getAttribute("loading")).toBe("lazy");
     expect(nightDark!.hasAttribute("loading")).toBe(false);
+    expect([nightLight!, nightDark!].map((twin) => twin.getAttribute("fetchpriority"))).toEqual(["high", "high"]);
+    // Untyped code without night art: the day art alone loads from the HTML only with priority.
+    const lone = await render(<Hero title="Lone" picture={{ light: { ...wide, priority: true } } as unknown as HeroPictures} />);
+    expect(lone.part("image")!.hasAttribute("loading")).toBe(false);
+    expect(lone.part("image")!.getAttribute("fetchpriority")).toBe("high");
+    const loneLazy = await render(<Hero title="Lone lazy" picture={{ light: wide } as unknown as HeroPictures} />);
+    expect(loneLazy.part("image")!.getAttribute("loading")).toBe("lazy");
     const both = await render(<Hero title="Both" picture={{ light: { ...wide, priority: true }, dark: { ...night, priority: true } }} />);
     expect([...both.part("media")!.querySelectorAll("img")].map((img) => img.getAttribute("loading"))).toEqual(["lazy", "lazy"]);
     const plain = await render(<Hero title="Plain" picture={{ light: wide, dark: night }} />);
