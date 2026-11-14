@@ -325,12 +325,14 @@ function renderPicture(
  * the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or
  * something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark
  * mode. The picture rises into place when it first appears unless `motion="none"`,
- * and it is never shown wider than its intrinsic width.
+ * and it is never shown wider than its intrinsic width. Its frame has 24px squircle corners,
+ * Ouro's corner shape.
  *
  * Use `PageHeader` instead for a page's top with no picture, and `Heading`
  * for a plain title with nothing around it.
  *
  * @claim "it is never shown wider than its intrinsic width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows the picture wider than its intrinsic width)
+ * @claim "Its frame has 24px squircle corners" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > frames the picture with 24px squircle corners)
  * @group Layout
  * @see https://ui.ouroboros.bot/docs/hero
  *
@@ -517,7 +519,7 @@ export function Hero(props: HeroProps): JSX.Element {
           onTransitionEnd={() => setRising(false)}
           style={pictureStyle}
           className={cn(
-            "block w-[var(--hero-width)] overflow-clip rounded-[4px]",
+            "block w-[var(--hero-width)] overflow-clip rounded-[24px]",
             layoutMedia[layout],
             motion === "rise" && riseMotion,
             crop && "relative min-[40rem]:aspect-[var(--hero-crop)]",

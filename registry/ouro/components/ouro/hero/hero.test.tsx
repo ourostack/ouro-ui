@@ -552,6 +552,14 @@ describe("Hero", () => {
     expect(part("image")!.getAttribute("draggable")).toBe("false");
   });
 
+  it("frames the picture with 24px squircle corners", async () => {
+    const { part } = await render(<Hero title="Corners" picture={pair(wide)} />);
+    const frame = getComputedStyle(part("media")!);
+    expect(frame.borderTopLeftRadius).toBe("24px");
+    expect(frame.borderBottomRightRadius).toBe("24px");
+    expect(frame.getPropertyValue("corner-shape")).toBe("superellipse(2)");
+  });
+
   it("lets a cropped picture fill its frame only on wider screens", async () => {
     const plain = await render(<Hero title="Plain" picture={pair(wide)} />);
     expect(plain.part("image")!.className).not.toContain("min-[40rem]:absolute");

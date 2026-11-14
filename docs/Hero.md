@@ -2,7 +2,7 @@
 
 # Hero
 
-The top of a page: a headline with an optional line above it (`eyebrow`) and a status beside that (`badge`), a trail above them (`breadcrumb`), a lede under the headline (`description`), the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark mode. The picture rises into place when it first appears unless `motion="none"`, and it is never shown wider than its intrinsic width.
+The top of a page: a headline with an optional line above it (`eyebrow`) and a status beside that (`badge`), a trail above them (`breadcrumb`), a lede under the headline (`description`), the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark mode. The picture rises into place when it first appears unless `motion="none"`, and it is never shown wider than its intrinsic width. Its frame has 24px squircle corners, Ouro's corner shape.
 
 ```tsx
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
