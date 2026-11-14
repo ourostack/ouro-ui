@@ -172,17 +172,20 @@ describe("Hero", () => {
     }
   });
 
-  it("balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start", async () => {
-    await page.viewport(1440, 900);
-    const stage = await render(<Hero title="Dinner, sorted" description={plainLede} picture={pair(wide)} />);
-    const centred = stage.part("description")!;
-    expect(getComputedStyle(centred).textWrapStyle).toBe("balance");
-    const lengths = ledeLines(centred).map((line) => line.length);
-    expect(lengths.length).toBeGreaterThan(1);
-    expect((Math.max(...lengths) - Math.min(...lengths)) / Math.max(...lengths)).toBeLessThan(0.15);
-    for (const layout of ["column", "split"] as const) {
-      const { part } = await render(<Hero title="Dinner, sorted" layout={layout} description={plainLede} picture={pair(wide)} />);
-      expect(getComputedStyle(part("description")!).textWrapStyle).toBe("pretty");
+  it("balances the lede in each layout, so its last line is never short", async () => {
+    // The lede the Ouroboros website's 404 page showed with "with it." alone on its last line.
+    const lost = "Ouro wandered off the glowing trail, out through the garden gate, and this page wandered off with it.";
+    for (const width of [390, 768, 1440]) {
+      await page.viewport(width, 900);
+      for (const layout of ["stage", "column", "split"] as const) {
+        for (const lede of [lost, plainLede]) {
+          const { part } = await render(<Hero title="Lost in the coils." layout={layout} description={lede} picture={pair(wide)} />);
+          const description = part("description")!;
+          expect(getComputedStyle(description).textWrapStyle).toBe("balance");
+          const lengths = ledeLines(description).map((line) => line.length);
+          if (lengths.length > 1) expect(lengths.at(-1)! / Math.max(...lengths), `${layout} at ${width}: ${ledeLines(description).join(" / ")}`).toBeGreaterThan(0.5);
+        }
+      }
     }
   });
 
