@@ -136,11 +136,20 @@ export function latestReleases(ctx, config) {
 /** How many stable releases were published after `since` (an ISO date). */
 const releasesAfter = (releases, since) => releases.filter((release) => release.at > since).length;
 
+/** A product has a day to take a release: a missing release older than this is late. */
+export const LATE_AFTER_MS = 24 * 60 * 60 * 1000;
+
+/** How many of the releases published after `since` came out more than a day before `now`. */
+const lateAfter = (ctx, releases, since) => {
+  const cutoff = new Date(ctx.now().getTime() - LATE_AFTER_MS).toISOString();
+  return releases.filter((release) => release.at > since && release.at <= cutoff).length;
+};
+
 function measurePin(ctx, surface, pin, latest) {
   const target = latest[pin.latest];
   const base = { label: pin.label, latestOf: target.repo, latestTag: target.tag };
-  if (pin.from === "self") return { ...base, tag: target.tag, behind: 0, note: "This repository is the release." };
-  if (pin.from === "none") return { ...base, tag: null, behind: null, note: pin.reason };
+  if (pin.from === "self") return { ...base, tag: target.tag, behind: 0, late: 0, note: "This repository is the release." };
+  if (pin.from === "none") return { ...base, tag: null, behind: null, late: null, note: pin.reason };
   const file = pin.file;
   const source = blob(surface.repo, file);
   try {
@@ -150,16 +159,16 @@ function measurePin(ctx, surface, pin, latest) {
       if (!entry) throw new Error(`${file} has no source ${pin.source}`);
       const date = ctx.api(`repos/${entry.repository}/commits/${entry.commit}`).commit.committer.date;
       const releases = ctx.releases(target.repo);
-      return { ...base, source, tag: `commit ${short(entry.commit)}`, behind: releasesAfter(releases, date), note: `Vendored copy of ${entry.repository} at ${short(entry.commit)}, committed ${date.slice(0, 10)}.` };
+      return { ...base, source, tag: `commit ${short(entry.commit)}`, behind: releasesAfter(releases, date), late: lateAfter(ctx, releases, date), note: `Vendored copy of ${entry.repository} at ${short(entry.commit)}, committed ${date.slice(0, 10)}.` };
     }
     const tag = pin.from === "json" ? JSON.parse(raw)[pin.key] : (new RegExp(pin.regex).exec(raw) ?? [])[1];
     if (!tag) throw new Error(`no version found in ${file}`);
     const releases = ctx.releases(target.repo);
     const found = releases.find((release) => norm(release.tag) === norm(tag));
-    if (!found) return { ...base, source, tag, behind: null, note: `${tag} is not among ${target.repo}'s stable releases.` };
-    return { ...base, source, tag, behind: releasesAfter(releases, found.at), note: null };
+    if (!found) return { ...base, source, tag, behind: null, late: null, note: `${tag} is not among ${target.repo}'s stable releases.` };
+    return { ...base, source, tag, behind: releasesAfter(releases, found.at), late: lateAfter(ctx, releases, found.at), note: null };
   } catch (error) {
-    return { ...base, source, tag: null, behind: null, note: `not measured: ${error.message}` };
+    return { ...base, source, tag: null, behind: null, late: null, note: `not measured: ${error.message}` };
   }
 }
 
@@ -452,11 +461,17 @@ export function build(ctx, config, { only = null } = {}) {
     }
   })();
   const program = measureProgram(ctx, config, issues, latest, prs, distinctGiveBack.size, treeCount);
+  // Releases behind: every in-scope product's measured pins added up, and the products with a release they have lacked for a day.
+  const pinsOf = (surface) => (Array.isArray(surface.cells.pins.value) ? surface.cells.pins.value : []);
+  const releasesBehind = inScope.reduce((sum, surface) => sum + pinsOf(surface).reduce((total, pin) => total + (pin.behind ?? 0), 0), 0);
+  const late = inScope
+    .map((surface) => ({ id: surface.id, name: surface.name, late: pinsOf(surface).reduce((total, pin) => total + (pin.late ?? 0), 0), behind: pinsOf(surface).reduce((total, pin) => total + (pin.behind ?? 0), 0) }))
+    .filter((item) => item.late > 0);
   const order = [...inScope].sort((a, b) => a.met - b.met || (hxRank[a.cells.hx.value] ?? 3) - (hxRank[b.cells.hx.value] ?? 3) || a.name.localeCompare(b.name));
   return {
     schema: 1,
     generatedAt: ctx.stamp(),
-    summary: { total: inScope.length, confirmed: inScope.filter((surface) => surface.confirmed).length, listed: surfaces.length, unmeasuredCells: surfaces.reduce((sum, surface) => sum + Object.values(surface.cells).filter((value) => value.value === null).length, 0), order: order.map((surface) => surface.id) },
+    summary: { total: inScope.length, confirmed: inScope.filter((surface) => surface.confirmed).length, listed: surfaces.length, unmeasuredCells: surfaces.reduce((sum, surface) => sum + Object.values(surface.cells).filter((value) => value.value === null).length, 0), releasesBehind, late, order: order.map((surface) => surface.id) },
     latest,
     program,
     cards: config.cards.map((card) => ({ id: card.id, title: card.title, outcome: card.outcome, surfaces: card.surfaces, issue: issues.byCard[card.id] ? issueView(issues.byCard[card.id]) : null })),

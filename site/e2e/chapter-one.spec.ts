@@ -61,9 +61,10 @@ async function buildAll(page: Page): Promise<void> {
 }
 
 /**
- * Waits for the field messages that are going to go. A message fades before it leaves, and the
- * fields and Sign below it move up when it does: a press that starts on one of them then can end
- * beside it, which WebKit under load makes no click at all.
+ * Waits for the field messages that are going to go, so a step starts from the layout it sees. A
+ * message fades before it leaves, and the fields and Sign below it move up when it does; a press
+ * that starts meanwhile is held in place (Field keeps a message's space until the press ends), which
+ * the press-while-leaving test checks.
  */
 async function settled(page: Page): Promise<void> {
   await expect(articles(page).locator("form [id$='-error']:not([data-invalid])")).toHaveCount(0);
@@ -282,6 +283,29 @@ test.describe("each control in Chapter I", () => {
     expect(await page.evaluate(() => (window as unknown as { __leaves: string[] }).__leaves)).toEqual(["focused"]);
     expect(await page.evaluate(() => (window as unknown as { __lost: string[] }).__lost)).toEqual([]);
     await expect(leave).toBeFocused();
+  });
+
+  test("a press on Sign lands while a message leaves under it, without waiting for the message to go", async ({ page }) => {
+    // On a phone the form is one column, so a message's whole line and its gap move Sign up.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page);
+    await nameField(page).fill("Ana");
+    await tradeField(page).click();
+    await page.getByRole("option", { name: "Cook" }).click();
+    await signButton(page).click();
+    await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
+    const before = (await signButton(page).boundingBox())!;
+    // Ticking the oath starts its message leaving; the press on Sign begins straight after.
+    await oath(page).click();
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
+    await page.mouse.down();
+    try {
+      await expect(articles(page).locator("form [id$='-error']")).toHaveCount(0);
+      expect(Math.abs((await signButton(page).boundingBox())!.y - before.y)).toBeLessThan(2);
+    } finally {
+      await page.mouse.up();
+    }
+    await expect(signCrew(page)).toContainText(SIGN.welcome("Ana", "Cook").text);
   });
 
   test("control: sign, while the articles are not done, has Conseil refuse politely and pencil you in", async ({ page }) => {

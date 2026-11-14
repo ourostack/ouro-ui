@@ -7,7 +7,8 @@
   .adoption-cell strong,
   .adoption-lede strong,
   .adoption-number strong,
-  .adoption-fresh strong {
+  .adoption-fresh strong,
+  .adoption-behind strong {
     font-weight: 600;
   }
   .adoption {

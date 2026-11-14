@@ -92,8 +92,15 @@ test("a pin is behind by the stable releases published after it", () => {
   const cellValue = measurePins(ctx([]), web, latest);
   assert.equal(cellValue.value[0].tag, "v1.2.13");
   assert.equal(cellValue.value[0].behind, 2);
+  assert.equal(cellValue.value[0].late, 1, "v1.3.14 came out more than a day ago; v1.3.15 is younger than a day");
   assert.equal(isCurrent(cellValue), false);
   assert.equal(cellValue.source, "https://github.com/org/web/blob/HEAD/.github/ouro-hx-installed.json");
+});
+
+test("the summary adds up the releases products are behind, and names each product a day late or more", () => {
+  const ledger = build(ctx([]), config);
+  assert.equal(ledger.summary.releasesBehind, 2);
+  assert.deepEqual(ledger.summary.late, [{ id: "web", name: "A web app", late: 1, behind: 2 }]);
 });
 
 test("a pin that cannot be read is null, never zero", () => {

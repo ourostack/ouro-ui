@@ -14,6 +14,8 @@ export interface Pin {
   latestTag: string | null;
   tag: string | null;
   behind: number | null;
+  /** The releases after the pin that came out more than a day ago. Ledgers before 2026-11-14 lack it. */
+  late?: number | null;
   note: string | null;
   source?: string;
 }
@@ -85,7 +87,17 @@ export interface Headline extends LedgerCell<string | number> {
 export interface Ledger {
   schema: number;
   generatedAt: string;
-  summary: { total: number; confirmed: number; listed: number; unmeasuredCells: number; order: string[] };
+  summary: {
+    total: number;
+    confirmed: number;
+    listed: number;
+    unmeasuredCells: number;
+    /** Every in-scope product's measured pins, added up. Ledgers before 2026-11-14 lack it. */
+    releasesBehind?: number;
+    /** The products that have lacked a release for more than a day. */
+    late?: Array<{ id: string; name: string; late: number; behind: number }>;
+    order: string[];
+  };
   program: { issue: Issue | null; steps: Step[]; headline: Headline[]; source: string; note: string | null };
   cards: { id: string; title: string; outcome: string; surfaces: string[]; issue: Issue | null }[];
   surfaces: Surface[];

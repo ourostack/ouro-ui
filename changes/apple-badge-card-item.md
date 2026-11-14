@@ -1,0 +1,1 @@
+- Changed: the Apple pages and the Platforms pages name Apple's release with `OuroBadge`, `OuroCard` and `OuroItem`.

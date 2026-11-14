@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Container } from "../voyage/layout";
 import { isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger, type LedgerCell, type Surface } from "./ledger";
@@ -95,7 +96,12 @@ function Row({ surface }: { surface: Surface }): JSX.Element {
             <ul className="adoption-plain">
               {pins.value.map((pin) => (
                 <li key={pin.label}>
-                  <strong>{pin.tag ?? "not read"}</strong> <span className="adoption-detail">{pin.label}: {behindText(pin.behind)}{pin.latestTag ? `, latest ${pin.latestTag}` : ""}</span>
+                  <strong>{pin.tag ?? "not read"}</strong>{" "}
+                  <span className="adoption-detail">
+                    {pin.label}: {behindText(pin.behind)}
+                    {pin.late ? `, ${pin.late} of them out more than a day` : ""}
+                    {pin.latestTag ? `, latest ${pin.latestTag}` : ""}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -212,6 +218,18 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
               <Link href="https://github.com/ourostack/ouro-ui/issues?q=is%3Aissue+label%3Aadoption">the tracking issues</Link>,{" "}
               <Link href={LIVE_URL}>ledger.json</Link>.
             </p>
+            {summary.releasesBehind === undefined ? null : (
+              <p className="adoption-behind">
+                {claim("The target: no product goes more than a day without an Ouro UI release it lacks.", {
+                  source: { test: "scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more" },
+                  verify: { testExists: "scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more" },
+                })}{" "}
+                Past it now:{" "}
+                <strong>{summary.late?.length ?? 0} products</strong>
+                {summary.late?.length ? ` (${summary.late.map((item) => `${item.name}, ${item.late} releases`).join("; ")})` : ""}. For context, counted products
+                are {summary.releasesBehind} releases behind in total; Ouro UI releases several times a day, so that count is not the target.
+              </p>
+            )}
             <p className="adoption-newer" aria-live="polite">
               {waiting ? (
                 <>
