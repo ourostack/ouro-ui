@@ -88,10 +88,11 @@ export function describe(arg: { selector: string; only?: number }): Described {
     for (const el of document.querySelectorAll<HTMLElement>("body *")) {
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden") continue;
-      const radius = parseFloat(cs.borderTopLeftRadius);
-      if (!(radius > 0)) continue;
       const rect = el.getBoundingClientRect();
       const short = Math.min(rect.width, rect.height);
+      const raw = cs.borderTopLeftRadius;
+      const radius = raw.endsWith("%") ? (parseFloat(raw) / 100) * short : parseFloat(raw);
+      if (!(radius > 0)) continue;
       if (short < 4 || short > 120 || radius < short / 2 - 0.5) continue;
       const long = Math.max(rect.width, rect.height);
       const circle = long - short <= 1;
