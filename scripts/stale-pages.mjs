@@ -40,7 +40,7 @@ export function stalePages({ pinned, releases, ledgerAt, now }) {
 
 async function get(url, token) {
   const headers = { accept: "application/vnd.github+json", ...(token && url.startsWith("https://api.github.com/") ? { authorization: `Bearer ${token}` } : {}) };
-  const response = await fetch(url, { headers });
+  const response = await globalThis.fetch(url, { headers });
   if (!response.ok) throw new Error(`${url}: ${response.status}`);
   return response.json();
 }
