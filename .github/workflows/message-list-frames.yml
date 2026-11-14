@@ -43,7 +43,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install webkit
+      - run: pnpm exec playwright install webkit chromium
       - name: Measure
         env:
           CI: "true"
