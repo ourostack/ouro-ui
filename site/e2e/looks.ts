@@ -263,7 +263,8 @@ export async function picture(page: Page, index: number): Promise<{ data: Buffer
     });
   });
   if (!clear) return null;
-  const png = await target.screenshot({ animations: "disabled", caret: "hide" });
+  const png = await target.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
+  if (!png) return null;
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height };
 }
