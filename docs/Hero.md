@@ -105,6 +105,16 @@ interface HeroPicture {
    * @default "50% 42%"
    */
   focus?: string;
+  /**
+   * A colour painted in the picture's box while the image loads, such as the art's main colour,
+   * in place of an empty hole. It fills the box the `width` and `height` already reserve, so it
+   * moves nothing, and an opaque image covers it once it decodes. Give the dark picture its own,
+   * as it never takes the light one's: a day colour would flash at night. Hero has the file's
+   * address but not its pixels, so take the colour from your image pipeline, for example the
+   * `dominant` colour of `sharp(file).stats()`, or pick it by eye. Leave it out for art with
+   * transparency, which would show it through.
+   */
+  placeholder?: string;
 }
 ```
 

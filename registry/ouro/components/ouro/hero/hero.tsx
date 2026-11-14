@@ -76,6 +76,18 @@ export interface HeroPicture {
    * @default "50% 42%"
    */
   focus?: string;
+  /**
+   * A colour painted in the picture's box while the image loads, such as the art's main colour,
+   * in place of an empty hole. It fills the box the `width` and `height` already reserve, so it
+   * moves nothing, and an opaque image covers it once it decodes. Give the dark picture its own,
+   * as it never takes the light one's: a day colour would flash at night. Hero has the file's
+   * address but not its pixels, so take the colour from your image pipeline, for example the
+   * `dominant` colour of `sharp(file).stats()`, or pick it by eye. Leave it out for art with
+   * transparency, which would show it through.
+   *
+   * @claim "as it never takes the light one's" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > paints each picture's placeholder behind it while it loads, and the day's never at night)
+   */
+  placeholder?: string;
 }
 
 /**
@@ -327,7 +339,7 @@ function renderPicture(
         decoding={load.urgent ? undefined : "async"}
         // The first-paint script may have set loading="eager" before React hydrates.
         suppressHydrationWarning={load.urgent}
-        style={{ objectPosition: picture.focus ?? day?.focus ?? "50% 42%" }}
+        style={{ objectPosition: picture.focus ?? day?.focus ?? "50% 42%", backgroundColor: picture.placeholder }}
         className={cn(
           "block h-auto w-full object-cover select-none",
           crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
