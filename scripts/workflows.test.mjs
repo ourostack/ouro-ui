@@ -939,6 +939,7 @@ function runStep(script, env, { nodeStatus = 0 } = {}) {
       case "$2" in
         stories) echo checkbox ;;
         e2e) if [ "$1" = scripts/shard.mjs ] && [ -n "\${SHARD_SPECS+set}" ]; then echo "$SHARD_SPECS"; else echo "registry/ouro/e2e/ouro/checkbox.spec.ts site/e2e/"; fi ;;
+        installs|heavy) [ -z "\${TIER_RUN-}" ] || echo "run=$TIER_RUN" >> "$GITHUB_OUTPUT" ;;
         plan) printf 'full=false\\ncomponents=checkbox\\n' >> "$GITHUB_OUTPUT" ;;
       esac
       return "$NODE_STATUS"
@@ -967,30 +968,32 @@ for (const [event, ref, baseRef, headRef, expected] of [
       assert.doesNotMatch(calls, /CALL node/);
     } else {
       assert.match(calls, /^CALL node scripts\/test-impact\.mjs plan HEAD\^1 HEAD$/m);
-      const { installs, heavy, ...planned } = output;
-      assert.deepEqual(planned, { full: "false", components: "checkbox" });
-      assert.ok(["queue", "here"].includes(installs), installs);
-      assert.ok(["queue", "here"].includes(heavy), heavy);
+      assert.deepEqual(output, { full: "false", components: "checkbox" });
     }
   });
 }
 
-test("a pull request into main runs the install test and the heavy tier in full, whatever it changes", () => {
-  const plan = stepScript(ciJobs().plan, "Plan the tests");
-  const changed = (files) => `git() { printf '%s\\n' ${files.map((file) => `'${file}'`).join(" ")}; }\n${plan}`;
-  const pr = { EVENT: "pull_request", REF: "refs/pull/9/merge", BASE_REF: "main", HEAD_REF: "feature" };
-  for (const files of [["registry/ouro/components/ouro/dialog/dialog.tsx", "registry.json", "README.md"], ["README.md"], ["changes/x.md"]]) {
-    const { output } = runStep(changed(files), pr);
-    assert.equal(output.installs, "here", files.join(", "));
-    assert.equal(output.heavy, "here", files.join(", "));
+test("a pull request into main skips the install test or the heavy tier only when the plan proves the change cannot reach it", () => {
+  const tiers = stepScript(ciJobs().plan, "Can the change reach the install test or the heavy tier?");
+  const pr = { EVENT: "pull_request", BASE_REF: "main", HEAD_REF: "feature" };
+  // The relevance script says run=false for both: only then does a tier skip.
+  assert.deepEqual(runStep(tiers, { ...pr, TIER_RUN: "false" }).output, { installs: "skip", heavy: "skip" });
+  assert.match(runStep(tiers, { ...pr, TIER_RUN: "false" }).calls, /^CALL node scripts\/ci-relevance\.mjs installs HEAD\^1 HEAD$/m);
+  assert.match(runStep(tiers, { ...pr, TIER_RUN: "false" }).calls, /^CALL node scripts\/ci-relevance\.mjs heavy HEAD\^1 HEAD$/m);
+  // A run=true, no answer, or a script that fails all run the tier.
+  for (const env of [{ TIER_RUN: "true" }, {}]) assert.deepEqual(runStep(tiers, { ...pr, ...env }).output, { installs: "here", heavy: "here" });
+  assert.deepEqual(runStep(tiers, { ...pr, TIER_RUN: "false" }, { nodeStatus: 1 }).output, { installs: "here", heavy: "here" });
+  // Every other event, a release branch and a pull request into another branch run both tiers.
+  for (const env of [{ EVENT: "push" }, { EVENT: "merge_group" }, { EVENT: "workflow_dispatch" }, { ...pr, HEAD_REF: "release/v1.1.0" }, { ...pr, BASE_REF: "release/v1.1.0" }]) {
+    const run = runStep(tiers, { TIER_RUN: "false", ...env });
+    assert.deepEqual(run.output, { installs: "here", heavy: "here" }, JSON.stringify(env));
+    assert.doesNotMatch(run.calls, /CALL node/);
   }
-  const unread = runStep(`git() { return 1; }\n${plan}`, pr);
-  assert.equal(unread.output.installs, "here");
-  assert.equal(unread.output.heavy, "here");
-  // No job is conditioned on a queue, so a skipped required check can never stand in for a run.
+  // No job waits on a queue, and nothing skips by a workflow-level paths filter.
   const text = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
   assert.doesNotMatch(text, /outputs\.(installs|heavy) [!=]= 'queue'/);
   assert.doesNotMatch(text, /heavy-queued/);
+  assert.doesNotMatch(text.split("\njobs:")[0], /^\s+paths(-ignore)?:/m);
 });
 
 test("CI's plan runs everything when planning fails", () => {
@@ -1054,7 +1057,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs, "latency-shard"].includes(name) ? heavyRuns : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs.filter((id) => id !== "themes"), "latency-shard"].includes(name) ? heavyRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1083,15 +1086,15 @@ function checkNames(block, id) {
 /** The condition of every job a push the merge queue already tested skips (the plan's `tested`). */
 const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 
-/** install-shard's: it also skips on a pull request whose install test waits for the merge queue (the plan's `installs`). */
-const queuedInstalls = untested;
+/** The install test's jobs (not its gates): they also skip on a pull request that changes nothing the install test reads (the plan's `installs`). */
+const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'skip' }}";
 
 /** The browser shards': they also skip on a pull request that changes nothing they read (the plan's `browser`). */
 const browserRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}";
 
-/** The heavy tier's jobs: on a pull request that changes nothing they read (the plan's heavy=queue) they skip and heavy-queued reports their checks; they run everywhere else. */
+/** The heavy tier's jobs: on a pull request that changes nothing they read (the plan's heavy=skip) they skip, and a job without a matrix reports skipped, which a required check accepts; they run everywhere else. */
 const heavyJobs = ["themes", "visual", "theme-install", "latency", "lighthouse"];
-const heavyRuns = untested;
+const heavyRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}";
 
 /** The mutation shards': they also skip when the plan counts none (no changed path is runtime source). */
 const mutationRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}";
@@ -1116,7 +1119,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs, "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-upgrade" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1127,7 +1130,7 @@ test("every required check is still a job that reports, under the name the rules
   // GitHub reports a skipped job whose name is only an expression under the bare expression
   // ("matrix.check"), which no job's name matches, so the budget would fail it as unmatched.
   for (const [id, block] of Object.entries(jobs)) assert.doesNotMatch(block.match(/^ {4}name: (.+)$/m)?.[1] ?? id, /^\$\{\{[^}]*\}\}$/, `${id}'s name has text besides an expression`);
-  assert.match(jobs.plan, /^ {6}heavy: \$\{\{ steps\.plan\.outputs\.heavy \}\}$/m);
+  assert.match(jobs.plan, /^ {6}heavy: \$\{\{ steps\.tiers\.outputs\.heavy \}\}$/m);
   // The checks of the other workflows that run on a pull request and in the merge queue (conformance exemptions).
   for (const { file, text } of workflows.filter((entry) => entry.file !== "ci.yml" && /^ {2}pull_request:/m.test(entry.text) && /^ {2}merge_group:/m.test(entry.text))) {
     for (const [, name] of text.matchAll(/^ {4}name: (.+)$/gm)) names.set(name, file);

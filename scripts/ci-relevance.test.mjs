@@ -128,6 +128,8 @@ function namedPaths(file, text) {
  * a claim's source or check is read by the claims check, not by the site or the tests.
  */
 const namedButUnread = {
+  installs: {},
+  heavy: {},
   browser: {
     "registry/ouro/lib/ouro/claims.test.ts scripts/agent-usability/runs/2026-10-15/results.md": "a claim source the test parses as text",
     "site/src/voyage/stage/copy.ts site/e2e/stage.spec.ts": "a claim's source and check, read by the claims check",
@@ -185,5 +187,27 @@ test("the command writes run=false only when it read the diff and every file is 
   const unknown = run(["storybook", "HEAD^", "HEAD"]);
   assert.equal(unknown.status, 1);
   assert.equal(unknown.output, "run=true\n");
-  assert.match(unknown.out, /^\[ouro-ui\] ci-relevance: unknown target or missing commits \(storybook HEAD\^ HEAD\)\. Fix: node scripts\/ci-relevance\.mjs <browser\|screens> <base> <head>\.$/m);
+  assert.match(unknown.out, /^\[ouro-ui\] ci-relevance: unknown target or missing commits \(storybook HEAD\^ HEAD\)\. Fix: node scripts\/ci-relevance\.mjs <installs\|heavy\|browser\|screens> <base> <head>\.$/m);
+});
+
+test("the install test and the heavy tier run for every risky path, and skip only prose, fragments and script tests", () => {
+  const risky = [
+    "registry/ouro/components/ouro/button/button.tsx",
+    "registry/ouro/theme/ouro-base.css",
+    "package.json",
+    "pnpm-lock.yaml",
+    "site/src/styles.css",
+    "scripts/install-test.sh",
+    "scripts/registry.mts",
+    ".github/workflows/ci.yml",
+    "docs/button.md",
+    "README.md",
+    "some/unmapped/file.txt",
+  ];
+  for (const target of ["installs", "heavy"]) {
+    for (const file of risky) assert.equal(runs(target, [file]), true, `${target} must run for ${file}`);
+    assert.equal(runs(target, ["changes/x.md", risky[0]]), true, `${target} runs when any file is risky`);
+    assert.equal(runs(target, []), true, `${target} runs on an empty diff`);
+    assert.equal(runs(target, ["changes/x.md", "AGENTS.md", "scripts/ci-budget.test.mjs", ".github/workflows/pages.yml"]), false, `${target} skips a quiet change`);
+  }
 });

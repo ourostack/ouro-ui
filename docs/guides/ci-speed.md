@@ -51,7 +51,7 @@ gh run list -R ourostack/ouro-ui --event merge_group -L 30 --json databaseId,con
 - **Cancel a stale `merge_group` run** whose queue entry is gone, so it stops holding runners.
 - **Keep generated files out of commits.** Queue entries that regenerate the same file conflict, and the later one is dropped. Generate it on install or in CI instead, as the control and motion matrices are.[^matrices]
 - **Rebase a stacked pull request after its base squash-merges.** Its branch still carries the base's old commits: `git rebase --onto origin/main <old-base> <branch>`, then retarget it to main.
-- **Run the install test on every pull request.** With no queue to run it later, a skipped required check would count as passing.[^installs-queue]
+- **Skip the install test or heavy tier only on proof.** The plan job skips one only when every changed file is one it never reads, such as a change fragment; any doubt runs it, since a skipped required check counts as passing.[^installs-queue]
 
 ## Read a latency failure
 
@@ -74,7 +74,7 @@ The `latency` check presses each control on the voyage (the stage and Chapters I
 
 [^dst]: evidence:docs/guides/evidence/2026-11-01-dst-check-times.txt verify:fileLine(docs/guides/evidence/2026-11-01-dst-check-times.txt, /e2e \(3\/4\)\tsuccess\t2026-11-01T09:49:01Z\t2026-11-01T09:03:21Z/)
 [^matrices]: scripts/control-matrix.test.mjs verify:fileLine(.gitignore, /control-matrix/)
-[^installs-queue]: .github/workflows/ci.yml verify:testExists(scripts/workflows.test.mjs::a pull request into main runs the install test and the heavy tier in full, whatever it changes)
+[^installs-queue]: .github/workflows/ci.yml verify:testExists(scripts/workflows.test.mjs::a pull request into main skips the install test or the heavy tier only when the plan proves the change cannot reach it)
 [^latency-gate]: site/e2e/latency.ts; site/e2e/stage.latency.spec.ts; site/e2e/chapter-one.latency.spec.ts; site/e2e/chapter-two.latency.spec.ts; site/e2e/chapter-three.latency.spec.ts verify:fileLine(site/e2e/stage.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-one.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-two.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-three.latency.spec.ts, /from "\.\/latency/) verify:fileLine(playwright.latency.config.ts, /testDir: "site\/e2e"/) verify:fileLine(site/e2e/latency.ts, /p95: 100,/) verify:fileLine(site/e2e/latency.ts, /throttle: 4,/) verify:fileLine(.github/workflows/ci.yml, /pnpm test:latency/)
 [^traces]: evidence:site/e2e/latency-evidence/2026-11-01-museum-organ-traces.txt verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-traces.txt, /Chromium traces/)
 [^museum]: evidence:site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 museum main: p95 88 median 72 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 museum pr: p95 72 median 56 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 organ main: p95 80 median 64 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 organ pr: p95 64 median 48 samples 520/)
