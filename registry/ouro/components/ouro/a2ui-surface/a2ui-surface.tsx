@@ -226,7 +226,7 @@ function HandoffIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   );
 }
 
-/** Every button but the agent's one primary action: soft, in the secondary tone. */
+/** How a button other than the agent's primary action looks: soft, in the secondary tone. */
 const SECONDARY = { tone: "secondary", variant: "soft" } as const;
 
 function ActionButton({ node, ctx }: { node: Resolved; ctx: Context }): JSX.Element {

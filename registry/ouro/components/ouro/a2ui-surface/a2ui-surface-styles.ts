@@ -3,7 +3,7 @@ import type { LayoutGap } from "@/registry/ouro/components/ouro/stack/stack-styl
 /** The catalog's Stack gaps, on HX's spacing scale. */
 export const GAPS: Record<string, LayoutGap> = { none: "none", small: "sm", medium: "md", large: "lg" };
 
-/** The catalog's Badge tones, as HX's theme tokens. `neutral` is Badge's own default, so it has no entry. */
+/** The catalog's Badge tones, as HX's theme tokens. `neutral` is left out: it is Badge's own default. */
 export const BADGE_TONES: Record<string, "primary" | "success" | "warning" | "destructive"> = { info: "primary", success: "success", warning: "warning", danger: "destructive" };
 
 /** The catalog's Alert tones, as HX's theme tokens. */
