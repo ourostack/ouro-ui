@@ -132,6 +132,7 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
   const listenForFound = () => {
     const panel = panelRef.current;
     // Stryker disable next-line ConditionalExpression: the panel always exists once effects run; the guard only satisfies the type.
+    /* istanbul ignore next @preserve -- the panel always exists once effects run */
     if (!panel) return;
     const found = () => changeRef.current(true);
     panel.addEventListener("beforematch", found);
@@ -149,6 +150,7 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
     }
     const done = (event: Event) => {
       // Stryker disable next-line ConditionalExpression: transition events from the panel's descendants do not occur in this markup.
+      /* istanbul ignore else @preserve -- descendants of the panel send no transition events */
       if (event.target === panel) setClosing(false);
     };
     // Stryker disable next-line StringLiteral: the cancel and end listeners are interchangeable for the same transition.
