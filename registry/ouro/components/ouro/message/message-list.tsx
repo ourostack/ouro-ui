@@ -464,6 +464,8 @@ const STRETCH = 0.25;
 const ARMED = 250;
 /** How long, in ms, after a wheel turn the list leaves the reader's place unwritten, and past the frame it turned in: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
+/** A gap between two wheel events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
+const WHEEL_GAP = 4 * WHEEL_REST;
 /** Drift up to this size, in px, is held back while the wheel turns: it comes from measuring a message, where a page of history above is larger. */
 const WHEEL_DRIFT = 48;
 /** A message this close to its place, in px, and this slow, in px/ms, is at rest, once the reader's scroll has ended. */
@@ -1487,10 +1489,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // frame) are held by drawing the content that far up instead, a `translate` the wheel's own scroll never meets, and the scroll
     // position takes it in one move once the wheel rests, or as the reader nears an end, so what went in above is always in reach.
     let wheelAt = Number.NEGATIVE_INFINITY;
+    // The gap before the wheel's last event, when it was short (under WHEEL_GAP). A page drawing slowly hands the wheel's events over a
+    // frame or more apart, so the wheel counts as still turning for twice that gap, not only the rest.
+    let wheelGap = 0;
     // The frame the wheel last turned in. Where a frame takes longer than the rest (a slow machine drawing much), the wheel's next
     // events wait behind it, so the wheel turns until the time has passed and a later frame has begun.
     let wheelFrame: CSSNumberish | null = null;
-    const turning = () => performance.now() - wheelAt < WHEEL_REST || document.timeline.currentTime === wheelFrame;
+    const turning = () => performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
     let resting: ReturnType<typeof setTimeout> | undefined;
     let restFrame = 0;
     let later = 0;
@@ -1527,7 +1532,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       else rest();
     };
     const onWheel = () => {
-      wheelAt = performance.now();
+      const now = performance.now();
+      const gap = now - wheelAt;
+      wheelGap = gap < WHEEL_GAP ? gap : 0;
+      wheelAt = now;
       wheelFrame = document.timeline.currentTime;
       // A wheel pushing at an end scrolls nothing, so no scroll event says the reader got there.
       // Stryker disable next-line ConditionalExpression,LogicalOperator: with nothing carried, paying pays nothing; the check only spares reading the layout on every turn of the wheel.

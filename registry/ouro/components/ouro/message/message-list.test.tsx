@@ -770,6 +770,64 @@ describe("MessageList", () => {
     expect(shifts.reduce((sum, shift) => sum + shift, 0)).toBeLessThan(0.01);
   });
 
+  it("holds older messages in a translate between the events of a wheel that turns slowly, and pays it once the wheel rests", async () => {
+    let items = history(200);
+    const { scroller, rerender } = await render(<Found items={items} windowing={false} />);
+    await settle(scroller);
+    scroller.scrollTop = 3000;
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const reading = firstVisible(scroller);
+    const top = scroller.scrollTop;
+    // Wheel events 150 ms apart, as a page drawing slowly hands them over: a frame of 150 ms lies between each two.
+    const slow = 150;
+    const turn = () => scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true }));
+    const lapse = (ms: number) =>
+      new Promise<void>((resolve) => {
+        const from = performance.now();
+        const frame = () => (performance.now() - from >= ms ? resolve() : requestAnimationFrame(frame));
+        frame();
+      });
+    // The first event has no gap before it to count, so the second is the first to tell the wheel turns slowly.
+    turn();
+    await lapse(slow);
+    for (let page = 1; page <= 3; page++) {
+      turn();
+      items = [...history(20, -20 * page), ...items];
+      await rerender(<Found items={items} windowing={false} />);
+      // Each page goes in while the wheel turns: the content is drawn up by it, and the scroll position is not written.
+      await lapse(slow);
+      expect(content.style.translate).not.toBe("");
+      expect(scroller.scrollTop).toBe(top);
+      expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    }
+    // The wheel rests: the carried pages go into the scroll position in one move, and the reader's message stays where it was.
+    await expect.poll(() => content.style.translate).toBe("");
+    await settle(scroller);
+    expect(scroller.scrollTop).toBeGreaterThan(top);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("takes a gap of exactly the bound between two wheel events as a new turn, which pays the carried pages once the wheel rests", async () => {
+    const items = history(200);
+    const { scroller, rerender } = await render(<Found items={items} windowing={false} />);
+    await settle(scroller);
+    scroller.scrollTop = 3000;
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    // The list reads the clock at the wheel's events and at each frame's check: held here, so the gap is exactly 320 ms (4 × the 80 ms rest).
+    const clock = vi.spyOn(performance, "now");
+    clock.mockReturnValue(1000);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true }));
+    clock.mockReturnValue(1320);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true }));
+    await rerender(<Found items={[...history(20, -20), ...items]} windowing={false} />);
+    expect(content.style.translate).not.toBe("");
+    // 100 ms after the last event: past the rest, and no turn still going on.
+    clock.mockReturnValue(1420);
+    await expect.poll(() => content.style.translate).toBe("");
+  });
+
   it("puts a few older messages in at once", async () => {
     const items = history(30, 20);
     const { scroller, rerender } = await render(<Found items={items} />);
