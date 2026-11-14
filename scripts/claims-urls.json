@@ -263,6 +263,10 @@
     "status": 200,
     "checked": "2026-11-13"
   },
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md": {
     "status": 200,
     "checked": "2026-11-13"

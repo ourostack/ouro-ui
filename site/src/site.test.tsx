@@ -716,7 +716,7 @@ describe("platforms", () => {
     const rows = [...document.querySelectorAll("main table tbody tr")].map((row) => [...row.querySelectorAll("td")].slice(0, 3).map(text));
     expect(rows).toEqual([
       ["For web", "v1.3.7", "core v0.5.0, for its tokens"],
-      ["For Apple", "v0.5.0", "core v0.4.0"],
+      ["For Apple", "v0.5.1", "core v0.4.0"],
       ["For Android", "none yet", "none yet"],
       ["For Windows", "none yet", "none yet"],
     ]);
@@ -724,7 +724,7 @@ describe("platforms", () => {
 
   it("gives the Apple page its install line, and what is coming with Siri AI", async () => {
     await renderPage("/docs/platforms/apple/");
-    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.0")');
+    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.1")');
     for (const name of ["What ships today", "What is coming"]) await expect.element(page.getByRole("heading", { level: 2, name })).toBeVisible();
     for (const words of ["Tool intents.", "App skills.", "SiriEvaluations.", "The App Intents X-ray."]) expect(document.body.innerText).toContain(words);
   });
