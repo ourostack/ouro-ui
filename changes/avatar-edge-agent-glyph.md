@@ -1,0 +1,1 @@
+- Changed: an avatar's team edge is a shadow offset from the box, and an agent without an icon or picture shows a sparkle in its hue instead of an initial.
