@@ -7,12 +7,11 @@ name: Pages
 # here as soon as Pages runs, before the pull request that prepares main merges (release.yml
 # runs this workflow once the release is out). In the namespace build, same-repo
 # registryDependencies are @ouro/<item>, so an app installs everything from Pages, and only
-# released code. Deploys only after CI passes on a push to main, and only when that push is
-# still main's tip, so a slower run for an older commit never deploys over a newer one.
+# released code. Deploys on every push to main, from that commit, without waiting for main's
+# CI (which still runs, and a bad deploy is reversed by deploying again), and only when that
+# push is still main's tip, so a slower run for an older commit never deploys over a newer one.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
     branches: [main]
   workflow_dispatch:
 permissions:
@@ -24,15 +23,14 @@ concurrency:
   cancel-in-progress: false
 jobs:
   tip:
-    # A CI run for an older commit can finish after the run for a newer one; deploy only main's tip.
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    # A run for an older commit can start after the run for a newer one; deploy only main's tip.
     runs-on: ubuntu-latest
     outputs:
       current: ${{ steps.tip.outputs.current }}
     steps:
       - id: tip
         env:
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          HEAD_SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
         run: |
           tip=$(git ls-remote "https://github.com/$REPO.git" refs/heads/main | cut -f1)
@@ -50,7 +48,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

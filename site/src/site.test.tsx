@@ -448,7 +448,7 @@ describe("docs", () => {
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Switching from shadcn");
     await expect.element(page.getByText("components/ui/", { exact: true }).first()).toBeVisible();
     await renderPage("/docs/updating/");
-    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Updating installed components");
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Updating components");
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --dry-run", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite", { exact: true })).toBeVisible();
@@ -655,8 +655,8 @@ describe("platforms", () => {
     };
     const rows = [...document.querySelectorAll("main table tbody tr")].map((row) => [...row.querySelectorAll("td")].slice(0, 3).map(text));
     expect(rows).toEqual([
-      ["For web", "v1.3.3", "core v0.3.0, for its tokens"],
-      ["For Apple", "v0.3.4", "core v0.3.0"],
+      ["For web", "v1.3.7", "core v0.5.0, for its tokens"],
+      ["For Apple", "v0.4.1", "core v0.4.0"],
       ["For Android", "none yet", "none yet"],
       ["For Windows", "none yet", "none yet"],
     ]);
@@ -664,7 +664,7 @@ describe("platforms", () => {
 
   it("gives the Apple page its install line, and what is coming with Siri AI", async () => {
     await renderPage("/docs/platforms/apple/");
-    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.3.4")');
+    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.4.1")');
     for (const name of ["What ships today", "What is coming"]) await expect.element(page.getByRole("heading", { level: 2, name })).toBeVisible();
     for (const words of ["Tool intents.", "App skills.", "SiriEvaluations.", "The App Intents X-ray."]) expect(document.body.innerText).toContain(words);
   });

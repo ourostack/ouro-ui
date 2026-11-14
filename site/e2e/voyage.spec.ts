@@ -122,6 +122,49 @@ test("reflows at 320 CSS pixels (400% zoom) in every preset without scrolling si
 });
 
 /**
+ * The home headline's layout: its box height in line-heights, and how many words sit on each visual
+ * line. Each word's line is read from its own Range rect, so a wrap shows even where the box height
+ * would hide it.
+ */
+async function headlineLayout(page: Page): Promise<{ lines: number; wordsPerLine: number[] }> {
+  return page.locator("h1").first().evaluate((heading) => {
+    const lineHeight = parseFloat(getComputedStyle(heading).lineHeight);
+    const rows = new Map<number, number>();
+    const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      for (const word of (node.textContent ?? "").matchAll(/\S+/g)) {
+        const range = document.createRange();
+        range.setStart(node, word.index);
+        range.setEnd(node, word.index + word[0].length);
+        const top = Math.round(range.getBoundingClientRect().top);
+        rows.set(top, (rows.get(top) ?? 0) + 1);
+      }
+    }
+    return { lines: Math.round(heading.getBoundingClientRect().height / lineHeight), wordsPerLine: [...rows.values()] };
+  });
+}
+
+for (const viewport of [
+  { width: 1280, height: 800 },
+  { width: 1440, height: 900 },
+]) {
+  test(`the home headline is at most two lines at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await open(page);
+    const layout = await headlineLayout(page);
+    expect(layout.lines).toBeLessThanOrEqual(2);
+    expect(layout.wordsPerLine.length).toBeLessThanOrEqual(2);
+  });
+}
+
+test("the home headline never leaves a single word alone on a line at 390×844", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page);
+  const layout = await headlineLayout(page);
+  expect(Math.min(...layout.wordsPerLine)).toBeGreaterThanOrEqual(2);
+});
+
+/**
  * Parts that draw no boundary of their own under forced colours: none since the conformance matrix
  * (#133) gave segmented-control segments, the collapsible trigger and the reorderable handle one.
  * The test fails once any part loses its boundary.

@@ -1,0 +1,1 @@
+- Fixed: the claims check [accepts a cited path with a `$` in it](registry/ouro/lib/ouro/claims.test.ts "verify:testExists(registry/ouro/lib/ouro/claims.test.ts::parseClaimSource > reads a route file whose name holds a $, as Remix and React Router name a route's parameter)"), as Remix and React Router name a route's parameter (`app/routes/recipes.$id.tsx`).

@@ -88,6 +88,16 @@ describe("Field wiring", () => {
     await expect.element(page.getByRole("textbox", { name: "Email" })).toHaveAccessibleDescription("We never share it. Enter an email address.");
   });
 
+  it("wraps the description prettily so it does not end on one word", async () => {
+    const { host } = await render(
+      <Field label="Email" description="We never share it.">
+        <FieldControl />
+      </Field>,
+    );
+    const description = [...host.querySelectorAll("p, div")].find((el) => el.textContent === "We never share it.")!;
+    expect(getComputedStyle(description).textWrapStyle).toBe("pretty");
+  });
+
   it("has no aria-describedby without a description or an error", async () => {
     const { input } = await render(
       <Field label="Email">

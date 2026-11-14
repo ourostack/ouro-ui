@@ -342,7 +342,7 @@ export function InstallSteps(): JSX.Element {
             <p className={small}>
               {claim("The tag pins the newest release.", {
                 source: { file: "scripts/latest-release.mjs" },
-                verify: { testExists: "scripts/workflows.test.mjs::Scheduled install fails when main's ouro.latestRelease is not GitHub's newest release" },
+                verify: { testExists: "scripts/workflows.test.mjs::Scheduled install installs GitHub's newest release and checks the site names it" },
               })}{" "}
               {claim("Without it the install fails: main has no registry.json.", {
                 source: { file: ".gitignore" },

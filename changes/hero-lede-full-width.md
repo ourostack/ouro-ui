@@ -1,0 +1,1 @@
+- Hero: the lede [runs the full width of the text column](registry/ouro/components/ouro/hero/hero.test.tsx "verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > runs the lede the full width of the text column in each layout)"), like the title, instead of stopping short of it at a character cap.

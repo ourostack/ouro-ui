@@ -129,7 +129,7 @@ describe("ConversationList windowing", () => {
 
   it("keeps a list of 60 conversations whole, as a short list always was", async () => {
     const { rows, list, rerender, pane } = await render(<ConversationList label="Conversations" items={many(60)} onSelect={() => {}} />);
-    expect(rows()).toHaveLength(60);
+    await expect.poll(() => rows().length).toBe(60);
     expect(rows()[0]!.parentElement!.hasAttribute("aria-setsize")).toBe(false);
     expect(list().style.height).toBe("");
     await rerender(<ConversationList label="Conversations" items={many(61)} onSelect={() => {}} />);
@@ -535,7 +535,7 @@ describe("ConversationList windowing with sections", () => {
     expect(first.split('data-ouro-part="section"').length - 1).toBe(2);
 
     const view = await render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />);
-    expect(view.rows()).toHaveLength(50);
+    await expect.poll(() => view.rows().length).toBe(50);
     expect(view.pane.scrollTop).toBe(0);
   });
 

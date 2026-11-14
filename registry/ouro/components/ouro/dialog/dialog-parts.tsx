@@ -26,14 +26,17 @@ const DialogContext = createContext(false);
  * when the dialog is taller than that. Class strings are literal so the app's Tailwind
  * finds them when it compiles.
  */
+// --ouro-inset-top is the height of an app bar the app draws across the window's top; the dialog layer starts below it.
+// On iOS the backdrop's top is anchored to the screen (useBackdropAnchor), so the inset clips it there instead.
 const backdropClass =
-  "fixed inset-0 z-1000 min-h-dvh bg-(--ouro-backdrop-color) opacity-(--ouro-backdrop-max) " +
+  "fixed inset-0 top-(--ouro-inset-top,0px) z-1000 min-h-dvh bg-(--ouro-backdrop-color) opacity-(--ouro-backdrop-max) " +
   "transition-opacity duration-(--ouro-duration-slow) ease-(--ouro-ease-out) " +
   "data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-base) data-ouro-instant:transition-none " +
-  iosBackdrop;
+  iosBackdrop +
+  " supports-[-webkit-touch-callout:none]:[clip-path:inset(var(--ouro-inset-top,0px)_0_0_0)]";
 
 const viewportClass =
-  "fixed inset-0 z-1000 box-border flex items-center justify-center " +
+  "fixed inset-0 top-(--ouro-inset-top,0px) z-1000 box-border flex items-center justify-center " +
   "pt-[max(1rem,env(safe-area-inset-top,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] " +
   "pb-[max(1rem,env(safe-area-inset-bottom,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))]";
 

@@ -1,4 +1,4 @@
-export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, SIZES, summary, transportIssues };
+export { blank, BUDGETS, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, SIZES, summary, transportIssues };
 export type { Budgets, CheckOptions, CheckResult, Finding, Gate, ImageEntry, MergeOptions, Report };
 
 import { createHash } from "node:crypto";
@@ -397,6 +397,22 @@ async function targetsOf(targets: string[], glob: string | undefined): Promise<{
   return { list, close: async () => void (await Promise.all(servers.map((s) => s.close()))) };
 }
 
+// Opens about:blank. A navigation the page started itself (a press that left it, its address still the old one until the
+// answer comes) can win over this one, which Playwright reports as interrupted: the page's navigation is let finish, and
+// the blank page opened again, a few times at most.
+async function blank(page: Pick<Page, "goto" | "waitForLoadState">): Promise<void> {
+  for (let attempt = 1; attempt < 3; attempt++) {
+    try {
+      await page.goto("about:blank");
+      return;
+    } catch (problem) {
+      if (!/is interrupted by another navigation/.test((problem as Error).message)) throw problem;
+      await page.waitForLoadState("load");
+    }
+  }
+  await page.goto("about:blank");
+}
+
 // Opens a page and waits for it to draw. Returns why it did not load (a status other than 2xx, or no answer at all),
 // and whether it said it was ready before readyTimeout ran out.
 async function open(page: Page, url: string, readyTimeout: number): Promise<{ failed: string | null; ready: boolean }> {
@@ -412,7 +428,7 @@ async function open(page: Page, url: string, readyTimeout: number): Promise<{ fa
   }
   // From a blank page, so each page loads afresh: goto answers null for a same-document move, as from an app's page to
   // one of its routes (the same address but its hash), and the app would keep what it held.
-  await page.goto("about:blank");
+  await blank(page);
   const response = (await page.goto(url, { waitUntil: "load" }))!;
   if (!response.ok()) return { failed: `answered ${response.status()}`, ready: true };
   await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => undefined);
