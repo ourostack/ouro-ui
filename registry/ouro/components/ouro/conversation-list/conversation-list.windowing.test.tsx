@@ -501,6 +501,7 @@ describe("ConversationList windowing", () => {
 
   it("follows the pane's height when it grows", async () => {
     const { pane } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />, 100);
+    await frames();
     pane.style.height = "400px";
     await expect.poll(() => pane.querySelectorAll('[data-ouro-part="row"]').length).toBeGreaterThan(12);
     await expect.poll(() => { try { expectBand(pane, []); return true; } catch { return false; } }).toBe(true);
