@@ -97,6 +97,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
               }
             }
           });
+          if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await marks()) !== before) return;
           found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
           const { looks: now, escapes } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
           found.push(...escapes.map((e) => `${path} ${state}: ${e}`));
