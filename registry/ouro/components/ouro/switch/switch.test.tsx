@@ -510,3 +510,21 @@ describe("Switch under a parent's spacing", () => {
     expect(Math.abs(button.getBoundingClientRect().top - root.getBoundingClientRect().bottom - 16)).toBeLessThanOrEqual(1);
   });
 });
+
+describe("Switch corners under the squircle polyfill's bridge", () => {
+  it("keeps a round track and thumb when an unlayered bridge reads --corner-shape, as the polyfill's does", async () => {
+    // The polyfill's stylesheet is unlayered, so it beats a layered corner-shape; the shape has to come through --corner-shape.
+    const bridge = document.createElement("style");
+    bridge.textContent = ":where(*){corner-shape:var(--corner-shape,round)}";
+    document.head.append(bridge);
+    try {
+      const { track, thumb } = await render(<Switch label="Wi-Fi" />);
+      expect(getComputedStyle(track).getPropertyValue("--corner-shape")).toBe("round");
+      expect(getComputedStyle(thumb).getPropertyValue("--corner-shape")).toBe("round");
+      expect(getComputedStyle(track).cornerShape).toBe("superellipse(1)");
+      expect(getComputedStyle(thumb).cornerShape).toBe("superellipse(1)");
+    } finally {
+      bridge.remove();
+    }
+  });
+});
