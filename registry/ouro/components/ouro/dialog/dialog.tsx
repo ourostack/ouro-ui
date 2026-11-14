@@ -202,7 +202,7 @@ function CloseIcon(): JSX.Element {
 const FOCUSABLE =
   "a[href], button:not(:disabled), input:not(:disabled):not([type='hidden']), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])";
 
-/** The fields a person types into or picks from; a footer's buttons are left out, so Return never presses one by accident. */
+/** The fields a person types into or picks from. A footer's buttons are left out, so first focus is not on one that Return would press. */
 const TEXT_ENTRY =
   "input:not(:disabled):not([type='hidden'], [type='button'], [type='submit'], [type='reset'], [type='image'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), select:not(:disabled), textarea:not(:disabled)";
 
