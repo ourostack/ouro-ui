@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPress, summarise } from "./latency";
+import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPaint, splitPress, summarise } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -158,4 +158,18 @@ test("a slow press's time is split into the page's input delay, its handlers and
   const press = splitPress({ startTime: 1000, processingStart: 1004, processingEnd: 1011, duration: 176 });
   expect(press).toEqual({ inputDelay: 4, processing: 7, presentation: 165 });
   expect(press.inputDelay + press.processing + press.presentation).toBe(176);
+});
+
+test("a slow press's wait for the paint is split by the long animation frame that holds its rendering", () => {
+  // The press's handlers end at 1011 and its paint is at 1112. The frame 1005 to 1085 holds the rendering.
+  const press = { startTime: 1000, processingEnd: 1011, duration: 112 };
+  expect(splitPaint(press, [{ startTime: 1005, duration: 80 }])).toEqual({ mainThread: 74, afterMainThread: 27 });
+});
+
+test("a slow press no long animation frame holds has no split", () => {
+  expect(splitPaint({ startTime: 1000, processingEnd: 1011, duration: 112 }, [])).toBeNull();
+});
+
+test("a long animation frame that ended before a press's handlers does not hold its rendering", () => {
+  expect(splitPaint({ startTime: 1000, processingEnd: 1011, duration: 112 }, [{ startTime: 950, duration: 50 }])).toBeNull();
 });
