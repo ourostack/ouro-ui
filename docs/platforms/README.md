@@ -26,6 +26,8 @@ Core's newest release is v0.11.0.[^core-latest] Web's row names the web release 
 
 The [Apple section of the site](https://ui.ouroboros.bot/apple/#parity) has the parity tables. They come from core's component claims, which name the web test and the Apple test behind a promise, and from core's action claims. Where web or Apple lacks a test, the table says so.
 
+The [parity matrix](parity.md) puts every component and every claim on web, Apple, Android and Windows side by side, with each gap as a cell.[^parity-matrix]
+
 ## Building one
 
 Start with the [guide for platform builders](contributing.md): the contract a platform meets, and how a pull request with a link to your work becomes `ouro-ui-<platform>`.
@@ -33,6 +35,7 @@ Start with the [guide for platform builders](contributing.md): the contract a pl
 [^pinning]: https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#pinning-a-core-release verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#pinning-a-core-release)
 [^core-today]: https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md)
 [^web-home]: https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md verify:urlOk(https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md)
+[^parity-matrix]: scripts/parity-matrix.test.mjs verify:testExists(scripts/parity-matrix.test.mjs::the parity page shows what its data renders)
 [^web-release]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.24 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.24) verify:equals(scripts/parity-data/versions.json#web.tag)=v1.3.24
 [^web-core]: https://github.com/ourostack/ouro-ui-core/blob/7318fe269a18e4aeb30f648f39168e1b07786b99/parity.json; https://github.com/ourostack/ouro-ui-core/releases/tag/v0.11.0 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/7318fe269a18e4aeb30f648f39168e1b07786b99/parity.json) verify:urlOk(https://github.com/ourostack/ouro-ui-core/releases/tag/v0.11.0) verify:equals(scripts/parity-data/versions.json#web.tag)=v1.3.24 verify:equals(scripts/parity-data/versions.json#core.tag)=v0.11.0
 [^apple-release]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0) verify:equals(scripts/parity-data/versions.json#apple.tag)=v0.6.0

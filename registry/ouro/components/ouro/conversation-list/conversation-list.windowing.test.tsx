@@ -274,8 +274,8 @@ describe("ConversationList windowing", () => {
     host.innerHTML = renderToString(node);
     document.body.append(host);
     mounted.push(host);
-    // As many rows as the first 1000 pixels hold at their estimated height, before anything is measured.
-    expect(host.querySelectorAll('[data-ouro-part="row"]')).toHaveLength(18);
+    // As many rows as the first 1000 pixels hold at the first frame's assumed height, before anything is measured.
+    expect(host.querySelectorAll('[data-ouro-part="row"]')).toHaveLength(25);
     const error = vi.spyOn(console, "error");
     const recoverable = vi.fn();
     await act(async () => {
@@ -540,9 +540,10 @@ describe("ConversationList windowing", () => {
     const [width, height] = [innerWidth, innerHeight];
     await page.viewport(width, 300);
     await expect.poll(count).toBeLessThan(tall);
+    const small = count();
     await page.viewport(width, height);
-    // The resize is a change of size, so the window then adds its overscan, which the first frame left to the first change.
-    await expect.poll(count).toBeGreaterThanOrEqual(tall);
+    // The resize is a change of size, so the window then grows to the taller view and its overscan.
+    await expect.poll(count).toBeGreaterThan(small);
     const top = host.getBoundingClientRect().top + scrollY;
     await act(async () => {
       window.scrollTo({ top: top + 10000 });
@@ -703,8 +704,8 @@ describe("ConversationList windowing with sections", () => {
   it("renders exactly the rows that start inside the first view on a short list's first commit", () => {
     const count = (density: "comfortable" | "compact") =>
       renderToString(<ConversationList label="Chats" items={many(50)} density={density} onSelect={() => {}} />).split('data-ouro-part="row"').length - 1;
-    // Estimated rows are 58 and 34 pixels tall, so the first 1000 pixels start 18 and 30 of them.
-    expect(count("comfortable")).toBe(18);
+    // The first frame assumes rows of at most 40 and 34 pixels, so the first 1000 pixels start 25 and 30 of them.
+    expect(count("comfortable")).toBe(25);
     expect(count("compact")).toBe(30);
   });
 

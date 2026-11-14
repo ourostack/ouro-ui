@@ -1,0 +1,1 @@
+- Fixed: ConversationList sizes its first frame for short rows, so a list of short rows adds nothing after the first paint.
