@@ -15,6 +15,19 @@ import { StoryWorld } from "../components/story-world";
 import { Stage } from "./stage/stage";
 import { ThemeDots } from "./theme-dots";
 
+/** A line never breaks inside a hyphenated word ("X-ray", "person-only"): each sits in a no-wrap span. */
+function keepHyphenatedWordsWhole(text: string): (string | JSX.Element)[] {
+  return text.split(/(\S+-\S+)/).map((part, index) =>
+    index % 2 === 1 ? (
+      <span key={index} className="whitespace-nowrap" data-site-whole-word="">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
 /** The hero scene's width: Hero's stage width (its 80rem cap, scaled by the root type on a wide screen), never past the 1536px file width. In rem, so a larger browser font never makes it guess too small. */
 const HERO_SCENE_SIZES = "(min-width: 200rem) min(1536px, 100rem), (min-width: 150rem) min(1536px, 90rem), (min-width: 80rem) min(1536px, 80rem), calc(100vw - 4rem)";
 
@@ -212,7 +225,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
               </Link>
               .
             </p>
-            <p className="mx-auto max-w-[44rem] max-sm:hidden">{VOYAGE_HERO.subline}</p>
+            <p className="mx-auto max-w-[44rem] max-sm:hidden">{keepHyphenatedWordsWhole(VOYAGE_HERO.subline)}</p>
             <p className="site-hero-links mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-base max-sm:hidden" data-site-hero-links="">
               {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews, VOYAGE_HERO.links.platforms].map((link) => (
                 <Link key={link.href} href={href(link.href)} tone="secondary" inline>
