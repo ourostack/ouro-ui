@@ -136,6 +136,37 @@ describe("ToggleGroup", () => {
     expect(document.activeElement).toBe(toggles[2]);
   });
 
+  it("jumps with Home and End, steps with Up and Down, skips disabled items, and ignores other keys and modified arrows", async () => {
+    const items = [align[0]!, { ...align[1]!, disabled: true }, align[2]!];
+    const { toggles, group } = await render(<ToggleGroup label="Alignment" items={items} />);
+    expect(toggles.map((toggle) => toggle.tabIndex)).toEqual([0, -1, -1]);
+    toggles[0]!.focus();
+    await userEvent.keyboard("{End}");
+    expect(document.activeElement).toBe(toggles[2]);
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(toggles[0]);
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(toggles[2]);
+    await userEvent.keyboard("{Home}");
+    expect(document.activeElement).toBe(toggles[0]);
+    await userEvent.keyboard("a{Shift>}{ArrowRight}{/Shift}");
+    expect(document.activeElement).toBe(toggles[0]);
+    await act(async () => {
+      group.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    expect(document.activeElement).toBe(toggles[0]);
+  });
+
+  it("mirrors Left and Right in a right-to-left page", async () => {
+    const { toggles, host } = await render(<ToggleGroup label="Alignment" items={align} />);
+    host.setAttribute("dir", "rtl");
+    toggles[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(toggles[2]);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(toggles[0]);
+  });
+
   it("shows only the icons for items with hideLabel, keeping the labels as names", async () => {
     const items = styles.map((item) => ({ ...item, hideLabel: true }));
     const { toggles } = await render(<ToggleGroup label="Text style" multiple items={items} />);
