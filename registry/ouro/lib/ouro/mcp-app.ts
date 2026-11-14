@@ -1,12 +1,15 @@
+export { MCP_APPS_PROTOCOL, windowHostLink, McpAppError, connectMcpApp };
+export type { McpAppMessage, McpAppHostLink, McpAppHandlers, McpAppConnection };
+
 // MCP Apps (https://github.com/modelcontextprotocol/ext-apps, SEP-1865): the view's side of its JSON-RPC 2.0
 // connection to the host that framed it, over postMessage. The spec says a view needs no SDK for this, so the
 // connection is these few functions and no dependency.
 
 /** The MCP Apps protocol version this view speaks in `ui/initialize`. */
-export const MCP_APPS_PROTOCOL = "2026-01-26";
+const MCP_APPS_PROTOCOL = "2026-01-26";
 
 /** A JSON-RPC message: a request (`id` and `method`), a notification (`method` only) or a response (`id`). */
-export interface McpAppMessage {
+interface McpAppMessage {
   jsonrpc: "2.0";
   id?: string | number;
   method?: string;
@@ -16,7 +19,7 @@ export interface McpAppMessage {
 }
 
 /** How a view reaches its host: post a message to it, and hear the host's. `listen` returns the function that stops. */
-export interface McpAppHostLink {
+interface McpAppHostLink {
   post: (message: McpAppMessage) => void;
   listen: (onMessage: (message: unknown) => void) => () => void;
 }
@@ -27,7 +30,7 @@ export interface McpAppHostLink {
  * @example
  * const link = windowHostLink();
  */
-export function windowHostLink(host: Window = window.parent, self: Window = window): McpAppHostLink {
+function windowHostLink(host: Window = window.parent, self: Window = window): McpAppHostLink {
   return {
     post: (message) => host.postMessage(message, "*"),
     listen: (onMessage) => {
@@ -41,7 +44,7 @@ export function windowHostLink(host: Window = window.parent, self: Window = wind
 }
 
 /** A JSON-RPC error, from the host's response or for the view to answer a host's request with. */
-export class McpAppError extends Error {
+class McpAppError extends Error {
   readonly code: number;
   readonly data: unknown;
   constructor(code: number, message: string, data?: unknown) {
@@ -53,13 +56,13 @@ export class McpAppError extends Error {
 }
 
 /** What the view does with the host's notifications and requests. A request's handler returns its result or throws an `McpAppError`. */
-export interface McpAppHandlers {
+interface McpAppHandlers {
   onNotification: (method: string, params: Record<string, unknown>) => void;
   onRequest: (method: string, params: Record<string, unknown>) => object | undefined;
 }
 
 /** A view's open connection to its host. */
-export interface McpAppConnection {
+interface McpAppConnection {
   /** Sends a request and settles with the host's result, or rejects with its `McpAppError`. */
   request: (method: string, params?: object) => Promise<Record<string, unknown>>;
   /** Sends a notification. */
@@ -78,7 +81,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "obj
  * const host = connectMcpApp(windowHostLink(), { onNotification: (method, params) => {}, onRequest: () => ({}) });
  * await host.request("ui/initialize", { appInfo, appCapabilities: {}, protocolVersion: MCP_APPS_PROTOCOL });
  */
-export function connectMcpApp(link: McpAppHostLink, handlers: McpAppHandlers): McpAppConnection {
+function connectMcpApp(link: McpAppHostLink, handlers: McpAppHandlers): McpAppConnection {
   let next = 1;
   const waiting = new Map<string | number, { resolve: (result: Record<string, unknown>) => void; reject: (error: McpAppError) => void }>();
   const answer = (id: string | number, method: string, params: Record<string, unknown>) => {

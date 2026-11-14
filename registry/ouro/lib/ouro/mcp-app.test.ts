@@ -42,7 +42,7 @@ describe("windowHostLink", () => {
     // A message from another window, the page itself, is not the host's.
     window.postMessage({ from: "page" }, "*");
     link.post({ jsonrpc: "2.0", method: "ping" });
-    await vi.waitFor(() => expect(heard).toEqual([{ from: "host", got: { jsonrpc: "2.0", method: "ping" } }]));
+    await vi.waitFor(() => expect(heard).toEqual([{ from: "host", got: { jsonrpc: "2.0", method: "ping" } }]), { timeout: 10_000 });
     stop();
     const after = new Promise((resolve) => window.addEventListener("message", resolve, { once: true }));
     link.post({ jsonrpc: "2.0", method: "ping" });

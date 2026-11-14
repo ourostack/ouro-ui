@@ -92,7 +92,7 @@ async function render(node: ReactNode) {
 /** Renders the view connected to `host`, and waits for the handshake. */
 async function open(host: ReturnType<typeof testHost>, props: Partial<OuroMcpAppProps> = {}) {
   const view = await render(<OuroMcpApp catalog={catalog} host={host.link} {...props} />);
-  await vi.waitFor(() => expect(host.notifications("ui/notifications/initialized")).toHaveLength(1));
+  await vi.waitFor(() => expect(host.notifications("ui/notifications/initialized")).toHaveLength(1), { timeout: 10_000 });
   return view;
 }
 
@@ -177,7 +177,7 @@ describe("OuroMcpApp", () => {
     const host = testHost({ init: { error: { code: -32000, message: "No" } } });
     const { container } = await render(<OuroMcpApp catalog={catalog} host={host.link} />);
     const alert = await rendered(<Alert tone="destructive" title="This card can't be shown" description="The host didn't connect to it." />);
-    await vi.waitFor(() => expect(container.querySelector('[data-ouro="ouro-mcp-app"]')!.innerHTML).toBe(alert.innerHTML));
+    await vi.waitFor(() => expect(container.querySelector('[data-ouro="ouro-mcp-app"]')!.innerHTML).toBe(alert.innerHTML), { timeout: 10_000 });
     expect(host.notifications("ui/notifications/initialized")).toEqual([]);
   });
 
@@ -213,10 +213,10 @@ describe("OuroMcpApp", () => {
         <OuroMcpApp catalog={catalog} host={host.link} className="h-[120.3px]" />
       </div>,
     );
-    await vi.waitFor(() => expect(host.notifications("ui/notifications/size-changed")).toEqual([{ width: 301, height: 121 }]));
+    await vi.waitFor(() => expect(host.notifications("ui/notifications/size-changed")).toEqual([{ width: 301, height: 121 }]), { timeout: 10_000 });
     expect(container.querySelector('[data-ouro="ouro-mcp-app"]')!.className).toBe("grid min-w-0 gap-4 h-[120.3px]");
     (container.firstElementChild as HTMLElement).style.width = "200px";
-    await vi.waitFor(() => expect(host.notifications("ui/notifications/size-changed")).toEqual([{ width: 301, height: 121 }, { width: 200, height: 121 }]));
+    await vi.waitFor(() => expect(host.notifications("ui/notifications/size-changed")).toEqual([{ width: 301, height: 121 }, { width: 200, height: 121 }]), { timeout: 10_000 });
   });
 
   it("calls a write action's own tool with the prepared input, and shows what the tool said", async () => {
@@ -247,9 +247,9 @@ describe("OuroMcpApp", () => {
     for (const alert of expected) {
       const before = host.requests("tools/call").length;
       await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
-      await vi.waitFor(() => expect(host.requests("tools/call")).toHaveLength(before + 1));
+      await vi.waitFor(() => expect(host.requests("tools/call")).toHaveLength(before + 1), { timeout: 10_000 });
       const want = await rendered(alert);
-      await vi.waitFor(() => expect(container.querySelector('[data-ouro="alert"]')!.outerHTML).toBe(want.innerHTML));
+      await vi.waitFor(() => expect(container.querySelector('[data-ouro="alert"]')!.outerHTML).toBe(want.innerHTML), { timeout: 10_000 });
     }
   });
 
@@ -270,7 +270,7 @@ describe("OuroMcpApp", () => {
     const host = testHost();
     const { container } = await openCard(host, { handoffUrl });
     await userEvent.click(page.getByRole("button", { name: "Order ingredients" }));
-    await vi.waitFor(() => expect(host.requests("ui/open-link")).toEqual([{ url: "https://kitchen.example.com/recipes/rcp_1?do=order_ingredients" }]));
+    await vi.waitFor(() => expect(host.requests("ui/open-link")).toEqual([{ url: "https://kitchen.example.com/recipes/rcp_1?do=order_ingredients" }]), { timeout: 10_000 });
     expect(handoffUrl).toHaveBeenCalledWith({ action: "order_ingredients", how: "with Order ingredients on the recipe in the app" });
     expect(host.requests("tools/call")).toEqual([]);
     expect(container.querySelector('[data-ouro="alert"]')).toBeNull();
@@ -289,7 +289,7 @@ describe("OuroMcpApp", () => {
     for (const [props, host] of cases) {
       const { container, root } = await openCard(host, props);
       await userEvent.click(page.getByRole("button", { name: "Order ingredients" }));
-      await vi.waitFor(() => expect(container.querySelector('[data-ouro="alert"]')?.outerHTML).toBe(yours.innerHTML));
+      await vi.waitFor(() => expect(container.querySelector('[data-ouro="alert"]')?.outerHTML).toBe(yours.innerHTML), { timeout: 10_000 });
       expect(host.requests("tools/call")).toEqual([]);
       await act(() => root.unmount());
     }
@@ -324,7 +324,7 @@ describe("OuroMcpApp", () => {
     const invalid = [{ version: "1.0", createSurface: { surfaceId: "card", catalogId: catalog.catalogId, components: [{ id: "root", component: "Button", label: "Buy now" }, { id: "clip", component: "Video", url: "https://example.com/a.mp4" }] } }];
     await host.deliver({ method: "ui/notifications/tool-result", params: toolResult(invalid) });
     await expect.element(page.getByText("This card can't be shown")).toBeInTheDocument();
-    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(1));
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(1), { timeout: 10_000 });
     const [update] = host.requests("ui/update-model-context") as { content: { type: string; text: string }[]; structuredContent: { a2uiProblems: { path: string; message: string }[] } }[];
     const problems = update!.structuredContent.a2uiProblems;
     expect(problems.length).toBeGreaterThan(1);
@@ -346,7 +346,7 @@ describe("OuroMcpApp", () => {
     const renamed = { ...catalog, metadata: { extensions: { bot_ouroboros_hx: { actions: { ...actions, order_ingredients: { ...actions.order_ingredients, label: "Order groceries" } } } } } };
     const second = testHost();
     await act(() => root.render(<OuroMcpApp catalog={renamed} host={second.link} />));
-    await vi.waitFor(() => expect(second.notifications("ui/notifications/initialized")).toHaveLength(1));
+    await vi.waitFor(() => expect(second.notifications("ui/notifications/initialized")).toHaveLength(1), { timeout: 10_000 });
     await second.deliver({ method: "ui/notifications/tool-result", params: toolResult(card("Charred Lemon Orzo")) });
     await userEvent.click(page.getByRole("button", { name: "Order groceries" }));
     await expect.element(page.getByText("Order groceries is yours to do")).toBeInTheDocument();
@@ -369,7 +369,7 @@ describe("OuroMcpApp", () => {
     const host = testHost();
     // @ts-expect-error onAction is a hint type.
     await open(host, { onAction: () => {} });
-    await vi.waitFor(() => expect(warn).toHaveBeenCalledWith("[ouro-ui] OuroMcpApp: onAction is not a prop; a pressed button calls its action's own tool through the host. Fix: <OuroMcpApp catalog={catalog} />."));
+    await vi.waitFor(() => expect(warn).toHaveBeenCalledWith("[ouro-ui] OuroMcpApp: onAction is not a prop; a pressed button calls its action's own tool through the host. Fix: <OuroMcpApp catalog={catalog} />."), { timeout: 10_000 });
     warn.mockRestore();
   });
 

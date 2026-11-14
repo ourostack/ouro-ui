@@ -62,29 +62,3 @@ interface A2UIHandoff {
   how: string;
 }
 ```
-
-### `McpAppHostLink`
-
-How a view reaches its host: post a message to it, and hear the host's. `listen` returns the function that stops.
-
-```ts
-interface McpAppHostLink {
-  post: (message: McpAppMessage) => void;
-  listen: (onMessage: (message: unknown) => void) => () => void;
-}
-```
-
-### `McpAppMessage`
-
-A JSON-RPC message: a request (`id` and `method`), a notification (`method` only) or a response (`id`).
-
-```ts
-interface McpAppMessage {
-  jsonrpc: "2.0";
-  id?: string | number;
-  method?: string;
-  params?: object;
-  result?: object;
-  error?: { code: number; message: string; data?: unknown };
-}
-```
