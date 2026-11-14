@@ -12,6 +12,9 @@ on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
   merge_group:
+  # Main has no merge queue, so Release finds this required check's verdict on main's own commit.
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
