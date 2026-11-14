@@ -727,6 +727,15 @@ describe("findImageFades", () => {
     expect(document.getElementById("own")!.getAttribute("data-ouro-check-ref")).toBe("f1 f6");
   });
 
+  it("passes a mask that cuts a hard-edged hole out of a picture, and still finds a radial mask that fades its edge", async () => {
+    const url = await picture(200, 100);
+    render(`
+      <div id="bite" style="${box};mask-image:radial-gradient(circle at 170px 70px, transparent 14px, #000 14.5px)"><img src="${url}" alt="bite" style="${box}"></div>
+      <div id="soft-hole" style="${box};mask-image:radial-gradient(circle at 170px 70px, transparent 14px, #000 60px)"><img src="${url}" alt="soft" style="${box}"></div>
+      <div id="vignette" style="${box};mask-image:radial-gradient(circle at 100px 50px, #000 14px, transparent 14.5px)"><img src="${url}" alt="vignette" style="${box}"></div>`);
+    expect(findImageFades().map((issue) => issue.detail)).toEqual(["faded by a gradient mask on div#soft-hole", "faded by a gradient mask on div#vignette"]);
+  });
+
   it("finds a picture that a gradient to transparent covers: an overlay, or a ::before or ::after of the picture or a box around it", async () => {
     const url = await picture(200, 100);
     render(`

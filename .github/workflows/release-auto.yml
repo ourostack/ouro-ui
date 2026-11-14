@@ -8,6 +8,7 @@ name: Release auto
 # checks itself. If several commits land while a release runs, the release that follows takes the
 # commit whose runs finished last, which is the newest to finish. A failed release starts nothing by
 # itself: the next push's green runs do, once the cause is fixed. It adds no gate and relaxes none.
+# A commit that only points the docs at a release (docs-pin.yml, scripts/pin-only.mjs) starts nothing.
 on:
   workflow_run:
     workflows: [CI, Screen reader]
@@ -38,6 +39,9 @@ jobs:
       RUN_EVENT: ${{ github.event.workflow_run.event }}
       RUN_SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Release the newest commit whose runs passed
         run: |
           [[ "${AFTER:-0}" =~ ^[0-9]+$ ]] || { echo "::error::after must be a run id."; exit 1; }
@@ -57,6 +61,13 @@ jobs:
             done < <(gh api -H "Accept: application/vnd.github.raw" "repos/$GITHUB_REPOSITORY/contents/changes/$name?ref=$sha")
           done
           [ "$fresh" -gt 0 ] || { echo "::notice::changes/ lists no change the newest release lacks, so there is nothing to release."; exit 0; }
+          # The docs pin (docs-pin.yml) changes what nobody ships: its commit and its parent are read here, the parent fetched when the checkout lacks it.
+          git cat-file -e "$sha^" 2>/dev/null || git fetch -q --depth=2 origin "$sha" || true
+          if why=$(node scripts/pin-only.mjs "$sha^" "$sha" 2>&1); then
+            echo "::notice::$sha only points the docs at a release; nothing to release."
+            exit 0
+          fi
+          echo "$sha is not only a docs pin, so it releases: $why"
           # Both of main's runs for the commit must have ended, the lane passed; the later of the two finishing starts this.
           lane=$(gh run list --workflow screen-reader.yml --commit "$sha" --event push --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')
           [ "$lane" -gt 0 ] || { echo "::notice::The screen-reader lane has not passed on $sha yet; its end starts this again."; exit 0; }
