@@ -175,6 +175,10 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # pull-requests: read lets the Claims step read the description as it is now.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -201,13 +205,19 @@ jobs:
       # are read at its base, and the addresses it adds to the cache or changes are fetched again.
       # The ratchet runs here too, in a required check: what the pull request adds to, changes in
       # or removes from claims.config.json's exemptions must be named in its description, and so
-      # must each file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs). After
-      # editing the description, push again: a re-run reads the description the run started with.
+      # must each file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs). The
+      # description is read as it is now, since a re-run replays the event the run started with: an
+      # edited description and a re-run are enough. When GitHub doesn't answer, the event's copy is read.
       - name: Claims
         env:
           BASE_REF: ${{ github.base_ref }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
+          if [ -n "$PR" ] && live=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body --jq .body); then
+            export PR_BODY="$live"
+          fi
           if [ -n "$BASE_REF" ]; then
             git fetch --no-tags --depth=1 origin "$BASE_REF"
             CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
@@ -574,8 +584,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: design (${{ matrix.shard }}/4)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    name: design (${{ matrix.shard }}/8)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -617,7 +627,7 @@ jobs:
         with:
           targets: site/dist
           sizes: 390x844,1440x900,3840x2160
-          shard: ${{ matrix.shard }}/4
+          shard: ${{ matrix.shard }}/8
           script: registry/ouro/check/check.ts
           config: .github/ouro-check.json
           artifact: design-check
