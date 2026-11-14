@@ -815,6 +815,12 @@ describe("Hero", () => {
     await expect.poll(() => hidden.complete && hidden.naturalWidth > 0).toBe(true);
     await new Promise((settle) => setTimeout(settle, 300));
     expect(waiting.part("media")!.hasAttribute("data-loaded")).toBe(false);
+    // The shown picture's load event marks the frame, and the hidden one's doesn't.
+    const [hiddenDay, shownNight] = [...waiting.part("media")!.querySelectorAll("img")];
+    await act(async () => hiddenDay!.dispatchEvent(new Event("load")));
+    expect(waiting.part("media")!.hasAttribute("data-loaded")).toBe(false);
+    await act(async () => shownNight!.dispatchEvent(new Event("load")));
+    expect(waiting.part("media")!.getAttribute("data-loaded")).toBe("");
     const live = await render(<Hero title="Live" media={<div>Live</div>} />);
     expect(live.part("media")!.hasAttribute("data-loaded")).toBe(false);
   });
@@ -829,7 +835,9 @@ describe("Hero", () => {
     host.innerHTML = renderToString(node);
     const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
     const shown = media.querySelector("img")!;
-    await expect.poll(() => shown.complete && shown.naturalWidth > 0).toBe(true);
+    // The load event follows `complete` in a task of its own: wait for it, so it has fired before hydration.
+    await new Promise((settle) => shown.addEventListener("load", settle, { once: true }));
+    await new Promise((settle) => setTimeout(settle, 50));
     expect(media.hasAttribute("data-loaded")).toBe(false);
     const root = hydrateRoot(host, node, { onRecoverableError: (cause) => error(cause) });
     roots.push(root);
