@@ -509,8 +509,8 @@ describe("ConversationList windowing", () => {
     let step = 0;
     await expect.poll(() => {
       pane.style.height = `${400 + (step++ % 2)}px`;
-      try { expectBand(pane, []); return true; } catch { return false; }
-    }).toBe(true);
+      try { expectBand(pane, []); return ""; } catch (error) { return `${(error as Error).message} rows=${pane.querySelectorAll('[data-ouro-part="row"]').length} h=${pane.clientHeight}`; }
+    }).toBe("");
   });
 
   it("stops following the page once it is gone", async () => {
