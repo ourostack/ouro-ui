@@ -653,12 +653,15 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       if (event.target === document || found.includes(event.target as HTMLElement)) sync.current!();
     };
     const onResize = () => {
+      // Stryker disable next-line ConditionalExpression: finding the clips again would find the same boxes, which `found` already holds
       if (!clips.current) {
         let scrolls: HTMLElement | undefined;
         for (let node = list.parentElement; node; node = node.parentElement) {
           const { overflowY } = getComputedStyle(node);
           if (overflowY === "visible") continue;
           found.push(node);
+          // Stryker disable next-line LogicalOperator: the window reads the list's rectangle against each clip, so which scroller is kept changes only where scroll events are filtered
+          // Stryker disable next-line ConditionalExpression: same reason, the kept scroller does not change what the window shows
           if (!scrolls && /auto|scroll/.test(overflowY)) scrolls = node;
         }
         clips.current = found;

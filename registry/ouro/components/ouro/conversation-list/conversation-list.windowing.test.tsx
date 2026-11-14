@@ -36,7 +36,7 @@ afterEach(async () => {
 /** Renders into a 360 by 400 pixel pane that scrolls, as an app's sidebar does, under a header 60 pixels tall. */
 const frames = () => act(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
 
-async function render(node: ReactNode, height = 400, scrollsOutside = false, settle = true) {
+async function render(node: ReactNode, height = 400, settle = true) {
   const header = document.createElement("div");
   header.style.height = "60px";
   const pane = document.createElement("div");
@@ -184,6 +184,27 @@ describe("ConversationList windowing", () => {
     await rerender(<ConversationList label="Conversations" items={many(200)} onSelect={() => {}} />);
     await scrollPane(pane, 5000);
     expectBand(pane, ["c0"]);
+  });
+
+  it("follows the scrolling pane, not a clipping box between it and the list", async () => {
+    const { pane, ids } = await render(
+      <div style={{ overflow: "hidden" }}>
+        <ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />
+      </div>,
+    );
+    await scrollPane(pane, 5000);
+    expect(ids()).not.toContain("c1");
+  });
+
+  it("follows the nearest scrolling box when the pane around it scrolls too", async () => {
+    const { pane, ids } = await render(
+      <div data-inner style={{ height: 300, overflowY: "auto" }}>
+        <ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />
+      </div>,
+      800,
+    );
+    await scrollPane(pane.querySelector<HTMLElement>("[data-inner]")!, 5000);
+    expect(ids()).not.toContain("c1");
   });
 
   it("renders the rows a scroll reaches, in order, and drops the rows it leaves", async () => {
