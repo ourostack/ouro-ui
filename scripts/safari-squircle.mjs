@@ -71,7 +71,7 @@ const off = await measure(false);
 const on = await measure(true);
 const report = { url, budget, off, on };
 mkdirSync("safari-squircle", { recursive: true });
-writeFileSync("safari-squircle/report.json", JSON.stringify(report, null, 2));
+writeFileSync(`safari-squircle/report-${new URL(url).pathname.replace(/\W+/g, "_")}.json`, JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));
 if (process.env.SQUIRCLE_ENFORCE === "1" && on.typing.p95 > budget) {
   console.error(`typing p95 with the polyfill is ${on.typing.p95} ms, over the ${budget} ms budget`);

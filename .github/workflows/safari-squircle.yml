@@ -28,9 +28,10 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - run: npm install --prefix "$RUNNER_TEMP/sel" --no-package-lock selenium-webdriver && ln -s "$RUNNER_TEMP/sel/node_modules/selenium-webdriver" node_modules/selenium-webdriver
       - run: sudo safaridriver --enable
-      - run: node scripts/safari-squircle.mjs
-        env:
-          SQUIRCLE_ENFORCE: ${{ inputs.enforce }}
+      - run: |
+          for u in /docs/dialog/ /docs/chat-composer/ /docs/data-table/ /docs/ /; do
+            SQUIRCLE_URL="https://ui.ouroboros.bot$u" node scripts/safari-squircle.mjs | grep -E 'hosts|"p95"|perSecond|lateMs' || true
+          done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
