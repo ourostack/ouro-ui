@@ -15,6 +15,16 @@ export type Waiver = {
 };
 
 export const WAIVERS: Waiver[] = [
+  {
+    component: "switch",
+    part: "track",
+    variant: "",
+    state: "",
+    page: "/apple/feel/",
+    property: "border",
+    reason: "the hero's duel sits on the glow, so its quiet text, which the off switch's outline reads, takes a step toward the foreground",
+    source: "site/src/apple/feel-reins.css: .feel-duel sets --muted-foreground to --apple-quiet-on-glow (apple.css)",
+  },
 ];
 
 export const matched = new Set<number>();
