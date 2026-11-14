@@ -324,6 +324,8 @@ export const WAIVERS: [RegExp, string][] = [
   [/hover on \/nautilus\/: transform matrix\(1, 0, 0, 1, 0, 0\.\d+\)/, "a hover lift that lands on a sub-pixel offset"],
   [/\|(hover|active|focus)\|.* looks different on (\/|\/voyage\/|\/nautilus\/)(,|$)/, "a translucent state layer over the animated scene on the voyage pages"],
   [/checkbox\|box.*\|hover\|.* looks different on \/docs\/checkbox-group\//, "a hover tint over the group's own surface"],
+  [/^message\|item\|article.*\|hover on \/docs\/message-list\/: transform matrix\(1, 0, 0, 1, 0, \d+\.\d+\)/, "a hover lift caught on a sub-pixel offset"],
+  [/^sidebar\|group\|button\|.*\|hover\|.* looks different on \/docs\//, "the docs sidebar's group header crop includes the open or current item beside it, which follows the page"],
   [/number-field\|increment.*\|hover\|.* looks different on \/docs\/number-field\//, "the stepper's crop includes the field edge beside it, which differs by the field's own state"],
 ];
 
