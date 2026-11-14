@@ -1,0 +1,1 @@
+- CI's design check runs in eight shards instead of four, so a pull request's slowest screen check takes about half as long.
