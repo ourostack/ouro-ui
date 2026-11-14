@@ -24,6 +24,7 @@ for (const mode of ["light", "dark"] as const) {
       for (const look of found) looks.add(path, look, look.pictured && looks.wants(look) ? await picture(page, look.index) : null);
     }
     console.log(`${browserName} ${mode}: ${looks.keys} component states, ${looks.crops} pictures, over ${pages.length} pages`);
+    for (const f of [...escapes, ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
     expect.soft(escapes, "a part leaves its container").toEqual([]);
     expect.soft(looks.differences(), "a component's properties differ from page to page").toEqual([]);
     expect.soft(looks.pixelDifferences(), "a component's picture differs from page to page").toEqual([]);
