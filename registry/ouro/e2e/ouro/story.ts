@@ -32,6 +32,22 @@ export async function openStory(page: Page, id: string): Promise<void> {
 }
 
 /**
+ * Whether a page error is the ResizeObserver timing notice ("ResizeObserver loop completed with undelivered
+ * notifications", or Chromium's "ResizeObserver loop limit exceeded"). It is not a failure: the browser delivers the
+ * observations it skipped in the next frame. ShowMore can raise it in WebKit when its button grows an element another
+ * ResizeObserver watches (Storybook watches `body`), so a fixture that fails on page errors may let it through:
+ *
+ * @example
+ * const errors: Error[] = [];
+ * page.on("pageerror", (error) => {
+ *   if (!isResizeObserverNotice(error)) errors.push(error);
+ * });
+ */
+export function isResizeObserverNotice(error: { message: string }): boolean {
+  return error.message.startsWith("ResizeObserver loop");
+}
+
+/**
  * Stops the page's clock where it is, so a state that lasts a set time (a confirmation, a toast,
  * a save in progress) stays until the spec moves the clock on with `page.clock.runFor(ms)` or lets
  * it run again with `page.clock.resume()`: a loaded runner can take longer than that time between

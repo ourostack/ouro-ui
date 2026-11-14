@@ -1,0 +1,1 @@
+- New: `isResizeObserverNotice` in `e2e/ouro/story.ts` names the [ResizeObserver timing notice](registry/ouro/e2e/ouro/story.ts "verify:fileLine(registry/ouro/e2e/ouro/story.ts, /export function isResizeObserverNotice/)"), which ShowMore can raise, so a fixture that fails on page errors can let it through.

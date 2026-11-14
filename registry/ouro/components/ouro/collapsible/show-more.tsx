@@ -341,6 +341,8 @@ const DEFAULT_HEIGHT = 240;
  * Folded text and content are folded by CSS in the first commit and in server HTML, and the button comes after the
  * browser has laid them out: ShowMore does not guess whether they are longer than the fold. One ResizeObserver reads the
  * layout and adds the button to what overflows.
+ * In WebKit that button can raise the ResizeObserver timing notice when it grows an element another observer watches:
+ * `isResizeObserverNotice` in `e2e/ouro/story.ts` names it, and a fixture may let it through.
  * The visible items are in the server HTML. ShowMore draws the list itself: put a border
  * around the list on a wrapping element, and borders between rows on each item.
  *
@@ -358,6 +360,7 @@ const DEFAULT_HEIGHT = 240;
  * <ShowMore lines={3} open={open} onOpenChange={setOpen}>{recipe.description}</ShowMore>
  * @claim "The button names what it folds" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore toggle semantics > names the list, the text or the fold it opens and says whether it is open, in every mode that folds)
  * @claim "The button names what it folds" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore toggle semantics > names the list a load adds to, and claims no open state, since loading more never folds)
+ * @claim "In WebKit that button can raise the ResizeObserver timing notice" registry/ouro/e2e/ouro/show-more.spec.ts verify:fileLine(registry/ouro/e2e/ouro/show-more.spec.ts, /a fold raises no page error but the ResizeObserver timing notice/)
  * @claim "folds content of any kind" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with maxHeight > folds long content to maxHeight under a fade, with Show more)
  * @claim "ShowMore draws the list itself: put" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore with items > lets app layout classes win and keys rows by their own keys)
  */

@@ -118,6 +118,8 @@ export const testingSetup: Record<string, string> = {
     "",
     "// Ouro UI's specs (e2e/ouro) take test and expect from this file. It is yours: export your",
     "// own fixtures here to run them with your setup. No Ouro UI item ships or overwrites it.",
+    "// A fixture that fails on page errors should let isResizeObserverNotice through: ShowMore can",
+    "// raise that timing notice in WebKit.",
     "",
   ].join("\n"),
 };
