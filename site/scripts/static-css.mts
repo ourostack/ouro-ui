@@ -47,18 +47,24 @@ export function plainBlocks(blocks: readonly Block[]): string {
 }
 
 /** The top-level at-rules of ouro-base.css, by name, and the rest of the file without them. */
-export function splitBase(css: string): { inline: string; utilities: string[]; keyframes: string[]; blocks: Block[] } {
+export function splitBase(css: string): { inline: string; utilities: string[]; keyframes: string[]; supports: string[]; blocks: Block[] } {
   const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const inline = /@theme inline\s*\{([^{}]*)\}/.exec(source);
   if (!inline) throw new Error("ouro-base.css has no @theme inline block");
   const utilities = [...source.matchAll(/@utility\s+([\w-]+)\s*\{[^{}]*\}/g)].map((match) => match[1]!);
   const keyframes = [...source.matchAll(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g)].map((match) => match[0]);
+  const supportsPattern = /@supports[^{]*\{(?:\s*[^{}]*\{[^{}]*\})*\s*\}/g;
+  const supports = [...source.matchAll(supportsPattern)].map((match) => {
+    const [, query, selector, body] = /(@supports[^{]*?)\s*\{\s*([^{}]*?)\s*\{([^{}]*)\}\s*\}/.exec(match[0])!;
+    return `${query} {\n${rule(selector!, declarations(body!), "  ")}\n}`;
+  });
   const rest = source
     .replace(inline[0], "")
+    .replace(supportsPattern, "")
     .replace(/@layer\s+base\s*\{(?:\s*[^{}]*\{[^{}]*\})*\s*\}/g, "")
     .replace(/@utility\s+[\w-]+\s*\{[^{}]*\}/g, "")
     .replace(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
-  return { inline: inline[1]!, utilities, keyframes, blocks: parseBlocks(rest) };
+  return { inline: inline[1]!, utilities, keyframes, supports, blocks: parseBlocks(rest) };
 }
 
 /** A keyframes rule, indented two spaces a level. */
@@ -81,7 +87,7 @@ const MODES = [
 
 /** ouro-base.css as plain CSS: its @theme inline aliases become :root properties, and its Tailwind utilities are left out. */
 export function baseCss(css: string): string {
-  const { inline, utilities, keyframes, blocks } = splitBase(css);
+  const { inline, utilities, keyframes, supports, blocks } = splitBase(css);
   const root = blocks.find((block) => block.selector === ":root");
   if (!root) throw new Error("ouro-base.css has no :root block");
   const merged = blocks.map((block) => (block === root ? { selector: ":root", body: `${inline};${block.body}` } : block));
@@ -96,6 +102,7 @@ export function baseCss(css: string): string {
       LICENSE,
     ]),
     plainBlocks(merged),
+    ...supports,
     ...keyframes.map(formatKeyframes),
   ].join("\n\n") + "\n";
 }

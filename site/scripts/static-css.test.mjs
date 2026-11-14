@@ -33,13 +33,15 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
     ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-shimmer-band", "ouro-scroll-fade-left", "ouro-scroll-fade-right", "ouro-hero-rise", "ouro-hero-fade"],
   );
   const css = outputs["ouro-base.css"];
-  const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
+  const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@supports[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
   const rootLines = declarations(root.body);
   for (const line of [...declarations(split.inline), ...declarations(split.blocks.find((block) => block.selector === ":root").body)]) {
     assert.ok(rootLines.includes(line), line);
   }
   for (const name of ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-shimmer-band", "ouro-scroll-fade-left", "ouro-scroll-fade-right"]) assert.ok(css.includes(`@keyframes ${name} {`), name);
   assert.ok(css.includes("Tailwind utilities left out: press."));
+  assert.deepEqual(split.supports, ["@supports not (corner-shape: squircle) {\n  :root {\n    --ouro-radius-scale: 0.7;\n  }\n}"]);
+  assert.ok(css.includes(split.supports[0]));
   assert.throws(() => baseCss(":root { --a: 1; }"), /no @theme inline block/);
   assert.throws(() => baseCss("@theme inline { --a: 1; }\n.dark { --a: 2; }"), /no :root block/);
 });
