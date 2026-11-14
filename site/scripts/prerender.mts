@@ -143,13 +143,13 @@ for (const item of docsItems) {
 for (const page of docsPages) writeFileSync(join(dist, "docs", `${page.name}.md`), publishedMarkdown(readFileSync(join(repo, page.file), "utf8"), page.file));
 writeFileSync(join(dist, "docs", "parts.md"), publishedMarkdown(readFileSync(join(repo, "docs", "parts.md"), "utf8"), "docs/parts.md"));
 
+/** The text of each h1 on a page, without tags and with `&amp;` read back as `&` (a platform page sets "for Apple" in smaller type, inside its h1). */
+const headings = (html: string) => [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)].map(([, inner]) => inner!.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&"));
 // The built site must have a page at every docs URL the registry advertises.
 for (const item of docsItems) {
   const file = join(dist, "docs", item.name, "index.html");
-  if (!existsSync(file) || !readFileSync(file, "utf8").includes(`>${item.title}</h1>`)) throw new Error(`no docs page for ${item.name}`);
+  if (!existsSync(file) || !headings(readFileSync(file, "utf8")).includes(item.title)) throw new Error(`no docs page for ${item.name}`);
 }
-/** The text of each h1 on a page, without tags and with `&amp;` read back as `&` (a platform page sets "for Apple" in smaller type, inside its h1). */
-const headings = (html: string) => [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)].map(([, inner]) => inner!.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&"));
 for (const page of docsPages) {
   const file = join(dist, "docs", page.name, "index.html");
   if (!existsSync(file) || !headings(readFileSync(file, "utf8")).includes(page.title)) throw new Error(`no docs page for ${page.file}`);
