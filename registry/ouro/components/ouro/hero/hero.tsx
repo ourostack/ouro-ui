@@ -109,7 +109,14 @@ export interface HeroOwnProps {
    * @default "stage"
    */
   layout?: HeroLayout | (string & { 'Use "stage", "column" or "split"': never }) | undefined;
-  /** `rise` lifts the picture into place on mount, with reduced motion fading it in. @default "rise" */
+  /**
+   * `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The
+   * rise is a CSS animation, so it plays from server-rendered HTML before any JavaScript runs; the
+   * keyframes and durations come from `ouro-base`.
+   *
+   * @claim "so it plays from server-rendered HTML" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in from server-rendered HTML before any JavaScript runs, and only fades it with reduced motion)
+   * @default "rise"
+   */
   motion?: "rise" | "none" | (string & { 'Use "rise" or "none"': never }) | undefined;
   /** The title's heading level: `1` for the page's headline, `2` when the hero heads a section. @default 1 */
   headingLevel?: 1 | 2 | (number & { 'Use 1 for the page headline or 2 for a section': never }) | undefined;
@@ -207,7 +214,7 @@ function renderPicture(picture: HeroPicture, crop: string | undefined, scheme: "
  * The top of a page: a headline with an optional line above it (`eyebrow`), a lede under
  * it (`description`), the page's buttons (`actions`) and a big picture, or something live in
  * its place (`media`), below. The picture is light and dark art, swapped with the page's dark
- * mode. The picture rises into place on mount unless `motion="none"`,
+ * mode. The picture rises into place when it first appears unless `motion="none"`,
  * and it is never shown wider than its intrinsic width.
  *
  * Use `PageHeader` instead for a page's top with a breadcrumb or no picture, and `Heading`
