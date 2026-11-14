@@ -1,0 +1,1 @@
+- Added: an hourly check that opens one "Pages are stale" issue when main's docs or `/adoption/` stop keeping up.
