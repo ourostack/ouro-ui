@@ -2,7 +2,7 @@
 
 # Hero
 
-The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture, or something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark mode. The picture rises into place when it first appears unless `motion="none"`, and it is never shown wider than its intrinsic width.
+The top of a page: a headline with an optional line above it (`eyebrow`) and a status beside that (`badge`), a trail above them (`breadcrumb`), a lede under the headline (`description`), the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark mode. The picture rises into place when it first appears unless `motion="none"`, and it is never shown wider than its intrinsic width.
 
 ```tsx
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
@@ -25,7 +25,7 @@ import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 
 ## Use instead when
 
-- Use `PageHeader` instead for a page's top with a breadcrumb or no picture, and `Heading` for a plain title with nothing around it.
+- Use `PageHeader` instead for a page's top with no picture, and `Heading` for a plain title with nothing around it.
 
 ## Props
 
@@ -34,6 +34,9 @@ Type: `HeroProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `actions` | `ReactNode` |  | The hero's buttons or links, such as Ouro buttons. They sit right under the lede, its next element, on the lede's edge, set a little further from it than the lines of text are from each other. Pass the page's main button here, not in `description`. |
+| `badge` | `ReactNode` |  | A short status beside the eyebrow, such as a `Badge`: `badge={<Badge>Beta</Badge>}`. Hero sets it on the eyebrow's line, or on that line alone without an eyebrow, and leaves its look to what you pass. |
+| `breadcrumb` | `ReactNode` |  | A trail above everything else, such as a `Breadcrumb`, on the text's edge. |
+| `children` | `ReactNode` |  | More under the actions, in the text column, such as a byline, a note or a short recording. In the split layout it sits beside the picture. A second picture or a demo belongs in the next section, not the hero. |
 | `description` | `ReactNode` |  | The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the hero's text column, like the title. Centred in the stage layout, its lines are balanced to even lengths; aligned to the start, it wraps so the last line is never one word alone. To choose where a centred lede breaks, set each phrase in its own `inline-block` span, as the `LongLede` story does. |
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is. |
 | `fullWidth` | `boolean` |  | Stretches the hero to the width of its container, with no gutter or cap of its own, for a hero inside a page column that already sets the width. Without it the hero keeps a gutter at either side and caps its width. |

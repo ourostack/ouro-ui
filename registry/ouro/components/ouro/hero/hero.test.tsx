@@ -125,7 +125,7 @@ describe("Hero", () => {
 
   it("renders no optional slots it was not given", async () => {
     const { part } = await render(<Hero title="Plain" />);
-    for (const name of ["eyebrow", "description", "actions", "media", "image"]) expect(part(name)).toBeNull();
+    for (const name of ["breadcrumb", "eyebrow", "badge", "description", "actions", "more", "media", "image"]) expect(part(name)).toBeNull();
   });
 
   it("switches to the column layout", async () => {
@@ -204,6 +204,40 @@ describe("Hero", () => {
       if (layout === "stage") expect(button.left + button.width / 2).toBeCloseTo(line.left + line.width / 2, 0);
       else expect(button.left).toBe(line.left);
     }
+  });
+
+  it("puts the trail above the eyebrow and the badge beside it, on the text's edge", async () => {
+    await page.viewport(1440, 900);
+    for (const layout of ["stage", "column", "split"] as const) {
+      const { header, part } = await render(
+        <Hero layout={layout} breadcrumb={<nav aria-label="Breadcrumb">Lab / Story</nav>} eyebrow="Lab" badge={<span>Beta</span>} title="Story" />,
+      );
+      const column = header.firstElementChild!;
+      expect(column.firstElementChild).toBe(part("breadcrumb"));
+      const eyebrow = part("eyebrow")!.getBoundingClientRect();
+      const badge = part("badge")!.getBoundingClientRect();
+      expect(badge.left).toBeGreaterThan(eyebrow.right);
+      expect(badge.top + badge.height / 2).toBeCloseTo(eyebrow.top + eyebrow.height / 2, 0);
+      expect(part("breadcrumb")!.getBoundingClientRect().bottom).toBeLessThanOrEqual(eyebrow.top);
+      const box = column.getBoundingClientRect();
+      if (layout === "stage") expect((eyebrow.left + badge.right) / 2).toBeCloseTo(box.left + box.width / 2, 0);
+      else expect(eyebrow.left).toBe(box.left);
+    }
+    const alone = await render(<Hero title="Story" badge={<span>Beta</span>} />);
+    expect(alone.part("eyebrow")).toBeNull();
+    expect(alone.part("badge")!.textContent).toBe("Beta");
+  });
+
+  it("sets more under the actions in the text column, beside the art in the split layout", async () => {
+    await page.viewport(1440, 900);
+    const { part } = await render(
+      <Hero layout="split" title="Ouro MD" actions={<button type="button">Download</button>} media={<div style={{ height: 300 }}>Scene</div>}>
+        <p>A recording of an agent's edit.</p>
+      </Hero>,
+    );
+    const more = part("more")!;
+    expect(part("actions")!.nextElementSibling).toBe(more);
+    expect(more.getBoundingClientRect().right).toBeLessThanOrEqual(part("media")!.getBoundingClientRect().left);
   });
 
   it("takes its container's width with fullWidth, with no gutter or cap of its own", async () => {
