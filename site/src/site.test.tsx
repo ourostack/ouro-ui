@@ -7,7 +7,7 @@ import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { parse, prose, sourceHref } from "./docs/markdown";
+import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
@@ -667,8 +667,11 @@ describe("docs running text", () => {
     expect(strong.textContent).toBe("Browser driving (Playwright, aria):");
     expect(strong.querySelector("code")?.textContent).toBe("aria");
     expect(container.textContent).toBe("A Browser driving (Playwright, aria): 90, see, and **kept** as written.");
-    await renderPage("/docs/agent-interfaces/");
-    expect(document.querySelector("main")!.textContent).not.toContain("**");
+    // A guide's list item and paragraph, as the docs pages draw them.
+    const page = document.createElement("div");
+    page.innerHTML = renderToStaticMarkup(<Markdown blocks={parse("- **Browser driving:** 90 of 120\n\nThen **read it** again.")} />);
+    expect(page.textContent).not.toContain("**");
+    expect([...page.querySelectorAll("li strong, p strong")].map((strong) => strong.textContent)).toEqual(["Browser driving:", "read it"]);
   });
 
   it("holds a paragraph's and a lead's last two words on one line, a hyphenated word whole, and leaves code, links and a long last word free", async () => {
