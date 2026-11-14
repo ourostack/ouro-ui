@@ -126,11 +126,14 @@ export function describe(arg: { selector: string; only?: number }): Described {
         if (!filled && layer.boxShadow === "none" && layer.backgroundImage === "none") continue;
         const w = parseFloat(layer.width);
         const h = parseFloat(layer.height);
-        const left = rect.left + el.clientLeft + (parseFloat(layer.left) || 0);
-        const top = rect.top + el.clientTop + (parseFloat(layer.top) || 0);
+        // Local, unscaled coordinates: a press scale shrinks the root's rect but not the layer's computed size.
+        const left = el.clientLeft + (parseFloat(layer.left) || 0);
+        const top = el.clientTop + (parseFloat(layer.top) || 0);
+        const boxW = el.offsetWidth;
+        const boxH = el.offsetHeight;
         if (!(w > 0 && h > 0)) continue;
-        if (left < rect.left - 1 || top < rect.top - 1 || left + w > rect.right + 1 || top + h > rect.bottom + 1) {
-          escapes.push(`${key}: ${pseudo} layer sits ${Math.round(left - rect.left)},${Math.round(top - rect.top)} ${Math.round(w)}x${Math.round(h)} outside its ${Math.round(rect.width)}x${Math.round(rect.height)} box`);
+        if (left < -1 || top < -1 || left + w > boxW + 1 || top + h > boxH + 1) {
+          escapes.push(`${key}: ${pseudo} layer sits ${Math.round(left)},${Math.round(top)} ${Math.round(w)}x${Math.round(h)} outside its ${boxW}x${boxH} box`);
         }
       }
     }
