@@ -572,6 +572,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const slot = (key: string) => {
     const index = indexes.get(key)!;
     const gap = index > 0 && (kindOf(key) === "section" ? "pt-2.5" : "pt-0.5");
+    // Stryker disable next-line EqualityOperator: a kept row at index end follows the last flowed row, so flow and its absolute place agree.
     if (flow && index < end) return { className: cn(gap), style: undefined };
     return { className: cn("absolute inset-x-0", gap), style: { top: offsets[index] } };
   };
