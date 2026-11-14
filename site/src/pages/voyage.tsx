@@ -11,7 +11,7 @@ import { AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleRe
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
-import { Hero } from "../voyage/hero";
+import { VoyageHero } from "../voyage/hero";
 import { VoyageFooter } from "../voyage/layout";
 import { StoryOpening } from "../voyage/nautilus";
 import { openXray, setXray, spotlightFrom, useXray } from "../voyage/xray-store";
@@ -133,7 +133,7 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
             </main>
           ) : (
             <main id="main">
-              <Hero onXray={openXray} />
+              <VoyageHero onXray={openXray} />
               <TwoShips />
               <RepaintIsland />
               <HomeReferenceIsland />

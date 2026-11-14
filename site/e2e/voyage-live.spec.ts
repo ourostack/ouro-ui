@@ -32,7 +32,7 @@ test.describe("Live, at every sky, light and dark", () => {
         await open(page);
         await expect(page.locator("html")).toHaveAttribute("data-sky", sky);
         await expect(page.locator("html")).toHaveAttribute("data-theme", "pearl");
-        await expect(page.locator('.site-hero [data-site-preset="live"]')).toHaveAttribute("aria-pressed", "true");
+        await expect(page.locator('.site-console [data-site-preset="live"]')).toHaveAttribute("aria-pressed", "true");
         await page.evaluate(() => document.fonts.ready);
         const report = await auditPage(page, browserName);
         expect(report).toBe("");

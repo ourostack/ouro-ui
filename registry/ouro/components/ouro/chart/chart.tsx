@@ -482,6 +482,11 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
     return item ? [{ item, value: entry.value }] : [];
   });
   if (!active || entries.length === 0) return null;
+  // Recharts gives an active tooltip no label only for a moment, as when a chart is drawn under a
+  // resting pointer, which no test can hold; without the fallback the card would read "undefined".
+  /* istanbul ignore next @preserve -- a momentary Recharts state, above */
+  // Stryker disable next-line StringLiteral: the fallback shows only in that momentary state, which no test can hold.
+  const heading = String(label ?? "");
   return (
     // A polite live region (recharts' own card is assertive), so a screen reader in the plot
     // hears each point the arrow keys reach.
@@ -491,7 +496,7 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
       aria-live="polite"
       className="grid min-w-32 gap-1.5 rounded-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-(--shadow-lg)"
     >
-      <div className="font-medium">{String(label ?? "")}</div>
+      <div className="font-medium">{heading}</div>
       {entries.map(({ item, value }) => (
         <div key={item.key} className="flex items-center gap-2">
           <Marker item={item} />

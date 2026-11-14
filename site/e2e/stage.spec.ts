@@ -764,7 +764,7 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
     const background = (locator: ReturnType<Page["locator"]>) => locator.evaluate((element) => getComputedStyle(element).backgroundColor);
-    const solid = await background(page.locator(".site-hero").getByRole("link", { name: "Come aboard" }));
+    const solid = await background(page.locator(".site-console").getByRole("link", { name: "Come aboard" }));
     expect(await background(diveButton(page))).not.toBe(solid);
     const started = await recordAnimations(page);
     await fillTanks(page);
