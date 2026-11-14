@@ -76,8 +76,13 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
         await control.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" }));
         const box = await control.boundingBox();
         if (!box) continue;
+        const marks = () => control.evaluate((el) => el.getAttributeNames().filter((n) => n.startsWith("data-") || n.startsWith("aria-")).map((n) => `${n}=${el.getAttribute(n)}`).sort().join(" "));
+        const before = await marks();
         const record = async (state: string, pseudo: string) => {
           if (!(await control.evaluate((el, p) => el.matches(p), pseudo))) return;
+          // A press that picks the control (a calendar day) changes what it is, so it no longer has this state's look.
+          if ((await marks()) !== before) return;
+          await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
           await page.evaluate(() => Promise.race([Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => null))), new Promise((done) => setTimeout(done, 1_000))]));
           found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
           const { looks: now, escapes } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
