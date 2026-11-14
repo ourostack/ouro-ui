@@ -1,7 +1,7 @@
 "use client";
 
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { A2UISurface, type A2UIActionMessage, type A2UIHandoff, type A2UIProblem } from "@/registry/ouro/components/ouro/a2ui-surface/a2ui-surface";
+import { A2UISurface, type A2UIActionMessage, type A2UIHandoff, type A2UIProblem, type A2UISurfaceProps } from "@/registry/ouro/components/ouro/a2ui-surface/a2ui-surface";
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { Spinner } from "@/registry/ouro/components/ouro/spinner/spinner";
 import { functionCallProblem, loadCatalog } from "@/registry/ouro/lib/ouro/a2ui-core";
@@ -20,6 +20,11 @@ export interface OuroMcpAppProps {
    * to do it.
    */
   handoffUrl?: ((handoff: A2UIHandoff) => string | undefined) | undefined;
+  /**
+   * The app's own word for an id on a confirm sheet, from its own data, in place of the agent's name. It works for a
+   * view you build in code. See A2UISurface's `label`.
+   */
+  label?: A2UISurfaceProps["label"];
   /** The connection to the host. @default the window that framed the view, through `windowHostLink()` */
   host?: McpAppHostLink | undefined;
   /** What the view calls itself in `ui/initialize`. @default { name: "Ouro HX card", version: "1.0.0" } */
@@ -84,7 +89,7 @@ function applyTheme(context: unknown): void {
  * );
  */
 export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
-  const { catalog, handoffUrl, host, appInfo, className, onAction } = props;
+  const { catalog, handoffUrl, label, host, appInfo, className, onAction } = props;
   const actions = useMemo(() => loadCatalog(catalog), [catalog]);
   const [messages, setMessages] = useState<readonly unknown[] | undefined>(undefined);
   const [status, setStatus] = useState<Status | undefined>(undefined);
@@ -186,7 +191,7 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
 
   return (
     <div ref={root} data-ouro="ouro-mcp-app" className={cn(ROOT_CLASS, className)}>
-      {messages && connection ? <A2UISurface catalog={catalog} messages={messages} onAction={runAction} onHandoff={handOff} onProblems={reportProblems} /> : status ? null : <Spinner label="Waiting for the card" />}
+      {messages && connection ? <A2UISurface catalog={catalog} messages={messages} label={label} onAction={runAction} onHandoff={handOff} onProblems={reportProblems} /> : status ? null : <Spinner label="Waiting for the card" />}
       {status ? <Alert tone={status.tone} title={status.title} description={status.description} /> : null}
     </div>
   );

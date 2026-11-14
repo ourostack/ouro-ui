@@ -35,6 +35,7 @@ Type: `OuroMcpAppProps`.
 | `className` | `string` |  | Layout only: margins, width (`max-w-md`). |
 | `handoffUrl` | `((handoff: A2UIHandoff) => string \| undefined)` |  | Where a person-only button takes the person: the address of your app's own screen for that action, which the host opens with `ui/open-link`. Without one, or when the host can't open links, the view tells the person where to do it. |
 | `host` | `McpAppHostLink` | the window that framed the view, through `windowHostLink()` | The connection to the host. |
+| `label` | `A2UISurfaceProps["label"]` |  | The app's own word for an id on a confirm sheet, from its own data, in place of the agent's name. It works for a view you build in code. See A2UISurface's `label`. |
 
 ## Don't use
 
@@ -52,6 +53,29 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
 
+### `A2UIActionMessage`
+
+The A2UI `action` message a pressed button sends: named after the action's id, with the prepared input as its context.
+
+```ts
+interface A2UIActionMessage {
+  version: string;
+  action: {
+    /** The action's id, which is also its MCP tool's name. */
+    name: string;
+    surfaceId: string;
+    sourceComponentId: string;
+    timestamp: string;
+    /** The button's label, as the person read it. */
+    userMessage: string;
+    /** The input the agent prepared, by field name. */
+    context: Record<string, unknown>;
+    /** That the person pressed it, its consent class, and for a consequential action that the person confirmed. */
+    metadata: { extensions: { bot_ouroboros_action: { consent: string; by: "person"; confirmed?: true } } };
+  };
+}
+```
+
 ### `A2UIHandoff`
 
 Where a person-only button takes the person: the action's id and the declaration's `how`.
@@ -60,5 +84,55 @@ Where a person-only button takes the person: the action's id and the declaration
 interface A2UIHandoff {
   action: string;
   how: string;
+}
+```
+
+### `A2UIProblem`
+
+A problem the validator found in the agent's messages, in A2UI's validation error format.
+
+```ts
+type A2UIProblem = Problem;
+```
+
+### `A2UISurfaceProps`
+
+Props for `A2UISurface`.
+
+```ts
+interface A2UISurfaceProps {
+  /** The app's A2UI catalog, generated from its actions by core's `ouro-a2ui-catalog.mts catalog`. */
+  catalog: unknown;
+  /** The agent's A2UI messages, in order. The surface shows where they leave it. */
+  messages: readonly unknown[];
+  /** Which surface to show. @default the first one the messages create */
+  surfaceId?: string | undefined;
+  /**
+   * Runs a pressed read or write button, and a consequential one once the person confirms. Send the message to
+   * the agent, or call the action's own tool with `message.action.context`. Return a promise to show the button
+   * loading until it settles.
+   */
+  onAction: (message: A2UIActionMessage) => void | Promise<void>;
+  /**
+   * A person-only button never runs from composed UI: take the person to your app's own screen for it.
+   */
+  onHandoff: (handoff: A2UIHandoff) => void;
+  /** The validator's problems, when the messages fail it; the person sees a short alert instead. Hand them to the agent to correct. */
+  onProblems?: ((problems: readonly A2UIProblem[]) => void) | undefined;
+  /**
+   * Names the ids in a confirm sheet's rows from the app's own data, such as a recipe's title for `rcp_lemon_orzo`.
+   * Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared,
+   * because the agent's text is the one thing the person can't check. Keep it stable, as `messages` is: a new function
+   * on each render resolves the messages again.
+   *
+   * @example
+   * label={({ field, value }) => (field === "recipe" ? titles[value] : undefined)}
+   */
+  label?: ((context: LabelContext) => string | undefined) | undefined;
+  /** Layout only: margins, width (`max-w-md`). */
+  className?: string | undefined;
+
+  /** Not a prop. A pressed button calls `onAction`, or `onHandoff` for a person-only one: `<A2UISurface onAction={send} onHandoff={openApp}>`. */
+  onPress?: { "Use onAction={send} onHandoff={openApp}": never };
 }
 ```
