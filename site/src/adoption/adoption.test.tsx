@@ -25,7 +25,15 @@ describe("the adoption ledger", () => {
     expect(host.textContent).toContain("not measured yet");
   });
 
-  it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
+  it("says how many releases the counted products are behind, and which are more than a day late", async () => {
+    const host = await renderPage("/adoption/");
+    const line = host.querySelector(".adoption-behind")?.textContent ?? "";
+    expect(SNAPSHOT.summary.releasesBehind).toBeTypeOf("number");
+    expect(line).toContain(`${SNAPSHOT.summary.releasesBehind} releases behind`);
+    for (const item of SNAPSHOT.summary.late ?? []) expect(line).toContain(`${item.name} (${item.late})`);
+  });
+
+    it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {
     setScheme(scheme);
     await renderPage("/adoption/");
     const violations = await scan();

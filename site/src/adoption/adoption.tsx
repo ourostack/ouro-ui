@@ -95,7 +95,12 @@ function Row({ surface }: { surface: Surface }): JSX.Element {
             <ul className="adoption-plain">
               {pins.value.map((pin) => (
                 <li key={pin.label}>
-                  <strong>{pin.tag ?? "not read"}</strong> <span className="adoption-detail">{pin.label}: {behindText(pin.behind)}{pin.latestTag ? `, latest ${pin.latestTag}` : ""}</span>
+                  <strong>{pin.tag ?? "not read"}</strong>{" "}
+                  <span className="adoption-detail">
+                    {pin.label}: {behindText(pin.behind)}
+                    {pin.late ? `, ${pin.late} of them out more than a day` : ""}
+                    {pin.latestTag ? `, latest ${pin.latestTag}` : ""}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -212,6 +217,12 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
               <Link href="https://github.com/ourostack/ouro-ui/issues?q=is%3Aissue+label%3Aadoption">the tracking issues</Link>,{" "}
               <Link href={LIVE_URL}>ledger.json</Link>.
             </p>
+            {summary.releasesBehind === undefined ? null : (
+              <p className="adoption-behind">
+                Counted products are <strong>{summary.releasesBehind} releases behind</strong> in total.
+                {summary.late?.length ? ` More than a day late: ${summary.late.map((item) => `${item.name} (${item.late})`).join(", ")}.` : null}
+              </p>
+            )}
             <p className="adoption-newer" aria-live="polite">
               {waiting ? (
                 <>

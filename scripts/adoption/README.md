@@ -37,6 +37,8 @@ A cell is `{ value, note, source, measuredAt }`.[^cell] A value of `null` means 
 | Tracking issue | the issues for the product's work items | The `adoption` issues whose work item lists the product, with their state. A product that lacks a work item is shown as not having an issue yet. |
 | Confirmed | the conditions below, together | The list that follows. |
 
+The summary adds up every counted product's releases behind and names each product that has lacked a release for more than a day.[^late] While one has, the hourly run keeps one issue open, "Products are more than a day behind Ouro UI", and comments on it at most daily.[^late-issue]
+
 ### Confirmed
 
 A product is confirmed when these hold together:
@@ -66,3 +68,5 @@ The steps come from the program issue's table. Ouro UI's own numbers are: the la
 [^apple-full]: scripts/adoption/ledger.mjs verify:fileLine(scripts/adoption/ledger.mjs, /components >= 5 \? "full"/)
 [^action-model]: scripts/adoption/ledger.mjs verify:fileLine(scripts/adoption/ledger.mjs, /cell\(ctx, 0, \{ note: "The one-action model is not released yet/)
 [^search-budget]: test:scripts/adoption/ledger.test.mjs::code search stops waiting once its time budget is spent, so the hourly run finishes verify:testExists(scripts/adoption/ledger.test.mjs::code search stops waiting once its time budget is spent, so the hourly run finishes)
+[^late]: test:scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more verify:testExists(scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more)
+[^late-issue]: .github/workflows/adoption-ledger.yml verify:fileLine(.github/workflows/adoption-ledger.yml, /Products are more than a day behind Ouro UI/)
