@@ -158,6 +158,13 @@ describe("Toggle", () => {
 });
 
 describe("Toggle looks", () => {
+  it("draws its hover wash with the toggle's own corner shape", async () => {
+    const { toggle } = await render(<Toggle label="Bold" />);
+    const own = getComputedStyle(toggle).getPropertyValue("corner-shape");
+    expect(own).toBe("superellipse(2)");
+    expect(getComputedStyle(toggle, "::before").getPropertyValue("corner-shape")).toBe(own);
+  });
+
   it("tints the pressed toggle with the primary color", async () => {
     const { host } = await render(
       <>

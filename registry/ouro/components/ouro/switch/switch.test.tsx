@@ -521,8 +521,8 @@ describe("Switch corners under the squircle polyfill's bridge", () => {
       const { track, thumb } = await render(<Switch label="Wi-Fi" />);
       expect(getComputedStyle(track).getPropertyValue("--corner-shape")).toBe("round");
       expect(getComputedStyle(thumb).getPropertyValue("--corner-shape")).toBe("round");
-      expect(getComputedStyle(track).cornerShape).toBe("superellipse(1)");
-      expect(getComputedStyle(thumb).cornerShape).toBe("superellipse(1)");
+      expect(getComputedStyle(track).getPropertyValue("corner-shape")).toBe("superellipse(1)");
+      expect(getComputedStyle(thumb).getPropertyValue("corner-shape")).toBe("superellipse(1)");
     } finally {
       bridge.remove();
     }
