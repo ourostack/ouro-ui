@@ -46,17 +46,18 @@ The guide: https://ui.ouroboros.bot/docs/ax.md. A morning with an agent, with th
 
 ## Ouro UI for Apple
 
-Ouro HX and Ouro AX in Swift, for iPhone, iPad and Mac (ourostack/ouro-ui-apple): https://ui.ouroboros.bot/apple/. The section's checks ask the same app different questions:
+Ouro HX and Ouro AX in Swift, for iPhone, iPad and Mac (ourostack/ouro-ui-apple): https://ui.ouroboros.bot/apple/. The section's parts:
 
 - The App Intents X-ray (claims held): reads a built app's App Intents from outside and checks them against Ouro AX for Apple's claims. https://ui.ouroboros.bot/apple/ax/
 - Ouro Reins (behaviour): an agent reads the app's screens as state and actions and drives it with `ls` and `do`, headless, from fixtures, with the network blocked. Spoonjoy's Kitchen-to-cook-mode journey ran in a median 18.7 ms this way against 16.7 s through XCUITest.[^reins-timing] The idea is Shopify's Reflex (https://shopify.engineering/reflex). Its wire contract is a spec of its own, docs/ouro-reins/PROTOCOL.md in ouro-ui-apple, and a second driver speaks it for any app on a Mac, from the app's tree of controls or a screenshot's text.[^reins-protocol] https://ui.ouroboros.bot/apple/reins/
 - Ouro Feel (how it feels): checks jank genre by genre from a UI test: the way back, overlay dismissal, inside the window, tap landing (with an absolute bar for rapid double taps), double-draw, jump after landing, late or lingering chrome, snap with no transition, settle time and place stability.[^feel-genres] https://ui.ouroboros.bot/apple/feel/
+- OuroA2UI (agent-composed UI, new in 0.5.0): draws Ouro HX's A2UI catalog in SwiftUI, where every button is one of the app's declared actions and follows its consent class.[^a2ui] https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#agent-composed-ui-a2ui
 
 ```swift
-.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.2.1")   // the foundations and the X-ray
+.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.0")   // the foundations, the X-ray, Feel, Reins and OuroA2UI
 ```
 
-Ouro Feel and Ouro Reins are on ouro-ui-apple's main branch and are not in a release yet; their guides are docs/ouro-feel/README.md and docs/ouro-reins/README.md in that repository.
+Ouro Feel and Ouro Reins shipped in ouro-ui-apple 0.4.1 as the OuroFeel and OuroReins products.[^feel-reins] Their guides are docs/ouro-feel/README.md and docs/ouro-reins/README.md in that repository.
 
 ## Items
 
@@ -96,3 +97,5 @@ Ouro Feel and Ouro Reins are on ouro-ui-apple's main branch and are not in a rel
 [^reins-protocol]: https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/PROTOCOL.md verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/PROTOCOL.md)
 [^reins-timing]: site/src/apple/evidence/reins-headless-timing.json verify:fileLine(site/src/apple/evidence/reins-headless-timing.json, /"medianMs": 18\.7,/) verify:fileLine(site/src/apple/evidence/reins-headless-timing.json, /"medianJourneyMs": 16677,/)
 [^feel-genres]: site/src/apple/feel-genres.json verify:count(site/src/apple/feel-genres.json#genres)=10
+[^feel-reins]: site/src/apple/kit.json verify:equals(site/src/apple/kit.json#feelReinsRelease)=0.4.1
+[^a2ui]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#agent-composed-ui-a2ui)
