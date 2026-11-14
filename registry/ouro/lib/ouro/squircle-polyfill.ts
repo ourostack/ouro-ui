@@ -14,5 +14,14 @@ export { registerSquirclePolyfill };
  * @group App setup
  */
 function registerSquirclePolyfill(): Promise<void> {
+  // The polyfill hides border, outline and shadow colours while it draws, and each flush restarts their transitions;
+  // their events would mark the corner dirty again and loop. These listeners run first and stop that.
+  const ignore = (event: Event) => {
+    if (/^(border-.*-color|outline-color|box-shadow)$/.test((event as TransitionEvent).propertyName)) {
+      event.stopImmediatePropagation();
+    }
+  };
+  document.addEventListener("transitionrun", ignore, true);
+  document.addEventListener("transitionend", ignore, true);
   return import("hyperellipse").then((polyfill) => void polyfill.registerHyperellipse());
 }
