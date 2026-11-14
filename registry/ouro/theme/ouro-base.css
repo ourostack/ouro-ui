@@ -125,11 +125,15 @@
   --ouro-glass-solid: #e9e6e1;
 }
 
-/* Every rounded Ouro element takes the corner shape (only those: setting it on every element slowed paint); Switch, radios, slider thumbs, presence dots and spinners say round. */
+/* Every rounded Ouro element takes the corner shape (only those: setting it on every element slowed paint). Anything that says rounded-full (dots, thumbs, rings, pills) is round, whatever it sits in: --corner-shape is inherited, so it is set again here. */
 @layer base {
-  :where([data-ouro], [data-ouro] *)[class*="rounded"] {
+  :where([data-ouro], [data-ouro] *)[class*="rounded"]:not([class*="rounded-full"]) {
     --corner-shape: var(--ouro-corner-shape);
     corner-shape: var(--ouro-corner-shape);
+  }
+  [class*="rounded-full"] {
+    --corner-shape: round;
+    corner-shape: round;
   }
 }
 
