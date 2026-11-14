@@ -37,7 +37,7 @@ A cell is `{ value, note, source, measuredAt }`.[^cell] A value of `null` means 
 | Tracking issue | the issues for the product's work items | The `adoption` issues whose work item lists the product, with their state. A product that lacks a work item is shown as not having an issue yet. |
 | Confirmed | the conditions below, together | The list that follows. |
 
-The summary adds up every counted product's releases behind and names each product that has lacked a release for more than a day.[^late] While one has, the hourly run keeps one issue open, "Products are more than a day behind Ouro UI", and comments on it at most daily.[^late-issue]
+The target is that no product goes more than a day without an Ouro UI release (web, core or Apple) it lacks.[^late] The summary names each product past it, and adds up every counted product's releases behind; that total is context, since Ouro UI releases several times a day.[^late] While one has, the hourly run keeps one issue open, "Products are more than a day behind Ouro UI", and comments on it at most daily.[^late-issue]
 
 ### Confirmed
 
