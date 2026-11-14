@@ -36,7 +36,13 @@ export class TimedSequencer extends BaseSequencer {
     const rest = files.filter((spec) => !slicedSuites.includes(path(spec)));
     // With the installed-subset checks in the same split (scripts/subset-coverage.mjs), each project spread across the shards: Vitest runs the projects side by side.
     const recorded = readTimings("vitest");
-    const mine = new Set(browserBalance(count, rest.map(key).filter((name) => !(name in recorded)))[index - 1]!.keys);
+    const mine = new Set(browserBalance(count, [])[index - 1]!.keys);
+    // A file with no recorded time takes its turn by name, so a run of only such files (the themes project's) spreads over the shards instead of piling onto the one a recorded weight leaves lightest.
+    rest
+      .map(key)
+      .filter((name) => !(name in recorded))
+      .sort()
+      .forEach((name, position) => position % count === index - 1 && mine.add(name));
     return [...sliced, ...rest.filter((spec) => mine.has(key(spec)))];
   }
 }
