@@ -77,9 +77,10 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
         if (!box) continue;
         const record = async (state: string, pseudo: string) => {
           if (!(await control.evaluate((el, p) => el.matches(p), pseudo))) return;
-          await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => null))));
+          await page.evaluate(() => Promise.race([Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => null))), new Promise((done) => setTimeout(done, 1_000))]));
           found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
-          const { looks: now } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
+          const { looks: now, escapes } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
+          found.push(...escapes.map((e) => `${path} ${state}: ${e}`));
           const look = now[0];
           if (!look) return;
           const tagged = { ...look, key: `${look.key}|${state}` };

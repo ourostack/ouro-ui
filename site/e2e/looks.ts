@@ -66,6 +66,29 @@ export function describe(arg: { selector: string; only?: number }): Described {
     }
     return "page";
   };
+  // A dot, light, thumb or pill is a circle by its geometry, so whatever its name or classes, it is drawn round.
+  // Every visible element counts, not only the ones X-ray names.
+  if (arg.only === undefined) {
+    for (const el of document.querySelectorAll<HTMLElement>("body *")) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden") continue;
+      const radius = parseFloat(cs.borderTopLeftRadius);
+      if (!(radius > 0)) continue;
+      const rect = el.getBoundingClientRect();
+      const short = Math.min(rect.width, rect.height);
+      if (short < 4 || short > 120 || radius < short / 2 - 0.5) continue;
+      const long = Math.max(rect.width, rect.height);
+      const circle = long - short <= 1;
+      const thin = short <= 12;
+      const interactiveRoot = el.hasAttribute("data-ouro") && el.hasAttribute("data-ouro-control");
+      if ((!circle && !thin) || interactiveRoot || el.tagName === "BUTTON") continue;
+      const painted = (cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent") || cs.backgroundImage !== "none" || parseFloat(cs.borderTopWidth) > 0;
+      const shape = cs.getPropertyValue("corner-shape");
+      if (!painted || !shape || shape === "superellipse(1)" || shape === "round") continue;
+      const owner = el.closest<HTMLElement>("[data-ouro]")?.dataset["ouro"] ?? "page";
+      escapes.push(`${owner}|${el.dataset["ouroPart"] ?? el.tagName.toLowerCase()}|${Math.round(rect.width)}x${Math.round(rect.height)}: round part (radius ${Math.round(radius)}px) is drawn ${shape}`);
+    }
+  }
   all.forEach((el, index) => {
     if (arg.only !== undefined && arg.only !== index) return;
     const root = el.closest<HTMLElement>("[data-ouro]");
