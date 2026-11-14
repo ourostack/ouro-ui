@@ -26,6 +26,7 @@ export const WAIVERS: Waiver[] = [
   { component: "switch", part: "track", variant: "", state: "", page: "/apple/feel/", property: "border", reason: "the off Switch draws its outline as a border", source: "registry/ouro/components/ouro/switch/switch-styles.ts" },
   { component: "checkbox", part: "box", variant: "", state: "hover", page: "/docs/checkbox-group/", property: "pixels", reason: "the crop includes the group's own surface beside the box", source: "site/src/docs/demos/checkbox-group.demo.tsx" },
   { component: "number-field", part: "increment", variant: "", state: "hover", page: "/docs/number-field/", property: "pixels", reason: "the crop includes the field's edge beside the stepper", source: "site/src/docs/demos/number-field.demo.tsx" },
+  { component: "calendar", part: "day", variant: "", state: "hover", page: "/docs/calendar/", property: "background", reason: "WebKit reads the day's hover fill before the accent transition settles; the rule is not-aria-disabled:not-data-selected:pointer-fine:hover:bg-accent", source: "registry/ouro/components/ouro/calendar/calendar-styles.ts" },
   { component: "slider", part: "thumb", variant: "", state: "focus", page: "/", property: "outline", reason: "the home slider shows focus as a ring drawn on its track", source: "site/src/voyage/hero.tsx" },
 ];
 
