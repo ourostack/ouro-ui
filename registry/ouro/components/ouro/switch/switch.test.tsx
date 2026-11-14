@@ -351,10 +351,11 @@ describe("Switch look and motion", () => {
       // What the thumb's style says beside where it is drawn, so a failure tells a stale read from a real move.
       const style = getComputedStyle(thumb);
       const running = thumb.getAnimations().map((a) => `${a instanceof CSSTransition ? a.transitionProperty : "animation"}@${Math.round(Number(a.currentTime ?? -1))}`);
-      return { left: box.left - at, right: box.right - at, at, style: `${style.translate}/${style.scale}${running.length ? ` [${running.join(" ")}]` : ""}` };
+      const value = `${style.translate}/${style.scale}`;
+      return { left: box.left - at, right: box.right - at, at, value, clock: running.join(" "), style: `${value}${running.length ? ` [${running.join(" ")}]` : ""}` };
     };
     const direction = startChecked ? -1 : 1;
-    const samples: { left: number; right: number; at: number; style: string }[] = [];
+    const samples: ReturnType<typeof edges>[] = [];
     await commands.pointerPress({ selector: '[role="switch"]', action: "down" });
     await new Promise((resolve) => setTimeout(resolve, 300));
     const pressed = edges();
@@ -368,7 +369,14 @@ describe("Switch look and motion", () => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     sampling = false;
     await settled(thumb);
-    const frames = [pressed, ...samples, edges()];
+    const read = [pressed, ...samples, edges()];
+    // WebKit sometimes hands back, for one frame while the transitions still run, the exact style of an earlier frame
+    // of the same slide (the 15 ms frame's at 159 ms of 160). A style that matches an earlier one to the last digit
+    // while the transitions' own clock reads a later time is a stale read, not where the thumb is; a real move back
+    // would land on a value of its own.
+    const stale = (frame: (typeof read)[number], index: number) =>
+      frame.clock !== "" && read.slice(0, index).some((earlier) => earlier.clock !== "" && earlier.clock !== frame.clock && earlier.value === frame.value);
+    const frames = read.filter((frame, index) => !stale(frame, index));
     const bounds = { left: 0, right: origin().width };
     for (const frame of frames) {
       expect(frame.left).toBeGreaterThanOrEqual(bounds.left - 0.5);
@@ -376,7 +384,7 @@ describe("Switch look and motion", () => {
     }
     // Neither edge ever moves against the direction of travel by more than a pixel.
     // The frames, with where the track was on the page, so a failure says whether the thumb or the page moved.
-    const seen = frames.map((f) => `${f.left.toFixed(1)}..${f.right.toFixed(1)} at ${f.at.toFixed(1)} (${f.style})`).join(", ");
+    const seen = read.map((f, i) => `${f.left.toFixed(1)}..${f.right.toFixed(1)} at ${f.at.toFixed(1)} (${f.style})${stale(f, i) ? " stale" : ""}`).join(", ");
     for (let index = 1; index < frames.length; index++) {
       expect((frames[index]!.left - frames[index - 1]!.left) * direction, seen).toBeGreaterThanOrEqual(-1);
       expect((frames[index]!.right - frames[index - 1]!.right) * direction, seen).toBeGreaterThanOrEqual(-1);
