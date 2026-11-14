@@ -13,6 +13,12 @@ interface SkeletonCommonProps {
   /** Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. */
   className?: string | undefined;
   ref?: Ref<HTMLSpanElement> | undefined;
+  /**
+   * Whether the band sweeps across the placeholder. `false` draws it still, as reduced motion does.
+   * Choose it for a long list of pictures loading at once, where a sweep on each may slow scrolling.
+   * @default true
+   */
+  shimmer?: boolean | undefined;
 
   /** Not a prop. Ouro UI uses `shape`: `<Skeleton shape="circle">`. */
   variant?: { 'Use <Skeleton shape="circle">': never };
@@ -135,6 +141,9 @@ const fill =
   // Forced colours paint the fill as the page's own Canvas, so an outline in the text colour keeps the shape.
   "forced-colors:outline forced-colors:outline-1 forced-colors:-outline-offset-1 forced-colors:outline-[CanvasText]";
 
+// `shimmer={false}`: the same band, held still in the middle.
+const still = "before:animate-none";
+
 const shapes = {
   rect: "h-4 w-full rounded-md",
   circle: "aspect-square rounded-full",
@@ -181,14 +190,14 @@ function atLeastOne(value: number | undefined): number {
   return Math.max(1, Number.isInteger(value) ? (value as number) : 1);
 }
 
-function Bar({ className }: { className: string | undefined }): JSX.Element {
-  return <span className={cn(fill, bar, className)} />;
+function Bar({ className, shimmer }: { className: string | undefined; shimmer: boolean }): JSX.Element {
+  return <span className={cn(fill, !shimmer && still, bar, className)} />;
 }
 
 /**
  * A shimmering placeholder in the shape and size of content that is still loading, so the
  * content takes its place without moving anything. Screen readers skip it, so mark the region
- * that is loading with `aria-busy` while it shows. With reduced motion the shimmer holds still.
+ * that is loading with `aria-busy` while it shows. With reduced motion, or `shimmer={false}`, the shimmer holds still.
  *
  * Pick the shape of what is coming: `shape="text"` with `lines` and Text's `size` for a
  * paragraph, `shape="circle"` with Avatar's `size` for an avatar, `shape="row"` with `count`
@@ -212,7 +221,7 @@ function Bar({ className }: { className: string | undefined }): JSX.Element {
  * </>
  */
 export function Skeleton(props: SkeletonProps): JSX.Element {
-  const { shape: shapeProp = "rect", size: sizeProp, lines: linesProp, count: countProp, className, variant, animation, width, height, ref, ...rest } =
+  const { shape: shapeProp = "rect", size: sizeProp, lines: linesProp, count: countProp, className, shimmer = true, variant, animation, width, height, ref, ...rest } =
     props as SkeletonCommonProps &
       Omit<HTMLAttributes<HTMLSpanElement>, "children"> & { shape?: string; size?: string; lines?: number; count?: number };
   // A shape that is not one of Ouro UI's (a type error) warns and renders the default.
@@ -255,7 +264,7 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
 
   if (shape === "rect" || shape === "circle") {
     const shapeClass = shape === "circle" ? cn(shapes.circle, avatarSizes[(size ?? "md") as SkeletonAvatarSize]) : shapes.rect;
-    return <span {...rest} {...common} ref={ref} className={cn(fill, shapeClass, className)} />;
+    return <span {...rest} {...common} ref={ref} className={cn(fill, !shimmer && still, shapeClass, className)} />;
   }
   if (shape === "text") {
     const lines = atLeastOne(linesProp);
@@ -263,7 +272,7 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
       <span {...rest} {...common} ref={ref} className={cn("block w-full", size && textSizes[size as keyof typeof textSizes], className)}>
         {Array.from({ length: lines }, (_, index) => (
           <span key={index} className={line}>
-            <Bar className={lines > 1 && index === lines - 1 ? "w-2/3" : "w-full"} />
+            <Bar shimmer={shimmer} className={lines > 1 && index === lines - 1 ? "w-2/3" : "w-full"} />
           </span>
         ))}
       </span>
@@ -280,13 +289,13 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
         if (shape === "row") {
           return (
             <span key={index} {...own} {...common} className={cn("grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4", rowSizes[frame], className)}>
-              <Bar className="mt-0.75 size-10 self-start rounded-md" />
+              <Bar shimmer={shimmer} className="mt-0.75 size-10 self-start rounded-md" />
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className={cn(line, "text-base")}>
-                  <Bar className={title} />
+                  <Bar shimmer={shimmer} className={title} />
                 </span>
                 <span className={cn(line, "text-sm")}>
-                  <Bar className={detail} />
+                  <Bar shimmer={shimmer} className={detail} />
                 </span>
               </span>
             </span>
@@ -302,18 +311,18 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
           >
             <span className={cn("flex min-w-0 flex-col gap-1", card.pad)}>
               <span className={cn(line, card.title)}>
-                <Bar className={title} />
+                <Bar shimmer={shimmer} className={title} />
               </span>
               <span className={cn(line, "text-sm")}>
-                <Bar className={detail} />
+                <Bar shimmer={shimmer} className={detail} />
               </span>
             </span>
             <span className={cn("block min-w-0 text-sm", card.pad)}>
               <span className={line}>
-                <Bar className="w-full" />
+                <Bar shimmer={shimmer} className="w-full" />
               </span>
               <span className={line}>
-                <Bar className="w-2/3" />
+                <Bar shimmer={shimmer} className="w-2/3" />
               </span>
             </span>
           </span>
