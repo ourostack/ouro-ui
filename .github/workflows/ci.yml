@@ -1191,11 +1191,13 @@ jobs:
     # workers split their tests (fullyParallel). Each uploads how long each file took. On a reduced
     # pull request, the same split of the selected components' specs and the site's: Playwright's
     # --shard split them by test count, and one shard took 15 minutes to the others' 4 to 6 (run
-    # 41433695050). A shard the split leaves no spec passes. Part of the e2e check.
+    # 41433695050). A shard the split leaves no spec passes. Part of the e2e check. A shard takes
+    # 7 to 10 minutes on main; its limit is about twice that, so a spec that hangs fails its shard
+    # by its own test timeout or this one, not after the run has waited 25 minutes on it.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 20
     # In Playwright's image (see the note above jobs:).
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
@@ -1740,14 +1742,14 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - run: scripts/install-test.sh github "$RUNNER_TEMP/app"
   fresh-main:
-    # Last before the gate, on a pull request only: with no merge queue, two pull requests that
+    # Starts with the run, in parallel with everything else, on a pull request only (on a push it would merge main into main): with no merge queue, two pull requests that
     # each pass can break main together. This merges main as it is now into the pull request's head
     # and runs the checks that combine across changes (generated files, the registry, the site's
     # build and its CSS size ceilings), then reads main again, and tests a newer main when it
     # moved, so a result for a main that is no longer main never passes (scripts/fresh-main.mjs).
     # ci-budget, the required check after it, fails when this fails.
-    needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && !contains(needs.*.result, 'failure') }}
+    needs: [plan]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -1787,7 +1789,7 @@ jobs:
     # runs, and the runner time the run took from the shared pool. A required check (ruleset
     # 24881709) that fails only a pull request: on a merge group or a push it only warns, so it
     # never bounces a queue entry.
-    needs: [plan, ci, fresh-main]
+    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
