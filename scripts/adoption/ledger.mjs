@@ -54,9 +54,9 @@ export function createContext({ gh = realGh, now = () => new Date(), sleep = sle
   const search = (query, repo) =>
     memo(`search:${repo}:${query}`, () => {
       for (let attempt = 0; ; attempt += 1) {
-        const wait = lastSearch + searchGapMs - Date.now();
+        const wait = lastSearch + searchGapMs - now().getTime();
         if (wait > 0) sleep(wait);
-        lastSearch = Date.now();
+        lastSearch = now().getTime();
         try {
           const data = JSON.parse(gh(["api", "-X", "GET", "search/code", "-f", `q=${query} repo:${repo}`, "-f", "per_page=100"]));
           return { total: data.total_count, paths: data.items.map((item) => item.path) };
