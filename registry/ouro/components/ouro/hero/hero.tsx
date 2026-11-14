@@ -98,10 +98,9 @@ export interface HeroOwnProps {
   actions?: ReactNode;
   /**
    * The big picture, shown under the text: `{ light, dark }`, the same scene by day and at
-   * night, swapped with the page's dark mode. A single picture still works and shows in both
-   * modes, but it is deprecated: pass `{ light, dark }`. A later release makes `{ light, dark }` required.
+   * night, swapped with the page's dark mode. Both are required: a hero has night art.
    */
-  picture?: HeroPictures | HeroPicture | undefined;
+  picture?: HeroPictures | undefined;
   /** Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. */
   media?: ReactNode;
   /**
@@ -145,8 +144,8 @@ export interface HeroOwnProps {
   heading?: { 'Use <Hero title="Dinner, sorted" />': never };
   /** Not a prop. The line above the title is `eyebrow`: `<Hero eyebrow="Recipes" />`. */
   overline?: { 'Use <Hero eyebrow="Recipes" />': never };
-  /** Not a prop. The picture is `picture`: `<Hero picture={{ src, width, height, alt }} />`. */
-  image?: { 'Use picture={{ src, width, height, alt }}': never };
+  /** Not a prop. The picture is `picture`: `<Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />`. */
+  image?: { 'Use picture={{ light, dark }}': never };
   /** Not a prop. The buttons are `actions`: `<Hero actions={<Button>Start</Button>} />`. */
   action?: { 'Use actions={<Button>Start</Button>}': never };
 }
@@ -292,8 +291,8 @@ export function Hero(props: HeroProps): JSX.Element {
     ...rest
   } = props;
   // A lede that is only text is a paragraph; one made of blocks needs a <div> to be valid HTML.
-  const light = picture && "light" in picture ? picture.light : picture;
-  const dark = picture && "light" in picture ? picture.dark : undefined;
+  const light = picture?.light;
+  const dark = picture?.dark;
   const Lede = typeof description === "string" || typeof description === "number" ? "p" : "div";
   const layout: HeroLayout = layoutProp === "column" ? "column" : layoutProp === "split" ? "split" : "stage";
   // Stryker disable next-line StringLiteral: motion is only compared with "rise", so "" and "none" behave the same.
@@ -330,6 +329,11 @@ export function Hero(props: HeroProps): JSX.Element {
               "picture has no alt text",
               '<Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />',
             ],
+          picture !== undefined &&
+            (light === undefined || dark === undefined) && [
+              "picture needs light and dark art, the same scene by day and at night",
+              "<Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />",
+            ],
           light !== undefined &&
             media != null && [
               "picture and media are both set; show one: picture for a still image, media for something live",
@@ -338,7 +342,7 @@ export function Hero(props: HeroProps): JSX.Element {
           subtitle !== undefined && ["subtitle is not a prop", '<Hero description="..." />'],
           heading !== undefined && ["heading is not a prop", '<Hero title="Dinner, sorted" />'],
           overline !== undefined && ["overline is not a prop", '<Hero eyebrow="Recipes" />'],
-          image !== undefined && ["image is not a prop", "<Hero picture={{ src, width, height, alt }} />"],
+          image !== undefined && ["image is not a prop", "<Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />"],
           action !== undefined && ["action is not a prop", "<Hero actions={<Button>Start</Button>} />"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -353,6 +357,7 @@ export function Hero(props: HeroProps): JSX.Element {
       mediaWidth !== undefined
       ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
       : undefined;
+  // Untyped code can still leave out the dark art: it is warned, and the light art then shows in both modes.
   const shown = light ? (
     <>
       {renderPicture(light, crop, dark ? "light" : undefined)}

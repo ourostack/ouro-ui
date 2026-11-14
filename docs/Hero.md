@@ -42,7 +42,7 @@ Type: `HeroProps`.
 | `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. |
 | `mediaWidth` | `number` |  | The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead. |
 | `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The rise is a CSS animation, so it plays from server-rendered HTML before any JavaScript runs; the keyframes and durations come from `ouro-base`. |
-| `picture` | `HeroPictures \| HeroPicture` |  | The big picture, shown under the text: `{ light, dark }`, the same scene by day and at night, swapped with the page's dark mode. A single picture still works and shows in both modes, but it is deprecated: pass `{ light, dark }`. A later release makes `{ light, dark }` required. |
+| `picture` | `HeroPictures` |  | The big picture, shown under the text: `{ light, dark }`, the same scene by day and at night, swapped with the page's dark mode. Both are required: a hero has night art. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `title` (required) | `ReactNode` |  | The hero's headline, its `<h1>` (or `<h2>` with `headingLevel={2}`). Required. |
 
@@ -56,7 +56,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `action`: Not a prop. The buttons are `actions`: `<Hero actions={<Button>Start</Button>} />`.
 - `heading`: Not a prop. The headline is `title`: `<Hero title="Dinner, sorted" />`.
-- `image`: Not a prop. The picture is `picture`: `<Hero picture={{ src, width, height, alt }} />`.
+- `image`: Not a prop. The picture is `picture`: `<Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />`.
 - `overline`: Not a prop. The line above the title is `eyebrow`: `<Hero eyebrow="Recipes" />`.
 - `subtitle`: Not a prop. The lede is `description`: `<Hero description="…" />`.
 
