@@ -18,7 +18,7 @@ test("a shard past 300 seconds of measured work is no longer worth its runner: r
 });
 
 test("shardPaths gives the shard's files as paths, and refuses a shard that does not exist", () => {
-  assert.deepEqual(shardPaths(2), ["site/e2e/chapter-two.latency.spec.ts", "site/e2e/site-menu.latency.spec.ts"]);
+  assert.deepEqual(shardPaths(2), ["site/e2e/chapter-two.latency.spec.ts", "site/e2e/site-menu.latency.spec.ts", "site/e2e/squircle-polyfill.latency.spec.ts"]);
   assert.throws(() => shardPaths(0), /does not exist/);
   assert.throws(() => shardPaths(LATENCY_SHARDS.length + 1), /does not exist/);
 });

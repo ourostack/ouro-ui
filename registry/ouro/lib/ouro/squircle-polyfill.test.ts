@@ -11,4 +11,19 @@ describe("registerSquirclePolyfill", () => {
     await registerSquirclePolyfill();
     expect(registerHyperellipse).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps the polyfill's own colour transitions from marking corners dirty", async () => {
+    await registerSquirclePolyfill();
+    const seen = vi.fn();
+    document.addEventListener("transitionrun", seen);
+    const make = (propertyName: string) => {
+      const event = new Event("transitionrun", { bubbles: true });
+      Object.assign(event, { propertyName });
+      document.body.dispatchEvent(event);
+    };
+    make("border-top-color");
+    make("box-shadow");
+    make("width");
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
 });
