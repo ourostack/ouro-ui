@@ -253,7 +253,9 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
           ? [...lazyFiles(manifest, "src/components/docs-sidebar.tsx", expected), ...lazyFiles(manifest, "src/components/docs-header.tsx", expected)]
           : [],
     );
-    const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-") && !island.has(file));
+    // OuroProvider loads the squircle polyfill after mount, in a chunk of its own that is no part of the first load.
+    const isPolyfill = (file: string) => (moduleMap[file] ?? []).length > 0 && (moduleMap[file] ?? []).every((module) => module.startsWith("node_modules/hyperellipse/"));
+    const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-") && !island.has(file) && !isPolyfill(file));
     expect(loaded.sort(), `${name} loads its closure and nothing else`).toEqual(expected);
     const gzip = expected.reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
     const css = [...new Set(styles)].reduce((sum, file) => sum + gzipSync(readFileSync(resolve("site/dist", file))).byteLength, 0);
