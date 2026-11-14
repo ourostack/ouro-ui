@@ -703,3 +703,14 @@ test("a CLI that asks for developer commands fails cli.no-dev-commands once per 
   assert.ok(!results.some((r) => /src\/cache\.json/.test(r.surface)));
   assert.match(note("pnpm dev"), /^`bad edit/);
 });
+
+test("a tool with one command conforms: its reads take the folder with no command word, and its help names none", async () => {
+  const inventory = join(scratch, "inventory-images.json");
+  writeFileSync(inventory, JSON.stringify({ cli: ["sizes"] }));
+  const report = await xray(base({ cli: fixture("images.mts"), state: ["site/showcase"], samples: { folder: "site/showcase" }, inventory, conformance: true }));
+  const failing = report.claims.filter((c) => c.fail).map((c) => `${c.id}: ${c.failing.map((f) => f.note).join("; ")}`);
+  assert.deepEqual(failing, []);
+  assert.equal(report.conformant, true);
+  assert.deepEqual([verdictOf(report, "cli.help-parses", "help"), verdictOf(report, "cli.command-help", "sizes"), verdictOf(report, "cli.read-json", "sizes")], ["pass", "pass", "pass"]);
+  assert.match(report.results.find((r) => r.claim === "cli.read-json" && r.surface === "sizes")!.note, /^`images site\/showcase --json` → one JSON document/);
+});

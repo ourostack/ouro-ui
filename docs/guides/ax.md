@@ -74,6 +74,16 @@ Receipt: a-t1
 - A refusal is one line that ends with `Fix:` and the command to run instead, and exits with the usage code.
 - `--json` prints the outcome: its state, who can see it, the postcondition the tool checked, the receipt and the next commands.
 
+A tool with one thing to do defines `command` instead of `commands`. That command [takes no command word](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)"), so every token is its own argument or flag: `images site/showcase --out x` runs it with `site/showcase`. `--help` shows the command, and `help` still gives the overview. A tool with `commands` still refuses a word it doesn't know.
+
+```ts
+const cli = defineCli({
+  name: "images",
+  about: ["images: writes the sizes a folder of pictures is written at."],
+  command: defineCommand({ name: "sizes", summary: "Write each picture at the sizes the site uses.", effect: "private", examples: ["images site/showcase"], args: [{ name: "folder", description: "The folder of pictures.", required: true }], run: (i) => ({ folder: i["folder"] }) }),
+});
+```
+
 ## The items
 
 | Item | What it gives you |

@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -136,6 +136,18 @@ describe("Resizable handle (window splitter)", () => {
   it("names the handles with the handleLabel template", async () => {
     const screen = await render(<Editor handleLabel="Cambiar tamaño de {panel}" />);
     expect(screen.handles[0]!.getAttribute("aria-label")).toBe("Cambiar tamaño de Files");
+  });
+
+  it("reports a resize to the onLayout of the latest render", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const screen = await render(<Editor onLayout={first} />);
+    await screen.rerender(<Editor onLayout={second} />);
+    const handle = screen.handles[0]!;
+    handle.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(second).toHaveBeenLastCalledWith([40, 60]);
+    expect(first).not.toHaveBeenCalled();
   });
 
   it("resizes with the arrow keys, Home, End and Enter", async () => {
@@ -383,6 +395,15 @@ describe("Resizable autoSaveId", () => {
     screen.handles[0]!.focus();
     await userEvent.keyboard("{ArrowRight}");
     expect(JSON.parse(localStorage.getItem("ouro-resizable:editor")!)).toEqual([55, 45]);
+  });
+
+  it("saves under the autoSaveId of the latest render", async () => {
+    const screen = await render(<Editor autoSaveId="first" />);
+    await screen.rerender(<Editor autoSaveId="second" />);
+    screen.handles[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(localStorage.getItem("ouro-resizable:second")).not.toBeNull();
+    expect(localStorage.getItem("ouro-resizable:first")).toBeNull();
   });
 
   it.each([
@@ -695,5 +716,41 @@ describe("Resizable development messages", () => {
     expect(html).toContain("flex-grow:30");
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Resizable context value", () => {
+  it("does not re-render a handle that reads the group when the group re-renders with the same panels", async () => {
+    const { Profiler, useState, memo } = await import("react");
+    let handleCommits = 0;
+    const Handle = memo(function Handle() {
+      return (
+        <Profiler id="handle" onRender={() => handleCommits++}>
+          <ResizableHandle />
+        </Profiler>
+      );
+    });
+    const bump: { current: () => void } = { current: () => {} };
+    const kids = [
+      <ResizablePanel key="a" label="A" defaultSize={30}>
+        a
+      </ResizablePanel>,
+      <Handle key="h" />,
+      <ResizablePanel key="b" label="B">
+        b
+      </ResizablePanel>,
+    ];
+    function Host() {
+      const [, set] = useState(0);
+      useEffect(() => {
+        bump.current = () => set((n) => n + 1);
+      }, []);
+      return <Resizable onLayout={() => {}}>{kids}</Resizable>;
+    }
+    await render(<Host />);
+    const before = handleCommits;
+    expect(before).toBeGreaterThan(0);
+    await act(async () => bump.current());
+    expect(handleCommits).toBe(before);
   });
 });

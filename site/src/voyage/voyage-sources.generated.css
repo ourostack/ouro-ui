@@ -72,6 +72,7 @@
 @source not "../../../registry/ouro/images";
 @source not "../../../registry/ouro/source-rules";
 @source not "../../../registry/ouro/theme";
+@source not "../adoption";
 @source not "../apple/evidence/gatefold-8ce5611-fail.txt";
 @source not "../apple/evidence/gatefold-bd9356e-pass.txt";
 @source not "../apple/evidence/reins-cli-run.ndjson";

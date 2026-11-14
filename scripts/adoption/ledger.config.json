@@ -1,0 +1,646 @@
+{
+  "schema": 1,
+  "home": "ourostack/ouro-ui",
+  "label": "adoption",
+  "latest": {
+    "web": {
+      "repo": "ourostack/ouro-ui",
+      "name": "Ouro UI (web)"
+    },
+    "core": {
+      "repo": "ourostack/ouro-ui-core",
+      "name": "Ouro UI core"
+    },
+    "apple": {
+      "repo": "ourostack/ouro-ui-apple",
+      "name": "Ouro UI for Apple"
+    }
+  },
+  "giveBackRepos": [
+    "ourostack/ouro-ui",
+    "ourostack/ouro-ui-core",
+    "ourostack/ouro-ui-apple"
+  ],
+  "ax": {
+    "defineCommand": "defineCommand|bindAx|ax-mcp",
+    "appleImport": "OuroAX"
+  },
+  "cards": [
+    {
+      "id": "current-ouro-ui-and-ax-kit",
+      "title": "Spoonjoy web: current Ouro UI, and the MCP on the AX kit",
+      "outcome": "Upgrade Ouro HX to the current tag, move the MCP onto the AX kit, and run `ax-xray` on it in CI with `must` claims passing.",
+      "surfaces": [
+        "spoonjoy-web"
+      ]
+    },
+    {
+      "id": "apple-hx-components-adoption",
+      "title": "Spoonjoy Apple: OuroHX components instead of hand-built controls",
+      "outcome": "Replace hand-built buttons, sheets, toasts and empty states with `OuroHX` components; raise the X-ray score and fix the entity-property failures.",
+      "surfaces": [
+        "spoonjoy-apple"
+      ]
+    },
+    {
+      "id": "gui-through-document-actions",
+      "title": "Ouro MD: menus and toolbar through DocumentActions",
+      "outcome": "Route menu and toolbar commands through `DocumentActions`, move to the current ouro-ui-apple, and raise the X-ray score.",
+      "surfaces": [
+        "ouro-md"
+      ]
+    },
+    {
+      "id": "gatefold-ouro-ui-adoption",
+      "title": "Gatefold: Ouro HX and Ouro AX",
+      "outcome": "Gatefold takes Ouro HX tokens and components, adds App Intents with Ouro AX, and goes up from 0 of 30 on the X-ray.",
+      "surfaces": [
+        "gatefold"
+      ]
+    },
+    {
+      "id": "ouro-cli-on-ax-kit",
+      "title": "ouro CLI on the AX kit",
+      "outcome": "Run the `ouro` CLI through the AX kit (or a claims-equivalent), run `ax-xray` in CI and publish its score.",
+      "surfaces": [
+        "harness"
+      ]
+    },
+    {
+      "id": "mailbox-ui-on-ouro-hx",
+      "title": "Harness mailbox UI on Ouro HX",
+      "outcome": "Replace the Catalyst copies in `packages/mailbox-ui` with Ouro HX components and tokens, and add Ouro check to its CI.",
+      "surfaces": [
+        "harness"
+      ]
+    },
+    {
+      "id": "desk-mcp-on-ax-kit",
+      "title": "Desk MCP on the AX kit",
+      "outcome": "Adopt `defineCommand` and `ax-mcp` for the Desk MCP tools beyond the vendored files, and run the X-ray against the MCP.",
+      "surfaces": [
+        "desk"
+      ]
+    },
+    {
+      "id": "factory-site-on-ouro-hx",
+      "title": "Factory site on Ouro HX",
+      "outcome": "Move the factory site onto Ouro HX tokens and components and run Ouro check in CI.",
+      "surfaces": [
+        "factory"
+      ]
+    },
+    {
+      "id": "own-clis-on-definecommand",
+      "title": "Ouro UI's own CLIs on defineCommand",
+      "outcome": "Build `ouro-check`, `ax-xray`, `ouro-images` and the flows runner with `defineCommand`, so the kit has a production user in its own repository.",
+      "surfaces": [
+        "ouro-ui"
+      ]
+    },
+    {
+      "id": "registry-agent-door",
+      "title": "Registry and site agent door",
+      "outcome": "Give the registry and the site an MCP or WebMCP door.",
+      "surfaces": [
+        "ouro-ui"
+      ]
+    },
+    {
+      "id": "go-and-swift-ax-paths",
+      "title": "Go and plain-JS paths to Ouro AX",
+      "outcome": "Decide how Go (m365crawl, crawlkit) and plain-JS CLIs adopt Ouro AX: a Go port of the kit, or black-box X-ray only.",
+      "surfaces": [
+        "m365crawl"
+      ]
+    },
+    {
+      "id": "adoption-ledger",
+      "title": "This ledger",
+      "outcome": "Publish the adoption table as a living page, with a give-back count per product and a check that flags a consumer whose pinned tag falls behind.",
+      "surfaces": []
+    },
+    {
+      "id": "housesitter-reins-shape-upstream",
+      "title": "Housesitter gives its Reins shape back",
+      "outcome": "Housesitter gives its `ls`/`do` shape back as a conformance test for the Reins protocol spec, and the X-ray checks it.",
+      "surfaces": [
+        "housesitter"
+      ]
+    },
+    {
+      "id": "ouroboros-site-current-ouro-ui",
+      "title": "ouroboros.bot on current Ouro UI",
+      "outcome": "Move `OURO_UI_TAG` to current and replace the raw `<button>` and `<input>` elements in 17 files with Ouro components.",
+      "surfaces": [
+        "ouroboros-website"
+      ]
+    },
+    {
+      "id": "rule-in-every-agents-md",
+      "title": "The Ouro UI rule in every repository's AGENTS.md",
+      "outcome": "Add the \"Interfaces follow Ouro UI\" rule to the AGENTS.md of every repository in the ledger that is silent today.",
+      "surfaces": []
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "spoonjoy-web",
+      "name": "Spoonjoy web",
+      "kind": "web app",
+      "repo": "spoonjoy/spoonjoy-v2",
+      "pins": [
+        {
+          "label": "Ouro HX",
+          "latest": "web",
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
+        },
+        {
+          "label": "Ouro UI core",
+          "latest": "core",
+          "from": "json",
+          "file": "vendor/ouro-ui-core/pin.json",
+          "key": "tag"
+        }
+      ],
+      "hx": {
+        "kind": "web",
+        "treeDirs": "(^|/)components/ouro/([^/]+)/[^/]+\\.tsx$",
+        "search": "components/ouro/",
+        "tokens": "\"ouro-ui-core\""
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp",
+        "exclude": "ouro-ui-core/"
+      },
+      "giveBackTerms": [
+        "spoonjoy-v2",
+        "spoonjoy/spoonjoy-v2",
+        "Spoonjoy web"
+      ],
+      "xray": []
+    },
+    {
+      "id": "spoonjoy-apple",
+      "name": "Spoonjoy Apple",
+      "kind": "native app",
+      "repo": "spoonjoy/spoonjoy-apple",
+      "pins": [
+        {
+          "label": "ouro-ui-apple",
+          "latest": "apple",
+          "from": "regex",
+          "file": "Package.swift",
+          "regex": "ouro-ui-apple\\.git\",\\s*exact:\\s*\"([0-9.]+)\""
+        }
+      ],
+      "hx": {
+        "kind": "apple",
+        "components": "OuroButton OR OuroToast OR OuroBanner OR OuroSheet OR OuroEmptyState",
+        "foundation": "OuroHX"
+      },
+      "ax": {
+        "kind": "apple"
+      },
+      "giveBackTerms": [
+        "spoonjoy-apple",
+        "spoonjoy/spoonjoy-apple",
+        "Spoonjoy Apple"
+      ],
+      "xray": [
+        {
+          "repo": "spoonjoy/spoonjoy-apple",
+          "workflow": "app-intents-xray.yml",
+          "branch": "main"
+        },
+        {
+          "repo": "ourostack/ouro-ui-apple",
+          "workflow": "xray-apps.yml",
+          "app": "Spoonjoy"
+        }
+      ]
+    },
+    {
+      "id": "ouro-md",
+      "name": "Ouro MD",
+      "kind": "native app",
+      "repo": "ourostack/ouro-md",
+      "pins": [
+        {
+          "label": "ouro-ui-apple",
+          "latest": "apple",
+          "from": "regex",
+          "file": "Package.resolved",
+          "regex": "\"identity\"\\s*:\\s*\"ouro-ui-apple\"[\\s\\S]*?\"version\"\\s*:\\s*\"([0-9.]+)\""
+        }
+      ],
+      "hx": {
+        "kind": "apple",
+        "components": "OuroButton OR OuroToast OR OuroBanner OR OuroSheet OR OuroEmptyState",
+        "foundation": "OuroHX"
+      },
+      "ax": {
+        "kind": "apple"
+      },
+      "giveBackTerms": [
+        "ouro-md",
+        "ourostack/ouro-md",
+        "Ouro MD"
+      ],
+      "xray": [
+        {
+          "repo": "ourostack/ouro-ui-apple",
+          "workflow": "xray-apps.yml",
+          "app": "Ouro MD"
+        }
+      ]
+    },
+    {
+      "id": "gatefold",
+      "name": "Gatefold",
+      "kind": "native app",
+      "repo": "ourostack/gatefold",
+      "pins": [],
+      "hx": {
+        "kind": "apple",
+        "components": "OuroButton OR OuroToast OR OuroBanner OR OuroSheet OR OuroEmptyState",
+        "foundation": "OuroHX"
+      },
+      "ax": {
+        "kind": "apple"
+      },
+      "giveBackTerms": [
+        "gatefold",
+        "ourostack/gatefold",
+        "Gatefold"
+      ],
+      "xray": [
+        {
+          "repo": "ourostack/ouro-ui-apple",
+          "workflow": "xray-apps.yml",
+          "app": "Gatefold"
+        }
+      ]
+    },
+    {
+      "id": "harness",
+      "name": "Ouroboros harness and ouro CLI",
+      "kind": "CLI and web UI",
+      "repo": "ourostack/ouroboros",
+      "pins": [],
+      "hx": {
+        "kind": "web",
+        "treeDirs": "(^|/)components/ouro/([^/]+)/[^/]+\\.tsx$",
+        "search": "components/ouro/",
+        "tokens": "\"ouro-ui-core\""
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp"
+      },
+      "giveBackTerms": [
+        "ourostack/ouroboros",
+        "ouroboros-agent-harness",
+        "@ouro.bot/cli"
+      ],
+      "xray": []
+    },
+    {
+      "id": "desk",
+      "name": "Desk plugin and MCP",
+      "kind": "plugin and MCP",
+      "repo": "ourostack/desk",
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
+      "hx": {
+        "kind": "na",
+        "reason": "An MCP server and plugin; its hosted pages are not an Ouro HX surface yet."
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp",
+        "exclude": "lib/ouro-ui/",
+        "vendored": "/lib/ouro-ui/registry/ouro/ax/"
+      },
+      "giveBackTerms": [
+        "ourostack/desk",
+        "Desk plugin",
+        "Desk MCP"
+      ],
+      "xray": []
+    },
+    {
+      "id": "desk-browser",
+      "name": "Desk Browser (desk-web)",
+      "kind": "MCP tool",
+      "repo": "ourostack/desk",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "An agent tool with no screen of its own."
+      },
+      "ax": {
+        "kind": "none",
+        "reason": "Part of the Desk MCP; no AX kit use found in the desk-web tools.",
+        "search": "defineCommand OR bindAx OR ax-mcp",
+        "exclude": "lib/ouro-ui/"
+      },
+      "giveBackTerms": [
+        "desk-web",
+        "Desk Browser"
+      ],
+      "xray": []
+    },
+    {
+      "id": "factory",
+      "name": "Factory site",
+      "kind": "web site",
+      "repo": "ourostack/factory",
+      "pins": [],
+      "hx": {
+        "kind": "web",
+        "treeDirs": "(^|/)components/ouro/([^/]+)/[^/]+\\.tsx$",
+        "search": "components/ouro/",
+        "tokens": "\"ouro-ui-core\""
+      },
+      "ax": {
+        "kind": "na",
+        "reason": "A static site with an llms.txt; no CLI or MCP of its own."
+      },
+      "giveBackTerms": [
+        "ourostack/factory"
+      ],
+      "xray": []
+    },
+    {
+      "id": "ouroboros-website",
+      "name": "ouroboros.bot",
+      "kind": "web site",
+      "repo": "ourostack/ouroboros-website",
+      "pins": [
+        {
+          "label": "OURO_UI_TAG",
+          "latest": "web",
+          "from": "regex",
+          "file": ".github/workflows/site-checks.yml",
+          "regex": "OURO_UI_TAG:\\s*(v[0-9.]+)"
+        }
+      ],
+      "hx": {
+        "kind": "web",
+        "treeDirs": "(^|/)components/ouro/([^/]+)/[^/]+\\.tsx$",
+        "search": "components/ouro/",
+        "tokens": "\"ouro-ui-core\""
+      },
+      "ax": {
+        "kind": "na",
+        "reason": "A marketing site; no CLI or MCP."
+      },
+      "giveBackTerms": [
+        "ouroboros-website",
+        "ourostack/ouroboros-website"
+      ],
+      "xray": []
+    },
+    {
+      "id": "mendelow-me",
+      "name": "mendelow.me",
+      "kind": "web site",
+      "repo": "arimendelow/mendelow.me",
+      "pins": [
+        {
+          "label": "installed Ouro HX",
+          "latest": "web",
+          "from": "none",
+          "reason": "Installed as source with no recorded tag."
+        }
+      ],
+      "hx": {
+        "kind": "web",
+        "treeDirs": "(^|/)components/ouro/([^/]+)/[^/]+\\.tsx$",
+        "search": "components/ouro/",
+        "tokens": "\"ouro-ui-core\""
+      },
+      "ax": {
+        "kind": "na",
+        "reason": "A personal site; no CLI or MCP."
+      },
+      "giveBackTerms": [
+        "mendelow.me",
+        "arimendelow/mendelow.me"
+      ],
+      "xray": []
+    },
+    {
+      "id": "ouro-ui",
+      "name": "ui.ouroboros.bot and the Ouro UI tools",
+      "kind": "web site and CLIs",
+      "repo": "ourostack/ouro-ui",
+      "pins": [
+        {
+          "label": "itself",
+          "latest": "web",
+          "from": "self"
+        }
+      ],
+      "hx": {
+        "kind": "web",
+        "treeDirs": "^site/.*\\.tsx$",
+        "self": true,
+        "search": "registry/ouro/components/ouro path:site",
+        "tokens": "\"ouro-ui-core\""
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp",
+        "exclude": "(^registry/ouro/ax/|\\.test\\.|fixtures?/|example|^docs/|\\.md$)"
+      },
+      "giveBackTerms": [],
+      "xray": [],
+      "upstream": true
+    },
+    {
+      "id": "housesitter",
+      "name": "Housesitter",
+      "kind": "CLI",
+      "repo": "ourostack/housesitter",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "A CLI only."
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp"
+      },
+      "giveBackTerms": [
+        "housesitter",
+        "ourostack/housesitter"
+      ],
+      "xray": []
+    },
+    {
+      "id": "m365crawl",
+      "name": "m365crawl",
+      "kind": "CLI (Go)",
+      "repo": "ourostack/m365crawl",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "A CLI only."
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp",
+        "note": "The kit is TypeScript; a Go CLI cannot use defineCommand until the Go path exists."
+      },
+      "giveBackTerms": [
+        "m365crawl",
+        "ourostack/m365crawl"
+      ],
+      "xray": []
+    },
+    {
+      "id": "friends",
+      "name": "friends and friends-relay",
+      "kind": "MCP server",
+      "repo": "ourostack/friends",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "An MCP server only."
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp"
+      },
+      "giveBackTerms": [
+        "ourostack/friends",
+        "friends-relay",
+        "friends-mcp"
+      ],
+      "xray": []
+    },
+    {
+      "id": "flow-review",
+      "name": "flow-review",
+      "kind": "CLI",
+      "repo": "ourostack/flow-review",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "A CLI only."
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp"
+      },
+      "giveBackTerms": [
+        "flow-review",
+        "ourostack/flow-review"
+      ],
+      "xray": []
+    },
+    {
+      "id": "apple-distribution-kit",
+      "name": "apple-distribution-kit",
+      "kind": "CLI",
+      "repo": "ourostack/apple-distribution-kit",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "A CLI only."
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp"
+      },
+      "giveBackTerms": [
+        "apple-distribution-kit"
+      ],
+      "xray": []
+    },
+    {
+      "id": "ouro-work-substrate",
+      "name": "ouro-work-substrate",
+      "kind": "server apps",
+      "repo": "ourostack/ouro-work-substrate",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "Server apps with no screens of their own."
+      },
+      "ax": {
+        "search": "defineCommand OR bindAx OR ax-mcp"
+      },
+      "giveBackTerms": [
+        "ouro-work-substrate"
+      ],
+      "xray": []
+    },
+    {
+      "id": "drift-remote",
+      "name": "Drift Remote",
+      "kind": "native app",
+      "repo": "arimendelow/drift-remote",
+      "privateRepo": true,
+      "pins": [],
+      "hx": {
+        "kind": "apple",
+        "components": "OuroButton OR OuroToast OR OuroBanner OR OuroSheet OR OuroEmptyState",
+        "foundation": "OuroHX"
+      },
+      "ax": {
+        "kind": "apple"
+      },
+      "giveBackTerms": [
+        "drift-remote"
+      ],
+      "xray": []
+    },
+    {
+      "id": "app-shell",
+      "name": "Ouro Native Apple App Shell",
+      "kind": "native shell",
+      "repo": "ourostack/ouro-native-apple-app-shell",
+      "pins": [],
+      "hx": {
+        "kind": "apple",
+        "components": "OuroButton OR OuroToast OR OuroBanner OR OuroSheet OR OuroEmptyState",
+        "foundation": "OuroHX"
+      },
+      "ax": {
+        "kind": "na",
+        "reason": "A shell library for Ouro MD; the app exposes the intents."
+      },
+      "giveBackTerms": [
+        "ouro-native-apple-app-shell"
+      ],
+      "xray": []
+    },
+    {
+      "id": "hackamore",
+      "name": "Hackamore",
+      "kind": "roadmap",
+      "repo": "ourostack/hackamore",
+      "inScope": false,
+      "scopeNote": "On the roadmap and the repository is empty, so it is listed but not counted.",
+      "pins": [],
+      "hx": {
+        "kind": "na",
+        "reason": "No code yet."
+      },
+      "ax": {
+        "kind": "na",
+        "reason": "No code yet."
+      },
+      "giveBackTerms": [],
+      "xray": []
+    }
+  ],
+  "program": {
+    "marker": "program",
+    "note": "The program's steps live in the table of the issue marked `adoption:program`."
+  }
+}
