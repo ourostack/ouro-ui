@@ -129,7 +129,7 @@ export function inline(text: string, link: (href: string) => string = (href) => 
     if (match[1] !== undefined) out.push(<InlineCode key={match.index}>{/^ .* $/s.test(match[2]!) && match[2]!.trim() ? match[2]!.slice(1, -1) : match[2]}</InlineCode>);
     else if (match[3] !== undefined)
       out.push(
-        <sup key={match.index}>
+        <sup key={match.index} className="whitespace-nowrap">
           <a href={`#source-${slug(match[3])}`} aria-label={`Source: ${match[3]}`} className="text-primary underline underline-offset-2">
             {match[3]}
           </a>
@@ -202,7 +202,7 @@ export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: stri
                 <Heading level={2} size="lg" id="claim-sources" className="mb-4">
                   Claim sources
                 </Heading>
-                <ul className="grid max-w-[68ch] gap-2">
+                <ul className="grid max-w-[68ch] gap-2" data-ouro-allow="lone-word" data-ouro-allow-why="a source is a path, a test name or a check as written, which breaks where its characters allow">
                   {block.items.map((item) => (
                     <li key={item.id} id={`source-${slug(item.id)}`}>
                       <Text as="span">
