@@ -582,6 +582,13 @@ describe("Hero", () => {
     expect(part("media")).toBeNull();
   });
 
+  it("says so when the day art is missing", async () => {
+    await render(<Hero title="Night only" picture={{ dark: night } as unknown as HeroPictures} />);
+    expect(warn).toHaveBeenCalledWith(
+      "[ouro-ui] Hero: picture needs light and dark art, the same scene by day and at night. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.",
+    );
+  });
+
   it("renders no media wrapper when media is null or false", async () => {
     const { part } = await render(<Hero title="Empty" media={null} />);
     expect(part("media")).toBeNull();
