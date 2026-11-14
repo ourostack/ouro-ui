@@ -94,6 +94,9 @@ export function describe(arg: { selector: string; only?: number }): Described {
       const radius = raw.endsWith("%") ? (parseFloat(raw) / 100) * short : parseFloat(raw);
       if (!(radius > 0)) continue;
       if (short < 4 || short > 120 || radius < short / 2 - 0.5) continue;
+      // A token radius larger than half the box (a checkbox's rounded-sm, a skeleton line's rounded-md) is a squircle by design,
+      // not a pill: only an exact half or an unclamped rounded-full counts as a round part.
+      if (radius > short / 2 + 0.5 && radius < 1000) continue;
       const long = Math.max(rect.width, rect.height);
       const circle = long - short <= 1;
       const thin = short <= 12;
