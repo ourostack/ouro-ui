@@ -61,7 +61,7 @@ const components = readComponents(root).map((entry) => entry.name);
 /** The helper items, one per file in lib/ouro, and the helpers that have tests. */
 const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$/.test(file));
 const libs = libFiles.filter((file) => !/\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
-const axRuntime = ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-precise-copy", "ax-problem", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
+const axRuntime = ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-precise-copy", "ax-problem", "ax-surfaces", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
 const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$/, "")}-tests`))].sort();
 /** The components this repository had when the manifests replaced the script's list: their order never changes. */
 const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];

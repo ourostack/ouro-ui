@@ -278,60 +278,81 @@ test("a long conversation draws only what is near the view, and a quote or a sea
 });
 
 // Frames where the wheel came, the list was not at an end, and the message at the centre of the view moved neither in that
-// frame nor in the next, while older posts load above (ourostack/ouro-ui#925). The centre message is what is read, not scrollTop:
-// the list corrects its own scrollTop to hold the reader's place as a page goes in, which moves nothing on screen.
-test("a reader who flicks the wheel upward while older posts load never has the wheel go dead for more than three frames", async ({ page }) => {
-  test.setTimeout(120_000);
-  await openStory(page, "chat-messagelist--older-history");
-  const scroller = page.getByRole("region", { name: "Older history" });
-  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
-  await page.evaluate(() => {
-    const s = document.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
-    const w = window as unknown as { __frames: { wheel: number; scrollTop: number; maxTop: number; moved: number | null }[]; __wheel: number; __stop: boolean; __pages: number };
-    Object.assign(w, { __frames: [], __wheel: 0, __stop: false });
-    addEventListener("wheel", (e) => (w.__wheel += e.deltaY), { capture: true, passive: true });
-    const top = (el: Element) => {
-      const m = /translateY\((-?[\d.]+)px\)/.exec((el as HTMLElement).style.transform);
-      return el.getBoundingClientRect().top - (m ? Number(m[1]) : 0);
-    };
-    const pick = () => {
-      const v = s.getBoundingClientRect();
-      return document.elementFromPoint(v.left + v.width / 2, v.top + v.height / 2)?.closest('[data-ouro="message"]') ?? null;
-    };
-    let anchor = pick();
-    let anchorTop = anchor ? top(anchor) : 0;
-    const tick = () => {
-      if (w.__stop) return;
-      const moved = anchor?.isConnected ? anchorTop - top(anchor) : null;
-      w.__frames.push({ wheel: w.__wheel, scrollTop: s.scrollTop, maxTop: s.scrollHeight - s.clientHeight, moved });
-      w.__wheel = 0;
-      anchor = pick();
-      anchorTop = anchor ? top(anchor) : 0;
+// frame nor in the next, while older posts load above (ourostack/ouro-ui#925): dead frames. The centre message is what is read,
+// not scrollTop: the list corrects its own scrollTop to hold the reader's place as a page goes in, which moves nothing on screen.
+// And frames where the wheel pushed up at scrollTop 0 while messages already drawn sat above the view, out of reach: wall frames,
+// which a list that holds older posts above the scroll's start until the wheel rests would make, and the dead count cannot see.
+for (const { story, label, least } of [
+  { story: "chat-messagelist--older-history", label: "Older history", least: 500 },
+  { story: "chat-messagelist--older-history-drawn", label: "Older history drawn", least: 174 },
+]) {
+  test(`${label}: a reader who flicks the wheel upward while older posts load never has the wheel go dead, or stop at a wall, for more than three frames`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await openStory(page, story);
+    const scroller = page.getByRole("region", { name: label });
+    await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    await page.evaluate(() => {
+      const s = document.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+      const w = window as unknown as { __frames: { dt: number; wheel: number; scrollTop: number; maxTop: number; moved: number | null; above: boolean; carried: string }[]; __wheel: number; __stop: boolean };
+      Object.assign(w, { __frames: [], __wheel: 0, __stop: false });
+      addEventListener("wheel", (e) => (w.__wheel += e.deltaY), { capture: true, passive: true });
+      const top = (el: Element) => {
+        const m = /translateY\((-?[\d.]+)px\)/.exec((el as HTMLElement).style.transform);
+        return el.getBoundingClientRect().top - (m ? Number(m[1]) : 0);
+      };
+      const pick = () => {
+        const v = s.getBoundingClientRect();
+        return document.elementFromPoint(v.left + v.width / 2, v.top + v.height / 2)?.closest('[data-ouro="message"]') ?? null;
+      };
+      let anchor = pick();
+      let anchorTop = anchor ? top(anchor) : 0;
+      let last = performance.now();
+      const content = s.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+      const tick = (now: number) => {
+        if (w.__stop) return;
+        const moved = anchor?.isConnected ? anchorTop - top(anchor) : null;
+        const first = s.querySelector('[data-ouro="message"]');
+        const above = first !== null && first.getBoundingClientRect().bottom < s.getBoundingClientRect().top;
+        w.__frames.push({ dt: now - last, wheel: w.__wheel, scrollTop: s.scrollTop, maxTop: s.scrollHeight - s.clientHeight, moved, above, carried: content.style.translate });
+        last = now;
+        w.__wheel = 0;
+        anchor = pick();
+        anchorTop = anchor ? top(anchor) : 0;
+        requestAnimationFrame(tick);
+      };
       requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-  const box = (await scroller.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  // Flicks sent without waiting for the page, as the OS sends them.
-  const sent: Promise<void>[] = [];
-  for (let flick = 0; flick < 24; flick++) {
-    for (let delta = -60; Math.abs(delta) >= 1; delta *= 0.95) {
-      sent.push(page.mouse.wheel(0, Math.round(delta)));
-      await new Promise((resolve) => setTimeout(resolve, 16)); // real clock: the wheel's own pace
+    });
+    const box = (await scroller.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    // Flicks sent without waiting for the page, as the OS sends them.
+    const sent: Promise<void>[] = [];
+    for (let flick = 0; flick < 24; flick++) {
+      for (let delta = -60; Math.abs(delta) >= 1; delta *= 0.95) {
+        sent.push(page.mouse.wheel(0, Math.round(delta)));
+        await new Promise((resolve) => setTimeout(resolve, 16)); // real clock: the wheel's own pace
+      }
     }
-  }
-  await Promise.all(sent);
-  await settle(scroller);
-  const frames = await page.evaluate(() => {
-    const w = window as unknown as { __frames: { wheel: number; scrollTop: number; maxTop: number; moved: number | null }[]; __stop: boolean };
-    w.__stop = true;
-    return w.__frames;
+    await Promise.all(sent);
+    await settle(scroller);
+    const frames = await page.evaluate(() => {
+      const w = window as unknown as { __frames: { dt: number; wheel: number; scrollTop: number; maxTop: number; moved: number | null; above: boolean; carried: string }[]; __stop: boolean };
+      w.__stop = true;
+      return w.__frames;
+    });
+    const atEnd = (f: (typeof frames)[number]) => (f.wheel < 0 ? f.scrollTop <= 1 : f.scrollTop >= f.maxTop - 1);
+    const still = (f: (typeof frames)[number] | undefined) => f !== undefined && f.moved !== null && Math.abs(f.moved) < 0.5;
+    const dead = frames.filter((f, i) => f.wheel !== 0 && !atEnd(f) && still(f) && still(frames[i + 1]));
+    const wall = frames.filter((f) => f.wheel < 0 && f.scrollTop <= 1 && still(f) && f.above);
+    // Pages went in above while the reader scrolled, and the scroll was neither stalled nor stopped short on the way.
+    const count = Number(await page.locator("[data-count]").getAttribute("data-count"));
+    // The frames around the first dead ones, each [ms, wheel, scrollTop, centre moved, content's translate], to read a failure by.
+    const around = dead.slice(0, 3).map((f) => {
+      const at = frames.indexOf(f);
+      return frames.slice(Math.max(0, at - 3), at + 3).map((g) => [Math.round(g.dt), Math.round(g.wheel), Math.round(g.scrollTop), g.moved === null ? null : Math.round(g.moved * 10) / 10, g.carried]);
+    });
+    const counts = `${dead.length} dead frames, ${wall.length} wall frames, ${count} messages, ${frames.length} frames; around the first dead: ${JSON.stringify(around)}`;
+    expect(count, counts).toBeGreaterThanOrEqual(least);
+    expect(dead.length, counts).toBeLessThanOrEqual(3);
+    expect(wall.length, counts).toBeLessThanOrEqual(3);
   });
-  const atEnd = (f: (typeof frames)[number]) => (f.wheel < 0 ? f.scrollTop <= 1 : f.scrollTop >= f.maxTop - 1);
-  const still = (f: (typeof frames)[number] | undefined) => f !== undefined && f.moved !== null && Math.abs(f.moved) < 0.5;
-  const dead = frames.filter((f, i) => f.wheel !== 0 && !atEnd(f) && still(f) && still(frames[i + 1]));
-  // Pages went in above while the reader scrolled, and the scroll was not stalled on the way.
-  expect(Number(await page.locator("[data-count]").getAttribute("data-count"))).toBeGreaterThanOrEqual(500);
-  expect(dead.length).toBeLessThanOrEqual(3);
-});
+}

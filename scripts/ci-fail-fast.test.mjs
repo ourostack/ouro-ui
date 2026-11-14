@@ -32,6 +32,7 @@ test("a job that failed and finished cancels the run; a job still running its fa
 test("a failed latency job cancels nothing: a slow runner can fail it, and a re-run of it alone is cheaper", () => {
   assert.deepEqual(RERUN_ALONE, ["latency"]);
   assert.deepEqual(decide([job("latency", "completed", "failure"), job("e2e (1/4)")], 1), { kind: "wait" });
+  assert.deepEqual(decide([job("latency (2/3)", "completed", "failure"), job("e2e (1/4)")], 1), { kind: "wait" });
   // Any other failure still cancels the run, and names only what it counted.
   assert.deepEqual(decide([job("latency", "completed", "failure"), job("browser (2/6)", "completed", "failure")], 1), { kind: "cancel", failed: ["browser (2/6)"] });
   // The job is still a real job of the workflow, so the name cannot drift away from it.

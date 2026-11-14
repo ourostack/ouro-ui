@@ -7,7 +7,7 @@ Ouro UI's tests install beside each component and run in your app, in real brows
 | Package | Needs | Ouro UI's CI runs |
 | --- | --- | --- |
 | `vitest`, `@vitest/browser-playwright` | 4.1.11 or later, in browser mode[^minimums] | 5.0.3[^ci-versions] |
-| `playwright`, `@playwright/test` | 1.58.1 or later, with Chromium and WebKit installed (`npx playwright install chromium webkit`)[^minimums] | 1.63.0[^ci-versions] |
+| `playwright`, `@playwright/test` | 1.58.1 or later, with Chromium and WebKit installed (`npx playwright install chromium webkit`)[^minimums] | 1.65.0[^ci-versions] |
 | `storybook`, `@storybook/react-vite` | 10.2.10 or later, only for the stories and the specs in `e2e/ouro`[^minimums] | 10.6.1[^ci-versions] |
 | `axe-core` | 4.13.0 or later: `audit` and the census throw on an older one, naming the version it found[^axe-minimum] | 4.13.0[^ci-axe] |
 
@@ -20,7 +20,7 @@ The kit's traces of a slow mouse drag and a slow touch print only when the test 
 ## Install and run
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.15 ourostack/ouro-ui/dialog-tests#v1.3.15
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.17 ourostack/ouro-ui/dialog-tests#v1.3.17
 ```
 
 A `<name>-tests` item installs the component's tests, type tests, stories and spec, the tests of every component and helper that came with it, and `ouro-testing`, the test kit.[^tests-closure] CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union.[^subsets] The forms set is `field`, `fieldset`, `text-field`, `text-area`, `checkbox`, `checkbox-group`, `radio-group`, `switch`, `form`, `select`, `native-select` and `combobox`. Other items receive their full test dependency closure but are not measured individually. This closure guarantee does not establish execution coverage for every item alone.[^subsets] `ouro-tests` adds every component with all of its tests.[^ouro-tests]
@@ -42,7 +42,7 @@ export default mergeConfig(
 );
 ```
 
-`ouroTestProjects` returns three projects: `ouro-chromium`, `ouro-webkit` and `ouro-touch` (Chromium as a 390x844 touch phone, for files named `*.touch.test.tsx`).[^projects] Run them with `npx vitest run`, and the specs with `npx playwright test e2e/ouro`.
+`ouroTestProjects` returns three projects: `ouro-chromium`, `ouro-webkit` and `ouro-touch` (Chromium as a 390x844 touch phone, for files named `*.touch.test.tsx`).[^projects] In the two mouse projects, the mouse moves off the test frame before each test, so no test starts over an element an earlier test left hovered.[^pointer-park] Run them with `npx vitest run`, and the specs with `npx playwright test e2e/ouro`.
 
 To measure coverage of the installed files, use the same settings as Ouro UI's repository:
 
@@ -213,7 +213,7 @@ test("opening the filters paints within 100 ms", async ({ page, browserName }) =
 Ouro's own test measures a real click the same way, in Vitest's browser mode.[^interaction-test] Event Timing rounds a duration to 8 ms, and where it has no entry the fallback measures to the start of the second frame after the event, up to a frame past the paint, so leave a budget some room rather than comparing the two to the millisecond.[^interaction-rounding] A report counts from the event to the paint after the handlers ran, so a budget covers the work an interaction does in its handlers, not work it starts for later, such as a request.[^interaction]
 
 [^minimums]: scripts/registry.mts verify:fileLine(scripts/registry.mts, /vitest: "4\.1\.11"/) verify:fileLine(scripts/registry.mts, /playwright: "1\.58\.1"/) verify:fileLine(scripts/registry.mts, /storybook: "10\.2\.10"/) verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/) verify:testExists(scripts/registry.test.mjs::devDependencies are named without a version, so the CLI installs it only when the app lacks it and never changes a version the app has)
-[^ci-versions]: package.json verify:equals(package.json#devDependencies.vitest)=5.0.3 verify:equals(package.json#devDependencies.playwright)=1.63.0 verify:equals(package.json#devDependencies.storybook)=10.6.1
+[^ci-versions]: package.json verify:equals(package.json#devDependencies.vitest)=5.0.3 verify:equals(package.json#devDependencies.playwright)=1.65.0 verify:equals(package.json#devDependencies.storybook)=10.6.1
 [^ci-axe]: pnpm-lock.yaml verify:fileLine(pnpm-lock.yaml, /^  axe-core@4\.13\.0:$/)
 [^axe-minimum]: registry/ouro/lib/ouro/testing/axe-version.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > refuses an axe-core older than the kit's minimum, naming the version it needs and the version it found) verify:testExists(scripts/kits/census-page.test.mjs::collectCensus > refuses an axe-core older than the kit's minimum before it loads axe into the page, naming the version it found) verify:testExists(scripts/registry.test.mjs::the ouro-testing message names axe-core's minimum, the one audit checks when it runs)
 [^vitest-4-section]: docs/guides/testing.md verify:fileLine(docs/guides/testing.md, /^## .*Vitest 4/)
@@ -223,6 +223,7 @@ Ouro's own test measures a real click the same way, in Vitest's browser mode.[^i
 [^subsets]: scripts/subset-coverage.mjs verify:testExists(scripts/subset-coverage.test.mjs::CI checks the button, the dialog, the sheet and the forms set, each alone and together) verify:fileLine(.github/workflows/ci.yml, /node scripts\/subset-coverage\.mjs/)
 [^ouro-tests]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command)
 [^projects]: registry/ouro/lib/ouro/testing/vitest.ts verify:fileLine(registry/ouro/lib/ouro/testing/vitest.ts, /ouro-touch/) verify:fileLine(registry/ouro/lib/ouro/testing/vitest.ts, /390x844/)
+[^pointer-park]: registry/ouro/lib/ouro/testing/pointer-setup.ts verify:fileLine(registry/ouro/lib/ouro/testing/pointer-setup.ts, /commands\.parkPointer/) verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::the pointer between tests > renders a button under the old pointer without hovering it, under a theme with a hover colour)
 [^touch-host]: registry/ouro/lib/ouro/testing/vitest.ts verify:testExists(scripts/testing-kit.test.mjs::page sizes every Playwright host while the touch frame keeps its phone viewport and input) verify:testExists(scripts/testing-kit.test.mjs::ouroTestProjects leaves the page size to Vitest unless the app sets one) verify:fileLine(registry/ouro/lib/ouro/testing/vitest.ts, /1280x844/)
 [^sheet-dvh-tests]: registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::opening and closing > sits at the bottom edge, fits its content and keeps clear of the top) verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::Sheet iOS backdrop rule > covers the visible screen on a page scrolled 2000px)
 [^vitest-4-regression]: https://github.com/ourostack/ouro-ui/pull/99 verify:urlOk(https://github.com/ourostack/ouro-ui/pull/99)

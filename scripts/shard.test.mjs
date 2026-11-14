@@ -174,6 +174,22 @@ test("a sliced check runs each item exactly once across the shards, in each proj
   assert.equal(offsetOf("webkit stories: axe", 16), offsetOf("webkit stories: axe", 16));
 });
 
+test("a sliced check gives every shard its share of the measured cost, longest items first, the same on every shard (test/story-costs.json)", async () => {
+  const { sliceOf } = await import("../test/slice-core.ts");
+  const costs = JSON.parse(readFileSync(join(root, "test/story-costs.json"), "utf8"));
+  const items = Object.entries(costs).map(([id, ms]) => ({ id, ms }));
+  assert.ok(items.length > 500, "the table covers the stories and pages");
+  for (const count of [4, 6, 12]) {
+    const loads = Array.from({ length: count }, (_, index) => sliceOf(items, index + 1, count, "chromium stories: axe").reduce((sum, item) => sum + item.ms, 0));
+    const total = loads.reduce((sum, load) => sum + load, 0);
+    const heaviest = Math.max(...items.map((item) => item.ms));
+    assert.ok(Math.max(...loads) <= total / count + heaviest, `${count} shards: the heaviest slice stays within one item of an even share (${loads.join(", ")})`);
+  }
+  // An item the table doesn't know still runs once.
+  const unknown = ["a", "b", "c", "d", "e"];
+  assert.deepEqual([1, 2, 3].flatMap((index) => sliceOf(unknown, index, 3, "k")).toSorted(), unknown);
+});
+
 test("an install shard takes the app's shipped files by the time each took here, over every Vitest project", () => {
   const timings = {
     "ouro-chromium (chromium) registry/ouro/components/ouro/a/a.test.tsx": 300,

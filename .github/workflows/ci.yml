@@ -51,7 +51,7 @@ jobs:
     # below). Its required checks still report on the pull request, passing with a notice; every
     # merge-queue entry, push to main, dispatched run and release branch runs it in full.
     #
-    # The heavy tier (themes, visual, theme-install, latency, lighthouse) runs in the merge queue
+    # The heavy tier (themes, visual, theme-install, latency-shard, latency, lighthouse) runs in the merge queue
     # too, not on a pull request into main: `heavy=queue`, unless the pull request changes one of
     # those checks' own files (`heavyPaths` below). On a pull request their required checks still
     # report: skipped, which a required check accepts, or for the themes shards, whose skipped matrix
@@ -159,7 +159,7 @@ jobs:
               echo "This pull request changes a heavy check's files, so the heavy tier runs here too."
               echo "heavy=here" >> "$GITHUB_OUTPUT"
             else
-              echo "The heavy tier (themes, visual, theme-install, latency, lighthouse) runs in the merge queue: its checks pass here, themes' through heavy-queued's notices, the others skipped."
+              echo "The heavy tier (themes, visual, theme-install, latency-shard, latency, lighthouse) runs in the merge queue: its checks pass here, themes' through heavy-queued's notices, the others skipped."
               echo "heavy=queue" >> "$GITHUB_OUTPUT"
             fi
           else
@@ -271,7 +271,7 @@ jobs:
     timeout-minutes: 60
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -380,7 +380,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -497,7 +497,7 @@ jobs:
     timeout-minutes: 20
     # In Playwright's image (see the note above jobs:), as the browser shards are.
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -585,7 +585,7 @@ jobs:
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -775,7 +775,7 @@ jobs:
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -832,7 +832,7 @@ jobs:
     timeout-minutes: 20
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -1004,7 +1004,7 @@ jobs:
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -1193,7 +1193,7 @@ jobs:
     timeout-minutes: 25
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -1274,7 +1274,7 @@ jobs:
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -1298,21 +1298,27 @@ jobs:
             playwright-report/
             site/theme-install/playwright-report/
           if-no-files-found: ignore
-  latency:
-    name: latency
+  latency-shard:
+    name: latency (${{ matrix.shard }}/3)
     # Each voyage stage control answers within budget on a 4x slower CPU: of 20 presses after two
     # warm-ups, the 19th (p95) within 100 ms and the median within its ceiling from the control's CI
     # baseline, or of 40 when the first 20 call for 20 more (site/e2e/latency.ts,
     # site/e2e/stage.latency.spec.ts), measured alone so no other
     # test shares the CPU. The stage's switch to still water draws no long frame, in Chromium and
-    # WebKit (site/e2e/stage-switch.latency.spec.ts).
+    # WebKit (site/e2e/stage-switch.latency.spec.ts). Three shards on runners of their own, each
+    # the spec files whose measured times add up to its share (scripts/latency-shards.mjs), every
+    # sample, budget, baseline and throttle unchanged; the latency check passes when all did.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -1326,13 +1332,27 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
-      - run: pnpm test:latency
+      - run: pnpm test:latency $(node scripts/latency-shards.mjs ${{ matrix.shard }})
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: latency-report
+          name: latency-report-${{ matrix.shard }}
           path: playwright-report/latency/
           if-no-files-found: ignore
+  latency:
+    # The one check the rules require for the latency suite: it passes when every shard did, so
+    # the shard count can change without touching the ruleset.
+    needs: [plan, latency-shard]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'queue' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RESULT: ${{ needs.latency-shard.result }}
+    steps:
+      - name: Every shard passed
+        run: |
+          echo "The latency shards: $RESULT."
+          [ "$RESULT" = success ]
   lighthouse:
     name: lighthouse
     # Lighthouse CI on the voyage preview (site/lighthouserc.json, the thresholds in site-design.md:
@@ -1373,7 +1393,7 @@ jobs:
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -1428,7 +1448,7 @@ jobs:
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
@@ -1438,16 +1458,16 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/4)
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/6)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/4
+      OURO_SHARD: ${{ matrix.shard }}/6
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
@@ -1529,12 +1549,12 @@ jobs:
           fi
           failed=0
           if [ "$SHARDS" != success ]; then
-            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/4) jobs."
+            echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/6) jobs."
             failed=1
           fi
-          for shard in 1 2 3 4; do
+          for shard in 1 2 3 4 5 6; do
             if [ ! -f "$RUNNER_TEMP/passed/install-passed-$VARIANT-$PRESET-$shard" ]; then
-              echo "::error::install ($VARIANT, $PRESET, $shard/4) did not pass: see that job."
+              echo "::error::install ($VARIANT, $PRESET, $shard/6) did not pass: see that job."
               failed=1
             fi
           done
@@ -1595,7 +1615,7 @@ jobs:
     timeout-minutes: 35
     # In Playwright's image (see the note above jobs:).
     container:
-      image: mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 # v1.63.0-noble
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image

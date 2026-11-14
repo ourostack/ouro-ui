@@ -116,12 +116,24 @@ async function awaitMedia(frame: Frame, queries: string[]): Promise<void> {
   // As long as a poll waits (the projects' 10 s), since a loaded runner can be slow to answer.
   const deadline = performance.now() + MEDIA_WAIT_MS;
   const unmatched = `${JSON.stringify(queries)}.find((query) => !matchMedia(query).matches)`;
+  // The query the frame last said it does not match.
+  let unmatchedBefore: string | undefined;
   for (;;) {
     // Each read gets at least MEDIA_ANSWER_MS, so a read begun just before the deadline can still answer
     // and the failure names the query that does not match, not a frame that did not answer.
     const limit = Math.max(deadline - performance.now(), MEDIA_ANSWER_MS);
-    const missing = await within(frame.evaluate<string | undefined>(unmatched), limit, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(limit)}ms`);
+    let missing: string | undefined;
+    try {
+      missing = await within(frame.evaluate<string | undefined>(unmatched), limit, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(limit)}ms`);
+    } catch (problem) {
+      // A frame that said what it does not match, then stalled on the last read (a loaded runner), still does not match it.
+      if (unmatchedBefore !== undefined && performance.now() > deadline) {
+        throw new Error(`the test frame does not match ${unmatchedBefore} within ${MEDIA_WAIT_MS / 1000}s (and its last read did not answer within ${Math.round(limit)}ms)`, { cause: problem });
+      }
+      throw problem;
+    }
     if (missing === undefined) return;
+    unmatchedBefore = missing;
     if (performance.now() > deadline) throw new Error(`the test frame does not match ${missing} within ${MEDIA_WAIT_MS / 1000}s`);
     await sleep(10);
   }
@@ -1253,6 +1265,20 @@ export const pointerPress: BrowserCommand<[PointerPressOptions]> = async (ctx, {
 };
 
 /**
+ * Moves the real mouse off the test frame, so a test starts with no hover from an earlier one.
+ * The browser re-checks hover after layout (WebKit late), and a button under the pointer then
+ * fades to its hover colour. The point is outside the viewport, which the test frame fills, so the
+ * move leaves the page's own pointer listeners quiet: a point inside it would count as the person's input.
+ * The mouse projects call this before each test (testing/pointer-setup.ts).
+ * @claim "Moves the real mouse off the test frame, so a test starts with no hover from an earlier one." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::the pointer between tests > renders a button under the old pointer without hovering it, under a theme with a hover colour)
+ * @claim "The mouse projects call this before each test" registry/ouro/lib/ouro/testing/pointer-setup.ts verify:fileLine(registry/ouro/lib/ouro/testing/pointer-setup.ts, /commands\.parkPointer/)
+ * @claim "leaves the page's own pointer listeners quiet" registry/ouro/lib/ouro/use-mounted-open.test.tsx verify:testExists(registry/ouro/lib/ouro/use-mounted-open.test.tsx::useMountedOpen > does not count an overlay open before anything was pressed)
+ */
+export const parkPointer: BrowserCommand<[]> = async (ctx) => {
+  await ctx.page.mouse.move(-1, -1);
+};
+
+/**
  * Taps an element inside the test iframe with real touch input (Playwright's
  * `locator.tap`), so the page sees `pointerType: "touch"`. Needs a context with
  * `hasTouch`, as in the `touch` project.
@@ -1538,6 +1564,7 @@ export const commands = {
   drag,
   flick,
   pageZoom,
+  parkPointer,
   pointerPress,
   resetPageZoom,
   restoreTouch,
@@ -1553,6 +1580,7 @@ declare module "vitest/browser" {
     mediaState: () => Promise<MediaState>;
     restoreMedia: (state: MediaState) => Promise<void>;
     resetMedia: () => Promise<void>;
+    parkPointer: () => Promise<void>;
     drag: (options: DragOptions) => Promise<void>;
     flick: (options: FlickOptions) => Promise<void>;
     tap: (selector: string) => Promise<void>;
