@@ -1,0 +1,1 @@
+- Select: when a keyboard open lands focus on the list's frame, [it moves to an option](registry/ouro/components/ouro/select/select.test.tsx "verify:testExists(registry/ouro/components/ouro/select/select.test.tsx::Select > moves focus from the list's frame to the chosen option after a keyboard open, where Base UI's own move can lose)"), so a screen reader hears it.
