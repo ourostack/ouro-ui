@@ -597,6 +597,39 @@ describe("ConversationList windowing with sections", () => {
     await frames();
     expect(everything()).toBe(first);
   });
+  it("keeps frame one's element set when sections of two 44px rows sit in a tall pane, as in Tandem's chat list", async () => {
+    const style = document.createElement("style");
+    style.textContent =
+      '[data-ouro="conversation-list"] [data-ouro-part="row"] { height: 44px } [data-ouro="conversation-list"] [data-ouro-part="section"] { height: 32px }';
+    document.head.append(style);
+    mounted.push(style);
+    const items = many(49, (index) => ({ section: `s${Math.floor(index / 2)}` }));
+    const sections = Array.from({ length: 25 }, (_, n) => ({ id: `s${n}`, title: `S${n}` }));
+    const changed: string[] = [];
+    for (const paneHeight of [800, 1000]) {
+      for (const offset of [0, 60]) {
+        const pane = document.createElement("div");
+        pane.style.cssText = `width: 360px; height: ${paneHeight}px; overflow-y: scroll`;
+        const above = document.createElement("div");
+        above.style.height = `${offset}px`;
+        const host = document.createElement("div");
+        pane.append(above, host);
+        document.body.append(pane);
+        const root = createRoot(host);
+        flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />));
+        const first = [...host.querySelectorAll("*")];
+        await frames();
+        await frames();
+        await frames();
+        const settled = host.querySelectorAll("*").length;
+        if (first.some((node) => !node.isConnected) || settled !== first.length)
+          changed.push(`${paneHeight}px pane, ${offset}px above: ${first.length} elements, then ${settled}`);
+        flushSync(() => root.unmount());
+        pane.remove();
+      }
+    }
+    expect(changed).toEqual([]);
+  });
   it("keeps every row of a windowed list shorter than the view, whose window never reaches the view's bottom", async () => {
     const style = document.createElement("style");
     style.textContent = '[data-ouro="conversation-list"] [data-ouro-part="row"] { height: 20px }';
