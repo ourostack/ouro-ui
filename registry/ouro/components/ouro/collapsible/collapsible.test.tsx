@@ -227,6 +227,77 @@ describe("Collapsible", () => {
     }
   });
 
+  it("marks its state on the trigger and panel, hides again once closed, and ignores a page search after unmount", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const r = await render(
+      <Collapsible title="Nutrition facts" open={false} onOpenChange={first}>
+        {facts}
+      </Collapsible>,
+    );
+    expect(r.trigger.hasAttribute("data-panel-open")).toBe(false);
+    expect(r.trigger.hasAttribute("aria-controls")).toBe(false);
+    expect(r.panel.hasAttribute("data-open")).toBe(false);
+    expect(r.panel.hasAttribute("data-moved")).toBe(false);
+    expect(r.panel.getAttribute("hidden")).not.toBeNull();
+    // A later render's handler is the one a page search reaches.
+    await r.rerender(
+      <Collapsible title="Nutrition facts" open={false} onOpenChange={second}>
+        {facts}
+      </Collapsible>,
+    );
+    const panel = r.panel;
+    await act(async () => panel.dispatchEvent(new Event("beforematch")));
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledWith(true);
+    await r.rerender(
+      <Collapsible title="Nutrition facts" open onOpenChange={second}>
+        {facts}
+      </Collapsible>,
+    );
+    expect(r.trigger.hasAttribute("data-panel-open")).toBe(true);
+    expect(r.trigger.getAttribute("aria-controls")).toBe(r.panel.id);
+    expect(r.panel.hasAttribute("data-open")).toBe(true);
+    expect(r.panel.hasAttribute("data-moved")).toBe(true);
+    expect(r.panel.hasAttribute("hidden")).toBe(false);
+    await r.rerender(
+      <Collapsible title="Nutrition facts" open={false} onOpenChange={second}>
+        {facts}
+      </Collapsible>,
+    );
+    await expect.poll(() => r.panel.hasAttribute("hidden")).toBe(true);
+    if ("onbeforematch" in document.body) expect(r.panel.getAttribute("hidden")).toBe("until-found");
+    // The panel stays shown while it closes, so the transition can run.
+    await r.rerender(
+      <Collapsible title="Nutrition facts" open onOpenChange={second}>
+        {facts}
+      </Collapsible>,
+    );
+    await settled(r.panel);
+    await r.rerender(
+      <Collapsible title="Nutrition facts" open={false} onOpenChange={second}>
+        {facts}
+      </Collapsible>,
+    );
+    expect(r.panel.hasAttribute("hidden")).toBe(false);
+    await expect.poll(() => r.panel.hasAttribute("hidden")).toBe(true);
+    second.mockClear();
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    panel.dispatchEvent(new Event("beforematch"));
+    expect(second).not.toHaveBeenCalled();
+  });
+
+  it("marks a disabled trigger", async () => {
+    const r = await render(
+      <Collapsible title="Nutrition facts" disabled>
+        {facts}
+      </Collapsible>,
+    );
+    expect(r.trigger.hasAttribute("data-disabled")).toBe(true);
+    const plain = await render(<Collapsible title="Other">{facts}</Collapsible>);
+    expect(plain.trigger.hasAttribute("data-disabled")).toBe(false);
+  });
+
   it("links the title and panel in server HTML and hydrates without a mismatch", async () => {
     const node = (
       <Collapsible title="Nutrition facts" defaultOpen>

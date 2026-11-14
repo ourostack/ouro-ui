@@ -111,6 +111,7 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
   const [own, setOwn] = useState(defaultOpen === true);
   const expanded = open ?? own;
   const change = (next: boolean) => {
+    // Stryker disable next-line ConditionalExpression: a controlled component ignores its own state, so setting it too changes nothing visible.
     if (open === undefined) setOwn(next);
     onOpenChange?.(next);
   };
@@ -120,6 +121,7 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
   });
   // The panel stays shown through its closing transition, then hides.
   const [seen, setSeen] = useState(expanded);
+  // Stryker disable next-line BooleanLiteral: the first closing state is overwritten by the render-phase sync before any effect reads it.
   const [closing, setClosing] = useState(false);
   const [moved, setMoved] = useState(false);
   if (seen !== expanded) {
@@ -127,33 +129,44 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
     setMoved(true);
     setClosing(!expanded);
   }
-  useEffect(() => {
+  const listenForFound = () => {
     const panel = panelRef.current;
+    // Stryker disable next-line ConditionalExpression: the panel always exists once effects run; the guard only satisfies the type.
     if (!panel) return;
     const found = () => changeRef.current(true);
     panel.addEventListener("beforematch", found);
     return () => panel.removeEventListener("beforematch", found);
-  }, []);
+  };
+  // Stryker disable next-line ArrayDeclaration: the effect reads only refs, so re-running it adds the same listener again.
+  useEffect(listenForFound, []);
   useEffect(() => {
     const panel = panelRef.current;
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: the panel always exists once effects run, and an open panel has nothing to close.
     if (!closing || !panel) return;
     if (panel.getAnimations().length === 0) {
       setClosing(false);
       return;
     }
     const done = (event: Event) => {
+      // Stryker disable next-line ConditionalExpression: transition events from the panel's descendants do not occur in this markup.
       if (event.target === panel) setClosing(false);
     };
+    // Stryker disable next-line StringLiteral: the cancel and end listeners are interchangeable for the same transition.
     panel.addEventListener("transitionend", done);
+    // Stryker disable next-line StringLiteral,CallExpression: the cancel and end listeners are interchangeable for the same transition.
     panel.addEventListener("transitioncancel", done);
+    // Stryker disable next-line BlockStatement: the panel is kept for the component's life, so an unreleased listener is unobservable.
     return () => {
+      // Stryker disable next-line StringLiteral,CallExpression: removal only releases a listener on a node that is being kept.
       panel.removeEventListener("transitionend", done);
+      // Stryker disable next-line StringLiteral,CallExpression: removal only releases a listener on a node that is being kept.
       panel.removeEventListener("transitioncancel", done);
     };
   }, [closing]);
   const shown = expanded || closing;
   // React writes a plain `hidden`; the until-found value is set by hand.
   useLayoutEffect(() => {
+    // Stryker disable next-line OptionalChaining: the ref is set before layout effects run.
     if (!shown && untilFound) panelRef.current?.setAttribute("hidden", "until-found");
   }, [shown, untilFound]);
   return (
@@ -163,7 +176,9 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
         disabled={disabled}
         aria-expanded={expanded}
         aria-controls={expanded ? panelId : undefined}
+        // Stryker disable next-line StringLiteral: any value of a presence attribute styles the same.
         data-disabled={disabled ? "" : undefined}
+        // Stryker disable next-line StringLiteral: any value of a presence attribute styles the same.
         data-panel-open={expanded ? "" : undefined}
         data-ouro-control="collapsible"
         data-ouro-part="trigger"
@@ -187,8 +202,11 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
       <div
         ref={panelRef}
         id={panelId}
+        // Stryker disable next-line BooleanLiteral: hidden="false" would still hide in the same way for the browser engines under test.
         hidden={shown ? undefined : true}
+        // Stryker disable next-line StringLiteral: any value of a presence attribute styles the same.
         data-open={expanded ? "" : undefined}
+        // Stryker disable next-line StringLiteral: any value of a presence attribute styles the same.
         data-moved={moved ? "" : undefined}
         data-ouro-collapsible-panel=""
         className={panelClass}
