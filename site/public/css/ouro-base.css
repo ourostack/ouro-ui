@@ -119,6 +119,41 @@
   }
 }
 
+@supports not (corner-shape: squircle) {
+  [data-ouro-squircle] {
+    background-color: transparent;
+    border-color: transparent;
+  }
+  [data-ouro-squircle]::before {
+    display: none;
+  }
+  [data-ouro-surface] {
+    --ouro-sq-m: max(0px, calc(var(--ouro-sq-r) - var(--ouro-sq-w)));
+    --ouro-sq-o: 0 calc(var(--ouro-sq-r)*1), calc(var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), calc(var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), 100% calc(var(--ouro-sq-r)*1), 100% calc(100% - var(--ouro-sq-r)*1), calc(100% - var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), calc(100% - var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), 0 calc(100% - var(--ouro-sq-r)*1);
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--ouro-bg, transparent);
+    clip-path: polygon(var(--ouro-sq-o));
+  }
+  [data-ouro-surface]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: var(--ouro-state, 0);
+  }
+  [data-ouro-surface]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--ouro-bd, transparent);
+    clip-path: polygon(evenodd, var(--ouro-sq-o), 0 calc(var(--ouro-sq-r)*1), var(--ouro-sq-w) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.04) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.38), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.16) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.16), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.38) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.04), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1) var(--ouro-sq-w), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*1) var(--ouro-sq-w), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.38) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.04), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.16) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.16), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.04) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.38), calc(100% - var(--ouro-sq-w)) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1), calc(100% - var(--ouro-sq-w)) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*1), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.04) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.38), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.16) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.16), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.38) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.04), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*1) calc(100% - var(--ouro-sq-w)), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1) calc(100% - var(--ouro-sq-w)), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.38) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.04), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.16) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.16), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.04) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.38), var(--ouro-sq-w) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*1), var(--ouro-sq-w) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1), 0 calc(var(--ouro-sq-r)*1));
+  }
+}
+
 @keyframes ouro-spin {
   to {
     rotate: 1turn;
