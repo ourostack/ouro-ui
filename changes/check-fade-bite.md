@@ -1,0 +1,1 @@
+- Fixed: Ouro check passes a radial mask that cuts a hard-edged hole in a picture (Avatar bite) and still flags a mask that fades the edge.

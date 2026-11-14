@@ -81,6 +81,17 @@ export function medianCeiling(baseline: number): number {
   return Math.max(2 * baseline, baseline + 24);
 }
 
+/**
+ * The p95's bound at the runner's factor, LATENCY.p95 times it, rounded to the nearest 8 ms step, ties up: Event
+ * Timing rounds each duration to the nearest 8 ms (https://w3c.github.io/event-timing/#sec-fin-event-timing, "rounded
+ * to the nearest 8ms"), so a sample is only known to within 4 ms either side, and a bound between steps judges at the
+ * API's own resolution only when it sits on one. At factor 1 the bound is 104; at 1.19, 120 rather than 119.
+ */
+export function p95Bound(factor = 1): number {
+  // Round the raw bound to the nearest 8 ms step (ties up): the resolution Event Timing reports durations at.
+  return Math.floor((LATENCY.p95 * factor) / 8 + 0.5) * 8;
+}
+
 /** Where a press's time went, from its Event Timing entry: waiting for the page's thread, its handlers, and the wait for the next paint (ms). The duration is rounded to 8 ms and the other times are not, so the last part is accurate to within that rounding. */
 export function splitPress(entry: { startTime: number; processingStart: number; processingEnd: number; duration: number }): { inputDelay: number; processing: number; presentation: number } {
   const inputDelay = Math.round(entry.processingStart - entry.startTime);
@@ -107,11 +118,11 @@ export function summarise(samples: readonly number[], baseline: number, factor =
   const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
   const middle = sorted.length / 2;
   const median = sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
-  const bound = LATENCY.p95 * factor;
+  const bound = p95Bound(factor);
   const ceiling = medianCeiling(baseline) * factor;
   const within = p95 <= bound && median <= ceiling;
   const runner = factor > 1 ? `; the runner measured ${factor}× slower than a quiet one, so the bounds are ${factor}× theirs` : "";
-  return { p95, median, within, report: `p95 ${p95} ms (≤ ${bound}), median ${median} ms (≤ ${ceiling}, baseline ${baseline})${runner}; samples in order: ${samples.join(", ")}` };
+  return { p95, median, within, report: `p95 ${p95} ms (≤ ${bound}, ${LATENCY.p95 * factor} raw, at Event Timing's 8 ms step), median ${median} ms (≤ ${ceiling}, baseline ${baseline})${runner}; samples in order: ${samples.join(", ")}` };
 }
 
 /**
@@ -124,7 +135,7 @@ export function morePresses(samples: readonly number[], baseline: number, factor
   const { within, median } = summarise(samples, baseline, factor);
   if (samples.length !== LATENCY.samples || within) return false;
   const all = LATENCY.samples + LATENCY.more;
-  return median <= medianCeiling(baseline) * factor && samples.filter((sample) => sample > LATENCY.p95 * factor).length <= all - Math.ceil(all * 0.95);
+  return median <= medianCeiling(baseline) * factor && samples.filter((sample) => sample > p95Bound(factor)).length <= all - Math.ceil(all * 0.95);
 }
 
 /**
@@ -328,7 +339,7 @@ export function expectWithinBudget(label: string, samples: readonly number[], ba
   const { p95, median, report } = summarise(samples, baseline, factor);
   test.info().annotations.push({ type: "latency", description: `${label}: ${report}` });
   console.log(`latency ${label}: ${report}`);
-  expect(p95, `${label} ${report}`).toBeLessThanOrEqual(LATENCY.p95 * factor);
+  expect(p95, `${label} ${report}`).toBeLessThanOrEqual(p95Bound(factor));
   expect(median, `${label} ${report}`).toBeLessThanOrEqual(medianCeiling(baseline) * factor);
 }
 
@@ -374,5 +385,7 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
     summary(`- ${line}`);
     expect(pastCap(result.probe), `${label}: runner too loaded to judge: probe ${second} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), twice`).toBe(false);
   }
+  const { p95 } = summarise(result.samples, baseline, result.factor);
+  summary(`- ${label}: p95 ${p95} ms, bound ${p95Bound(result.factor)} ms (${LATENCY.p95 * result.factor} raw, rounded to Event Timing's 8 ms step)`);
   expectWithinBudget(label, result.samples, baseline, result.factor);
 }
