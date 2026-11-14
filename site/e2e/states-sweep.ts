@@ -82,8 +82,21 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
           if (!(await control.evaluate((el, p) => el.matches(p), pseudo))) return;
           // A press that picks the control (a calendar day) changes what it is, so it no longer has this state's look.
           if ((await marks()) !== before) return;
-          await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-          await page.evaluate(() => Promise.race([Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => null))), new Promise((done) => setTimeout(done, 1_000))]));
+          // A transition can start a frame or two after the state does, so wait until none runs for several frames.
+          await page.evaluate(async () => {
+            const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+            const deadline = Date.now() + 2_000;
+            let quiet = 0;
+            while (quiet < 3 && Date.now() < deadline) {
+              await frame();
+              const running = document.getAnimations().filter((a) => a instanceof CSSTransition);
+              if (running.length === 0) quiet++;
+              else {
+                quiet = 0;
+                await Promise.race([Promise.all(running.map((a) => a.finished.catch(() => null))), new Promise((done) => setTimeout(done, 500))]);
+              }
+            }
+          });
           found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
           const { looks: now, escapes } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
           found.push(...escapes.map((e) => `${path} ${state}: ${e}`));
