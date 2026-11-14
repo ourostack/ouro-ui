@@ -295,6 +295,23 @@ describe("Hero", () => {
     expect(part("image")!.style.objectPosition).toBe("50% 42%");
   });
 
+  it("gives the dark picture the light one's focus unless it has its own", async () => {
+    const dayFocus = { ...wide, crop: "8 / 3", focus: "50% 80%" };
+    const shared = await render(<Hero title="Shared" picture={{ light: dayFocus, dark: night }} />);
+    expect(shared.part("media")!.querySelector<HTMLImageElement>('[data-scheme="dark"] img')!.style.objectPosition).toBe("50% 80%");
+    const own = await render(<Hero title="Own" picture={{ light: dayFocus, dark: { ...night, focus: "50% 20%" } }} />);
+    expect(own.part("media")!.querySelector<HTMLImageElement>('[data-scheme="dark"] img')!.style.objectPosition).toBe("50% 20%");
+  });
+
+  it("shows the whole picture in the split layout, so a wide crop never cuts its subject in the narrower column", async () => {
+    await page.viewport(1440, 900);
+    const tall = { ...wide, src: svg(1200, 900), width: 1200, height: 900, crop: "8 / 3" };
+    const { part } = await render(<Hero title="Split" layout="split" picture={pair(tall)} />);
+    const box = part("media")!.getBoundingClientRect();
+    expect(box.width / box.height).toBeCloseTo(1200 / 900, 1);
+    expect(getComputedStyle(part("image")!).position).toBe("static");
+  });
+
   it("loads a picture lazily unless it is a priority", async () => {
     const lazy = await render(<Hero title="Lazy" picture={pair(wide)} />);
     expect(lazy.part("image")!.getAttribute("loading")).toBe("lazy");
