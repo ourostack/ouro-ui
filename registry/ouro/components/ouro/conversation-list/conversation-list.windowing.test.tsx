@@ -596,6 +596,24 @@ describe("ConversationList windowing with sections", () => {
     await frames();
     expect(everything()).toBe(first);
   });
+  it("keeps every row of a windowed list shorter than the view, whose window never reaches the view's bottom", async () => {
+    const style = document.createElement("style");
+    style.textContent = '[data-ouro="conversation-list"] [data-ouro-part="row"] { height: 20px }';
+    document.head.append(style);
+    mounted.push(style);
+    const pane = document.createElement("div");
+    pane.style.cssText = "width: 360px; height: 800px; overflow-y: auto";
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    flushSync(() => root.render(<ConversationList label="Chats" items={many(21)} onSelect={() => {}} />));
+    const first = pane.querySelectorAll('[data-ouro-part="row"]').length;
+    await frames();
+    await frames();
+    expect(first).toBeGreaterThan(0);
+    expect(pane.querySelectorAll('[data-ouro-part="row"]').length).toBeGreaterThanOrEqual(first);
+  });
   const sections: ConversationListSection[] = [
     { id: "a", title: "First" },
     { id: "b", title: "Second" },
