@@ -21,7 +21,7 @@ import type { PageIssue } from "./size-check.ts";
 //                      corners don't nest
 //   baked-corner       (readCorners) a picture or video whose own pixels draw a corner of another colour, such as a
 //                      screen recording of a window with its dark corner, inside the page's frame
-//   type-scale         more text sizes, or more font weights, than a type scale holds
+//   type-scale         more text sizes, or more font weights in running text or in headings, than a type scale holds
 //   shadow-scale       more distinct shadows than an elevation scale holds
 //   grey-on-colour     grey text on a coloured background, which reads washed out: use a shade of the background's hue
 //   heading-hierarchy  a heading drawn larger than the heading it sits under, each at the largest size its text is drawn
@@ -335,15 +335,22 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     return seen;
   };
   const sizes = count(texts.map((el) => Math.round(px(getComputedStyle(el).fontSize) * 2) / 2));
-  const weights = count(texts.map((el) => Number(getComputedStyle(el).fontWeight)));
+  // Weights are counted within a text role: headings keep their own weight, so a semibold heading leaves the running
+  // text its regular, medium and bold, as Refactoring UI's two or three weights for UI text intend.
+  const isHeading = (el: Element) => el.closest("h1, h2, h3, h4, h5, h6, [role='heading']") !== null;
+  const weightsOf = (heading: boolean) => count(texts.filter((el) => isHeading(el) === heading).map((el) => Number(getComputedStyle(el).fontWeight)));
   const rarest = <T,>(seen: Map<T, number>, of: (el: Element) => T) => texts.find((el) => of(el) === [...seen].sort((a, b) => a[1] - b[1])[0]![0])!;
   if (sizes.size > maxSizes) {
     const list = [...sizes.keys()].sort((a, b) => a - b);
     issues.push({ ref: ref(rarest(sizes, (el) => Math.round(px(getComputedStyle(el).fontSize) * 2) / 2)), rule: "type-scale", element: "the page's text sizes", detail: `${list.length} sizes (${list.join(", ")} px); a type scale holds ${maxSizes} or fewer` });
   }
-  if (weights.size > maxWeights) {
+  for (const heading of [false, true]) {
+    const weights = weightsOf(heading);
+    if (weights.size <= maxWeights) continue;
     const list = [...weights.keys()].sort((a, b) => a - b);
-    issues.push({ ref: ref(rarest(weights, (el) => Number(getComputedStyle(el).fontWeight))), rule: "type-scale", element: "the page's font weights", detail: `${list.length} weights (${list.join(", ")}); keep to ${maxWeights}` });
+    const role = (el: Element) => isHeading(el) === heading;
+    const rarestWeight = [...weights].sort((a, b) => a[1] - b[1])[0]![0];
+    issues.push({ ref: ref(texts.find((el) => role(el) && Number(getComputedStyle(el).fontWeight) === rarestWeight)!), rule: "type-scale", element: heading ? "the page's heading weights" : "the page's font weights", detail: `${list.length} weights (${list.join(", ")}); keep to ${maxWeights}` });
   }
   const shadowed = visible.filter((el) => getComputedStyle(el).boxShadow !== "none" && frameOf(el) === null);
   const shadows = count(shadowed.map((el) => getComputedStyle(el).boxShadow));

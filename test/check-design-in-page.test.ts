@@ -284,10 +284,20 @@ describe("findDesignIssues: type-scale and shadow-scale", () => {
 
   it("counts text whose opt-out has a blank reason, since a reason of spaces is none", () => {
     render(`<div data-ouro-allow="type-scale" data-ouro-allow-why="   "><h2 style="font-size:41px;font-weight:700">BANG</h2></div><p style="font-size:12px">Chrome</p><p style="font-size:16px">Body</p>`);
-    expect(of("type-scale", { maxSizes: 2, maxWeights: 1 }).map(({ detail }) => detail)).toEqual([
-      "3 sizes (12, 16, 41 px); a type scale holds 2 or fewer",
-      "2 weights (400, 700); keep to 1",
-    ]);
+    expect(of("type-scale", { maxSizes: 2, maxWeights: 1 }).map(({ detail }) => detail)).toEqual(["3 sizes (12, 16, 41 px); a type scale holds 2 or fewer"]);
+  });
+
+  it("counts weights within a role: a heading's weight leaves the running text its regular, medium and bold", () => {
+    render(`<p style="font-weight:500">Recipes</p><h1 style="font-weight:600">Dinner</h1><p>Plan the week, <b>shop once</b>.</p><button type="button" style="font-weight:500">Start</button>`);
+    expect(of("type-scale")).toEqual([]);
+    host.remove();
+    render(`<p style="font-weight:300">Light</p><p>Regular</p><p style="font-weight:500">Medium</p><p id="rarest"><b>Bold</b> once</p><p><b>Bold</b> twice</p><p style="font-weight:300">Light again</p><p style="font-weight:500">Medium again</p><p>Regular again</p><h2 style="font-weight:600">Heading</h2>`);
+    expect(of("type-scale").map(({ element, detail }) => [element, detail])).toEqual([["the page's font weights", "4 weights (300, 400, 500, 700); keep to 3"]]);
+    host.remove();
+    render(`<h1 style="font-weight:300">One</h1><h2 style="font-weight:400">Two</h2><h3 id="rare" style="font-weight:500">Three</h3><h4 style="font-weight:700">Four</h4><h4 style="font-weight:700">Four again</h4><h2 style="font-weight:400">Two again</h2><h1 style="font-weight:300">One again</h1><div role="heading" aria-level="5" style="font-weight:700">Five</div><p>Body</p>`);
+    const [headings] = of("type-scale");
+    expect([headings!.element, headings!.detail]).toEqual(["the page's heading weights", "4 weights (300, 400, 500, 700); keep to 3"]);
+    expect(document.getElementById("rare")!.getAttribute("data-ouro-check-ref")).toBe(headings!.ref);
   });
 
   it("holds the page to ten sizes and three weights unless told another", () => {
