@@ -73,6 +73,7 @@ interface Cli<C extends RunContext = RunContext> {
   readonly name: string;
   readonly about: readonly string[];
   readonly commands: readonly CommandDef<unknown, C>[];
+  readonly single: boolean;
   readonly exits: ExitTable;
   readonly headings: EffectHeadings;
   readonly globalFlags: Readonly<Record<string, FlagSpec>>;
@@ -87,21 +88,11 @@ interface Cli<C extends RunContext = RunContext> {
 
 ### `CliDef`
 
+A tool is defined either with `command`, its one thing to do, which takes no command word (`ouro-images <folder>`), or with `commands`, several words that each name a command. Give exactly one; `defineCli` refuses both or neither.
+
 ```ts
-interface CliDef<C extends RunContext = RunContext> {
-  name: string;
-  about: readonly string[];
-  commands: readonly CommandDef<unknown, C>[];
-  exits?: ExitTable;
-  headings?: EffectHeadings;
-  globalFlags?: Readonly<Record<string, FlagSpec>>;
-  ambiguous?: Readonly<Record<string, readonly Meaning[]>>;
-  personOnly?: Readonly<Record<string, PersonOnly>>;
-  groups?: Readonly<Record<string, string>>;
-  outcomeExits?: OutcomeExits;
-  waitExits?: WaitExits;
-  voice?: VoiceDef;
-}
+type CliDef<C extends RunContext = RunContext> = CliDefBase &
+  ({ command: CommandDef<unknown, C>; commands?: undefined } | { commands: readonly CommandDef<unknown, C>[]; command?: undefined });
 ```
 
 ### `CommandDef`
@@ -128,6 +119,14 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   plan?(input: Input, ctx: C): Outcome | Promise<Outcome>;
   text?(result: R, input: Input): string;
 }
+```
+
+### `commandWords`
+
+The words a command adds after the tool's name: its name's words, or none for a tool defined with `command`.
+
+```ts
+function commandWords(cli: Pick<Cli<RunContext>, "single">, cmd: CommandDef<unknown, RunContext>): string[]
 ```
 
 ### `defineCli`
@@ -208,6 +207,7 @@ interface HelpAsked {
   kind: "help";
   topic: string | undefined;
   json: boolean;
+  command?: CommandDef;
 }
 ```
 
@@ -229,6 +229,14 @@ function inputSchema(cli: Pick<Cli<RunContext>, "globalFlags">, cmd: CommandDef<
 
 ```ts
 type InputValue = string | number | boolean | readonly string[];
+```
+
+### `invocation`
+
+The tool's name and the command's words, as a fix or a help line writes them: `ouro-images`, or `tasks assign`.
+
+```ts
+function invocation(cli: Pick<Cli<RunContext>, "name" | "single">, cmd: CommandDef<unknown, RunContext>): string
 ```
 
 ### `JsonSchema`
@@ -316,7 +324,7 @@ interface SelfScope<C extends RunContext = RunContext> {
 The argv that runs a command with this input, the way an agent would type it; the first stdin-capable argument's text goes on stdin ("-"), so text that starts with "-" or spans lines passes whole.
 
 ```ts
-function toArgv(cli: Pick<Cli<RunContext>, "globalFlags">, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>): { argv: string[]; stdin: string | null; }
+function toArgv(cli: Pick<Cli<RunContext>, "single" | "globalFlags">, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>): { argv: string[]; stdin: string | null; }
 ```
 
 ### `usageOf`
@@ -324,5 +332,5 @@ function toArgv(cli: Pick<Cli<RunContext>, "globalFlags">, cmd: CommandDef<unkno
 The command's usage line from its definition: words, arguments, required flags, then the optional ones.
 
 ```ts
-function usageOf(cli: Pick<Cli<RunContext>, "globalFlags">, cmd: CommandDef<unknown, RunContext>): string
+function usageOf(cli: Pick<Cli<RunContext>, "single" | "globalFlags">, cmd: CommandDef<unknown, RunContext>): string
 ```

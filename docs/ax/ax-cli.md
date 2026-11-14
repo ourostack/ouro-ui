@@ -102,6 +102,7 @@ interface CommandManifest {
   examples: readonly string[];
   hidden: boolean;
   scope?: "self";
+  single?: true;
 }
 ```
 
@@ -157,7 +158,7 @@ function renderCommand(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext
 
 ### `renderOverview`
 
-The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only the person acts on, the footer.
+The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only the person acts on, the footer. A tool defined with `command` shows its one command's usage and summary in place of the command list.
 
 ```ts
 function renderOverview(cli: Cli<RunContext>, options?: OverviewOptions): string
