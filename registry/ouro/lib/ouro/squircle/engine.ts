@@ -1,4 +1,4 @@
-import { buildPendingCss, createManagedSheet } from "./pending";
+import { buildPendingCss, createManagedSheet } from "./pending.ts";
 import {
   CLEAR_TARGET,
   computeTarget,
@@ -7,8 +7,8 @@ import {
   type RenderTarget,
   readSource,
   type SourceStyles,
-} from "./render";
-import { CORNER_SCALE_VAR, scanDocument } from "./scan";
+} from "./render.ts";
+import { CORNER_SCALE_VAR, scanDocument } from "./scan.ts";
 
 export interface EngineOptions {
   pendingRadiusScale: number;
