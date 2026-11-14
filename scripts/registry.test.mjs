@@ -350,7 +350,7 @@ test("Ouro AX items depend on the ax items they import", () => {
   assert.deepEqual(item("ax-checks").registryDependencies, ["ax-dev-commands", "ax-exit-codes", "ax-outcome", "ax-terminal"].map(repo));
   assert.deepEqual(item("ax-terminal").registryDependencies, ["ax-outcome", "ax-voice"].map(repo));
   assert.deepEqual(item("ax-voice").registryDependencies, ["ax-outcome"].map(repo));
-  assert.deepEqual(item("ax-flows").registryDependencies, undefined);
+  assert.deepEqual(item("ax-flows").registryDependencies, ["ax-cli", "ax-command", "ax-outcome", "ax-problem"].map(repo));
   for (const name of ["ax-cli", "ax-example", "ax-flows"]) assert.ok(item("ax-flows-tests").registryDependencies.includes(repo(name)), name);
   assert.deepEqual(item("ax-cli").files.map((file) => [file.path, file.type, file.target]), [
     ["registry/ouro/ax/cli.ts", "registry:lib", "@lib/ouro/ax/cli.ts"],

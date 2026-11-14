@@ -54,9 +54,11 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.16:** the testing kit moves the mouse off the page before each test in the mouse projects, so a test that relied on a hover left by the one before now hovers itself.[^upgrade-v1.3.17]
 
-- **After v1.3.17:** `ouro-images` installs to `@lib/ouro/images/`, beside the Ouro AX kit it now runs on, where it was `~/lib/ouro/images/`, so re-adding it leaves the old copy behind: delete `lib/ouro/images/` at your project root once nothing imports it, and point any script that ran it at the new path.[^upgrade-images-ax] A refused option prints one line with the fix and exits 2.[^upgrade-images-ax]
-
 - **After v1.3.19 (Hero):** `Hero`'s `picture` takes `{ light, dark }`, the same scene by day and at night, and no longer a single picture, so a hero that passed one picture fails to compile until it passes both; the dark one shows while the page is in dark mode.[^upgrade-hero-dark] Ouro check has a new gated rule, `hero-dark-art` (a hero whose picture has no night art), so a run that passed can now report it.[^upgrade-hero-dark-check]
+
+- **After v1.3.20:** `ouro-images` installs to `@lib/ouro/images/`, beside the Ouro AX kit it now runs on, where it was `~/lib/ouro/images/`, so re-adding it leaves the old copy behind: delete `lib/ouro/images/` at your project root once nothing imports it, and point any script that ran it at the new path.[^upgrade-images-ax] A refused option prints one line with the fix and exits 2.[^upgrade-images-ax]
+
+- **After v1.3.33:** `ax-flows` runs on the Ouro AX kit: a refused option or suite module prints one line with the fix and exits 2 (a missing suite module or X-ray report used to stop with a stack trace and exit 1), and under `--json` stdout holds the outcome alone, with each flow's line on stderr.[^upgrade-flows-ax]
 
 #### 0. Commit first
 
@@ -161,4 +163,5 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-v1.3.13]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13)
 [^upgrade-v1.3.15]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15)
 [^upgrade-v1.3.17]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17)
+[^upgrade-flows-ax]: registry/ouro/ax/flows.test.mts verify:testExists(registry/ouro/ax/flows.test.mts::the command's --help is the Ouro AX kit's, and an unknown flag is one line that names the fix, exit 2) verify:testExists(registry/ouro/ax/flows.test.mts::--json prints the outcome alone on stdout, and each flow's line on stderr) verify:testExists(registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage)
 [^upgrade-images-ax]: scripts/registry.mts; scripts/images/images.test.mts verify:fileLine(scripts/registry.mts, /@lib\/ouro\/images\//) verify:testExists(scripts/images/images.test.mts::Ouro images' command > refuses what it cannot run with one line that names the fix, and exits 2)
