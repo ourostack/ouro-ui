@@ -1,0 +1,1 @@
+- Changed: ConversationList reads an ancestor's style once while it mounts, and the keyboard-scroll hook waits for its resize observer before its first read, so a commit forces less style work.

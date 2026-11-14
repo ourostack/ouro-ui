@@ -93,6 +93,15 @@ function expectBand(pane: HTMLElement, kept: readonly string[]) {
 }
 
 describe("ConversationList windowing", () => {
+  it("reads each ancestor's style once while it finds its scroll container on mount", async () => {
+    const reads = watchLayoutReads();
+    const { list } = await render(<ConversationList label="Conversations" items={many(200)} onSelect={() => {}} />);
+    reads.stop();
+    const styled = reads.reads.filter((read) => read.name === "getComputedStyle" && read.target instanceof Element && read.target.contains(list()) && read.target !== document.documentElement).map((read) => read.target);
+    expect(styled.length).toBeGreaterThan(0);
+    expect(new Set(styled).size).toBe(styled.length);
+  });
+
   it("lays nothing out when it renders again with the same rows, and measures a row that changes size once the page is laid out", async () => {
     const list = (count: number) => <ConversationList label="Conversations" items={many(200, (index) => (index === 0 ? { unread: count % 2 === 0 } : {}))} onSelect={() => {}} />;
     const view = await render(list(0));

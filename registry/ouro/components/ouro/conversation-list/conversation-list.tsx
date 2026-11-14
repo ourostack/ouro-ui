@@ -643,9 +643,15 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     if (!windowed) return;
     const list = listRef.current!;
     const found: HTMLElement[] = [];
-    for (let node = list.parentElement; node; node = node.parentElement) if (getComputedStyle(node).overflowY !== "visible") found.push(node);
+    let scrolls: HTMLElement | undefined;
+    for (let node = list.parentElement; node; node = node.parentElement) {
+      const { overflowY } = getComputedStyle(node);
+      if (overflowY === "visible") continue;
+      found.push(node);
+      if (!scrolls && /auto|scroll/.test(overflowY)) scrolls = node;
+    }
     clips.current = found;
-    scroller.current = found.find((clip) => /auto|scroll/.test(getComputedStyle(clip).overflowY)) ?? document.scrollingElement;
+    scroller.current = scrolls ?? document.scrollingElement;
     const onScroll = (event: Event) => {
       // Stryker disable next-line ConditionalExpression: a scroll elsewhere would only read a view that has not changed.
       if (event.target === document || found.includes(event.target as HTMLElement)) sync.current!();
