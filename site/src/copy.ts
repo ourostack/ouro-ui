@@ -37,6 +37,20 @@ export const VOYAGE_HERO = {
       { testExists: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
     ],
   }),
+  /**
+   * The lede on a phone, where the porthole must start on the first screen (site/e2e/stage-pacing.spec.ts), so it is no
+   * taller than the old one: the same claim, short, with the benchmark and the reviews linked after it.
+   */
+  phoneSubline: claim("A design system for people and agents that renders A2UI and adds one action model for both.", {
+    source: [
+      { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
+      { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+    ],
+    verify: [
+      { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
+      { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+    ],
+  }),
   /** Under the subline: where to check the claim, and the platform gap, said plainly. */
   links: {
     benchmark: { label: "Agent benchmark", href: "/docs/agent-interfaces/" },

@@ -201,8 +201,19 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         ))}
         description={
           <>
-            <p className="mx-auto max-w-[44rem]">{VOYAGE_HERO.subline}</p>
-            <p className="site-hero-links mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-base" data-site-hero-links="">
+            <p className="sm:hidden" data-site-hero-phone="">
+              {VOYAGE_HERO.phoneSubline} See the{" "}
+              <Link href={href(VOYAGE_HERO.links.benchmark.href)} tone="secondary" inline>
+                agent benchmark
+              </Link>{" "}
+              and the{" "}
+              <Link href={href(VOYAGE_HERO.links.reviews.href)} tone="secondary" inline>
+                model reviews
+              </Link>
+              .
+            </p>
+            <p className="mx-auto max-w-[44rem] max-sm:hidden">{VOYAGE_HERO.subline}</p>
+            <p className="site-hero-links mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-base max-sm:hidden" data-site-hero-links="">
               {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews, VOYAGE_HERO.links.platforms].map((link) => (
                 <Link key={link.href} href={href(link.href)} tone="secondary" inline>
                   {link.label}

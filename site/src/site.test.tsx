@@ -143,6 +143,10 @@ describe("home page", () => {
       ["Model reviews", "/docs/model-reviews/"],
       ["No Android or Windows kit yet", "/docs/platforms/"],
     ]);
+    // On a phone, a lede no taller than the old one, so the porthole still starts on the first screen, with the same two links.
+    const phone = document.querySelector("[data-site-hero-phone]")!;
+    expect(phone.textContent).toContain(VOYAGE_HERO.phoneSubline);
+    expect([...phone.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(["/docs/agent-interfaces/", "/docs/model-reviews/"]);
     expect(routes[0]!.title).toBe("Ouro UI");
     // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what it is beside A2UI.
     const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
