@@ -724,6 +724,7 @@
     "site/e2e/catalog.spec.ts": 20259,
     "site/e2e/chapter-one.spec.ts": 118829,
     "site/e2e/chapter-three.spec.ts": 103694,
+    "site/e2e/consistency.spec.ts": 20000,
     "site/e2e/chapter-two.spec.ts": 146036,
     "site/e2e/dive.spec.ts": 38749,
     "site/e2e/early-input.spec.ts": 31783,
