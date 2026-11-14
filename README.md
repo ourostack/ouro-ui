@@ -374,6 +374,7 @@ Components:
 `navigation-rail`,
 `number-field`,
 `otp-field`,
+`ouro-mcp-app`,
 `page-header`,
 `pagination`,
 `popover`,
@@ -474,6 +475,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-keep-clear`,
 `lib-key-shortcuts`,
 `lib-last-input`,
+`lib-mcp-app`,
 `lib-measure-interaction`,
 `lib-navigation-key`,
 `lib-open-mode`,
@@ -489,6 +491,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-server-element`,
 `lib-share`,
 `lib-spring`,
+`lib-squircle-polyfill`,
 `lib-stretched-link`,
 `lib-toast`,
 `lib-tones`,
@@ -654,6 +657,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
 - **LiveCaptions** — A caption band for a live call or video: what people are saying, as they say it. [Docs](docs/LiveCaptions.md)
 - **MediaTile** — A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen. [Docs](docs/MediaTile.md)
+- **OuroMcpApp** — The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's `structuredContent.a2ui` with `A2UISurface`. [Docs](docs/OuroMcpApp.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. [Docs](docs/Skeleton.md)
 
@@ -671,7 +675,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Layout
 
 - **AspectRatio** — A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads. [Docs](docs/AspectRatio.md)
-- **Hero** — The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture, or something live in its place (`media`), below. [Docs](docs/Hero.md)
+- **Hero** — The top of a page: a headline with an optional line above it (`eyebrow`) and a status beside that (`badge`), a trail above them (`breadcrumb`), a lede under the headline (`description`), the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or something live in its place (`media`), below. [Docs](docs/Hero.md)
 - **PageHeader** — The top of a page: its title with an optional line above it (`eyebrow`), a description under it, the page's actions beside it, and a trail and an image above. [Docs](docs/PageHeader.md)
 - **Resizable** — Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console. [Docs](docs/Resizable.md)
 - **ResizableHandle** — The draggable line between two panels in a `ResizablePanelGroup`, a focusable window splitter (`role="separator"`) for the panel before it. [Docs](docs/ResizableHandle.md)

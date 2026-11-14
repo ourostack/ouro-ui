@@ -2,7 +2,7 @@
 
 # Hero
 
-The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture, or something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark mode. The picture rises into place when it first appears unless `motion="none"`, and it is never shown wider than its intrinsic width.
+The top of a page: a headline with an optional line above it (`eyebrow`) and a status beside that (`badge`), a trail above them (`breadcrumb`), a lede under the headline (`description`), the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark mode. The picture rises into place when it first appears unless `motion="none"`, and it is never shown wider than its intrinsic width. Its frame has 24px squircle corners, Ouro's corner shape.
 
 ```tsx
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
@@ -25,7 +25,7 @@ import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 
 ## Use instead when
 
-- Use `PageHeader` instead for a page's top with a breadcrumb or no picture, and `Heading` for a plain title with nothing around it.
+- Use `PageHeader` instead for a page's top with no picture, and `Heading` for a plain title with nothing around it.
 
 ## Props
 
@@ -34,14 +34,17 @@ Type: `HeroProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `actions` | `ReactNode` |  | The hero's buttons or links, such as Ouro buttons. They sit right under the lede, its next element, on the lede's edge, set a little further from it than the lines of text are from each other. Pass the page's main button here, not in `description`. |
-| `description` | `ReactNode` |  | The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the hero's text column, like the title. Centred in the stage layout, its lines are balanced to even lengths; aligned to the start, it wraps so the last line is never one word alone. To choose where a centred lede breaks, set each phrase in its own `inline-block` span, as the `LongLede` story does. |
+| `badge` | `ReactNode` |  | A short status beside the eyebrow, such as a `Badge`: `badge={<Badge>Beta</Badge>}`. Hero sets it on the eyebrow's line, or on that line alone without an eyebrow, and leaves its look to what you pass. |
+| `breadcrumb` | `ReactNode` |  | A trail above everything else, such as a `Breadcrumb`, on the text's edge. |
+| `children` | `ReactNode` |  | More under the actions, in the text column, such as a byline, a note or a short recording. In the split layout it sits beside the picture. A second picture or a demo belongs in the next section, not the hero. |
+| `description` | `ReactNode` |  | The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as paragraphs or a list, is set in a `<div>` so it can hold blocks, and Hero clears its first block's top margin and its last block's bottom margin, so a paragraph needs no `m-0`. It runs the full width of the hero's text column, like the title. Its lines are balanced to even lengths in every layout, so the last line is never left short; a lede longer than the browser balances, a few lines, wraps as usual. To choose where a lede breaks, set each phrase in its own `inline-block` span, as the `LongLede` story does. |
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is. |
 | `fullWidth` | `boolean` |  | Stretches the hero to the width of its container, with no gutter or cap of its own, for a hero inside a page column that already sets the width. Without it the hero keeps a gutter at either side and caps its width. |
 | `headingLevel` | `1 \| 2` | `1` | The title's heading level: `1` for the page's headline, `2` when the hero heads a section. |
 | `layout` | `"stage" \| "column" \| "split"` | `"stage"` | `stage` centres the text over the picture; `column` aligns both to a reading column; `split` puts the copy and the media side by side from 64rem, and stacks them like `column` below that, for a page whose picture or live media belongs next to its words. |
 | `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. |
 | `mediaWidth` | `number` |  | The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead. |
-| `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`, `--ouro-duration-fast` and `--ouro-ease-out`. |
+| `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`, `--ouro-duration-fast` and `--ouro-ease-out`. The wrapper carries `data-starting-style` only while a hydrated page sees the rise running, so server HTML that never hydrates, such as an Astro page without client JavaScript, carries no marker. |
 | `picture` | `HeroPictures` |  | The big picture, shown under the text: `{ light, dark }`, the same scene by day and at night, swapped with the page's dark mode. Both are required: a hero has night art. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `title` (required) | `ReactNode` |  | The hero's headline, its `<h1>` (or `<h2>` with `headingLevel={2}`). Required. |
@@ -86,18 +89,28 @@ interface HeroPicture {
   srcSet?: string;
   /** The `<img>`'s `sizes`. */
   sizes?: string;
-  /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. */
+  /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. In `{ light, dark }`, see `HeroPictures` for how each twin loads. */
   priority?: boolean;
-  /** A wide aspect ratio, such as `"8 / 3"`, applied on wider screens. Without it the picture keeps its own ratio. */
+  /**
+   * A wide aspect ratio, such as `"8 / 3"`, applied on wider screens in the stage and column
+   * layouts. Without it the picture keeps its own ratio, as it does on a phone and in the split
+   * layout, so a wide crop never cuts the subject in the split layout's narrower column.
+   */
   crop?: string;
-  /** The `object-position` used when the picture is cropped. @default "50% 42%" */
+  /**
+   * The focal point kept in view when the picture is cropped, as an `object-position`, such as
+   * `"50% 80%"` for a subject near the bottom. Set it on each picture: the dark one takes the
+   * light one's unless it has its own.
+   *
+   * @default "50% 42%"
+   */
   focus?: string;
 }
 ```
 
 ### `HeroPictures`
 
-The hero's art in light and dark mode: the same scene by day and at night. Hero shows `light` or `dark` with the page's dark mode, the `.dark` class on the root that a stored theme toggle sets, in CSS, so the right one is there from the first paint. `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so without its own `alt` or `decorative` it takes `light`'s. It always loads lazily, so a page in light mode never downloads it; its `priority` only raises its fetch priority once it shows.
+The hero's art in light and dark mode: the same scene by day and at night. Hero shows `light` or `dark` in CSS, with your app's Tailwind `dark` variant, the one every Ouro component's dark styles follow, so the right one is there from the first paint. That variant reads the `.dark` class Ouro's `colorSchemeScript` sets; a site that marks dark mode with `data-theme` or the system setting redefines it, as the theming guide shows, and Hero follows. `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so without its own `alt`, `decorative` or `focus` it takes `light`'s. `priority` decides how the twin that shows loads. A twin without it is lazy, and a hidden lazy image is never fetched. Give `priority` to the twin most of your visitors see, and it loads straight from the HTML at high fetch priority while the other stays lazy. Give it to both when the page preloads the art for its scheme: both wait in the HTML, and an inline script after them, which runs once the page's CSS has loaded, loads the one that shows, so neither scheme downloads both. A preload for the dark twin, which follows the system setting, is `<link rel="preload" as="image" fetchpriority="high" media="(prefers-color-scheme: dark)" imagesrcset="/night-960.avif 960w, /night.avif 1920w" imagesizes="100vw">`, with exactly the twin's `srcSet` and `sizes` (and a `type` for a `sources` format); a page that stores the person's choice adds the link from the script in its `<head>` that applies the choice.
 
 ```ts
 interface HeroPictures {
@@ -122,5 +135,13 @@ interface HeroPictureSource {
   media?: string;
   /** The `sizes` for this source. */
   sizes?: string;
+  /**
+   * This source's intrinsic pixel width, when its art has another shape than the picture's own,
+   * such as a phone crop. With `height`, it holds the image's box to this source's shape before
+   * the file arrives, so the page doesn't shift.
+   */
+  width?: number;
+  /** This source's intrinsic pixel height, with `width`. */
+  height?: number;
 }
 ```

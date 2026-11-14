@@ -51,9 +51,11 @@ function lintCli(cli: Cli, options: LintOptions = {}): LintReport {
   const say = (thing: string, problem: string, fix: string) => problems.push(`${[cli.name, thing].filter(Boolean).join(" ")}: ${problem}. Fix: ${fix}.`);
   const long = (text: string) => text.split("\n").find((line) => line.length > width);
   const typed = cli.commands.filter((c) => !c.loose);
+  // The inventory checks the command words. A default command takes no word, so it is left out, unless it is the tool's only command.
+  const worded = cli.single ? cli.commands : cli.commands.filter((c) => c !== cli.defaultCommand);
   for (const cmd of typed) {
-    // A tool with one command has no command word to name, so its problems are the tool's.
-    const thing = cli.single ? "" : cmd.name;
+    // The default command has no command word to name, so its problems are the tool's.
+    const thing = cmd === cli.defaultCommand ? "" : cmd.name;
     if (!cmd.summary.trim()) say(thing, "has no summary", 'summary: "<what it does, in one line>"');
     if (!cmd.examples?.length) say(thing, "has no example", `examples: ["${invocation(cli, cmd)} ..."]`);
     if (cmd.effect === "others" && flagsOf(cli, cmd)[WHY_FLAG]?.required !== true) say(thing, "reaches other people without a required --why", 'drop why: "optional"');
@@ -66,10 +68,10 @@ function lintCli(cli: Cli, options: LintOptions = {}): LintReport {
   }
   const over = long(renderOverview(cli, { width }));
   if (over) say("--help", `the overview has a line of ${over.length} columns`, "shorten that command's summary");
-  const declared = new Set(cli.commands.flatMap((c) => [c.name, ...(c.aliases ?? [])]));
+  const declared = new Set(worded.flatMap((c) => [c.name, ...(c.aliases ?? [])]));
   const inventory = options.inventory ? new Set(options.inventory) : null;
   const undeclared = inventory ? [...inventory].filter((name) => !declared.has(name)) : [];
-  const stale = inventory ? cli.commands.filter((c) => ![c.name, ...(c.aliases ?? [])].some((n) => inventory.has(n))).map((c) => c.name) : [];
+  const stale = inventory ? worded.filter((c) => ![c.name, ...(c.aliases ?? [])].some((n) => inventory.has(n))).map((c) => c.name) : [];
   for (const name of undeclared) say(name, "is registered but not declared, so it runs outside the kit", `defineCommand({ name: "${name}", ... run })`);
   for (const name of stale) say(name, "is declared but the tool does not register it", "remove the declaration, or register the command");
   const bypassed = cli.commands.filter((c) => typeof c.run !== "function").map((c) => c.name);

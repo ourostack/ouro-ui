@@ -4,14 +4,12 @@ import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { commands } from "vitest/browser";
-import { registerHyperellipse } from "hyperellipse";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 
-vi.mock("hyperellipse", () => ({ registerHyperellipse: vi.fn(() => () => {}) }));
 
 const roots: ReturnType<typeof createRoot>[] = [];
 afterEach(async () => {
@@ -299,10 +297,4 @@ describe("OuroProvider quiet", () => {
       style.remove();
     }
   });
-  it("registers the squircle polyfill once on the client", async () => {
-    vi.mocked(registerHyperellipse).mockClear();
-    await mount(<OuroProvider>x</OuroProvider>);
-    await expect.poll(() => vi.mocked(registerHyperellipse)).toHaveBeenCalledTimes(1);
-  });
-
 });

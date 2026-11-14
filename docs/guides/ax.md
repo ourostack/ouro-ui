@@ -84,6 +84,8 @@ const cli = defineCli({
 });
 ```
 
+A tool can also define `command` beside `commands`. That default [runs when no command word leads](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a tool with a default command runs it for any leading word that is not a command word, and a command word goes after --)"): in a tool with a `sizes` command, `images site/showcase` runs the default and `images sizes site/showcase` runs `sizes`. A target named like a command word goes after `--`. A flag may [repeat](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a repeat flag collects each value in order, in either form, and is absent when not given)"), as `--ready a --ready b`, and then its values come as a list.
+
 ## The items
 
 | Item | What it gives you |
