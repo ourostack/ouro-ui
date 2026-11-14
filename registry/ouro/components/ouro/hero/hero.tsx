@@ -386,9 +386,15 @@ export function Hero(props: HeroProps): JSX.Element {
   // server's HTML, so a page that never hydrates keeps no marker, and it goes when the rise ends.
   const [rising, setRising] = useState(false);
   const mediaRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    if (mediaRef.current?.getAnimations().some((animation) => animation.playState === "running")) setRising(true);
-  }, []);
+  useLayoutEffect(
+    () => {
+      // A finished transition leaves the list, so any animation here is the rise still running.
+      const running = mediaRef.current?.getAnimations().length;
+      if (running) setRising(true);
+    },
+    // Stryker disable next-line ArrayDeclaration: any constant list runs the effect once, like an empty one.
+    [],
+  );
   useAppearanceClassNameCheck(
     "Hero",
     className,
