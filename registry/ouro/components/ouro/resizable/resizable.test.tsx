@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -730,7 +730,7 @@ describe("Resizable context value", () => {
         </Profiler>
       );
     });
-    let bump = () => {};
+    const bump: { current: () => void } = { current: () => {} };
     const kids = [
       <ResizablePanel key="a" label="A" defaultSize={30}>
         a
@@ -742,13 +742,15 @@ describe("Resizable context value", () => {
     ];
     function Host() {
       const [, set] = useState(0);
-      bump = () => set((n) => n + 1);
+      useEffect(() => {
+        bump.current = () => set((n) => n + 1);
+      }, []);
       return <Resizable onLayout={() => {}}>{kids}</Resizable>;
     }
     await render(<Host />);
     const before = handleCommits;
     expect(before).toBeGreaterThan(0);
-    await act(async () => bump());
+    await act(async () => bump.current());
     expect(handleCommits).toBe(before);
   });
 });
