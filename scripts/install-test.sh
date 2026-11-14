@@ -609,10 +609,7 @@ EOF
 chmod +x "$registry/serial-npm/npm"
 add_pids=()
 for part in 0 1 2 3; do
-  part_items=()
-  for i in "${!test_items[@]}"; do
-    [ $((i % 4)) -ne "$part" ] || part_items+=("${test_items[$i]}")
-  done
+  mapfile -t part_items < <(printf '%s\n' "${test_items[@]}" | node "$root/scripts/split-items.mjs" "$registry/r" 4 "$part")
   PATH="$registry/serial-npm:$PATH" "${shadcn[@]}" add --yes ${OURO_DELTA:+--overwrite} "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
   add_pids+=($!)
 done
