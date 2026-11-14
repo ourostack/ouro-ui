@@ -9,6 +9,7 @@ import { TabsIndicator, TabsList, TabsPanel, TabsRoot, TabsTab } from "@/registr
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import { computedValue } from "@/registry/ouro/lib/ouro/testing/computed";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -594,7 +595,7 @@ describe("Tabs as links", () => {
     expect(all!.getBoundingClientRect().width).toBe(list.getBoundingClientRect().width);
     const line = recipes!.querySelector<HTMLElement>("[data-ouro-tabs-indicator]")!.getBoundingClientRect();
     expect([line.width, line.right, line.height]).toEqual([2, list.getBoundingClientRect().right, recipes!.getBoundingClientRect().height]);
-    expect(getComputedStyle(chefs!).justifyContent).toBe("flex-start");
+    expect(getComputedStyle(chefs!).justifyContent).toBe(computedValue("justify-content", "flex-start"));
     await page.viewport(390, 844);
     await expect.poll(() => list.getAttribute("data-orientation")).toBe("horizontal");
     expect(root.getAttribute("data-orientation")).toBe("horizontal");
