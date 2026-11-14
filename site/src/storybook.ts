@@ -1,6 +1,6 @@
 /**
  * The storybook world (ourostack/.github, brand/): Ouro's meadow at dawn, each product's friends in a
- * scene of their own. site/public/brand/storybook/ holds byte-for-byte copies of the scenes this site
+ * scene of their own, and the same scene at night for dark mode. site/public/brand/storybook/ holds byte-for-byte copies of the scenes this site
  * shows, listed with their checksums in its provenance.json (site/scripts/brand.test.mjs holds them
  * to it). Which page opens on which scene, and which card its link preview shows, is decided here.
  */
@@ -37,6 +37,12 @@ export interface Scene {
    * the picture's top edge through mountains or a friend's head rather than sky.
    */
   shortY?: number;
+  /**
+   * The same scene at night, shown in dark mode (files named `<scene>-dark`, at the same widths): its own sky, sampled
+   * the same way, and its phone crop's height, which is its own where the night crop was framed differently. It shares
+   * the scene's `alt` unless that names the time of day, when it has its own.
+   */
+  night: { sky: readonly [string, string, string, string, string]; phoneHeight: number; alt?: string };
 }
 
 export const SCENES: Record<SceneName, Scene> = {
@@ -47,6 +53,11 @@ export const SCENES: Record<SceneName, Scene> = {
     phoneHeight: 432,
     sun: [86, 30],
     band: 27,
+    night: {
+      sky: ["#193075", "#1f3b83", "#113279", "#193e8a", "#556db1"],
+      phoneHeight: 432,
+      alt: "A woman and a little white robot build a big green switch panel on a wooden workbench at night, while Ouro, a smiling green snake curled into an O, watches from the glowing trail.",
+    },
   },
   "ouro-ui-apple": {
     alt: "A little white robot leans over a phone, a tablet and a laptop on a garden bench, each showing the same green card with a switch, while Ouro smiles beside them.",
@@ -56,6 +67,7 @@ export const SCENES: Record<SceneName, Scene> = {
     sun: [87, 11],
     band: 8,
     shortY: 20,
+    night: { sky: ["#021e52", "#042259", "#04215a", "#08235c", "#20376e"], phoneHeight: 432 },
   },
   "ouro-ui-core": {
     alt: "Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.",
@@ -64,6 +76,7 @@ export const SCENES: Record<SceneName, Scene> = {
     phoneHeight: 576,
     sun: [86, 13],
     band: 24,
+    night: { sky: ["#07277d", "#0a2d8b", "#0a318e", "#1747a9", "#164aad"], phoneHeight: 576 },
   },
   "playwright-focus-proof": {
     alt: "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
@@ -72,6 +85,11 @@ export const SCENES: Record<SceneName, Scene> = {
     phoneHeight: 320,
     sun: [87, 28],
     band: 61,
+    night: {
+      sky: ["#0f2f7f", "#103086", "#11338d", "#1a3fa3", "#1f48b3"],
+      phoneHeight: 300,
+      alt: "One night in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+    },
   },
   "ouroboros-skills": {
     alt: "A little robot reads an unrolled scroll beside a bookshelf full of ribboned scrolls and books, while Ouro hands another scroll to a second robot.",
@@ -81,6 +99,7 @@ export const SCENES: Record<SceneName, Scene> = {
     sun: [93, 3],
     band: 12,
     shortY: 8,
+    night: { sky: ["#16326e", "#163881", "#163f93", "#183787", "#324ea3"], phoneHeight: 320 },
   },
   ourostack: {
     alt: "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
@@ -89,6 +108,11 @@ export const SCENES: Record<SceneName, Scene> = {
     phoneHeight: 384,
     sun: [86, 12],
     band: 65,
+    night: {
+      sky: ["#1e3b82", "#1b3c85", "#193d88", "#244b9a", "#3862b0"],
+      phoneHeight: 384,
+      alt: "Ouro's whole world at night: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+    },
   },
 };
 
@@ -159,10 +183,14 @@ export function cardAlt(card: Card): string {
   return `${card.kicker}: ${card.title}${/[.!?]$/.test(card.title) ? "" : "."} ${SCENES[card.scene].alt}`;
 }
 
-/** The srcsets a scene's picture offers: the phone crop, and the wide scene, each in AVIF and WebP. */
-export function sceneSources(scene: SceneName, at: (path: string) => string = (path) => `${STORYBOOK}${path}`) {
-  const phone = (type: "avif" | "webp") => `${at(`phone/${scene}-384.${type}`)} 384w, ${at(`phone/${scene}-768.${type}`)} 768w, ${at(`phone/${scene}-1152.${type}`)} 1152w, ${at(`phone/${scene}-1536.${type}`)} 1536w`;
+/**
+ * The srcsets a scene's picture offers: the phone crop, and the wide scene, each in AVIF and WebP. With `night`, the same
+ * scene at night, whose files carry `-dark` after the scene's name.
+ */
+export function sceneSources(scene: SceneName, at: (path: string) => string = (path) => `${STORYBOOK}${path}`, night = false) {
+  const name = night ? `${scene}-dark` : scene;
+  const phone = (type: "avif" | "webp") => `${at(`phone/${name}-384.${type}`)} 384w, ${at(`phone/${name}-768.${type}`)} 768w, ${at(`phone/${name}-1152.${type}`)} 1152w, ${at(`phone/${name}-1536.${type}`)} 1536w`;
   const wide = (type: "avif" | "webp") =>
-    `${at(`scenes/${scene}-640.${type}`)} 640w, ${at(`scenes/${scene}-960.${type}`)} 960w, ${type === "avif" ? at(`scenes/${scene}-1536.avif`) : at(`headers/${scene}.webp`)} 1536w, ${at(`scenes/${scene}-3072.${type}`)} 3072w`;
-  return { phone, wide };
+    `${at(`scenes/${name}-640.${type}`)} 640w, ${at(`scenes/${name}-960.${type}`)} 960w, ${type === "avif" ? at(`scenes/${name}-1536.avif`) : at(`headers/${name}.webp`)} 1536w, ${at(`scenes/${name}-3072.${type}`)} 3072w`;
+  return { phone, wide, header: at(`headers/${name}.webp`) };
 }

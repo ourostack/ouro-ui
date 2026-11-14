@@ -65,9 +65,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * on a page with its own navigation crossed it on CI. Then 2 KiB more (277 KiB) for the registry Hero at the top of every
  * page (Ari, 2026-11-13: one official Ouro component behind every hero): the home page measured 280,331 bytes on the
  * hero-media branch at e9f68765 and 282,379 with the voyage hero on Hero, 2,048 bytes for the component itself, its
- * development checks already stripped.
+ * development checks already stripped. Then 1 KiB more (278 KiB) for night art behind every hero (Ari, 2026-11-14: every
+ * hero has the same scene at night, swapped with the site's theme): each scene's night sky, its night crop's height and,
+ * where the day's alt names the time of day, its own alt, with which the home page measured 283,771 bytes on CI at 08f7bc91.
  */
-const CEILINGS = { voyage: 277 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { voyage: 278 * 1024, docs: 167_396 + 1024 } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's

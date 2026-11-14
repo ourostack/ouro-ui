@@ -229,6 +229,25 @@ describe("home page", () => {
     }
   });
 
+  it("shows each storybook scene at night in dark mode, from its own files, lazily, and only the shown one is drawn or heard", async () => {
+    await renderPage("/");
+    for (const scene of ["ouro-hx", "ourostack"]) {
+      const day = document.querySelector(`picture[data-brand-scene='${scene}']`)!;
+      const night = document.querySelector(`picture[data-brand-scene='${scene}-dark']`)!;
+      expect(night.parentElement).toBe(day.parentElement);
+      expect([...night.querySelectorAll("source")].every((source) => source.srcset.split(", ").every((entry) => entry.includes(`/${scene}-dark`)))).toBe(true);
+      const [dayImage, nightImage] = [day.querySelector("img")!, night.querySelector("img")!];
+      expect([nightImage.loading, nightImage.fetchPriority === "high"]).toEqual(["lazy", false]);
+      expect(nightImage.alt).toBe(dayImage.alt.replace(/\bat dawn\b/, "at night"));
+      const shown = () => [getComputedStyle(day).display, getComputedStyle(night).display];
+      document.documentElement.classList.remove("dark");
+      expect(shown()).toEqual(["block", "none"]);
+      document.documentElement.classList.add("dark");
+      expect(shown()).toEqual(["none", "block"]);
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
   it("lists what comes with every component beside the install steps, under hairlines", async () => {
     await renderPage("/");
     const install = document.getElementById("install")!;
