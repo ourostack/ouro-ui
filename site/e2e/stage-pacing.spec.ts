@@ -8,8 +8,10 @@ test("a screen too slow to swim the fish gets still water, its speed at Stop, an
   await slowFrames(page, 150);
   await openSlow(page);
   await bringUp(page);
-  // real clock: the stage judges the screen on its real frames, a beat and then a second of them.
-  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
+  // real clock: the stage judges the screen on its real frames, a beat and then a second of them; on a loaded WebKit these
+  // slow frames can miss the first two seconds' three gaps, and the stage reads two seconds more, as on a starved screen
+  // (ourostack/ouro-ui#1255).
+  await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "", { timeout: 10_000 });
   await expect(scene(page)).toHaveAttribute("data-speed", "stop");
   await expect(page.getByRole("radio", { name: "Stop" })).toBeChecked();
   await expect(lastLog(page)).toContainText(LOG.stillWater.text);
