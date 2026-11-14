@@ -23,17 +23,17 @@ export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 export const VOYAGE_HERO = {
   eyebrow: "Ouro HX + Ouro AX",
   title: ["Feels right to the people using it.", "Obvious to the agents building it."],
-  subline: claim("A design system for people and agents. It renders A2UI and adds what A2UI leaves to the app: one action declaration that becomes a button, a CLI command, MCP and WebMCP tools and an App Intent, with person-only actions refused to agents and an X-ray to check it.", {
+  subline: claim("A design system for people and agents. Declare an action once and it becomes a button, a CLI command, MCP and WebMCP tools and an App Intent, with consent built in: a consequential action asks the person first, person-only actions are refused to agents, and an X-ray checks it.", {
     source: [
       { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
       { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" },
-      { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+      { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
       { test: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
     ],
     verify: [
       { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
       { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" },
-      { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+      { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
       { testExists: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
     ],
   }),
@@ -41,14 +41,14 @@ export const VOYAGE_HERO = {
    * The lede on a phone, where the porthole must start on the first screen (site/e2e/stage-pacing.spec.ts), so it is no
    * taller than the old one: the same claim, short, with the benchmark and the reviews linked after it.
    */
-  phoneSubline: claim("A design system for people and agents that renders A2UI and adds one action model for both.", {
+  phoneSubline: claim("A design system for people and agents: one action for both, with consent built in.", {
     source: [
       { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
-      { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+      { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
     ],
     verify: [
       { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
-      { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+      { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
     ],
   }),
   /** Under the subline: where to check the claim, and the platform gap, said plainly. */
@@ -66,6 +66,26 @@ export const VOYAGE_HERO = {
       href: "/docs/platforms/",
     },
   },
+} as const;
+
+/**
+ * The formats agents compose interfaces in that Ouro UI works with, said below the fold in the Ouro AX section
+ * (home-reference.tsx), never as the hero's opening: what is Ouro's own leads (decision 2026-11-14-composed-ui-own-tree in
+ * ourostack/ouro-ui-core). MCP Apps comes first because the most hosts render it. Each format links to its renderer's docs.
+ */
+export const WORKS_WITH = {
+  label: claim("Works with", {
+    source: [{ test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }, { test: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card" }],
+    verify: [{ testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }, { testExists: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card" }],
+  }),
+  lede: claim("When an agent composes a card for a person, Ouro HX draws it and every button follows its action's consent class.", {
+    source: [{ test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }, { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
+    verify: [{ testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }, { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
+  }),
+  formats: [
+    { label: "MCP Apps", href: "/docs/ouro-mcp-app/" },
+    { label: "A2UI", href: "/docs/a2ui-surface/" },
+  ],
 } as const;
 
 export const SHADCN_BADGE = claim("Works with shadcn/ui", {
