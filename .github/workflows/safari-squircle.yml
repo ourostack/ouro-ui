@@ -1,8 +1,6 @@
 name: Safari squircle
 # Measures the squircle polyfill in real Safari (no native corner-shape, so the fallback runs) on a hosted macOS runner: idle work at rest and typing p95, polyfill off and on.
 on:
-  push:
-    branches: [safari-squircle]
   workflow_dispatch:
     inputs:
       enforce:
