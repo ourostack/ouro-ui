@@ -1,0 +1,1 @@
+- TextField draws a true squircle in Safari and other engines that lack `corner-shape`, through the same surface layer as Button.
