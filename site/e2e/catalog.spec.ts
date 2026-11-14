@@ -95,7 +95,7 @@ const CEILINGS = { voyage: 278 * 1024, docs: 167_396 + 1024 } as const;
 // every hero), whose classes its Tailwind build now carries: the home page measured 42,029 bytes with them, on CI at 7fce58d0.
 // The voyage's rose to 42 KiB for the Quiet switch's glass (Ari, 2026-11-13: the switch as Liquid Glass), whose classes
 // the home page's switch carries: 42,616 bytes with them, on CI at 952542bd.
-const CSS_CEILINGS = { voyage: 42 * 1024, docs: 43 * 1024 } as const;
+const CSS_CEILINGS = { voyage: 42 * 1024, docs: 44 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())

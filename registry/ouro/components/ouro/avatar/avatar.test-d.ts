@@ -8,7 +8,7 @@ expectTypeOf<{ name: "Ana Lind" }>().toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana Lind"; src: "/ana.jpg"; alt: ""; initials: "AL"; size: "xl" }>().toExtend<AvatarProps>();
 expectTypeOf<ComponentProps<typeof Avatar>>().toEqualTypeOf<AvatarProps>();
 expectTypeOf<{ name: "Ana"; shape: "square"; color: "brand"; idForColor: "u-1"; icon: null }>().toExtend<AvatarProps>();
-expectTypeOf<{ name: "Halden"; shape: "hexagon"; src: "/halden.png" }>().toExtend<AvatarProps>();
+expectTypeOf<{ name: "Halden"; shape: "agent"; src: "/halden.png" }>().toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana"; presence: "do-not-disturb"; presenceLabel: "Do not disturb" }>().toExtend<AvatarProps>();
 // A presence that may be missing, with its label, type checks as it is.
 expectTypeOf<{ name: "Ana"; presence: AvatarPresence | undefined; presenceLabel: string }>().toExtend<AvatarProps>();
@@ -27,7 +27,7 @@ expectTypeOf<{ name: "Ana"; size: 40 }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana"; presence: "busy" }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana"; presence: "dnd"; presenceLabel: "Busy" }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana"; shape: "rounded" }>().not.toExtend<AvatarProps>();
-expectTypeOf<{ name: "Halden"; shape: "agent" }>().not.toExtend<AvatarProps>();
+expectTypeOf<{ name: "Halden"; shape: "hexagon" }>().not.toExtend<AvatarProps>();
 expectTypeOf<{ name: "Ana"; color: "blue" }>().not.toExtend<AvatarProps>();
 // AvatarGroup needs a label.
 expectTypeOf<{ children: null }>().not.toExtend<AvatarGroupProps>();

@@ -2,7 +2,7 @@
 
 # Avatar
 
-A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), and `shape="square"` marks a team, a channel, an app or a bot, and `shape="hexagon"` an AI agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture replaces them at full strength the moment it loads, with no fade: a picture already in the browser's cache is there on the avatar's first frame.
+A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), and `shape="square"` marks a team, a channel, an app or a bot, and `shape="agent"` an AI agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture replaces them at full strength the moment it loads, with no fade: a picture already in the browser's cache is there on the avatar's first frame.
 
 ```tsx
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
@@ -14,7 +14,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 <Avatar name="Ana Lind" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
 <Avatar name="Grace Hopper" size="lg" idForColor={user.id} />
 <Avatar name="Design reviews" shape="square" />
-<Avatar name="Halden" shape="hexagon" src={agent.photoUrl} />
+<Avatar name="Halden" shape="agent" src={agent.photoUrl} />
 <span className="flex items-center gap-2"><Avatar name={user.name} alt="" size="sm" />{user.name}</span>
 ```
 
@@ -41,7 +41,7 @@ The props the modes share. Type: `AvatarProps`.
 | `name` (required) | `string \| null` |  | The person's or thing's name. Screen readers hear it, and the initials come from it (the first letters of the first and last words) until the image loads, or when it fails. Required, so no avatar is silent. Pass `null` while the name is still loading: the avatar keeps its size and shape and shimmers as a Skeleton, and screen readers hear `nameLoadingLabel`. |
 | `nameLoadingLabel` | `string` | `"Name loading"` | What screen readers hear while `name` is `null`, for other languages. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
-| `shape` | `"circle" \| "square" \| "hexagon"` | `"circle"` | `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a channel, an app or a bot, `"hexagon"` (with rounded corners) for an AI agent, as Teams draws agents. The initials, icon or picture fill the shape, centered. A hexagon shows no presence dot: an agent has no presence. |
+| `shape` | `"circle" \| "square" \| "agent"` | `"circle"` | `"circle"` for a person (a squircle), `"square"` for a team, a channel, an app or a bot (a squircle with a second edge peeking out behind it, and no presence dot), `"agent"` for an AI agent (a less-rounded tile, white in light mode, with the glyph in its own color and a presence dot). The initials, icon or picture fill the shape, centered. |
 | `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | 24, 32, 40, 48, 64, 72 or 112px (`2xl` and `3xl` for profile pages); the initials and the presence dot grow with it. Inside an `AvatarGroup`, the group's size applies. |
 | `src` | `string` |  | The image URL. Until it loads, and if it fails, the initials show. |
 
