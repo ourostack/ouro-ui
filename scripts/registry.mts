@@ -59,8 +59,11 @@ const components = readComponents();
 /** Registry files that test this repository itself and never ship. */
 const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
 
-/** Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA, which no app's CI has. */
-const repoOnlyDirs = ["registry/ouro/e2e/screen-reader/"];
+/**
+ * Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA,
+ * which no app's CI has, and the MCP App host harness builds the view and starts the example server from this repository.
+ */
+const repoOnlyDirs = ["registry/ouro/e2e/screen-reader/", "registry/ouro/e2e/mcp-app-host/"];
 
 /** Packages every app already has. */
 const appPackages = new Set(["react", "react-dom"]);
