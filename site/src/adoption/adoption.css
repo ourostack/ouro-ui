@@ -18,7 +18,12 @@
   .adoption-lede p {
     max-width: 62ch;
   }
+  .adoption-newer {
+    min-height: 2.5rem;
+    margin: calc(var(--spacing) * 2) 0 0;
+  }
   .adoption-fresh,
+  .adoption-newer,
   .adoption-detail,
   .adoption-when,
   .adoption-kind,

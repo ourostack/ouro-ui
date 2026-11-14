@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Container } from "../voyage/layout";
 import { isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger, type LedgerCell, type Surface } from "./ledger";
@@ -167,7 +168,9 @@ const STATE_TONE: Record<string, "success" | "warning" | "secondary"> = { done: 
 export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Ledger; live?: boolean }): JSX.Element {
   const [ledger, setLedger] = useState(initial);
   const [refreshed, setRefreshed] = useState(false);
-  // The page paints from the ledger built into the site, then takes a newer one from the hourly run if there is one.
+  const [waiting, setWaiting] = useState<Ledger | null>(null);
+  // The page paints from the ledger built into the site. A newer one from the hourly run waits behind a button, so nothing
+  // moves under the reader's eyes while the page loads: swapping it in on its own shifted most of the page.
   useEffect(() => {
     if (!live) return;
     const controller = new AbortController();
@@ -175,8 +178,7 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
       .then((response) => (response.ok ? response.json() : null))
       .then((next: unknown) => {
         if (isNewer(next, initial)) {
-          setLedger(next);
-          setRefreshed(true);
+          setWaiting(next);
         }
       })
       .catch(() => undefined);
@@ -209,6 +211,24 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
               {NOT_YET}, with a reason beside it. <Link href="https://github.com/ourostack/ouro-ui/tree/main/scripts/adoption#readme">How it is measured</Link>,{" "}
               <Link href="https://github.com/ourostack/ouro-ui/issues?q=is%3Aissue+label%3Aadoption">the tracking issues</Link>,{" "}
               <Link href={LIVE_URL}>ledger.json</Link>.
+            </p>
+            <p className="adoption-newer" aria-live="polite">
+              {waiting ? (
+                <>
+                  A newer measurement is ready, from <time dateTime={waiting.generatedAt}>{stamp(waiting.generatedAt)}</time>.{" "}
+                  <Button
+                    size="inline"
+                    variant="plain"
+                    onClick={() => {
+                      setLedger(waiting);
+                      setRefreshed(true);
+                      setWaiting(null);
+                    }}
+                  >
+                    Show it
+                  </Button>
+                </>
+              ) : null}
             </p>
           </div>
         </Container>
