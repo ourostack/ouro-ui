@@ -74,14 +74,14 @@ describe("ReactionBar", () => {
     await expect.element(page.getByRole("button", { name: "Laugh, 1" })).toHaveAttribute("aria-pressed", "false");
     expect(bar!.querySelectorAll('[data-ouro-part="reaction"]')).toHaveLength(2);
     // The emoji shows but is not read: screen readers hear the label.
-    expect(bar!.querySelector('[aria-hidden="true"]:not([data-ouro-touch-target])')!.textContent).toBe("👍");
+    expect(bar!.querySelector('[aria-hidden="true"]:not([data-ouro-touch-target]):not([data-ouro-surface])')!.textContent).toBe("👍");
   });
 
   it("tints the person's own reaction", async () => {
     const { bar } = await render(<ReactionBar reactions={reactions} onReact={() => {}} />);
     const [mine, other] = [...bar!.querySelectorAll<HTMLElement>('[data-ouro="badge"]')];
-    expect(mine!.className).toContain("bg-primary/10");
-    expect(other!.className).not.toContain("bg-primary/10");
+    expect(mine!.className).toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
+    expect(other!.className).not.toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
   });
 
   it("calls onReact with the key and the trusted click, to add or take back a reaction", async () => {
@@ -214,7 +214,7 @@ describe("ReactionBar", () => {
     expect(bar!.querySelector("button")).toBeNull();
     const [mine, other] = [...bar!.querySelectorAll<HTMLElement>('[data-ouro="badge"]')];
     expect(mine!.textContent).toBe("👍Like, 3, including you");
-    expect(mine!.className).toContain("bg-primary/10");
+    expect(mine!.className).toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
     expect(other!.textContent).toBe("😄Laugh, 1");
   });
 

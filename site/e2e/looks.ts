@@ -193,7 +193,12 @@ export function describe(arg: { selector: string; only?: number }): Described {
         ].join(" ; ");
     const visible = rect.width >= 6 && rect.height >= 6 && rect.width <= 400 && rect.height <= 300 && cs.visibility !== "hidden";
     const isCrop = visible && el.getAttribute("data-ouro") !== "heading" && (el.hasAttribute("data-ouro") || el.hasAttribute("data-ouro-control"));
-    const behind = behindOf(el);
+    // Content the site puts inside a control (a colour dot) is part of its picture, so only controls holding the same content compare.
+    const content = [...el.querySelectorAll<HTMLElement>("*")]
+      .map((n) => getComputedStyle(n).backgroundColor)
+      .filter((c) => c !== "rgba(0, 0, 0, 0)");
+    const own = behindOf(el);
+    const behind = own === "translucent" || content.length === 0 ? own : `${own}+${content.join(",")}`;
     const size = `${sizeOf}${(el.textContent ?? "").trim().slice(0, 40) ? `|${(el.textContent ?? "").trim().slice(0, 40)}` : ""}`;
     const pictureKey = `${key}|${size}|${behind}`;
     const pictured = isCrop && behind !== "translucent" && !seenPictured.has(pictureKey);

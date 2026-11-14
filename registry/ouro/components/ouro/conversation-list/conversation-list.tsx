@@ -273,7 +273,7 @@ type RowProps = {
   selected: boolean;
   tabStop: boolean;
   windowed: boolean;
-  top: number;
+  top: number | undefined;
   slotClass?: string | undefined;
   position: number;
   count: number;
@@ -566,9 +566,15 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   };
   // In a windowed list a control's slot is placed where it would be, with the gap before it as padding, and says
   // where it is in its list, since screen readers cannot count the rows that are not there.
+  // Until the first measurement, and while the view has not moved, the slots of the first window sit in normal flow, so
+  // their places are the ones the measured heights give: nothing estimated lies above a row in view.
+  const flow = windowed && start === 0;
   const slot = (key: string) => {
     const index = indexes.get(key)!;
-    return { className: cn("absolute inset-x-0", index > 0 && (kindOf(key) === "section" ? "pt-2.5" : "pt-0.5")), style: { top: offsets[index] } };
+    const gap = index > 0 && (kindOf(key) === "section" ? "pt-2.5" : "pt-0.5");
+    // Stryker disable next-line EqualityOperator: a kept row at index end follows the last flowed row, so flow and its absolute place agree.
+    if (flow && index < end) return { className: cn(gap), style: undefined };
+    return { className: cn("absolute inset-x-0", gap), style: { top: offsets[index] } };
   };
   const register = useCallback((key: string, node: HTMLButtonElement | null) => {
     if (node) controls.current.set(key, node);
@@ -808,7 +814,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         selected={item.id === selectedId}
         tabStop={key === tabStop}
         windowed={windowed}
-        top={windowed ? offsets[indexes.get(key)!]! : 0}
+        top={windowed ? slot(key).style?.top : 0}
         slotClass={windowed ? slot(key).className : undefined}
         position={position}
         count={count}
