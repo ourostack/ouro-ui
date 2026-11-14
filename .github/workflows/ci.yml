@@ -1482,6 +1482,16 @@ jobs:
         with:
           path: ${{ runner.temp }}/app.tar.zst
           key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
+      # npm's download cache, seeded from the newest earlier one, so a changed registry file does not
+      # download every package again.
+      - id: npmcache
+        if: steps.prepared.outputs.cache-hit != 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/npm-cache
+          key: install-npm-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'test/install-fixture*/package.json') }}
+          restore-keys: |
+            install-npm-${{ matrix.variant }}-${{ matrix.preset }}-
       - if: steps.prepared.outputs.cache-hit != 'true'
         run: pnpm i --frozen-lockfile
       - name: Prepare the app
@@ -1489,6 +1499,7 @@ jobs:
         env:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          npm_config_cache: ${{ runner.temp }}/npm-cache
         run: OURO_PREPARE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
       - name: Pack the app
         if: steps.prepared.outputs.cache-hit != 'true'
