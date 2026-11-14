@@ -376,6 +376,9 @@ export async function settle(): Promise<void> {
     const menus = document.querySelectorAll('[data-ouro-navbar-menu][aria-haspopup="dialog"]').length;
     if (document.querySelectorAll('[data-ouro="sheet"]').length < menus) throw new Error("a Navbar's sheet is not built yet");
   }, waitOptions);
+  // One quiet check is not enough: a fade that begins a frame after it was scanned mid-way (#1303), so
+  // the page must read as quiet twice in a row.
+  let quiet = 0;
   for (let round = 0; round < 20; round++) {
     // Base UI clears the starting style in a deferred React update. Before that
     // commit a sheet is offscreen but has no running transition to await.
@@ -383,11 +386,16 @@ export async function settle(): Promise<void> {
       if (document.querySelector("[data-open][data-starting-style]")) throw new Error("an overlay still has its starting style");
     }, waitOptions);
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    const running = document
+    // A pending animation has not started yet: it is unfinished too.
+    const unsettled = document
       .getAnimations()
-      .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && animation.playState === "running");
-    if (running.length === 0) return;
-    await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
+      .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && (animation.playState === "running" || animation.pending));
+    if (unsettled.length === 0 && !document.querySelector("[data-open][data-starting-style]")) {
+      if (++quiet === 2) return;
+      continue;
+    }
+    quiet = 0;
+    await Promise.all(unsettled.map((animation) => animation.finished.catch(() => undefined)));
   }
   throw new Error("animations did not settle");
 }
