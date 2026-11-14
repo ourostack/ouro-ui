@@ -40,7 +40,10 @@ jobs:
           BASELINE: ${{ inputs.baseline }}
         run: |
           [ "$BASELINE" = true ] && BASELINE=origin/main
-          git checkout "$BASELINE" -- registry/ouro/components/ouro/message/message-list.tsx
+          case "$BASELINE" in
+            file:*) cp "${BASELINE#file:}" registry/ouro/components/ouro/message/message-list.tsx ;;
+            *) git checkout "$BASELINE" -- registry/ouro/components/ouro/message/message-list.tsx ;;
+          esac
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
