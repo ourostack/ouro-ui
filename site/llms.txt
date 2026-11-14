@@ -54,7 +54,7 @@ Ouro HX and Ouro AX in Swift, for iPhone, iPad and Mac (ourostack/ouro-ui-apple)
 - OuroA2UI (agent-composed UI, new in 0.5.0): draws Ouro HX's A2UI catalog in SwiftUI, where every button is one of the app's declared actions and follows its consent class.[^a2ui] https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#agent-composed-ui-a2ui
 
 ```swift
-.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.0")   // the foundations, the X-ray, Feel, Reins and OuroA2UI
+.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.1")   // the foundations, the X-ray, Feel, Reins and OuroA2UI
 ```
 
 Ouro Feel and Ouro Reins shipped in ouro-ui-apple 0.4.1 as the OuroFeel and OuroReins products.[^feel-reins] Their guides are docs/ouro-feel/README.md and docs/ouro-reins/README.md in that repository.
