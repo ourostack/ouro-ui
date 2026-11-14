@@ -47,7 +47,7 @@ describe("registerHyperellipse in a real browser", () => {
     controller = registerHyperellipse({ force: true });
     expect(controller.active).toBe(true);
     await expect
-      .poll(() => getComputedStyle(box).clipPath, { timeout: 5000 })
+      .poll(() => getComputedStyle(box).clipPath)
       .not.toBe("none");
     await nextFrames();
     controller.destroy();

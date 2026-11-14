@@ -1,4 +1,3 @@
-/** The custom property the scanner reads: browsers without `corner-shape` drop the native property but keep this one in the CSSOM. */
 export const CORNER_SHAPE_VAR = "--corner-shape";
 
 /**
