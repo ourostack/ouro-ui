@@ -25,12 +25,14 @@ describe("the adoption ledger", () => {
     expect(host.textContent).toContain("not measured yet");
   });
 
-  it("says how many releases the counted products are behind, and which are more than a day late", async () => {
+  it("leads with the target, the products more than a day behind, and gives the releases behind as context", async () => {
     const host = await renderPage("/adoption/");
     const line = host.querySelector(".adoption-behind")?.textContent ?? "";
     expect(SNAPSHOT.summary.releasesBehind).toBeTypeOf("number");
-    expect(line).toContain(`${SNAPSHOT.summary.releasesBehind} releases behind`);
-    for (const item of SNAPSHOT.summary.late ?? []) expect(line).toContain(`${item.name} (${item.late})`);
+    expect(line).toMatch(/^The target: no product goes more than a day without an Ouro UI release it lacks\./);
+    expect(line).toContain(`Past it now: ${SNAPSHOT.summary.late?.length ?? 0} products`);
+    for (const item of SNAPSHOT.summary.late ?? []) expect(line).toContain(`${item.name}, ${item.late} releases`);
+    expect(line).toContain(`For context, counted products are ${SNAPSHOT.summary.releasesBehind} releases behind in total`);
   });
 
     it.each(["light", "dark"] as const)("passes the accessibility scan in %s", async (scheme) => {

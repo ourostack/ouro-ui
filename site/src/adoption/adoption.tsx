@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Container } from "../voyage/layout";
 import { isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger, type LedgerCell, type Surface } from "./ledger";
@@ -219,8 +220,14 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
             </p>
             {summary.releasesBehind === undefined ? null : (
               <p className="adoption-behind">
-                Counted products are <strong>{summary.releasesBehind} releases behind</strong> in total.
-                {summary.late?.length ? ` More than a day late: ${summary.late.map((item) => `${item.name} (${item.late})`).join(", ")}.` : null}
+                {claim("The target: no product goes more than a day without an Ouro UI release it lacks.", {
+                  source: { test: "scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more" },
+                  verify: { testExists: "scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more" },
+                })}{" "}
+                Past it now:{" "}
+                <strong>{summary.late?.length ?? 0} products</strong>
+                {summary.late?.length ? ` (${summary.late.map((item) => `${item.name}, ${item.late} releases`).join("; ")})` : ""}. For context, counted products
+                are {summary.releasesBehind} releases behind in total; Ouro UI releases several times a day, so that count is not the target.
               </p>
             )}
             <p className="adoption-newer" aria-live="polite">
