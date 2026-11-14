@@ -428,6 +428,12 @@ describe("Avatar shapes and icons", () => {
     const corner = parseFloat(getComputedStyle(square!).borderTopLeftRadius);
     expect(corner).toBeGreaterThan(0);
     expect(corner).toBeLessThan(34);
+    expect(getComputedStyle(circle!).borderTopLeftRadius).toBe("34%");
+    expect(getComputedStyle(square!).borderTopLeftRadius).toBe("24%");
+    for (const plain of [circle!, square!]) {
+      expect(getComputedStyle(plain, "::after").borderTopWidth).not.toBe("1px");
+      expect(getComputedStyle(plain).backgroundColor).not.toBe("rgb(255, 255, 255)");
+    }
   });
 
   it("draws an agent as a tile at every size, its initials and picture inside it", async () => {
