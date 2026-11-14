@@ -1,0 +1,1 @@
+- Fixed: a field keeps the space of a message that leaves during a press in its form, so a button below it (Sign, say) stays under the press and takes its click.
