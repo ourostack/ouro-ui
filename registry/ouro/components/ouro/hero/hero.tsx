@@ -244,6 +244,7 @@ const schemeClass = { light: "dark:hidden", dark: "hidden dark:block" } as const
 const firstPaintScript =
   '(function(s){var p=s.parentNode.children;for(var i=0;i<p.length;i++){var g=p[i].tagName==="PICTURE"&&getComputedStyle(p[i]).display!=="none"&&p[i].querySelector("img");if(g&&g.loading==="lazy")g.loading="eager"}})(document.currentScript)';
 
+// Stryker disable next-line ArrowFunction: the type never changes after hydration, so nothing subscribes and the unsubscribe has nothing to undo.
 const noSubscription = () => () => {};
 const clientScriptType = () => "text/plain";
 const serverScriptType = () => undefined;
