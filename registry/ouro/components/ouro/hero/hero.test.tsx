@@ -279,6 +279,30 @@ describe("Hero", () => {
     }
   });
 
+  it("rises the picture in from server-rendered HTML before any JavaScript runs, and only fades it with reduced motion", async () => {
+    const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
+    const slow = token("--ouro-duration-slow");
+    const fast = token("--ouro-duration-fast");
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      await expect.poll(() => matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(reduced);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      // The server's HTML, never hydrated: nothing but CSS can move it.
+      const host = document.createElement("div");
+      host.innerHTML = renderToString(<Hero title="Rise" picture={wide} />);
+      document.body.append(host);
+      mounted.push(host);
+      const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      await expectMotion(media, {
+        stem: "hero",
+        state: "data-starting-style",
+        properties: reduced ? { opacity: fast } : { opacity: slow, transform: slow },
+        reduced,
+      });
+    }
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+  });
+
   it("does not move the picture in at all when motion is none", async () => {
     const { part } = await render(<Hero title="Still" picture={wide} motion="none" />);
     expect(part("media")!).not.toHaveAttribute("data-starting-style");

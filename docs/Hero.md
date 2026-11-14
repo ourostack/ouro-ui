@@ -2,7 +2,7 @@
 
 # Hero
 
-The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture, or something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark mode. The picture rises into place on mount unless `motion="none"`, and it is never shown wider than its intrinsic width.
+The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture, or something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark mode. The picture rises into place when it first appears unless `motion="none"`, and it is never shown wider than its intrinsic width.
 
 ```tsx
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
@@ -40,7 +40,7 @@ Type: `HeroProps`.
 | `layout` | `"stage" \| "column" \| "split"` | `"stage"` | `stage` centres the text over the picture; `column` aligns both to a reading column; `split` puts the copy and the media side by side from 64rem, and stacks them like `column` below that, for a page whose picture or live media belongs next to its words. |
 | `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. |
 | `mediaWidth` | `number` |  | The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead. |
-| `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place on mount, with reduced motion fading it in. |
+| `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The rise is a CSS animation, so it plays from server-rendered HTML before any JavaScript runs; the keyframes and durations come from `ouro-base`. |
 | `picture` | `HeroPictures \| HeroPicture` |  | The big picture, shown under the text: `{ light, dark }`, the same scene by day and at night, swapped with the page's dark mode. A single picture still works and shows in both modes, but it is deprecated: pass `{ light, dark }`. A later release makes `{ light, dark }` required. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `title` (required) | `ReactNode` |  | The hero's headline, its `<h1>` (or `<h2>` with `headingLevel={2}`). Required. |
