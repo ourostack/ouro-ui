@@ -68,7 +68,8 @@ export const targets = {
       [/^registry\/ouro\/e2e\/(?!ouro-fixtures\.ts$)/, "an end-to-end spec or its setup"],
       // site/scripts/proof.mts reads testing/vitest.ts for the browsers the hero names.
       [/^registry\/ouro\/lib\/ouro\/testing\/(?!vitest\.ts$|axe-version\.ts$)/, "the test kit"],
-      [/^test\//, "the shared test setup, fixtures and baselines"],
+      // The A2UISurface docs demo renders core's agent-composed recipe card from test/fixtures/a2ui/.
+      [/^test\/(?!fixtures\/a2ui\/)/, "the shared test setup, fixtures and baselines"],
       [/^stories\//, "a repository-only story"],
       [/^\.storybook\//, "Storybook's configuration"],
       [/^\.github\/(?!workflows\/screens\.yml$|actions\/check\/|ouro-check\.json$)/, "another workflow or repository setting"],

@@ -604,6 +604,7 @@
     "site/scripts/themes.test.mjs": 8
   },
   "e2e": {
+    "registry/ouro/e2e/ouro/a2ui-surface.spec.ts": 6000,
     "registry/ouro/e2e/ouro/accordion.spec.ts": 7235,
     "registry/ouro/e2e/ouro/agent-presence.spec.ts": 11944,
     "registry/ouro/e2e/ouro/alert.spec.ts": 5202,

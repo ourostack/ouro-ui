@@ -49,7 +49,7 @@ export interface A2UIHandoff {
 export interface A2UISurfaceProps {
   /** The app's A2UI catalog, generated from its actions by core's `ouro-a2ui-catalog.mts catalog`. */
   catalog: unknown;
-  /** The agent's A2UI v1.0 messages, in order. The surface shows where they leave it. */
+  /** The agent's A2UI messages, in order. The surface shows where they leave it. */
   messages: readonly unknown[];
   /** Which surface to show. @default the first one the messages create */
   surfaceId?: string | undefined;
@@ -59,7 +59,11 @@ export interface A2UISurfaceProps {
    * loading until it settles.
    */
   onAction: (message: A2UIActionMessage) => void | Promise<void>;
-  /** A person-only button never runs from composed UI: take the person to your app's own screen for it. */
+  /**
+   * A person-only button never runs from composed UI: take the person to your app's own screen for it.
+   *
+   * @claim "A person-only button never runs" registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > hands a person-only action to the app's own screen and never runs it)
+   */
   onHandoff: (handoff: A2UIHandoff) => void;
   /** The validator's problems, when the messages fail it; the person sees a short alert instead. Hand them to the agent to correct. */
   onProblems?: ((problems: readonly A2UIProblem[]) => void) | undefined;
@@ -90,6 +94,10 @@ const now = () => new Date().toISOString();
  *
  * Use HX's components directly instead when your own code, not an agent, decides the layout.
  *
+ * @claim "Every button is one" registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > runs a write button with the prepared input, named after its action, pressed by the person)
+ * @claim "Every button is one" registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm)
+ * @claim "Every button is one" registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > hands a person-only action to the app's own screen and never runs it)
+ *
  * @group Display
  * @see https://ui.ouroboros.bot/docs/a2ui-surface
  *
@@ -108,6 +116,7 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
   const surfaces = "surfaces" in result ? result.surfaces : {};
   const ids = Object.keys(surfaces);
   const id = surfaceId ?? ids[0];
+  // Stryker disable next-line ConditionalExpression: surfaces[undefined] is undefined too; the check is for the index type.
   const tree = id === undefined ? undefined : surfaces[id];
   useEffect(() => {
     if (problems) onProblems?.(problems);
@@ -126,6 +135,7 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
       {problems ? (
         <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />
       ) : tree ? (
+        // Stryker disable next-line StringLiteral: the root's key only prefixes its descendants' keys, which are unique under any prefix.
         renderNode(tree, { surfaceId: id!, onAction, onHandoff }, "root")
       ) : null}
     </div>
@@ -140,6 +150,7 @@ function renderNode(node: Resolved, ctx: Context, key: string): ReactNode {
       const [first, ...rest] = node.children;
       const media = first?.component === "Image" ? first : undefined;
       return (
+        // Stryker disable next-line StringLiteral: the media slot holds one element, so its key matches no sibling's.
         <Card key={key} media={media ? image(media, "media") : undefined}>
           <Stack gap="md">{(media ? rest : node.children).map((child, i) => renderNode(child, ctx, `${key}.${i}`))}</Stack>
         </Card>
@@ -215,14 +226,18 @@ function HandoffIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   );
 }
 
+/** Every button but the agent's one primary action: soft, in the secondary tone. */
+const SECONDARY = { tone: "secondary", variant: "soft" } as const;
+
 function ActionButton({ node, ctx }: { node: Resolved; ctx: Context }): JSX.Element {
   const p = node.props as { label: string; press: "run" | "confirm" | "handoff"; action: string; emphasis?: string; handoff?: string; confirm?: { description: string; fields: { label: string; value: string }[] } };
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
   const primary = p.emphasis === "primary";
-  const send = (confirmed: boolean) => ctx.onAction(actionMessage({ surfaceId: ctx.surfaceId, sourceComponentId: node.id, button: node, timestamp: now(), confirmed }) as unknown as A2UIActionMessage);
+  const send = (confirm: { confirmed?: true } = {}) => ctx.onAction(actionMessage({ surfaceId: ctx.surfaceId, sourceComponentId: node.id, button: node, timestamp: now(), ...confirm }) as unknown as A2UIActionMessage);
   const button = (onClick: () => void, end?: typeof HandoffIcon) => (
-    <Button tone={primary ? "primary" : "secondary"} variant={primary ? "solid" : "soft"} loading={pending} endIcon={end} onClick={onClick} data-action={p.action}>
+    // A primary button is Button's default, solid in the primary tone.
+    <Button {...(primary ? {} : SECONDARY)} loading={pending} endIcon={end} onClick={onClick} data-action={p.action}>
       {p.label}
     </Button>
   );
@@ -247,12 +262,12 @@ function ActionButton({ node, ctx }: { node: Resolved; ctx: Context }): JSX.Elem
             </>
           }
           confirmLabel={p.label}
-          onConfirm={() => send(true)}
+          onConfirm={() => send({ confirmed: true })}
         />
       </>
     );
   return button(() => {
-    const done = send(false);
+    const done = send();
     if (done) {
       setPending(true);
       void Promise.resolve(done).finally(() => setPending(false));

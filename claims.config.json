@@ -82,6 +82,11 @@
       "reason": "the platforms decision's records: the native inventory, Apple's agent platform and prior-art research, the naming and repository notes, and the maintainer's rulings, copied as they were written"
     },
     {
+      "match": "^registry/ouro/lib/ouro/a2ui-core\\.ts$",
+      "mode": "input",
+      "reason": "core's A2UI module, copied byte for byte from the ouro-ui-core release test/fixtures/a2ui/core.json pins; its claims are checked in ouro-ui-core, and an edit here fails test/a2ui.test.ts"
+    },
+    {
       "match": "^registry/ouro/ax/fixtures/",
       "mode": "input",
       "reason": "the X-ray's test fixtures"

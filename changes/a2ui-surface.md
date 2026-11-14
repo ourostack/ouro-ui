@@ -1,1 +1,1 @@
-- New: A2UISurface shows the UI an agent composed in A2UI with Ouro HX, where every button is one of your declared actions and pressing it follows its consent class.
+- New: A2UISurface shows the UI an agent composed in A2UI with Ouro HX. Its buttons are your declared actions, and pressing one follows its consent class.

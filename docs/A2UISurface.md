@@ -31,7 +31,7 @@ Type: `A2UISurfaceProps`.
 | --- | --- | --- | --- |
 | `catalog` (required) | `unknown` |  | The app's A2UI catalog, generated from its actions by core's `ouro-a2ui-catalog.mts catalog`. |
 | `className` | `string` |  | Layout only: margins, width (`max-w-md`). |
-| `messages` (required) | `readonly unknown[]` |  | The agent's A2UI v1.0 messages, in order. The surface shows where they leave it. |
+| `messages` (required) | `readonly unknown[]` |  | The agent's A2UI messages, in order. The surface shows where they leave it. |
 | `onAction` (required) | `(message: A2UIActionMessage) => void \| Promise<void>` |  | Runs a pressed read or write button, and a consequential one once the person confirms. Send the message to the agent, or call the action's own tool with `message.action.context`. Return a promise to show the button loading until it settles. |
 | `onHandoff` (required) | `(handoff: A2UIHandoff) => void` |  | A person-only button never runs from composed UI: take the person to your app's own screen for it. |
 | `onProblems` | `((problems: readonly A2UIProblem[]) => void)` |  | The validator's problems, when the messages fail it; the person sees a short alert instead. Hand them to the agent to correct. |
