@@ -4,6 +4,7 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 const regions = () => document.querySelectorAll<HTMLElement>("[data-ouro-announcer]");
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   for (const region of regions()) region.remove();
 });
