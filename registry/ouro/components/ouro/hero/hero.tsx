@@ -136,12 +136,10 @@ export interface HeroOwnProps {
    * rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from
    * server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to
    * import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`,
-   * `--ouro-duration-fast` and `--ouro-ease-out`, and from `ouro-base`'s own values where a page
-   * leaves them unset.
+   * `--ouro-duration-fast` and `--ouro-ease-out`.
    *
    * @claim "so it plays from server-rendered HTML" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in from server-rendered HTML before any JavaScript runs, and only fades it with reduced motion)
-   * @claim "it needs no keyframes and no stylesheet" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes or ouro-base: its own transition, on ouro-base's durations when they are unset)
-   * @claim "from `ouro-base`'s own values where a page" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes or ouro-base: its own transition, on ouro-base's durations when they are unset)
+   * @claim "it needs no keyframes and no stylesheet" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes: its own transition, on ouro-base's durations and easing)
    * @default "rise"
    */
   motion?: "rise" | "none" | (string & { 'Use "rise" or "none"': never }) | undefined;
@@ -165,9 +163,9 @@ export interface HeroOwnProps {
 export type HeroProps = Omit<HTMLAttributes<HTMLElement>, keyof HeroOwnProps> & HeroOwnProps;
 
 // The rise is a transition from @starting-style, in the hero's own classes, so it needs no keyframes
-// and no script. The fallbacks are ouro-base's values, for a page that does not load it.
+// and no script. Its durations and easing are ouro-base's tokens, which every app loads.
 const riseMotion =
-  "ease-[var(--ouro-ease-out,cubic-bezier(0.23,1,0.32,1))] starting:opacity-0 motion-safe:transition-[opacity,transform] motion-safe:duration-[var(--ouro-duration-slow,300ms)] motion-safe:starting:[transform:translateY(1rem)] motion-reduce:transition-opacity motion-reduce:duration-[var(--ouro-duration-fast,150ms)]";
+  "starting:opacity-0 motion-safe:[transition:opacity_var(--ouro-duration-slow)_var(--ouro-ease-out),transform_var(--ouro-duration-slow)_var(--ouro-ease-out)] motion-safe:starting:[transform:translateY(1rem)] motion-reduce:[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)]";
 
 const layoutRoot: Record<HeroLayout, string> = {
   stage:
