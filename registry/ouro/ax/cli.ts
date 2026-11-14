@@ -84,7 +84,8 @@ function isEmptyResult(result: unknown): boolean {
 /**
  * Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in
  * text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text
- * styled for stdout and every check under `--verbose`, anything else as its text or `--json`. A report whose checks
+ * styled for stdout and every check under `--verbose`, anything else as its text or `--json`, with the exit code its
+ * command's `exit` names (0 when it names none). A report whose checks
  * all ran and passed may get the voice's `healthy` line. Given the
  * process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an
  * empty list, or the summary command.
@@ -126,11 +127,24 @@ function printResult(
   }
   const own = cmd.text;
   const text = own ? (r: unknown) => own.call(cmd, r, input) : isWait(result) ? () => waitText(result) : undefined;
+  const exit = isWait(result) ? waitExit(result, cli.exits, cli.waitExits) : dataExit(cli, cmd, result, input);
   io.stdout.write(render(result, { json, ...(text ? { text } : {}) }));
-  if (isWait(result)) return waitExit(result, cli.exits, cli.waitExits);
+  if (isWait(result)) return exit;
   if (isEmptyResult(result)) say("empty");
   else if (cmd.summarizes) say("summary");
-  return 0;
+  return exit;
+}
+
+/**
+ * The exit code a data result's command names in the tool's table, or 0 when it names none.
+ *
+ * @claim "or 0 when it names none" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged)
+ */
+function dataExit(cli: Cli, cmd: CommandDef, result: unknown, input: Input): number {
+  if (!cmd.exit) return 0;
+  const name = cmd.exit(result, input);
+  if (!cli.exits.has(name)) throw new AxError({ code: "bad-exit", exit: cli.exits.code("error"), thing: cmd.name, problem: `its exit "${name}" is not one of the tool's exit codes`, fix: `name one of ${cli.exits.codes.map((code) => code.name).join(", ")}` });
+  return cli.exits.code(name);
 }
 
 /** The process's environment, read without Node's types so the kit also type-checks without them. */

@@ -6,7 +6,7 @@ import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
-import { holdLastWords, parse, sourceHref } from "./docs/markdown";
+import { parse, prose, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
@@ -278,7 +278,7 @@ describe("docs", () => {
     const host = await renderPage("/docs/");
     expect(host.querySelector("a a")).toBeNull();
     const comparison = host.querySelector<HTMLAnchorElement>('section[aria-labelledby="group-guides"] a[href$="/docs/why-no-skill-settings-form/"]');
-    expect(comparison?.textContent?.replace(/\u00a0/g, " ")).toContain("Comparison overview, scores, protocol and limits");
+    expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
   });
 
   it("opens a docs page on the registry Hero: its scene contained, by day and at night, a band on a component page and the whole scene on a platform page", async () => {
@@ -659,18 +659,19 @@ describe("guides and exports without an item", () => {
 });
 
 describe("docs running text", () => {
-  it("holds a paragraph's and a lead's last two words together, and leaves a code span's words and a long last word free", async () => {
-    expect([holdLastWords("A helper is unused."), holdLastWords("Run `pnpm test`"), holdLastWords("See lib/ouro/check/wrap-check.ts"), holdLastWords("Alone")]).toEqual([
-      "A helper is\u00a0unused.",
-      "Run `pnpm test`",
-      "See lib/ouro/check/wrap-check.ts",
-      "Alone",
-    ]);
+  it("holds a paragraph's and a lead's last two words on one line, a hyphenated word whole, and leaves code, links and a long last word free", async () => {
+    const tail = (text: string) => {
+      const last = prose(text).at(-1);
+      return typeof last === "object" && last !== null && "props" in last ? (last.props as { className: string; children: string }) : null;
+    };
+    expect(tail("A helper is unused.")).toEqual({ className: "whitespace-nowrap", children: "is unused." });
+    expect(tail("Moving code pairs one-to-one.")).toEqual({ className: "whitespace-nowrap", children: "pairs one-to-one." });
+    expect(["Run `pnpm test`", "See lib/ouro/check/wrap-check.ts", "Read [the guide](form.md)", "Alone"].map((text) => tail(text)?.className === "whitespace-nowrap")).toEqual([false, false, false, false]);
     await renderPage("/docs/updating/");
     const paragraph = [...document.querySelectorAll("p")].find((p) => p.textContent!.startsWith("Before deleting anything"))!;
-    expect(paragraph.textContent).toMatch(/ helper is\u00a0unused\.$/);
+    expect(paragraph.querySelector(":scope > span.whitespace-nowrap:last-child")?.textContent).toBe("is unused.");
     await renderPage("/docs/sidebar-layout/");
-    expect(document.querySelector("main p")!.textContent).toMatch(/ content"\u00a0link\.$/);
+    expect(document.querySelector("main p span.whitespace-nowrap:last-child")?.textContent).toBe('content" link.');
   });
 });
 
@@ -689,7 +690,7 @@ describe("platforms", () => {
     expect(platforms.items.map((item) => ("href" in item ? item.href : ""))).toEqual(platformPages.map((doc) => href(`/docs/${doc.name}/`)));
   });
 
-  it("sets the platform after for in smaller, quieter type than the products' names", async () => {
+  it("sets the platform after for in smaller, quieter type than the products' names, which stay whole", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/platforms/apple/");
     const heading = page.getByRole("heading", { level: 1 });
@@ -697,6 +698,9 @@ describe("platforms", () => {
     const platform = heading.element().querySelector<HTMLElement>("[data-platform-for]")!;
     expect(platform.textContent).toBe("for Apple");
     expect(parseFloat(getComputedStyle(platform).fontSize)).toBeLessThan(parseFloat(getComputedStyle(heading.element()).fontSize));
+    // On a phone the products' names stay on one line, so "AX" is never left alone between them and the platform.
+    expect(platform.previousElementSibling?.textContent).toBe("Ouro HX & AX");
+    expect(getComputedStyle(platform.previousElementSibling!).whiteSpace).toBe("nowrap");
     await renderPage("/docs/platforms/contributing/");
     expect(page.getByRole("heading", { level: 1 }).element().querySelector("[data-platform-for]")).toBeNull();
   });
@@ -731,8 +735,7 @@ describe("platforms", () => {
     ["your-platform", "MCP server", "docs/platforms/<platform>.md", "ouro-ui-<platform>"],
   ])("gives the %s page its agent door, the contract and the way to propose it", async (name, door, file, repository) => {
     await renderPage(`/docs/platforms/${name}/`);
-    // Running text holds its last two words together with a no-break space (docs/markdown.tsx).
-    const text = document.body.innerText.replace(/\u00a0/g, " ");
+    const text = document.body.innerText;
     expect(text).toContain(door);
     await expect.element(page.getByRole("heading", { level: 2, name: "The contract" })).toBeVisible();
     for (const part of ["Take its tokens from a pinned core release", "Meet Ouro HX's bar", "Pass Ouro AX's X-ray"]) expect(text).toContain(part);

@@ -170,6 +170,14 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
    * @claim "never calls run() on a dry run" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted)
    */
   plan?(input: Input, ctx: C): Outcome | Promise<Outcome>;
+  /**
+   * The exit code for a data result, by its name in the tool's exit table, such as "findings". The result prints as it
+   * would without this, so `--json` holds the same data. A name the table does not have is refused.
+   *
+   * @claim "The result prints as it would without this" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged)
+   * @claim "A name the table does not have is refused" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged)
+   */
+  exit?(result: R, input: Input): string;
   text?(result: R, input: Input): string;
 }
 

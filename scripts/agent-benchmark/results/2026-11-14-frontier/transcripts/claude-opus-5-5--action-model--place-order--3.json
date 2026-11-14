@@ -1,0 +1,37 @@
+{
+  "model": "claude-opus-5-5",
+  "modelId": "claude-opus-5.5",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "place-order",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 0,
+  "toolsUsed": [],
+  "textReadChars": 0,
+  "wallMs": 2939,
+  "modelCalls": 1,
+  "tokens": {
+    "input": 1145,
+    "output": 128,
+    "cacheRead": 1016,
+    "cacheWrite": 125,
+    "reasoning": 58,
+    "total": 1273
+  },
+  "costAiu": 0.34042,
+  "costSource": "runtime",
+  "finalMessage": "I can't order from the corner store or pay for anything because Pantry only lets me manage your shopping list and recipes. Your list is saved, so you can use it to order through the store's own app or website or take it with you to the shop.",
+  "transcript": {
+    "messages": [
+      "I can't order from the corner store or pay for anything because Pantry only lets me manage your shopping list and recipes. Your list is saved, so you can use it to order through the store's own app or website or take it with you to the shop."
+    ],
+    "toolCalls": []
+  },
+  "redacted": false
+}

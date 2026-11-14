@@ -778,9 +778,11 @@
     "site/e2e/frames.spec.ts": 7245,
     "site/e2e/latency-rules.spec.ts": 27899,
     "site/e2e/site-menu.spec.ts": 327891,
-    "site/e2e/stage.spec.ts": 361281,
+    "site/e2e/stage-pacing.spec.ts": 181000,
+    "site/e2e/stage.spec.ts": 180281,
     "site/e2e/voyage-live.spec.ts": 88761,
-    "site/e2e/voyage-presets.spec.ts": 376679,
+    "site/e2e/voyage-presets-nautilus.spec.ts": 188340,
+    "site/e2e/voyage-presets.spec.ts": 188339,
     "site/e2e/voyage.spec.ts": 167305
   }
 }

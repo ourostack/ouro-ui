@@ -1,0 +1,69 @@
+{
+  "model": "gemini-4-carbon",
+  "modelId": "gemini-4-carbon",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "task": "check-off",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "list_items",
+    "update_item",
+    "update_item"
+  ],
+  "textReadChars": 448,
+  "wallMs": 18163,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 1949,
+    "output": 135,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 50,
+    "total": 2084
+  },
+  "costAiu": 0.5248,
+  "costSource": "runtime",
+  "finalMessage": "I've checked off the eggs and the spinach on your shopping list.",
+  "transcript": {
+    "messages": [
+      "I've checked off the eggs and the spinach on your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_items",
+        "args": {},
+        "ms": 1,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "update_item",
+        "args": {
+          "checked": true,
+          "id": "i1"
+        },
+        "ms": 6,
+        "resultChars": 2,
+        "result": "{}"
+      },
+      {
+        "name": "update_item",
+        "args": {
+          "checked": true,
+          "id": "i2"
+        },
+        "ms": 0,
+        "resultChars": 2,
+        "result": "{}"
+      }
+    ]
+  },
+  "redacted": false
+}
