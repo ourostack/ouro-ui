@@ -114,9 +114,9 @@
   --ouro-backdrop-color: #000000;
 }
 
-/* Every Ouro element takes the corner shape; Switch, radios, slider thumbs, presence dots and spinners say round. */
+/* Every rounded Ouro element takes the corner shape (only those: setting it on every element slowed paint); Switch, radios, slider thumbs, presence dots and spinners say round. */
 @layer base {
-  :where([data-ouro], [data-ouro] *) {
+  :where([data-ouro], [data-ouro] *)[class*="rounded"] {
     --corner-shape: var(--ouro-corner-shape);
     corner-shape: var(--ouro-corner-shape);
   }
