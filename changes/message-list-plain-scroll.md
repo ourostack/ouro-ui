@@ -1,1 +1,1 @@
-- Fixed: MessageList no longer drops frames on a plain scroll while rows load in above; small growth waits for the wheel to rest instead of moving the content.
+- Fixed: MessageList keeps a plain scroll moving while rows load in above; small growth waits for the wheel to rest instead of moving the content.
