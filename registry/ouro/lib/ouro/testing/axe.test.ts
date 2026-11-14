@@ -549,6 +549,7 @@ describe("audit", () => {
     try {
       expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
       expect(shots).toHaveBeenCalledTimes(2);
+      expect(shots.mock.calls.map(([options]) => options?.timeout)).toEqual([5000, 15_000]);
     } finally {
       shots.mockRestore();
     }
