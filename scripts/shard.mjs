@@ -157,11 +157,11 @@ export function collectTimings(dir) {
 /**
  * The end-to-end spec files `pnpm test:e2e` runs (playwright.config.ts): the shipped specs under
  * registry/ouro/e2e and the site's under site/e2e, without the screen-reader and latency specs,
- * which run on their own.
+ * which run on their own, and the probes (registry/ouro/e2e/probes, playwright.probes.config.ts).
  */
 export function e2eFiles(rootDir = root) {
   const specs = (dir) => (existsSync(join(rootDir, dir)) ? treeFiles(join(rootDir, dir)).map((file) => `${dir}/${file}`) : []);
-  return [...specs("registry/ouro/e2e"), ...specs("site/e2e")].filter((file) => file.endsWith(".spec.ts") && !/\.(sr|latency)\.spec\.ts$/.test(file)).sort();
+  return [...specs("registry/ouro/e2e"), ...specs("site/e2e")].filter((file) => file.endsWith(".spec.ts") && !/\.(sr|latency)\.spec\.ts$/.test(file) && !/\/probes\//.test(file)).sort();
 }
 
 /**

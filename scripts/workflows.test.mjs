@@ -442,12 +442,15 @@ test("Dependabot proposes new action pins weekly", () => {
 });
 
 const scheduled = readFileSync(join(dir, "scheduled-install.yml"), "utf8");
-const job = (name) => {
-  const start = scheduled.indexOf(`\n  ${name}:\n`);
-  assert.notEqual(start, -1, `scheduled-install.yml has no ${name} job`);
-  const next = scheduled.slice(start + 1).search(/\n {2}[\w-]+:\n/);
-  return scheduled.slice(start, next === -1 ? undefined : start + 1 + next);
+/** One job's block of a workflow's text, from its `  name:` line to the next job. */
+const jobIn = (text, name, file = "workflow") => {
+  const start = text.indexOf(`\n  ${name}:\n`);
+  assert.notEqual(start, -1, `${file} has no ${name} job`);
+  const next = text.slice(start + 1).search(/\n {2}[\w-]+:\n/);
+  return text.slice(start, next === -1 ? undefined : start + 1 + next);
 };
+const job = (name) => jobIn(scheduled, name, "scheduled-install.yml");
+
 
 test("Scheduled install installs GitHub's newest release and checks the site names it", () => {
   const latest = job("latest");
@@ -522,6 +525,53 @@ test("scheduled-failure.sh opens the issue once, then comments on it", () => {
 // pull request, and Pages then skipped three deploys in a row because main kept moving.
 
 const workflow = (file) => workflows.find((entry) => entry.file === file).text;
+
+const probe = workflow("skeleton-frames.yml");
+const probeOn = probe.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
+
+test("the skeleton frame probe runs daily and by hand, never on a pull request or a push", () => {
+  assert.deepEqual([...probeOn.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["schedule", "workflow_dispatch"]);
+  const cron = /^ {4}- cron: "(\d+) (\d+) \* \* \*"$/m.exec(probeOn);
+  assert.ok(cron, "a daily cron");
+  // Off the hour, so the run does not queue with every other scheduled job at the same minute.
+  assert.notEqual(cron[1], "0");
+});
+
+test("the skeleton frame probe runs one measurement at a time, in WebKit, and never beside itself", async () => {
+  assert.match(probe, /^concurrency:\n {2}group: skeleton-frames\n {2}cancel-in-progress: false$/m);
+  const frames = jobIn(probe, "frames", "skeleton-frames.yml");
+  assert.match(frames, /^ {6}max-parallel: 1\n {6}matrix:\n {8}project: \[webkit\]$/m);
+  assert.match(frames, /pnpm exec playwright test --config playwright\.probes\.config\.ts --project "\$PROJECT"/);
+  const config = (await import("../playwright.probes.config.ts")).default;
+  assert.deepEqual(config.projects.map((project) => project.name), ["webkit"]);
+});
+
+test("the skeleton frame probe files a failed scheduled run in one issue, with issues: write on that job only", () => {
+  const report = jobIn(probe, "report", "skeleton-frames.yml");
+  assert.match(report, /needs: frames\n\s+if: failure\(\) && github\.event_name == 'schedule'\n/);
+  assert.match(report, /permissions:\n\s+contents: read\n\s+issues: write/);
+  assert.match(report, /run: scripts\/scheduled-failure\.sh "[^"]+" "Skeleton frames probe failed" /);
+  assert.equal(probe.match(/issues: write/g)?.length, 1);
+  assert.match(probe, /^permissions:\n {2}contents: read\nconcurrency:/m);
+});
+
+test("the skeleton frame probe runs in the image the e2e shards run in, and CI pins that image", () => {
+  const image = (text) => text.match(/^ {6}image: (mcr\.microsoft\.com\/playwright@sha256:[0-9a-f]{64} # v[\w.-]+)$/m)?.[1];
+  assert.ok(image(probe));
+  assert.equal(image(probe), image(ciJobs()["e2e-shard"]));
+});
+
+test("CI's e2e shards never run the skeleton frame probe: the probes are no e2e spec, and the main config ignores them", async () => {
+  const { e2eFiles } = await import("./shard.mjs");
+  const files = e2eFiles();
+  assert.ok(files.includes("registry/ouro/e2e/ouro/skeleton.spec.ts"));
+  assert.deepEqual(files.filter((file) => file.includes("/probes/")), []);
+  const main = (await import("../playwright.config.ts")).default;
+  assert.ok(main.testIgnore.test("registry/ouro/e2e/probes/skeleton-frames.spec.ts"));
+  assert.ok(main.testIgnore.test("/checkout/registry/ouro/e2e/probes/skeleton-frames.spec.ts"));
+  const probes = (await import("../playwright.probes.config.ts")).default;
+  assert.equal(probes.testDir, "registry/ouro/e2e/probes");
+});
 
 test("published-release verification validates its tag, reads protected main and runs the existing public proofs without write permission", () => {
   assert.ok(existsSync(join(dir, "verify-published.yml")), "A published release needs a read-only hosted verification entry.");

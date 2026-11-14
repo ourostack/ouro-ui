@@ -168,7 +168,7 @@ describe("MessageList", () => {
           <p>{"A long note. ".repeat(300)}</p>
         </MessageList>,
       );
-      expect(scroller.getAttribute("tabindex")).toBe("0");
+      await expect.poll(() => scroller.getAttribute("tabindex")).toBe("0");
       expect(getComputedStyle(scroller).outlineStyle).toBe("solid");
       expect(parseFloat(getComputedStyle(scroller).outlineWidth)).toBeGreaterThan(0);
     } finally {
@@ -2517,7 +2517,7 @@ describe("MessageList keyboard", () => {
       </Channel>
     );
     const { scroller, rerender } = await render(notes(false));
-    expect(scroller.getAttribute("tabindex")).toBe("0");
+    await expect.poll(() => scroller.getAttribute("tabindex")).toBe("0");
     // Shift+Tab arrives on its last control, as without the list.
     button("After").focus();
     await pressTab({ shift: true });

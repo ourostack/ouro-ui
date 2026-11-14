@@ -315,6 +315,8 @@ test("every registry file ships in exactly one item, except the repository's own
   // The screen-reader lane's specs need VoiceOver or NVDA; they stay in this repository.
   assert.equal(itemForFile("registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts"), null);
   assert.equal(itemForFile("registry/ouro/e2e/screen-reader/screen-reader.ts"), null);
+  // The skeleton frame probe measures on a schedule; no app's tests run it.
+  assert.equal(itemForFile("registry/ouro/e2e/probes/skeleton-frames.spec.ts"), null);
   assert.equal(itemForFile("registry/ouro/e2e/ouro/story.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/lib/ouro/testing/act.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/theme/theme.test.tsx"), null);

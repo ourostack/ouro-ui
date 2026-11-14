@@ -8,8 +8,9 @@ const SITE = "https://127.0.0.1:4179/";
 
 export default defineConfig({
   testDir: "registry/ouro/e2e",
-  // The screen-reader specs need VoiceOver or NVDA: playwright.screen-reader.config.ts runs them.
-  testIgnore: /\.sr\.spec\.ts$/,
+  // The screen-reader specs need VoiceOver or NVDA: playwright.screen-reader.config.ts runs them. The probes
+  // (registry/ouro/e2e/probes/) are measurements that run on their own schedule: playwright.probes.config.ts runs them.
+  testIgnore: /\.sr\.spec\.ts$|[\\/]probes[\\/]/,
   // Every test on its own, so CI's --shard splits tests, not files: by file, the site projects'
   // long specs all landed in the last of the e2e shards (8.5 min of specs against 3-4 for the
   // others). The specs share no state between tests.
