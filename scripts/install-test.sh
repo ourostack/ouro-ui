@@ -630,8 +630,13 @@ node -e '
   const changed = Object.keys(before).filter((name) => after[name] !== before[name]);
   if (changed.length > 0) throw new Error("ouro-tests changed the version of " + changed.map((name) => name + " (" + before[name] + " to " + after[name] + ")").join(", "));
 ' "$registry/package.before.json"
-npx tsc -b
-npx vite build
+# The type check and the build read the same files and write nothing the other reads, so they run at once.
+npx tsc -b &
+tsc_pid=$!
+build_status=0
+npx vite build || build_status=$?
+wait "$tsc_pid" || { echo "the type check of the app with the shipped tests failed"; exit 1; }
+[ "$build_status" -eq 0 ] || { echo "the build of the app with the shipped tests failed"; exit "$build_status"; }
 node "$root/scripts/install-check.mjs" "$app" "$variant" tests
 echo "::endgroup::"
 fi
