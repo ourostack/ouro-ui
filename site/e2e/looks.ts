@@ -94,6 +94,23 @@ export function describe(arg: { selector: string; only?: number }): Described {
         escapes.push(`${key}: ${pseudo} layer is ${layer.getPropertyValue("corner-shape")} inside ${corner}`);
       }
     }
+    // A visible layer of a component must lie inside the component's box, whatever its peers look like.
+    if (el.hasAttribute("data-ouro")) {
+      for (const pseudo of ["::before", "::after"] as const) {
+        const layer = getComputedStyle(el, pseudo);
+        if (layer.content === "none" || layer.position !== "absolute" || layer.display === "none") continue;
+        const filled = rgb(layer.backgroundColor).split(",")[3] !== "0" && layer.backgroundColor !== "rgba(0, 0, 0, 0)";
+        if (!filled && layer.boxShadow === "none" && layer.backgroundImage === "none") continue;
+        const w = parseFloat(layer.width);
+        const h = parseFloat(layer.height);
+        const left = rect.left + el.clientLeft + (parseFloat(layer.left) || 0);
+        const top = rect.top + el.clientTop + (parseFloat(layer.top) || 0);
+        if (!(w > 0 && h > 0)) continue;
+        if (left < rect.left - 1 || top < rect.top - 1 || left + w > rect.right + 1 || top + h > rect.bottom + 1) {
+          escapes.push(`${key}: ${pseudo} layer sits ${Math.round(left - rect.left)},${Math.round(top - rect.top)} ${Math.round(w)}x${Math.round(h)} outside its ${Math.round(rect.width)}x${Math.round(rect.height)} box`);
+        }
+      }
+    }
     const text = (el.textContent ?? "").trim().length > 0;
     const byDesign = name === "item" || inGroup;
     const control = el.hasAttribute("data-ouro-control");
