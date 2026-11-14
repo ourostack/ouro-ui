@@ -7,6 +7,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
+import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
@@ -29,6 +30,7 @@ const tones = ["primary", "secondary", "destructive", "success", "warning"] as c
 const variants = ["solid", "soft", "outline", "plain"] as const;
 const badgeVariants = ["solid", "soft", "outline"] as const;
 const textTones = ["default", "muted", "primary", "secondary", "destructive", "success", "warning"] as const;
+const separatorTones = ["primary", "destructive", "success", "warning"] as const;
 
 /** A stylesheet's `:root` and `.dark` blocks, rescoped to `[data-theme-probe]`. */
 function scoped(css: string): string {
@@ -138,6 +140,9 @@ async function render(css: string, surface: "background" | "popover") {
         ))}
         <Kbd keys={["mod", "k"]} data-probe="Kbd" />
         <Avatar name="Ana Lind" data-probe="Avatar" />
+        {separatorTones.map((tone) => (
+          <Separator key={`separator-${tone}`} tone={tone} label="New" />
+        ))}
         <SwipeActions label="Short ribs" trailing={tones.map((tone) => ({ label: "Archive", tone, onClick: () => {} }))}>
           Short ribs
         </SwipeActions>
@@ -146,6 +151,10 @@ async function render(css: string, surface: "background" | "popover") {
   );
   // SwipeActions' buttons take no attributes from the app: label them here, by their tone.
   for (const button of host.querySelectorAll("[data-ouro-swipe-actions-side] button")) button.setAttribute("data-probe", `SwipeActions ${button.getAttribute("data-tone")}`);
+  // A labelled Separator's label is its text: probe the label span, the lines are no text.
+  host.querySelectorAll('[data-ouro="separator"] [data-slot="separator-label"]').forEach((label, index) => {
+    label.setAttribute("data-probe", `Separator ${separatorTones[index]}`);
+  });
   return host;
 }
 
@@ -156,7 +165,7 @@ for (const [name, css] of Object.entries(themes)) {
         document.documentElement.classList.toggle("dark", scheme === "dark");
         const host = await render(css, surface);
         const found = ratios(host);
-        expect(found).toHaveLength(variants.length * tones.length + textTones.length + 1 + badgeVariants.length * tones.length + tones.length * 2 + 2 + tones.length);
+        expect(found).toHaveLength(variants.length * tones.length + textTones.length + 1 + badgeVariants.length * tones.length + tones.length * 2 + 2 + tones.length + separatorTones.length);
         const failures = found.filter(([, value]) => value < 4.5).map(([label, value]) => `${label}: ${value.toFixed(2)}`);
         expect(failures).toEqual([]);
       });

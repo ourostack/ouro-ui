@@ -84,7 +84,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "sweep-shard", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "sweep-shard", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -1067,7 +1067,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-upgrade" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1477,7 +1477,7 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   assert.match(scriptWithShow({ FULL: "false", COMPONENTS: "dialog,sheet", VARIANT: "ouro", REF: "abc" }).stdout, /^components=\[dialog,sheet\] ouro /m);
   // The variant's check: its marker for every shard.
   const gate = jobs["install-gate"];
-  assert.match(gate, /^ {4}needs: \[plan, install-shard\]$/m);
+  assert.match(gate, /^ {4}needs: \[plan, install-shard, install-checks\]$/m);
   assert.deepEqual(checkNames(gate, "install-gate"), ["install (shadcn, nova)", "install (shadcn, vega)", "install (ouro, nova)"]);
   assert.match(gate, /^ {10}pattern: install-passed-\$\{\{ matrix\.variant \}\}-\$\{\{ matrix\.preset \}\}-\*\n/m);
   const counting = stepScript(gate, "Every shard passed");
@@ -1485,7 +1485,7 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   const markers = scratchDir("ouro-install-gate-");
   mkdirSync(join(markers, "passed"));
   for (let shard = 1; shard < count; shard++) writeFileSync(join(markers, `passed/install-passed-shadcn-vega-${shard}`), "");
-  const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARDS: "success" };
+  const passed = { RUNNER_TEMP: markers, VARIANT: "shadcn", PRESET: "vega", SHARDS: "success", CHECKS: "success" };
   assert.match(gate, /^ {10}SHARDS: \$\{\{ needs\.install-shard\.result \}\}$/m);
   const missing = runStep(counting, passed);
   assert.equal(missing.status, 1);
@@ -1608,7 +1608,7 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   assert.deepEqual(browserJobs, ["browser", "browser-fallback"]);
   assert.match(
     jobs.browser,
-    /^ {8}name: Browser tests\n {8}run: \|\n(?: {10}.*\n)+(?: {6}#.*\n)*^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: motion-browser-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/motion\/\n {10}include-hidden-files: true\n {10}if-no-files-found: error\n/m,
+    /^ {8}name: Browser tests\n(?: {8}timeout-minutes: \d+\n)? {8}run: \|\n(?: {10}.*\n)+(?: {6}#.*\n)*^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: motion-browser-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/motion\/\n {10}include-hidden-files: true\n {10}if-no-files-found: error\n/m,
     "the browser shards upload .tmp/motion/ as a motion-browser-* artifact right after their browser tests",
   );
   const coverage = jobs["motion-coverage"];
@@ -1631,7 +1631,7 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   assert.match(coverage, /^ {6}REDUCED: \$\{\{ needs\.ci\.outputs\.reduced \}\}\n {6}STEMS: \$\{\{ needs\.ci\.outputs\.stems \}\}\n {6}FALLBACK: \$\{\{ needs\.ci\.outputs\.fallback \}\}$/m);
   assert.match(
     jobs["browser-fallback"],
-    /^ {8}name: Browser tests\n {8}run: \|\n(?: {10}.*\n)+^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: motion-fallback-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/motion\/\n {10}include-hidden-files: true\n {10}if-no-files-found: error\n/m,
+    /^ {8}name: Browser tests\n(?: {8}timeout-minutes: \d+\n)? {8}run: \|\n(?: {10}.*\n)+^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: motion-fallback-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/motion\/\n {10}include-hidden-files: true\n {10}if-no-files-found: error\n/m,
     "the fallback shards upload .tmp/motion/ as a motion-fallback-* artifact right after their browser tests",
   );
   // The expected partitions: each project vitest.config.ts runs (CI_VISUAL unset, as in the
@@ -2418,7 +2418,7 @@ test("install prep caches a base keyed on the runtime files, then adds the shipp
   for (const left of ["!registry/**/*.test.tsx", "!registry/**/*.stories.tsx", "!registry/ouro/e2e/**"]) assert.ok(baseKey.includes(left), left);
   for (const out of ["'docs/**'", "'README.md'", "'UPGRADING.md'"]) assert.ok(!baseKey.includes(out), `the base does not read ${out}`);
   assert.ok(prep.includes("OURO_BASE_ONLY=1"));
-  assert.ok(prep.includes("OURO_DELTA=1 OURO_PREPARE_ONLY=1"));
+  assert.ok(prep.includes("OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1"));
   const script = readFileSync("scripts/install-test.sh", "utf8");
   assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
 });

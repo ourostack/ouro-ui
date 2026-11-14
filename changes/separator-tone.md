@@ -1,0 +1,1 @@
+- Separator: a `tone` prop colours its lines and label, such as `tone="primary"` where unread messages start.

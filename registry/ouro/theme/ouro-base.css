@@ -35,13 +35,13 @@
  */
 @theme inline {
   --color-input: var(--input);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-sm: calc(var(--radius) * var(--ouro-radius-scale, 1) * 0.6);
+  --radius-md: calc(var(--radius) * var(--ouro-radius-scale, 1) * 0.8);
+  --radius-lg: calc(var(--radius) * var(--ouro-radius-scale, 1));
+  --radius-xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 1.4);
+  --radius-2xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 1.8);
+  --radius-3xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 2.2);
+  --radius-4xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 2.6);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -53,6 +53,7 @@
   --input: oklch(0.922 0 0);
   --radius: 0.9375rem;
   --ouro-corner-shape: squircle;
+  --ouro-radius-scale: 1;
   --destructive-foreground: #ffffff;
   --success: #157d3c;
   --success-foreground: #ffffff;
@@ -135,6 +136,53 @@
     --corner-shape: round;
     corner-shape: round;
   }
+  [data-ouro-surface] {
+    display: none;
+  }
+}
+
+/* Where the engine has no corner-shape, a circular corner at 0.7 of the squircle's radius stays within 6% of it, so box-shadow, outline and the element's own box follow the squircle closely. */
+@supports not (corner-shape: squircle) {
+  :root {
+    --ouro-radius-scale: 0.7;
+  }
+}
+
+/* The squircle where corner-shape is missing: a control's surface slot (data-ouro-surface) paints the fill, the ring and the state layer through squircle clip paths, so the element keeps its box, its outline and its shadow. */
+@supports not (corner-shape: squircle) {
+  [data-ouro-squircle] {
+    background-color: transparent;
+    border-color: transparent;
+    --tw-ring-color: transparent;
+  }
+  [data-ouro-squircle]::before {
+    display: none;
+  }
+  [data-ouro-surface] {
+    --ouro-sq-m: max(0px, calc(var(--ouro-sq-r) - var(--ouro-sq-w)));
+    --ouro-sq-o: 0 calc(var(--ouro-sq-r)*1), calc(var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), calc(var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), 100% calc(var(--ouro-sq-r)*1), 100% calc(100% - var(--ouro-sq-r)*1), calc(100% - var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), calc(100% - var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), 0 calc(100% - var(--ouro-sq-r)*1);
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--ouro-bg, transparent);
+    clip-path: polygon(var(--ouro-sq-o));
+  }
+  [data-ouro-surface]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: var(--ouro-state, 0);
+  }
+  [data-ouro-surface]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--ouro-bd, transparent);
+    clip-path: polygon(evenodd, var(--ouro-sq-o), 0 calc(var(--ouro-sq-r)*1), var(--ouro-sq-w) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.04) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.38), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.16) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.16), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.38) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.04), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1) var(--ouro-sq-w), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*1) var(--ouro-sq-w), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.38) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.04), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.16) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.16), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.04) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.38), calc(100% - var(--ouro-sq-w)) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1), calc(100% - var(--ouro-sq-w)) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*1), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.04) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.38), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.16) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.16), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.38) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.04), calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*1) calc(100% - var(--ouro-sq-w)), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1) calc(100% - var(--ouro-sq-w)), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.38) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.04), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.16) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.16), calc(var(--ouro-sq-w) + var(--ouro-sq-m)*0.04) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*0.38), var(--ouro-sq-w) calc(100% - var(--ouro-sq-w) + var(--ouro-sq-m)*1), var(--ouro-sq-w) calc(var(--ouro-sq-w) + var(--ouro-sq-m)*1), 0 calc(var(--ouro-sq-r)*1));
+  }
 }
 
 /*
@@ -171,13 +219,14 @@
   }
 }
 
-/* Skeleton shimmer: a lighter band, one placeholder wide, slides across by translate, which the compositor runs. */
-@keyframes ouro-shimmer-band {
-  from {
-    translate: -100% 0;
+/* Skeleton: the placeholder eases to a lighter shade and back, by opacity, which the compositor runs. */
+@keyframes ouro-skeleton-breathe {
+  0%,
+  100% {
+    opacity: 1;
   }
-  to {
-    translate: 100% 0;
+  50% {
+    opacity: 0.55;
   }
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { HTMLAttributes, JSX, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -14,16 +15,17 @@ interface SkeletonCommonProps {
   className?: string | undefined;
   ref?: Ref<HTMLSpanElement> | undefined;
   /**
-   * Whether the band sweeps across the placeholder. `false` draws it still, as reduced motion does.
-   * Choose it for a long list of pictures loading at once, where a sweep on each may slow scrolling.
+   * Whether the placeholder breathes once it has been loading for a second. `false` draws it still, as reduced motion does.
+   * Only the first placeholders mounted at once breathe; the rest of a long list hold still, which keeps WebKit's wheel scrolling smooth.
+   * Choose it for a long list of pictures loading at once, where animating each may slow scrolling.
    * @default true
    */
   shimmer?: boolean | undefined;
 
   /** Not a prop. Ouro UI uses `shape`: `<Skeleton shape="circle">`. */
   variant?: { 'Use <Skeleton shape="circle">': never };
-  /** Not a prop. Skeleton shimmers, and holds still with reduced motion. */
-  animation?: { 'Not a prop: Skeleton shimmers, and holds still with reduced motion': never };
+  /** Not a prop. Skeleton breathes, and holds still with reduced motion. */
+  animation?: { 'Not a prop: Skeleton breathes, and holds still with reduced motion': never };
   /** Not a prop. Size it with a layout class: `<Skeleton className="w-32">`. */
   width?: { 'Use <Skeleton className="w-32">': never };
   /** Not a prop. Size it with a layout class, or give `shape="text"` its `lines`: `<Skeleton className="h-6">`. */
@@ -129,20 +131,39 @@ export type SkeletonRowOrCardProps = SkeletonBaseProps & SkeletonRowOrCardShape;
 /** Props for {@link Skeleton}: its own props and the `<span>` attributes it passes through, by shape. */
 export type SkeletonProps = SkeletonRectProps | SkeletonTextProps | SkeletonCircleProps | SkeletonRowOrCardProps;
 
-// Class strings are literal so the app's Tailwind finds them when it compiles. A band a
-// little toward the muted foreground sweeps across the muted surface, which reads in light
-// and dark themes alike. The band is a pseudo-element that moves by `translate`, which the
-// compositor runs, so a page with skeletons still paints nothing at rest. With reduced motion
-// the band holds still in the middle.
+// Class strings are literal so the app's Tailwind finds them when it compiles. The placeholder holds still for its
+// first second, since most loads end sooner, then breathes: its opacity eases down and back, so the loop has no seam.
+// Opacity runs on the compositor and nothing repaints. With reduced motion it holds still.
 const fill =
   "relative block overflow-hidden bg-muted " +
-  "before:absolute before:inset-0 before:content-[''] before:bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--muted-foreground)_12%,transparent)_50%,transparent)] " +
-  "before:animate-[ouro-shimmer-band_1.6s_linear_infinite] before:motion-reduce:animate-none " +
+  "animate-[ouro-skeleton-breathe_2.4s_ease-in-out_1s_infinite] motion-reduce:animate-none " +
   // Forced colours paint the fill as the page's own Canvas, so an outline in the text colour keeps the shape.
   "forced-colors:outline forced-colors:outline-1 forced-colors:-outline-offset-1 forced-colors:outline-[CanvasText]";
 
-// `shimmer={false}`: the same band, held still in the middle.
-const still = "before:animate-none";
+// `shimmer={false}`: no breathing at all.
+const still = "animate-none";
+
+// WebKit drops wheel-scroll frames once a hundred or so placeholders animate at once, each its own compositing layer.
+// So only the first few mounted placeholders breathe; the rest hold still. A short list still shows life, and a long
+// one costs nothing. A placeholder that goes away hands its place to the next one that mounts.
+const breatheLimit = 24;
+let breathing = 0;
+
+function useBreathes(shimmer: boolean): boolean {
+  const [breathes, setBreathes] = useState(true);
+  useEffect(() => {
+    if (!shimmer) return;
+    const place = breathing < breatheLimit;
+    breathing += place ? 1 : 0;
+    // Claiming a place is shared module state, so it can only be read once mounted.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBreathes(place);
+    return () => {
+      breathing -= place ? 1 : 0;
+    };
+  }, [shimmer]);
+  return shimmer && breathes;
+}
 
 const shapes = {
   rect: "h-4 w-full rounded-md",
@@ -195,9 +216,9 @@ function Bar({ className, shimmer }: { className: string | undefined; shimmer: b
 }
 
 /**
- * A shimmering placeholder in the shape and size of content that is still loading, so the
+ * A placeholder that breathes after a second in the shape and size of content that is still loading, so the
  * content takes its place without moving anything. Screen readers skip it, so mark the region
- * that is loading with `aria-busy` while it shows. With reduced motion, or `shimmer={false}`, the shimmer holds still.
+ * that is loading with `aria-busy` while it shows. With reduced motion, or `shimmer={false}`, it holds still.
  *
  * Pick the shape of what is coming: `shape="text"` with `lines` and Text's `size` for a
  * paragraph, `shape="circle"` with Avatar's `size` for an avatar, `shape="row"` with `count`
@@ -221,9 +242,10 @@ function Bar({ className, shimmer }: { className: string | undefined; shimmer: b
  * </>
  */
 export function Skeleton(props: SkeletonProps): JSX.Element {
-  const { shape: shapeProp = "rect", size: sizeProp, lines: linesProp, count: countProp, className, shimmer = true, variant, animation, width, height, ref, ...rest } =
+  const { shape: shapeProp = "rect", size: sizeProp, lines: linesProp, count: countProp, className, shimmer: shimmerProp = true, variant, animation, width, height, ref, ...rest } =
     props as SkeletonCommonProps &
       Omit<HTMLAttributes<HTMLSpanElement>, "children"> & { shape?: string; size?: string; lines?: number; count?: number };
+  const shimmer = useBreathes(shimmerProp);
   // A shape that is not one of Ouro UI's (a type error) warns and renders the default.
   const shape: Shape = shapeNames.includes(shapeProp) ? (shapeProp as Shape) : "rect";
   const sizes: object = sizesFor[shape];
@@ -254,7 +276,7 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
             "variant is not a prop",
             `<Skeleton shape="${Object.hasOwn(muiVariants, String(variant)) ? muiVariants[String(variant)] : "rect"}">`,
           ],
-          animation !== undefined && ["animation is not a prop; Skeleton shimmers, and holds still with reduced motion", "<Skeleton>"],
+          animation !== undefined && ["animation is not a prop; Skeleton breathes, and holds still with reduced motion", "<Skeleton>"],
           width !== undefined && ["width is not a prop", `<Skeleton className="${sizeClass("w", width)}">`],
           height !== undefined && ["height is not a prop", `<Skeleton className="${sizeClass("h", height)}">`],
         ]

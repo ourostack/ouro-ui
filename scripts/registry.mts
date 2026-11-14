@@ -57,7 +57,7 @@ const DOCS_URL = "https://ui.ouroboros.bot/docs";
 const components = readComponents();
 
 /** Registry files that test this repository itself and never ship. */
-const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
+const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/radius-fallback.test.tsx", "registry/ouro/theme/squircle-surface.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
 
 /**
  * Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA,
@@ -490,6 +490,12 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
         if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@layer base ${rule.selector}`, false);
       });
       css["@layer base"] = rules;
+    } else if (node.type === "atrule" && node.name === "supports") {
+      const rules: CssTree = {};
+      node.each((rule) => {
+        if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@supports ${node.params} ${rule.selector}`, false);
+      });
+      css[`@supports ${node.params}`] = rules;
     } else if (node.type === "atrule" && node.name === "keyframes") {
       const frames: CssTree = {};
       node.each((frame) => {
@@ -498,7 +504,7 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
       css[`@keyframes ${node.params}`] = frames;
     } else {
       const name = node.type === "atrule" ? `@${node.name}` : node.type === "rule" ? node.selector : node.type;
-      throw new Error(`Unsupported CSS in a theme file: ${name}. shadcn items carry :root, .dark, @theme inline, @utility, @layer base and @keyframes.`);
+      throw new Error(`Unsupported CSS in a theme file: ${name}. shadcn items carry :root, .dark, @theme inline, @utility, @layer base, @supports and @keyframes.`);
     }
   });
   const vars = Object.fromEntries(Object.entries(cssVars).filter(([, values]) => Object.keys(values).length > 0)) as CssVars;

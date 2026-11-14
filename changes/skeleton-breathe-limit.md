@@ -1,0 +1,1 @@
+- Changed: Skeleton's default breathing now applies only to the first placeholders mounted at once; the rest of a long list hold still, which keeps WebKit wheel scrolling smooth with many placeholders.

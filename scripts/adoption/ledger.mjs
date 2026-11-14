@@ -33,7 +33,7 @@ const norm = (tag) => String(tag ?? "").replace(/^v/, "");
 const short = (sha) => String(sha).slice(0, 7);
 const blob = (repo, path) => `https://github.com/${repo}/blob/HEAD/${path}`;
 
-export function createContext({ gh = realGh, now = () => new Date(), sleep = sleepSync, searchGapMs = 6500 } = {}) {
+export function createContext({ gh = realGh, now = () => new Date(), sleep = sleepSync, searchGapMs = 6500, searchBudgetMs = 15 * 60_000 } = {}) {
   const cache = new Map();
   const memo = (key, make) => {
     if (!cache.has(key)) {
@@ -48,6 +48,10 @@ export function createContext({ gh = realGh, now = () => new Date(), sleep = sle
     return entry.ok;
   };
   let lastSearch = 0;
+  // GitHub rate-limits the workflow token's code search hard. Without a bound the waits add up past the hourly run's
+  // timeout and nothing is published, so the waits share one budget; after it, a search is left unmeasured.
+  const searchDeadline = now().getTime() + searchBudgetMs;
+  const outOfTime = () => new Error("code search's time budget ran out (GitHub rate limited it)");
   const api = (path, extra = []) => JSON.parse(gh(["api", path, ...extra]));
   const text = (path) => Buffer.from(JSON.parse(gh(["api", path])).content, "base64").toString("utf8");
   /** Code search is limited to 10 requests a minute, so each waits its turn and a refusal is retried. */
@@ -55,6 +59,7 @@ export function createContext({ gh = realGh, now = () => new Date(), sleep = sle
     memo(`search:${repo}:${query}`, () => {
       for (let attempt = 0; ; attempt += 1) {
         const wait = lastSearch + searchGapMs - now().getTime();
+        if (now().getTime() + Math.max(wait, 0) > searchDeadline) throw outOfTime();
         if (wait > 0) sleep(wait);
         lastSearch = now().getTime();
         try {
@@ -64,7 +69,9 @@ export function createContext({ gh = realGh, now = () => new Date(), sleep = sle
           if (attempt >= 4 || !/rate limit|403|429|try again in|secondary|abuse/i.test(error.message)) throw error;
           // GitHub says how long to wait ("try again in 14.9s"); a long wait is capped, and the next attempt asks again.
           const told = /try again in ([\d.]+)(ms|s)/i.exec(error.message);
-          sleep(told ? Math.min(90000, Math.ceil(Number(told[1]) * (told[2] === "ms" ? 1 : 1000)) + 1000) : 30000);
+          const pause = told ? Math.min(90000, Math.ceil(Number(told[1]) * (told[2] === "ms" ? 1 : 1000)) + 1000) : 30000;
+          if (now().getTime() + pause > searchDeadline) throw new Error(`${error.message}; code search's time budget ran out`, { cause: error });
+          sleep(pause);
         }
       }
     });

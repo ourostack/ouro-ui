@@ -264,7 +264,9 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Shards take about ten minutes (10.5 at most in recent runs), so a hang ends the job in minutes
+    # rather than an hour (#671). The test step's limit below ends it first.
+    timeout-minutes: 20
     # In Playwright's image (see the note above jobs:).
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
@@ -290,8 +292,11 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
+      # A hang ends this step in fifteen minutes, before the job's own limit, so the timings below
+      # still upload and the log names what hung (#671).
       - id: tests
         name: Browser tests
+        timeout-minutes: 15
         run: |
           if [ "$FULL" = true ]; then
             pnpm exec vitest run --coverage --shard="$SHARD"
@@ -519,8 +524,10 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
+      # A hang ends this step in fifteen minutes, before the job's own limit (#671).
       - id: tests
         name: Browser tests
+        timeout-minutes: 15
         run: |
           pnpm exec vitest run --coverage --shard="$SHARD"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -1552,7 +1559,7 @@ jobs:
           npm_config_prefer_offline: "true"
           npm_config_audit: "false"
           npm_config_fund: "false"
-        run: OURO_DELTA=1 OURO_PREPARE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
+        run: OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
       - name: Pack the app
         if: steps.prepared.outputs.cache-hit != 'true'
         run: tar -I zstd -cf "$RUNNER_TEMP/app.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/app.tar.zst"
@@ -1646,12 +1653,60 @@ jobs:
             ${{ env.OURO_APP }}/package.json
             ${{ env.OURO_APP }}/playwright-report/
           if-no-files-found: ignore
+  install-checks:
+    # The type check, the build and the install check of the prepared app with the shipped tests
+    # (OURO_CHECK_ONLY), run beside the shards instead of before them: the shards start as soon as
+    # the app is prepared, and this job's result is part of every variant's install check.
+    needs: [plan, install-prep]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'skip' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [shadcn, ouro]
+        preset: [nova, vega]
+        exclude:
+          - variant: ouro
+            preset: vega
+    name: install checks (${{ matrix.variant }}, ${{ matrix.preset }})
+    env:
+      OURO_PRESET: ${{ matrix.preset }}
+      OURO_APP: /tmp/ouro-app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: install-app-${{ matrix.variant }}-${{ matrix.preset }}
+          path: ${{ runner.temp }}/prepared
+      - name: Restore the prepared app
+        run: tar -I zstd -xf "$RUNNER_TEMP/prepared/app.tar.zst" -C "$(dirname "$OURO_APP")"
+      - name: Check the app
+        env:
+          VARIANT: ${{ matrix.variant }}
+          REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          OURO_CHECK_ONLY: "1"
+        run: scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
   install-gate:
     # A variant's install check: passes when each of its shards passed, as their markers show,
     # and every install shard of this attempt passed: a marker can be an earlier attempt's, after
     # "Re-run all jobs" (artifacts outlive an attempt), so the markers alone could pass a shard
     # that has just failed.
-    needs: [plan, install-shard]
+    needs: [plan, install-shard, install-checks]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1676,6 +1731,7 @@ jobs:
           VARIANT: ${{ matrix.variant }}
           PRESET: ${{ matrix.preset }}
           SHARDS: ${{ needs.install-shard.result }}
+          CHECKS: ${{ needs.install-checks.result }}
           INSTALLS: ${{ needs.plan.outputs.installs }}
         run: |
           if [ "$INSTALLS" = skip ]; then
@@ -1685,6 +1741,10 @@ jobs:
           failed=0
           if [ "$SHARDS" != success ]; then
             echo "::error::an install shard of this attempt did not pass ($SHARDS): see the install (…, n/6) jobs."
+            failed=1
+          fi
+          if [ "$CHECKS" != success ]; then
+            echo "::error::the type check, build or install check of the prepared app did not pass ($CHECKS): see the install checks job."
             failed=1
           fi
           for shard in 1 2 3 4 5 6; do

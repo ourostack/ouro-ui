@@ -127,6 +127,28 @@ describe("ConversationList windowing", () => {
     await expect.poll(() => parseFloat(view.rows()[0]!.parentElement!.style.top)).toBe(0);
   });
 
+  it("lays nothing out in the commit that switches the open conversation, to one in view or out of it", async () => {
+    const list = (id: string) => <ConversationList label="Conversations" items={many(200)} selectedId={id} onSelect={() => {}} />;
+    const view = await render(list("c1"));
+    await frames();
+    for (const id of ["c2", "c3", "c150"]) {
+      const reads = watchLayoutReads();
+      flushSync(() => view.root.render(list(id)));
+      reads.stop();
+      expect(reads.names()).toEqual([]);
+      await frames();
+    }
+    await expect.poll(() => view.pane.querySelector('[aria-current="true"], [aria-selected="true"]') !== null).toBe(true);
+    // The reveal the switch needs comes in a frame after the commit.
+    await expect
+      .poll(() => {
+        const row = view.pane.querySelector('[aria-current="true"], [aria-selected="true"]')!.getBoundingClientRect();
+        const box = view.pane.getBoundingClientRect();
+        return row.bottom > box.top && row.top < box.bottom;
+      })
+      .toBe(true);
+  });
+
   it("never shows a list with no items for an open section whose rows are all outside the window", async () => {
     const sections: ConversationListSection[] = [{ id: "a", title: "First" }];
     const view = await render(<ConversationList label="Chats" items={many(300, () => ({ section: "a" }))} sections={sections} onSelect={() => {}} />);
@@ -159,6 +181,7 @@ describe("ConversationList windowing", () => {
 
   it("renders only the rows near the view of a long list, in a list as tall as all of them", async () => {
     const { list, rows, ids, pane } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />);
+    await scrollPane(pane, 0);
     expectBand(pane, []);
     expect(rows().length).toBeLessThan(30);
     expect(ids().slice(0, 3)).toEqual(["c0", "c1", "c2"]);
@@ -240,6 +263,7 @@ describe("ConversationList windowing", () => {
         <ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />
       </div>,
     );
+    await scrollPane(pane, 0);
     expectBand(pane, []);
   });
 
@@ -260,6 +284,7 @@ describe("ConversationList windowing", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
     await frames();
+    await scrollPane(host, 0);
     expectBand(host, []);
   });
 
@@ -288,7 +313,8 @@ describe("ConversationList windowing", () => {
       if (index < 3) expect(pane.scrollTop).toBe(0);
       else expect(Math.abs(box.bottom - pane.getBoundingClientRect().bottom)).toBeLessThan(1);
     }
-    expectBand(pane, ["c0"]);
+    // The pane's scroll events land after the last key, and the window follows them.
+    await expect.poll(() => { try { expectBand(pane, ["c0"]); return true; } catch { return false; } }).toBe(true);
   });
 
   it("moves on from a row with focus that the pane scrolled away from, showing the next row at the nearest edge", async () => {
@@ -475,9 +501,16 @@ describe("ConversationList windowing", () => {
 
   it("follows the pane's height when it grows", async () => {
     const { pane } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />, 100);
+    await frames();
     pane.style.height = "400px";
     await expect.poll(() => pane.querySelectorAll('[data-ouro-part="row"]').length).toBeGreaterThan(12);
-    expectBand(pane, []);
+    // The first size the observer reports is the one the window is kept against, so a pane that grew before that
+    // report counts as unchanged; a further step after it is a change.
+    await frames();
+    pane.style.height = "401px";
+    await expect.poll(() => {
+      try { expectBand(pane, []); return true; } catch { return false; }
+    }).toBe(true);
   });
 
   it("stops following the page once it is gone", async () => {
@@ -508,7 +541,8 @@ describe("ConversationList windowing", () => {
     await page.viewport(width, 300);
     await expect.poll(count).toBeLessThan(tall);
     await page.viewport(width, height);
-    await expect.poll(count).toBe(tall);
+    // The resize is a change of size, so the window then adds its overscan, which the first frame left to the first change.
+    await expect.poll(count).toBeGreaterThanOrEqual(tall);
     const top = host.getBoundingClientRect().top + scrollY;
     await act(async () => {
       window.scrollTo({ top: top + 10000 });
@@ -521,6 +555,65 @@ describe("ConversationList windowing", () => {
 });
 
 describe("ConversationList windowing with sections", () => {
+
+  it("keeps every element its first frame painted once the observer's first callback brings the real heights, until a scroll", async () => {
+    const items = many(400, (index) => ({ section: `s${Math.floor(index / 100)}` }));
+    const sections = [0, 1, 2, 3].map((n) => ({ id: `s${n}`, title: n === 1 ? "Harbor" : `S${n}` }));
+    const pane = document.createElement("div");
+    pane.style.cssText = "width: 360px; height: 400px; overflow-y: auto";
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />));
+    const everything = () => [...pane.querySelectorAll("*")];
+    const first = everything();
+    expect(first.length).toBeGreaterThan(0);
+    await frames();
+    await frames();
+    expect(first.filter((node) => !node.isConnected).map((node) => node.outerHTML.slice(0, 80))).toEqual([]);
+    await scrollPane(pane, 3000);
+    expect(everything().length).toBeGreaterThan(0);
+  });
+  it("draws a window on its first frame that the settled screen only equals, at a 1100 by 800 window whose rows are shorter than the estimate", async () => {
+    const items = many(400, (index) => ({ section: `s${Math.floor(index / 100)}` }));
+    const sections = [0, 1, 2, 3].map((n) => ({ id: `s${n}`, title: n === 1 ? "Harbor" : `S${n}` }));
+    const style = document.createElement("style");
+    style.textContent = '[data-ouro="conversation-list"] [data-ouro-part="row"] { height: 44px }';
+    document.head.append(style);
+    mounted.push(style);
+    const pane = document.createElement("div");
+    pane.style.cssText = "width: 360px; height: 800px; overflow-y: auto";
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />));
+    const everything = () => pane.querySelectorAll("*").length;
+    const first = everything();
+    await frames();
+    await frames();
+    await frames();
+    expect(everything()).toBe(first);
+  });
+  it("keeps every row of a windowed list shorter than the view, whose window never reaches the view's bottom", async () => {
+    const style = document.createElement("style");
+    style.textContent = '[data-ouro="conversation-list"] [data-ouro-part="row"] { height: 20px }';
+    document.head.append(style);
+    mounted.push(style);
+    const pane = document.createElement("div");
+    pane.style.cssText = "width: 360px; height: 800px; overflow-y: auto";
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    flushSync(() => root.render(<ConversationList label="Chats" items={many(21)} onSelect={() => {}} />));
+    const first = pane.querySelectorAll('[data-ouro-part="row"]').length;
+    await frames();
+    await frames();
+    expect(first).toBeGreaterThan(0);
+    expect(pane.querySelectorAll('[data-ouro-part="row"]').length).toBeGreaterThanOrEqual(first);
+  });
   const sections: ConversationListSection[] = [
     { id: "a", title: "First" },
     { id: "b", title: "Second" },

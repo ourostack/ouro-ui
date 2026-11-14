@@ -105,10 +105,10 @@ export const Cards: Story = {
 
 function LongScrollerList({ shimmer }: { shimmer: boolean }): JSX.Element {
   return (
-    <div aria-label="Long scroller" role="region" style={{ height: 600, width: "100%", maxWidth: 420, overflowY: "auto", border: "1px solid var(--border)" }}>
+    <div aria-label="Long scroller" role="region" style={{ height: 800, width: "100%", maxWidth: 1000, overflowY: "auto", border: "1px solid var(--border)" }}>
       <button data-test-harness="" type="button">Top</button>
       {Array.from({ length: 200 }, (_, row) => (
-        <div key={row} style={{ padding: 8, display: "grid", gap: 6 }}>
+        <div key={row} data-row="" style={{ padding: 8, display: "grid", gap: 6 }}>
           <div aria-hidden="true" style={{ height: 16 }} />
           {row % 3 !== 2 || row < 200 - 131 ? <Skeleton aria-hidden="true" className="h-40 w-full" shimmer={shimmer} /> : null}
         </div>
@@ -117,7 +117,7 @@ function LongScrollerList({ shimmer }: { shimmer: boolean }): JSX.Element {
   );
 }
 
-/** A long scroller with a loading picture in most rows: 131 shimmering placeholders at once. */
+/** A long scroller with a loading picture in most rows: 131 breathing placeholders at once. */
 export const LongScroller: Story = { render: () => <LongScrollerList shimmer /> };
 
 /** The same scroller with `shimmer={false}`: 131 still placeholders. */
