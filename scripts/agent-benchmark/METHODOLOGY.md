@@ -68,7 +68,7 @@ node scripts/agent-benchmark/run.mjs --models claude-opus-5-5,gpt-6-1-sol --tria
 
 `--arms` and `--tasks` narrow a run. Model inference uses the GitHub account signed in to `gh`, as `scripts/model-reviews/METHODOLOGY.md` describes; MiniMax M3, which Copilot's catalog lacks, uses `MINIMAX_API_KEY` or an agent secret store. Credentials are removed from the runtime's environment and scrubbed from every trial's record.
 
-A run writes `results.json` (the run's settings, `summary` and every trial without its transcript) and `transcripts/<model>--<arm>--<task>--<trial>.json` (the model's messages and every tool call with its arguments and full result). Published runs are copied into `results/<date>/`.
+A run writes `results.json` (the run's settings, `summary` and every trial without its transcript) and `transcripts/<model>--<arm>--<task>--<trial>.json` (the model's messages and every tool call with its arguments and full result). Published runs are copied into `results/<date>-<label>/`, and `page.mjs` renders the site's agent interface page from them.
 
 Tests: `node --test scripts/agent-benchmark/agent-benchmark.test.mjs` and, with a browser, `agent-benchmark-browser.test.mjs` (both in `pnpm test:scripts`).
 
