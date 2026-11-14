@@ -61,6 +61,11 @@
 #   OURO_PREPARE_ONLY           stops after the install, type check, build and every later add, with
 #                               the shipped tests installed: CI's prepare job runs this once for a
 #                               variant and preset.
+#   OURO_BASE_ONLY              stops after the later adds, before the shipped tests are added: the
+#                               base CI caches under a key of the runtime files.
+#   OURO_DELTA                  continues from a restored base in <app-dir> and adds the shipped
+#                               tests (overwriting what the base holds), then stops as
+#                               OURO_PREPARE_ONLY does.
 #   OURO_REUSE_APP              skips all of that and runs the shipped tests in <app-dir>, which
 #                               must be the tree a prepare run left, restored at the same path.
 #
@@ -245,6 +250,14 @@ fi
 if [ -n "${OURO_REUSE_APP:-}" ]; then
   # The app a prepare job installed and checked (OURO_PREPARE_ONLY), restored at this same path.
   cd "$app"
+elif [ -n "${OURO_DELTA:-}" ]; then
+  # A base (OURO_BASE_ONLY) restored at this same path: its stylesheet and package.json are what
+  # the later-adds check proved unchanged, so they are the "before" copies the tests' add is held to.
+  cd "$app"
+  cp src/index.css "$registry/index.before.css"
+  cp package.json "$registry/package.before.json"
+  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
+  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
 else
 echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
@@ -562,7 +575,11 @@ node "$root/scripts/install-check.mjs" --layer-override src/index.css 60
 npx vite build
 grep -q -- "--ouro-layer:60" dist/assets/*.css || { echo "the built CSS lost the --ouro-layer override"; exit 1; }
 echo "::endgroup::"
+fi
 
+[ -z "${OURO_BASE_ONLY:-}" ] || { echo "Prepared the base of the $variant app."; exit 0; }
+
+if [ -z "${OURO_REUSE_APP:-}" ]; then
 echo "::group::The testing setup and ouro-tests"
 cp -R "$root/test/install-fixture-tests/." "$app/"
 # The CLI writes the ~640 files one at a time in one process, about three minutes on a runner, so the
@@ -596,7 +613,7 @@ for part in 0 1 2 3; do
   for i in "${!test_items[@]}"; do
     [ $((i % 4)) -ne "$part" ] || part_items+=("${test_items[$i]}")
   done
-  PATH="$registry/serial-npm:$PATH" "${shadcn[@]}" add --yes "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
+  PATH="$registry/serial-npm:$PATH" "${shadcn[@]}" add --yes ${OURO_DELTA:+--overwrite} "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
   add_pids+=($!)
 done
 add_failed=0

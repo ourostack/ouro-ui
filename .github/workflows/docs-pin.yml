@@ -2,10 +2,12 @@ name: Docs pin
 # Points main's docs at the newest release: the install commands in README.md, site/llms.txt and
 # the guides, and package.json's description, which `pnpm run docs` writes from ouro.latestRelease.
 # Release dispatches it once it has tagged a release, and never waits for it. It keeps one pull
-# request open on one branch, "Point docs at <tag>", force-updating it. It approves the runs GitHub
-# held for that pull request (the workflows that report main's required checks) and turns
-# auto-merge on, so the pull request merges once those checks pass. Release auto starts nothing
+# request open on one branch, "Point docs at <tag>", force-updating it, and turns auto-merge on, so
+# the pull request merges once the checks main's ruleset requires pass. Release auto starts nothing
 # for the commit it makes (scripts/pin-only.mjs).
+# The branch is pushed with DOCS_PIN_TOKEN when the repository has that secret. A push with the
+# workflow's own token starts no CI run, so without the secret a maintainer must push an empty
+# commit to the branch to start CI; the pull request body says so.
 on:
   workflow_dispatch:
     inputs:
@@ -23,10 +25,9 @@ jobs:
     permissions:
       contents: write # push the docs branch, and delete it when main already names the release
       pull-requests: write # open, retitle, close and auto-merge the pull request
-      actions: write # approve the runs GitHub held for the pull request
     timeout-minutes: 30
     env:
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.DOCS_PIN_TOKEN || github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ inputs.tag }}
       BRANCH: docs/point-at-release
@@ -34,6 +35,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
+          token: ${{ secrets.DOCS_PIN_TOKEN || github.token }}
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -73,12 +75,12 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           git push -q --force origin "$BRANCH"
       - if: steps.pin.outputs.result == 'changed'
-        name: Open or update the pull request, approve its runs, and turn auto-merge on
-        env:
-          SHA: ${{ steps.push.outputs.sha }}
+        name: Open or update the pull request, and turn auto-merge on
         run: |
           title="Point docs at $TAG"
-          body=$(printf '%s\n\n%s\n' "Points the docs at $TAG, the newest release, with \`node scripts/latest-release.mjs set $TAG\` and \`pnpm run docs\`. Release opened this pull request after it tagged $TAG.[^latest]" "[^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG")
+          body=$(printf '%s\n\n%s\n\n%s\n' "Points the docs at $TAG, the newest release, with \`node scripts/latest-release.mjs set $TAG\` and \`pnpm run docs\`. Release opened this pull request after it tagged $TAG.[^latest]" "If CI has not started on this pull request, a maintainer pushes an empty commit to $BRANCH to start it. That is needed when the repository has no DOCS_PIN_TOKEN secret, since a push with the workflow's own token starts no CI.[^token][^github]" "[^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG
+          [^token]: .github/workflows/docs-pin.yml verify:fileLine(.github/workflows/docs-pin.yml, /DOCS_PIN_TOKEN/)
+          [^github]: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow verify:urlOk(https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)")
           number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
           if [ -n "$number" ]; then
             gh pr edit "$number" --title "$title" --body "$body"
@@ -86,47 +88,10 @@ jobs:
             gh pr create --base main --head "$BRANCH" --title "$title" --body "$body"
             number=$(gh pr view "$BRANCH" --json number --jq .number)
           fi
-          # GitHub holds a pull request's CI runs when a workflow with GITHUB_TOKEN opened or updated it: approve each
-          # workflow that reports a check main's rules require (scripts/required-producers.mjs), as Release did for its
-          # "Prepare main" pull request. Whether GITHUB_TOKEN may approve is untested; when it may not, the approve command
-          # goes to the job summary and the pull request body, and the job fails.
-          producers=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique | .[]' | node scripts/required-producers.mjs) || { echo "::error::Could not tell which workflows report main's required checks."; exit 1; }
-          approved=true
-          runs=
-          for workflow in $producers; do
-            run=
-            for _ in $(seq 24); do
-              run=$(gh run list --workflow "$workflow" --branch "$BRANCH" --commit "$SHA" --event pull_request --json databaseId --jq '.[0].databaseId // empty') || true
-              [ -n "$run" ] && break
-              sleep "${POLL_SECONDS:-5}"
-            done
-            if [ -n "$run" ] && gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/approve" >/dev/null; then
-              runs="$runs $run"
-            else
-              approved=false
-              break
-            fi
-          done
-          if [ "$approved" = true ]; then
-            echo "Approved the runs$runs on $BRANCH; their checks report on the pull request." >> "$GITHUB_STEP_SUMMARY"
-          else
-            cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request run of $workflow on $BRANCH>}/approve"
-            printf '%s\n' "### Approve CI on the \"Point docs at $TAG\" pull request" "" "The required checks run only after someone approves the held CI run:" "" '```sh' "$cmd" '```' >> "$GITHUB_STEP_SUMMARY"
-            body="$body
-
-          CI for this pull request is held until someone approves it. Run:
-
-          \`\`\`sh
-          $cmd
-          \`\`\`"
-            gh pr edit "$number" --body "$body"
-            echo "::warning::Could not approve the held CI run on $BRANCH; the required checks will not report until someone does."
-          fi
-          # Auto-merge still goes on, so the pull request merges once its checks pass after an approval.
           if ! gh pr merge "$number" --auto --squash; then
             [ "$(gh pr view "$number" --json state --jq .state)" = MERGED ] || { echo "::error::Could not turn auto-merge on for #$number."; exit 1; }
           fi
-          [ "$approved" = true ] || { echo "::error::The held CI run on $BRANCH was not approved; #$number merges once someone approves it."; exit 1; }
+          echo "Auto-merge is on for #$number: it merges once the checks main's ruleset requires pass." >> "$GITHUB_STEP_SUMMARY"
       - if: steps.pin.outputs.result == 'current'
         name: Close the docs pull request, since main already names the release
         run: |

@@ -23,21 +23,49 @@ export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 export const VOYAGE_HERO = {
   eyebrow: "Ouro HX + Ouro AX",
   title: ["Feels right to the people using it.", "Obvious to the agents building it."],
-  subline: claim("Ouro HX is a React component library you copy into your app and own. Its taps, motion and screen-reader announcements are tested in real browsers.", {
+  subline: claim("A design system for people and agents. It renders A2UI and adds what A2UI leaves to the app: one action declaration that becomes a button, a CLI command, MCP and WebMCP tools and an App Intent, with person-only actions refused to agents and an X-ray to check it.", {
     source: [
-      { test: "registry/ouro/components/ouro/accordion/accordion.touch.test.tsx::keeps 44px titles with 16px text on a phone, also in landscape, and opens on tap" },
-      { file: "scripts/motion-coverage.mts" },
-      { test: "registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change" },
-      { test: "registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds" },
+      { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
+      { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" },
+      { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+      { test: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
     ],
     verify: [
-      { fileLine: "registry/ouro/lib/ouro/testing/vitest.ts", pattern: "ouro-touch" },
-      { testExists: "registry/ouro/components/ouro/accordion/accordion.touch.test.tsx::keeps 44px titles with 16px text on a phone, also in landscape, and opens on tap" },
-      { ciJob: "motion-coverage" },
-      { testExists: "registry/ouro/lib/ouro/testing/announcements.test.tsx::records the text each live region exposes, polite and assertive, once per change" },
-      { testExists: "registry/ouro/components/ouro/copy-button/copy-button.test.tsx::CopyButton > puts the value on the clipboard, says Copied once, calls onCopy and reads Copy again after two seconds" },
+      { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
+      { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" },
+      { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+      { testExists: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
     ],
   }),
+  /**
+   * The lede on a phone, where the porthole must start on the first screen (site/e2e/stage-pacing.spec.ts), so it is no
+   * taller than the old one: the same claim, short, with the benchmark and the reviews linked after it.
+   */
+  phoneSubline: claim("A design system for people and agents that renders A2UI and adds one action model for both.", {
+    source: [
+      { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
+      { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+    ],
+    verify: [
+      { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
+      { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" },
+    ],
+  }),
+  /** Under the subline: where to check the claim, and the platform gap, said plainly. */
+  links: {
+    benchmark: { label: "Agent benchmark", href: "/docs/agent-interfaces/" },
+    reviews: { label: "Model reviews", href: "/docs/model-reviews/" },
+    platforms: {
+      label: claim("No Android or Windows kit yet", {
+        source: { file: "docs/platforms/README.md" },
+        verify: [
+          { fileLine: "docs/platforms/README.md", pattern: "\\| For Android \\| none yet" },
+          { fileLine: "docs/platforms/README.md", pattern: "\\| For Windows \\| none yet" },
+        ],
+      }),
+      href: "/docs/platforms/",
+    },
+  },
 } as const;
 
 export const SHADCN_BADGE = claim("Works with shadcn/ui", {

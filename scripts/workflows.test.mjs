@@ -9,6 +9,7 @@ import { assemble } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
 
 // The workflows publish the registry and push to the repository, so what they run must not
@@ -801,8 +802,7 @@ test("a release checks last that Pages serves the tag's @ouro namespace byte for
 });
 
 test("the release runs the public-registry tests with the script tests", () => {
-  const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"];
-  assert.match(scripts, / scripts\/public-registry\.test\.mjs /);
+  assert.ok(scriptTestFiles().includes("scripts/public-registry.test.mjs"));
 });
 
 /** ci.yml's jobs, by name, each the text of its block. */
@@ -1049,9 +1049,18 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   const step = block.slice(block.search(/^ {6}- name: Claims\n/m)).split(/\n {6}- /)[0];
   assert.match(step, /^ {10}PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}$/m);
   const script = `git() { printf 'CALL git %s\\n' "$*" >&2; }\n${stepScript(block, "Claims")}`;
-  const pull = runStep(script, { BASE_REF: "main" });
+  const pull = runStep(script, { BASE_REF: "main", GITHUB_SHA: "f00d" });
   assert.equal(pull.status, 0);
-  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=1 origin main\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
+  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=2 origin f00d\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
+  // Against the merge's first parent, main as GitHub merged the pull request into it, never main's tip, which may have
+  // moved since: its changes would read as the pull request's (#726).
+  const exemptions = workflow("claims.yml").slice(workflow("claims.yml").search(/^ {6}- name: Exemptions against the base\n/m));
+  for (const name of ["CLAIMS_BASE_REF", "REAL_CLOCK_BASE_REF", "PATCH_GUARD_BASE_REF"]) {
+    assert.doesNotMatch(step, new RegExp(`${name}="origin/`));
+    assert.doesNotMatch(exemptions, new RegExp(`${name}="origin/`));
+  }
+  assert.match(exemptions, /git fetch --no-tags --depth=2 origin "\$GITHUB_SHA"\n {10}CLAIMS_BASE_REF="HEAD\^1" node scripts\/claims\.mjs ratchet\n {10}REAL_CLOCK_BASE_REF="HEAD\^1" node scripts\/real-clock-ratchet\.mjs/);
+  assert.equal(step.match(/(?:CLAIMS|REAL_CLOCK|PATCH_GUARD)_BASE_REF="HEAD\^1"/g)?.length, 4);
   // A failing ratchet fails the job.
   assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
   assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
@@ -1120,7 +1129,7 @@ test("the script test shards run every file of pnpm test:scripts between them", 
   assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
   assert.match(block, new RegExp(`^ {6}TIMINGS: \\.tmp/timings/scripts-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
   assert.match(stepScript(block, "Script tests"), /^node scripts\/run-script-tests\.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=\.\/scripts\/timings-node-reporter\.mjs --test-reporter-destination="\$TIMINGS" \$\(node scripts\/shard\.mjs scripts "\$SHARD"\)$/m);
-  const { readTimings, scriptTestFiles, shardKeys } = await import("./shard.mjs");
+  const { readTimings, shardKeys } = await import("./shard.mjs");
   const all = Array.from({ length: count }, (_, index) => shardKeys(scriptTestFiles(), { index: index + 1, count }, readTimings("scripts"))).flat();
   assert.deepEqual(all.sort(), scriptTestFiles().sort());
 });
@@ -1710,7 +1719,7 @@ test("the screen-reader packages are pinned exactly, and test:sr runs its own co
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   for (const name of ["@guidepup/guidepup", "@guidepup/playwright", "@guidepup/setup"]) assert.match(pkg.devDependencies[name] ?? "", /^\d+\.\d+\.\d+$/, name);
   assert.equal(pkg.scripts["test:sr"], "playwright test --config playwright.screen-reader.config.ts");
-  assert.match(pkg.scripts["test:scripts"], /scripts\/sr-classify\.test\.mjs/);
+  assert.ok(scriptTestFiles().includes("scripts/sr-classify.test.mjs"));
 });
 
 test("the site's end-to-end specs run against the build served as GitHub Pages serves it, over HTTP/2 and TLS", async () => {
@@ -2260,13 +2269,16 @@ test("Release auto starts nothing for a commit that only points the docs at a re
   assert.match(other.calls, /workflow run release\.yml --ref main -f version=1\.3\.57 -f sha=/);
 });
 
-test("Docs pin points main's docs at the newest release through one pull request, approves its held runs and turns auto-merge on", () => {
+test("Docs pin points main's docs at the newest release through one pull request, and turns auto-merge on", () => {
   const docsPin = workflow("docs-pin.yml");
   assert.match(docsPin, /^permissions: \{\}$/m);
   assert.match(docsPin, /^on:\n {2}workflow_dispatch:\n {4}inputs:\n {6}tag:\n/m);
   assert.match(docsPin, /^concurrency:\n {2}group: docs-pin\n {2}cancel-in-progress: false$/m);
   const pin = docsPin.split("\n  pin:\n")[1];
-  assert.deepEqual(permissionsOf(pin), { contents: "write", "pull-requests": "write", actions: "write" });
+  assert.deepEqual(permissionsOf(pin), { contents: "write", "pull-requests": "write" });
+  assert.doesNotMatch(docsPin, /actions: write|\/approve|required-producers/);
+  assert.match(pin, /\n {10}token: \$\{\{ secrets\.DOCS_PIN_TOKEN \|\| github\.token \}\}\n/);
+  assert.match(pin, /\n {6}GH_TOKEN: \$\{\{ secrets\.DOCS_PIN_TOKEN \|\| github\.token \}\}\n/);
   assert.match(pin, /\n {6}BRANCH: docs\/point-at-release\n/);
   assert.deepEqual(
     stepScript(pin, "Point the docs at the release").split("\n").filter((line) => /^(node|pnpm) /.test(line)),
@@ -2275,12 +2287,10 @@ test("Docs pin points main's docs at the newest release through one pull request
   const push = stepScript(pin, "Commit the docs and push their branch");
   assert.match(push, /git push -q --force origin "\$BRANCH"/);
   assert.match(push, /41898282\+github-actions\[bot\]@users\.noreply\.github\.com/);
-  const open = stepScript(pin, "Open or update the pull request, approve its runs, and turn auto-merge on");
+  const open = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
   assert.match(open, /gh pr list --head "\$BRANCH" --base main --state open/);
   assert.match(open, /gh pr edit "\$number" --title "\$title"/);
   assert.match(open, /gh pr create --base main --head "\$BRANCH"/);
-  assert.match(open, /scripts\/required-producers\.mjs/);
-  assert.match(open, /gh api -X POST "repos\/\$GITHUB_REPOSITORY\/actions\/runs\/\$run\/approve"/);
   assert.match(open, /gh pr merge "\$number" --auto --squash/);
 });
 
@@ -2300,44 +2310,40 @@ test("Docs pin changes nothing for a tag that is not the newest release, and say
   assert.match(changed.calls, /CALL node scripts\/latest-release\.mjs set/);
 });
 
-test("Docs pin reuses its open pull request, and approves a run GitHub holds for it", () => {
+test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
-  const script = `node() { echo ci.yml; }\n${stepScript(pin, "Open or update the pull request, approve its runs, and turn auto-merge on")}`;
+  const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
   const dir = scratchDir("ouro-docs-pin-");
   const gh = `gh() {
   printf 'gh %s\\n' "$*" >> "$LOG"
   case "$*" in
     "pr list"*) echo 7 ;;
-    "run list"*) echo 42 ;;
   esac
 }`;
-  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", SHA: "a".repeat(40), GITHUB_REPOSITORY: "ourostack/ouro-ui", POLL_SECONDS: "0", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
+  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
   assert.equal(result.status, 0, result.stdout + result.calls);
   const calls = readFileSync(join(dir, "gh.log"), "utf8");
   assert.match(calls, /^gh pr edit 7 --title Point docs at v1\.3\.56/m);
   assert.doesNotMatch(calls, /gh pr create/);
-  assert.match(calls, /^gh api -X POST repos\/ourostack\/ouro-ui\/actions\/runs\/42\/approve$/m);
   assert.match(calls, /^gh pr merge 7 --auto --squash$/m);
+  assert.match(readFileSync(join(dir, "summary.md"), "utf8"), /Auto-merge is on for #7/);
 });
 
-test("Docs pin fails with the approve command for a person when no run is held for approval", () => {
+test("Docs pin fails, and names the pull request, when GitHub will not turn auto-merge on", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
-  const script = `node() { echo ci.yml; }\n${stepScript(pin, "Open or update the pull request, approve its runs, and turn auto-merge on")}`;
+  const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
   const dir = scratchDir("ouro-docs-pin-");
   const gh = `gh() {
   printf 'gh %s\\n' "$*" >> "$LOG"
   case "$*" in
     "pr list"*) echo 7 ;;
+    "pr merge"*) return 1 ;;
+    "pr view"*) echo OPEN ;;
   esac
 }`;
-  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", SHA: "a".repeat(40), GITHUB_REPOSITORY: "ourostack/ouro-ui", POLL_SECONDS: "0", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
+  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
   assert.equal(result.status, 1, result.stdout + result.calls);
-  assert.match(result.stdout, /::error::The held CI run on docs\/point-at-release was not approved/);
-  const summary = readFileSync(join(dir, "summary.md"), "utf8");
-  assert.match(summary, /gh api -X POST repos\/ourostack\/ouro-ui\/actions\/runs\/<run id of the pull_request run of ci\.yml on docs\/point-at-release>\/approve/);
-  const calls = readFileSync(join(dir, "gh.log"), "utf8");
-  assert.match(calls, /^gh pr edit 7 --body/m);
-  assert.match(calls, /^gh pr merge 7 --auto --squash$/m);
+  assert.match(result.stdout, /::error::Could not turn auto-merge on for #7\./);
 });
 
 test("Release starts Docs pin once it has tagged, and no job waits for it", () => {
@@ -2346,4 +2352,15 @@ test("Release starts Docs pin once it has tagged, and no job waits for it", () =
   assert.match(jobs["docs-pin"], /if: \$\{\{ needs\.release\.result == 'success' \}\}/);
   assert.match(jobs["docs-pin"], /gh workflow run docs-pin\.yml --ref main -f tag="\$TAG"/);
   for (const id of ["pages", "publish", "finish", "next"]) assert.doesNotMatch(jobs[id], /docs-pin/, id);
+});
+
+test("install prep caches a base keyed on the runtime files, then adds the shipped tests over it", () => {
+  const ciText = readFileSync(".github/workflows/ci.yml", "utf8");
+  const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
+  const baseKey = prep.match(/key: install-base-[^\n]*/)[0];
+  for (const left of ["!registry/**/*.test.tsx", "!registry/**/*.stories.tsx", "!registry/ouro/e2e/**"]) assert.ok(baseKey.includes(left), left);
+  assert.ok(prep.includes("OURO_BASE_ONLY=1"));
+  assert.ok(prep.includes("OURO_DELTA=1 OURO_PREPARE_ONLY=1"));
+  const script = readFileSync("scripts/install-test.sh", "utf8");
+  assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
 });

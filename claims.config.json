@@ -423,10 +423,9 @@
       "reason": "scripts/images.test.mjs, in pnpm test:scripts, runs Ouro images' tests with coverage"
     },
     {
-      "match": "\\.test\\.m[jt]s$",
+      "match": "^(scripts|site/scripts)/.+\\.test\\.mjs$",
       "job": "ci",
-      "listedIn": "package.json#scripts.test:scripts",
-      "reason": "the ci job runs pnpm test:scripts, which lists each Node test file"
+      "reason": "the ci job runs pnpm test:scripts, which finds each Node test file under scripts/ and site/scripts/ (scripts/script-tests.mjs)"
     }
   ],
   "requiredChecks": ".github/required-checks.json",
