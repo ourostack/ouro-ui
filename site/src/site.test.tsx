@@ -139,6 +139,8 @@ describe("home page", () => {
     expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
     // The hero says what Ouro UI is beside A2UI, and links the benchmark, the model reviews and the platform gap.
     expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).toContain(VOYAGE_HERO.subline);
+    // No line of it breaks inside a hyphenated word: "X-ray" once wrapped as "X-" / "ray".
+    expect([...document.querySelectorAll("[data-site-whole-word]")].map((word) => word.textContent)).toEqual(["person-only", "X-ray"]);
     expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Agent benchmark", "/docs/agent-interfaces/"],
       ["Model reviews", "/docs/model-reviews/"],
