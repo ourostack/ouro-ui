@@ -29,6 +29,7 @@ describe("findOffendersInSource: each category", () => {
             "content-spinner",
             "render-index",
             "gated-load",
+            "hand-drawn-hero",
             "vague-failure-copy",
             "hand-drawn-avatar",
             "hand-drawn-presence-dot",
@@ -2464,5 +2465,21 @@ describe("CLI entry guard", () => {
         defaultCliErrorHandler(new Error("boom-default"));
         expect(process.exitCode).toBe(1);
         process.exitCode = 0;
+    });
+});
+
+describe("hand-drawn hero", () => {
+    it("flags a section or header classed as a hero, naming the registry Hero", () => {
+        const found = scan('export const A = () => <section className="hero relative px-6">x</section>;\nexport const B = () => <header className="page-hero">x</header>;');
+        expect(found.filter((offender) => offender.category === "hand-drawn-hero")).toHaveLength(2);
+    });
+    it("passes a registry Hero, other sections and a component given a hero class", () => {
+        const source = [
+            'export const A = () => <Hero title="Welcome" picture={pic} />;',
+            'export const B = () => <section className="grid gap-4 heroic">x</section>;',
+            'export const C = () => <Card className="hero">x</Card>;',
+            'export const D = () => <div className="hero">x</div>;',
+        ].join("\n");
+        expect(categories(source)).not.toContain("hand-drawn-hero");
     });
 });
