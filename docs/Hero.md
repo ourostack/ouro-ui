@@ -33,7 +33,7 @@ Type: `HeroProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `actions` | `ReactNode` |  | The hero's buttons or links, such as Ouro buttons. |
+| `actions` | `ReactNode` |  | The hero's buttons or links, such as Ouro buttons. They sit right under the lede, its next element, on the lede's edge, set a little further from it than the lines of text are from each other. Pass the page's main button here, not in `description`. |
 | `description` | `ReactNode` |  | The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the hero's text column, like the title. Centred in the stage layout, its lines are balanced to even lengths; aligned to the start, it wraps so the last line is never one word alone. To choose where a centred lede breaks, set each phrase in its own `inline-block` span, as the `LongLede` story does. |
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is. |
 | `fullWidth` | `boolean` |  | Stretches the hero to the width of its container, with no gutter or cap of its own, for a hero inside a page column that already sets the width. Without it the hero keeps a gutter at either side and caps its width. |
