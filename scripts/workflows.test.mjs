@@ -377,6 +377,14 @@ test("install-github does not retry any other add failure", () => {
   assert.ok(!log.some((line) => line.startsWith("sleep ")), "and waits for no retry");
 });
 
+test("install-github runs its add with the raw fetch retry preloaded into shadcn's process", () => {
+  const { result, log } = runGithubInstall(`echo "npx $* [$NODE_OPTIONS]" >> "$CALLS"`);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const add = log.filter((line) => line.includes(" add "));
+  assert.equal(add.length, 1);
+  assert.ok(add[0].endsWith(` [--import=${join(root, "scripts/raw-fetch-retry-preload.mjs")}]`), add[0]);
+});
+
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {
   const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
   const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n(?:\s+if: [^\n]+\n)?\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
