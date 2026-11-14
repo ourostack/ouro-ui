@@ -1,0 +1,8 @@
+# Changes in this release
+
+- New: Ouro AX's `defineCli` takes `command` for a tool with one thing to do, which [runs with no command word](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)"): `ouro-images <folder>`. A tool with `commands` still refuses a word it doesn't know.
+- CI's design check now splits across more jobs, so a pull request waits less for its screen check.
+- Changed: `ouro-images` runs on [Ouro AX](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)"), so its `--help` and `--json` come from the kit. A refused option prints one line that ends with the fix to run and [exits 2](scripts/images/images.test.mts "verify:testExists(scripts/images/images.test.mts::Ouro images' command > refuses what it cannot run with one line that names the fix, and exits 2)"). It now installs to [`@lib/ouro/images/`](scripts/registry.mts "verify:fileLine(scripts/registry.mts, /@lib\/ouro\/images\//)"), beside the kit it imports, where it was `~/lib/ouro/images/`, so an app whose `lib` alias sits under `src/` finds it there.
+- The install prepare cache keys on the install scripts only, so a pull request that changes other scripts restores the prepared app.
+- Resizable keeps one context value while its panels, labels, sizes and options stay the same, so re-rendering the group leaves memoized content inside it alone.
+- Source rules: the corner, switch and hero messages name the squircle corner shape, the Quiet glass tokens and the light and dark hero picture.
