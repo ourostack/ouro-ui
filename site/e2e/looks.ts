@@ -190,7 +190,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
           control ? `icons ${icons.join(" ")}` : "",
         ].join(" ; ");
     const visible = rect.width >= 6 && rect.height >= 6 && rect.width <= 400 && rect.height <= 300 && cs.visibility !== "hidden";
-    const isCrop = visible && (el.hasAttribute("data-ouro") || el.hasAttribute("data-ouro-control"));
+    const isCrop = visible && el.getAttribute("data-ouro") !== "heading" && (el.hasAttribute("data-ouro") || el.hasAttribute("data-ouro-control"));
     const behind = behindOf(el);
     const size = sizeOf;
     const pictureKey = `${key}|${sizeOf}|${behind}`;
