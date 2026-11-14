@@ -1,1 +1,1 @@
-- Squircle polyfill: reading corner sources no longer turns on a document-wide rule, so a flush restyles only the elements it reads.
+- Squircle polyfill: reading corner sources now turns on a rule scoped to the elements being read, so a flush restyles those elements, not the whole page.
