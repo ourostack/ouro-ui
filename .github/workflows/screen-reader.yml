@@ -1,8 +1,8 @@
 name: Screen reader
 # Real screen readers read the components: VoiceOver on macOS (WebKit) and NVDA on Windows
 # (Chromium), through Guidepup (playwright.screen-reader.config.ts, registry/ouro/e2e/screen-reader/).
-# Nightly on main, and dispatched by release.yml for its release commit, which is tagged only when
-# this passes for that exact commit. scripts/sr-classify.mjs sorts a failure into accessibility (an
+# On every push to main, nightly, and by dispatch. release.yml tags a commit of main only when this
+# passed on a push of that exact commit. scripts/sr-classify.mjs sorts a failure into accessibility (an
 # utterance missing or wrong: it blocks a release) and infrastructure (the runner could not drive
 # its screen reader: a release retries once, and a nightly run opens or updates one
 # `screen-reader-infra` issue). Guidepup's setup rewrites VoiceOver and TCC settings, so the lane
@@ -10,6 +10,8 @@ name: Screen reader
 # for a pull request: a dispatch needs write access and tests only the tip of the dispatched branch
 # (docs/guides/screen-reader-lane.md).
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: "41 4 * * *"
   workflow_dispatch:

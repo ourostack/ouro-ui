@@ -574,7 +574,6 @@
     "scripts/published-release.test.mjs": 6,
     "scripts/readme-steps.test.mjs": 53,
     "scripts/registry.test.mjs": 29790,
-    "scripts/rehearsal-evidence.test.mjs": 3100,
     "scripts/required-checks.test.mjs": 22,
     "scripts/scratch.test.mjs": 815,
     "scripts/shard.test.mjs": 569,

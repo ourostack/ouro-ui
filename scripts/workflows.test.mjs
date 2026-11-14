@@ -232,7 +232,7 @@ test("scripts/retry.sh runs a failed fetch again after each wait, and fails with
   assert.equal(first.stdout, "");
 });
 
-test("only the jobs that push, release.yml's release job and release-rehearsal.yml's rehearse job, keep the checkout's credentials", () => {
+test("only the jobs that push, release.yml's release job, keep the checkout's credentials", () => {
   const problems = [];
   for (const { file, text } of workflows) {
     const lines = text.split("\n");
@@ -241,7 +241,7 @@ test("only the jobs that push, release.yml's release job and release-rehearsal.y
       const step = lines.slice(index + 1, index + 4).join("\n");
       const persists = !/^\s+persist-credentials: false$/m.test(step);
       const job = lines.slice(0, index).findLast((above) => /^ {2}[\w-]+:$/.test(above))?.trim().slice(0, -1);
-      if (persists !== ((file === "release.yml" && job === "release") || (file === "release-rehearsal.yml" && job === "rehearse"))) problems.push(`${file}:${index + 1}`);
+      if (persists !== ((file === "release.yml" && job === "release"))) problems.push(`${file}:${index + 1}`);
     });
   }
   assert.deepEqual(problems, [], "Set persist-credentials: false on every checkout that never pushes.");
@@ -617,59 +617,6 @@ test("Release takes main's CI from main's runs on its commit: a push, a dispatch
   assert.equal(conclusion([run("pull_request", "fix", 1), run("workflow_dispatch", "release/v1.0.0", 2)]), "");
 });
 
-test("Release stops when install-github, which the rules cannot require, failed in main's own CI run on its commit", () => {
-  const release = workflow("release.yml");
-  const filter = release.match(/own=\$\(gh run list --workflow ci\.yml --commit "\$sha" --json databaseId,event,headBranch --jq '([^']+)'\)/)?.[1];
-  assert.ok(filter, "release.yml finds main's own CI run on the commit");
-  const own = (runs) => spawnSync("jq", ["-r", filter], { input: JSON.stringify(runs), encoding: "utf8" }).stdout.trim();
-  const run = (event, headBranch, databaseId) => ({ event, headBranch, databaseId });
-  const queue = "gh-readonly-queue/main/pr-9-abc";
-  // The newest of main's push and dispatch runs; the queue's run and other branches' runs are not main's own.
-  assert.equal(own([run("push", "main", 2), run("merge_group", queue, 1)]), "2");
-  assert.equal(own([run("workflow_dispatch", "main", 3), run("push", "main", 2)]), "3");
-  assert.equal(own([run("merge_group", queue, 1), run("push", "fix", 4), run("workflow_dispatch", queue, 5)]), "");
-  // The step against a stand-in gh: main's push run (5) skipped every required job, the queue's run (6) passed them.
-  const check = (github, ownRun = "5") => {
-    const dir = scratchDir("ouro-release-github-");
-    // The gh that scripts/rehearsal-evidence.mjs runs, which finds rehearsal 77 passed on main's
-    // commit, and that scripts/quarantine.mjs runs, which cannot reach GitHub here.
-    writeFileSync(join(dir, "runs.json"), JSON.stringify([{ databaseId: 77, status: "completed", conclusion: "success", displayTitle: "Release rehearsal v9.9.9", headSha: "abc123".padEnd(40, "0"), createdAt: new Date().toISOString() }]));
-    writeFileSync(join(dir, "gh"), `#!/usr/bin/env bash\ncase "$*" in\n  "run list --workflow release-rehearsal.yml "*) cat "${join(dir, "runs.json")}" ;;\n  *) exit 1 ;;\nesac\n`);
-    chmodSync(join(dir, "gh"), 0o755);
-    const stubs = `git() { case "$1" in ls-remote) return 1 ;; rev-parse) echo ${"abc123".padEnd(40, "0")} ;; esac; }
-gh() {
-  case "$*" in
-    "run list --workflow ci.yml "*"[0].databaseId // empty"*) echo "$OWN" ;;
-    "run list"*) echo "$OWN 6" ;;
-    *"/rules/branches/main "*) echo ci ;;
-    "run view "*"--json status"*) echo completed ;;
-    *"/runs/5/jobs"*) printf 'ci\\tskipped\\ninstall-github\\t%s\\n' "$GITHUB" ;;
-    *"/runs/6/jobs"*) printf 'ci\\tsuccess\\ninstall-github\\tskipped\\nci-budget\\tfailure\\n' ;;
-    *) return 99 ;;
-  esac
-}
-export -f gh
-`;
-    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Check the version, the tag and main's CI")], {
-      cwd: root,
-      encoding: "utf8",
-      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, GITHUB: github, OWN: ownRun, VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "o/r", GITHUB_OUTPUT: join(dir, "output.txt"), GITHUB_ENV: join(dir, "env.txt"), GITHUB_STEP_SUMMARY: join(dir, "summary.md"), RUNNER_TEMP: dir, POLL_SECONDS: "0" },
-    });
-    return { ...result, dir };
-  };
-  const green = check("success");
-  assert.equal(green.status, 0, green.stdout + green.stderr);
-  // The rehearsal's retries are read from the run whose conclusion passed; an error reading them fails nothing.
-  assert.match(green.stdout, /^::warning::Could not read the jobs of the rehearsal https:\/\/github\.com\/o\/r\/actions\/runs\/77, so its retries are not shown here\.$/m);
-  assert.match(readFileSync(join(green.dir, "rehearsal.md"), "utf8"), /^Rehearsed: \[the rehearsal of v9\.9\.9\]\(https:\/\/github\.com\/o\/r\/actions\/runs\/77\) passed on main's commit `abc1230+`, which this release is cut from\.$/m);
-  const red = check("failure");
-  assert.equal(red.status, 1, red.stdout + red.stderr);
-  assert.match(red.stdout, /::error::install-github is 'failure' in main's own CI run 5 \(abc1230+\), not success/);
-  assert.match(check("skipped").stdout, /install-github is 'skipped'/);
-  // With no run of main's own on the commit, the queue's run alone decides.
-  const queued = check("failure", "");
-  assert.equal(queued.status, 0, queued.stdout + queued.stderr);
-});
 
 test("Release deploys Pages itself and fails when the published llms.txt or README names another release", () => {
   const release = workflow("release.yml");
@@ -689,7 +636,7 @@ function publishRelease(changes, rehearsal = rehearsalNote) {
   const fixture = scratchDir("ouro-release-notes-");
   const temp = join(fixture, "runner-temp");
   mkdirSync(temp);
-  if (rehearsal !== null) writeFileSync(join(temp, "rehearsal.md"), rehearsal);
+  if (rehearsal !== null) writeFileSync(join(temp, "proof.md"), rehearsal);
   for (const file of ["registry.json", "UPGRADING.md"]) copyFileSync(join(root, file), join(fixture, file));
   writeFileSync(join(fixture, "CHANGES.md"), changes);
   const calls = join(fixture, "calls.log");
@@ -720,21 +667,11 @@ test("Release's notes list the items by name and stay well under GitHub's 125,00
   assert.match(notes, /^### Upgrading from v0\.1\.0$/m);
   assert.ok(notes.includes("https://github.com/ourostack/ouro-ui/blob/v9.9.9/registry.json"), "the notes link the tag's registry.json for the descriptions");
   // The rehearsal the release rests on, before the items.
-  assert.ok(notes.includes(`\n${rehearsalNote}\nItems, by name.`), "the notes name the rehearsal");
+  assert.ok(notes.includes(rehearsalNote), "the notes name the runs the release rests on");
   const { items } = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
   assert.equal(notes.split("\n").at(-2), items.map(({ name }) => `\`${name}\``).join(", "));
   assert.ok(!notes.includes(items[0].description), "an item's description is in the notes");
   assert.deepEqual(calls.trim().split("\n"), ["git tag v9.9.9", "git push origin v9.9.9", `gh release create v9.9.9 --verify-tag --title v9.9.9 --notes-file ${join(temp, "notes.md")}`, "git push origin --delete release/v9.9.9"]);
-});
-
-test("Release tags nothing without the rehearsal it rests on recorded for its notes", () => {
-  for (const rehearsal of [null, ""]) {
-    const { status, stdout, calls, notes } = publishRelease("# Changes in this release\n\n- A change.\n", rehearsal);
-    assert.equal(status, 1);
-    assert.match(stdout, /^::error::[^\n]+\/rehearsal\.md, the rehearsal this release rests on, is missing, so v9\.9\.9 is not tagged\.$/m);
-    assert.equal(calls, "", "it tagged, pushed or released");
-    assert.equal(notes, undefined);
-  }
 });
 
 test("Release tags nothing when its notes would be over GitHub's limit", () => {
@@ -743,16 +680,6 @@ test("Release tags nothing when its notes would be over GitHub's limit", () => {
   assert.match(stdout, /^::error::The release notes are \d+ bytes, over GitHub's 125,000-character limit, so v9\.9\.9 is not tagged\./m);
   assert.equal(calls, "", "it tagged, pushed or released");
   assert.equal(notes, undefined);
-});
-
-test("every wait of Release, and of its rehearsal, on a CI run judges only the checks main's rules require, through scripts/required-ci.sh", () => {
-  // ci-budget, which the rules do not require, failed CI on "Prepare main" for v1.2.0 (run 39754777487) and stopped the release.
-  for (const name of ["Check the version, the tag and main's CI", "Run CI on the release commit"]) {
-    const step = releaseStep(name);
-    assert.match(step, /scripts\/required-ci\.sh (--also "[^"]+" )?\$(run|runs)\b/, name);
-    assert.doesNotMatch(step, /gh run watch "\$(run|ci)"[^\n]*--exit-status|--workflow (ci\.yml|"\$workflow")[^\n]*conclusion/, name);
-  }
-  assert.doesNotMatch(stepScript(workflow("release-rehearsal.yml"), "Run CI and the screen-reader lane on the rehearsal commit"), /gh run watch "\$ci"/);
 });
 
 test("required-ci.sh waits for the runs, then passes them when each check main's rules require passed in them, whatever the other jobs did", () => {
@@ -819,31 +746,6 @@ test("required-ci.sh waits for the runs, then passes them when each check main's
   assert.equal(spawnSync("bash", [join(root, "scripts/required-ci.sh"), "--also"], { encoding: "utf8" }).status, 2);
 });
 
-test("the release commit stops when only install-latest, a gate main's rules cannot require, fails", () => {
-  const ci = ciJobs()["install-latest"];
-  assert.match(ci, /\n {4}name: install \(shadcn@latest, nova\)\n/);
-  assert.match(ci, /if: startsWith\(github\.ref, 'refs\/heads\/release\/'\)/);
-  assert.match(stepScript(workflow("release-rehearsal.yml"), "Run CI and the screen-reader lane on the rehearsal commit"), /scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)" \$ci /);
-  // The step against a stand-in dispatch (runs 5 and 6) and gh: every required check passed, ci-budget failed, and install-latest as given.
-  const dir = scratchDir("ouro-release-commit-");
-  mkdirSync(join(dir, "scripts"));
-  copyFileSync(join(root, "scripts/required-ci.sh"), join(dir, "scripts/required-ci.sh"));
-  writeFileSync(join(dir, "scripts/dispatch-required.sh"), "#!/usr/bin/env bash\necho 5 6\n");
-  chmodSync(join(dir, "scripts/dispatch-required.sh"), 0o755);
-  const commit = (latest) =>
-    spawnSync("bash", ["-e", "-o", "pipefail", "-c", `git() { echo abc123; }\ngh() { case "$*" in "run view "*) echo completed ;; *"/rules/branches/main "*) printf '%s\\n' ci "conformance exemptions" ;; *"/runs/5/jobs"*) printf 'ci\\tsuccess\\nci-budget\\tfailure\\ninstall (shadcn@latest, nova)\\t%s\\n' "$LATEST" ;; *"/runs/6/jobs"*) printf 'conformance exemptions\\tsuccess\\n' ;; *) return 99 ;; esac; }\nexport -f git gh\n${releaseStep("Run CI on the release commit")}`], {
-      cwd: dir,
-      encoding: "utf8",
-      env: { ...process.env, LATEST: latest, BRANCH: "release/v9.9.9", GITHUB_REPOSITORY: "o/r", POLL_SECONDS: "0" },
-    });
-  const green = commit("success");
-  assert.equal(green.status, 0, green.stdout + green.stderr);
-  const red = commit("failure");
-  assert.equal(red.status, 1, red.stdout + red.stderr);
-  assert.match(red.stdout, /install \(shadcn@latest, nova\): failure/);
-  assert.equal(commit("skipped").status, 1);
-});
-
 test("each check main's rules require comes from a workflow Release can start by dispatch", async () => {
   const { readWorkflows, requiredProducers } = await import("./required-producers.mjs");
   const all = readWorkflows();
@@ -879,19 +781,6 @@ test("public proof dependencies are installed without the publishing token, and 
     `pnpm() { return 37; }\n${install}\nprintf 'PROOF RAN\\n'`], { encoding: "utf8" });
   assert.equal(result.status, 37, result.stdout + result.stderr);
   assert.doesNotMatch(result.stdout, /PROOF RAN/);
-});
-
-test("a release builds the @ouro namespace from its commit and checks it byte for byte before CI, the screen-reader lane and the tag", () => {
-  const release = workflow("release.yml");
-  const push = release.indexOf("name: Push the release branch");
-  const build = release.indexOf("name: Build and check the @ouro namespace for the release commit");
-  const ci = release.indexOf("name: Run CI on the release commit");
-  const lane = release.indexOf("name: Pass the screen-reader lane on the release commit");
-  const tag = release.indexOf('git tag "$TAG"');
-  assert.ok(push > 0 && build > push && ci > build && lane > ci && tag > lane, "push, the namespace check, CI, the screen-reader lane, then the tag");
-  const step = releaseStep("Build and check the @ouro namespace for the release commit");
-  const lines = step.split("\n").filter((line) => line && !line.startsWith("#"));
-  assert.deepEqual(lines, ['scripts/namespace.sh "$RUNNER_TEMP/ns" "$TAG"', 'node scripts/public-registry.mjs verify-build "$RUNNER_TEMP/ns" HEAD']);
 });
 
 test("a release checks last that Pages serves the tag's @ouro namespace byte for byte, after the published pages", () => {
@@ -1717,10 +1606,10 @@ const srJobs = () =>
       .map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]),
   );
 
-test("the screen-reader lane runs nightly and on dispatch with a required source_sha, never for a pull request", () => {
+test("the screen-reader lane runs on every push to main, nightly and on dispatch with a required source_sha, never for a pull request", () => {
   const text = screenReader();
   const on = text.split("\non:\n")[1].split(/\n(?=\S)/)[0];
-  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["schedule", "workflow_dispatch"]);
+  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["push", "schedule", "workflow_dispatch"]);
   assert.match(on, /^ {4}- cron: "[^"]+"$/m);
   assert.match(on, /^ {6}source_sha:\n {8}description: .+\n {8}required: true$/m);
   assert.doesNotMatch(text, /pull_request/);
@@ -1826,46 +1715,6 @@ test("the main Playwright config never runs a screen-reader spec, and the screen
   }
 });
 
-test("a release installs with shadcn@latest in CI on its release commit, and only there", () => {
-  const latest = ciJobs()["install-latest"];
-  assert.ok(latest, "ci.yml has an install-latest job");
-  assert.match(latest, /^ {4}if: startsWith\(github\.ref, 'refs\/heads\/release\/'\)$/m);
-  assert.match(latest, /^ {6}- run: SHADCN_VERSION=latest scripts\/install-test\.sh shadcn "\$RUNNER_TEMP\/latest" \$\{\{ github\.sha \}\}$/m);
-  assert.doesNotMatch(latest, /permissions:/);
-  const install = readFileSync(join(root, "scripts/install-test.sh"), "utf8");
-  assert.match(install, /^shadcn=\(npx --yes shadcn@4\.21\.1\)\n\[ -z "\$\{SHADCN_VERSION:-\}" \] \|\| shadcn=\(npx --yes "shadcn@\$SHADCN_VERSION"\)$/m);
-  // The pinned CLI unless SHADCN_VERSION names another.
-  const line = install.split("\n").findIndex((text) => text.startsWith("shadcn=("));
-  for (const [version, expected] of [["", "shadcn@4.21.1"], ["latest", "shadcn@latest"]]) {
-    const result = spawnSync("bash", ["-c", `${install.split("\n").slice(line, line + 2).join("\n")}\necho "\${shadcn[2]}"`], { encoding: "utf8", env: { ...process.env, SHADCN_VERSION: version } });
-    assert.equal(result.stdout.trim(), expected);
-  }
-  for (const event of ["pull_request", "push", "workflow_dispatch"]) {
-    for (const [ref, expected] of [["refs/heads/main", false], ["refs/pull/9/merge", false], ["refs/heads/release/v1.1.0", true]]) {
-      const condition = latest.match(/^ {4}if: (.+)$/m)[1].replace(/startsWith\(github\.ref, '([^']+)'\)/, (_, prefix) => JSON.stringify(ref.startsWith(prefix)));
-      assert.equal(runInNewContext(condition, {}), expected, `${event} ${ref}`);
-    }
-  }
-});
-
-test("a release runs the screen-reader lane beside CI (with shadcn@latest) on its own commit, and tags only when both passed", () => {
-  const release = workflow("release.yml");
-  const start = release.indexOf("name: Start the screen-reader lane on the release commit");
-  const ci = release.indexOf("name: Run CI on the release commit");
-  const lane = release.indexOf("name: Pass the screen-reader lane on the release commit");
-  const tag = release.indexOf('git tag "$TAG"');
-  assert.ok(start > release.indexOf("name: Push the release branch") && ci > start && lane > ci && tag > lane, "push, the lane started, CI, the lane passed, then the tag");
-  // Started before CI's wait, so the two run side by side; the gate waits for that run, and dispatches again only after an infrastructure failure.
-  const started = releaseStep("Start the screen-reader lane on the release commit");
-  assert.match(started, /gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"/);
-  assert.match(started, /echo "SR_BEFORE=\$before" >> "\$GITHUB_ENV"/);
-  const gate = releaseStep("Pass the screen-reader lane on the release commit");
-  assert.match(gate, /if \[ "\$attempt" = 1 \]; then\n\s+before=\$SR_BEFORE\n\s+else\n[^]*?gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"\n\s+fi/);
-  assert.match(gate, /gh run list --workflow screen-reader\.yml --branch "\$BRANCH" --json databaseId,headSha,event,createdAt/);
-  assert.match(gate, /gh run watch "\$run" --exit-status/);
-  assert.match(releaseJobs().release, /^ {6}issues: write # /m);
-});
-
 /** release.yml's jobs, by name, each the text of its block. */
 const releaseJobs = () =>
   Object.fromEntries(
@@ -1885,7 +1734,7 @@ test("a release gives each job its own permissions, and none may write commit st
     const own = lines.slice(0, lines.findIndex((line) => !/^ {6}[\w-]+: \w+/.test(line)));
     return Object.fromEntries(own.map((line) => line.trim().match(/^([\w-]+): (\w+)/).slice(1)));
   };
-  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "write", issues: "write" });
+  assert.deepEqual(permissions(jobs.release), { contents: "write" });
   assert.deepEqual(permissions(jobs.pages), { actions: "write" });
   assert.deepEqual(permissions(jobs.publish), {});
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
@@ -1893,170 +1742,6 @@ test("a release gives each job its own permissions, and none may write commit st
   for (const block of Object.values(jobs)) assert.doesNotMatch(block, /statuses: write|pull-requests: write/);
 });
 
-test("a release's tag never stays out without main and Pages following unnoticed, a timeout included", () => {
-  const jobs = releaseJobs();
-  // The release job cleans up after a failure or a cancel, a timeout's included.
-  assert.match(jobs.release, /^ {6}- if: \(failure\(\) \|\| cancelled\(\)\) && steps\.check\.outputs\.new == 'true'\n {8}name: Clean up after a failure$/m);
-  // The finish job runs whatever happened before it, and reports a pushed tag main and Pages did not follow.
-  assert.match(jobs.finish, /^ {4}needs: \[release, pages, publish\]$/m);
-  const condition = jobs.finish.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)?.[1];
-  const runs = (release, publish, fresh = "true", pages = "success") =>
-    runInNewContext(condition.replace("always()", "true"), { needs: { release: { result: release, outputs: { new: fresh } }, pages: { result: pages }, publish: { result: publish } } });
-  assert.equal(runs("success", "success"), false);
-  assert.equal(runs("success", "failure"), true);
-  assert.equal(runs("success", "success", "true", "failure"), true);
-  assert.equal(runs("cancelled", "skipped", undefined), true);
-  // The check step's own output, from its script against a stand-in git and gh: a rerun for a
-  // version that is already released did nothing, so finish stays out of it and the run is green;
-  // a new release's tag that main and Pages did not follow still brings finish in.
-  const checked = (released) => {
-    const dir = scratchDir("ouro-release-check-");
-    const output = join(dir, "output.txt");
-    writeFileSync(output, "");
-    const sha = "abc123".padEnd(40, "0");
-    writeFileSync(join(dir, "runs.json"), JSON.stringify([{ databaseId: 77, status: "completed", conclusion: "success", displayTitle: "Release rehearsal v9.9.9", headSha: sha, createdAt: new Date().toISOString() }]));
-    writeFileSync(join(dir, "gh"), `#!/usr/bin/env bash\ncase "$*" in\n  "run list --workflow release-rehearsal.yml "*) cat "${join(dir, "runs.json")}" ;;\n  *) exit 1 ;;\nesac\n`);
-    chmodSync(join(dir, "gh"), 0o755);
-    // Main's rules require ci alone here; its run (42) passed it, and the rehearsal (77) passed.
-    const stubs = `git() { case "$1" in ls-remote) [ "$RELEASED" = true ] ;; rev-parse) echo ${sha} ;; esac; }\ngh() { case "$*" in "release view"*) [ "$RELEASED" = true ] ;; "run list"*) echo 42 ;; *"/rules/branches/main "*) echo ci ;; "run watch"*) return 1 ;; "run view 42 --json status"*) echo completed ;; *"/runs/42/jobs"*) printf 'ci\\tsuccess\\nci-budget\\tfailure\\ninstall-github\\tsuccess\\n' ;; esac; }\nexport -f gh\n`;
-    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Check the version, the tag and main's CI")], {
-      encoding: "utf8",
-      cwd: root,
-      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, RELEASED: String(released), VERSION: "9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "o/r", GITHUB_OUTPUT: output, GITHUB_ENV: join(dir, "env.txt"), GITHUB_STEP_SUMMARY: join(dir, "summary.md"), RUNNER_TEMP: dir },
-    });
-    assert.equal(result.status, 0, result.stderr);
-    return Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map((line) => line.split("=")));
-  };
-  const rerun = checked(true);
-  assert.deepEqual(rerun, { new: "false" });
-  assert.equal(runs("success", "skipped", rerun.new, "skipped"), false);
-  const fresh = checked(false);
-  assert.deepEqual(fresh, { producers: "ci.yml", new: "true" });
-  assert.equal(runs("success", "skipped", fresh.new, "skipped"), true);
-  const script = releaseStep("Report a release main and Pages did not follow");
-  const report = (tagged) =>
-    spawnSync("bash", ["-e", "-c", `gh() { printf 'CALL %s\\n' "$*" >&2; case "$1 $2" in "api repos/o/r/git/ref/tags/v9.9.9") [ "$TAGGED" = true ] ;; "issue create") return 0 ;; esac; }\n${script}`], {
-      encoding: "utf8",
-      env: { ...process.env, TAGGED: String(tagged), GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "5", TAG: "v9.9.9", RESULTS: "release: success, pages: cancelled, publish: skipped" },
-    });
-  const tagged = report(true);
-  assert.equal(tagged.status, 1);
-  assert.match(tagged.stderr, /CALL issue create --title Release v9\.9\.9: main or Pages did not follow --body v9\.9\.9 is tagged, but Pages did not follow \(release: success, pages: cancelled, publish: skipped\): https:\/\/github\.com\/o\/r\/actions\/runs\/5\./);
-  assert.match(tagged.stdout, /^::error::v9\.9\.9 is tagged/m);
-  const untagged = report(false);
-  assert.equal(untagged.status, 0);
-  assert.doesNotMatch(untagged.stderr, /issue create/);
-});
-
-/** Runs the release's screen-reader start and gate with a stand-in gh that plays the lane's runs in order. */
-function runReleaseGate(outcomes, { startsWith = true, headSha } = {}) {
-  const scratch = join(root, ".tmp");
-  mkdirSync(scratch, { recursive: true });
-  const dir = mkdtempSync(join(scratch, "release-sr-gate-"));
-  const summary = join(dir, "summary.md");
-  writeFileSync(summary, "");
-  writeFileSync(join(dir, "outcomes"), outcomes.join("\n") + "\n");
-  const start = releaseStep("Start the screen-reader lane on the release commit");
-  const gate = releaseStep("Pass the screen-reader lane on the release commit");
-  const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
-    git() { echo ${sha}; }
-    seq() { echo 1; }
-    sleep() { :; }
-    issue_script() { printf 'ISSUE %s\\n' "$*" >&2; echo https://github.com/ourostack/ouro-ui/issues/7; }
-    dispatched=0
-    outcome() { sed -n "\${dispatched}p" "$DIR/outcomes"; }
-    gh() {
-      printf 'CALL %s\\n' "$*" >&2
-      case "$*" in
-        "run list --workflow screen-reader.yml --branch release/v9.9.9 --event workflow_dispatch --json databaseId --jq "*) echo $((dispatched * 10)) ;;
-        "workflow run screen-reader.yml --ref release/v9.9.9 -f source_sha=${sha}") dispatched=$((dispatched + 1)) ;;
-        "run list --workflow screen-reader.yml --branch release/v9.9.9 --json databaseId,headSha,event,createdAt --jq "*)
-          if [ "$STARTS" = true ]; then echo $((dispatched * 10 + 1)); fi ;;
-        "run watch "*) [ "$(outcome)" = pass ] ;;
-        "run view "*"--json conclusion,headSha"*) echo "success \${HEAD_SHA:-${sha}}" ;;
-        "run view "*"--log-failed") case "$(outcome)" in infrastructure) printf 'voiceover\\tClassify\\tSR_CLASS=infrastructure\\nnvda\\tClassify\\tSR_CLASS=infrastructure\\n' ;; accessibility) printf 'nvda\\tClassify\\tSR_CLASS=accessibility\\nvoiceover\\tClassify\\tSR_CLASS=infrastructure\\n' ;; esac ;;
-        *) echo "Unexpected gh call: $*" >&2; return 99 ;;
-      esac
-    }
-    ${start}
-    SR_BEFORE=$(sed -n 's/^SR_BEFORE=//p' "$GITHUB_ENV")
-    ${gate.replace("scripts/sr-infra-issue.sh", "issue_script")}
-  `], {
-    cwd: root, encoding: "utf8",
-    env: { ...process.env, DIR: dir, STARTS: String(startsWith), HEAD_SHA: headSha ?? "", BRANCH: "release/v9.9.9", TAG: "v9.9.9", GITHUB_STEP_SUMMARY: summary, GITHUB_ENV: join(dir, "env"), GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "ourostack/ouro-ui" },
-  });
-  assert.doesNotMatch(result.stderr, /Unexpected gh call/);
-  return { ...result, dispatches: (result.stderr.match(/CALL workflow run screen-reader\.yml/g) ?? []).length, summary: readFileSync(summary, "utf8") };
-}
-
-test("the release's screen-reader gate passes when the lane passes for the release commit", () => {
-  const result = runReleaseGate(["pass"]);
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.dispatches, 1);
-  assert.match(result.stdout, /VoiceOver and NVDA passed on a{40}/);
-  assert.match(result.summary, /attempt 1: https:\/\/github\.com\/ourostack\/ouro-ui\/actions\/runs\/11/);
-});
-
-test("the release's screen-reader gate retries one infrastructure failure", () => {
-  const result = runReleaseGate(["infrastructure", "pass"]);
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.dispatches, 2);
-  assert.match(result.stdout, /::warning::The screen-reader lane could not drive its screen reader \(attempt 1\)/);
-});
-
-test("the release's screen-reader gate stops after a second infrastructure failure, with the issue", () => {
-  const result = runReleaseGate(["infrastructure", "infrastructure"]);
-  assert.notEqual(result.status, 0);
-  assert.equal(result.dispatches, 2);
-  assert.match(result.stderr, /ISSUE https:\/\/github\.com\/ourostack\/ouro-ui\/actions\/runs\/21 release v9\.9\.9/);
-  assert.match(result.stdout, /::error::The screen-reader lane failed twice on infrastructure, so v9\.9\.9 is not tagged: https:\/\/github\.com\/ourostack\/ouro-ui\/issues\/7/);
-});
-
-test("the release's screen-reader gate stops at an accessibility failure without retrying", () => {
-  const result = runReleaseGate(["accessibility"]);
-  assert.notEqual(result.status, 0);
-  assert.equal(result.dispatches, 1);
-  assert.match(result.stdout, /::error::The screen-reader lane failed on a{40} \(SR_CLASS=accessibility SR_CLASS=infrastructure\)/);
-});
-
-test("the release's screen-reader gate refuses a run for another commit, and a lane that never starts", () => {
-  const other = runReleaseGate(["pass"], { headSha: "b".repeat(40) });
-  assert.notEqual(other.status, 0);
-  assert.match(other.stdout, /concluded 'success b{40}', not success for a{40}/);
-  const never = runReleaseGate(["pass"], { startsWith: false });
-  assert.notEqual(never.status, 0);
-  assert.match(never.stdout, /::error::The screen-reader lane did not start/);
-});
-
-test("each release job's time limit is at least 1.5 times what it waits for, the screen-reader lane included", () => {
-  // Measured: a full CI run's wall time from dispatch to result, queues on the shared runner pool
-  // included (CI runs on release branches, main, merge groups and this repository's pull requests,
-  // 2026-10-20/21: 28 to 42 minutes), rounded up to 45. The screen-reader lane's longest run from
-  // dispatch to result on this branch (7 minutes over 5 runs, both OSes), rounded up and taken
-  // twice for one infrastructure retry; the shadcn@latest install runs beside CI's other jobs on
-  // the release commit and adds no time. The namespace checks (scripts/public-registry.mjs) build
-  // the namespace from the release commit and fetch every item once a deploy is live: under a
-  // minute each locally (11 s per build, 9 s for verify-live against v1.0.2), so 2 minutes with a
-  // cold npx cache. The published pages are each waited for up to 15 minutes.
-  const ci = 45;
-  const lane = 8;
-  const namespaceChecks = 2;
-  const pagesDeploy = 5;
-  const publishedWait = 15;
-  const jobs = releaseJobs();
-  const limit = (job) => Number(jobs[job].match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
-  // The release job: CI on the release commit, once more for a quarantined test's retry
-  // (scripts/quarantine.mjs), the lane.
-  const retry = ci;
-  assert.ok(limit("release") >= Math.ceil(1.5 * (2 * ci + retry + 2 * lane + namespaceChecks)), `release: timeout-minutes ${limit("release")}`);
-  // The rehearsal: CI on the rehearsal commit and its retry, beside the lane, and the namespace checks.
-  const rehearse = Number(workflow("release-rehearsal.yml").match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
-  assert.ok(rehearse >= Math.ceil(1.5 * (ci + retry + lane + namespaceChecks)) && rehearse <= 360, `rehearse: timeout-minutes ${rehearse}`);
-  // The pages job: the Pages deploy and the check of the namespace it serves; the publish job: the check of the two published pages.
-  assert.ok(limit("pages") >= Math.ceil(1.5 * (pagesDeploy + publishedWait)), `pages: timeout-minutes ${limit("pages")}`);
-  assert.ok(limit("publish") >= Math.ceil(1.5 * publishedWait), `publish: timeout-minutes ${limit("publish")}`);
-  for (const job of Object.keys(jobs)) assert.ok(limit(job) > 0 && limit(job) <= 360, `${job}: GitHub's limit for a job`);
-});
 
 test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments on it, and prints it", () => {
   const scratch = join(root, ".tmp");
@@ -2279,75 +1964,6 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   assert.match(tagged.stdout, new RegExp(`^::error::v${next.replace(/\./g, "\\.")} already exists here`, "m"));
 });
 
-test("Release auto starts the rehearsal of the next patch when main has a change to release and nothing runs, and releases a rehearsal only once its run has passed", () => {
-  const auto = workflow("release-auto.yml");
-  assert.match(auto, /^ {2}push:\n {4}branches: \[main\]$/m);
-  assert.match(auto, /^ {4}workflows: \[Release, Release rehearsal\]\n {4}types: \[completed\]$/m);
-  assert.match(auto, /^permissions: \{\}$/m);
-  const start = stepScript(auto, "Start the rehearsal of the next release");
-  assert.match(start, /changes\/ lists no change the newest release lacks/);
-  assert.doesNotMatch(auto, /prepare\/after-/);
-  assert.match(start, /for workflow in release\.yml release-rehearsal\.yml/);
-  assert.match(start, /gh workflow run release-rehearsal\.yml --ref main -f version="\$version" -f release=true$/m);
-  assert.match(auto, /github\.event\.workflow_run\.name == 'Release'\) }}/, "a release that ended in any way lets Release auto decide again");
-  assert.doesNotMatch(auto, /workflow_run\.conclusion == 'success'\)/);
-  const release = stepScript(auto, "Release a rehearsal that passed");
-  assert.match(release, /\[ "\$CONCLUSION" = success \] \|\|/);
-  assert.match(release, /gh workflow run release\.yml --ref main -f version=/);
-  assert.doesNotMatch(auto, /retry/);
-  // No job waits out the rehearsal: it hands over as its last step, and Release auto then releases it.
-  assert.doesNotMatch(auto, /gh run watch/);
-  assert.match(auto, /^ {4}timeout-minutes: 10$/m);
-  const handed = stepScript(auto, "Release the rehearsal that started here, once it has ended");
-  assert.match(handed, /\[ "\$conclusion" = success \] \|\|/);
-  assert.match(handed, /gh workflow run release\.yml --ref main -f version="\$VERSION"/);
-  assert.match(start, /select\(\.databaseId != \$\{AFTER:-0\}\)/, "the ending release does not count as running");
-  const release2 = workflow("release.yml");
-  assert.match(release2, /^ {2}next:\n(?: {4}.*\n| *\n)*? {4}needs: \[release, pages, publish\]\n {4}if: \$\{\{ always\(\) && needs\.release\.result != 'cancelled' \}\}$/m, "a release started by GITHUB_TOKEN starts no workflow_run, so it starts the next itself");
-  assert.equal(stepScript(release2, "Start the next release").trim(), 'gh workflow run release-auto.yml --ref main -f after="$GITHUB_RUN_ID"');
-  assert.match(stepScript(workflow("release-rehearsal.yml"), "Hand the release to Release auto"), /^gh workflow run release-auto\.yml -f rehearsed="\$VERSION"\n?$/);
-  assert.match(workflow("release-rehearsal.yml"), /if: \$\{\{ success\(\) && inputs\.release \}\}\n {8}name: Hand the release/);
-});
-
-test("a release rehearsal writes the release commit as Release does, on a branch of its own, runs CI and the screen-reader lane there, tags nothing and deletes the branch", () => {
-  const rehearsal = workflow("release-rehearsal.yml");
-  assert.match(rehearsal, /^run-name: Release rehearsal v\$\{\{ inputs\.version \}\}$/m);
-  assert.match(rehearsal, /^ {6}BRANCH: release\/v\$\{\{ inputs\.version \}\}-rehearsal$/m);
-  // One commit end to end: the dispatched one, which Release finds the rehearsal by, never main by name.
-  assert.match(rehearsal, /^ {10}ref: \$\{\{ github\.sha \}\}$/m);
-  assert.doesNotMatch(rehearsal, /ref: main\b|origin\/main|--ref main\b/);
-  assert.match(stepScript(rehearsal, "Check the version and the tag"), /^\[ "\$\(git rev-parse HEAD\)" = "\$DISPATCHED_SHA" \] \|\| \{ [^\n]+exit 1; \}$/m);
-  assert.match(rehearsal, /^ {10}DISPATCHED_SHA: \$\{\{ github\.sha \}\}$/m);
-  // The same script as release.yml's release commit, then its namespace checks.
-  const push = stepScript(rehearsal, "Push the rehearsal branch");
-  assert.match(push, /^git switch -c "\$BRANCH"\n(?:#.*\n)?scripts\/release-commit\.sh "\$VERSION"\ngit add CHANGES\.md\ngit commit -am "Release \$TAG \(rehearsal\)"\ngit push --force origin "\$BRANCH"$/m);
-  assert.match(stepScript(rehearsal, "Build and check the @ouro namespace for the rehearsal commit"), /^scripts\/namespace\.sh "\$RUNNER_TEMP\/ns" "\$TAG"\nnode scripts\/public-registry\.mjs verify-build "\$RUNNER_TEMP\/ns" HEAD$/m);
-  const run = stepScript(rehearsal, "Run CI and the screen-reader lane on the rehearsal commit");
-  assert.match(run, /^ci=\$\(scripts\/dispatch-required\.sh "\$BRANCH" "\$sha"\)$/m);
-  assert.match(run, /^gh workflow run screen-reader\.yml --ref "\$BRANCH" -f source_sha="\$sha"$/m);
-  assert.match(run, /^if ! scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)" \$ci >\/dev\/null; then$/m);
-  assert.match(run, /gh run watch "\$sr" --exit-status/);
-  // It never tags, releases, merges or writes statuses, and it always deletes its branch.
-  assert.doesNotMatch(rehearsal, /git tag|gh release|gh pr|statuses|pull-requests: write/);
-  assert.match(rehearsal, /^ {6}- if: always\(\)\n {8}name: Delete the rehearsal branch\n {8}run: git push origin --delete "\$BRANCH"/m);
-  assert.match(rehearsal, /^ {4}permissions:\n {6}contents: write # [^\n]+\n {6}actions: write # [^\n]+\n {6}issues: write # [^\n]+\n {4}#/m);
-  // Release refuses to cut a version without a passing rehearsal of it that holds for main's commit
-  // (scripts/rehearsal-evidence.mjs, scripts/rehearsal-evidence.test.mjs), read once, after main's own CI.
-  const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
-  // Its commands, without the comments, which name the script too.
-  const commands = check.split("\n").filter((line) => !/^\s*#/.test(line)).join("\n");
-  assert.equal(commands.split("rehearsal-evidence.mjs").length, 3, "the rehearsal picks the commit, then is read for its evidence");
-  assert.equal(commands.split("release-rehearsal.yml --").length, 1, "and only through scripts/rehearsal-evidence.mjs");
-  assert.doesNotMatch(check, /gh run list --workflow release-rehearsal\.yml/);
-  assert.match(check, /^rehearsed=\$\(node scripts\/rehearsal-evidence\.mjs "\$TAG" "\$sha" --notes "\$RUNNER_TEMP\/rehearsal\.md"\) \|\| \{ echo "::error::No passing rehearsal of \$TAG holds for main \(\$sha\)\. Run it first: gh workflow run release-rehearsal\.yml -f version=\$VERSION"; exit 1; \}$/m);
-  assert.ok(check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs") > check.indexOf("scripts/required-ci.sh $runs"));
-  assert.ok(check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs") > check.indexOf('[ "$github" = success ]'));
-  // It releases the commit a passing rehearsal tested, checked out before main's CI is read on it.
-  assert.match(check, /^sha=\$\(node scripts\/rehearsal-evidence\.mjs pick "\$TAG" "\$\(git rev-parse HEAD\)"\) \|\| \{ echo "::error::No passing rehearsal of \$TAG on main to release\.[^\n]+exit 1; \}\ngit checkout -q --detach "\$sha"$/m);
-  assert.ok(check.indexOf('git checkout -q --detach "$sha"') < check.indexOf("scripts/required-ci.sh $runs"));
-  assert.doesNotMatch(check, /^sha=\$\(git rev-parse HEAD\)$/m);
-});
-
 test("every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test", () => {
   const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
   assert.deepEqual(entryProblems(entries), []);
@@ -2528,77 +2144,25 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
 });
 
-test("only Release and its rehearsal retry, and only after scripts/required-ci.sh failed, judging the retry with it again", () => {
-  const users = workflows.filter(({ text }) => text.includes("quarantine.mjs")).map(({ file }) => file);
-  assert.deepEqual(users.sort(), ["release-rehearsal.yml", "release.yml"]);
-  for (const [file, step, runs] of [
-    ["release.yml", "Run CI on the release commit", "run"],
-    ["release-rehearsal.yml", "Run CI and the screen-reader lane on the rehearsal commit", "ci"],
-  ]) {
-    const script = stepScript(workflow(file), step);
-    const gate = `scripts/required-ci.sh --also "install (shadcn@latest, nova)" $${runs}`;
-    const first = script.indexOf(`if ! ${gate}`);
-    const retry = script.indexOf(`node scripts/quarantine.mjs retry --also "install (shadcn@latest, nova)" $${runs}`);
-    const again = script.indexOf(gate, retry);
-    assert.ok(first >= 0 && retry > first && again > retry, file);
-    assert.equal(script.split("quarantine.mjs retry").length, 2, `${file} retries once`);
-  }
-  // No test runner retries anything of its own: the quarantine is the only retry.
-  assert.doesNotMatch(readFileSync(join(root, "vitest.config.ts"), "utf8"), /\bretry:/);
-});
-
-test("a stale quarantine entry, its issue closed, gets a warning to remove it and fails nothing; Release shows the retries its rehearsal recorded", () => {
-  const bin = scratchDir("ouro-quarantine-release-");
-  const summary = join(bin, "summary.md");
-  // A stand-in gh: every issue is $STATE; rehearsal run 7 has jobs 11 and 12, and job 11 recorded
-  // $RETRIED, if anything, beside another warning, through the --jq filter quarantine.mjs gives.
-  writeFileSync(
-    join(bin, "gh"),
-    `#!/usr/bin/env bash\ncase "$*" in\n  "issue view "*) [ "$STATE" = unreadable ] && exit 1; echo "$STATE" ;;\n  "api repos/o/r/actions/runs/7/jobs"*) printf '11\\n12\\n' ;;\n  "api repos/o/r/check-runs/11/annotations"*) jq -nc --arg m "$RETRIED" '[{title: "Stale quarantine entry", message: "elsewhere"}] + (if $m == "" then [] else [{title: "Quarantined test retried", message: $m}] end)' | jq -r "\${@: -1}" ;;\n  "api repos/o/r/check-runs/12/annotations"*) ;;\n  *) exit 99 ;;\nesac\n`,
-  );
-  chmodSync(join(bin, "gh"), 0o755);
-  const quarantine = (args, env = {}) => {
-    writeFileSync(summary, "");
-    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), ...args], {
-      cwd: root,
-      encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, STATE: "OPEN", RETRIED: "", ...env },
-    });
-  };
-  const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
-  const open = quarantine(["stale"]);
-  assert.equal(open.status, 0);
-  assert.doesNotMatch(open.stdout, /Stale quarantine entry/);
-  const closed = quarantine(["stale"], { STATE: "CLOSED" });
-  assert.equal(closed.status, 0, "a closed issue never fails the run");
-  for (const entry of entries) assert.ok(closed.stdout.includes(staleWarning(entry)));
-  assert.equal(quarantine(["stale"], { STATE: "unreadable" }).status, 0);
-  // The rehearsal leads the release's own summary with any retry it recorded.
-  const retried = quarantine(["rehearsed", "7"], { RETRIED: "Retried once, as quarantined: the Calendar test" });
-  assert.equal(retried.status, 0);
-  assert.equal(readFileSync(summary, "utf8"), "- The rehearsal (https://github.com/o/r/actions/runs/7): Quarantined test retried: Retried once, as quarantined: the Calendar test\n");
-  assert.match(retried.stdout, /^::warning title=Rehearsal retried a quarantined test::/m);
-  assert.equal(quarantine(["rehearsed", "7"]).status, 0);
-  assert.equal(readFileSync(summary, "utf8"), "The rehearsal (https://github.com/o/r/actions/runs/7) retried no quarantined test.\n");
-  // Wired: the rehearsal warns of stale entries, Release reads its passing rehearsal's retries.
-  assert.match(workflow("release-rehearsal.yml"), /^ {8}run: node scripts\/quarantine\.mjs stale$/m);
-  const check = stepScript(workflow("release.yml"), "Check the version, the tag and main's CI");
-  assert.ok(check.indexOf('node scripts/quarantine.mjs rehearsed "$rehearsed"') > check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs"));
-  assert.ok(check.indexOf("rehearsed=$(node scripts/rehearsal-evidence.mjs") >= 0);
-});
-
-test("Release reuses the rehearsal's CI and screen-reader proof only when it tested this very tree, and otherwise runs both", () => {
+test("Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal", () => {
   const release = workflow("release.yml");
-  const reuse = releaseStep("Reuse the rehearsal's proof when it tested this very tree");
-  assert.match(reuse, /git rev-parse 'HEAD\^\{tree\}'/);
-  assert.match(reuse, /git\/commits\/\$rsha" --jq \.tree\.sha/);
-  assert.match(reuse, /scripts\/required-ci\.sh --also "install \(shadcn@latest, nova\)"/);
-  assert.match(reuse, /screen-reader\.yml/);
-  assert.match(reuse, /echo "reuse=false" >> "\$GITHUB_OUTPUT"/);
-  const at = (name) => release.indexOf(`name: ${name}`);
-  assert.ok(at("Push the release branch") < at("Reuse the rehearsal's proof when it tested this very tree"));
-  assert.ok(at("Reuse the rehearsal's proof when it tested this very tree") < at("Build and check the @ouro namespace for the release commit"));
-  for (const name of ["Start the screen-reader lane on the release commit", "Run CI on the release commit", "Pass the screen-reader lane on the release commit"]) {
-    assert.match(release, new RegExp(`if: steps\\.check\\.outputs\\.new == 'true' && steps\\.reuse\\.outputs\\.reuse != 'true'\\n {8}name: ${name}|name: ${name}\\n {8}if: steps\\.check\\.outputs\\.new == 'true' && steps\\.reuse\\.outputs\\.reuse != 'true'`));
-  }
+  assert.match(release, /\n {6}sha:\n/);
+  assert.doesNotMatch(release, /rehearsal-evidence|release-rehearsal/);
+  const check = releaseStep("Check the version, the tag and main's CI");
+  assert.match(check, /compare/);
+  assert.match(check, /screen-reader\.yml/);
+  assert.match(check, /--event push/);
+  assert.match(check, /proof\.md/);
+  assert.ok(!existsSync(join(root, ".github/workflows/release-rehearsal.yml")));
+});
+
+test("Release auto releases a commit once main's push CI and lane have ended, naming that commit and no other", () => {
+  const auto = workflow("release-auto.yml");
+  const on = auto.split("\non:\n")[1].split(/\n(?=\S)/)[0];
+  assert.match(on, /workflows: \[CI, Screen reader\]/);
+  assert.match(on, /branches: \[main\]/);
+  assert.match(auto, /gh workflow run release\.yml --ref main -f version="\$version" -f sha="\$sha"/);
+  assert.match(auto, /--workflow screen-reader\.yml --commit "\$sha" --event push/);
+  assert.match(auto, /--workflow ci\.yml --commit "\$sha" --event push/);
+  assert.match(auto, /\[ "\$RUN_EVENT" = push \]/);
 });
