@@ -23,6 +23,9 @@ import type { PageIssue } from "./size-check.ts";
 //               canvas, such as a speech bubble on a comic's art, which is part of the picture. Pictures, video,
 //               canvases and frames are their own colours. A page whose own background is light is left alone, in
 //               either theme: one with no dark theme at all is a choice, not a miss
+//   hero-dark-art a registry Hero whose picture has no night art: a picture in its media frame and no dark twin
+//               (`picture={{ light, dark }}`) beside it, so dark mode shows the day scene. Read from the markup, so it
+//               is found in either theme; live media (`media`) that is not a picture is left alone
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element by its words, the same at every size; `detail` says what was read.
@@ -150,6 +153,14 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
   }
   // Focus goes back where it was, or nowhere.
   if (was && was !== document.body) was.focus({ preventScroll: true });
+
+  // Heroes with no night art. No allow: every hero has night art.
+  for (const hero of document.querySelectorAll('[data-ouro="hero"]')) {
+    const frame = hero.querySelector(':scope > [data-ouro-part="media"]');
+    const art = frame ? [...frame.children].filter((el) => el.localName === "picture") : [];
+    if (!art.length || art.some((el) => el.getAttribute("data-scheme") === "dark")) continue;
+    issues.push({ ref: ref(hero), rule: "hero-dark-art", element: describe(hero), detail: "shows its day picture in dark mode too; give it night art with picture={{ light, dark }}" });
+  }
 
   // Dark-mode misses.
   const fillOf = (el: Element | null): { r: number; g: number; b: number; a: number } => {

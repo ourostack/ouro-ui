@@ -847,19 +847,28 @@ describe("ConversationList development messages", () => {
       '[ouro-ui] ConversationList: "bg-blue-500" sets appearance, and className is for layout only. Fix: remove "bg-blue-500"; ConversationList takes its colors from the theme.',
     );
   });
-  it("draws only the rows the first view reaches in the first commit, and the rest after it has painted", async () => {
+  it("paints a list taller than the view as its finished screen, with no row added or swapped after the first paint", async () => {
     const many: ConversationListItem[] = Array.from({ length: 40 }, (_, i) => ({ id: `c${i}`, title: `Chat ${i}`, preview: "Hello", time: "9:41" }));
     const host = document.createElement("div");
     host.style.width = "360px";
+    host.style.height = "400px";
+    host.style.overflow = "auto";
     document.body.append(host);
     mounted.push(host);
     const root = createRoot(host);
     roots.push(root);
-    const count = () => host.querySelectorAll('[data-ouro-part="row"]').length;
+    const ids = () => [...host.querySelectorAll('[data-ouro-part="row"]')].map((row) => row.textContent);
+    const changes: string[] = [];
+    const watcher = new MutationObserver((records) => changes.push(...records.map((r) => r.target.nodeName)));
+    watcher.observe(host, { childList: true, subtree: true });
     flushSync(() => root.render(<ConversationList label="Chats" items={many} onSelect={() => {}} />));
-    const first = count();
-    expect(first).toBeGreaterThan(0);
-    expect(first).toBeLessThan(40);
-    await expect.poll(count).toBe(40);
+    const first = ids();
+    watcher.takeRecords();
+    expect(first.length).toBeGreaterThan(0);
+    expect(first.length).toBeLessThan(40);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100))));
+    watcher.disconnect();
+    expect(ids()).toEqual(first);
+    expect(changes).toEqual([]);
   });
 });

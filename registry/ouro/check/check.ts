@@ -222,6 +222,7 @@ const LABELS: Record<string, string> = {
   "stray-scrollbar": "stray scrollbar",
   "focus-ring": "no focus ring",
   "dark-miss": "missed dark mode",
+  "hero-dark-art": "hero without night art",
   "disabled-no-reason": "disabled, no reason",
   https: "no HTTPS",
 };
@@ -253,6 +254,7 @@ const HINTS: Record<string, string> = {
   "stray-scrollbar": "find what spills over by a few pixels (a margin, a border, a rounding) and fit it, or don't let the region scroll",
   "focus-ring": "give it a :focus-visible outline in a colour that stands out from what is behind it",
   "dark-miss": "fill it from a theme token that has a dark value, not a fixed light colour",
+  "hero-dark-art": "pass picture={{ light, dark }}, the same scene by day and at night",
   "disabled-no-reason": "say why beside it and tie the words to it with aria-describedby, or give it a title",
   https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
 };
