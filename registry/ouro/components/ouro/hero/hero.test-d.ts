@@ -11,7 +11,10 @@ expectTypeOf<{
   eyebrow: "Recipes";
   description: "Plan the week";
   actions: null;
-  picture: { src: "/cover.webp"; width: 1536; height: 576; alt: "A cover"; priority: true; crop: "8 / 3"; focus: "50% 30%" };
+  picture: {
+    light: { src: "/cover.webp"; width: 1536; height: 576; alt: "A cover"; priority: true; crop: "8 / 3"; focus: "50% 30%" };
+    dark: { src: "/cover-night.webp"; width: 1536; height: 576; crop: "8 / 3"; focus: "50% 30%" };
+  };
   layout: "column";
   motion: "none";
   headingLevel: 2;
@@ -23,7 +26,10 @@ expectTypeOf<ComponentProps<typeof Hero>>().toEqualTypeOf<HeroProps>();
 expectTypeOf<{ eyebrow: "Recipes" }>().not.toExtend<HeroProps>();
 
 // A picture needs its size, so the media box can never be wider than the image.
-expectTypeOf<{ title: "T"; picture: { src: "/a.webp"; alt: "x" } }>().not.toExtend<HeroProps>();
+expectTypeOf<{ title: "T"; picture: { light: { src: "/a.webp"; alt: "x" }; dark: { src: "/a-night.webp"; width: 1536; height: 576 } } }>().not.toExtend<HeroProps>();
+
+// A single picture is not enough: a hero has night art.
+expectTypeOf<{ title: "T"; picture: { src: "/a.webp"; width: 1536; height: 576; alt: "x" } }>().not.toExtend<HeroProps>();
 
 // Light and dark art: the same scene by day and at night, each with its size.
 expectTypeOf<{

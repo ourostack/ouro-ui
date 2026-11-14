@@ -188,6 +188,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.17:** `ouro-images` installs to `@lib/ouro/images/`, beside the Ouro AX kit it now runs on, where it was `~/lib/ouro/images/`, so re-adding it leaves the old copy behind: delete `lib/ouro/images/` at your project root once nothing imports it, and point any script that ran it at the new path.[^upgrade-images-ax] A refused option prints one line with the fix and exits 2.[^upgrade-images-ax]
 
+- **After v1.3.19 (Hero):** `Hero`'s `picture` takes `{ light, dark }`, the same scene by day and at night, and no longer a single picture, so a hero that passed one picture fails to compile until it passes both; the dark one shows while the page is in dark mode.[^upgrade-hero-dark] Ouro check has a new gated rule, `hero-dark-art` (a hero whose picture has no night art), so a run that passed can now report it.[^upgrade-hero-dark-check]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -286,6 +288,8 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-v1.3.7]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7)
 [^upgrade-v1.3.10]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.10 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.10)
 [^upgrade-v1.3.12]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.12 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.12)
+[^upgrade-hero-dark]: registry/ouro/components/ouro/hero/hero.test-d.ts verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the dark picture only while the page is in dark mode)
+[^upgrade-hero-dark-check]: test/check-theme-in-page.test.ts verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: hero-dark-art > finds a hero whose picture has no night art, in light mode too, named by its words)
 [^upgrade-v1.3.13]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13)
 [^upgrade-v1.3.15]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15)
 [^upgrade-v1.3.17]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17)

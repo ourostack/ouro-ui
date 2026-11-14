@@ -4,7 +4,7 @@ import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
-import { Hero, type HeroPicture, type HeroProps } from "@/registry/ouro/components/ouro/hero/hero";
+import { Hero, type HeroPicture, type HeroPictures, type HeroProps } from "@/registry/ouro/components/ouro/hero/hero";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
@@ -55,6 +55,9 @@ function ledeLines(lede: HTMLElement): string[] {
 }
 const night: HeroPicture = { src: `${svg(1536, 576)}%3C!--night--%3E`, width: 1536, height: 576 };
 
+/** Light art with its night twin, as every hero takes it. */
+const pair = (light: HeroPicture): HeroPictures => ({ light, dark: night });
+
 const shownIn = (part: (name: string) => HTMLElement | null) =>
   [...part("media")!.querySelectorAll("picture")].filter((picture) => getComputedStyle(picture).display !== "none").map((picture) => picture.getAttribute("data-scheme"));
 
@@ -79,7 +82,7 @@ describe("Hero", () => {
         title="Dinner, sorted"
         description="Plan the week and shop once."
         actions={<button type="button">Start planning</button>}
-        picture={wide}
+        picture={pair(wide)}
       />,
     );
     expect(header.tagName).toBe("HEADER");
@@ -171,14 +174,14 @@ describe("Hero", () => {
 
   it("balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start", async () => {
     await page.viewport(1440, 900);
-    const stage = await render(<Hero title="Dinner, sorted" description={plainLede} picture={wide} />);
+    const stage = await render(<Hero title="Dinner, sorted" description={plainLede} picture={pair(wide)} />);
     const centred = stage.part("description")!;
     expect(getComputedStyle(centred).textWrapStyle).toBe("balance");
     const lengths = ledeLines(centred).map((line) => line.length);
     expect(lengths.length).toBeGreaterThan(1);
     expect((Math.max(...lengths) - Math.min(...lengths)) / Math.max(...lengths)).toBeLessThan(0.15);
     for (const layout of ["column", "split"] as const) {
-      const { part } = await render(<Hero title="Dinner, sorted" layout={layout} description={plainLede} picture={wide} />);
+      const { part } = await render(<Hero title="Dinner, sorted" layout={layout} description={plainLede} picture={pair(wide)} />);
       expect(getComputedStyle(part("description")!).textWrapStyle).toBe("pretty");
     }
   });
@@ -236,30 +239,30 @@ describe("Hero", () => {
 
   it("never shows the picture wider than its intrinsic width", async () => {
     await page.viewport(2400, 900);
-    const { part } = await render(<Hero title="Wide" picture={wide} />);
+    const { part } = await render(<Hero title="Wide" picture={pair(wide)} />);
     const media = part("media")!;
     expect(media.style.maxWidth).toBe("1536px");
     expect(media.getBoundingClientRect().width).toBeLessThanOrEqual(1536);
   });
 
   it("keeps the picture's own aspect ratio unless it is given a crop", async () => {
-    const { part } = await render(<Hero title="Plain" picture={wide} />);
+    const { part } = await render(<Hero title="Plain" picture={pair(wide)} />);
     expect(part("media")!.className).not.toContain("aspect-");
-    const { part: cropped } = await render(<Hero title="Cropped" picture={{ ...wide, crop: "8 / 3", focus: "30% 10%" }} />);
+    const { part: cropped } = await render(<Hero title="Cropped" picture={pair({ ...wide, crop: "8 / 3", focus: "30% 10%" })} />);
     expect(cropped("media")!.className).toContain("aspect-[var(--hero-crop)]");
     expect(cropped("image")!.style.objectPosition).toBe("30% 10%");
   });
 
   it("uses the default focus when the picture has none", async () => {
-    const { part } = await render(<Hero title="Focus" picture={wide} />);
+    const { part } = await render(<Hero title="Focus" picture={pair(wide)} />);
     expect(part("image")!.style.objectPosition).toBe("50% 42%");
   });
 
   it("loads a picture lazily unless it is a priority", async () => {
-    const lazy = await render(<Hero title="Lazy" picture={wide} />);
+    const lazy = await render(<Hero title="Lazy" picture={pair(wide)} />);
     expect(lazy.part("image")!.getAttribute("loading")).toBe("lazy");
     expect(lazy.part("image")!.getAttribute("decoding")).toBe("async");
-    const eager = await render(<Hero title="Eager" picture={{ ...wide, priority: true }} />);
+    const eager = await render(<Hero title="Eager" picture={pair({ ...wide, priority: true })} />);
     expect(eager.part("image")!.getAttribute("fetchpriority")).toBe("high");
     expect(eager.part("image")!.hasAttribute("loading")).toBe(false);
   });
@@ -268,13 +271,13 @@ describe("Hero", () => {
     const { part } = await render(
       <Hero
         title="Sources"
-        picture={{
+        picture={pair({
           ...wide,
           sources: [
             { srcSet: "/phone.avif", type: "image/avif", media: "(max-width: 40rem)" },
             { srcSet: "/wide.jpg" },
           ],
-        }}
+        })}
       />,
     );
     const sources = [...part("media")!.querySelectorAll("source")];
@@ -286,13 +289,13 @@ describe("Hero", () => {
   });
 
   it("hides a decorative picture from assistive technology", async () => {
-    const { part } = await render(<Hero title="Decor" picture={{ src: wide.src, width: 1536, height: 576, decorative: true }} />);
+    const { part } = await render(<Hero title="Decor" picture={pair({ src: wide.src, width: 1536, height: 576, decorative: true })} />);
     expect(part("image")!.getAttribute("alt")).toBe("");
     expect(part("media")!.querySelector("picture")!.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("says so, and keeps the picture, when it has no alt text", async () => {
-    await render(<Hero title="Bare" picture={{ src: wide.src, width: 1536, height: 576 }} />);
+    await render(<Hero title="Bare" picture={pair({ src: wide.src, width: 1536, height: 576 })} />);
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />.',
     );
@@ -322,7 +325,7 @@ describe("Hero", () => {
   });
 
   it("is server-rendered with its slots", () => {
-    const html = renderToString(<Hero title="Server" eyebrow="Recipes" picture={wide} />);
+    const html = renderToString(<Hero title="Server" eyebrow="Recipes" picture={pair(wide)} />);
     expect(html).toContain('data-ouro="hero"');
     expect(html).toContain('data-slot="image"');
     expect(html).toContain("Server");
@@ -343,7 +346,7 @@ describe("Hero", () => {
       const root = createRoot(host);
       roots.push(root);
       // No await before the checks: the rise lasts only as long as the slow token, which a loaded browser can finish first.
-      flushSync(() => root.render(<Hero title="Rise" picture={wide} />));
+      flushSync(() => root.render(<Hero title="Rise" picture={pair(wide)} />));
       const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
       expect(media.getAttribute("data-starting-style")).toBe("");
       await expectMotion(media, {
@@ -366,7 +369,7 @@ describe("Hero", () => {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       // The server's HTML, never hydrated: nothing but CSS can move it.
       const host = document.createElement("div");
-      host.innerHTML = renderToString(<Hero title="Rise" picture={wide} />);
+      host.innerHTML = renderToString(<Hero title="Rise" picture={pair(wide)} />);
       document.body.append(host);
       mounted.push(host);
       const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
@@ -381,20 +384,20 @@ describe("Hero", () => {
   });
 
   it("does not move the picture in at all when motion is none", async () => {
-    const { part } = await render(<Hero title="Still" picture={wide} motion="none" />);
+    const { part } = await render(<Hero title="Still" picture={pair(wide)} motion="none" />);
     expect(part("media")!).not.toHaveAttribute("data-starting-style");
   });
 
   it("gives the picture its rise animation by default, and none with motion none", async () => {
-    const rising = await render(<Hero title="Rise" picture={wide} />);
+    const rising = await render(<Hero title="Rise" picture={pair(wide)} />);
     expect(rising.part("media")!.className).toContain("animate-[ouro-hero-rise");
-    const still = await render(<Hero title="Still" picture={wide} motion="none" />);
+    const still = await render(<Hero title="Still" picture={pair(wide)} motion="none" />);
     expect(still.part("media")!.className).not.toContain("animate-[ouro-hero");
   });
 
   it("applies each layout's classes to its own parts only", async () => {
     const stage = await render(
-      <Hero eyebrow="Recipes" title="Stage" actions={<button type="button">Start</button>} picture={wide} />,
+      <Hero eyebrow="Recipes" title="Stage" actions={<button type="button">Start</button>} picture={pair(wide)} />,
     );
     expect(stage.header.className).toContain("min(80rem,");
     expect(stage.header.className).not.toContain("min(72rem,");
@@ -410,7 +413,7 @@ describe("Hero", () => {
         title="Column"
         layout="column"
         actions={<button type="button">Start</button>}
-        picture={wide}
+        picture={pair(wide)}
       />,
     );
     expect(column.header.className).toContain("min(75rem,");
@@ -430,14 +433,14 @@ describe("Hero", () => {
         title="Dinner, sorted"
         description="Plan the week and shop once."
         actions={<button type="button">Start planning</button>}
-        picture={wide}
+        picture={pair(wide)}
       />,
     );
     expect(warn).not.toHaveBeenCalled();
   });
 
   it("does not ask a decorative picture for alt text", async () => {
-    await render(<Hero title="Decor" picture={{ src: wide.src, width: 1536, height: 576, decorative: true }} />);
+    await render(<Hero title="Decor" picture={pair({ src: wide.src, width: 1536, height: 576, decorative: true })} />);
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -449,7 +452,7 @@ describe("Hero", () => {
     } as unknown as HeroProps;
     await render(<Hero {...legacy} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: heading is not a prop. Fix: <Hero title="Dinner, sorted" />.');
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: image is not a prop. Fix: <Hero picture={{ src, width, height, alt }} />.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: image is not a prop. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.');
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: action is not a prop. Fix: <Hero actions={<Button>Start</Button>} />.');
   });
 
@@ -461,14 +464,14 @@ describe("Hero", () => {
   });
 
   it("keeps the picture from being dragged out of the page", async () => {
-    const { part } = await render(<Hero title="Drag" picture={wide} />);
+    const { part } = await render(<Hero title="Drag" picture={pair(wide)} />);
     expect(part("image")!.getAttribute("draggable")).toBe("false");
   });
 
   it("lets a cropped picture fill its frame only on wider screens", async () => {
-    const plain = await render(<Hero title="Plain" picture={wide} />);
+    const plain = await render(<Hero title="Plain" picture={pair(wide)} />);
     expect(plain.part("image")!.className).not.toContain("min-[40rem]:absolute");
-    const cropped = await render(<Hero title="Cropped" picture={{ ...wide, crop: "8 / 3" }} />);
+    const cropped = await render(<Hero title="Cropped" picture={pair({ ...wide, crop: "8 / 3" })} />);
     expect(cropped.part("image")!.className).toContain("min-[40rem]:absolute");
   });
 
@@ -490,7 +493,7 @@ describe("Hero", () => {
     const media = part("media")!;
     expect(media.style.maxWidth).toBe("1536px");
     expect(media.getBoundingClientRect().width).toBeLessThanOrEqual(1536);
-    const both = await render(<Hero title="Both" mediaWidth={400} picture={wide} />);
+    const both = await render(<Hero title="Both" mediaWidth={400} picture={pair(wide)} />);
     expect(both.part("media")!.style.maxWidth).toBe("1536px");
   });
 
@@ -525,7 +528,7 @@ describe("Hero", () => {
   });
 
   it("shows the picture and warns when picture and media are both set", async () => {
-    const { part } = await render(<Hero title="Both" picture={wide} media={<video data-testid="clip" />} />);
+    const { part } = await render(<Hero title="Both" picture={pair(wide)} media={<video data-testid="clip" />} />);
     expect(part("image")).not.toBeNull();
     expect(part("media")!.querySelector('[data-testid="clip"]')).toBeNull();
     expect(warn).toHaveBeenCalledWith(
@@ -579,21 +582,31 @@ describe("Hero", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("says so when light and dark art have no alt text", async () => {
-    await render(<Hero title="Bare" picture={{ light: { src: wide.src, width: 1536, height: 576 }, dark: night }} />);
+  it("says so when the night art is missing, and shows the day art in both modes", async () => {
+    const { part } = await render(<Hero title="One" picture={{ light: wide } as unknown as HeroPictures} />);
     expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />.',
+      "[ouro-ui] Hero: picture needs light and dark art, the same scene by day and at night. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.",
     );
-  });
-
-  it("still shows a single picture in light and dark mode", async () => {
-    const { part } = await render(<Hero title="One" picture={wide} />);
     const pictures = part("media")!.querySelectorAll("picture");
     expect(pictures).toHaveLength(1);
     expect(pictures[0]!.hasAttribute("data-scheme")).toBe(false);
-    expect(pictures[0]!.className).toBe("block");
     document.documentElement.classList.add("dark");
     expect(getComputedStyle(pictures[0]!).display).toBe("block");
+  });
+
+  it("says so, and shows nothing, when a single picture is passed without light and dark", async () => {
+    const { part } = await render(<Hero title="Old" picture={wide as unknown as HeroPictures} />);
+    expect(warn).toHaveBeenCalledWith(
+      "[ouro-ui] Hero: picture needs light and dark art, the same scene by day and at night. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.",
+    );
+    expect(part("media")).toBeNull();
+  });
+
+  it("says so when the day art is missing", async () => {
+    await render(<Hero title="Night only" picture={{ dark: night } as unknown as HeroPictures} />);
+    expect(warn).toHaveBeenCalledWith(
+      "[ouro-ui] Hero: picture needs light and dark art, the same scene by day and at night. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.",
+    );
   });
 
   it("renders no media wrapper when media is null or false", async () => {
