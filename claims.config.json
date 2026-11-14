@@ -52,6 +52,16 @@
       "reason": "the rules of a measurement protocol, which scripts/model-reviews/model-reviews.test.mjs checks one by one; it states what the script does, so it makes no claim about the product"
     },
     {
+      "match": "^scripts/agent-benchmark/METHODOLOGY\\.md$",
+      "mode": "input",
+      "reason": "the rules of a measurement protocol, which scripts/agent-benchmark/agent-benchmark.test.mjs checks; it states what the harness does, so it makes no claim about the product"
+    },
+    {
+      "match": "^scripts/agent-benchmark/results/",
+      "mode": "evidence",
+      "reason": "an agent interface benchmark run's record (results.json and transcripts), written by scripts/agent-benchmark/run.mjs"
+    },
+    {
       "match": "^scripts/agent-usability/(screens|arms)/",
       "mode": "input",
       "reason": "what the benchmark gives each agent, frozen with its cohort"

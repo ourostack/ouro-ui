@@ -1,0 +1,156 @@
+{
+  "generator": "ouro-actions 0.7.2",
+  "set": "pantry",
+  "tool": "pantry",
+  "actions": [
+    {
+      "id": "get_shopping_list",
+      "consent": "read",
+      "label": "Shopping list",
+      "description": "See what's on your shopping list.",
+      "agent": "Read the person's shopping list: each item's id, name, quantity, unit and whether it is checked.",
+      "input": {},
+      "output": {
+        "items": {
+          "label": "Items",
+          "description": "The list's items, as JSON.",
+          "kind": "string"
+        }
+      },
+      "cli": "list show"
+    },
+    {
+      "id": "add_shopping_list_item",
+      "consent": "write",
+      "label": "Add to list",
+      "description": "Add an item to your shopping list.",
+      "agent": "Add one item to the person's shopping list. Give the name as the person said it; leave quantity and unit out when they gave none.",
+      "input": {
+        "name": {
+          "label": "Item",
+          "description": "What to buy, as the person said it, such as \"oat milk\".",
+          "arg": true,
+          "kind": "string"
+        },
+        "quantity": {
+          "label": "Quantity",
+          "description": "How many or how much.",
+          "optional": true,
+          "min": 0,
+          "kind": "number"
+        },
+        "unit": {
+          "label": "Unit",
+          "description": "The unit of the quantity, such as g, cups or cartons.",
+          "optional": true,
+          "kind": "string"
+        }
+      },
+      "output": {
+        "id": {
+          "label": "Item id",
+          "description": "The new item's id.",
+          "kind": "string"
+        },
+        "name": {
+          "label": "Item",
+          "description": "The item's name as stored.",
+          "kind": "string"
+        }
+      },
+      "cli": "list add"
+    },
+    {
+      "id": "set_shopping_list_item_checked",
+      "consent": "write",
+      "label": "Bought",
+      "description": "Tick an item off your shopping list, or untick it.",
+      "agent": "Mark one item on the person's shopping list as bought (checked) or not bought. Take the id from get_shopping_list.",
+      "input": {
+        "id": {
+          "label": "Item id",
+          "description": "The item's id, from get_shopping_list.",
+          "arg": true,
+          "kind": "string"
+        },
+        "checked": {
+          "label": "Bought",
+          "description": "true when the item is bought, false to put it back.",
+          "kind": "boolean"
+        }
+      },
+      "output": {},
+      "cli": "list check"
+    },
+    {
+      "id": "search_recipes",
+      "consent": "read",
+      "label": "Search recipes",
+      "description": "Find a recipe in your kitchen.",
+      "agent": "Search the person's recipes by title. Returns each match's id and title.",
+      "input": {
+        "query": {
+          "label": "Search",
+          "description": "Words from the recipe's title.",
+          "arg": true,
+          "kind": "string"
+        }
+      },
+      "output": {
+        "recipes": {
+          "label": "Recipes",
+          "description": "The matching recipes, as JSON.",
+          "kind": "string"
+        }
+      },
+      "cli": "recipes search"
+    },
+    {
+      "id": "add_recipe_to_shopping_list",
+      "consent": "write",
+      "label": "Add ingredients to list",
+      "description": "Put a recipe's ingredients on your shopping list.",
+      "agent": "Add every ingredient of one recipe to the person's shopping list. Take the recipe's id from search_recipes.",
+      "input": {
+        "recipeId": {
+          "label": "Recipe",
+          "description": "The recipe's id, from search_recipes.",
+          "arg": true,
+          "kind": "string"
+        }
+      },
+      "output": {
+        "added": {
+          "label": "Added",
+          "description": "How many items were added.",
+          "kind": "integer"
+        }
+      },
+      "cli": "recipes add-to-list"
+    },
+    {
+      "id": "place_grocery_order",
+      "consent": "person-only",
+      "label": "Place order",
+      "description": "Order everything on your list and pay for it.",
+      "agent": "Order the shopping list's items for delivery and pay for them.",
+      "input": {
+        "store": {
+          "label": "Store",
+          "description": "Which store delivers.",
+          "values": [
+            "corner",
+            "market"
+          ],
+          "kind": "enum"
+        }
+      },
+      "output": {},
+      "personOnly": {
+        "reason": "You can't place an order or pay for the person; only they can.",
+        "how": "with Place order on the shopping list"
+      },
+      "cli": "list order"
+    }
+  ]
+}
