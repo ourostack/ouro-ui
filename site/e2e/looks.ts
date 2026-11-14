@@ -43,7 +43,7 @@ export interface Described {
 
 // Runs in the page, so it refers to nothing outside itself.
 export function describe(arg: { selector: string; only?: number }): Described {
-  const stateAttr = /^data-(checked|unchecked|disabled|invalid|variant|tone|size|orientation|open|pressed|selected|shape|highlighted)$/;
+  const stateAttr = /^data-(checked|unchecked|disabled|invalid|variant|tone|size|orientation|open|pressed|selected|shape|highlighted|layout)$/;
   const ariaState = /^aria-(checked|pressed|selected|expanded|disabled|invalid|current)$/;
   const all = [...document.querySelectorAll<HTMLElement>(arg.selector)];
   const looks: Look[] = [];
