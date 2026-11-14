@@ -100,7 +100,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   assert.deepEqual(Object.entries(jobs).filter(([, job]) => job.includes("uses: ./.github/actions/playwright-browsers")).map(([id]) => id), ["visual"]);
   // The script tests that drive a browser run in the image; the others need none.
   assert.doesNotMatch(jobs.scripts, /container:|playwright-browsers/);
-  assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser\)/);
+  assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser "\$SHARD"\)/);
   assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback\]/);
   assert.match(jobs.ci, /"design=\$DESIGN"/);
   assert.match(jobs.ci, /"scripts-browser=\$SCRIPTS_BROWSER"/);
@@ -375,6 +375,14 @@ test("install-github does not retry any other add failure", () => {
   assert.notEqual(result.status, 0);
   assert.equal(log.filter((line) => line.includes(" add ")).length, 1, "a missing file fails at once");
   assert.ok(!log.some((line) => line.startsWith("sleep ")), "and waits for no retry");
+});
+
+test("install-github runs its add with the raw fetch retry preloaded into shadcn's process", () => {
+  const { result, log } = runGithubInstall(`echo "npx $* [$NODE_OPTIONS]" >> "$CALLS"`);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const add = log.filter((line) => line.includes(" add "));
+  assert.equal(add.length, 1);
+  assert.ok(add[0].endsWith(` [--import=${join(root, "scripts/raw-fetch-retry-preload.mjs")}]`), add[0]);
 });
 
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {

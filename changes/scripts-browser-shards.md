@@ -1,0 +1,1 @@
+- The script tests that drive a browser run in shards split by measured time, which shortens CI.

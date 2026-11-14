@@ -389,6 +389,11 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
   }
 });
 
+test("Ouro check installs to @lib/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does", () => {
+  assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/check.ts").target, "@lib/ouro/check/check.ts");
+  for (const name of ["ax-cli", "ax-command", "ax-exit-codes", "ax-outcome", "ax-problem"]) assert.ok(item("ouro-check").registryDependencies.includes(repo(name)), name);
+});
+
 test("a helper's Node script names what it imports as devDependencies without a version, so lib-claims leaves the app's TypeScript alone", () => {
   assert.equal(item("lib-claims").dependencies, undefined);
   assert.deepEqual(item("lib-claims").devDependencies, ["typescript"]);

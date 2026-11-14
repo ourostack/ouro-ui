@@ -209,7 +209,8 @@ const sortedObject = (object) => Object.fromEntries(Object.entries(object).sort(
 
 function main([command, ...args]) {
   if (command === "scripts-browser") {
-    console.log(scriptTestFiles().filter((file) => drivesBrowser(file)).join("\n"));
+    const files = scriptTestFiles().filter((file) => drivesBrowser(file));
+    console.log((args[0] ? shardKeys(files, parseShard(args[0]), readTimings("scripts")) : files).join("\n"));
     return 0;
   }
   if (command === "scripts") {
@@ -252,7 +253,7 @@ function main([command, ...args]) {
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;
   }
-  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser | e2e <index>/<count> [<path>...] | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
+  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser [<index>/<count>] | e2e <index>/<count> [<path>...] | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
   return 2;
 }
 
