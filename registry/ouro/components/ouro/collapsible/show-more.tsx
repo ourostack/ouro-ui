@@ -453,9 +453,9 @@ const remember = (key: string | undefined, value: boolean): void => {
  * which ones changed size; the answers are read and committed in the next animation frame's callback, which the browser
  * runs before it lays the page out for that frame's observers and before it paints. So the button and the fade are in the
  * first frame the browser paints, a list of many folds costs one layout, and no read is forced while React commits.
- * Committing inside the observer's callback instead would change the size of elements the app watches above this one
- * (its body, its shell), and WebKit reports that as the window error "ResizeObserver loop completed with undelivered
- * notifications", which fails an app's zero-diagnostics end-to-end fixture.
+ * Committing inside the observer's callback instead resizes elements the app watches above this one (its body, its shell),
+ * and WebKit answers with the window error "ResizeObserver loop completed with undelivered notifications", which an
+ * app's end-to-end fixture that fails on page errors counts as a failure.
  *
  * @claim "One ResizeObserver for every ShowMore" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in its first frame > measures many folds with one observer, every one's button in the same first painted frame)
  * @claim "So the button and the fade are in the first frame the browser paints" registry/ouro/components/ouro/collapsible/show-more.test.tsx verify:testExists(registry/ouro/components/ouro/collapsible/show-more.test.tsx::ShowMore in its first frame > has its button and fade in the first frame the browser paints, and nothing for what fits)
