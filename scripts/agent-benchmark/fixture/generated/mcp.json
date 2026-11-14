@@ -1,0 +1,214 @@
+{
+  "generator": "ouro-actions 0.7.2",
+  "set": "pantry",
+  "tools": [
+    {
+      "name": "get_shopping_list",
+      "title": "Shopping list",
+      "description": "Read the person's shopping list: each item's id, name, quantity, unit and whether it is checked.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "string",
+            "description": "The list's items, as JSON."
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "add_shopping_list_item",
+      "title": "Add to list",
+      "description": "Add one item to the person's shopping list. Give the name as the person said it; leave quantity and unit out when they gave none.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What to buy, as the person said it, such as \"oat milk\"."
+          },
+          "quantity": {
+            "type": "number",
+            "description": "How many or how much.",
+            "minimum": 0
+          },
+          "unit": {
+            "type": "string",
+            "description": "The unit of the quantity, such as g, cups or cartons."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The new item's id."
+          },
+          "name": {
+            "type": "string",
+            "description": "The item's name as stored."
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "set_shopping_list_item_checked",
+      "title": "Bought",
+      "description": "Mark one item on the person's shopping list as bought (checked) or not bought. Take the id from get_shopping_list.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The item's id, from get_shopping_list."
+          },
+          "checked": {
+            "type": "boolean",
+            "description": "true when the item is bought, false to put it back."
+          }
+        },
+        "required": [
+          "id",
+          "checked"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "search_recipes",
+      "title": "Search recipes",
+      "description": "Search the person's recipes by title. Returns each match's id and title.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Words from the recipe's title."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "recipes": {
+            "type": "string",
+            "description": "The matching recipes, as JSON."
+          }
+        },
+        "required": [
+          "recipes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "add_recipe_to_shopping_list",
+      "title": "Add ingredients to list",
+      "description": "Add every ingredient of one recipe to the person's shopping list. Take the recipe's id from search_recipes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "recipeId": {
+            "type": "string",
+            "description": "The recipe's id, from search_recipes."
+          }
+        },
+        "required": [
+          "recipeId"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "added": {
+            "type": "integer",
+            "description": "How many items were added."
+          }
+        },
+        "required": [
+          "added"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "refusals": {
+    "place_grocery_order": {
+      "ax": "outcome/1",
+      "action": "list order",
+      "effect": "private",
+      "audience": {
+        "only": true,
+        "who": "only you"
+      },
+      "target": null,
+      "state": "refused",
+      "summary": "list order: You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list.",
+      "postcondition": {
+        "checked": false,
+        "holds": null,
+        "how": "not checked"
+      },
+      "receipt": null,
+      "next": [],
+      "error": {
+        "code": "person-only",
+        "exit": 2,
+        "thing": "list order",
+        "problem": "You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list",
+        "fix": null,
+        "message": "list order: You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list."
+      }
+    }
+  }
+}
