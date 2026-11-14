@@ -7,6 +7,7 @@ import { openStory } from "../ouro/story";
 // same page with its animation stripped. The shipped spec checks only that no animation runs there (skeleton.spec.ts).
 
 async function deadFrames(page: Page, still: boolean): Promise<number> {
+  await page.setViewportSize({ width: 1280, height: 860 });
   // The control is the default story with its animation stripped; the candidate is the same story breathing.
   await openStory(page, "feedback-skeleton--long-scroller");
   if (still) await page.addStyleTag({ content: '[data-ouro="skeleton"] { animation: none !important; }' });
@@ -16,12 +17,28 @@ async function deadFrames(page: Page, still: boolean): Promise<number> {
   const scroller = page.getByRole("region", { name: "Long scroller" });
   await page.evaluate(() => {
     const s = document.querySelector<HTMLElement>('[aria-label="Long scroller"]')!;
-    const w = window as unknown as { __frames: { wheel: number; scrollTop: number; maxTop: number }[]; __wheel: number; __stop: boolean };
+    const w = window as unknown as { __frames: { wheel: number; scrollTop: number; maxTop: number; moved: number | null }[]; __wheel: number; __stop: boolean };
     Object.assign(w, { __frames: [], __wheel: 0, __stop: false });
     addEventListener("wheel", (e) => (w.__wheel += e.deltaY), { capture: true, passive: true });
+    // As the replay reads each frame: every row's box (a layout flush) and the row at the scroller's centre, whose
+    // movement, not scrollTop, says whether the wheel moved anything.
+    const pick = () => {
+      const v = s.getBoundingClientRect();
+      return document.elementFromPoint(v.left + v.width / 2, v.top + v.height / 2)?.closest("[data-row]") ?? null;
+    };
+    let anchor = pick();
+    let anchorTop = anchor ? anchor.getBoundingClientRect().top : 0;
     const tick = () => {
       if (w.__stop) return;
-      w.__frames.push({ wheel: w.__wheel, scrollTop: s.scrollTop, maxTop: s.scrollHeight - s.clientHeight });
+      const v = s.getBoundingClientRect();
+      [...s.querySelectorAll("[data-row]")].some((r) => {
+        const b = r.getBoundingClientRect();
+        return b.height > 0 && b.bottom > v.top + 40 && b.top < v.bottom - 40;
+      });
+      const moved = anchor?.isConnected ? anchorTop - anchor.getBoundingClientRect().top : null;
+      w.__frames.push({ wheel: w.__wheel, scrollTop: s.scrollTop, maxTop: s.scrollHeight - s.clientHeight, moved });
+      anchor = pick();
+      anchorTop = anchor ? anchor.getBoundingClientRect().top : 0;
       w.__wheel = 0;
       requestAnimationFrame(tick);
     };
@@ -30,21 +47,32 @@ async function deadFrames(page: Page, still: boolean): Promise<number> {
   const box = (await scroller.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   const sent: Promise<void>[] = [];
-  for (let flick = 0; flick < 6; flick++) {
-    for (let delta = 60; delta >= 1; delta *= 0.95) {
-      sent.push(page.mouse.wheel(0, Math.round(delta)));
-      await new Promise((resolve) => setTimeout(resolve, 16)); // real clock: the wheel's own pace
+  // A trackpad's flicks as a consuming app's replay sends them: eight down the scroller, a pause, eight back up, each
+  // decaying by 5% every 16 ms, sent without waiting for the page.
+  const flicks = async (sign: 1 | -1) => {
+    for (let flick = 0; flick < 8; flick++) {
+      for (let delta = 60; delta >= 1; delta *= 0.95) {
+        sent.push(page.mouse.wheel(0, sign * Math.round(delta)));
+        await new Promise((resolve) => setTimeout(resolve, 16)); // real clock: the wheel's own pace
+      }
     }
-  }
+  };
+  await flicks(1);
+  await new Promise((resolve) => setTimeout(resolve, 1500)); // real clock: the replay's rest between directions
+  await flicks(-1);
+  await new Promise((resolve) => setTimeout(resolve, 1500)); // real clock: the replay's rest at the end
   await Promise.all(sent);
   const frames = await page.evaluate(() => {
-    const w = window as unknown as { __frames?: { wheel: number; scrollTop: number; maxTop: number }[]; __stop: boolean };
+    const w = window as unknown as { __frames?: { wheel: number; scrollTop: number; maxTop: number; moved: number | null }[]; __stop: boolean };
     w.__stop = true;
     return w.__frames ?? null;
   });
   if (!frames?.length) throw new Error("deadFrames: the page lost its frame log while it was scrolled (it reloaded or navigated), so this run measured nothing");
-  expect(frames.at(-1)!.scrollTop).toBeGreaterThan(1000);
-  return frames.filter((f, i) => i > 0 && f.wheel !== 0 && f.scrollTop === frames[i - 1]!.scrollTop && f.scrollTop < f.maxTop - 1).length;
+  expect(Math.max(...frames.map((f) => f.scrollTop))).toBeGreaterThan(5000);
+  // The replay's dead frame: the wheel came, the list was at neither end it pushes toward, and it moved neither that frame nor the next.
+  const stays = (i: number) => i < frames.length && Math.abs(frames[i]!.moved ?? 0) < 0.5;
+  const atEnd = (f: { wheel: number; scrollTop: number; maxTop: number; moved: number | null }) => (f.wheel < 0 ? f.scrollTop <= 1 : f.scrollTop >= f.maxTop - 1);
+  return frames.filter((f, i) => i > 0 && f.wheel !== 0 && !atEnd(f) && stays(i) && stays(i + 1)).length;
 }
 
 /**
@@ -84,5 +112,6 @@ test("wheel scrolling a long scroller of loading skeletons breathing drops no mo
     breathing.push(await deadFrames(page, false));
   }
   const report = `breathing ${JSON.stringify(breathing)}, control ${JSON.stringify(control)}`;
+  expect(Math.max(...breathing), report).toBe(0);
   expect(chanceOfMore(breathing, control), report).toBeGreaterThanOrEqual(0.001);
 });

@@ -205,6 +205,66 @@ describe("Skeleton", () => {
     expect(skeleton.getAnimations({ subtree: true })).toEqual([]);
   });
 
+  it("breathes only the first 24 of a long list, and a later list finds the places taken", async () => {
+    const list = (count: number) => (
+      <div>
+        {Array.from({ length: count }, (_, index) => (
+          <Skeleton key={index} />
+        ))}
+      </div>
+    );
+    const host = (await render(list(131))).parentElement!;
+    const animated = () => [...host.querySelectorAll("[data-ouro=skeleton]")].filter((el) => getComputedStyle(el).animationName === "ouro-skeleton-breathe").length;
+    expect(animated()).toBe(24);
+    const again = (await render(list(5))).parentElement!;
+    expect(animated()).toBe(24);
+    expect([...again.querySelectorAll("[data-ouro=skeleton]")].filter((el) => getComputedStyle(el).animationName === "ouro-skeleton-breathe")).toHaveLength(0);
+  });
+
+  it("takes no place for a still placeholder, and claims one when it starts to breathe", async () => {
+    const breathes = (el: Element) => getComputedStyle(el).animationName === "ouro-skeleton-breathe";
+    const still = await render(
+      <div>
+        {Array.from({ length: 30 }, (_, index) => (
+          <Skeleton key={index} shimmer={false} />
+        ))}
+      </div>,
+    );
+    const stillHost = still.parentElement!;
+    const stillRoot = roots.at(-1)!;
+    const first = await render(
+      <div>
+        {Array.from({ length: 24 }, (_, index) => (
+          <Skeleton key={index} />
+        ))}
+      </div>,
+    );
+    expect([...first.parentElement!.querySelectorAll("[data-ouro=skeleton]")].every(breathes)).toBe(true);
+    await act(async () => stillRoot.render(<Skeleton shimmer />));
+    expect(breathes(stillHost.querySelector("[data-ouro=skeleton]")!)).toBe(false);
+  });
+
+  it("hands its place on when a breathing placeholder turns still", async () => {
+    const breathes = (el: Element) => getComputedStyle(el).animationName === "ouro-skeleton-breathe";
+    const list = (stillFirst: boolean) => (
+      <div>
+        {Array.from({ length: 24 }, (_, index) => (
+          <Skeleton key={index} shimmer={index === 0 ? !stillFirst : true} />
+        ))}
+      </div>
+    );
+    const first = await render(list(false));
+    const root = roots.at(-1)!;
+    await act(async () => root.render(list(true)));
+    const late = await render(<Skeleton />);
+    expect(breathes(late)).toBe(true);
+    expect(first).toBeTruthy();
+  });
+
+  it("renders the first pass breathing, so the server's HTML and the client's agree", () => {
+    expect(renderToString(<Skeleton />)).toContain("ouro-skeleton-breathe");
+  });
+
   it("draws every shape still with shimmer={false}: no animation on the placeholder or anything inside it", async () => {
     await render(
       <>
