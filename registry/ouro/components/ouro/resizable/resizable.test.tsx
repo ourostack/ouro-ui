@@ -138,6 +138,18 @@ describe("Resizable handle (window splitter)", () => {
     expect(screen.handles[0]!.getAttribute("aria-label")).toBe("Cambiar tamaño de Files");
   });
 
+  it("reports a resize to the onLayout of the latest render", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const screen = await render(<Editor onLayout={first} />);
+    await screen.rerender(<Editor onLayout={second} />);
+    const handle = screen.handles[0]!;
+    handle.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(second).toHaveBeenLastCalledWith([40, 60]);
+    expect(first).not.toHaveBeenCalled();
+  });
+
   it("resizes with the arrow keys, Home, End and Enter", async () => {
     const onLayout = vi.fn();
     const screen = await render(<Editor onLayout={onLayout} />);
