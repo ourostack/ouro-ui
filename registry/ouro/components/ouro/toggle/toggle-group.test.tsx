@@ -157,6 +157,40 @@ describe("ToggleGroup", () => {
     expect(document.activeElement).toBe(toggles[0]);
   });
 
+  it("keeps the tab stop on the focused item, else the pressed one, else the first", async () => {
+    const { toggles } = await render(<ToggleGroup label="Alignment" items={align} defaultValue="center" />);
+    expect(toggles.map((toggle) => toggle.tabIndex)).toEqual([-1, 0, -1]);
+    toggles[2]!.focus();
+    await act(async () => {});
+    expect(toggles.map((toggle) => toggle.tabIndex)).toEqual([-1, -1, 0]);
+  });
+
+  it("presses in multiple mode with no handler, and leaves arrows with Ctrl, Alt or Meta alone", async () => {
+    const { toggles } = await render(<ToggleGroup label="Text style" multiple items={styles} />);
+    await userEvent.click(toggles[0]!);
+    await userEvent.click(toggles[1]!);
+    expect(pressed(toggles).slice(0, 2)).toEqual([true, true]);
+    await userEvent.click(toggles[0]!);
+    expect(pressed(toggles).slice(0, 2)).toEqual([false, true]);
+    toggles[0]!.focus();
+    for (const key of ["Control", "Alt", "Meta"]) {
+      await userEvent.keyboard(`{${key}>}{ArrowRight}{/${key}}`);
+      expect(document.activeElement).toBe(toggles[0]);
+    }
+  });
+
+  it("mirrors arrows when the document itself is right to left", async () => {
+    const { toggles } = await render(<ToggleGroup label="Alignment" items={align} />);
+    document.documentElement.dir = "rtl";
+    try {
+      toggles[0]!.focus();
+      await userEvent.keyboard("{ArrowRight}");
+      expect(document.activeElement).toBe(toggles[2]);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
   it("mirrors Left and Right in a right-to-left page", async () => {
     const { toggles, host } = await render(<ToggleGroup label="Alignment" items={align} />);
     host.setAttribute("dir", "rtl");
