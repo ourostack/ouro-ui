@@ -1,0 +1,1 @@
+- NavigationRail mounted with items that overflow now settles its fit in one measure instead of three layouts, so a rail's first frame costs less.
