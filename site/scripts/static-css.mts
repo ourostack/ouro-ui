@@ -55,6 +55,7 @@ export function splitBase(css: string): { inline: string; utilities: string[]; k
   const keyframes = [...source.matchAll(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g)].map((match) => match[0]);
   const rest = source
     .replace(inline[0], "")
+    .replace(/@layer\s+base\s*\{\s*[^{}]*\{[^{}]*\}\s*\}/g, "")
     .replace(/@utility\s+[\w-]+\s*\{[^{}]*\}/g, "")
     .replace(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
   return { inline: inline[1]!, utilities, keyframes, blocks: parseBlocks(rest) };
