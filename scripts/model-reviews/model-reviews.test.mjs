@@ -384,3 +384,60 @@ test("the pool keeps order, caps concurrency, and runs one at a time while the m
   assert.deepEqual(await runPool([1, 2, 3].map(job), { concurrency: 3, maxLoad: 60, load: () => 10, waitMs: 1 }), [1, 2, 3]);
   assert.equal(peak, 3);
 });
+
+// ---- the published page -------------------------------------------------------------------------
+
+const pageCandidates = [{ name: "Ouro UI", sha: "a".repeat(40) }, { name: "A2UI" }, { name: "Flutter" }];
+const pageReview = (provider, verdict) => ({
+  provider,
+  displayName: provider.toUpperCase(),
+  verdict,
+  transport: "copilot",
+  pullQuote: `${verdict} because reasons`,
+  evaluations: `**Ouro UI** — ${provider} on Ouro UI [src](https://x.test/a)\n**A2UI** — fine [src](https://x.test/b)\n**Flutter** — ok [src](https://x.test/c)`,
+  candidateOrder: ["A2UI", "Ouro UI", "Flutter"],
+  rounds: 4,
+});
+const pageRun = (folder, startedAt, reviews, failures = []) => ({ folder, status: failures.length ? "partial" : "complete", startedAt, asOf: startedAt, runtime: { name: "GitHub Copilot CLI" }, candidates: pageCandidates, reviews, failures, reviewers: [] });
+
+test("the page's headline is derived from the latest review and says so honestly when Ouro UI is not the pick", async () => {
+  const { renderPage, tally, seriesOf } = await import("./page.mjs");
+  const baseline = pageRun("2026-11-13-baseline--run-1", "2026-11-13T20:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "A2UI")], [{ provider: "c", error: "Session compacted" }]);
+  const retry = pageRun("2026-11-13-baseline--run-2-c-retry", "2026-11-13T21:00:00Z", [pageReview("c", "A2UI")]);
+  const rerun = pageRun("2026-11-14-rerun--run-1", "2026-11-14T03:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI"), pageReview("c", "A2UI"), pageReview("d", "A2UI")]);
+  const [first, second] = seriesOf([rerun, retry, baseline]);
+  assert.deepEqual(tally(first), { tried: 3, completed: 3, picks: [["A2UI", 2], ["Ouro UI", 1]], subjectPicks: 1, barMet: false, unanimous: false });
+  // Two of four is not more than half: the bar is not met, and the headline says so.
+  assert.equal(tally(second).barMet, false);
+  const page = renderPage([baseline, retry, rerun]);
+  assert.match(page, /^# Which toolkit models choose\n\nOuro UI is not yet the models' choice: 2 of 4 models chose it; 2 chose A2UI\./);
+  assert.match(page, /counting only the 3 models that answered both times: 1 chose Ouro UI then and 2 now\. Changed: B \(A2UI to Ouro UI\)\./);
+  assert.match(page, /\| D \| A2UI \| 2 of 3 \| 4 \| \[d\]\(https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\/scripts\/model-reviews\/results\/2026-11-14-rerun--run-1\/transcripts\/d\.json\) \|/);
+  assert.match(page, /### D, who chose A2UI\n\nOuro UI — d on Ouro UI \[src\]\(https:\/\/x\.test\/a\)\n\nWhy it chose A2UI: "A2UI because reasons"/);
+  assert.match(page, /Earlier reviews, still published: 2026-11-13 \(Ouro UI is not yet the models' choice: 1 of 3 models chose it; 2 chose A2UI\.\)/);
+  // A majority, then every model, changes the headline.
+  assert.match(renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI"), pageReview("c", "A2UI")])]), /^# Which toolkit models choose\n\n2 of 3 models chose Ouro UI; 1 chose A2UI\./);
+  assert.match(renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI")])]), /^# Which toolkit models choose\n\nAll 2 models asked chose Ouro UI\./);
+  // A model that gave no verdict is a row, never left out, and blocks "all".
+  const partial = renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI")], [{ provider: "z", error: "Session compacted" }])]);
+  assert.match(partial, /^# Which toolkit models choose\n\n1 of 1 models chose Ouro UI\./);
+  assert.match(partial, /\| z \| no verdict \(Session compacted; 1 attempt\) \| n\/a \|/);
+});
+
+test("the page refuses a second verdict from one model in a series, an unfinished record and a misnamed folder", async () => {
+  const { renderPage } = await import("./page.mjs");
+  const one = pageRun("2026-11-14-r--run-1", "2026-11-14T00:00:00Z", [pageReview("a", "A2UI")]);
+  const again = pageRun("2026-11-14-r--run-2", "2026-11-14T01:00:00Z", [pageReview("a", "Ouro UI")]);
+  assert.throws(() => renderPage([one, again]), /two verdicts from a/);
+  assert.throws(() => renderPage([{ ...one, status: "preflight" }]), /preflight record/);
+  assert.throws(() => renderPage([{ ...one, folder: "2026-11-14-run-1" }]), /<series>--<run>/);
+  assert.throws(() => renderPage([]), /No published run/);
+});
+
+test("the committed page is what the published runs render", async () => {
+  const { renderPage, publishedRuns } = await import("./page.mjs");
+  const runs = publishedRuns();
+  if (!runs.length) return;
+  const { readFileSync } = await import("node:fs");
+  assert.equal(readFileSync(new URL("../../docs/guides/model-reviews.md", import.meta.url), "utf8"), renderPage(runs));
+});
