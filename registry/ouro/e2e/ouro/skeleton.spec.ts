@@ -78,7 +78,8 @@ function chanceOfMore(a: number[], b: number[], shuffles = 20_000): number {
 // Chromium doesn't drop these frames, so the comparison runs in WebKit only (#1221).
 test("wheel scrolling a long scroller of loading skeletons with shimmer={false} drops no more frames than the same page with its animation stripped", async ({ page, browserName }) => {
   test.skip(browserName !== "webkit", "WebKit is the engine that drops frames under a running shimmer.");
-  test.setTimeout(1_500_000);
+  // About twice what its 40 runs take in WebKit on CI, so a run that hangs fails here, by name, before the shard's limit.
+  test.setTimeout(12 * 60_000);
   const runs = 20;
   const control: number[] = [];
   const stilled: number[] = [];
