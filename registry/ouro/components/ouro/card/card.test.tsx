@@ -55,8 +55,10 @@ describe("Card", () => {
     const surface = card.querySelector<HTMLElement>(":scope > [data-ouro-surface]")!;
     expect(surface.getAttribute("aria-hidden")).toBe("true");
     expect(surface.style.zIndex).toBe("-1");
+    expect(card.getAttribute("data-ouro-squircle")).toBe("");
     const { card: bare } = await render(<Card title="Bare" variant="plain">x</Card>);
     expect(bare.querySelector("[data-ouro-surface]")).toBeNull();
+    expect(bare.hasAttribute("data-ouro-squircle")).toBe(false);
   });
   it("renders its slots in order: media, title as <h3>, description, action, body, footer", async () => {
     const { card } = await render(
