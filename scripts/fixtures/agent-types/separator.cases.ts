@@ -10,7 +10,7 @@ export const agentCases: AgentCase[] = [
   { id: "separator03", habit: "the label as children", tsc: [
       `error TS2747: 'Separator' components don't accept text as child elements. Text in JSX has the type 'string', but the expected type of 'children' is '{ 'Use <Separator label="or" />': never; } | undefined'.`,
     ], dev: '<Separator label="or" />', names: ["tsc", "dev"] },
-  { id: "separator04", habit: "a danger tone on Separator", tsc: [notAssignable('"danger"', separatorTones)], dev: '<Separator tone="destructive" label="New" />', names: ["tsc", "dev"] },
+  { id: "separator04", habit: "a danger tone on Separator", tsc: [notAssignable('"danger"', separatorTones)], dev: '<Separator tone="destructive">', names: ["tsc", "dev"] },
 ];
 
 /** Valid separator snippets: no type error, no development message, and hover on every prop. */
