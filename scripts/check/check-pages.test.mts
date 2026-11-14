@@ -13,7 +13,7 @@ import { axe, browser, dir, fixtures, page, quiet, run, scratch, site, two } fro
 
 // Part of Ouro check's Node side tests; scripts/check.test.mjs runs every file here under Node's coverage.
 
-describe("Ouro check, pages and pictures", () => {
+describe("Ouro check", () => {
   test("names a page by site and path across several sites, a URL by its host and path, and the home page home", async () => {
     const server = await serve(fixtures);
     try {
