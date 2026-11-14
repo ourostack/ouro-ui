@@ -504,7 +504,13 @@ describe("ConversationList windowing", () => {
     await frames();
     pane.style.height = "400px";
     await expect.poll(() => pane.querySelectorAll('[data-ouro-part="row"]').length).toBeGreaterThan(12);
-    await expect.poll(() => { try { expectBand(pane, []); return true; } catch { return false; } }).toBe(true);
+    // The first size the observer reports is the one the window is kept against, so a pane that grew before that
+    // report counts as unchanged; a further step after it is a change.
+    let step = 0;
+    await expect.poll(() => {
+      pane.style.height = `${400 + (step++ % 2)}px`;
+      try { expectBand(pane, []); return true; } catch { return false; }
+    }).toBe(true);
   });
 
   it("stops following the page once it is gone", async () => {
