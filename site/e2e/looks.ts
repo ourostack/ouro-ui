@@ -2,6 +2,7 @@ import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page } from "@playwright/test";
 import sharp from "sharp";
+import { waived } from "./waivers.ts";
 
 // The shared half of the site's cross-page checks (sameness-sweep.ts, states-sweep.ts): the routes of the
 // build, a description of how an Ouro element looks (its box, padding, gap, colours, font, shadow, opacity,
@@ -61,9 +62,19 @@ export function describe(arg: { selector: string; only?: number }): Described {
   };
   // Components whose full-radius shape is the squircle on purpose; dots, lights, thumbs and pills are not.
   const SQUIRCLE_BY_DESIGN = new Set(["avatar", "avatar-group", "checkbox", "checklist", "skeleton", "media-tile"]);
+  // A hover lift under 2px is sub-pixel layout, not a look: translate offsets are compared in 2px steps.
+  const lift = (t: string) => {
+    const m = /^matrix\((.*)\)$/.exec(t);
+    if (!m) return t;
+    const v = m[1]!.split(",").map(Number);
+    return `matrix(${v.slice(0, 4).join(",")},${Math.round(v[4]! / 2) * 2},${Math.round(v[5]! / 2) * 2})`;
+  };
   const behindOf = (el: HTMLElement) => {
     for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
-      const c = getComputedStyle(n).backgroundColor;
+      const s = getComputedStyle(n);
+      const c = s.backgroundColor;
+      // A crop over a see-through backdrop shows what is behind it, so only the properties judge it.
+      if (s.backdropFilter !== "none" || /rgba\(.*, 0?\.\d+\)$/.test(c)) return "translucent";
       if (c !== "rgba(0, 0, 0, 0)" && c !== "transparent") return c;
     }
     return "page";
@@ -170,7 +181,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
           control && text ? `font ${cs.fontSize} ${cs.fontWeight} ${cs.letterSpacing}` : "",
           `shadow ${cs.boxShadow}`,
           `opacity ${cs.opacity}`,
-          `transform ${cs.transform} ${cs.filter}`,
+          `transform ${lift(cs.transform)} ${cs.filter}`,
           control && !text ? `children ${children.join(" ")}` : "",
           control ? `icons ${icons.join(" ")}` : "",
         ].join(" ; ");
@@ -179,7 +190,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const behind = behindOf(el);
     const size = sizeOf;
     const pictureKey = `${key}|${sizeOf}|${behind}`;
-    const pictured = isCrop && !seenPictured.has(pictureKey);
+    const pictured = isCrop && behind !== "translucent" && !seenPictured.has(pictureKey);
     if (pictured) seenPictured.add(pictureKey);
     looks.push({ index, key, sig, pictured, size, behind });
 
@@ -267,7 +278,7 @@ export class Looks {
 
   // Instances whose properties differ from the majority's, less the differences a page makes on purpose.
   differences(): string[] {
-    return this.rawDifferences().filter((line) => !WAIVERS.some(([pattern]) => pattern.test(line)));
+    return this.rawDifferences().filter((line) => !waived(line));
   }
 
   rawDifferences(): string[] {
@@ -301,36 +312,9 @@ export class Looks {
       clusters.sort((a, b) => b.length - a.length);
       for (const c of clusters.slice(1)) out.push(`${id} looks different on ${[...new Set(c.map((s) => s.where))].slice(0, 3).join(", ")}`);
     }
-    return out.filter((line) => !WAIVERS.some(([pattern]) => pattern.test(line)));
+    return out.filter((line) => !waived(line));
   }
 }
-
-// Each waiver is a difference a page asks for, with the reason.
-export const WAIVERS: [RegExp, string][] = [
-  [/^button\|root\|button\|[^ ]*data-variant=outline.* on \/docs\/(edit-sheet|card|porthole|route-progress|separator)\/.*: border 1px solid/, "these demos set a tone on the outline button's border colour"],
-  [/^button\|root\|button\|data-disabled=.* on \/nautilus\/: opacity 0\.5/, "the Nautilus story dims its disabled controls on purpose"],
-  [/^button\|root\|button\|data-variant=soft.* on \/docs\/(a2ui-surface|ouro-mcp-app)\/: icons $/, "the A2UI demo's button holds no icon"],
-  [/^(family-bar|navbar)\|.* on \/docs\/(family-bar|navbar)\/.*: padding /, "a bar's padding follows the demo's container"],
-  [/^button\|root\|button\|data-variant=soft\|.*\|focus on \/: icons 18x18/, "the home page's soft button carries a larger icon on purpose"],
-  [/^button\|root\|button\|data-variant=soft\|.*\|focus\|.* looks different on \/docs\/emoji\//, "the emoji picker's own grid is behind the focused button"],
-  [/^switch\|track\|span\|.*\|(focus|hover)\|.* looks different on \/apple\/(hx|reins)\//, "the Apple pages draw the switch over their own backdrop"],
-  [/^link\|root\|a\|.* on \/docs\/link\/: icons 11x11/, "the Link demo shows its external-link icon"],
-  [/^switch\|track.* on \/apple\/feel\/: border 2px/, "the off Switch draws its outline as a border (switch-styles.ts)"],
-  [/^button\|root\|button\|data-variant=plain.* on \/apple\/(feel|reins|start)\/.*: font /, "the Apple pages set their own link-button type"],
-  [/^sidebar\|link.* on \/docs\/sidebar\/: icons 20x20/, "the Sidebar demo sizes its icons"],
-  [/^button\|root\|button\|data-variant=soft.* on \/docs\/(a2ui-surface|tooltip)\/.*icons 18x18/, "these demos pass larger icons on purpose"],
-  [/^avatar\|.*on \/docs\/avatar\/: shadow/, "the Avatar demo shows a ring"],
-  [/^media-tile\|ring.* on \/docs\/media-tile\/: opacity/, "the MediaTile demo shows the ring's selected state"],
-  [/^button\|root\|button\|data-variant=solid.* on \/nautilus\/: background/, "the squid button is tone=destructive"],
-  [/looks different on \/docs\/(toolbar|media-tile)\//, "these demos sit the control on a translucent bar or tile, so the crop differs under the same backdrop colour"],
-  [/^slider\|thumb.*\|focus on \/: outline none/, "the home page's slider shows focus with a ring drawn on its track"],
-  [/hover on \/nautilus\/: transform matrix\(1, 0, 0, 1, 0, 0\.\d+\)/, "a hover lift that lands on a sub-pixel offset"],
-  [/\|(hover|active|focus)\|.* looks different on (\/|\/voyage\/|\/nautilus\/)(,|$)/, "a translucent state layer over the animated scene on the voyage pages"],
-  [/checkbox\|box.*\|hover\|.* looks different on \/docs\/checkbox-group\//, "a hover tint over the group's own surface"],
-  [/^message\|item\|article.*\|hover on \/docs\/message-list\/: transform matrix\(1, 0, 0, 1, 0, \d+\.\d+\)/, "a hover lift caught on a sub-pixel offset"],
-  [/^sidebar\|group\|button\|.*\|hover\|.* looks different on \/docs\//, "the docs sidebar's group header crop includes the open or current item beside it, which follows the page"],
-  [/number-field\|increment.*\|hover\|.* looks different on \/docs\/number-field\//, "the stepper's crop includes the field edge beside it, which differs by the field's own state"],
-];
 
 function same(a: { data: Buffer; width: number; height: number }, b: { data: Buffer; width: number; height: number }): boolean {
   if (Math.abs(a.width - b.width) > 2 || Math.abs(a.height - b.height) > 2) return false;

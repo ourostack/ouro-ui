@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { recordMatched } from "./waivers";
 import { describe, LOOK_SELECTOR, Looks, picture, quiet, routes, settled } from "./looks";
 
 // A component looks the same wherever it appears. Every page of the build is opened, in each colour mode, in
@@ -26,6 +27,7 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
     }
     console.log(`${browserName} ${mode}: ${looks.keys} component states, ${looks.crops} pictures, over ${pages.length} pages`);
     for (const f of [...escapes, ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
+    recordMatched(`sameness-${mode}-${engine}`);
     expect.soft(escapes, "a part leaves its container").toEqual([]);
     expect.soft(looks.differences(), "a component's properties differ from page to page").toEqual([]);
     expect.soft(looks.pixelDifferences(), "a component's picture differs from page to page").toEqual([]);

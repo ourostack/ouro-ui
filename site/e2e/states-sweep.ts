@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { recordMatched } from "./waivers";
 import { describe, LOOK_SELECTOR, Looks, picture, quiet, routes, settled } from "./looks";
 
 // Every control, as each page shows it, is put through hover, keyboard focus and press, in both engines and
@@ -100,6 +101,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     }
     console.log(`${browserName} ${mode}: ${looks.keys} control states, ${looks.crops} pictures`);
     for (const f of [...new Set(found), ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
+    recordMatched(`states-${mode}-${chunk}-${browserName}`);
     expect.soft([...new Set(found)], "a control leaves its shape in a state").toEqual([]);
     expect.soft(looks.differences(), "a control's properties differ from page to page in a state").toEqual([]);
     expect.soft(looks.pixelDifferences(), "a control's picture differs from page to page in a state").toEqual([]);
