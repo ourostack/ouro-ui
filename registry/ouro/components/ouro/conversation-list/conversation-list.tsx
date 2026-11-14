@@ -480,10 +480,15 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const latest = useRef<Laid | null>(null);
   const clips = useRef<HTMLElement[] | null>(null);
   const scroller = useRef<Element | null>(null);
+  // Whether the list has been scrolled since it mounted.
+  const scrolled = useRef(false);
+  const seenTop = useRef(0);
+  const viewSize = useRef("");
+  const selectionFrame = useRef(0);
   // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
   const sync = useRef<(() => void) | null>(null);
   // What the last sync ran for, and the observer that reports a row's change of size once the page is laid out.
-  const synced = useRef<{ inputs: string; heights: ReadonlyMap<string, number> } | null>(null);
+  const synced = useRef<{ inputs: string; places: string; heights: ReadonlyMap<string, number> } | null>(null);
   const rows = useRef<ResizeObserver | null>(null);
   const revealed = useRef<string | null>(null);
   // Whether the open row changed since the last sync, which then checks it is in view.
@@ -583,6 +588,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const update = () => {
     const { offsets: at, total: height, range: was } = latest.current!;
     const { top, bottom } = view();
+    // A scroll that moved the view without a scroll event reaching the list, as a focus scroll can, counts too.
+    if (scroller.current!.scrollTop !== seenTop.current) scrolled.current = true;
+    seenTop.current = scroller.current!.scrollTop;
     let first = at.length;
     let last = 0;
     at.forEach((offset, index) => {
@@ -591,6 +599,12 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         last = index + 1;
       }
     });
+    // Until the first scroll, rows rendered on the first frame stay: measuring narrows the window, and a row or section
+    // that unmounts after the first paint would make the first frame differ from the finished screen.
+    if (!scrolled.current && last > 0) {
+      first = Math.min(first, was[0]);
+      last = Math.max(last, was[1]);
+    }
     if (was[0] !== first || was[1] !== last) setRange([first, last]);
   };
   // Measures the rendered slots; says whether a height changed.
@@ -621,6 +635,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       // is (Home on the first row) brings no render to wait for.
       control.focus({ preventScroll: true });
       reveal(controls.current, key, "nearest");
+      // The scroll's own event may land late, so the window follows the key's scroll from the next frame.
+      scrolled.current = true;
+      requestAnimationFrame(() => sync.current!());
     } else control.focus();
   };
 
@@ -634,7 +651,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     let frame = 0;
     const onScroll = (event: Event) => {
       // Stryker disable next-line ConditionalExpression: a scroll elsewhere would only read a view that has not changed.
-      if (event.target === document || found.includes(event.target as HTMLElement)) sync.current!();
+      if (event.target === document || found.includes(event.target as HTMLElement)) {
+        scrolled.current = true;
+        sync.current!();
+      }
     };
     const onResize = () => {
       // Stryker disable next-line ConditionalExpression: finding the clips again would find the same boxes, which `found` already holds
@@ -657,6 +677,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
           for (const clip of found) resizes.observe(clip);
         });
       }
+      // A change in the view's size, as opposed to the rows', lets the window narrow again.
+      const size = `${innerHeight}:${clips.current.map((clip) => clip.clientHeight).join()}`;
+      if (viewSize.current && viewSize.current !== size) scrolled.current = true;
+      viewSize.current = size;
       sync.current!();
     };
     const resizes = new ResizeObserver(onResize);
@@ -712,10 +736,18 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     // A sync reads layout, which inside a commit lays the page out at once, so a render runs it only when what it
     // places changed: the rows, the window, the heights, the open, reached or focusable row. A row that changes size otherwise
     // (new text) is reported by the observer, once the page is laid out, where reads are free.
-    const inputs = JSON.stringify([keys, start, end, density, current, reach, tabStop]);
+    const places = JSON.stringify([keys, start, end, density, reach]);
+    const inputs = JSON.stringify([places, current, tabStop]);
     for (const control of controls.current.values()) rows.current!.observe(control.parentElement!);
     if (synced.current?.inputs === inputs && synced.current.heights === heights) return;
-    synced.current = { inputs, heights };
+    const selectionOnly = !focusNext.current && synced.current?.places === places && synced.current.heights === heights;
+    synced.current = { inputs, places, heights };
+    // Switching the open row moves nothing: its reveal, if it needs one, reads after the commit instead of in it.
+    if (selectionOnly) {
+      cancelAnimationFrame(selectionFrame.current);
+      if ((opening.current || keepInView.current) && clips.current) selectionFrame.current = requestAnimationFrame(() => sync.current!());
+      return;
+    }
     // Until the observer's first callback has found the boxes around the list, nothing is read.
     if (clips.current) sync.current();
   });
