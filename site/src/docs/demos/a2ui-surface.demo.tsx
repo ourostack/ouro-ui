@@ -5,12 +5,16 @@ import recipeCase from "@/test/fixtures/a2ui/cases/recipe-card-agent.json";
 import catalog from "@/test/fixtures/a2ui/recipe.catalog.json";
 
 // The live demo at the top of docs/a2ui-surface/: the card a model composed from a recipe app's catalog and a
-// synthetic recipe (core's conformance case recipe-card-agent.json), with what each button would do.
+// synthetic recipe (core's conformance case recipe-card-agent.json), with what each button would do. The app names
+// the recipe its confirm sheet shows, so the sheet reads "Charred Lemon Orzo" with the id beside it.
 
 // The case names the picture's address on the live site; the demo loads the copy this build ships, so a preview or a
 // pull request's build shows it before it is deployed.
 const LIVE = "https://ui.ouroboros.bot/a2ui/v1/examples/";
 const messages = JSON.parse(JSON.stringify(recipeCase.messages).replaceAll(LIVE, "/a2ui/v1/examples/")) as unknown[];
+
+const titles: Record<string, string> = { rcp_lemon_orzo: "Charred Lemon Orzo" };
+const label = ({ value }: { value: string }) => titles[value];
 
 export default function A2UISurfaceDemo(): JSX.Element {
   const [last, setLast] = useState("Press a button.");
@@ -19,6 +23,7 @@ export default function A2UISurfaceDemo(): JSX.Element {
       <A2UISurface
         catalog={catalog}
         messages={messages}
+        label={label}
         onAction={({ action }) => setLast(`Sent ${action.name} with ${JSON.stringify(action.context)}.`)}
         onHandoff={({ how }) => setLast(`Opens the app, to do it ${how}.`)}
       />

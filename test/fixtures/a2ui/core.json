@@ -1,19 +1,19 @@
 {
   "repository": "ourostack/ouro-ui-core",
-  "coreTag": "v0.7.2",
+  "coreTag": "v0.9.0",
   "note": "Copied from ouro-ui-core at coreTag, byte for byte. Never edit them: take a new release and update this file.",
   "files": {
     "registry/ouro/lib/ouro/a2ui-core.ts": {
       "from": "src/a2ui.mts",
-      "sha256": "50659de83c2bc2b48639b589fdf3eca4792c5b546c4019c95991acac8e2ae1eb"
+      "sha256": "115838ce939e08765a5e9e38bf1832442ba6d565282f726d110b964d8f4fc5b1"
     },
     "test/fixtures/a2ui/catalog.json": {
       "from": "standard/hx/a2ui/catalog.json",
-      "sha256": "b79b70fe393b41a6fe784e92a68a5a139e747c9987d0b68accde444ee5352fc4"
+      "sha256": "b000946f4763d29384f40d1a9cd5c91b20a51fcda4268c120a0b774cffdb37dd"
     },
     "test/fixtures/a2ui/recipe.catalog.json": {
       "from": "standard/hx/a2ui/conformance/recipe.catalog.json",
-      "sha256": "a3c683e6f79006914e2f79cd786ee189e00656541760a8b0b3e6983344745e76"
+      "sha256": "14679a142646e11a4d20de8771966cf870388447833a3474f49ec0dfd6957a4e"
     },
     "test/fixtures/a2ui/cases/action-buttons.json": {
       "from": "standard/hx/a2ui/conformance/cases/action-buttons.json",
@@ -22,6 +22,10 @@
     "test/fixtures/a2ui/cases/bindings.json": {
       "from": "standard/hx/a2ui/conformance/cases/bindings.json",
       "sha256": "caa7bf2452ece1f50b847f255292faa3ca7c23172f3c388234eb08839f0b0f95"
+    },
+    "test/fixtures/a2ui/cases/confirm-names.json": {
+      "from": "standard/hx/a2ui/conformance/cases/confirm-names.json",
+      "sha256": "7238626bd45ae322cc54f9fd1fa2479237e7246e0fd95e979a9470ac8e4e3748"
     },
     "test/fixtures/a2ui/cases/invalid-agent-presses.json": {
       "from": "standard/hx/a2ui/conformance/cases/invalid-agent-presses.json",
