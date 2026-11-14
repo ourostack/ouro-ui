@@ -1191,11 +1191,13 @@ jobs:
     # workers split their tests (fullyParallel). Each uploads how long each file took. On a reduced
     # pull request, the same split of the selected components' specs and the site's: Playwright's
     # --shard split them by test count, and one shard took 15 minutes to the others' 4 to 6 (run
-    # 41433695050). A shard the split leaves no spec passes. Part of the e2e check.
+    # 41433695050). A shard the split leaves no spec passes. Part of the e2e check. A shard takes
+    # 7 to 10 minutes on main; its limit is about twice that, so a spec that hangs fails its shard
+    # by its own test timeout or this one, not after the run has waited 25 minutes on it.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 20
     # In Playwright's image (see the note above jobs:).
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
