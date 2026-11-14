@@ -87,6 +87,22 @@ test.describe("a page whose button is slow on purpose", () => {
     expect(() => expectWithinBudget("one in ten", samples, 48)).toThrow();
   });
 
+  test("an app-wide slowdown, a busy listener on the whole document, leaves the probe's factor near 1 and still fails", async ({ page }) => {
+    await page.setContent(`<button id="b">Press</button><output id="o"></output>`);
+    // As a provider might add it: every pointerdown on the page busy-waits 160 ms, whatever was pressed.
+    await page.evaluate(() => {
+      document.addEventListener("pointerdown", () => {
+        const end = performance.now() + 160;
+        while (performance.now() < end);
+      });
+      document.getElementById("b")!.addEventListener("click", () => (document.getElementById("o")!.textContent = String(Math.random())));
+    });
+    const { samples, factor } = await measure(page, "app-wide", { press: () => page.locator("#b").click() }, LATENCY.throttle, (first, before) => morePresses(first, 48, before));
+    // The probe runs in a page of its own, with none of this page's code, so the slowdown does not reach it.
+    expect(factor).toBeLessThanOrEqual(1.1);
+    expect(() => expectWithinBudget("app-wide", samples, 48, factor)).toThrow();
+  });
+
   test("slow in every press, it fails on its first 20", async ({ page }) => {
     const presses = await slowButton(page, () => true);
     const { samples } = await measure(page, "every press", presses, LATENCY.throttle, (first) => morePresses(first, 48));

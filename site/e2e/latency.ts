@@ -27,7 +27,7 @@ import { expect, test, type Page } from "@playwright/test";
 //
 // A shared runner is sometimes slow all over: every control on it slower together, the time going to the wait for the
 // next paint (ourostack/ouro-ui#798). So beside each control, at the same throttle, measure() presses a calibration
-// probe of its own (addProbe): page work that is none of the app's, pressed before the control's presses and after
+// probe of its own (openProbe), in a page of its own with none of the app's code, pressed before the control's presses and after
 // them. Its median over a quiet runner's (LATENCY.probeQuiet) is the runner's factor (runnerFactor), at least 1 and at
 // most LATENCY.maxFactor, and the control's p95 bound and median ceiling are each times it. A quiet runner's factor is
 // 1, so its bounds are the ones above; a slow app is as slow beside the probe on any runner, so it still fails.
@@ -152,16 +152,23 @@ export async function runnerSpeed(page: Page): Promise<{ script: number; frame: 
 export const PROBE_PRESSES = 4;
 
 /**
- * Puts the calibration probe on the page: a fixed panel of 480 boxes and a button whose press restyles every box and
- * changes their size, so it costs style, layout, paint and raster as a control's press does, and none of it the app's.
- * Returns what removes it again.
+ * Opens the calibration probe in a page of its own, beside the app's, with none of the app's code: a fixed panel of 480
+ * boxes and a button whose press restyles every box and changes their size, so it costs style, layout, paint and
+ * raster as a control's press does. Its own page means an app-wide slowdown (a global listener, a provider's render, a
+ * stylesheet) never slows the probe, so it can't raise the factor and hide a regression. It has its own Event Timing
+ * observer, as the app's page has.
  */
-async function addProbe(page: Page): Promise<() => Promise<void>> {
-  await page.evaluate(() => {
+async function openProbe(page: Page): Promise<Page> {
+  const probe = await page.context().newPage();
+  await probe.setContent("<!doctype html><title>latency probe</title><body style='margin:0'></body>");
+  await probe.evaluate(() => {
+    const store: number[][] = [];
+    (window as unknown as { __latency: number[][] }).__latency = store;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration]);
+    }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
     const panel = document.createElement("div");
-    panel.setAttribute("data-latency-probe", "");
-    panel.setAttribute("aria-hidden", "true");
-    panel.style.cssText = "position:fixed;inset-block-start:0;inset-inline-start:0;z-index:2147483647;inline-size:600px;block-size:420px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px;padding:4px;background:#fff;overflow:hidden;contain:strict";
+    panel.style.cssText = "position:fixed;inset-block-start:0;inset-inline-start:0;inline-size:600px;block-size:420px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px;padding:4px;background:#fff;overflow:hidden;contain:strict";
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = "probe";
@@ -184,7 +191,7 @@ async function addProbe(page: Page): Promise<() => Promise<void>> {
     });
     document.body.append(panel);
   });
-  return () => page.evaluate(() => document.querySelector("[data-latency-probe]")?.remove());
+  return probe;
 }
 
 /** The median of a list of numbers. */
@@ -234,17 +241,24 @@ export async function measure(
   if (prepare) await unthrottled(prepare);
   // The calibration probe's presses, at the same throttle as the control's: the first of each round is a warm-up.
   const probeRound = async (): Promise<number[]> => {
-    const remove = await addProbe(page);
+    const probe = await openProbe(page);
     const durations: number[] = [];
-    for (let index = 0; index < PROBE_PRESSES; index++) {
-      await page.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
-      await settle();
-      await page.locator("[data-latency-probe-press]").click();
-      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-      const entries = await page.evaluate(() => (window as unknown as { __latency: Array<[number]> }).__latency);
-      if (index > 0) durations.push(entries.length > 0 ? Math.max(...entries.map(([duration]) => duration)) : 16);
+    try {
+      const probeCdp = await page.context().newCDPSession(probe);
+      await probeCdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
+      const settleProbe = () => probe.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
+      for (let index = 0; index < PROBE_PRESSES; index++) {
+        await probe.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
+        await settleProbe();
+        await probe.locator("[data-latency-probe-press]").click();
+        await probe.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
+        const entries = await probe.evaluate(() => (window as unknown as { __latency: number[][] }).__latency);
+        if (index > 0) durations.push(entries.length > 0 ? Math.max(...entries.map(([duration]) => duration!)) : 16);
+      }
+    } finally {
+      await probe.close();
     }
-    await remove();
+    await page.bringToFront();
     await settle();
     return durations;
   };
