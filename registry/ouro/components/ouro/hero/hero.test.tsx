@@ -715,6 +715,18 @@ describe("Hero", () => {
     expect(shownIn(part)).toEqual(["light"]);
   });
 
+  it("paints each picture's placeholder behind it while it loads, and the day's never at night", async () => {
+    const day = { ...wide, placeholder: "rgb(47, 107, 79)" };
+    const { part } = await render(<Hero title="Night" picture={{ light: day, dark: { ...night, placeholder: "rgb(16, 38, 28)" } }} />);
+    const [light, dark] = [...part("media")!.querySelectorAll("img")];
+    expect(getComputedStyle(light!).backgroundColor).toBe("rgb(47, 107, 79)");
+    document.documentElement.classList.add("dark");
+    expect(getComputedStyle(dark!).backgroundColor).toBe("rgb(16, 38, 28)");
+    const unset = await render(<Hero title="Unset" picture={{ light: day, dark: night }} />);
+    expect(getComputedStyle(unset.part("media")!.querySelector('[data-scheme="dark"] img')!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    document.documentElement.classList.remove("dark");
+  });
+
   it("keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority", async () => {
     const day = await render(<Hero title="Day" picture={{ light: { ...wide, priority: true }, dark: night }} />);
     const [light, dark] = [...day.part("media")!.querySelectorAll("img")];
