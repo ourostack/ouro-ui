@@ -551,7 +551,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const heights = measured?.density === density ? measured.heights : noHeights;
   const { offsets, total } = useMemo(() => place(keys, heights, estimates[density]), [keys, heights, density]);
   // The first frame counts its rows from the estimates alone: counting from measured heights would grow the window after the first measurement.
-  const guessed = useMemo(() => place(keys, noHeights, estimates[density]).offsets, [keys, density]);
+  const guessed = place(keys, noHeights, estimates[density]).offsets;
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
   const firstRows = guessed.filter((offset) => offset < firstView).length;
   const [start, end] = range ?? [0, firstRows];
