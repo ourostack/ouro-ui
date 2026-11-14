@@ -495,8 +495,17 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [reach, setReach] = useState<string | null>(null);
   // A short list's first render holds only the rows the first view reaches; the rest render once it has painted.
   const [settled, setSettled] = useState(false);
-  useEffect(
-    () => queueMicrotask(() => setSettled(true)),
+  useEffect(() => {
+    // After the first frame has painted, so rows below the first view cost it no layout.
+    let timer = 0;
+    const frame = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => setSettled(true));
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  },
     // Stryker disable next-line ArrayDeclaration: the effect reads nothing, so rerunning it only sets the state again.
     [],
   );

@@ -1,0 +1,1 @@
+- ConversationList draws only the rows its first view reaches in the first frame, and the rest after that frame has painted, so a list of a few dozen conversations no longer lays out every row before it first paints.
