@@ -1,7 +1,8 @@
 name: Apple release
 # The Apple version the site and the Platforms pages state, against ouro-ui-apple's newest release
 # (scripts/apple-release.mjs, GET /repos/ourostack/ouro-ui-apple/releases/latest), so the Apple page
-# cannot go on saying 0.2.1 after 0.4.1 is out. Hourly, since a release in another repository starts no
+# cannot go on saying 0.2.1 after 0.4.1 is out, and the core versions the Platforms pages state
+# (scripts/platform-versions.mjs, from core's and Apple's newest releases). Hourly, since a release in another repository starts no
 # workflow here, and on a change to the pages that state a version. Behind on main opens, or comments on
 # (at most daily), one "Apple pages are behind" issue; an API error fails the run but is no drift.
 on:
@@ -15,6 +16,7 @@ on:
       - docs/platforms/apple.md
       - scripts/apple-release.mjs
       - scripts/platform-parity.mjs
+      - scripts/platform-versions.mjs
       - scripts/parity-rows.mjs
       - scripts/parity-data/**
       - .github/workflows/apple-release.yml
@@ -25,6 +27,7 @@ on:
       - docs/platforms/apple.md
       - scripts/apple-release.mjs
       - scripts/platform-parity.mjs
+      - scripts/platform-versions.mjs
       - scripts/parity-rows.mjs
       - scripts/parity-data/**
       - .github/workflows/apple-release.yml
@@ -42,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      behind: ${{ steps.compare.outputs.behind }}
+      behind: ${{ steps.compare.outputs.behind == 'true' || steps.versions.outputs.behind == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,6 +56,7 @@ jobs:
             docs/platforms/apple.md
             scripts/apple-release.mjs
             scripts/platform-parity.mjs
+            scripts/platform-versions.mjs
             scripts/parity-rows.mjs
             scripts/parity-data
           sparse-checkout-cone-mode: false
@@ -71,6 +75,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/platform-parity.mjs --pins
+      - name: The Platforms pages' core and release versions are GitHub's
+        # scripts/parity-data/versions.json against core's and Apple's newest releases, and the pages against it.
+        # Exits 1 on drift (behind=true; fix with node scripts/platform-versions.mjs --write), 2 when the API cannot be read.
+        id: versions
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/platform-versions.mjs --live
   report:
     # One issue for a page behind on main, opened or commented on at most daily (scripts/scheduled-failure.sh).
     needs: [compare]
@@ -89,4 +101,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           QUIET_HOURS: 24
-        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple pages state a version other than ouro-ui-apple's newest release"
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple or Platforms pages state a version other than the newest release of ouro-ui-apple or ouro-ui-core"

@@ -4,7 +4,7 @@ The same colours, motion and manners as this site, in Swift, for iPhone, iPad an
 
 ## What ships today
 
-Release [v0.5.1](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1) meets core v0.4.0: its tokens are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core] Add it with Swift Package Manager:
+Release [v0.5.1](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1) meets core v0.8.0, and v0.9.0 for its A2UI conformance cases: its tokens are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core] Add it with Swift Package Manager:
 
 ```swift
 .package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.1")
@@ -47,7 +47,7 @@ These switch on when you build with the Siri AI SDK. Until then they are written
 - [Ouro AX for Apple's standard](https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md), in core.
 - [The Platforms page](README.md) and its version table.
 
-[^core]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/core-provenance.json; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96)
+[^core]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1; https://github.com/ourostack/ouro-ui-apple/blob/665c7cbbd3a2c35e2ed9bb7041c103b84b31a73e/core-provenance.json; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/665c7cbbd3a2c35e2ed9bb7041c103b84b31a73e/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96) verify:equals(scripts/parity-data/versions.json#apple.coreTag)=v0.8.0
 [^a2ui]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#agent-composed-ui-a2ui)
 [^floor]: https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/Package.swift#L1-L9 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/Package.swift#L1-L9)
 [^products]: https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#whats-in-the-box; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/Package.swift#L19-L38 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#whats-in-the-box) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/Package.swift#L19-L38)
