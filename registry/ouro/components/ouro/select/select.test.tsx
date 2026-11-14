@@ -77,7 +77,9 @@ function FrameHarness({ children, style }: { children?: ReactNode; style?: CSSPr
       <button
         type="button"
         onKeyDown={(event) => {
-          if (event.key === "Enter") frame.current?.focus();
+          // As Base UI focuses a popup's own frame: without scrolling, so WebKit has no scroll left to apply to the option
+          // the frame then hands focus to (#1285).
+          if (event.key === "Enter") frame.current?.focus({ preventScroll: true });
         }}
       >
         Open
