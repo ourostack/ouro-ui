@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -100,12 +101,26 @@ function expectBand(pane: HTMLElement, kept: readonly string[]) {
 
 describe("ConversationList windowing", () => {
   it("forces no layout while a windowed list mounts, and then sets its window from the observer's first callback", async () => {
+    const warm = document.createElement("div");
+    document.body.append(warm);
+    mounted.push(warm);
+    const warmRoot = createRoot(warm);
+    roots.push(warmRoot);
+    // The development theme check reads the root's style once per page, for any component, so it runs before the watch.
+    await act(async () => warmRoot.render(<ConversationList label="Warm" items={many(2)} onSelect={() => {}} />));
+    const pane = document.createElement("div");
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
     const reads = watchLayoutReads();
-    const view = await render(<ConversationList label="Conversations" items={many(200)} onSelect={() => {}} />, 400, false, false);
+    flushSync(() => root.render(<ConversationList label="Conversations" items={many(200)} onSelect={() => {}} />));
     const mount = reads.names();
     reads.stop();
     expect(mount).toEqual([]);
+    const view = { pane, rows: () => [...pane.querySelectorAll<HTMLButtonElement>('[data-ouro-part="row"]')] };
     const first = view.rows().length;
+    await frames();
     await scrollPane(view.pane, 3000);
     expect(view.rows().length).toBeGreaterThan(0);
     expect(first).toBeGreaterThan(0);
