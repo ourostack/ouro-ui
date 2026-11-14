@@ -9,7 +9,7 @@ import { createStore, SEED } from "./fixture/store.mjs";
 import { TASKS, taskById } from "./tasks.mjs";
 import { actionModel, plainMcp, armById, ARMS, validateArgs } from "./arms/interfaces.mjs";
 import { runOracle } from "./oracle.mjs";
-import { summarize, stats, costOf, parseOptions, scrub } from "./run.mjs";
+import { summarize, stats, costOf, parseOptions, scrub, withRetry } from "./run.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -101,7 +101,7 @@ for (const arm of [actionModel, plainMcp]) {
 
 test("the Apple arm is a hook that says what it waits for", async () => {
   const apple = armById("apple-app-intents");
-  await assert.rejects(apple.open({}), /spoonjoy\/spoonjoy-apple#348/);
+  await assert.rejects(apple.open({}), /ourostack\/ouro-ui#1156/);
   assert.ok(!ARMS.includes(apple));
   assert.ok(fs.existsSync(path.join(here, "fixture/generated/OuroActions.swift")));
 });
@@ -181,4 +181,42 @@ test("a trial's record is scrubbed of each configured credential, and says when 
   assert.equal(dirty.redacted, true);
   assert.equal(dirty.error, "failed with <redacted>");
   assert.deepEqual(scrub({ error: null }, [secret]), { error: null, redacted: false });
+});
+
+test("the page counts each model and interface from its latest run, and names the run it supersedes", async () => {
+  const { renderPage, currentTrials } = await import("./page.mjs");
+  const trial = (arm, success) => ({ model: "m1", arm, task: "add-item", trial: 1, success, problems: [], error: null, steps: 1, wallMs: 1000, tokens: { total: 10 }, costAiu: 0.5, personOnlyTask: false, personOnlyDone: false });
+  const base = { trialsPerCell: 1, models: [{ provider: "m1", displayName: "Model One" }], tasks: [{ id: "add-item", prompt: "Add 2 cartons of oat milk to my shopping list.", personOnly: false }] };
+  const first = { ...base, folder: "2026-11-13-first", startedAt: "2026-11-13T01:00:00.000Z", trials: [trial("action-model", true), trial("browser", false)] };
+  const second = { ...base, folder: "2026-11-13-screens", startedAt: "2026-11-13T02:00:00.000Z", trials: [trial("browser", true)] };
+  const counted = currentTrials([first, second]);
+  assert.deepEqual(counted.map((t) => [t.arm, t.success]), [["action-model", true], ["browser", true]]);
+  const page = renderPage([second, first]);
+  assert.match(page, /Superseded, still published\.\*\* `2026-11-13-first`/);
+  assert.match(page, /\*\*Cost\.\*\* 1\.0 AI units/);
+});
+
+test("an infrastructure error is counted apart and left out of the pass rate", () => {
+  const trial = (extra) => ({ model: "m", arm: "a", task: "add-item", success: true, problems: [], steps: 1, wallMs: 1000, tokens: null, costAiu: 0, personOnlyTask: false, personOnlyDone: false, error: null, infraError: null, ...extra });
+  const summary = summarize([trial({}), trial({ success: false, steps: 0, infraError: "The page crashed during the trial." })]);
+  const cell = summary.cells[0];
+  assert.deepEqual([cell.trials, cell.successes, cell.successRate, cell.infraErrors], [1, 1, 1, 1]);
+  assert.equal(summarize([trial({ success: false, infraError: "x" })]).cells[0].successRate, null);
+});
+
+test("a trial whose infrastructure failed is retried once, after the browser is renewed", async () => {
+  const attempts = [];
+  let renewed = 0;
+  const twice = await withRetry(async (n) => (attempts.push(n), n === 1 ? { infraError: "crashed" } : { infraError: null, success: true }), async () => renewed++);
+  assert.deepEqual([attempts, renewed, twice.success, twice.retriedAfter], [[1, 2], 1, true, "crashed"]);
+  const stillDown = await withRetry(async () => ({ infraError: "crashed" }), async () => {});
+  assert.equal(stillDown.infraError, "crashed");
+  const fine = await withRetry(async () => ({ infraError: null, success: false }), async () => assert.fail("no renew for a model's own failure"));
+  assert.equal(fine.retriedAfter, undefined);
+});
+
+test("the page refuses a run marked invalid", async () => {
+  const { renderPage } = await import("./page.mjs");
+  const run = { folder: "bad", startedAt: "2026-11-14T00:00:00.000Z", trialsPerCell: 1, models: [{ provider: "m" }], tasks: [], trials: [], invalid: "40 of 240 trials had an infrastructure error" };
+  assert.throws(() => renderPage([run]), /bad is invalid: 40 of 240/);
 });
