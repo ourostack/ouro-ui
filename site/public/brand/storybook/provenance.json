@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@fad758e52e066e198aca938be4c684d128eb25a1:brand/",
+  "origin": "ourostack/.github@7646157cbef6249e66b5021f8c3f4dbcd38ac19b:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -281,19 +281,19 @@
     },
     {
       "file": "phone/ouroboros-skills-1152.avif",
-      "sha256": "3f2ac2823de51adbe23e23744900b4c5fedd1979fd2b483a2246c280a5098c10"
+      "sha256": "c677ad369b5e3d879c7a66d7107bb1b5c5867d285857d656d70aac6609de98c3"
     },
     {
       "file": "phone/ouroboros-skills-1152.webp",
-      "sha256": "4fc7cc54396254f333cddddc28103f7b8a1ec1f57e6904324613098ae8d77ff9"
+      "sha256": "18c8686907d55871b06c16b55291e4a71dfe33ce82a0908b091fe36edf33f4f0"
     },
     {
       "file": "phone/ouroboros-skills-1536.avif",
-      "sha256": "fb0892ef2e171216f1f095102110ef44756475d035a0d3781fb8d9a90e709e28"
+      "sha256": "5d1428ea7c2aa107ddefdbcb4a7737a477adf33579685b3f9d9b566efc8cdfeb"
     },
     {
       "file": "phone/ouroboros-skills-1536.webp",
-      "sha256": "ce968d62795efbd52b5712a86ef3f7d7ddcf3cf18a212f35d2cb7e17fc101f53"
+      "sha256": "c625ff95ba188eaa0b01c027ba0adbf1c6939166b95f7deb64c2f8f4bad44f9e"
     },
     {
       "file": "phone/ouroboros-skills-384.avif",
