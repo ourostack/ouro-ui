@@ -67,6 +67,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const m = /^matrix\((.*)\)$/.exec(t);
     if (!m) return t;
     const v = m[1]!.split(",").map(Number);
+    if (v.join() === "1,0,0,1,0,0") return "none";
     return `matrix(${v.slice(0, 4).join(",")},${Math.round(v[4]! / 2) * 2},${Math.round(v[5]! / 2) * 2})`;
   };
   const behindOf = (el: HTMLElement) => {
@@ -74,7 +75,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
       const s = getComputedStyle(n);
       const c = s.backgroundColor;
       // A crop over a see-through backdrop shows what is behind it, so only the properties judge it.
-      if (s.backdropFilter !== "none" || /rgba\(.*, 0?\.\d+\)$/.test(c)) return "translucent";
+      if (s.backdropFilter !== "none" || /(, 0?\.\d+\)|\/ 0?\.\d+\))$/.test(c)) return "translucent";
       if (c !== "rgba(0, 0, 0, 0)" && c !== "transparent") return c;
     }
     return "page";

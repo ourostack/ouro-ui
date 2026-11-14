@@ -22,7 +22,13 @@ export const WAIVERS: Waiver[] = [
   { component: "button", part: "root", variant: "outline", state: "", page: "/docs/separator/", property: "border", reason: "the demo sets tone=secondary, a prop that leaves no attribute", source: "site/src/docs/demos/separator.demo.tsx" },
   { component: "button", part: "root", variant: "solid", state: "", page: "/nautilus/", property: "background", reason: "the squid button is tone=destructive, a prop that leaves no attribute", source: "site/src/voyage/chapters/chapter-three.tsx" },
   { component: "button", part: "root", variant: "soft", state: "", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
+  { component: "button", part: "root", variant: "soft", state: "hover", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
+  { component: "button", part: "root", variant: "soft", state: "focus", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
+  { component: "button", part: "root", variant: "soft", state: "active", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
   { component: "button", part: "root", variant: "soft", state: "", page: "/docs/a2ui-surface/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/a2ui-surface.demo.tsx" },
+  { component: "button", part: "root", variant: "soft", state: "hover", page: "/docs/a2ui-surface/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/a2ui-surface.demo.tsx" },
+  { component: "button", part: "root", variant: "soft", state: "focus", page: "/docs/a2ui-surface/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/a2ui-surface.demo.tsx" },
+  { component: "button", part: "root", variant: "soft", state: "active", page: "/docs/a2ui-surface/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/a2ui-surface.demo.tsx" },
   { component: "switch", part: "track", variant: "", state: "", page: "/apple/feel/", property: "border", reason: "the off Switch draws its outline as a border", source: "registry/ouro/components/ouro/switch/switch-styles.ts" },
   { component: "checkbox", part: "box", variant: "", state: "hover", page: "/docs/checkbox-group/", property: "pixels", reason: "the crop includes the group's own surface beside the box", source: "site/src/docs/demos/checkbox-group.demo.tsx" },
   { component: "number-field", part: "increment", variant: "", state: "hover", page: "/docs/number-field/", property: "pixels", reason: "the crop includes the field's edge beside the stepper", source: "site/src/docs/demos/number-field.demo.tsx" },
@@ -37,6 +43,7 @@ export function waived(line: string): boolean {
   const props = /^(.*?) on ([^:]*): (.*)$/.exec(line);
   const [key, pages, property] = pixels ? [line.slice(0, pixels.index), pixels[1]!, "pixels"] : props ? [props[1]!, props[2]!, props[3]!] : ["", "", ""];
   const parts = key.replace(/^grouped /, "").split("|");
+  if (pixels) parts.length -= 2;
   const only = pages.split(", ");
   return WAIVERS.some((w, i) => {
     const ok =
