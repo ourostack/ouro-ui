@@ -1,0 +1,1 @@
+- CodeBlock: the hairline under its bar now runs from border to border when a long line overflows, instead of fading out with the code.
