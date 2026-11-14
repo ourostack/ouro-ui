@@ -13,6 +13,11 @@ on:
         required: false
         default: "5"
         type: string
+      baseline:
+        description: Put main's message-list.tsx in place of the ref's, to measure the old code with the ref's scenes
+        required: false
+        default: "false"
+        type: string
 permissions:
   contents: read
 jobs:
@@ -28,6 +33,10 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
+          fetch-depth: 0
+      - name: Baseline
+        if: inputs.baseline == 'true'
+        run: git checkout origin/main -- registry/ouro/components/ouro/message/message-list.tsx
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
