@@ -295,6 +295,10 @@
     "status": 200,
     "checked": "2026-11-14"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/7318fe269a18e4aeb30f648f39168e1b07786b99/parity.json": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/9620eb4d6e99f276f1146b3e0e5cdbc2a71152cf/AGENTS.md#L31": {
     "status": 200,
     "checked": "2026-11-03"
@@ -324,6 +328,10 @@
     "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.10.0": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.11.0": {
     "status": 200,
     "checked": "2026-11-14"
   },
