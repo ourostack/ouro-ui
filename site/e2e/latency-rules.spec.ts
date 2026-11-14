@@ -41,10 +41,10 @@ test("a control slow in more than one press of 20 fails with the presses more, a
 
 test("a runner the probe measures slower stretches the bounds by its factor, at most 1.5 times, and a quiet one by none", () => {
   // Quiet: the probe at or under its quiet median leaves the bounds as they are.
+  expect(runnerFactor(at(48, 10))).toBe(1);
   expect(runnerFactor(at(64, 10))).toBe(1);
-  expect(runnerFactor(at(72, 10))).toBe(1);
   // A quarter slower than a quiet runner, and a runner past the cap, judged at the cap.
-  expect(runnerFactor(at(90, 10))).toBe(1.25);
+  expect(runnerFactor(at(80, 10))).toBe(1.25);
   expect(runnerFactor(at(200, 10))).toBe(LATENCY.maxFactor);
   // Every press 112 ms: over 100 ms on a quiet runner, within 125 ms on one a quarter slower.
   expect(summarise(at(112, 20), 64).within).toBe(false);

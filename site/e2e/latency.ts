@@ -45,10 +45,10 @@ export const LATENCY = {
   /** How many times slower than the runner the CPU is. */
   throttle: 4,
   /**
-   * The calibration probe's median on a quiet CI runner, in ms: the upper quartile of the probe on runners with
-   * nothing beside them (ourostack/ouro-ui#798), so a quiet runner keeps the bounds as they are.
+   * The calibration probe's median on a quiet CI runner, in ms: the most it read on runners with nothing beside them
+   * (48 to 64 ms, ourostack/ouro-ui#798), so a quiet runner keeps the bounds as they are.
    */
-  probeQuiet: 72,
+  probeQuiet: 64,
   /** The most a slow runner's factor stretches the bounds: a runner slower than this is still judged at this. */
   maxFactor: 1.5,
 } as const;
