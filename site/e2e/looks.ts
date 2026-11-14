@@ -78,7 +78,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
       const s = getComputedStyle(n);
       const c = s.backgroundColor;
       // A crop over a see-through backdrop shows what is behind it, so only the properties judge it.
-      if (s.backdropFilter !== "none" || /(, 0?\.\d+\)|\/ 0?\.\d+\))$/.test(c)) return "translucent";
+      if (s.backdropFilter !== "none" || s.backgroundImage !== "none" || /(, 0?\.\d+\)|\/ 0?\.\d+\))$/.test(c)) return "translucent";
       if (c !== "rgba(0, 0, 0, 0)" && c !== "transparent") return c;
     }
     return "page";
