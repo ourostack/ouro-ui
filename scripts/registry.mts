@@ -434,7 +434,7 @@ function fileEntry(path: string): RegistryFile {
   if (path.startsWith(censusDir)) return { path, type: "registry:file", target: `~/e2e/ouro-census/${file}` };
   if (path.startsWith(sourceRulesDir)) return { path, type: "registry:file", target: `~/scripts/ouro-${file}` };
   if (path.startsWith(checkDir)) return { path, type: "registry:file", target: `~/lib/ouro/check/${file}` };
-  if (path.startsWith(imagesDir)) return { path, type: "registry:file", target: `~/lib/ouro/images/${file}` };
+  if (path.startsWith(imagesDir)) return { path, type: "registry:lib", target: `@lib/ouro/images/${file}` };
   if (path.startsWith(libDir)) return { path, type: "registry:lib", target: `@lib/ouro/${path.slice(libDir.length)}` };
   if (path.startsWith(axDir)) return { path, type: "registry:lib", target: `@lib/ouro/ax/${path.slice(axDir.length)}` };
   const target = `@components/ouro/${path.slice(componentsDir.length)}`;
@@ -689,8 +689,9 @@ export function buildRegistry(root: string): Registry {
       // tooltips. Any other app adds it by name (the README's Next.js steps do).
       if (entry.name === "lib-router-link" || entry.name === "tooltip") registryDeps.add("lib-ouro-provider");
       for (const specifier of importsOf(source)) {
-        // An ax file imports its siblings relatively, so Node runs the copied files as they are.
-        if (path.startsWith(axDir) && specifier.startsWith(".")) {
+        // An ax file imports its siblings relatively, so Node runs the copied files as they are. The images tool, which
+        // Node runs too, imports the kit the same way.
+        if ((path.startsWith(axDir) || path.startsWith(imagesDir)) && specifier.startsWith(".")) {
           const dependency = owner.get(join(dirname(path), specifier).split("\\").join("/"));
           if (!dependency) throw new Error(`${path} imports ${specifier}, which no item ships.`);
           if (dependency !== entry.name) registryDeps.add(dependency);

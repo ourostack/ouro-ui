@@ -1,4 +1,4 @@
-export { FORMATS, HERO_FLOOR, main, makeImages, parseArgs, planWidths, shortfall, WIDTHS };
+export { FORMATS, HERO_FLOOR, main, makeImages, planWidths, shortfall, WIDTHS };
 export type { Format, ImageEntry, ImagesOptions, ImagesResult, Manifest };
 
 import { createHash } from "node:crypto";
@@ -7,6 +7,10 @@ import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { quietPipes, runCli, type CliIo } from "../ax/cli.ts";
+import { defineCli, defineCommand, toArgv, type Cli, type Input } from "../ax/command.ts";
+import { outcome, type Outcome } from "../ax/outcome.ts";
+import { AxError, commandLine } from "../ax/problem.ts";
 
 // Ouro images: each raster picture in a folder as AVIF and WebP at each width up to its own, and images.json with the
 // srcset of each, so a page draws a picture sharp at every screen size without sending a phone the widest file.
@@ -163,107 +167,122 @@ async function makeImages({ source, out, widths = WIDTHS, formats = FORMATS, bas
   return result;
 }
 
-interface Args {
-  source?: string;
-  out: string;
-  widths: number[];
-  formats: Format[];
-  base: string;
-  quality: number;
-  maxWidth?: number;
-  minLongEdge?: number;
-  help: boolean;
+interface ImagesReport {
+  /** The manifest's path, relative to the folder the command ran in. */
+  manifest: string;
+  written: number;
+  kept: number;
+  skipped: string[];
+  /** One line per picture written or kept, as the text output names them. */
+  pictures: string[];
 }
 
-const USAGE = `Usage: node lib/ouro/images/images.ts <source folder> [options]
+const usageError = (cli: Cli, code: string, problem: string, fix: string) => new AxError({ code, exit: cli.exits.code("usage"), thing: "images", problem, fix });
 
-Writes each raster picture in the folder as AVIF and WebP at each width up to its own, and images.json with the
-srcset of each, for a <picture> element.
+// The command as typed, with some of its input replaced: the fix an error prints.
+const fixFor = (cli: Cli, input: Input, changes: Input) => commandLine([cli.name, ...toArgv(cli, cli.commands[0]!, { ...input, ...changes }).argv]);
 
-  --out <folder>        where the pictures and images.json go (default public/images)
-  --widths 320,640,…    the widths to write below each picture's own (default 320,640,960,1280,1920,2560,3840,5120)
-  --formats avif,webp   the formats, the fallback last (default avif,webp)
-  --base <prefix>       what each address in a srcset starts with, such as /images/ (default none)
-  --quality <1-100>     the encoder's quality (default 70)
-  --max-width <px>      the widest, in CSS pixels, the pictures are drawn; one narrower than twice it is refused
-  --min-long-edge <px>  the fewest pixels a picture's long edge may have (default 2048 in a folder named hero, heroes,
-                        scene or scenes, else none); a smaller one is refused
-
-A refused picture gets no files and exits 1: the browser cannot add detail a file lacks, so give it a larger source.`;
-
-// The command line, or the usage problem as a thrown Error.
-function parseArgs(argv: string[]): Args {
-  const args: Args = { out: "public/images", widths: WIDTHS, formats: FORMATS, base: "", quality: 70, help: false };
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]!;
-    const value = () => {
-      const next = argv[++i];
-      if (next === undefined || next.startsWith("--")) throw new Error(`${arg} needs a value.`);
-      return next;
-    };
-    if (arg === "--help" || arg === "-h") args.help = true;
-    else if (arg === "--out") args.out = value();
-    else if (arg === "--base") args.base = value();
-    else if (arg === "--widths") {
-      const text = value();
-      args.widths = text.split(",").map(Number);
-      if (args.widths.some((w) => !Number.isInteger(w) || w < 1)) throw new Error(`--widths takes whole numbers of pixels, such as 320,640, not "${text}".`);
-    } else if (arg === "--formats") {
-      const text = value();
-      args.formats = text.split(",").map((f) => f.trim()) as Format[];
-      if (args.formats.some((f) => !FORMATS.includes(f))) throw new Error(`--formats takes avif, webp or both, not "${text}".`);
-    } else if (arg === "--quality") {
-      const text = value();
-      args.quality = Number(text);
-      if (!Number.isInteger(args.quality) || args.quality < 1 || args.quality > 100) throw new Error(`--quality takes a whole number from 1 to 100, not "${text}".`);
-    } else if (arg === "--max-width" || arg === "--min-long-edge") {
-      const text = value();
-      const px = Number(text);
-      if (!Number.isInteger(px) || px < 1) throw new Error(`${arg} takes a whole number of pixels, such as 1200, not "${text}".`);
-      if (arg === "--max-width") args.maxWidth = px;
-      else args.minLongEdge = px;
-    } else if (arg.startsWith("-")) throw new Error(`Unknown option ${arg}.`);
-    else if (args.source === undefined) args.source = arg;
-    else throw new Error(`Name one source folder, not "${args.source}" and "${arg}".`);
-  }
-  if (!args.help && args.source === undefined) throw new Error("Name the folder of pictures.");
-  return args;
+// The kit checks a number flag's range; a whole number is the one thing it does not check.
+function wholeFlag(cli: Cli, input: Input, name: string): number | undefined {
+  const value = input[name] as number | undefined;
+  if (value === undefined || Number.isInteger(value)) return value;
+  throw usageError(cli, "bad-value", `--${name} takes a whole number, not "${value}"`, fixFor(cli, input, { [name]: Math.round(value) }));
 }
 
-interface Env {
-  cwd: string;
-  log: (line: string) => void;
-  error: (line: string) => void;
+// The command's run: the pictures are written in the folder it ran in, and a picture that cannot be written fails it.
+async function runImages(cli: Cli, cwd: string, input: Input): Promise<ImagesReport | Outcome> {
+  const widthsGiven = input["widths"] as readonly string[] | undefined;
+  const widths = widthsGiven?.map(Number) ?? WIDTHS;
+  if (widths.length === 0 || widths.some((w) => !Number.isInteger(w) || w < 1))
+    throw usageError(cli, "bad-value", `--widths takes whole numbers of pixels, such as 320,640, not "${widthsGiven}"`, fixFor(cli, input, { widths: ["320", "640"] }));
+  const formatsGiven = input["formats"] as readonly string[] | undefined;
+  const formats = formatsGiven ?? FORMATS;
+  if (formats.length === 0 || formats.some((f) => !(FORMATS as readonly string[]).includes(f)))
+    throw usageError(cli, "bad-value", `--formats takes avif, webp or both, not "${formatsGiven}"`, fixFor(cli, input, { formats: ["avif", "webp"] }));
+  const quality = wholeFlag(cli, input, "quality") ?? 70;
+  const maxWidth = wholeFlag(cli, input, "max-width");
+  const minLongEdge = wholeFlag(cli, input, "min-long-edge");
+  const folder = String(input["folder"]);
+  const source = resolve(cwd, folder);
+  if (!(await stat(source).then((s) => s.isDirectory(), () => false)))
+    throw usageError(cli, "not-a-folder", `"${folder}" is not a folder`, fixFor(cli, input, { folder: "<folder>" }));
+  const out = resolve(cwd, (input["out"] as string | undefined) ?? "public/images");
+  const pictures: string[] = [];
+  const result = await makeImages({
+    source,
+    out,
+    widths,
+    formats: formats as Format[],
+    base: (input["base"] as string | undefined) ?? "",
+    quality,
+    maxWidth,
+    minLongEdge,
+    log: (line) => {
+      pictures.push(line);
+    },
+  });
+  const manifest = relative(cwd, join(out, "images.json"));
+  if (result.failed.length > 0)
+    return outcome({
+      action: "images",
+      state: "failed",
+      summary: `${result.written} written, ${result.kept} up to date, ${result.skipped.length} left out, ${result.failed.length} not written. Manifest: ${manifest}`,
+      error: { code: "not-written", exit: cli.exits.code("error"), thing: "images", problem: `not written: ${result.failed.join("; ")}`, fix: null },
+    });
+  return { manifest, written: result.written, kept: result.kept, skipped: result.skipped, pictures };
 }
 
-// The command: returns the exit code.
-async function main(argv: string[], { cwd, log, error }: Env): Promise<number> {
-  let args: Args;
-  try {
-    args = parseArgs(argv);
-  } catch (problem) {
-    error(`${(problem as Error).message}\n\n${USAGE}`);
-    return 2;
-  }
-  if (args.help) {
-    log(USAGE);
-    return 0;
-  }
-  const source = resolve(cwd, args.source!);
-  if (!(await stat(source).then((s) => s.isDirectory(), () => false))) {
-    error(`${args.source} is not a folder.\n\n${USAGE}`);
-    return 2;
-  }
-  const out = resolve(cwd, args.out);
-  const { written, kept, failed, skipped } = await makeImages({ source, out, widths: args.widths, formats: args.formats, base: args.base, quality: args.quality, maxWidth: args.maxWidth, minLongEdge: args.minLongEdge, log });
-  for (const line of skipped) log(`Left out ${line}`);
-  for (const line of failed) error(`Not written: ${line}`);
-  log(`\n${written} written, ${kept} up to date, ${skipped.length} left out, ${failed.length} failed. Manifest: ${relative(cwd, join(out, "images.json"))}`);
-  return failed.length ? 1 : 0;
+// The text output: each picture's line, each one left out, then the counts and the manifest.
+function reportText({ manifest, written, kept, skipped, pictures }: ImagesReport): string {
+  return [...pictures, ...skipped.map((line) => `Left out ${line}`), `\n${written} written, ${kept} up to date, ${skipped.length} left out, 0 failed. Manifest: ${manifest}`].join("\n");
+}
+
+// One command with no command word: every token is the folder or a flag, as `ouro-images site/showcase --out x` runs it.
+function imagesTool(cwd: string): Cli {
+  const cli: Cli = defineCli({
+    name: "ouro-images",
+    about: ["ouro-images: writes the pictures in a folder at the widths a page's srcset needs, for a <picture> element."],
+    command: defineCommand<ImagesReport | Outcome>({
+      name: "images",
+      summary: "Writes each raster picture in a folder as AVIF and WebP at each width up to its own, and images.json with the srcset of each.",
+      effect: "private",
+      examples: ["ouro-images site/showcase --out site/public/showcase --widths 640,960,1280 --base /showcase/"],
+      args: [{ name: "folder", description: "The folder of pictures.", required: true }],
+      flags: {
+        out: { type: "string", placeholder: "<folder>", description: "Where the pictures and images.json go (default public/images)." },
+        widths: { type: "list", placeholder: "<320,640>", description: "The widths written below each picture's own (default 320,640,960,1280,1920,2560,3840,5120)." },
+        formats: { type: "list", placeholder: "<avif,webp>", description: "The formats, the fallback last (default avif,webp)." },
+        base: { type: "string", placeholder: "<prefix>", description: "What each address in a srcset starts with, such as /images/ (default none)." },
+        quality: { type: "number", min: 1, max: 100, description: "The encoder's quality, from 1 to 100 (default 70)." },
+        "max-width": {
+          type: "number",
+          min: 1,
+          placeholder: "<px>",
+          description: "The widest, in CSS pixels, the pictures are drawn; a picture narrower than twice it is refused, and gets no files.",
+        },
+        "min-long-edge": {
+          type: "number",
+          min: 1,
+          placeholder: "<px>",
+          description: "The fewest pixels a picture's long edge may have (default 2048 in a folder named hero, heroes, scene or scenes, else none); a smaller one is refused.",
+        },
+      },
+      output: "{ manifest, written, kept, skipped, pictures }",
+      run: (input) => runImages(cli, cwd, input),
+      text: (report) => reportText(report as ImagesReport),
+    }),
+  });
+  return cli;
+}
+
+// The command: returns the exit code. The kit parses the arguments, prints the result or the one error line, and exits.
+async function main(argv: readonly string[], { cwd, ...io }: CliIo & { cwd: string }): Promise<number> {
+  return runCli(imagesTool(cwd), argv, io);
 }
 
 /* node:coverage disable */
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
-  process.exitCode = await main(process.argv.slice(2), { cwd: process.cwd(), log: console.log, error: console.error });
+  quietPipes(process);
+  process.exitCode = await main(process.argv.slice(2), { cwd: process.cwd(), stdout: process.stdout, stderr: process.stderr });
 }
 /* node:coverage enable */
