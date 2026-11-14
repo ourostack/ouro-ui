@@ -58,7 +58,22 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 The A2UI `action` message a pressed button sends: named after the action's id, with the prepared input as its context.
 
 ```ts
-type A2UIActionMessage = ReturnType<typeof actionMessage>;
+interface A2UIActionMessage {
+  version: string;
+  action: {
+    /** The action's id, which is also its MCP tool's name. */
+    name: string;
+    surfaceId: string;
+    sourceComponentId: string;
+    timestamp: string;
+    /** The button's label, as the person read it. */
+    userMessage: string;
+    /** The input the agent prepared, by field name. */
+    context: Record<string, unknown>;
+    /** That the person pressed it, its consent class, and for a consequential action that the person confirmed. */
+    metadata: { extensions: { bot_ouroboros_action: { consent: string; by: "person"; confirmed?: true } } };
+  };
+}
 ```
 
 ### `A2UIHandoff`
