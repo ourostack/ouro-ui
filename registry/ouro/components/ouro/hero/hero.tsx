@@ -133,10 +133,13 @@ export interface HeroOwnProps {
   layout?: HeroLayout | (string & { 'Use "stage", "column" or "split"': never }) | undefined;
   /**
    * `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The
-   * rise is a CSS animation, so it plays from server-rendered HTML before any JavaScript runs; the
-   * keyframes and durations come from `ouro-base`.
+   * rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from
+   * server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to
+   * import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`,
+   * `--ouro-duration-fast` and `--ouro-ease-out`.
    *
    * @claim "so it plays from server-rendered HTML" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in from server-rendered HTML before any JavaScript runs, and only fades it with reduced motion)
+   * @claim "it needs no keyframes and no stylesheet" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes: its own transition, on ouro-base's durations and easing)
    * @default "rise"
    */
   motion?: "rise" | "none" | (string & { 'Use "rise" or "none"': never }) | undefined;
@@ -159,8 +162,10 @@ export interface HeroOwnProps {
 /** Props for {@link Hero}: its own props and the `<header>` attributes it passes through. */
 export type HeroProps = Omit<HTMLAttributes<HTMLElement>, keyof HeroOwnProps> & HeroOwnProps;
 
+// The rise is a transition from @starting-style, in the hero's own classes, so it needs no keyframes
+// and no script. Its durations and easing are ouro-base's tokens, which every app loads.
 const riseMotion =
-  "motion-safe:animate-[ouro-hero-rise_var(--ouro-duration-slow)_var(--ouro-ease-out)_both] motion-reduce:animate-[ouro-hero-fade_var(--ouro-duration-fast)_var(--ouro-ease-out)_both]";
+  "starting:opacity-0 motion-safe:[transition:opacity_var(--ouro-duration-slow)_var(--ouro-ease-out),transform_var(--ouro-duration-slow)_var(--ouro-ease-out)] motion-safe:starting:[transform:translateY(1rem)] motion-reduce:[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)]";
 
 const layoutRoot: Record<HeroLayout, string> = {
   stage:
@@ -412,7 +417,7 @@ export function Hero(props: HeroProps): JSX.Element {
           data-slot="media"
           data-ouro-part="media"
           data-starting-style={rising ? "" : undefined}
-          onAnimationEnd={() => setRising(false)}
+          onTransitionEnd={() => setRising(false)}
           style={pictureStyle}
           className={cn(
             "block w-[var(--hero-width)] overflow-clip rounded-[4px]",

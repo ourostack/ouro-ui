@@ -383,16 +383,47 @@ describe("Hero", () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
   });
 
+  it("rises with no keyframes: its own transition, on ouro-base's durations and easing", async () => {
+    const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
+    const slow = token("--ouro-duration-slow");
+    const fast = token("--ouro-duration-fast");
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      await expect.poll(() => matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(reduced);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const host = document.createElement("div");
+      host.innerHTML = renderToString(
+        <div>
+          <Hero title="Rise" picture={pair(wide)} />
+        </div>,
+      );
+      document.body.append(host);
+      mounted.push(host);
+      const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      expect(getComputedStyle(media).animationName).toBe("none");
+      // One easing per property the transition runs, each of them ouro-base's ease-out.
+      const easings = getComputedStyle(media).transitionTimingFunction.split(/, (?=[a-z])/);
+      expect(new Set(easings)).toEqual(new Set(["cubic-bezier(0.23, 1, 0.32, 1)"]));
+      await expectMotion(media, {
+        stem: "hero",
+        state: "data-starting-style",
+        properties: reduced ? { opacity: fast } : { opacity: slow, transform: slow },
+        reduced,
+      });
+    }
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+  });
+
   it("does not move the picture in at all when motion is none", async () => {
     const { part } = await render(<Hero title="Still" picture={pair(wide)} motion="none" />);
     expect(part("media")!).not.toHaveAttribute("data-starting-style");
   });
 
-  it("gives the picture its rise animation by default, and none with motion none", async () => {
+  it("gives the picture its rise by default, and none with motion none", async () => {
     const rising = await render(<Hero title="Rise" picture={pair(wide)} />);
-    expect(rising.part("media")!.className).toContain("animate-[ouro-hero-rise");
+    expect(rising.part("media")!.className).toContain("starting:opacity-0");
     const still = await render(<Hero title="Still" picture={pair(wide)} motion="none" />);
-    expect(still.part("media")!.className).not.toContain("animate-[ouro-hero");
+    expect(still.part("media")!.className).not.toContain("starting:");
   });
 
   it("applies each layout's classes to its own parts only", async () => {
@@ -524,7 +555,7 @@ describe("Hero", () => {
     }
     const still = await render(<Hero title="Still" media={<video data-testid="clip" />} motion="none" />);
     expect(still.part("media")!).not.toHaveAttribute("data-starting-style");
-    expect(still.part("media")!.className).not.toContain("animate-[ouro-hero");
+    expect(still.part("media")!.className).not.toContain("starting:");
   });
 
   it("shows the picture and warns when picture and media are both set", async () => {
