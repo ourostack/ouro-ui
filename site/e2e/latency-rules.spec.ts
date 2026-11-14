@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, pastCap, runnerFactor, splitPress, summarise } from "./latency";
+import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPress, summarise } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -7,10 +7,19 @@ import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePr
 
 const at = (value: number, count: number) => Array<number>(count).fill(value);
 
-test("the p95 of 40 presses is the 38th: two of 40 over 100 ms pass, three fail", () => {
+test("the p95 of 40 presses is the 38th: two of 40 over the bound pass, three fail", () => {
   expect(summarise([...at(56, 38), 152, 112], 64).p95).toBe(56);
-  expect(summarise([...at(56, 37), 152, 112, 104], 64).p95).toBe(104);
-  expect(summarise([...at(56, 37), 152, 112, 104], 64).within).toBe(false);
+  expect(summarise([...at(56, 37), 152, 120, 112], 64).p95).toBe(112);
+  expect(summarise([...at(56, 37), 152, 120, 112], 64).within).toBe(false);
+});
+
+test("the p95 bound is rounded to the nearest 8 ms step, as Event Timing rounds each duration, ties up", () => {
+  expect(p95Bound(1)).toBe(104);
+  expect(p95Bound(1.19)).toBe(120);
+  expect(p95Bound(1.12)).toBe(112);
+  // A sample one step over the raw bound but on the rounded one passes: orders on ourostack/ouro-ui#1232, 120 against 119.
+  expect(summarise([...at(88, 18), 120, 120], 64, 1.19).within).toBe(true);
+  expect(summarise([...at(88, 18), 128, 128], 64, 1.19).within).toBe(false);
 });
 
 test("a control is pressed more only when its first 20 fail on the p95 alone and all of them could still be within it", () => {
@@ -19,7 +28,7 @@ test("a control is pressed more only when its first 20 fail on the p95 alone and
   // Two of 20 over 100 ms (ourostack/ouro-ui#463's radio-code): 20 more, and the 40 are judged together.
   expect(morePresses([88, 88, 80, 80, 80, 88, 88, 112, 80, 80, 80, 112, 80, 64, 88, 80, 80, 56, 72, 72], 64)).toBe(true);
   // Three over: the p95 of 40 allows two, so this already fails and is not pressed again.
-  expect(morePresses([...at(56, 17), 104, 112, 120], 64)).toBe(false);
+  expect(morePresses([...at(56, 17), 112, 120, 128], 64)).toBe(false);
   // A median over its ceiling: a slow press or two cannot move it, so it fails at once, every press under 100 ms or not.
   expect(morePresses(at(56, 20), 24)).toBe(false);
   expect(morePresses([...at(56, 18), 152, 112], 24)).toBe(false);
@@ -46,12 +55,12 @@ test("a runner the probe measures slower stretches the bounds by its factor, at 
   // A quarter slower than a quiet runner, and a runner past the cap, judged at the cap.
   expect(runnerFactor(at(80, 10))).toBe(1.25);
   expect(runnerFactor(at(200, 10))).toBe(LATENCY.maxFactor);
-  // Every press 112 ms: over 100 ms on a quiet runner, within 125 ms on one a quarter slower.
+  // Every press 112 ms: over the quiet runner's bound (104 ms), within 128 ms on one a quarter slower.
   expect(summarise(at(112, 20), 64).within).toBe(false);
   expect(summarise(at(112, 20), 64, 1.25).within).toBe(true);
   // A control that really is slow still fails on the slowest runner the factor allows for.
-  expect(summarise(at(152, 20), 64, LATENCY.maxFactor).within).toBe(false);
-  expect(() => expectWithinBudget("slow on a slow runner", at(152, 20), 64, LATENCY.maxFactor)).toThrow();
+  expect(summarise(at(160, 20), 64, LATENCY.maxFactor).within).toBe(false);
+  expect(() => expectWithinBudget("slow on a slow runner", at(160, 20), 64, LATENCY.maxFactor)).toThrow();
   // The median's ceiling stretches too: twice the baseline, times the factor.
   expect(summarise(at(80, 20), 32, 1.25).within).toBe(true);
   expect(summarise(at(88, 20), 32, 1.25).within).toBe(false);
