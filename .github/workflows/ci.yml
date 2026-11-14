@@ -219,10 +219,13 @@ jobs:
             export PR_BODY="$live"
           fi
           if [ -n "$BASE_REF" ]; then
-            git fetch --no-tags --depth=1 origin "$BASE_REF"
-            CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
-            REAL_CLOCK_BASE_REF="origin/$BASE_REF" node scripts/real-clock-ratchet.mjs
-            CLAIMS_BASE_REF="origin/$BASE_REF" pnpm claims:check --network=changed
+            # The checkout is GitHub's merge of the pull request into its base, so the base is that merge's first
+            # parent: main as the merge saw it. Main's tip can be newer (it moved since, or this is a re-run), and
+            # its changes would then read as the pull request's.
+            git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+            CLAIMS_BASE_REF="HEAD^1" node scripts/claims.mjs ratchet
+            REAL_CLOCK_BASE_REF="HEAD^1" node scripts/real-clock-ratchet.mjs
+            CLAIMS_BASE_REF="HEAD^1" pnpm claims:check --network=changed
           else
             pnpm claims:check
           fi
