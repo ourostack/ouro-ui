@@ -117,6 +117,36 @@ describe("Hero", () => {
     expect(part("description")!.querySelectorAll("p")).toHaveLength(2);
   });
 
+  it("clears the outer margins of the lede's first and last blocks, and keeps the space between them", async () => {
+    // A site's prose styles, in a layer below Tailwind's utilities, as a stylesheet of its own would set them.
+    const prose = document.createElement("style");
+    prose.textContent = "@layer components { .hero-prose p { margin: 1em 0; } }";
+    document.head.append(prose);
+    try {
+      const { part } = await render(
+        <div className="hero-prose">
+          <Hero
+            title="Dinner"
+            description={
+              <>
+                <p>Plan the week.</p>
+                <p>Shop once.</p>
+              </>
+            }
+          />
+        </div>,
+      );
+      const [first, last] = [...part("description")!.querySelectorAll("p")].map((p) => getComputedStyle(p));
+      expect(first!.marginTop).toBe("0px");
+      expect(last!.marginBottom).toBe("0px");
+      expect(first!.marginBottom).toBe(first!.fontSize);
+      const own = await render(<Hero title="Own" description={<p className="mt-4">Plan the week.</p>} />);
+      expect(getComputedStyle(own.part("description")!.querySelector("p")!).marginTop).toBe("16px");
+    } finally {
+      prose.remove();
+    }
+  });
+
   it("renders the title as an h2 when it heads a section", async () => {
     const { header } = await render(<Hero title="Plans" headingLevel={2} />);
     expect(header.querySelector("h2")!.textContent).toBe("Plans");

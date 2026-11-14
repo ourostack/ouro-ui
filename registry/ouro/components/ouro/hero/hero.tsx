@@ -120,12 +120,14 @@ export interface HeroOwnProps {
   badge?: ReactNode;
   /**
    * The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as
-   * paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the
+   * paragraphs or a list, is set in a `<div>` so it can hold blocks, and Hero clears its first
+   * block's top margin and its last block's bottom margin, so a paragraph needs no `m-0`. It runs the full width of the
    * hero's text column, like the title. Its lines are balanced to even lengths in every layout, so
    * the last line is never left short; a lede longer than the browser balances, a few lines, wraps
    * as usual. To choose where a lede breaks, set each phrase in its own `inline-block` span,
    * as the `LongLede` story does.
    *
+   * @claim "and Hero clears its first" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > clears the outer margins of the lede's first and last blocks, and keeps the space between them)
    * @claim "Its lines are balanced to even lengths" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > balances the lede in each layout, so its last line is never short)
    *
    * @claim "It runs the full width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > runs the lede the full width of the text column in each layout)
@@ -492,6 +494,8 @@ export function Hero(props: HeroProps): JSX.Element {
             data-slot="description"
             className={cn(
               "m-0 text-base leading-7 text-balance text-muted-foreground min-[40rem]:text-lg min-[40rem]:leading-8",
+              // In the reset layer, so a margin class the app puts on a paragraph still wins.
+              "[@layer_ouro-reset]:[&>:first-child]:mt-0 [@layer_ouro-reset]:[&>:last-child]:mb-0",
             )}
           >
             {description}
