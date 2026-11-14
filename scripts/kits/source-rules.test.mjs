@@ -30,6 +30,8 @@ describe("findOffendersInSource: each category", () => {
             "render-index",
             "gated-load",
             "vague-failure-copy",
+            "hand-drawn-avatar",
+            "hand-drawn-presence-dot",
             "uses-hand-rolled-control",
         ]);
     });
@@ -231,6 +233,39 @@ describe("findOffendersInSource: each category", () => {
         }`;
             expect(scan(source)).toEqual([]);
         });
+    });
+});
+describe("hand-drawn avatar and presence dot", () => {
+    it("finds a round picture drawn by hand, and names Avatar", () => {
+        expect(categories(`export function A() { return <img className="size-8 rounded-full object-cover" src="a.jpg" alt="Ana" />; }`)).toEqual(["hand-drawn-avatar"]);
+        expect(categories(`export function A() { return <div className="h-10 w-10 overflow-hidden rounded-full">AL</div>; }`)).toEqual(["hand-drawn-avatar"]);
+    });
+    it("finds a round picture that takes its size from elsewhere", () => {
+        expect(categories(`export function A({ url }) { return <img src={url} alt="" className="rounded-full" />; }`)).toEqual(["hand-drawn-avatar"]);
+    });
+    it("leaves pills, icon badges and square pictures alone", () => {
+        expect(scan(`export function A() { return <img src="a.png" alt="" className="block rounded-sm" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span className="rounded-full bg-card px-3 py-1 text-xs">Today</span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span role="img" aria-label="Muted" className="flex size-7 items-center justify-center rounded-full bg-white"><svg /></span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span aria-hidden="true" className="h-5 w-1 shrink-0 rounded-full" />; }`)).toEqual([]);
+    });
+    it("finds an empty round dot, a presence dot by hand", () => {
+        expect(categories(`export function A() { return <span className="size-2.5 rounded-full bg-green-500" />; }`)).toEqual(["hand-drawn-presence-dot"]);
+    });
+    it("leaves a small round element with no fill, or with content, and a square picture box alone", () => {
+        expect(scan(`export function A() { return <span className="size-2 rounded-full" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span className="size-2 rounded-full bg-red-500">x</span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <div className="size-8 overflow-hidden rounded-md">x</div>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <img className="size-8 rounded" alt="" src="a.png" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <img className="size-8 object-cover" alt="" src="a.png" />; }`)).toEqual([]);
+        expect(categories(`export function A() { return <img className="size-8 rounded-lg" alt="" src="a.png" />; }`)).toEqual(["hand-drawn-avatar"]);
+        expect(scan(`export function A() { return <img className="size-8 rounded-sm" alt="" src="a.png" />; }`)).toEqual([]);
+    });
+    it("leaves Ouro's Avatar, ordinary layout and other rounding alone", () => {
+        expect(scan(`import { Avatar } from "~/components/ouro/avatar/avatar"; export function A() { return <Avatar name="Ana" className="size-8 rounded-full" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <div className="rounded-lg p-4 h-4 w-full">x</div>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <div className="size-8 rounded-lg bg-muted">x</div>; }`)).toEqual([]);
+        expect(categories(`export function A() { return <span className="size-4 rounded-full border-2 animate-spin" />; }`)).toEqual(["content-spinner"]);
     });
 });
 describe("content-spinner", () => {

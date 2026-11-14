@@ -1,0 +1,1 @@
+- New: Composer's `hideSendDisabledReason` keeps sending off, with its reason for screen readers and on Enter, without drawing the reason line under the box.

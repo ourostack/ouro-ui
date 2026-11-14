@@ -40,7 +40,7 @@ export const SITE_SECTIONS: readonly MenuSection[] = [
     hint: "Install it, switch to it, keep it fresh",
     pages: [
       { label: "Switching from shadcn", href: "/docs/switching-from-shadcn/" },
-      { label: "Updating installed components", href: "/docs/updating/" },
+      { label: "Updating components", href: "/docs/updating/" },
     ],
   },
   // Ouro UI's two halves, side by side: HX's components, then AX. HX keeps the place Components had, after Guides, so on a

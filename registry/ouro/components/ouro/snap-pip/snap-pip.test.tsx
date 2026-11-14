@@ -12,6 +12,18 @@ import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcemen
 import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
+/** Tab from the top of the page, as from a fresh load: blur() alone leaves Chromium 158 tabbing on from the blurred element. */
+async function tabFromTop() {
+  const start = document.createElement("button");
+  start.type = "button";
+  start.textContent = "Start";
+  start.dataset["testHarness"] = "";
+  document.body.prepend(start);
+  start.focus();
+  await pressTab();
+  start.remove();
+}
+
 // Most drags here are dispatched pointer events, each with a time the test sets, so a release is
 // exactly as fast as the test says and runs the same in Chromium and WebKit. The real mouse throws
 // and drags (`commands.flick`, `commands.drag`) are Chromium's.
@@ -198,8 +210,7 @@ describe("SnapPiP", () => {
     expect(document.activeElement).toBe(element);
     expect(hintShown()).toBe(false);
     await park();
-    element.blur();
-    await pressTab();
+    await tabFromTop();
     expect(document.activeElement).toBe(element);
     expect(hintShown()).toBe(true);
     expect(shown.getAttribute("data-open")).toBe("");
@@ -386,8 +397,28 @@ describe("SnapPiP", () => {
     // Never wider than the stage less its inset on each side.
     expect([widthFor(300, "large", 16), widthFor(150, "small", 16), widthFor(20, "small", 16)]).toEqual([240, 118, 0]);
     const element = await render(self({ aspectRatio: 9 / 16 }));
+    // What the stage's resizes and the frames did while the width was awaited: once in a while WebKit keeps the narrow
+    // width for the whole wait (ourostack/ouro-ui#919), and the failure says which of them stopped.
+    const seen: number[] = [];
+    const watch = new ResizeObserver((entries) => void seen.push(Math.round(entries[0]!.contentRect.width)));
+    watch.observe(stage);
+    let ticks = 0;
+    let ticking = true;
+    const tick = () => {
+      ticks++;
+      if (ticking) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
     stage.style.width = "1200px";
-    await expect.poll(() => element.getBoundingClientRect().width).toBe(200);
+    try {
+      await expect.poll(() => element.getBoundingClientRect().width).toBe(200);
+    } catch (problem) {
+      /* istanbul ignore next @preserve -- only when the wait fails */
+      throw new Error(`${(problem as Error).message}; a second observer on the stage saw widths [${seen.join(", ")}], the stage is ${stage.clientWidth}px wide, ${ticks} frames ran, and the page is ${document.visibilityState}`, { cause: problem });
+    } finally {
+      ticking = false;
+      watch.disconnect();
+    }
     expect(element.getBoundingClientRect().height).toBeCloseTo((200 * 16) / 9, 0);
   });
 

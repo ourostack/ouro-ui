@@ -329,51 +329,51 @@
   },
   "https://github.com/ourostack/ouro-ui/releases": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.2.0": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.3.0": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.3.1": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0": {
     "status": 200,
-    "checked": "2026-11-08"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.3": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.0.0": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.0.2": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.1.0": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.2.2": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7": {
     "status": 200,
@@ -381,7 +381,7 @@
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33-L53": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/transformers/transform-rsc.ts#L4-L15": {
     "status": 200,
@@ -389,7 +389,7 @@
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/updaters/update-css-vars.ts#L91-L124": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/updaters/update-dependencies.ts#L177-L206": {
     "status": 200,
@@ -449,7 +449,7 @@
   },
   "https://ui.shadcn.com/docs/cli": {
     "status": 200,
-    "checked": "2026-11-06"
+    "checked": "2026-11-13"
   },
   "https://ui.shadcn.com/docs/components": {
     "status": 200,

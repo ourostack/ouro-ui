@@ -22,12 +22,7 @@ export default function AppleHome(): JSX.Element {
       <Hero
         layout="split"
         eyebrow="Ouro UI for Apple"
-        title={
-          <>
-            Same manners,
-            <br /> now in Swift.
-          </>
-        }
+        title="Same manners, now in Swift."
         description={
           <div className="grid gap-3">
             <p>

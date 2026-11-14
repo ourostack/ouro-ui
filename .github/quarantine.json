@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "project": "ouro-webkit",
+    "file": "registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx",
+    "title": "SnapPiP > sizes itself from the container's width, small and large",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/919",
+    "owner": "ouro-ui issue drain"
+  }
+]
