@@ -84,5 +84,5 @@ test("pnpm test:scripts and the script test shards warn about anything a run lea
   assert.doesNotMatch(clean.logged, /::warning::/);
   assert.equal(clean.logged, "");
   assert.deepEqual(temps(), before, "each run removes its temp folder");
-  assert.match(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"], /^node scripts\/run-script-tests\.mjs /);
+  assert.equal(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"], "node scripts/run-script-tests.mjs");
 });

@@ -113,7 +113,7 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
   };
   const looks = (el: Element) => {
     const inside = [...el.querySelectorAll("*")].slice(0, 12);
-    // A ring drawn on an overlay beside the control, as CodeBlock draws its code's ring over the code's cell.
+    // A ring drawn on an overlay beside the control, which paints over it.
     const beside = [...el.parentElement!.children].filter((n) => n !== el).slice(0, 12);
     return [el, ...around(el), ...beside, ...inside].flatMap((n) => [look(n), look(n, "::before"), look(n, "::after")]).join("\n");
   };
