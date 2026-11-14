@@ -24,7 +24,8 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --input: oklch(0.922 0 0);
-  --radius: 0.625rem;
+  --radius: 0.9375rem;
+  --ouro-corner-shape: squircle;
   --destructive-foreground: #ffffff;
   --success: #157d3c;
   --success-foreground: #ffffff;
