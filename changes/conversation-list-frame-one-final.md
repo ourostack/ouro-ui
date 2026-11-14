@@ -1,0 +1,1 @@
+- Fixed: ConversationList's first frame is final again, since rows and sections it painted stay until the list scrolls or resizes, and switching the open conversation reads no layout in its commit.
