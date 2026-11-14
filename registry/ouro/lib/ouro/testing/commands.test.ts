@@ -49,17 +49,16 @@ test("emulateMedia throws, naming the query, when the frame never matches it", a
 }, 20_000);
 
 test("emulateMedia names the query the frame never matched, even when its last read does not answer", async () => {
-  // The query never matches, and once the wait is nearly over, one read holds the frame past the time a read may take,
-  // as a loaded runner can.
+  // The query never matches, and the first read after 6 s holds the frame until 14 s after the start, as a loaded runner
+  // can: past the 10 s wait and the 3 s a read may take, however late in the wait that read began.
   const real = window.matchMedia;
   const start = performance.now();
   let stalled = false;
   window.matchMedia = ((query: string) => {
     if (query !== "(prefers-reduced-motion: reduce)") return real.call(window, query);
-    if (!stalled && performance.now() - start > 9000) {
+    if (!stalled && performance.now() - start > 6000) {
       stalled = true;
-      const until = performance.now() + 3500;
-      while (performance.now() < until);
+      while (performance.now() < start + 14_000);
     }
     return { matches: false };
   }) as typeof window.matchMedia;
