@@ -298,10 +298,9 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   const fit = () => {
     const textarea = textareaRef.current!;
     if (autoGrow && native) fitHeightNative(textarea, rows, maxRows);
-    else if (autoGrow) {
-      fitHeight(textarea, rows, maxRows);
+    else if (autoGrow) fitHeight(textarea, rows, maxRows);
     // Stryker disable next-line ConditionalExpression: clearing styles that were never set changes nothing.
-    } else if (grew.current) {
+    else if (grew.current) {
       textarea.style.height = "";
       textarea.style.overflowY = "";
       textarea.style.removeProperty("field-sizing");
@@ -344,8 +343,9 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-    // Stryker disable next-line ArrayDeclaration: an empty list keeps the first rows and maxRows, which the width refit tests change.
-  }, [autoGrow, native, rows, maxRows]);
+  },
+  // Stryker disable next-line ArrayDeclaration: an empty list keeps the first rows and maxRows, which the width refit tests change.
+  [autoGrow, native, rows, maxRows]);
 
   const setRef = useMergedRef(ref, textareaRef);
   const descriptionId = useId();
