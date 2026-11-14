@@ -106,6 +106,14 @@ export interface HeroOwnProps {
    */
   mediaWidth?: number | undefined;
   /**
+   * Stretches the hero to the width of its container, with no gutter or cap of its own, for a hero
+   * inside a page column that already sets the width. Without it the hero keeps a gutter at either
+   * side and caps its width.
+   *
+   * @claim "Stretches the hero to the" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > takes its container's width with fullWidth, with no gutter or cap of its own)
+   */
+  fullWidth?: boolean | undefined;
+  /**
    * `stage` centres the text over the picture; `column` aligns both to a reading column; `split` puts the copy and the media side by side from 64rem, and stacks them like `column` below that, for a page whose picture or live media belongs next to its words.
    *
    * @claim "puts the copy and the media side by side from 64rem" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > switches to the split layout, with copy and media side by side from 64rem)
@@ -150,6 +158,13 @@ const layoutRoot: Record<HeroLayout, string> = {
   split: "mx-auto w-[calc(100%_-_2rem)] pt-10 [--hero-width:100%] min-[40rem]:w-[min(75rem,calc(100%_-_4rem))] min-[40rem]:pt-12",
 };
 
+// A full-width hero takes its container's width: no gutter and no cap.
+const fullWidthRoot: Record<HeroLayout, string> = {
+  stage: "[--hero-width:100%]",
+  column: "[--hero-width:100%]",
+  split: "w-full pt-10 [--hero-width:100%] min-[40rem]:pt-12",
+};
+
 // Split sets the copy and the media side by side only when there is media to set beside it.
 const splitColumns = "min-[64rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] min-[64rem]:items-center min-[64rem]:gap-16";
 
@@ -158,6 +173,8 @@ const layoutText: Record<HeroLayout, string> = {
   column: "mx-auto grid w-[var(--hero-width)] justify-items-start gap-4 text-start pt-10 min-[40rem]:pt-12",
   split: "grid w-[var(--hero-width)] min-w-0 justify-items-start gap-4 text-start",
 };
+
+const fullWidthStageText = "mx-auto grid w-full justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12";
 
 const layoutActions: Record<HeroLayout, string> = {
   stage: "justify-center",
@@ -248,6 +265,7 @@ export function Hero(props: HeroProps): JSX.Element {
     picture,
     media,
     mediaWidth,
+    fullWidth = false,
     layout: layoutProp = "stage",
     motion: motionProp = "rise",
     headingLevel: headingLevelProp = 1,
@@ -336,9 +354,9 @@ export function Hero(props: HeroProps): JSX.Element {
       {...rest}
       data-ouro="hero"
       data-layout={layout}
-      className={cn("grid min-w-0", layoutRoot[layout], layout === "split" && shown != null && splitColumns, className)}
+      className={cn("grid min-w-0", (fullWidth ? fullWidthRoot : layoutRoot)[layout], layout === "split" && shown != null && splitColumns, className)}
     >
-      <div className={layoutText[layout]}>
+      <div className={fullWidth && layout === "stage" ? fullWidthStageText : layoutText[layout]}>
         {eyebrow != null ? (
           <p data-slot="eyebrow" className="m-0 text-sm leading-5 font-medium text-muted-foreground">
             {eyebrow}
