@@ -302,6 +302,43 @@ describe("TextArea autoGrow", () => {
     expect(textarea.style.maxHeight).toBe("");
   });
 
+  describe("on the measured path", () => {
+    const safari = "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+    const frames = async (n: number) => {
+      for (let i = 0; i < n; i++) await new Promise((resolve) => requestAnimationFrame(resolve));
+    };
+    afterEach(() => vi.restoreAllMocks());
+
+    it("fits an uncontrolled field as it is typed in", async () => {
+      vi.spyOn(navigator, "userAgent", "get").mockReturnValue(safari);
+      const { textarea } = await render(<TextArea label="Notes" autoGrow rows={1} maxRows={6} />);
+      await userEvent.fill(textarea, "a\nb\nc");
+      expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+    });
+
+    it("refits when the width changes, with the rows it has now", async () => {
+      vi.spyOn(navigator, "userAgent", "get").mockReturnValue(safari);
+      const long = "word ".repeat(40);
+      const { host, textarea, rerender } = await render(<TextArea label="Notes" autoGrow rows={1} maxRows={20} defaultValue={long} />);
+      await rerender(<TextArea label="Notes" autoGrow rows={4} maxRows={20} defaultValue={long} />);
+      host.style.width = "900px";
+      await expect.poll(() => height(textarea)).toBeLessThan(linesHeight(textarea, 10));
+      host.style.width = "360px";
+      await expect.poll(() => height(textarea)).toBeGreaterThan(linesHeight(textarea, 3));
+    });
+
+    it("does not watch the width when the browser does the sizing, or when the field does not grow", async () => {
+      const long = "word ".repeat(40);
+      const grown = await render(<TextArea label="Notes" autoGrow rows={1} maxRows={20} defaultValue={long} />);
+      const fixed = await render(<TextArea label="Notes" rows={2} defaultValue={long} />);
+      grown.host.style.width = "900px";
+      fixed.host.style.width = "900px";
+      await frames(4);
+      expect(fixed.textarea.style.height).toBe("");
+      if (supportsFieldSizing()) expect(grown.textarea.style.height).toBe("");
+    });
+  });
+
   it("hands the height to the browser: it clears the inline height and overflow, and caps only with maxRows", async () => {
     const { textarea } = await render(<TextArea label="Notes" rows={2} />);
     textarea.style.height = "99px";
