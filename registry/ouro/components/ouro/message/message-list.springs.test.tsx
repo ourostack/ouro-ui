@@ -21,6 +21,8 @@ const SPRING = { response: 0.42, damping: 0.72 };
 const roots: Root[] = [];
 const nodes: Element[] = [];
 afterEach(async () => {
+  // Each test's requestAnimationFrame spy comes down here, so the next test counts only its own calls.
+  vi.restoreAllMocks();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of nodes.splice(0)) node.remove();
   await commands.emulateMedia({ reducedMotion: "no-preference" });

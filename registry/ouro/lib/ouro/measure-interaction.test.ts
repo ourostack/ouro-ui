@@ -159,14 +159,17 @@ describe("onInteraction", () => {
     const reports = listen();
     const button = document.createElement("button");
     button.textContent = "Slow";
+    const busy = 60;
     button.addEventListener("click", () => {
-      const until = performance.now() + 60;
+      const until = performance.now() + busy;
       while (performance.now() < until);
       button.textContent = "Done";
     });
     document.body.append(button);
     await userEvent.click(button);
-    await expect.poll(() => reports.find((report) => report.target === button)?.durationMs ?? 0).toBeGreaterThanOrEqual(60);
+    // Event Timing gives a duration in 8 ms steps, so a press of 60 to 63 ms can read 56 (WebKit did): the floor is the
+    // handler's own time, less one step.
+    await expect.poll(() => reports.find((report) => report.target === button)?.durationMs ?? 0).toBeGreaterThanOrEqual(busy - 8);
   });
 });
 

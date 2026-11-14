@@ -64,6 +64,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.45:** `ax-xray` runs on the Ouro AX kit, and its `--json` report is unchanged, but under `--json` a refused option now prints its error as JSON on stdout, where it printed nothing, so a script that reads `xray.json` must gate on the exit code.[^upgrade-xray-ax]
 
+- **After v1.3.49 (Dialog):** a `Dialog` opened from the keyboard whose body has nothing to focus now gives first focus to a field in its footer (an input, a text area or a select), where it gave it to Close, so a test that expected Close there now finds the field.[^upgrade-dialog-footer-field]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -172,3 +174,4 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-images-ax]: scripts/registry.mts; scripts/images/images.test.mts verify:fileLine(scripts/registry.mts, /@lib\/ouro\/images\//) verify:testExists(scripts/images/images.test.mts::Ouro images' command > refuses what it cannot run with one line that names the fix, and exits 2)
 [^upgrade-check-ax]: scripts/registry.mts; scripts/check/check.test.mts verify:fileLine(scripts/registry.mts, /@lib\/ouro\/check\//) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > reads every option, and refuses what it cannot run) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > prints the kit's help for --help, and refuses an unknown flag in one line that names its fix, with exit 2) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > refuses a target that is no folder or URL in one line that names the fix, and a mistyped merge names merge) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > --json prints the outcome alone and exits 3 on gated findings, with the progress lines on stderr)
 [^upgrade-wrap-checks]: registry/ouro/check/wrap-check.ts verify:fileLine(registry/ouro/check/check.ts, /^import \{ findWrapIssues, readHeroArt, type HeroArt \} from "\.\/wrap-check\.ts";$/) verify:testExists(test/check-wrap-in-page.test.ts::findWrapIssues: lone-word > finds a block whose last line holds one word, a hyphen's piece included, in a scroller too, named by its words)
+[^upgrade-dialog-footer-field]: registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::first focus with a field in the footer > puts first focus on a footer field, not on Close, when the body has no control)
