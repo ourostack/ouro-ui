@@ -176,7 +176,7 @@ function Halves(): JSX.Element {
   );
 }
 
-/** The first viewport: Ouro's meadow with the headline in its sky, then how to add HX and the porthole stage beneath it. */
+/** The first viewport: Ouro's meadow with the headline above it, then how to add HX and the porthole stage beneath it. */
 export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
   return (
     <>
