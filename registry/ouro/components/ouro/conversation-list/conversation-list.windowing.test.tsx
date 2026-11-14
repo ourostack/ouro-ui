@@ -33,13 +33,16 @@ afterEach(async () => {
 });
 
 /** Renders into a 360 by 400 pixel pane that scrolls, as an app's sidebar does, under a header 60 pixels tall. */
-async function render(node: ReactNode, height = 400) {
+async function render(node: ReactNode, height = 400, scrollsOutside = false) {
   const header = document.createElement("div");
   header.style.height = "60px";
   const pane = document.createElement("div");
   pane.style.cssText = `width: 360px; height: ${height}px; overflow-y: auto`;
-  document.body.append(header, pane);
-  mounted.push(header, pane);
+  const outside = document.createElement("div");
+  outside.style.cssText = "overflow-y: auto";
+  if (scrollsOutside) outside.append(pane);
+  document.body.append(header, scrollsOutside ? outside : pane);
+  mounted.push(header, scrollsOutside ? outside : pane);
   const root = createRoot(pane);
   roots.push(root);
   await act(async () => root.render(node));
@@ -402,6 +405,16 @@ describe("ConversationList windowing", () => {
       .slice(1)
       .map((element) => element.parentElement!.getBoundingClientRect());
     boxes.slice(1).forEach((box, index) => expect(box.top).toBeCloseTo(boxes[index]!.bottom, 0));
+  });
+
+  it("keeps the rows in view where they were when the nearest scrolling box is inside another that scrolls", async () => {
+    const items = many(500, (index) => (index < 30 ? {} : { subtitle: "A second line" }));
+    const { pane, rows } = await render(<ConversationList label="Conversations" items={items} onSelect={() => {}} />, 400, true);
+    await scrollPane(pane, 15000);
+    const scrolled = pane.scrollTop;
+    await scrollPane(pane, scrolled - 500);
+    expect(pane.scrollTop).toBeGreaterThan(scrolled - 500);
+    expect(rows().length).toBeGreaterThan(0);
   });
 
   it("measures compact rows, which are shorter, when the density changes", async () => {
