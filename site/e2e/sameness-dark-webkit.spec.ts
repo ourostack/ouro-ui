@@ -1,3 +1,3 @@
 import { samenessSweep } from "./sameness-sweep";
 
-samenessSweep("light");
+samenessSweep("dark", "webkit");
