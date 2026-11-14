@@ -209,7 +209,9 @@ describe("Emoji", () => {
     expect((animation!.effect as KeyframeEffect).getKeyframes().map((frame) => frame["objectPosition"])).toEqual(["50% 0%", "50% 100%"]);
     await userEvent.hover(elsewhere!);
     await expect.poll(() => img.getAttribute("src")).toBe(blink.src);
-    expect(img.getAnimations()).toEqual([]);
+    // What any animation left running is, so a failure says which one stayed (ourostack/ouro-ui#905).
+    const running = img.getAnimations().map((left) => `${left.constructor.name} ${left.playState} ${JSON.stringify((left.effect as KeyframeEffect | null)?.getKeyframes())}`);
+    expect(running).toEqual([]);
     expect(getComputedStyle(img).objectFit).toBe("contain");
   });
 

@@ -4,7 +4,7 @@ export type { McpCall, McpCallResult, McpOptions, McpTool };
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
-import { checkInput, checkOwner, type Cli, type CommandDef, type Input } from "./command.ts";
+import { checkInput, checkOwner, invocation, type Cli, type CommandDef, type Input } from "./command.ts";
 import { DRY_RUN_FLAG, WHY_FLAG, WHY_PLACEHOLDER, effectAnnotations } from "./effects.ts";
 import { didYouMean, errorJson, errorLine, isAxError, type AxError, type AxErrorShape } from "./problem.ts";
 import { commandManifest } from "./help.ts";
@@ -50,8 +50,8 @@ interface McpTool {
   annotations: { title: string; readOnlyHint: boolean; destructiveHint: boolean; openWorldHint: boolean };
 }
 
-/** "draft set" is the tool draft_set. */
-const toolName = (cmd: CommandDef) => cmd.name.replace(/ /g, "_");
+/** "draft set" is the tool draft_set; a tool defined with `command` is one tool, named after the tool. */
+const toolName = (cli: Pick<Cli, "name" | "single">, cmd: CommandDef) => (cli.single ? cli.name : cmd.name.replace(/ /g, "_"));
 
 function toolsOf(options: McpOptions): CommandDef[] {
   const include = options.include ?? ((c: CommandDef) => !c.hidden);
@@ -64,11 +64,11 @@ function mcpTools(options: McpOptions): McpTool[] {
     const m = commandManifest(cli, cmd);
     const who = cmd.effect === "others" ? `${cli.headings.others}: call it only when a human asked you to, with "${WHY_FLAG}" (${WHY_PLACEHOLDER.slice(1, -1)}).` : `${cli.headings.private}${cmd.readOnly ? "; it changes nothing" : ""}.`;
     return {
-      name: toolName(cmd),
-      title: `${cli.name} ${cmd.name}`,
+      name: toolName(cli, cmd),
+      title: invocation(cli, cmd),
       description: [cmd.summary, who, m.output ? `Returns ${m.output}` : ""].filter(Boolean).join(" "),
       inputSchema: m.inputSchema,
-      annotations: { title: `${cli.name} ${cmd.name}`, ...effectAnnotations(cmd.effect, cmd.readOnly === true) },
+      annotations: { title: invocation(cli, cmd), ...effectAnnotations(cmd.effect, cmd.readOnly === true) },
     };
   });
 }
@@ -79,7 +79,7 @@ const callContext = () => ({ stdin: async () => "", json: true });
 const defaultCall: McpCall = async (cmd, input) => {
   const ctx = callContext();
   if (input[DRY_RUN_FLAG] === true) {
-    if (!cmd.plan) return { ok: false, error: { code: "no-preview", exit: 2, thing: `${toolName(cmd)} ${DRY_RUN_FLAG}`, problem: "this tool has no preview, so nothing was done", fix: null } };
+    if (!cmd.plan) return { ok: false, error: { code: "no-preview", exit: 2, thing: `${cmd.name.replace(/ /g, "_")} ${DRY_RUN_FLAG}`, problem: "this tool has no preview, so nothing was done", fix: null } };
     return { ok: true, data: await cmd.plan(input, ctx) };
   }
   if (!cmd.run) return { ok: false, error: { code: "not-runnable", exit: 1, thing: cmd.name, problem: "this command has no run() in its definition", fix: null } };
@@ -105,7 +105,7 @@ function createMcpHandler(options: McpOptions): (message: unknown) => Promise<Re
   const { cli } = options;
   const maxChars = options.maxChars ?? 20_000;
   const call = options.call ?? defaultCall;
-  const byName = new Map(toolsOf(options).map((c) => [toolName(c), c]));
+  const byName = new Map(toolsOf(options).map((c) => [toolName(cli, c), c]));
   let queue: Promise<unknown> = Promise.resolve();
   const inTurn = <T>(work: () => Promise<T>): Promise<T> => {
     if (options.concurrent) return work();
@@ -147,7 +147,7 @@ function createMcpHandler(options: McpOptions): (message: unknown) => Promise<Re
         }
         let input: Input;
         try {
-          input = checkInput(cli, cmd, params["arguments"] ?? {}, name);
+          input = checkInput(cli, cmd, params["arguments"] ?? {});
         } catch (e) {
           // checkInput throws only AxErrors.
           return ok(toolError((e as AxError).shape));
@@ -159,7 +159,7 @@ function createMcpHandler(options: McpOptions): (message: unknown) => Promise<Re
             return call(cmd, input);
           });
         } catch (e) {
-          const shape: AxErrorShape = isAxError(e) ? e.shape : { code: "error", exit: cli.exits.code("error"), thing: name, problem: e instanceof Error ? e.message : String(e), fix: null };
+          const shape: AxErrorShape = isAxError(e) ? e.shape : { code: "error", exit: cli.exits.code("error"), thing: cmd.name.replace(/ /g, "_"), problem: e instanceof Error ? e.message : String(e), fix: null };
           return ok(toolError(shape));
         }
         if (!result.ok) return ok(toolError(result.error));

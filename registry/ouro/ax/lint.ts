@@ -4,7 +4,7 @@ export type { LintOptions, LintReport };
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
-import { flagsOf, type Cli } from "./command.ts";
+import { flagsOf, invocation, type Cli } from "./command.ts";
 import { WHY_FLAG } from "./effects.ts";
 import { DEFAULT_WIDTH, renderCommand, renderOverview } from "./help.ts";
 
@@ -48,19 +48,21 @@ interface LintReport {
 function lintCli(cli: Cli, options: LintOptions = {}): LintReport {
   const width = options.width ?? DEFAULT_WIDTH;
   const problems: string[] = [];
-  const say = (thing: string, problem: string, fix: string) => problems.push(`${cli.name} ${thing}: ${problem}. Fix: ${fix}.`);
+  const say = (thing: string, problem: string, fix: string) => problems.push(`${[cli.name, thing].filter(Boolean).join(" ")}: ${problem}. Fix: ${fix}.`);
   const long = (text: string) => text.split("\n").find((line) => line.length > width);
   const typed = cli.commands.filter((c) => !c.loose);
   for (const cmd of typed) {
-    if (!cmd.summary.trim()) say(cmd.name, "has no summary", 'summary: "<what it does, in one line>"');
-    if (!cmd.examples?.length) say(cmd.name, "has no example", `examples: ["${cli.name} ${cmd.name} ..."]`);
-    if (cmd.effect === "others" && flagsOf(cli, cmd)[WHY_FLAG]?.required !== true) say(cmd.name, "reaches other people without a required --why", 'drop why: "optional"');
-    if (cmd.effect === "others" && !cmd.plan) say(cmd.name, "reaches other people with no preview for --dry-run", 'plan: (input) => outcome({ state: "planned", ... })');
-    if (cmd.effect === "others" && cmd.readOnly) say(cmd.name, "is a read that other people see", 'effect: "private", or drop readOnly');
-    for (const a of cmd.args ?? []) if (!a.description.trim()) say(cmd.name, `<${a.name}> has no description`, `{ name: "${a.name}", description: "<what it is>" }`);
-    for (const [name, spec] of Object.entries(cmd.flags ?? {})) if (!spec.description.trim()) say(cmd.name, `--${name} has no description`, `${name}: { description: "<what it does>" }`);
+    // A tool with one command has no command word to name, so its problems are the tool's.
+    const thing = cli.single ? "" : cmd.name;
+    if (!cmd.summary.trim()) say(thing, "has no summary", 'summary: "<what it does, in one line>"');
+    if (!cmd.examples?.length) say(thing, "has no example", `examples: ["${invocation(cli, cmd)} ..."]`);
+    if (cmd.effect === "others" && flagsOf(cli, cmd)[WHY_FLAG]?.required !== true) say(thing, "reaches other people without a required --why", 'drop why: "optional"');
+    if (cmd.effect === "others" && !cmd.plan) say(thing, "reaches other people with no preview for --dry-run", 'plan: (input) => outcome({ state: "planned", ... })');
+    if (cmd.effect === "others" && cmd.readOnly) say(thing, "is a read that other people see", 'effect: "private", or drop readOnly');
+    for (const a of cmd.args ?? []) if (!a.description.trim()) say(thing, `<${a.name}> has no description`, `{ name: "${a.name}", description: "<what it is>" }`);
+    for (const [name, spec] of Object.entries(cmd.flags ?? {})) if (!spec.description.trim()) say(thing, `--${name} has no description`, `${name}: { description: "<what it does>" }`);
     const line = long(renderCommand(cli, cmd, width));
-    if (line) say(cmd.name, `its help has a line of ${line.length} columns`, `shorten "${line.trim().slice(0, 40)}..."`);
+    if (line) say(thing, `its help has a line of ${line.length} columns`, `shorten "${line.trim().slice(0, 40)}..."`);
   }
   const over = long(renderOverview(cli, { width }));
   if (over) say("--help", `the overview has a line of ${over.length} columns`, "shorten that command's summary");

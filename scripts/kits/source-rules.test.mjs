@@ -31,6 +31,7 @@ describe("findOffendersInSource: each category", () => {
             "gated-load",
             "hand-drawn-hero",
             "hand-drawn-corner",
+            "hand-drawn-switch",
             "vague-failure-copy",
             "hand-drawn-avatar",
             "hand-drawn-presence-dot",
@@ -2499,5 +2500,20 @@ describe("hand-drawn corner radius", () => {
             'export const E = () => <div className="rounded-[calc(var(--radius)-2px)]">x</div>;',
         ].join("\n");
         expect(categories(source)).toEqual([]);
+    });
+});
+
+describe("hand-drawn switch", () => {
+    it("flags an intrinsic element with role switch, naming the registry Switch", () => {
+        const found = scan('export const A = () => <button role="switch" aria-checked={on} onClick={flip} />;\nexport const B = () => <span role="switch" />;');
+        expect(found.filter((offender) => offender.category === "hand-drawn-switch")).toHaveLength(2);
+    });
+    it("passes a registry Switch, other roles and a component given a role", () => {
+        const source = [
+            'export const A = () => <Switch label="Mute" checked={on} onCheckedChange={setOn} />;',
+            'export const B = () => <div role="status">x</div>;',
+            'export const C = () => <Card role="switch">x</Card>;',
+        ].join("\n");
+        expect(categories(source)).not.toContain("hand-drawn-switch");
     });
 });

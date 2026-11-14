@@ -83,8 +83,8 @@ function serveMcp(options: McpOptions & { input: AsyncIterable<string | Uint8Arr
 
 ### `toolName`
 
-"draft set" is the tool draft_set.
+"draft set" is the tool draft_set; a tool defined with `command` is one tool, named after the tool.
 
 ```ts
-const toolName: (cmd: CommandDef<unknown, RunContext>) => string
+const toolName: (cli: Pick<Cli<RunContext>, "name" | "single">, cmd: CommandDef<unknown, RunContext>) => string
 ```

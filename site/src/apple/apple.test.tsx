@@ -207,11 +207,21 @@ describe("Ouro UI for Apple", () => {
   });
 
   it("control: duel lets Feel double-tap both switches and reports the locked one failing", async () => {
+    await renderPage("/apple/feel/");
+    const go = page.getByRole("button", { name: "Let Feel double-tap both" });
+    await expect.element(go).toBeInTheDocument();
+    // The page settles on the real clock: with setTimeout faked from the render on, what it waits on to come to rest never
+    // ran, and the button stayed in motion under the header until the click timed out (ourostack/ouro-ui#1064). Feel's taps
+    // are timed from the press, so the clock is held from just before it.
+    go.element().scrollIntoView({ block: "center" });
+    const at = () => JSON.stringify(go.element().getBoundingClientRect());
+    await expect.poll(async () => {
+      const before = at();
+      await new Promise((frame) => requestAnimationFrame(() => requestAnimationFrame(frame)));
+      return at() === before;
+    }).toBe(true);
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
-      await renderPage("/apple/feel/");
-      const go = page.getByRole("button", { name: "Let Feel double-tap both" });
-      await expect.element(go).toBeInTheDocument();
       await userEvent.click(go);
       // The button stays focusable while Feel taps, so keyboard focus never falls to the page.
       expect(document.activeElement).toBe(go.element());

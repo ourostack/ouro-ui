@@ -1,0 +1,1 @@
+- Resizable keeps one context value while its panels, labels, sizes and options stay the same, so re-rendering the group leaves memoized content inside it alone.

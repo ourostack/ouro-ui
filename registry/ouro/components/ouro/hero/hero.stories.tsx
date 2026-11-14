@@ -45,6 +45,18 @@ export const Column: Story = {
   args: { layout: "column" },
 };
 
+/** A long centred lede, balanced into even lines. Each phrase is an inline-block span, so the lede breaks between them rather than mid-phrase. */
+export const LongLede: Story = {
+  args: {
+    description: (
+      <>
+        <span style={{ display: "inline-block" }}>Plan the week, shop once and cook with what you already have, so dinner is never a scramble</span>{" "}
+        <span style={{ display: "inline-block" }}>and the fridge never fills with food you forgot you bought last week or the week before.</span>
+      </>
+    ),
+  },
+};
+
 /** A page without a picture, for a plain title and its actions. */
 export const TextOnly: Story = {
   args: { picture: undefined, eyebrow: undefined },

@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
+import { vendored } from "../vendored.mjs";
 import { fileURLToPath } from "node:url";
 import { treeFiles } from "../tree.mjs";
 
@@ -21,6 +22,8 @@ const secondsFile = "scripts/mutation/test-seconds.json";
 /** Whether a path is runtime source the mutation run mutates: component and lib code, not tests, stories, types or the test kit. */
 export function runtimeSource(path) {
   if (!/\.(ts|tsx)$/.test(path) || /\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\.touch\.test\./.test(path)) return false;
+  // A file vendored from core can't take a Stryker comment without breaking its pin (scripts/vendored.mjs).
+  if (vendored.includes(path)) return false;
   if (path.startsWith(componentsDir)) return true;
   return path.startsWith(libDir) && !path.startsWith(`${libDir}testing/`);
 }

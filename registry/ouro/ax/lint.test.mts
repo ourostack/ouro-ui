@@ -44,3 +44,15 @@ test("against the tool's own inventory: a registered command with no declaration
   assert.deepEqual(s.stale, ["watch"]);
   assert.equal(s.ok, false);
 });
+
+test("a tool with one command: its problems name the tool, and its example fix names no command word", () => {
+  const bare = defineCli({ name: "ouro-x", about: ["x"], command: defineCommand({ name: "x", summary: "", effect: "others", args: [{ name: "a", description: "" }], run: () => 1 }) });
+  assert.deepEqual(lintCli(bare).problems, [
+    'ouro-x: has no summary. Fix: summary: "<what it does, in one line>".',
+    'ouro-x: has no example. Fix: examples: ["ouro-x ..."].',
+    "ouro-x: reaches other people with no preview for --dry-run. Fix: plan: (input) => outcome({ state: \"planned\", ... }).",
+    'ouro-x: <a> has no description. Fix: { name: "a", description: "<what it is>" }.',
+  ]);
+  const ok = defineCli({ name: "ouro-x", about: ["x"], command: defineCommand({ name: "x", summary: "Does it.", effect: "private", examples: ["ouro-x a"], args: [{ name: "a", description: "A." }], run: () => 1 }) });
+  assert.deepEqual(lintCli(ok, { inventory: ["x"] }), { typed: ["x"], loose: [], bypassed: [], undeclared: [], stale: [], problems: [], ok: true });
+});

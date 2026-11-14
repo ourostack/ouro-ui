@@ -33,7 +33,7 @@ test("argv parses to the command and typed input: rest text, numbers, enums, --j
 test("help is asked three ways", () => {
   assert.deepEqual(parse(cli, ["help"]), { kind: "help", topic: undefined, json: false });
   assert.deepEqual(parse(cli, ["help", "post", "--json"]), { kind: "help", topic: "post", json: true });
-  assert.deepEqual(parse(cli, ["post", "-h"]), { kind: "help", topic: "post", json: false });
+  assert.deepEqual(parse(cli, ["post", "-h"]), { kind: "help", topic: "post", json: false, command: cli.commands.find((c) => c.name === "post") });
   assert.deepEqual(parse(cli, ["--help"]), { kind: "help", topic: undefined, json: false });
 });
 
@@ -292,7 +292,7 @@ test("-h as a flag's value is the value, a rest list keeps its words apart, and 
     ],
   });
   assert.deepEqual((parse(t, ["calendar", "--category", "-h"]) as Parsed).input, { category: "-h" });
-  assert.deepEqual(parse(t, ["calendar", "--all", "-h"]), { kind: "help", topic: "calendar", json: false });
+  assert.deepEqual(parse(t, ["calendar", "--all", "-h"]), { kind: "help", topic: "calendar", json: false, command: t.commands[0] });
   assert.deepEqual(parse(t, ["--json", "-h"]), { kind: "help", topic: undefined, json: true });
   assert.deepEqual((parse(t, ["tag", "x", "Q&A", "launch plan", "-wip"]) as Parsed).input, { ref: "x", names: ["Q&A", "launch plan", "-wip"] });
   const tag = findCommand(t, ["tag"])!.command;
@@ -387,4 +387,65 @@ test("a person-only word refuses before anything runs, a longer command wins, an
   assert.throws(() => defineCli({ name: "t", about: [], commands: [], personOnly: { share: { reason: " ", how: "x" } } }), /^Error: t: person-only "share" needs reason, one line\. Fix: personOnly: \{ "share": \{ reason: "You can't <do it> for the person; only they can\.", how: "<where the person does it>" \} \}\.$/);
   assert.throws(() => defineCli({ name: "t", about: [], commands: [], personOnly: { share: { reason: "x", how: "a\nb" } } }), /needs how, one line/);
   assert.throws(() => defineCli({ name: "t", about: [], commands: [], personOnly: { share: { reason: "x" } as never } }), /needs how, one line/);
+});
+
+const images = defineCli({
+  name: "ouro-images",
+  about: ["Writes the sizes of a folder of pictures."],
+  command: defineCommand({
+    name: "images",
+    summary: "Write each picture at the sizes the site uses.",
+    effect: "private",
+    examples: ["ouro-images site/showcase --out site/public/showcase"],
+    args: [{ name: "folder", description: "The folder of pictures.", required: true }],
+    flags: { out: { type: "string", description: "Where the sizes go." }, quiet: { type: "boolean", description: "No lines." } },
+    run: (i) => ({ folder: i["folder"], out: i["out"] ?? "." }),
+  }),
+});
+const imagesCommand = images.commands[0]!;
+const refusalOf = (tool: ReturnType<typeof defineCli>, argv: string[]) => {
+  try {
+    parse(tool, argv);
+  } catch (e) {
+    assert.ok(e instanceof AxError);
+    return e.shape;
+  }
+  throw new Error(`${argv.join(" ")} parsed`);
+};
+
+test("a tool with one command reads every token as the command's arguments and flags, with no command word", () => {
+  const p = parse(images, ["site/showcase", "--out", "public", "--quiet"]) as Parsed;
+  assert.equal(p.kind, "run");
+  assert.equal(p.command, imagesCommand);
+  assert.deepEqual(p.input, { folder: "site/showcase", out: "public", quiet: true });
+  assert.equal((parse(images, ["--out", "x", "help"]) as Parsed).input["folder"], "help");
+  assert.equal(usageOf(images, imagesCommand), "<folder> [--out <out>] [--quiet]");
+  assert.deepEqual(toArgv(images, imagesCommand, { folder: "a", out: "b" }), { argv: ["a", "--out", "b"], stdin: null });
+  assert.deepEqual(inputSchema(images, imagesCommand).required, ["folder"]);
+});
+
+test("a one-command tool's refusals and their fixes name no command word", () => {
+  assert.equal(refusalOf(images, ["--out", "x"]).fix, "ouro-images <folder> --out x");
+  assert.equal(refusalOf(images, ["site", "--ou", "x"]).fix, "ouro-images site --out x");
+  assert.equal(refusalOf(images, ["a", "b"]).fix, "ouro-images a");
+  assert.equal(refusalOf(images, ["a", "--out"]).fix, "ouro-images a --out <out>");
+  assert.equal(refusalOf(images, []).fix, "ouro-images <folder>");
+});
+
+test("help is asked for a one-command tool with --help or -h, and the word help is reserved only as the first token", () => {
+  assert.deepEqual(parse(images, ["--help"]), { kind: "help", topic: "images", json: false, command: imagesCommand });
+  assert.deepEqual(parse(images, ["site", "-h"]), { kind: "help", topic: "images", json: false, command: imagesCommand });
+  assert.deepEqual(parse(images, ["help"]), { kind: "help", topic: undefined, json: false });
+  assert.deepEqual(parse(images, ["help", "--json"]), { kind: "help", topic: undefined, json: true });
+});
+
+test("defineCli takes command or commands, never both or neither, and a tool with command has no command words", () => {
+  const one = imagesCommand;
+  assert.throws(() => defineCli({ name: "t", about: [], command: one, commands: [one] } as never), /^Error: t: defineCli takes command or commands, not both\. Fix: keep command for a tool with one thing to do, or commands for several\.$/);
+  assert.throws(() => defineCli({ name: "t", about: [] } as never), /^Error: t: defineCli needs command \(one thing to do\) or commands \(several\)\. Fix: command: defineCommand/);
+  const meanings = [{ means: "a note", use: "note {args}" }];
+  assert.throws(() => defineCli({ name: "t", about: [], command: one, ambiguous: { edit: meanings } } as never), /^Error: t: ambiguous name command words, and a tool with command has none\. Fix: remove it, or define commands instead\.$/);
+  assert.throws(() => defineCli({ name: "t", about: [], command: one, personOnly: { unmute: { reason: "x", how: "y" } }, groups: {} } as never), /^Error: t: personOnly, groups name command words.*Fix: remove them/);
+  assert.throws(() => defineCli({ name: "t", about: [], command: defineCommand({ ...one, aliases: ["pics"] }) }), /^Error: t: aliases name command words/);
+  assert.throws(() => defineCli({ name: "t", about: [], command: defineCommand({ name: "images", summary: "I.", effect: "private", examples: ["t images site"], args: [{ name: "folder", description: "F." }] }) }), /the example "t images site" does not parse/);
 });
