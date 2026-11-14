@@ -530,6 +530,33 @@ export const OlderHistoryDrawn: Story = {
   render: () => <DrawnOlderChat />,
 };
 
+/** A picture whose box grows from a placeholder to its size some time after the row mounts, as a picture does once it has loaded. */
+function LoadingPicture({ id }: { id: number }) {
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setLoaded(true), 200 + ((id * 37) % 240) * 100);
+    return () => clearTimeout(timer);
+  }, [id]);
+  return <div aria-hidden style={{ height: loaded ? 220 : 90, marginTop: 8, borderRadius: 8, background: "var(--muted)" }} />;
+}
+
+/** A channel of 200 posts, a picture under most of them that loads late: the reader scrolls it with no older page coming. */
+export const PicturesLoading: Story = {
+  args: { label: "Pictures loading", children: null },
+  render: () => (
+    <Surface>
+      <MessageList label="Pictures loading" style={{ height: 600 }}>
+        {Array.from({ length: 200 }, (_, id) => (
+          <Message key={id} id={`pictures-${id}`} variant="post" role="assistant" name={id % 2 ? "Ouro" : "Ana Lind"}>
+            {`${answers[id % answers.length]!} (${id + 1})`}
+            {id % 3 !== 0 ? <LoadingPicture id={id} /> : null}
+          </Message>
+        ))}
+      </MessageList>
+    </Surface>
+  ),
+};
+
 /** Shows the list's one bar on the newest post, as the pointer over it would. */
 async function hoverNewest(canvasElement: HTMLElement) {
   const newest = await frameUntil(() => canvasElement.querySelector<HTMLElement>("#post-39"));

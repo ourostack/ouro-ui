@@ -1568,7 +1568,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         const moved = (ranked.sort((a, b) => a.passed - b.passed || Math.abs(a.moved) - Math.abs(b.moved))[0]?.moved ?? 0) + owed;
         const wheeling = turning();
         // Stryker disable next-line EqualityOperator: growth of exactly half a pixel is under what the scroll position keeps (whole pixels in WebKit), carried or not.
-        if (moved >= 0.5 && wheeling) {
+        if (moved >= WHEEL_DRIFT && wheeling) {
           owed = 0;
           carry(moved);
           return keepAnchor();

@@ -355,17 +355,19 @@ describe("MessageList windowing", () => {
       await rerender(<Chat items={grow(words)} />);
       // Held by drawing the content up, never by writing the scroll position, which would stop the wheel's own scroll.
       expect(scroller.scrollTop).toBe(before);
-      expect(content.style.translate).not.toBe("");
-      expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+      // A little growth waits for the wheel to rest, a page's worth is drawn up meanwhile.
+      if (words > 6) {
+        expect(content.style.translate).not.toBe("");
+        expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+      } else expect(content.style.translate).toBe("");
       // Neither the wheel turning on nor a scroll away from either end pays it.
       turn();
       scroller.dispatchEvent(new Event("scroll"));
-      expect(content.style.translate).not.toBe("");
       expect(scroller.scrollTop).toBe(before);
       // Written to the scroll position in one move once the wheel has rested.
       now += 100;
-      await expect.poll(() => content.style.translate).toBe("");
-      expect(scroller.scrollTop).toBeGreaterThan(before);
+      await expect.poll(() => scroller.scrollTop).toBeGreaterThan(before);
+      expect(content.style.translate).toBe("");
       await settle(scroller);
       expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
     }

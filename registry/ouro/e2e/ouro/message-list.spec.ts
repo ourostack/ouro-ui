@@ -350,9 +350,73 @@ for (const { story, label, least } of [
       const at = frames.indexOf(f);
       return frames.slice(Math.max(0, at - 3), at + 3).map((g) => [Math.round(g.dt), Math.round(g.wheel), Math.round(g.scrollTop), g.moved === null ? null : Math.round(g.moved * 10) / 10, g.carried]);
     });
-    const counts = `${dead.length} dead frames, ${wall.length} wall frames, ${count} messages, ${frames.length} frames; around the first dead: ${JSON.stringify(around)}`;
+    const longest = Math.round(Math.max(0, ...frames.slice(1).map((f) => f.dt)));
+    const counts = `${dead.length} dead frames, ${wall.length} wall frames, longest frame ${longest} ms, ${count} messages, ${frames.length} frames; around the first dead: ${JSON.stringify(around)}`;
     expect(count, counts).toBeGreaterThanOrEqual(least);
     expect(dead.length, counts).toBeLessThanOrEqual(3);
     expect(wall.length, counts).toBeLessThanOrEqual(3);
+    expect(longest, counts).toBeLessThan(250);
   });
 }
+
+// Plain scroll, with pictures loading as the reader goes: the same dead frame count, and no frame a reader would feel as a stall.
+test("Pictures loading: a reader who flicks the wheel up and down the channel has no dead frame and no frame over 250 ms", async ({ page }) => {
+  test.setTimeout(120_000);
+  await openStory(page, "chat-messagelist--pictures-loading");
+  const scroller = page.getByRole("region", { name: "Pictures loading" });
+  await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  await page.evaluate(() => {
+    const s = document.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+    const w = window as unknown as { __frames: { dt: number; wheel: number; scrollTop: number; maxTop: number; moved: number | null }[]; __wheel: number; __stop: boolean };
+    Object.assign(w, { __frames: [], __wheel: 0, __stop: false });
+    addEventListener("wheel", (e) => (w.__wheel += e.deltaY), { capture: true, passive: true });
+    const top = (el: Element) => {
+      const m = /translateY\((-?[\d.]+)px\)/.exec((el as HTMLElement).style.transform);
+      return el.getBoundingClientRect().top - (m ? Number(m[1]) : 0);
+    };
+    const pick = () => {
+      const v = s.getBoundingClientRect();
+      return document.elementFromPoint(v.left + v.width / 2, v.top + v.height / 2)?.closest('[data-ouro="message"]') ?? null;
+    };
+    let anchor = pick();
+    let anchorTop = anchor ? top(anchor) : 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      if (w.__stop) return;
+      const moved = anchor?.isConnected ? anchorTop - top(anchor) : null;
+      w.__frames.push({ dt: now - last, wheel: w.__wheel, scrollTop: s.scrollTop, maxTop: s.scrollHeight - s.clientHeight, moved });
+      last = now;
+      w.__wheel = 0;
+      anchor = pick();
+      anchorTop = anchor ? top(anchor) : 0;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  const box = (await scroller.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const sent: Promise<void>[] = [];
+  for (const direction of [-1, 1]) {
+    for (let flick = 0; flick < 8; flick++) {
+      for (let delta = 60; Math.abs(delta) >= 1; delta *= 0.95) {
+        sent.push(page.mouse.wheel(0, Math.round(direction * delta)));
+        await new Promise((resolve) => setTimeout(resolve, 16)); // real clock: the wheel's own pace
+      }
+    }
+  }
+  await Promise.all(sent);
+  await settle(scroller);
+  const frames = await page.evaluate(() => {
+    const w = window as unknown as { __frames: { dt: number; wheel: number; scrollTop: number; maxTop: number; moved: number | null }[]; __stop: boolean };
+    w.__stop = true;
+    return w.__frames;
+  });
+  type Frame = (typeof frames)[number];
+  const atEnd = (f: Frame) => (f.wheel < 0 ? f.scrollTop <= 1 : f.scrollTop >= f.maxTop - 1);
+  const still = (f: Frame | undefined) => f !== undefined && f.moved !== null && Math.abs(f.moved) < 0.5;
+  const dead = frames.filter((f, i) => f.wheel !== 0 && !atEnd(f) && still(f) && still(frames[i + 1]));
+  const longest = Math.round(Math.max(0, ...frames.slice(1).map((f) => f.dt)));
+  const counts = `${dead.length} dead frames, longest frame ${longest} ms, ${frames.length} frames; dead at ${JSON.stringify(dead.slice(0, 5).map((f) => [Math.round(f.dt), Math.round(f.wheel), Math.round(f.scrollTop), Math.round(f.maxTop), f.moved === null ? null : Math.round(f.moved * 10) / 10]))}`;
+  expect(dead.length, counts).toBe(0);
+  expect(longest, counts).toBeLessThan(250);
+});
