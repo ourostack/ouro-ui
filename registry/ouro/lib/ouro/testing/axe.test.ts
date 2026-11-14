@@ -530,8 +530,22 @@ describe("audit", () => {
 
   it("tries a screenshot once more when it ran out of time on a box that shows and holds still, as when Vitest's own process stalled", async () => {
     mountPage('<p id="text" style="margin:0;padding:8px;color:#111;background:linear-gradient(90deg,#fff,#eee)">Text on a gradient</p>');
-    const take = page.screenshot.bind(page);
-    const shots = vi.spyOn(page, "screenshot").mockRejectedValueOnce(new Error("locator.screenshot: Timeout 555ms exceeded.")).mockImplementation((options) => take(options));
+    // The second shot is drawn here rather than taken, so a stall of the runner, the one the retry is for, cannot fail
+    // the test that proves it: a white box the size of the element, as the page shows it with its glyphs hidden.
+    const drawn = (element: Element) => {
+      const box = element.getBoundingClientRect();
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(box.width * devicePixelRatio);
+      canvas.height = Math.round(box.height * devicePixelRatio);
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/png").slice("data:image/png;base64,".length);
+    };
+    const shots = vi
+      .spyOn(page, "screenshot")
+      .mockRejectedValueOnce(new Error("locator.screenshot: Timeout 555ms exceeded."))
+      .mockImplementation(async (options) => drawn(options!.element as Element));
     try {
       expect(await measureTextContrast(document.querySelector("#text")!, 4.5)).toEqual({ pass: true });
       expect(shots).toHaveBeenCalledTimes(2);
