@@ -1,7 +1,7 @@
-import { createEngine } from "./engine";
-import { createManagedSheet } from "./pending";
-import { CORNER_SHAPE_VAR } from "./scan";
-import type { HyperellipseController, HyperellipseOptions } from "./types";
+import { createEngine } from "./engine.ts";
+import { createManagedSheet } from "./pending.ts";
+import { CORNER_SHAPE_VAR } from "./scan.ts";
+import type { HyperellipseController, HyperellipseOptions } from "./types.ts";
 
 const DEFAULT_PENDING_RADIUS_SCALE = 0.6;
 

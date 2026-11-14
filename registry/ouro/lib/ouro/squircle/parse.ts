@@ -1,4 +1,4 @@
-import type { CornerShapeList, CornerShapeParam } from "./geometry";
+import type { CornerShapeList, CornerShapeParam } from "./geometry.ts";
 
 /** Maps `corner-shape` keywords to their `superellipse()` parameter. */
 const SHAPE_KEYWORDS: Record<string, CornerShapeParam> = {

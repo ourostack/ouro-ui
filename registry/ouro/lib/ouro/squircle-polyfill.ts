@@ -23,5 +23,5 @@ function registerSquirclePolyfill(): Promise<void> {
   };
   document.addEventListener("transitionrun", ignore, true);
   document.addEventListener("transitionend", ignore, true);
-  return import("./squircle/register").then((polyfill) => void polyfill.registerHyperellipse());
+  return import("./squircle/register.ts").then((polyfill) => void polyfill.registerHyperellipse());
 }

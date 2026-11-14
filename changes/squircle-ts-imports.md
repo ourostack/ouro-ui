@@ -1,0 +1,1 @@
+- Fix: the squircle polyfill's relative imports name their .ts files, so a consumer that checks its import closure builds.
