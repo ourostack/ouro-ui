@@ -267,7 +267,19 @@
     "status": 200,
     "checked": "2026-11-14"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/parity.json": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json": {
     "status": 200,
     "checked": "2026-11-14"
   },

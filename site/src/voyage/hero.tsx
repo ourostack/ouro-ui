@@ -199,7 +199,18 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
             {index < VOYAGE_HERO.title.length - 1 ? " " : null}
           </span>
         ))}
-        description={VOYAGE_HERO.subline}
+        description={
+          <>
+            <p className="mx-auto max-w-[44rem]">{VOYAGE_HERO.subline}</p>
+            <p className="site-hero-links mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-base" data-site-hero-links="">
+              {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews, VOYAGE_HERO.links.platforms].map((link) => (
+                <Link key={link.href} href={href(link.href)} tone="secondary" inline>
+                  {link.label}
+                </Link>
+              ))}
+            </p>
+          </>
+        }
         mediaWidth={1536}
         media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} className="site-voyage-scene" />}
       />
