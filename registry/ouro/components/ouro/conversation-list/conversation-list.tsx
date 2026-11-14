@@ -17,6 +17,7 @@ import {
   type Ref,
 } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { UnreadDot } from "@/registry/ouro/components/ouro/unread-dot/unread-dot";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -252,23 +253,6 @@ function reveal(controls: ReadonlyMap<string, HTMLElement>, key: string, block: 
   controls.get(key)?.scrollIntoView({ block });
 }
 
-/** The unread dot, or only its spoken label when a mark takes its place. */
-function Unread({ label, dot }: { label: string; dot: boolean }): JSX.Element {
-  // Without its dot it is only words for screen readers, out of the line's flow, so it adds no gap.
-  if (!dot)
-    return (
-      <span data-ouro-conversation-unread="" className="sr-only">
-        {label}
-      </span>
-    );
-  return (
-    <span data-ouro-conversation-unread="" className="flex shrink-0 items-center">
-      <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
-      <span className="sr-only">{label}</span>
-    </span>
-  );
-}
-
 /** A chevron that points at the rows when the section is open, and along the header when it is closed. */
 function Chevron({ open }: { open: boolean }): JSX.Element {
   return (
@@ -315,7 +299,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
           {item.mark}
         </span>
       )}
-      {item.unread && <Unread label={unreadLabel} dot={!hasMark} />}
+      {item.unread && <UnreadDot data-ouro-conversation-unread="" label={unreadLabel} dot={!hasMark} />}
     </>
   );
   return (
@@ -807,7 +791,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 )}
                 {!open && rows.some((item) => item.unread) && (
                   <span className="ms-auto flex shrink-0 items-center">
-                    <Unread label={unreadLabel} dot />
+                    <UnreadDot data-ouro-conversation-unread="" label={unreadLabel} />
                   </span>
                 )}
               </button>
