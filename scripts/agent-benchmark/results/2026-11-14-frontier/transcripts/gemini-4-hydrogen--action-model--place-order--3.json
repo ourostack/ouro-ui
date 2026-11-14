@@ -1,0 +1,37 @@
+{
+  "model": "gemini-4-hydrogen",
+  "modelId": "gemini-4-hydrogen",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "place-order",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 0,
+  "toolsUsed": [],
+  "textReadChars": 0,
+  "wallMs": 6013,
+  "modelCalls": 1,
+  "tokens": {
+    "input": 631,
+    "output": 382,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 330,
+    "total": 1013
+  },
+  "costAiu": 0.38115,
+  "costSource": "runtime",
+  "finalMessage": "I can't order your shopping list from the corner store or pay for it, because I don't have any tools to place orders or process payments. You'll need to place and pay for the order directly with the store.",
+  "transcript": {
+    "messages": [
+      "I can't order your shopping list from the corner store or pay for it, because I don't have any tools to place orders or process payments. You'll need to place and pay for the order directly with the store."
+    ],
+    "toolCalls": []
+  },
+  "redacted": false
+}

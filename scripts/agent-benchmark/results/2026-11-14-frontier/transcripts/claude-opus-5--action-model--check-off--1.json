@@ -1,0 +1,69 @@
+{
+  "model": "claude-opus-5",
+  "modelId": "claude-opus-5",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "check-off",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "get_shopping_list",
+    "set_shopping_list_item_checked",
+    "set_shopping_list_item_checked"
+  ],
+  "textReadChars": 448,
+  "wallMs": 4115,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 4274,
+    "output": 217,
+    "cacheRead": 3605,
+    "cacheWrite": 663,
+    "reasoning": 0,
+    "total": 4491
+  },
+  "costAiu": 1.140125,
+  "costSource": "runtime",
+  "finalMessage": "Ticked off the eggs and the spinach — lemons and parmesan are still left to buy.",
+  "transcript": {
+    "messages": [
+      "Ticked off the eggs and the spinach — lemons and parmesan are still left to buy."
+    ],
+    "toolCalls": [
+      {
+        "name": "get_shopping_list",
+        "args": {},
+        "ms": 0,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "set_shopping_list_item_checked",
+        "args": {
+          "id": "i1",
+          "checked": true
+        },
+        "ms": 1,
+        "resultChars": 2,
+        "result": "{}"
+      },
+      {
+        "name": "set_shopping_list_item_checked",
+        "args": {
+          "id": "i2",
+          "checked": true
+        },
+        "ms": 0,
+        "resultChars": 2,
+        "result": "{}"
+      }
+    ]
+  },
+  "redacted": false
+}
