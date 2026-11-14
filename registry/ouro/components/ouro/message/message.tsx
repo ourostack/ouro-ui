@@ -892,18 +892,6 @@ export function Message(props: MessageProps): JSX.Element {
   const titled = post && subject !== undefined && subject !== null;
   // A message of pictures or files alone draws no empty bubble above them.
   const worded = !empty || streaming || quote !== undefined || titled;
-  const textBox = (
-    // Hidden rather than left out when empty: MessageList reads every message's text from it.
-    <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
-      {titled && (
-        <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
-          {subject}
-        </p>
-      )}
-      {quoted}
-      {body}
-    </div>
-  );
   return (
     <article
       {...rest}
@@ -957,14 +945,19 @@ export function Message(props: MessageProps): JSX.Element {
         )}
       >
         {header}
-        {!post && bar === null ? (
-          textBox
-        ) : (
-          <div className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
-            {textBox}
-            {!post && bar}
+        <div className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
+          {/* Hidden rather than left out when empty: MessageList reads every message's text from it. */}
+          <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
+            {titled && (
+              <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
+                {subject}
+              </p>
+            )}
+            {quoted}
+            {body}
           </div>
-        )}
+          {!post && bar}
+        </div>
         {attachments !== undefined && attachments !== null && (
           <div data-ouro-message-attachments="" className={cn("flex w-full max-w-full min-w-0 flex-wrap gap-2", end && "justify-end", post && ["mt-1", postRow])}>
             {attachments}
