@@ -13,7 +13,7 @@ node --test scripts/adoption/ledger.test.mjs         # the tests, with `gh` fake
 
 It needs a current Node, `unzip` and a signed-in `gh`, and imports only Node's built-in modules. Code search is rate limited, so a run waits on it between searches.[^search-limit]
 
-The hourly run is [`.github/workflows/adoption-ledger.yml`](../../.github/workflows/adoption-ledger.yml). It writes `ledger.json` to the `adoption-data` branch (a bot-written data branch, not a pull request, so the hour's number does not wait for a pull request to merge). Pages builds that branch's ledger into the site when it is newer than the copy committed on main (`take-newest.mjs`), so the page opens on the last hourly run, and it still offers the branch's newer one when it opens. Code search waits share a 15-minute budget; after it, the cells that needed a search are left "not measured", so a heavily rate-limited hour still publishes the rest.
+The hourly run is [`.github/workflows/adoption-ledger.yml`](../../.github/workflows/adoption-ledger.yml). It writes `ledger.json` to the `adoption-data` branch (a bot-written data branch, not a pull request, so the hour's number does not wait for a pull request to merge). Pages builds that branch's ledger into the site when it is newer than the copy committed on main (`take-newest.mjs`), so the page opens on the last hourly run, and it still offers the branch's newer one when it opens. Code search waits share one time budget; after it, the cells that needed a search are left "not measured", so a heavily rate-limited hour still publishes the rest.[^search-budget]
 
 ## What it reads
 
@@ -65,3 +65,4 @@ The steps come from the program issue's table. Ouro UI's own numbers are: the la
 [^web-full]: scripts/adoption/ledger.mjs verify:fileLine(scripts/adoption/ledger.mjs, /used >= 20 \? "full"/)
 [^apple-full]: scripts/adoption/ledger.mjs verify:fileLine(scripts/adoption/ledger.mjs, /components >= 5 \? "full"/)
 [^action-model]: scripts/adoption/ledger.mjs verify:fileLine(scripts/adoption/ledger.mjs, /cell\(ctx, 0, \{ note: "The one-action model is not released yet/)
+[^search-budget]: test:scripts/adoption/ledger.test.mjs::code search stops waiting once its time budget is spent, so the hourly run finishes verify:testExists(scripts/adoption/ledger.test.mjs::code search stops waiting once its time budget is spent, so the hourly run finishes)
