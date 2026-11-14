@@ -1,4 +1,5 @@
-import { buildPendingCss, createManagedSheet } from "./pending";
+import { classChangeMatters, readInputClasses } from "./inputs.ts";
+import { buildPendingCss, createManagedSheet } from "./pending.ts";
 import {
   CLEAR_TARGET,
   computeTarget,
@@ -7,8 +8,8 @@ import {
   type RenderTarget,
   readSource,
   type SourceStyles,
-} from "./render";
-import { CORNER_SCALE_VAR, scanDocument } from "./scan";
+} from "./render.ts";
+import { CORNER_SCALE_VAR, scanDocument } from "./scan.ts";
 
 export interface EngineOptions {
   pendingRadiusScale: number;
@@ -513,6 +514,7 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
 
   const rescan = (): void => {
     const result = scanDocument(doc);
+    inputClasses = undefined;
     const selectors = [...BASE_SELECTORS, ...result.selectors];
     if (options.selector) {
       selectors.push(options.selector);
@@ -552,6 +554,8 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
     }
   };
 
+  let inputClasses: Set<string> | undefined;
+
   const handleAttributeMutation = (record: MutationRecord): void => {
     const element = record.target;
     if (!(element instanceof HTMLElement)) {
@@ -561,6 +565,18 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
       // Root class/data change (theme toggle) — colors may have changed.
       refreshAll();
       return;
+    }
+    if (record.attributeName === "class" && tracked.has(element)) {
+      inputClasses ??= readInputClasses(doc);
+      if (
+        !classChangeMatters(
+          inputClasses,
+          record.oldValue,
+          element.getAttribute("class")
+        )
+      ) {
+        return;
+      }
     }
     if (tracked.has(element)) {
       const entry = entries.get(element);
@@ -633,6 +649,7 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
       childList: true,
       subtree: true,
       attributes: true,
+      attributeOldValue: true,
       attributeFilter: ["class", "style", "data-corner-shape"],
     });
     doc.addEventListener("transitionrun", handleTransitionLifecycle, true);

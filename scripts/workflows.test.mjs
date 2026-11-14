@@ -2409,6 +2409,7 @@ test("install prep caches a base keyed on the runtime files, then adds the shipp
   const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
   const baseKey = prep.match(/key: install-base-[^\n]*/)[0];
   for (const left of ["!registry/**/*.test.tsx", "!registry/**/*.stories.tsx", "!registry/ouro/e2e/**"]) assert.ok(baseKey.includes(left), left);
+  for (const out of ["'docs/**'", "'README.md'", "'UPGRADING.md'"]) assert.ok(!baseKey.includes(out), `the base does not read ${out}`);
   assert.ok(prep.includes("OURO_BASE_ONLY=1"));
   assert.ok(prep.includes("OURO_DELTA=1 OURO_PREPARE_ONLY=1"));
   const script = readFileSync("scripts/install-test.sh", "utf8");
