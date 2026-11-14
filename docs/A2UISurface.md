@@ -31,6 +31,7 @@ Type: `A2UISurfaceProps`.
 | --- | --- | --- | --- |
 | `catalog` (required) | `unknown` |  | The app's A2UI catalog, generated from its actions by core's `ouro-a2ui-catalog.mts catalog`. |
 | `className` | `string` |  | Layout only: margins, width (`max-w-md`). |
+| `label` | `((context: LabelContext) => string \| undefined)` |  | Names the ids in a confirm sheet's rows from the app's own data, such as a recipe's title for `rcp_lemon_orzo`. Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared, because the agent's text is the one thing the person can't check. Keep it stable, as `messages` is: a new function on each render resolves the messages again. |
 | `messages` (required) | `readonly unknown[]` |  | The agent's A2UI messages, in order. The surface shows where they leave it. |
 | `onAction` (required) | `(message: A2UIActionMessage) => void \| Promise<void>` |  | Runs a pressed read or write button, and a consequential one once the person confirms. Send the message to the agent, or call the action's own tool with `message.action.context`. Return a promise to show the button loading until it settles. |
 | `onHandoff` (required) | `(handoff: A2UIHandoff) => void` |  | A person-only button never runs from composed UI: take the person to your app's own screen for it. |

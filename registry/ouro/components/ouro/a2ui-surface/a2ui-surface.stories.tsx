@@ -362,11 +362,15 @@ const messages = [
   }
 ];
 
+/** The app's own names for the ids its confirm sheets show, from its data: the recipe's title for its id. */
+const titles: Record<string, string> = { rcp_lemon_orzo: "Charred Lemon Orzo" };
+const label = ({ value }: { value: string }) => titles[value];
+
 const meta = {
   title: "Display/A2UISurface",
   component: A2UISurface,
   parameters: { layout: "padded" },
-  args: { catalog, messages, onAction: () => {}, onHandoff: () => {}, onProblems: () => {} },
+  args: { catalog, messages, onAction: () => {}, onHandoff: () => {}, onProblems: () => {}, label },
   render: (args) => (
     <div style={{ maxWidth: 420 }}>
       <A2UISurface {...args} />
