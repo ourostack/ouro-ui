@@ -2547,6 +2547,58 @@ describe("hand-drawn corner radius", () => {
     });
 });
 
+describe("hand-drawn corner radius, widened", () => {
+    it("flags a radius set in an inline style on an intrinsic element", () => {
+        const source = [
+            'export const A = () => <div style={{ borderRadius: 12 }}>x</div>;',
+            'export const B = () => <div style={{ borderTopLeftRadius: "0.5rem" }}>x</div>;',
+        ].join("\n");
+        expect(categories(source)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes an inline radius that is a theme variable, a circle or zero, and a registry component", () => {
+        const source = [
+            'export const A = () => <div style={{ borderRadius: "var(--radius)" }}>x</div>;',
+            'export const B = () => <div style={{ borderRadius: "50%" }}>x</div>;',
+            'export const C = () => <div style={{ borderRadius: 0 }}>x</div>;',
+            'export const D = () => <Card style={{ borderRadius: 12 }}>x</Card>;',
+            'export const E = (radius) => <div style={{ borderRadius: radius }}>x</div>;',
+        ].join("\n");
+        expect(categories(source)).toEqual([]);
+    });
+    it("flags a border-radius in a stylesheet, outside round parts", () => {
+        const found = scan(".card { border-radius: 12px; }\n.row { border-top-left-radius: 0.5rem; }", "app/app.css");
+        expect(found.map((offender) => offender.category)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes stylesheet radii that are theme variables, circles, zero or on a dot, thumb or ring", () => {
+        const css = [
+            ".a { border-radius: var(--radius); }",
+            ".b { border-radius: 50%; }",
+            ".c { border-radius: 0; }",
+            ".unread-dot { border-radius: 4px; }",
+            ".slider-thumb { border-radius: 9px; }",
+            ".d { --radius: 12px; }",
+        ].join("\n");
+        expect(categories(css, "app/app.css")).toEqual([]);
+    });
+    it("flags rounded-full on a large oblong box or a structural element", () => {
+        const source = [
+            'export const A = () => <div className="h-40 w-96 rounded-full">x</div>;',
+            'export const B = () => <section className="rounded-full p-8">x</section>;',
+        ].join("\n");
+        expect(categories(source)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes rounded-full on dots, pills, thumbs, rings, squares and pictures", () => {
+        const source = [
+            'export const A = () => <span className="size-2 rounded-full bg-primary" />;',
+            'export const B = () => <button className="h-8 w-24 rounded-full px-4">x</button>;',
+            'export const C = () => <span className="slider-thumb h-40 w-96 rounded-full" />;',
+            'export const D = () => <div className="size-40 rounded-full ring-2">x</div>;',
+            'export const E = () => <img className="h-10 w-64 rounded-full" alt="" />;',
+        ].join("\n");
+        expect(categories(source)).not.toContain("hand-drawn-corner");
+    });
+});
+
 describe("hand-drawn switch", () => {
     it("flags an intrinsic element with role switch, naming the registry Switch", () => {
         const found = scan('export const A = () => <button role="switch" aria-checked={on} onClick={flip} />;\nexport const B = () => <span role="switch" />;');

@@ -641,21 +641,19 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollKey, noneToday]);
 
-  // The app's day summaries make the header as tall as they are, which only a measure knows;
-  // events scrolled into view stop below it.
-  useLayoutEffect(() => {
-    if (!renderDaySummary) return;
-    const head = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    rootRef.current!.style.setProperty("--ouro-time-grid-head", `${head.offsetHeight}px`);
-  });
-
   // In a grid taller than a day, the hours grow to share the room under the header, so the day
   // ends at the grid's foot rather than above it. Neither height depends on the hours'.
+  const summaries = Boolean(renderDaySummary);
   useLayoutEffect(() => {
     const root = rootRef.current!;
     const viewport = root.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const head = root.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    const fill = () => root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - head.offsetHeight) / 24}px`);
+    const fill = () => {
+      const headHeight = head.offsetHeight;
+      // The app's day summaries make the header as tall as they are, which only a measure knows; events scrolled into view stop below it.
+      if (summaries) root.style.setProperty("--ouro-time-grid-head", `${headHeight}px`);
+      root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - headHeight) / 24}px`);
+    };
     // Stryker disable next-line CallExpression: the observer measures as it starts observing, before the first paint; this only measures sooner.
     fill();
     const observer = new ResizeObserver(fill);
@@ -665,8 +663,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
   },
-  // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
-  []);
+  [summaries]);
 
   // The day's background lane, measured for its stacks (above). Every day's lane is as wide.
   const hasLane = labelBackground && hasBackground;

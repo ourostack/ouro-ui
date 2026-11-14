@@ -772,5 +772,12 @@
     "site/e2e/voyage-presets-nautilus.spec.ts": 188340,
     "site/e2e/voyage-presets.spec.ts": 188339,
     "site/e2e/voyage.spec.ts": 167305
+  },
+  "subset": {
+    "button": 50000,
+    "dialog": 84000,
+    "sheet": 67000,
+    "field,fieldset,text-field,text-area,checkbox,checkbox-group,radio-group,switch,form,select,native-select,combobox": 126000,
+    "button,dialog,sheet,field,fieldset,text-field,text-area,checkbox,checkbox-group,radio-group,switch,form,select,native-select,combobox": 143000
   }
 }
