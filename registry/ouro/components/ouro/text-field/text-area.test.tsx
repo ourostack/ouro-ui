@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { TextArea, type TextAreaProps } from "@/registry/ouro/components/ouro/text-field/text-area";
+import { supportsFieldSizing } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 const roots: Root[] = [];
 let mounted: HTMLElement[] = [];
@@ -162,7 +164,9 @@ describe("TextArea autoGrow", () => {
     const { textarea } = await render(<TextArea label="Notes" autoGrow rows={2} maxRows={4} />);
     expect(getComputedStyle(textarea).resize).toBe("none");
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 2), 0);
-    expect(getComputedStyle(textarea).overflowY).toBe("hidden");
+    // Where the browser grows it, the cap alone decides whether it scrolls.
+    const scrolls = (capped: boolean) => (supportsFieldSizing() ? "auto" : capped ? "auto" : "hidden");
+    expect(getComputedStyle(textarea).overflowY).toBe(scrolls(false));
 
     // Each edit is one input event, as a paste is: typed a key at a time, its 27 keys were each a
     // round trip through Vitest, which took WebKit past the test's 15 seconds on a busy runner.
@@ -172,12 +176,12 @@ describe("TextArea autoGrow", () => {
 
     await userEvent.fill(textarea, "one\ntwo\nthree\nfour\nfive\nsix");
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 4), 0);
-    expect(getComputedStyle(textarea).overflowY).toBe("auto");
+    expect(getComputedStyle(textarea).overflowY).toBe(scrolls(true));
+    expect(textarea.scrollHeight).toBeGreaterThan(textarea.clientHeight);
 
     // Shrinks back when text is removed, never below rows.
     await userEvent.clear(textarea);
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 2), 0);
-    expect(getComputedStyle(textarea).overflowY).toBe("hidden");
   });
 
   it("leaves what scrolls around it where it was as it grows a line, at the end of a scrolling list", async () => {
@@ -239,14 +243,29 @@ describe("TextArea autoGrow", () => {
       textarea.setSelectionRange(3, 3);
       const count = reads(textarea);
       await userEvent.keyboard("\n");
-      expect(count()).toBe(1);
+      // Where the browser grows it, a keystroke measures nothing.
+      const expected = supportsFieldSizing() ? 0 : 1;
+      expect(count()).toBe(expected);
       // A parent's render, as a message arrives beside a composer.
       await rerender(node(1));
-      expect(count()).toBe(1);
+      expect(count()).toBe(expected);
       vi.restoreAllMocks();
       expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 2), 0);
       roots.pop()!.unmount();
     }
+  });
+
+  it("forces no layout as the text changes where the browser grows it, and one measure per edit elsewhere", async () => {
+    const { textarea } = await render(<TextArea label="Notes" autoGrow rows={1} maxRows={4} defaultValue="one" />);
+    textarea.focus();
+    textarea.setSelectionRange(3, 3);
+    const watch = watchLayoutReads();
+    await userEvent.keyboard("{Enter}two{Enter}three");
+    const fits = watch.reads.filter((read) => read.target === textarea && (read.name === "scrollHeight" || read.name === "getComputedStyle"));
+    watch.stop();
+    if (supportsFieldSizing()) expect(fits).toHaveLength(0);
+    else expect(fits.length).toBeGreaterThan(0);
+    expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
   });
 
   it("refits when rows, maxRows or size change", async () => {

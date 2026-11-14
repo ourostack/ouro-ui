@@ -5,6 +5,8 @@ import { renamedTones } from "@/registry/ouro/lib/ouro/tones";
 export {
   describeHighlights,
   fitHeight,
+  fitHeightNative,
+  supportsFieldSizing,
   highlightLayerClass,
   highlightRuns,
   highlightTone,
@@ -66,6 +68,35 @@ const textAreaSizes = {
   md: "text-base leading-6 sm:pointer-fine:text-sm sm:pointer-fine:leading-5",
   lg: "text-xl leading-7",
 } as const;
+
+/**
+ * Whether the browser sizes a textarea to its content itself (`field-sizing: content`). WebKit
+ * answers yes but leaves a wrapped textarea at its old height when its width changes, so it measures.
+ *
+ * @internal
+ */
+function supportsFieldSizing(): boolean {
+  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return false;
+  const webkit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
+  return !webkit && CSS.supports("field-sizing", "content");
+}
+
+/**
+ * Where the browser grows the textarea itself, sets only the bounds: `rows` and `maxRows`
+ * lines in `lh` units, plus the padding and border, and measures nothing as the text or the
+ * width changes. The browser scrolls it once it passes the cap.
+ *
+ * @internal
+ */
+function fitHeightNative(textarea: HTMLTextAreaElement, rows: number, maxRows: number | undefined): void {
+  const style = getComputedStyle(textarea);
+  const extra = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+  textarea.style.setProperty("field-sizing", "content");
+  textarea.style.height = "";
+  textarea.style.overflowY = "";
+  textarea.style.minHeight = `calc(${rows}lh + ${extra}px)`;
+  textarea.style.maxHeight = maxRows === undefined ? "" : `calc(${Math.max(rows, maxRows)}lh + ${extra}px)`;
+}
 
 /**
  * Sizes a textarea to its content, between `rows` and `maxRows` lines, and lets it scroll
