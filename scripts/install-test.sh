@@ -610,7 +610,7 @@ if [ -n "${OURO_DELTA:-}" ] && [ -f "$app/.ouro-added.json" ]; then
   delta_plan=$(node "$root/scripts/install-delta.mjs" plan "$registry/r" "$app/.ouro-added.json")
   delta_mode=$(node -e 'console.log(JSON.parse(process.argv[1]).mode)' "$delta_plan")
   if [ "$delta_mode" = incremental ]; then
-    mapfile -t test_items < <(node -e 'for (const item of JSON.parse(process.argv[1]).items) console.log(item)' "$delta_plan")
+    mapfile -t test_items < <(node -e 'for (const item of JSON.parse(process.argv[1]).items) console.log(process.argv[2] + "/" + item + ".json")' "$delta_plan" "$registry/r")
   fi
   echo "Install delta: $delta_mode (${#test_items[@]} items to add)"
   if [ "$delta_mode" = full ]; then
