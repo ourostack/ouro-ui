@@ -66,6 +66,11 @@
 #   OURO_DELTA                  continues from a restored base in <app-dir> and adds the shipped
 #                               tests (overwriting what the base holds), then stops as
 #                               OURO_PREPARE_ONLY does.
+#   OURO_SKIP_CHECKS            with OURO_DELTA: stops after the add and its stylesheet and tool
+#                               checks, before the type check, the build and the install check,
+#                               which CI runs in parallel with the shards (OURO_CHECK_ONLY).
+#   OURO_CHECK_ONLY             runs only the type check, the build and the install check of the
+#                               shipped tests in <app-dir>, a tree OURO_SKIP_CHECKS left.
 #   OURO_REUSE_APP              skips all of that and runs the shipped tests in <app-dir>, which
 #                               must be the tree a prepare run left, restored at the same path.
 #
@@ -247,7 +252,7 @@ if [ "$variant" = github ]; then
   exit 0
 fi
 
-if [ -n "${OURO_REUSE_APP:-}" ]; then
+if [ -n "${OURO_REUSE_APP:-}" ] || [ -n "${OURO_CHECK_ONLY:-}" ]; then
   # The app a prepare job installed and checked (OURO_PREPARE_ONLY), restored at this same path.
   cd "$app"
 elif [ -n "${OURO_DELTA:-}" ]; then
@@ -579,7 +584,7 @@ fi
 
 [ -z "${OURO_BASE_ONLY:-}" ] || { echo "Prepared the base of the $variant app."; exit 0; }
 
-if [ -z "${OURO_REUSE_APP:-}" ]; then
+if [ -z "${OURO_REUSE_APP:-}" ] && [ -z "${OURO_CHECK_ONLY:-}" ]; then
 echo "::group::The testing setup and ouro-tests"
 cp -R "$root/test/install-fixture-tests/." "$app/"
 # The CLI writes the ~640 files one at a time in one process, about three minutes on a runner, so the
@@ -609,10 +614,7 @@ EOF
 chmod +x "$registry/serial-npm/npm"
 add_pids=()
 for part in 0 1 2 3; do
-  part_items=()
-  for i in "${!test_items[@]}"; do
-    [ $((i % 4)) -ne "$part" ] || part_items+=("${test_items[$i]}")
-  done
+  mapfile -t part_items < <(printf '%s\n' "${test_items[@]}" | node "$root/scripts/split-items.mjs" "$registry/r" 4 "$part")
   PATH="$registry/serial-npm:$PATH" "${shadcn[@]}" add --yes ${OURO_DELTA:+--overwrite} "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
   add_pids+=($!)
 done
@@ -630,6 +632,11 @@ node -e '
   const changed = Object.keys(before).filter((name) => after[name] !== before[name]);
   if (changed.length > 0) throw new Error("ouro-tests changed the version of " + changed.map((name) => name + " (" + before[name] + " to " + after[name] + ")").join(", "));
 ' "$registry/package.before.json"
+echo "::endgroup::"
+fi
+
+if [ -z "${OURO_REUSE_APP:-}" ] && [ -z "${OURO_SKIP_CHECKS:-}" ]; then
+echo "::group::Check the app with the shipped tests"
 # The type check and the build read the same files and write nothing the other reads, so they run at once.
 npx tsc -b &
 tsc_pid=$!
@@ -641,6 +648,7 @@ node "$root/scripts/install-check.mjs" "$app" "$variant" tests
 echo "::endgroup::"
 fi
 
+[ -z "${OURO_CHECK_ONLY:-}" ] || { echo "Checked the $variant app with the shipped tests."; exit 0; }
 [ -z "${OURO_PREPARE_ONLY:-}" ] || { echo "Prepared the $variant app; the shards run the shipped tests."; exit 0; }
 
 # The shipped tests to run: every one, or a reduced run's (OURO_COMPONENTS), in one shard (OURO_SHARD).

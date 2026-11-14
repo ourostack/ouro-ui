@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
@@ -61,5 +62,22 @@ describe("squircle surface where the engine has no corner-shape", () => {
     expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(getComputedStyle(label).position).toBe("relative");
     expect(getComputedStyle(button).borderTopLeftRadius).not.toBe("0px");
+  });
+});
+
+describe("a Dialog where the engine has no corner-shape", () => {
+  it("paints the dialog's fill and ring through its surface layer, and hides its own ring", async () => {
+    applyFallback();
+    await mount(
+      <Dialog title="Edit" presentation="dialog" open onOpenChange={() => {}}>
+        body
+      </Dialog>,
+    );
+    const popup = document.querySelector<HTMLElement>("[data-ouro-squircle]")!;
+    const surface = popup.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
+    expect(getComputedStyle(popup).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(popup).getPropertyValue("--tw-ring-color")).toBe("transparent");
   });
 });

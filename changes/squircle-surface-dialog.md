@@ -1,0 +1,1 @@
+- Dialog is a true squircle where the browser lacks corner-shape, with its fill and ring painted through the same surface layer as Button and Card.

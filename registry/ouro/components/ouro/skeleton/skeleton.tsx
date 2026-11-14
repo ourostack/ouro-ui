@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { HTMLAttributes, JSX, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -15,6 +16,7 @@ interface SkeletonCommonProps {
   ref?: Ref<HTMLSpanElement> | undefined;
   /**
    * Whether the placeholder breathes once it has been loading for a second. `false` draws it still, as reduced motion does.
+   * Only the first placeholders mounted at once breathe; the rest of a long list hold still, which keeps WebKit's wheel scrolling smooth.
    * Choose it for a long list of pictures loading at once, where animating each may slow scrolling.
    * @default true
    */
@@ -141,6 +143,28 @@ const fill =
 // `shimmer={false}`: no breathing at all.
 const still = "animate-none";
 
+// WebKit drops wheel-scroll frames once a hundred or so placeholders animate at once, each its own compositing layer.
+// So only the first few mounted placeholders breathe; the rest hold still. A short list still shows life, and a long
+// one costs nothing. A placeholder that goes away hands its place to the next one that mounts.
+const breatheLimit = 24;
+let breathing = 0;
+
+function useBreathes(shimmer: boolean): boolean {
+  const [breathes, setBreathes] = useState(true);
+  useEffect(() => {
+    if (!shimmer) return;
+    const place = breathing < breatheLimit;
+    breathing += place ? 1 : 0;
+    // Claiming a place is shared module state, so it can only be read once mounted.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBreathes(place);
+    return () => {
+      breathing -= place ? 1 : 0;
+    };
+  }, [shimmer]);
+  return shimmer && breathes;
+}
+
 const shapes = {
   rect: "h-4 w-full rounded-md",
   circle: "aspect-square rounded-full",
@@ -218,9 +242,10 @@ function Bar({ className, shimmer }: { className: string | undefined; shimmer: b
  * </>
  */
 export function Skeleton(props: SkeletonProps): JSX.Element {
-  const { shape: shapeProp = "rect", size: sizeProp, lines: linesProp, count: countProp, className, shimmer = true, variant, animation, width, height, ref, ...rest } =
+  const { shape: shapeProp = "rect", size: sizeProp, lines: linesProp, count: countProp, className, shimmer: shimmerProp = true, variant, animation, width, height, ref, ...rest } =
     props as SkeletonCommonProps &
       Omit<HTMLAttributes<HTMLSpanElement>, "children"> & { shape?: string; size?: string; lines?: number; count?: number };
+  const shimmer = useBreathes(shimmerProp);
   // A shape that is not one of Ouro UI's (a type error) warns and renders the default.
   const shape: Shape = shapeNames.includes(shapeProp) ? (shapeProp as Shape) : "rect";
   const sizes: object = sizesFor[shape];

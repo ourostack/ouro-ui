@@ -36,7 +36,7 @@ The props the modes share. Type: `SkeletonProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
-| `shimmer` | `boolean` | `true` | Whether the placeholder breathes once it has been loading for a second. `false` draws it still, as reduced motion does. Choose it for a long list of pictures loading at once, where animating each may slow scrolling. |
+| `shimmer` | `boolean` | `true` | Whether the placeholder breathes once it has been loading for a second. `false` draws it still, as reduced motion does. Only the first placeholders mounted at once breathe; the rest of a long list hold still, which keeps WebKit's wheel scrolling smooth. Choose it for a long list of pictures loading at once, where animating each may slow scrolling. |
 
 ## Modes
 
