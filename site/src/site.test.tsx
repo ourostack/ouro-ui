@@ -16,6 +16,7 @@ import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
+import { SCENES } from "./storybook";
 import shipComponents from "./docs/ship-components.json";
 import versions from "../../scripts/parity-data/versions.json";
 import { SHIP_PAGES } from "./docs/ships";
@@ -318,6 +319,19 @@ describe("docs", () => {
     const whole = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"] [data-slot="media"]')!.getBoundingClientRect();
     const art = document.querySelector<HTMLImageElement>('section[aria-labelledby="page-title"] img[data-slot="image"]')!;
     expect(whole.width / whole.height).toBeCloseTo(Number(art.getAttribute("width")) / Number(art.getAttribute("height")), 1);
+  });
+
+  it("marks a docs page's opener with its brand scene, and on a phone shows the scene's phone crop at its own shape", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/");
+    const opener = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"]')!;
+    expect(opener.dataset.brandScene).toBe("ouro-ui-core");
+    const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="image"]')];
+    await expect.poll(() => day!.currentSrc).toMatch(/\/brand\/storybook\/phone\/ouro-ui-core-\d+\.(avif|webp)$/);
+    const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!.getBoundingClientRect();
+    expect(media.width / media.height).toBeCloseTo(768 / SCENES["ouro-ui-core"].phoneHeight, 1);
+    const nightPhone = night!.closest("picture")!.querySelector<HTMLSourceElement>('source[media="(max-width: 640px)"]')!;
+    expect(nightPhone.srcset).toContain("phone/ouro-ui-core-dark-768.");
   });
 
   it("lists the components in the sidebar under a label per catalog group, with Start first, then Guides, and Platforms last", async () => {

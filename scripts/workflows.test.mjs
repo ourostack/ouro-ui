@@ -2364,3 +2364,9 @@ test("install prep caches a base keyed on the runtime files, then adds the shipp
   const script = readFileSync("scripts/install-test.sh", "utf8");
   assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
 });
+
+test("fresh-main starts with the run, waits on nothing but the plan, and runs on pull requests only", () => {
+  const block = ciJobs()["fresh-main"];
+  assert.match(block, /^ {4}needs: \[plan\]$/m);
+  assert.match(block, /^ {4}if: \$\{\{ !cancelled\(\) && github\.event_name == 'pull_request' \}\}$/m);
+});

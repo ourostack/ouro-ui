@@ -17,12 +17,30 @@ test("AxError carries the shape, its exit and the same message; errorJson adds t
   assert.deepEqual(errorJson(shape).error, { ...shape, message: e.message });
 });
 
-test("didYouMean: a unique prefix, else the nearest within a couple of edits, else null", () => {
+test("didYouMean: the nearest within a couple of edits, else a unique prefix, else null", () => {
   assert.equal(didYouMean("lim", ["limit", "ids"]), "limit");
   assert.equal(didYouMean("limt", ["limit", "ids"]), "limit");
   assert.equal(didYouMean("whyy", ["why", "agent"]), "why");
   assert.equal(didYouMean("zzzzzz", ["limit", "ids"]), null);
   assert.equal(didYouMean("", ["a"]), null);
+});
+
+test("didYouMean: a closer name wins over a longer unique prefix", () => {
+  assert.equal(didYouMean("n", ["names", "in", "limit"]), "in");
+});
+
+test("didYouMean: a one-letter omission suggests a name one edit away", () => {
+  const names = ["conversations", "names", "limit", "in", "selfcheck"];
+  const oneEditApart = (a: string, b: string) => [...b].some((_, i) => b.slice(0, i) + b.slice(i + 1) === a);
+  let cases = 0;
+  for (const name of names) for (let i = 0; i < name.length; i++) {
+    const typo = name.slice(0, i) + name.slice(i + 1);
+    if (!typo || names.includes(typo)) continue;
+    const suggestion = didYouMean(typo, names);
+    assert.ok(suggestion && oneEditApart(typo, suggestion), `${typo}: ${suggestion}`);
+    cases++;
+  }
+  assert.ok(cases > 0);
 });
 
 test("commandLine quotes only what a shell would split or expand", () => {
