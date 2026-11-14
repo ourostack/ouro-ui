@@ -193,9 +193,9 @@ interface AvatarPresenceProps {
   /**
    * The person's presence, as a dot on the lower end corner. Each state has its own shape
    * and a named tone (available: success; busy and do not disturb: destructive; away:
-   * warning; offline: muted; out of office: primary). The dot's ring takes the surface's
-   * color, `--ouro-avatar-ring` (default `--background`): set it on a card,
-   * `[--ouro-avatar-ring:var(--card)]`. The dot lies over the corner and takes no room, so
+   * warning; offline: muted; out of office: primary). The avatar is cut away in a
+   * circle round the dot (a bite), so whatever lies behind the avatar, a photo or a gradient
+   * too, shows through the gap. The dot lies over the corner and takes no room, so
    * the initials, icon or picture stay in the middle with or without it, and the dot stays
    * below the letters at every size.
    */
