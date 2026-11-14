@@ -6,7 +6,7 @@ import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
-import { parse, sourceHref } from "./docs/markdown";
+import { holdLastWords, parse, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
@@ -278,7 +278,7 @@ describe("docs", () => {
     const host = await renderPage("/docs/");
     expect(host.querySelector("a a")).toBeNull();
     const comparison = host.querySelector<HTMLAnchorElement>('section[aria-labelledby="group-guides"] a[href$="/docs/why-no-skill-settings-form/"]');
-    expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
+    expect(comparison?.textContent?.replace(/\u00a0/g, " ")).toContain("Comparison overview, scores, protocol and limits");
   });
 
   it("opens a docs page on the registry Hero: its scene contained, by day and at night, a band on a component page and the whole scene on a platform page", async () => {
@@ -658,6 +658,22 @@ describe("guides and exports without an item", () => {
   });
 });
 
+describe("docs running text", () => {
+  it("holds a paragraph's and a lead's last two words together, and leaves a code span's words and a long last word free", async () => {
+    expect([holdLastWords("A helper is unused."), holdLastWords("Run `pnpm test`"), holdLastWords("See lib/ouro/check/wrap-check.ts"), holdLastWords("Alone")]).toEqual([
+      "A helper is\u00a0unused.",
+      "Run `pnpm test`",
+      "See lib/ouro/check/wrap-check.ts",
+      "Alone",
+    ]);
+    await renderPage("/docs/updating/");
+    const paragraph = [...document.querySelectorAll("p")].find((p) => p.textContent!.startsWith("Before deleting anything"))!;
+    expect(paragraph.textContent).toMatch(/ helper is\u00a0unused\.$/);
+    await renderPage("/docs/sidebar-layout/");
+    expect(document.querySelector("main p")!.textContent).toMatch(/ content"\u00a0link\.$/);
+  });
+});
+
 describe("platforms", () => {
   it("has a page per file in docs/platforms at docs/platforms/<name>, the index at docs/platforms", () => {
     expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/windows", "platforms/your-platform", "platforms/contributing"]);
@@ -715,7 +731,8 @@ describe("platforms", () => {
     ["your-platform", "MCP server", "docs/platforms/<platform>.md", "ouro-ui-<platform>"],
   ])("gives the %s page its agent door, the contract and the way to propose it", async (name, door, file, repository) => {
     await renderPage(`/docs/platforms/${name}/`);
-    const text = document.body.innerText;
+    // Running text holds its last two words together with a no-break space (docs/markdown.tsx).
+    const text = document.body.innerText.replace(/\u00a0/g, " ");
     expect(text).toContain(door);
     await expect.element(page.getByRole("heading", { level: 2, name: "The contract" })).toBeVisible();
     for (const part of ["Take its tokens from a pinned core release", "Meet Ouro HX's bar", "Pass Ouro AX's X-ray"]) expect(text).toContain(part);
