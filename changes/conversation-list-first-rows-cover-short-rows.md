@@ -1,1 +1,1 @@
-- Fixed: ConversationList counts its first frame's rows as if each were at most 40px tall, so a list of short rows no longer adds a row after the first paint.
+- Fixed: ConversationList sizes its first frame for short rows, so a list of short rows adds nothing after the first paint.
