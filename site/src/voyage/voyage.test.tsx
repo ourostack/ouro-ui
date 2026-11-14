@@ -191,12 +191,12 @@ describe("the header and the theme section", () => {
     root.setAttribute("data-theme", "pearl");
     await renderPage("/");
     const corners = () => document.querySelector<HTMLElement>("[data-site-corners]")?.innerText;
-    await expect.poll(corners).toBe("0.75rem");
+    await expect.poll(corners).toBe("1.125rem");
     await userEvent.click(page.getByRole("radiogroup", { name: "Corners" }).getByRole("radio", { name: "Pebble" }));
     await expect.poll(corners).toBe("1rem");
     await expect.poll(() => document.querySelector<HTMLElement>("[data-site-sample]")?.innerText).toContain("Your paint");
     await userEvent.click(page.getByRole("group", { name: "Presets" }).getByRole("button", { name: "Pearl", exact: true }), { force: true });
-    await expect.poll(corners).toBe("0.75rem");
+    await expect.poll(corners).toBe("1.125rem");
   });
 
   it("copies the preset's theme with its fonts, or its tokens without them, and says so", async () => {

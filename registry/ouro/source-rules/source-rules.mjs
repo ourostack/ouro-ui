@@ -37,6 +37,11 @@ import ts from "typescript";
 //   draws: a round picture (`img`, or `overflow-hidden`/`object-cover`, `rounded-full`, at least
 //   24px square), or an empty round dot (at most 12px, `bg-*`). Counted where written; use
 //   <Avatar shape presence>.
+// - hand-drawn-hero: an intrinsic `section` or `header` whose class names a hero (`hero`, `hero-banner`, `page-hero`),
+//   which is a hero frame drawn by hand. Ouro UI's `Hero` is the one hero; a registry component passes.
+// - hand-drawn-corner: a fixed corner radius written by hand in a class (`rounded-[12px]`, `rounded-t-[0.5rem]`) on an intrinsic element. A fixed radius
+//   ignores the theme's `--radius` scale, so it misses a change to every corner (squircles included).
+//   The scale's own classes (`rounded-lg`), `var(...)` values, circles (`rounded-full`, 50%, 9999px) and 0 pass.
 // - content-spinner: a spinner standing where content would: Ouro UI's `<Spinner>` (imported from a
 //   spinner/spinner module) or any element with an `animate-spin` class, returned or assigned on its
 //   own or the only thing in its element. Inline progress passes: in a prop, in an object's icon, or
@@ -162,6 +167,8 @@ export const CATEGORIES = [
   "content-spinner",
   "render-index",
   "gated-load",
+  "hand-drawn-hero",
+  "hand-drawn-corner",
   "vague-failure-copy",
   "hand-drawn-avatar",
   "hand-drawn-presence-dot",
@@ -290,6 +297,12 @@ export const HAND_DRAWN_AVATAR_FIX =
 /** What the hand-drawn-presence-dot rule tells an app to do. */
 export const HAND_DRAWN_PRESENCE_DOT_FIX =
   'Show presence as <Avatar presence="available" presenceLabel="Ana Lind, Available" ...>, which draws each state in its own shape and tone on the avatar\'s corner and says it aloud. For an unread or status marker that is not presence, use <Badge>.';
+/** What the hand-drawn-hero rule tells an app to do. */
+export const HAND_DRAWN_HERO_FIX =
+  "Use Hero from the registry (`<Hero title=\"...\" picture={...} />`), so its picture, frame and layout, and any change to heroes, reach this one too.";
+/** What the hand-drawn-corner rule tells an app to do. */
+export const HAND_DRAWN_CORNER_FIX =
+  "Take the radius from the theme: a scale class (rounded-md, rounded-lg, rounded-xl) or var(--radius), so a change to the corners, squircles included, reaches this one too. A circle stays rounded-full.";
 
 // What each category's message says, for the categories whose fix is not an Ouro component.
 const CATEGORY_MESSAGES = {
@@ -298,6 +311,8 @@ const CATEGORY_MESSAGES = {
   "content-spinner": { headline: "New spinner standing in for content", fix: CONTENT_SPINNER_FIX },
   "render-index": { headline: "New index built in render", fix: RENDER_INDEX_FIX },
   "layout-animation": { headline: "New animation of a layout property", fix: LAYOUT_ANIMATION_FIX },
+  "hand-drawn-hero": { headline: "New hero drawn by hand", fix: HAND_DRAWN_HERO_FIX },
+  "hand-drawn-corner": { headline: "New fixed corner radius", fix: HAND_DRAWN_CORNER_FIX },
   "gated-load": { headline: "New load that waits for focus, visibility, idle or scrolling", fix: GATED_LOAD_FIX },
   // Names the phrase it found, the fingerprint's tag.
   "vague-failure-copy": (phrase) => ({
@@ -976,6 +991,16 @@ function drawnShape(tokens, tag, empty) {
   const rounded = round.includes("rounded-full") || (tag === "img" && round.some((token) => token !== "rounded" && token !== "rounded-sm"));
   return side >= 6 && picture && rounded ? "hand-drawn-avatar" : undefined;
 }
+const FIXED_CLASS_RADIUS = /^rounded(?:-(?:[stbelrx]|ss|se|ee|es|tl|tr|bl|br))?-\[(?!var\(|calc\(var\()([^\]]*)\]$/;
+const CIRCLE_RADIUS = /^(?:0(?:px|rem)?|50%|9999px|999px|100%|9999rem|[\d.]+%)$/;
+
+// Whether a class token fixes a corner radius by hand. Circles and zero pass.
+const fixedRadiusIn = (classStrings) =>
+  classStrings.some((text) => text.split(/\s+/).some((token) => fixedRadius(splitVariants(token).at(-1).replace(/^!|!$/g, ""))));
+const fixedRadius = (token) => {
+  const value = FIXED_CLASS_RADIUS.exec(token)?.[1];
+  return value !== undefined && !CIRCLE_RADIUS.test(value.replace(/_/g, " "));
+};
 
 const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
 
@@ -1531,6 +1556,13 @@ function scanScript(module, resolver, failureCopyAllow) {
     const classStrings = [...attributes]
       .filter(([name, initializer]) => CLASS_ATTRIBUTE.test(name) && initializer)
       .flatMap(([, initializer]) => collectStrings(initializer, declarations));
+    if (
+      control.tags.length === 1 &&
+      (control.tags[0] === "section" || control.tags[0] === "header") &&
+      classStrings.some((text) => /(^|[\s:-])hero($|[\s_-])/.test(text))
+    ) {
+      offenders.push({ category: "hand-drawn-hero", fingerprint: [file, componentName(node), "hand-drawn-hero", control.display, props].join("::"), file, line: lineOf(node) });
+    }
     if (hasControlStateClass(classStrings)) add("control-state-style", node, control.display, props);
     const spins = classStrings.some((text) => text.split(/\s+/).some((token) => SPIN_CLASS.test(splitVariants(token).at(-1))));
     if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !inButton(node, control) && standsAlone(node)) addSpinner(node, control.display, props);
@@ -1539,6 +1571,10 @@ function scanScript(module, resolver, failureCopyAllow) {
       const empty = !ts.isJsxElement(node.parent) || node.parent.children.every((child) => ts.isJsxText(child) && child.containsOnlyTriviaWhiteSpaces);
       const drawn = drawnShape(baseTokens(classStrings), control.tags[0], empty);
       if (drawn) offenders.push({ category: drawn, fingerprint: [file, componentName(node), drawn, control.display, props].join("::"), file, line: lineOf(node) });
+    }
+    // Counted where it is written, like a spinner. Only an intrinsic element counts, so a registry component and its className never do.
+    if (control.tags.length === 1 && fixedRadiusIn(classStrings)) {
+      offenders.push({ category: "hand-drawn-corner", fingerprint: [file, componentName(node), "hand-drawn-corner", control.display, props].join("::"), file, line: lineOf(node) });
     }
   };
 

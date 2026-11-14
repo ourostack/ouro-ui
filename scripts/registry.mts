@@ -443,7 +443,7 @@ function fileEntry(path: string): RegistryFile {
 
 /**
  * Converts a theme CSS file to shadcn's item format: :root and .dark colors and @theme inline
- * to cssVars; --ouro-* tokens, @utility and @keyframes to css.
+ * to cssVars; --ouro-* tokens, @utility, @layer base and @keyframes to css.
  */
 export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
   const cssVars: Required<CssVars> = { light: {}, dark: {}, theme: {} };
@@ -477,6 +477,12 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
       Object.assign(cssVars.theme, declarations(node, "@theme inline", true));
     } else if (node.type === "atrule" && node.name === "utility") {
       css[`@utility ${node.params}`] = declarations(node, `@utility ${node.params}`, false);
+    } else if (node.type === "atrule" && node.name === "layer" && node.params === "base") {
+      const rules: CssTree = {};
+      node.each((rule) => {
+        if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@layer base ${rule.selector}`, false);
+      });
+      css["@layer base"] = rules;
     } else if (node.type === "atrule" && node.name === "keyframes") {
       const frames: CssTree = {};
       node.each((frame) => {
@@ -485,7 +491,7 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
       css[`@keyframes ${node.params}`] = frames;
     } else {
       const name = node.type === "atrule" ? `@${node.name}` : node.type === "rule" ? node.selector : node.type;
-      throw new Error(`Unsupported CSS in a theme file: ${name}. shadcn items carry :root, .dark, @theme inline, @utility and @keyframes.`);
+      throw new Error(`Unsupported CSS in a theme file: ${name}. shadcn items carry :root, .dark, @theme inline, @utility, @layer base and @keyframes.`);
     }
   });
   const vars = Object.fromEntries(Object.entries(cssVars).filter(([, values]) => Object.keys(values).length > 0)) as CssVars;

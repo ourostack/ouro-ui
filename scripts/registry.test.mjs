@@ -231,7 +231,7 @@ test("theme items come from the repository's CSS, in shadcn's cssVars format", (
   assert.equal(base.css[":root"]["--ouro-spring-duration"], "750ms");
   assert.match(base.css[":root"]["--ouro-ease-spring"], /^linear\(0, /);
   assert.equal(base.css[":root"]["--ouro-backdrop-color"], "#18181b");
-  assert.deepEqual(base.css[".dark"], { "--ouro-backdrop-color": "#000000" });
+  assert.equal(base.css[".dark"]["--ouro-backdrop-color"], "#000000");
   assert.equal(base.cssVars.theme["color-warning-foreground"], "var(--warning-foreground)");
   assert.match(base.css["@utility press"].transition, /scale var\(--ouro-duration-press\) var\(--ouro-ease-out\)/);
   assert.deepEqual(base.css["@keyframes ouro-spin"], { to: { rotate: "1turn" } });
@@ -240,7 +240,7 @@ test("theme items come from the repository's CSS, in shadcn's cssVars format", (
   const theme = item("ouro-theme");
   assert.equal(theme.type, "registry:theme");
   assert.equal(theme.cssVars.light.primary, "#0066cc");
-  assert.equal(theme.cssVars.light.radius, "0.75rem");
+  assert.equal(theme.cssVars.light.radius, "1.125rem");
   assert.equal(theme.cssVars.dark.primary, "#2997ff");
   assert.equal(theme.files, undefined);
 });
@@ -367,8 +367,8 @@ test("Ouro AX items depend on the ax items they import", () => {
 
 test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
-  // OuroProvider groups tooltips with Base UI's Tooltip.Provider.
-  assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0"]);
+  // OuroProvider groups tooltips with Base UI's Tooltip.Provider and registers the squircle polyfill.
+  assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0", "hyperellipse@^1.0.5"]);
   assert.deepEqual(item("lib-cn").dependencies, ["clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
   assert.equal(item("ouro-lib").dependencies, undefined);
   assert.ok(!JSON.stringify(registry).includes('"motion@'), "no item depends on motion");

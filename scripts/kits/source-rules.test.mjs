@@ -29,6 +29,8 @@ describe("findOffendersInSource: each category", () => {
             "content-spinner",
             "render-index",
             "gated-load",
+            "hand-drawn-hero",
+            "hand-drawn-corner",
             "vague-failure-copy",
             "hand-drawn-avatar",
             "hand-drawn-presence-dot",
@@ -2464,5 +2466,38 @@ describe("CLI entry guard", () => {
         defaultCliErrorHandler(new Error("boom-default"));
         expect(process.exitCode).toBe(1);
         process.exitCode = 0;
+    });
+});
+
+describe("hand-drawn hero", () => {
+    it("flags a section or header classed as a hero, naming the registry Hero", () => {
+        const found = scan('export const A = () => <section className="hero relative px-6">x</section>;\nexport const B = () => <header className="page-hero">x</header>;');
+        expect(found.filter((offender) => offender.category === "hand-drawn-hero")).toHaveLength(2);
+    });
+    it("passes a registry Hero, other sections and a component given a hero class", () => {
+        const source = [
+            'export const A = () => <Hero title="Welcome" picture={pic} />;',
+            'export const B = () => <section className="grid gap-4 heroic">x</section>;',
+            'export const C = () => <Card className="hero">x</Card>;',
+            'export const D = () => <div className="hero">x</div>;',
+        ].join("\n");
+        expect(categories(source)).not.toContain("hand-drawn-hero");
+    });
+});
+
+describe("hand-drawn corner radius", () => {
+    it("flags a fixed radius written in a class on an intrinsic element, naming the theme's scale", () => {
+        const found = scan('export const A = () => <div className="rounded-[12px] p-4">x</div>;\nexport const B = () => <div className="sm:rounded-t-[0.5rem]">x</div>;');
+        expect(found.map((offender) => offender.category)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes the scale's classes, theme variables, circles, zero and registry components", () => {
+        const source = [
+            'export const A = () => <div className="rounded-lg">x</div>;',
+            'export const B = () => <div className="rounded-[var(--radius)]">x</div>;',
+            'export const C = () => <div className="rounded-[50%] rounded-[9999px] rounded-[0]">x</div>;',
+            'export const D = () => <Card className="rounded-[12px]">x</Card>;',
+            'export const E = () => <div className="rounded-[calc(var(--radius)-2px)]">x</div>;',
+        ].join("\n");
+        expect(categories(source)).toEqual([]);
     });
 });
