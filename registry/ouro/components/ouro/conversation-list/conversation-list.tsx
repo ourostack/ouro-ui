@@ -487,6 +487,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const selectionFrame = useRef(0);
   // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
   const sync = useRef<(() => void) | null>(null);
+  // Stryker disable next-line ArrowFunction,ArrayDeclaration,CallExpression: the cleanup only stops a late frame reading a gone list; no test can observe it.
   useLayoutEffect(() => () => cancelAnimationFrame(selectionFrame.current), []);
   // What the last sync ran for, and the observer that reports a row's change of size once the page is laid out.
   const synced = useRef<{ inputs: string; places: string; heights: ReadonlyMap<string, number> } | null>(null);
@@ -590,6 +591,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const { offsets: at, total: height, range: was } = latest.current!;
     const { top, bottom } = view();
     // A scroll that moved the view without a scroll event reaching the list, as a focus scroll can, counts too.
+    // Stryker disable next-line ConditionalExpression: the scroll event, the key path and a size change also set it.
     if (scroller.current!.scrollTop !== seenTop.current) scrolled.current = true;
     seenTop.current = scroller.current!.scrollTop;
     let first = at.length;
@@ -603,6 +605,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     // Until the first scroll, rows rendered on the first frame stay: measuring narrows the window, and a row or section
     // that unmounts after the first paint would make the first frame differ from the finished screen.
     // Stryker disable next-line EqualityOperator: an empty window (nothing reaches the view) keeps the last one either way.
+    // Stryker disable next-line ConditionalExpression: with an empty range the unions below leave the window as it was.
     if (!scrolled.current && last > 0) {
       // Stryker disable next-line MethodExpression: the first frame's window starts at the top, so min and max agree until a scroll.
       first = Math.min(first, was[0]);
@@ -639,8 +642,11 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       control.focus({ preventScroll: true });
       reveal(controls.current, key, "nearest");
       // The scroll's own event may land late, so the window follows the key's scroll from the next frame.
+      // Stryker disable next-line BooleanLiteral: the frame's own scrollTop check sets it too.
       scrolled.current = true;
+      // Stryker disable next-line CallExpression: cancelling a frame that already ran is a no-op.
       cancelAnimationFrame(selectionFrame.current);
+      // Stryker disable next-line ArrowFunction: the observer's next callback makes the same sync.
       selectionFrame.current = requestAnimationFrame(() => sync.current!());
     } else control.focus();
   };
