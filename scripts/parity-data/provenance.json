@@ -1,0 +1,10 @@
+{
+  "$comment": "Copies of core files, byte for byte, at one core release. scripts/platform-parity.mjs --pins checks them against the release's dist-manifest.json (the two claims files) and against parity.json at the tag. Bump coreTag and replace the copies together; never edit them.",
+  "coreRepo": "ourostack/ouro-ui-core",
+  "coreTag": "v0.5.0",
+  "files": {
+    "components.claims.json": "0da8e34c5044add8e120d4e1265e6bfac0b53941ad9b8a9b5c5bcb4a19e1d31e",
+    "actions.claims.json": "944f48be5f9409dd70e0774dfe4976fef9cc3ba3f4ab4b9231df428700523f1a",
+    "parity.json": "b2d36082b8c379c83dc4071e7ae23a740dd0ae2a797f747b14e0289a59a76d9e"
+  }
+}

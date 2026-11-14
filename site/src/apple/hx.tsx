@@ -40,11 +40,11 @@ export default function AppleHx(): JSX.Element {
         title="Feel it before you read about it."
         description={
           <>
-            {claim("The foundations ship today in 0.2.1: one spring, one press, eight named haptic moments and six themes.", {
-              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1" },
+            {claim("The foundations ship today in 0.4.1: one spring, one press, eight named haptic moments and six themes.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.4.1" },
               verify: [
-                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.2.1" },
-                { equals: "site/src/apple/kit.json#release", is: "0.2.1" },
+                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.4.1" },
+                { equals: "site/src/apple/kit.json#release", is: "0.4.1" },
                 { count: "site/src/apple/kit.json#haptics", is: 8 },
                 { count: "site/src/apple/kit.json#themes", is: 6 },
               ],
