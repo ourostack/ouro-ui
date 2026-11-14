@@ -444,7 +444,7 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
       }
       else {
         // The fit that just rendered came from sizes: the items it shows or hides report their new sizes to the observer, which measures once the page is laid out.
-        // Stryker disable next-line ConditionalExpression: a measure the observer starts after a fit from sizes finds the same fit and renders nothing.
+        // Stryker disable next-line ConditionalExpression,BlockStatement: a measure the observer starts after a fit from sizes finds the same fit and renders nothing.
         if (settled) {
           // Stryker disable next-line BooleanLiteral,BlockStatement: as above.
           fromSizes.current = false;
