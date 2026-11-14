@@ -447,7 +447,7 @@ test("Scheduled install installs GitHub's newest release and checks the site nam
 
 test("Scheduled install reports any failure in one issue, with issues: write on that job only", () => {
   const report = job("report");
-  assert.match(report, /needs: \[refs, latest, install\]\n\s+if: failure\(\)/);
+  assert.match(report, /needs: \[refs, latest, install, install-latest\]\n\s+if: failure\(\)/);
   assert.match(report, /permissions:\n\s+contents: read\n\s+issues: write/);
   assert.match(report, /run: scripts\/scheduled-failure\.sh /);
   assert.match(scheduled, /^permissions:\n {2}contents: read\njobs:/m);
