@@ -565,6 +565,14 @@ test("published-release verification refuses unfinished main, drafts, prerelease
   assert.match(missing.stderr, /release not found/);
 });
 
+test("Pages deploys on every push to main from that commit, never after main's CI", () => {
+  const pages = workflow("pages.yml");
+  assert.match(pages, /\non:\n {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:/);
+  assert.doesNotMatch(pages, /workflow_run/);
+  assert.match(pages, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(pages, /\$tip" = "\$HEAD_SHA"/);
+});
+
 test("Pages names GitHub's newest release before it builds, whatever main's package.json says", () => {
   const pages = workflow("pages.yml");
   const name = pages.indexOf('gh api "repos/$REPO/releases/latest" --jq .tag_name');
