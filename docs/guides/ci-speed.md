@@ -1,6 +1,6 @@
 # CI speed and the merge queue
 
-How to keep Ouro UI's CI fast without hiding a failure: queue pull requests cleanly, read a latency failure before you blame the change, rehearse a release on the commit it tests, and quarantine a test only on the record.
+How to keep Ouro UI's CI fast without hiding a failure: queue pull requests cleanly, read a latency failure before you blame the change, release the commit main's CI tested, and quarantine a test only on the record.[^release-commit]
 
 ## Start here
 
@@ -17,7 +17,6 @@ Words used here:
 
 - **Merge queue:** GitHub tests each queued pull request on top of the ones ahead of it, in a `merge_group` run, and merges it only if that run passes.
 - **Drop:** GitHub takes an entry out of the queue when a check fails or it stops merging cleanly.
-- **Rehearsal:** a full CI run on the release commit, before the real release.
 - **Quarantine:** a short, public list of tests known to fail now and then, kept beside their open issues and owners.
 
 ## Queue a pull request
@@ -51,7 +50,7 @@ gh run list -R ourostack/ouro-ui --event merge_group -L 30 --json databaseId,con
 - **Cancel a stale `merge_group` run** whose queue entry is gone, so it stops holding runners.
 - **Keep generated files out of commits.** Queue entries that regenerate the same file conflict, and the later one is dropped. Generate it on install or in CI instead, as the control and motion matrices are.[^matrices]
 - **Rebase a stacked pull request after its base squash-merges.** Its branch still carries the base's old commits: `git rebase --onto origin/main <old-base> <branch>`, then retarget it to main.
-- **Run the install test on every pull request.** With no queue to run it later, a skipped required check would count as passing.[^installs-queue]
+- **Skip the install test or heavy tier only on proof.** The plan job skips one only when every changed file is one it never reads, such as a change fragment; any doubt runs it, since a skipped required check counts as passing.[^installs-queue]
 
 ## Read a latency failure
 
@@ -62,22 +61,21 @@ The `latency` check presses each control on the voyage (the stage and Chapters I
 - **Trace the press** to see where the time goes: record a Chromium trace of each press on a CI runner, and split the main thread's work from the click to the next frame by source.[^traces]
 - **Ship a site fix with its evidence.** The museum and organ fix took its p95 on the EPYC 7763 runners from 88 to 72 ms and from 80 to 64 ms, over 520 samples each.[^museum]
 
-## Rehearse a release
+## Release a tested commit
 
-- **Rehearse the commit you will release,** dispatched on main's head. The rehearsal tests the commit it was dispatched on, so a merge mid-run changes nothing it tests.[^rehearsal]
-- **Keep merging while it runs.** Release cuts the commit the rehearsal tested, not main's head, so later merges go out in the next release.[^release-commit] Change no required check, `merge_group` job or release workflow until the tag is published.
+- **Release the commit main's CI already tested.** Release auto dispatches Release with the commit whose push CI and screen-reader lane passed, so nothing runs twice.[^release-commit]
+- **Keep merging while it runs.** Later merges go out in the next release.
 
 ## Quarantine a test, on the record
 
-- **Add a test only with an open issue and an owner,** in `.github/quarantine.json`. Release and its rehearsal retry a failure of listed tests once, and record the retry; pull requests and the merge queue never retry.[^quarantine]
+- **Add a test only with an open issue and an owner,** in `.github/quarantine.json`. Nothing retries a failed run automatically.[^quarantine]
 - **Remove the entry in the pull request that fixes the test,** and close its issue.
 
 [^dst]: evidence:docs/guides/evidence/2026-11-01-dst-check-times.txt verify:fileLine(docs/guides/evidence/2026-11-01-dst-check-times.txt, /e2e \(3\/4\)\tsuccess\t2026-11-01T09:49:01Z\t2026-11-01T09:03:21Z/)
 [^matrices]: scripts/control-matrix.test.mjs verify:fileLine(.gitignore, /control-matrix/)
-[^installs-queue]: .github/workflows/ci.yml verify:testExists(scripts/workflows.test.mjs::a pull request into main runs the install test and the heavy tier in full, whatever it changes)
+[^installs-queue]: .github/workflows/ci.yml verify:testExists(scripts/workflows.test.mjs::a pull request into main skips the install test or the heavy tier only when the plan proves the change cannot reach it)
 [^latency-gate]: site/e2e/latency.ts; site/e2e/stage.latency.spec.ts; site/e2e/chapter-one.latency.spec.ts; site/e2e/chapter-two.latency.spec.ts; site/e2e/chapter-three.latency.spec.ts verify:fileLine(site/e2e/stage.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-one.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-two.latency.spec.ts, /from "\.\/latency/) verify:fileLine(site/e2e/chapter-three.latency.spec.ts, /from "\.\/latency/) verify:fileLine(playwright.latency.config.ts, /testDir: "site\/e2e"/) verify:fileLine(site/e2e/latency.ts, /p95: 100,/) verify:fileLine(site/e2e/latency.ts, /throttle: 4,/) verify:fileLine(.github/workflows/ci.yml, /pnpm test:latency/)
 [^traces]: evidence:site/e2e/latency-evidence/2026-11-01-museum-organ-traces.txt verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-traces.txt, /Chromium traces/)
 [^museum]: evidence:site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 museum main: p95 88 median 72 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 museum pr: p95 72 median 56 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 organ main: p95 80 median 64 samples 520/) verify:fileLine(site/e2e/latency-evidence/2026-11-01-museum-organ-ab.txt, /pooled 7763 organ pr: p95 64 median 48 samples 520/)
-[^release-commit]: scripts/rehearsal-evidence.mjs verify:testExists(scripts/rehearsal-evidence.test.mjs::releaseCommit releases the commit a passing rehearsal tested, main's head or an earlier commit of main, whatever merged after it)
-[^rehearsal]: .github/workflows/release-rehearsal.yml; .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::a release rehearsal writes the release commit as Release does, on a branch of its own, runs CI and the screen-reader lane there, tags nothing and deletes the branch)
-[^quarantine]: .github/quarantine.json; scripts/quarantine.mjs verify:testExists(scripts/workflows.test.mjs::every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test) verify:testExists(scripts/workflows.test.mjs::Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them) verify:testExists(scripts/workflows.test.mjs::only Release and its rehearsal retry, and only after scripts/required-ci.sh failed, judging the retry with it again)
+[^release-commit]: .github/workflows/release.yml verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal)
+[^quarantine]: .github/quarantine.json; scripts/quarantine.mjs verify:testExists(scripts/workflows.test.mjs::every quarantined test names its test (project, file and title), an issue and an owner, and its file has that test)

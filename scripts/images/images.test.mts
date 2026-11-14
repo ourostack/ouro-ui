@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { FORMATS, HERO_FLOOR, main, makeImages, parseArgs, planWidths, shortfall, WIDTHS, type Format, type Manifest } from "../../registry/ouro/images/images.ts";
+import { HERO_FLOOR, main, makeImages, planWidths, shortfall, WIDTHS, type Format, type Manifest } from "../../registry/ouro/images/images.ts";
 
 // Ouro images (registry/ouro/images/images.ts) on pictures made here with sharp. scripts/images.test.mjs runs this file
 // under Node's coverage and holds images.ts to 100%.
@@ -29,10 +29,10 @@ const sizeOf = async (file: string) => {
   return `${format} ${width}×${height}`;
 };
 const run = async (argv: string[], cwd = scratch) => {
-  const out: string[] = [];
-  const err: string[] = [];
-  const code = await main(argv, { cwd, log: (line) => out.push(line), error: (line) => err.push(line) });
-  return { code, out: out.join("\n"), err: err.join("\n") };
+  let out = "";
+  let err = "";
+  const code = await main(argv, { cwd, stdout: { write: (s) => ((out += s), true) }, stderr: { write: (s) => ((err += s), true) } });
+  return { code, out, err };
 };
 
 describe("Ouro images", () => {
@@ -189,75 +189,98 @@ describe("Ouro images' refusal of pictures too small to draw sharp", () => {
 });
 
 describe("Ouro images' command", () => {
-  test("reads every option, and refuses what it cannot run", () => {
-    assert.deepEqual(parseArgs(["pics", "--out", "o", "--widths", "320,640", "--formats", "webp, avif", "--base", "/i/", "--quality", "80"]), {
-      source: "pics",
-      out: "o",
-      widths: [320, 640],
-      formats: ["webp", "avif"],
-      base: "/i/",
-      quality: 80,
-      help: false,
-    });
-    assert.deepEqual(parseArgs(["pics", "--max-width", "1200", "--min-long-edge", "2048"]), {
-      source: "pics",
-      out: "public/images",
-      widths: WIDTHS,
-      formats: FORMATS,
-      base: "",
-      quality: 70,
-      maxWidth: 1200,
-      minLongEdge: 2048,
-      help: false,
-    });
-    assert.deepEqual(parseArgs(["pics"]), { source: "pics", out: "public/images", widths: WIDTHS, formats: FORMATS, base: "", quality: 70, help: false });
-    assert.equal(parseArgs(["-h"]).help, true);
-    for (const [argv, message] of [
-      [["a", "--out"], /--out needs a value/],
-      [["a", "--base", "--out"], /--base needs a value/],
-      [["a", "--widths", "320,wide"], /not "320,wide"/],
-      [["a", "--widths", "0"], /not "0"/],
-      [["a", "--formats", "gif"], /--formats takes avif, webp or both, not "gif"/],
-      [["a", "--quality", "0"], /from 1 to 100, not "0"/],
-      [["a", "--quality", "101"], /not "101"/],
-      [["a", "--quality", "7.5"], /not "7\.5"/],
-      [["a", "--max-width", "wide"], /--max-width takes a whole number of pixels, such as 1200, not "wide"/],
-      [["a", "--min-long-edge", "0"], /--min-long-edge takes a whole number of pixels, such as 1200, not "0"/],
-      [["a", "--wat"], /Unknown option --wat/],
-      [["a", "b"], /Name one source folder, not "a" and "b"/],
-      [[], /Name the folder of pictures/],
-    ] as [string[], RegExp][]) {
-      assert.throws(() => parseArgs(argv), message, argv.join(" "));
+  test("reads every option, and writes what it names", async () => {
+    const cwd = dir("options");
+    await picture(join(cwd, "pics/a.png"), 1000, 500);
+    const result = await run(["pics", "--out", "o", "--widths", "320,640", "--formats", "webp,avif", "--base", "/i/", "--quality", "80"], cwd);
+    assert.equal(result.code, 0, result.err);
+    assert.match(result.out, /\n6 written, 0 up to date, 0 left out, 0 failed\. Manifest: o\/images\.json\n$/);
+    assert.equal(await sizeOf(join(cwd, "o/a-320.webp")), "webp 320×160");
+    assert.equal(await sizeOf(join(cwd, "o/a-1000.avif")), "heif 1000×500");
+    const manifest = JSON.parse(readFileSync(join(cwd, "o/images.json"), "utf8")) as Manifest;
+    assert.deepEqual(manifest["a.png"]!.sources, [
+      { type: "image/webp", srcset: "/i/a-320.webp 320w, /i/a-640.webp 640w, /i/a-1000.webp 1000w" },
+      { type: "image/avif", srcset: "/i/a-320.avif 320w, /i/a-640.avif 640w, /i/a-1000.avif 1000w" },
+    ]);
+    assert.equal(manifest["a.png"]!.src, "/i/a-1000.avif");
+  });
+
+  test("writes to public/images, every width up to the picture's own, in AVIF and WebP, when no option is given", async () => {
+    const cwd = dir("defaults");
+    await picture(join(cwd, "pictures/a.png"), 700, 100);
+    const result = await run(["pictures"], cwd);
+    assert.equal(result.code, 0, result.err);
+    assert.match(result.out, /^a\.png: 700×100 at 320, 640, 700 wide, as avif and webp\n\n6 written, 0 up to date, 0 left out, 0 failed\. Manifest: public\/images\/images\.json\n$/);
+    assert.equal(await sizeOf(join(cwd, "public/images/a-640.avif")), "heif 640×91");
+  });
+
+  test("refuses what it cannot run with one line that names the fix, and exits 2", async () => {
+    const cwd = dir("refusals");
+    await picture(join(cwd, "pictures/a.png"), 400, 200);
+    const refusals: [string[], RegExp][] = [
+      [["pictures", "--widths", "320,wide"], /^ouro-images: images: --widths takes whole numbers of pixels, such as 320,640, not "320,wide"\. Fix: ouro-images pictures --widths 320,640\.\n$/],
+      [["pictures", "--widths", "0"], /not "0"\. Fix: ouro-images pictures --widths 320,640\.\n$/],
+      [["pictures", "--widths", ","], /not ""\. Fix: ouro-images pictures --widths 320,640\.\n$/],
+      [["pictures", "--formats", "gif"], /^ouro-images: images: --formats takes avif, webp or both, not "gif"\. Fix: ouro-images pictures --formats avif,webp\.\n$/],
+      [["pictures", "--formats", ","], /not ""\. Fix: ouro-images pictures --formats avif,webp\.\n$/],
+      [["pictures", "--quality", "7.5"], /^ouro-images: images: --quality takes a whole number, not "7\.5"\. Fix: ouro-images pictures --quality 8\.\n$/],
+      [["pictures", "--quality", "0"], /^ouro-images: images: --quality takes a number from 1 to 100, not "0"\. Fix: ouro-images pictures --quality 1\.\n$/],
+      [["pictures", "--max-width", "1200.5"], /not "1200\.5"\. Fix: ouro-images pictures --max-width 1201\.\n$/],
+      [["pictures", "--min-long-edge", "10.5"], /not "10\.5"\. Fix: ouro-images pictures --min-long-edge 11\.\n$/],
+      [["nowhere"], /^ouro-images: images: "nowhere" is not a folder\. Fix: ouro-images <folder>\.\n$/],
+      [["pictures/a.png"], /^ouro-images: images: "pictures\/a\.png" is not a folder\. Fix: ouro-images <folder>\.\n$/],
+      [[], /^ouro-images: images: needs <folder>\. Fix: ouro-images <folder>\.\n$/],
+      [["pictures", "pictures"], /"pictures" is one word too many: it takes <folder>; quote text with spaces\. Fix: ouro-images pictures\.\n$/],
+      [["pictures", "--wat"], /^ouro-images: .*there is no --wat/],
+    ];
+    for (const [argv, message] of refusals) {
+      const result = await run(argv, cwd);
+      assert.equal(result.code, 2, argv.join(" "));
+      assert.equal(result.out, "", argv.join(" "));
+      assert.match(result.err, message, argv.join(" "));
     }
   });
 
-  test("prints its usage, refuses a usage problem or a missing folder with 2, and exits 1 when a picture is unreadable", async () => {
+  test("prints its help from the kit, which names no command word, and exits 0", async () => {
     const help = await run(["--help"]);
     assert.equal(help.code, 0);
-    assert.match(help.out, /^Usage: node lib\/ouro\/images\/images\.ts/);
-    const wrong = await run(["--wat"]);
-    assert.equal(wrong.code, 2);
-    assert.match(wrong.err, /^Unknown option --wat\.\n\nUsage:/);
-    const missing = await run(["nowhere"]);
-    assert.equal(missing.code, 2);
-    assert.match(missing.err, /^nowhere is not a folder\./);
-    const cwd = dir("cwd");
+    assert.match(help.out, /^ouro-images: Writes each raster picture in a folder as AVIF and WebP/);
+    assert.match(help.out, /ouro-images <folder> \[--out <folder>\]/);
+    assert.doesNotMatch(help.out, /ouro-images images/);
+    assert.equal(help.err, "");
+  });
+
+  test("exits 1 when a picture cannot be written, with one error line, and --json says why", async () => {
+    const cwd = dir("broken");
     await picture(join(cwd, "pictures/a.png"), 400, 200);
-    const fine = await run(["pictures", "--widths", "320"], cwd);
-    assert.equal(fine.code, 0, fine.err);
-    assert.match(fine.out, /\n4 written, 0 up to date, 0 left out, 0 failed\. Manifest: public\/images\/images\.json$/);
     writeFileSync(join(cwd, "pictures/b.png"), "not a picture");
-    const broken = await run(["pictures", "--widths", "320"], cwd);
-    assert.equal(broken.code, 1);
-    assert.match(broken.err, /^Not written: b\.png: /);
-    assert.match(broken.out, /0 written, 4 up to date, 0 left out, 1 failed\./);
+    const failed = await run(["pictures", "--widths", "320"], cwd);
+    assert.equal(failed.code, 1);
+    assert.equal(failed.out, "");
+    assert.match(failed.err, /^ouro-images: images: not written: b\.png: .+\.\n$/);
+    assert.equal(failed.err.split("\n").length, 2);
+    const json = JSON.parse((await run(["pictures", "--widths", "320", "--json"], cwd)).out) as { ax: string; state: string; error: { code: string } };
+    assert.deepEqual([json.ax, json.state, json.error.code], ["outcome/1", "failed", "not-written"]);
+  });
+
+  test("names each picture it leaves out, and a picture narrower than --max-width is refused", async () => {
+    const cwd = dir("left-out");
+    await picture(join(cwd, "pictures/a.png"), 400, 200);
     const red = await sharp({ create: { width: 20, height: 10, channels: 3, background: "#f00" } }).png().toBuffer();
     const blue = await sharp({ create: { width: 20, height: 10, channels: 3, background: "#00f" } }).png().toBuffer();
     await sharp([red, blue], { join: { animated: true } }).webp().toFile(join(cwd, "pictures/moving.webp"));
     const animated = await run(["pictures", "--widths", "320"], cwd);
-    assert.match(animated.out, /^Left out moving\.webp: animated/m);
+    assert.equal(animated.code, 0, animated.err);
+    assert.match(animated.out, /^a\.png: 400×200 at 320, 400 wide, as avif and webp\nLeft out moving\.webp: animated, and its frames would be lost; serve it as it is\n\n4 written, 0 up to date, 1 left out, 0 failed\. Manifest: public\/images\/images\.json\n$/);
     const refused = await run(["pictures", "--widths", "320", "--max-width", "300"], cwd);
     assert.equal(refused.code, 1);
-    assert.match(refused.err, /^Not written: a\.png: 400×200 is narrower than 600, twice the 300 CSS pixels it is drawn at/m);
+    assert.match(refused.err, /^ouro-images: images: not written: a\.png: 400×200 is narrower than 600, twice the 300 CSS pixels it is drawn at, so a 2x screen would draw it blurry; give it a source at least 600 wide\.\n$/);
+  });
+
+  test("--json prints the run's report: its manifest, the counts and each picture's line", async () => {
+    const cwd = dir("json");
+    await picture(join(cwd, "pictures/a.png"), 400, 200);
+    const report = JSON.parse((await run(["pictures", "--widths", "320", "--json"], cwd)).out) as { manifest: string; written: number; kept: number; skipped: string[]; pictures: string[] };
+    assert.deepEqual(report, { manifest: "public/images/images.json", written: 4, kept: 0, skipped: [], pictures: ["a.png: 400×200 at 320, 400 wide, as avif and webp"] });
   });
 });
