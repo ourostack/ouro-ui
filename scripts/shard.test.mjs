@@ -130,6 +130,13 @@ test("a browser shard runs its share of the files, by measured time, and every s
   assert.deepEqual(rest.sort(), ["a", "b", "c", "d", "e"].map((name) => `registry/${name}.test.tsx`));
 });
 
+test("files with no recorded time spread over the shards by name, each in exactly one", async () => {
+  const files = ["a", "b", "c", "d", "e", "f"].map((name) => spec("themes (chromium)", `test/themes/${name}.test.ts`));
+  const shards = await Promise.all([1, 2, 3].map((index) => new TimedSequencer({ config: { root, shard: { index, count: 3 } } }).shard(files)));
+  assert.deepEqual(shards.map((shard) => shard.length), [2, 2, 2]);
+  assert.equal(new Set(shards.flat().map((entry) => entry.moduleId)).size, 6);
+});
+
 test("the sliced suites are exactly the browser tests that slice what they iterate (test/slice.ts)", () => {
   const sources = ["test", "site/src"].flatMap((dir) =>
     treeFiles(join(root, dir))
