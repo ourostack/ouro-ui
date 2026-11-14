@@ -281,6 +281,28 @@ describe("docs", () => {
     expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
   });
 
+  it("opens a docs page on the registry Hero: its scene contained, by day and at night, a band on a component page and the whole scene on a platform page", async () => {
+    await page.viewport(1440, 900);
+    await renderPage("/docs/button/");
+    const opener = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"]')!;
+    expect(opener.querySelector('[data-ouro="hero"]')).not.toBeNull();
+    expect(getComputedStyle(opener).backgroundImage).toBe("none");
+    const shown = () => [...opener.querySelectorAll<HTMLElement>("picture[data-scheme]")].filter((picture) => getComputedStyle(picture).display !== "none").map((picture) => picture.dataset.scheme);
+    expect(shown()).toEqual(["light"]);
+    const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const { width, height } = media.getBoundingClientRect();
+    expect(width).toBeLessThanOrEqual(1280);
+    expect(width / height).toBeCloseTo(4, 1);
+    const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="image"]')];
+    expect(night!.getAttribute("src")).not.toBe(day!.getAttribute("src"));
+    setScheme("dark");
+    expect(shown()).toEqual(["dark"]);
+    await renderPage("/docs/platforms/apple/");
+    const whole = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"] [data-slot="media"]')!.getBoundingClientRect();
+    const art = document.querySelector<HTMLImageElement>('section[aria-labelledby="page-title"] img[data-slot="image"]')!;
+    expect(whole.width / whole.height).toBeCloseTo(Number(art.getAttribute("width")) / Number(art.getAttribute("height")), 1);
+  });
+
   it("lists the components in the sidebar under a label per catalog group, with Start first, then Guides, and Platforms last", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/checklist/");
@@ -295,8 +317,7 @@ describe("docs", () => {
     const labels = docsSections().map((section) => section.label);
     expect(labels).toEqual(["Start", ...groups, "Guides", "Platforms"]);
     await expect.element(nav.getByRole("link", { name: "Checklist", exact: true })).toHaveAttribute("aria-current", "page");
-    // The sidebar scrolls on its own, opened where the current page shows: within its box, and above the window's foot,
-    // which cuts the box off while the page's scene sits above it.
+    // The sidebar scrolls on its own, opened where the current page shows: within its box, and above the window's foot.
     const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
     expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
     const shows = () => {
@@ -309,7 +330,7 @@ describe("docs", () => {
     expect(shows()(nav.getByRole("link", { name: "Checklist", exact: true }).element())).toBe(true);
   });
 
-  it("on a window too short to show the sidebar below a platform page's scene, opens it on the current page's group, never past its top", async () => {
+  it("on a window too short for the whole sidebar, opens it on the current page's group, never past its top", async () => {
     await page.viewport(1280, 640);
     await renderPage("/docs/platforms/windows/");
     await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
@@ -351,7 +372,7 @@ describe("docs", () => {
     }
   });
 
-  it("opens the sidebar with the current page in view on a platform page, though its taller scene pushes the sidebar below the window", async () => {
+  it("opens the sidebar with the current page in view on a platform page, the last group in it", async () => {
     await page.viewport(1280, 800);
     await renderPage("/docs/platforms/windows/");
     await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();

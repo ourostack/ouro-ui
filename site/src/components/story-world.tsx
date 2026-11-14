@@ -64,16 +64,15 @@ export function StoryWorld({
   className?: string | undefined;
   /** How wide the scene draws, for the browser's file choice; defaults to the full-width world's width. */
   sizes?: string;
-  /** A picture that only sets the scene, as on every docs page: screen readers skip it rather than hear it each time. */
+  /** A picture that only sets the scene: screen readers skip it rather than hear it each time. */
   decorative?: boolean;
 }): JSX.Element {
-  const { sky, sun, band, shortY, night } = SCENES[scene];
+  const { sky, sun, shortY, night } = SCENES[scene];
   const style = {
     ...Object.fromEntries(sky.map((colour, index) => [`--story-sky-${index + 1}`, colour])),
     ...Object.fromEntries(night.sky.map((colour, index) => [`--story-night-${index + 1}`, colour])),
     "--story-sun-x": `${sun[0]}%`,
     "--story-sun-y": `${sun[1]}%`,
-    "--story-band-y": `${band}%`,
     ...(shortY === undefined ? {} : { "--story-short-y": `${shortY}%` }),
   } as CSSProperties;
   return (
