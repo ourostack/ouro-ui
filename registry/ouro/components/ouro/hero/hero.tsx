@@ -97,13 +97,12 @@ export interface HeroOwnProps {
   /**
    * The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as
    * paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the
-   * hero's text column, like the title. Centred in the stage layout, its lines are balanced to
-   * even lengths; aligned to the start, it wraps so the last line is never one word alone. To choose
-   * where a centred lede breaks, set each phrase in its own `inline-block` span, as the `LongLede`
-   * story does.
+   * hero's text column, like the title. Its lines are balanced to even lengths in every layout, so
+   * the last line is never left short; a lede longer than the browser balances, a few lines, wraps
+   * as usual. To choose where a lede breaks, set each phrase in its own `inline-block` span,
+   * as the `LongLede` story does.
    *
-   * @claim "its lines are balanced to" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start)
-   * @claim "it wraps so the last" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start)
+   * @claim "Its lines are balanced to even lengths" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > balances the lede in each layout, so its last line is never short)
    *
    * @claim "It runs the full width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > runs the lede the full width of the text column in each layout)
    */
@@ -214,12 +213,6 @@ const layoutText: Record<HeroLayout, string> = {
 
 const fullWidthStageText = "mx-auto grid w-full justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12";
 
-// A centred lede is balanced into lines of even length; one aligned to the start avoids a lone last word.
-const ledeWrap: Record<HeroLayout, string> = {
-  stage: "text-balance",
-  column: "text-pretty",
-  split: "text-pretty",
-};
 
 const layoutActions: Record<HeroLayout, string> = {
   stage: "justify-center",
@@ -440,8 +433,7 @@ export function Hero(props: HeroProps): JSX.Element {
           <Lede
             data-slot="description"
             className={cn(
-              "m-0 text-base leading-7 text-muted-foreground min-[40rem]:text-lg min-[40rem]:leading-8",
-              ledeWrap[layout],
+              "m-0 text-base leading-7 text-balance text-muted-foreground min-[40rem]:text-lg min-[40rem]:leading-8",
             )}
           >
             {description}
