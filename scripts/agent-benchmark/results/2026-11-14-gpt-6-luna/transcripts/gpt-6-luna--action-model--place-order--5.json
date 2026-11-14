@@ -1,0 +1,37 @@
+{
+  "model": "gpt-6-luna",
+  "modelId": "gpt-6-luna",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "place-order",
+  "trial": 5,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 0,
+  "toolsUsed": [],
+  "textReadChars": 0,
+  "wallMs": 3790,
+  "modelCalls": 1,
+  "tokens": {
+    "input": 406,
+    "output": 146,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 124,
+    "total": 552
+  },
+  "costAiu": 0.01136,
+  "costSource": "runtime",
+  "finalMessage": "I can’t place or pay for a corner-store order with the tools available.",
+  "transcript": {
+    "messages": [
+      "I can’t place or pay for a corner-store order with the tools available."
+    ],
+    "toolCalls": []
+  },
+  "redacted": false
+}

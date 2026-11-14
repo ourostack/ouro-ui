@@ -1,0 +1,1 @@
+- Fixed: dots, thumbs, rings and pills stay [round, not squircles](registry/ouro/theme/round-parts.test.tsx "verify:fileLine(registry/ouro/theme/round-parts.test.tsx, /keeps the unread dot, a slider's track/)").

@@ -1,0 +1,44 @@
+{
+  "model": "oracle",
+  "arm": "bridge",
+  "task": "recipe-to-list",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "steps": 1,
+  "toolsUsed": [
+    "act"
+  ],
+  "textReadChars": 594,
+  "wallMs": 43,
+  "tokens": null,
+  "costAiu": 0,
+  "transcript": {
+    "messages": [],
+    "toolCalls": [
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "Recipes",
+              "action": "press"
+            },
+            {
+              "target": "Charred Lemon Orzo",
+              "action": "press"
+            },
+            {
+              "target": "Add ingredients to list",
+              "action": "press"
+            }
+          ]
+        },
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c1\",\"result\":\"done\"},{\"step\":1,\"ref\":\"c2\",\"result\":\"done\"},{\"step\":2,\"ref\":\"c3\",\"result\":\"done\"}],\"page\":\"/recipes/r1\",\"text\":{\"title\":\"Charred Lemon Orzo\",\"messages\":[\"Added 5 ingredients to your shopping list.\"],\"rows\":[\"orzo (250 g)\",\"lemons (2)\",\"garlic (3 cloves)\",\"parmesan (50 g)\",\"basil (1 bunch)\"]},\"components\":[{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"button\",\"label\":\"Add ingredients to list\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  }
+}

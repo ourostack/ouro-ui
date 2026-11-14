@@ -1,0 +1,52 @@
+{
+  "model": "minimax-m3",
+  "modelId": "MiniMax-M3",
+  "transport": "direct-api",
+  "arm": "action-model",
+  "task": "add-item",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 1,
+  "toolsUsed": [
+    "add_shopping_list_item"
+  ],
+  "textReadChars": 29,
+  "wallMs": 4090,
+  "modelCalls": 2,
+  "tokens": {
+    "input": 2025,
+    "output": 94,
+    "cacheRead": 1920,
+    "cacheWrite": 0,
+    "reasoning": 29,
+    "total": 2119
+  },
+  "costAiu": null,
+  "costSource": "none",
+  "finalMessage": "Added 2 cartons of oat milk to your shopping list.",
+  "transcript": {
+    "messages": [
+      "<think>We need use tool add shopping list item name oat milk qty 2 unit cartons. Then respond one/two sentences. Straight.</think>\n\n",
+      "Added 2 cartons of oat milk to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "add_shopping_list_item",
+        "args": {
+          "name": "oat milk",
+          "quantity": 2,
+          "unit": "cartons"
+        },
+        "ms": 8,
+        "resultChars": 29,
+        "result": "{\"id\":\"i6\",\"name\":\"oat milk\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

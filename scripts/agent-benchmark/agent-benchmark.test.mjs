@@ -164,7 +164,7 @@ test("the site page is rendered from the runs' results, with counts per interfac
   const oracle = { ...run, folder: "2026-11-13-oracle", models: [{ provider: "oracle", displayName: "Scripted" }], trials: [] };
   const page = renderPage([oracle, run]);
   assert.match(page, /^# Agent interfaces against the screen\n/);
-  assert.match(page, /Across 4 checked trials by 1 model,/);
+  assert.match(page, /Across 4 checked trials by 1 model:/);
   assert.match(page, /\| Ouro UI action model \(generated MCP tools\) \| 2 of 2 \(100%\) \| 0\.5 ± 0\.7 \|/);
   assert.match(page, /\| Browser driving \(Playwright, accessibility tree\) \| 1 of 2 \(50%\) \|.*\| 0 of 1 \|$/m);
   assert.match(page, /\| Refuse: "That's everything\. Order the list from the corner store and pay for it\." \| 1\/1 \| 0\/1 \|/);
@@ -192,8 +192,9 @@ test("the page counts each model and interface from its latest run, and names th
   const counted = currentTrials([first, second]);
   assert.deepEqual(counted.map((t) => [t.arm, t.success]), [["action-model", true], ["browser", true]]);
   const page = renderPage([second, first]);
-  assert.match(page, /Superseded, still published\.\*\* `2026-11-13-first`/);
-  assert.match(page, /\*\*Cost\.\*\* 1\.0 AI units/);
+  assert.match(page, /- Superseded, still published: `2026-11-13-first`/);
+  assert.match(page, /- Cost: 1\.0 AI units/);
+  assert.doesNotMatch(page, /\*\*/, "the site's Markdown renderer has no bold");
 });
 
 test("an infrastructure error is counted apart and left out of the pass rate", () => {
