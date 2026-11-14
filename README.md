@@ -399,6 +399,7 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-output`,
 `ax-precise-copy`,
 `ax-problem`,
+`ax-surfaces`,
 `ax-terminal`,
 `ax-voice`,
 `ax-wait`,
