@@ -224,7 +224,8 @@ const biteSizes = {
   "3xl": "[--ouro-bite-c:1rem] [--ouro-bite-r:0.875rem]",
 } as const;
 const biteClass =
-  "[mask-image:radial-gradient(circle_at_calc(100%_-_var(--ouro-bite-c))_calc(100%_-_var(--ouro-bite-c)),transparent_var(--ouro-bite-r),#000_calc(var(--ouro-bite-r)+0.5px))] rtl:[mask-image:radial-gradient(circle_at_var(--ouro-bite-c)_calc(100%_-_var(--ouro-bite-c)),transparent_var(--ouro-bite-r),#000_calc(var(--ouro-bite-r)+0.5px))]";
+  "[mask-image:radial-gradient(circle_at_calc(100%_-_var(--ouro-bite-c))_calc(100%_-_var(--ouro-bite-c)),transparent_var(--ouro-bite-r),#000_calc(var(--ouro-bite-r)+0.5px))] " + // fade-ok: a bite cut out of the avatar for its presence dot, not a fade
+  "rtl:[mask-image:radial-gradient(circle_at_var(--ouro-bite-c)_calc(100%_-_var(--ouro-bite-c)),transparent_var(--ouro-bite-r),#000_calc(var(--ouro-bite-r)+0.5px))]"; // fade-ok: the same bite, mirrored for right to left
 
 // Each hue tints the surface and colors the initials, mixed toward the theme's background and
 // foreground so the pair keeps at least 4.5:1 in light and dark.
