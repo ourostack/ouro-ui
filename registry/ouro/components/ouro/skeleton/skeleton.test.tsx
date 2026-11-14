@@ -205,6 +205,22 @@ describe("Skeleton", () => {
     expect(skeleton.getAnimations({ subtree: true })).toEqual([]);
   });
 
+  it("breathes only the first 24 of a long list, and a later list finds the places taken", async () => {
+    const list = (count: number) => (
+      <div>
+        {Array.from({ length: count }, (_, index) => (
+          <Skeleton key={index} />
+        ))}
+      </div>
+    );
+    const host = (await render(list(131))).parentElement!;
+    const animated = () => [...host.querySelectorAll("[data-ouro=skeleton]")].filter((el) => getComputedStyle(el).animationName === "ouro-skeleton-breathe").length;
+    expect(animated()).toBe(24);
+    const again = (await render(list(5))).parentElement!;
+    expect(animated()).toBe(24);
+    expect([...again.querySelectorAll("[data-ouro=skeleton]")].filter((el) => getComputedStyle(el).animationName === "ouro-skeleton-breathe")).toHaveLength(0);
+  });
+
   it("draws every shape still with shimmer={false}: no animation on the placeholder or anything inside it", async () => {
     await render(
       <>
