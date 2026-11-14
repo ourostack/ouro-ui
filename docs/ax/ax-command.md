@@ -117,6 +117,7 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   self?: SelfScope<C>;
   run?(input: Input, ctx: C): R | Promise<R>;
   plan?(input: Input, ctx: C): Outcome | Promise<Outcome>;
+  exit?(result: R, input: Input): string;
   text?(result: R, input: Input): string;
 }
 ```

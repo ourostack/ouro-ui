@@ -147,6 +147,23 @@ export function inline(text: string, link: (href: string) => string = (href) => 
   return out;
 }
 
+/**
+ * Running text, with its last two words held on one line (`whitespace-nowrap`), so a paragraph or a list item ends on two
+ * words wherever the browser's `text-wrap: pretty` breaks its lines, and a hyphenated last word doesn't split at its
+ * hyphen. A last word over 15 characters, such as a path, and words in a code span, a link or a footnote mark are left
+ * free to wrap.
+ */
+export function prose(text: string, link?: (href: string) => string): ReactNode[] {
+  const tail = /(?<= )[^\s`[\]()*]{1,15} [^\s`[\]()*]{1,15}$/.exec(text);
+  if (!tail) return inline(text, link);
+  return [
+    ...inline(text.slice(0, tail.index), link),
+    <span key="tail" className="whitespace-nowrap">
+      {tail[0]}
+    </span>,
+  ];
+}
+
 export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: string) => string }): JSX.Element {
   // Each scrollable table is a named region; name it after its section, uniquely.
   const labels = new Map<number, string>();
@@ -177,7 +194,7 @@ export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: stri
           case "paragraph":
             return (
               <Text key={index} className="my-3 max-w-[68ch]">
-                {inline(block.text, link)}
+                {prose(block.text, link)}
               </Text>
             );
           case "code":
@@ -188,7 +205,7 @@ export function Markdown({ blocks, link }: { blocks: Block[]; link?: (href: stri
               <List key={index} className={`my-3 grid max-w-[68ch] gap-2 ps-5 marker:text-muted-foreground ${block.ordered ? "list-decimal" : "list-disc"}`}>
                 {block.items.map((item, itemIndex) => (
                   <li key={itemIndex}>
-                    <Text as="span">{inline(item, link)}</Text>
+                    <Text as="span">{prose(item, link)}</Text>
                   </li>
                 ))}
               </List>

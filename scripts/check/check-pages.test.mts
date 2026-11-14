@@ -150,6 +150,22 @@ describe("Ouro check", () => {
     }
   };
 
+  test("dark-art: finds a dark page that shows the light run's picture, and passes night art, a light page and a dark run first", async () => {
+    const night = "@media (prefers-color-scheme: dark) { body { background: #111; color: #eee } }";
+    const art = readFileSync(join(fixtures, "picture-960.png"));
+    const folder = site("night", {
+      "same.html": page('<h1>Same art</h1><img src="/art.png" width="480" height="270" alt="A meadow">', `<style>${night}</style>`),
+      "twins.html": page('<h1>Night art</h1><picture><source media="(prefers-color-scheme: dark)" srcset="/night.png"><img src="/art.png" width="480" height="270" alt="A meadow"></picture>', `<style>${night}</style>`),
+      "light.html": page('<h1>Light page</h1><img src="/art.png" width="480" height="270" alt="A meadow">'),
+    });
+    for (const file of ["art.png", "night.png"]) writeFileSync(join(folder, file), art);
+    const dark = (findings: Finding[]) => findings.filter((f) => f.rule === "dark-art").map((f) => [f.page, f.theme, f.element, f.detail]);
+    const result = await check({ targets: [folder], out: dir("night"), sizes: [[1440, 900]], themes: ["light", "dark"], config: { walk: false }, chromium, log: quiet });
+    assert.deepEqual(dark(result.findings), [["/same.html", "dark", 'img "A meadow"', "the dark theme shows the light theme's picture, art.png"]]);
+    const darkFirst = await check({ targets: [folder], out: dir("night"), sizes: [[1440, 900]], themes: ["dark", "light"], config: { walk: false }, chromium, log: quiet });
+    assert.deepEqual(dark(darkFirst.findings), []);
+  });
+
   test("judges a page once its animations have run, as a person sees it after a moment", async () => {
     // A label that slides over the words in a second and a half: still on its way when the page has loaded.
     const sliding = site("sliding", {

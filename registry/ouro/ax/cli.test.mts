@@ -146,6 +146,33 @@ test("a wait prints what happened or how to resume, with its state's exit code",
   assert.match(bad.err, /Fix: notes watch abc123 --timeout 2m\./);
 });
 
+test("a data result exits with the code its command names in the tool's table, and --json prints the data unchanged", async () => {
+  const t = defineCli({
+    name: "t",
+    about: ["t"],
+    exits,
+    commands: [
+      defineCommand({ name: "found", summary: "Finds.", effect: "private", run: () => ({ ok: false, n: 2 }), exit: (r) => ((r as { ok: boolean }).ok ? "ok" : "unavailable") }),
+      defineCommand({ name: "fine", summary: "Fine.", effect: "private", run: () => ({ ok: true, n: 1 }), exit: () => "ok" }),
+      defineCommand({ name: "plain", summary: "Plain.", effect: "private", run: () => ({ ok: false }) }),
+      defineCommand({ name: "wrong", summary: "Wrong.", effect: "private", run: () => ({}), exit: () => "missing" }),
+    ],
+  });
+  const a = io();
+  assert.equal(await runCli(t, ["found", "--json"], a.io), 3);
+  assert.equal(a.o.out, '{\n  "ok": false,\n  "n": 2\n}\n');
+  assert.equal(await runCli(t, ["found"], io().io), 3);
+  assert.equal(await runCli(t, ["fine", "--json"], io().io), 0);
+  assert.equal(await runCli(t, ["plain", "--json"], io().io), 0);
+  const d = io();
+  assert.equal(await runCli(t, ["wrong"], d.io), 1);
+  assert.equal(d.o.out, "");
+  assert.equal(d.o.err, 't: wrong: its exit "missing" is not one of the tool\'s exit codes. Fix: name one of ok, error, usage, unavailable.\n');
+  const e = io();
+  assert.equal(await runCli(t, ["wrong", "--json"], e.io), 1);
+  assert.equal(JSON.parse(e.o.out).error.code, "bad-exit");
+});
+
 test("dispatch runs the plan or run() with the tool's own context, and prints nothing", async () => {
   interface Ctx extends RunContext {
     who: string;

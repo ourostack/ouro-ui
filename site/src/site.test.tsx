@@ -6,7 +6,7 @@ import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
-import { parse, sourceHref } from "./docs/markdown";
+import { parse, prose, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
@@ -658,6 +658,23 @@ describe("guides and exports without an item", () => {
   });
 });
 
+describe("docs running text", () => {
+  it("holds a paragraph's and a lead's last two words on one line, a hyphenated word whole, and leaves code, links and a long last word free", async () => {
+    const tail = (text: string) => {
+      const last = prose(text).at(-1);
+      return typeof last === "object" && last !== null && "props" in last ? (last.props as { className: string; children: string }) : null;
+    };
+    expect(tail("A helper is unused.")).toEqual({ className: "whitespace-nowrap", children: "is unused." });
+    expect(tail("Moving code pairs one-to-one.")).toEqual({ className: "whitespace-nowrap", children: "pairs one-to-one." });
+    expect(["Run `pnpm test`", "See lib/ouro/check/wrap-check.ts", "Read [the guide](form.md)", "Alone"].map((text) => tail(text)?.className === "whitespace-nowrap")).toEqual([false, false, false, false]);
+    await renderPage("/docs/updating/");
+    const paragraph = [...document.querySelectorAll("p")].find((p) => p.textContent!.startsWith("Before deleting anything"))!;
+    expect(paragraph.querySelector(":scope > span.whitespace-nowrap:last-child")?.textContent).toBe("is unused.");
+    await renderPage("/docs/sidebar-layout/");
+    expect(document.querySelector("main p span.whitespace-nowrap:last-child")?.textContent).toBe('content" link.');
+  });
+});
+
 describe("platforms", () => {
   it("has a page per file in docs/platforms at docs/platforms/<name>, the index at docs/platforms", () => {
     expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/windows", "platforms/your-platform", "platforms/contributing"]);
@@ -673,7 +690,7 @@ describe("platforms", () => {
     expect(platforms.items.map((item) => ("href" in item ? item.href : ""))).toEqual(platformPages.map((doc) => href(`/docs/${doc.name}/`)));
   });
 
-  it("sets the platform after for in smaller, quieter type than the products' names", async () => {
+  it("sets the platform after for in smaller, quieter type than the products' names, which stay whole", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/platforms/apple/");
     const heading = page.getByRole("heading", { level: 1 });
@@ -681,6 +698,9 @@ describe("platforms", () => {
     const platform = heading.element().querySelector<HTMLElement>("[data-platform-for]")!;
     expect(platform.textContent).toBe("for Apple");
     expect(parseFloat(getComputedStyle(platform).fontSize)).toBeLessThan(parseFloat(getComputedStyle(heading.element()).fontSize));
+    // On a phone the products' names stay on one line, so "AX" is never left alone between them and the platform.
+    expect(platform.previousElementSibling?.textContent).toBe("Ouro HX & AX");
+    expect(getComputedStyle(platform.previousElementSibling!).whiteSpace).toBe("nowrap");
     await renderPage("/docs/platforms/contributing/");
     expect(page.getByRole("heading", { level: 1 }).element().querySelector("[data-platform-for]")).toBeNull();
   });

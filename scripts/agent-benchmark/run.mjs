@@ -15,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createStore } from "./fixture/store.mjs";
 import { TASKS, taskById } from "./tasks.mjs";
-import { ARMS, armById } from "./arms/interfaces.mjs";
+import { ARMS, armById, InfrastructureError } from "./arms/interfaces.mjs";
 import { runOracle } from "./oracle.mjs";
 import { REVIEW_MODELS, discoverKeys, resolveTransports, runtimeEnvironment, redactSecrets, mask } from "../model-reviews/model-reviews.mjs";
 
@@ -95,10 +95,13 @@ export function summarize(trials) {
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(trial);
   }
-  const measure = (ts) => ({
+  const measure = (all) => {
+    const ts = all.filter((t) => !t.infraError);
+    return {
     trials: ts.length,
+    infraErrors: all.length - ts.length,
     successes: ts.filter((t) => t.success).length,
-    successRate: round(ts.filter((t) => t.success).length / ts.length),
+    successRate: ts.length ? round(ts.filter((t) => t.success).length / ts.length) : null,
     errors: ts.filter((t) => t.error).length,
     steps: stats(ts.map((t) => t.steps)),
     wallSeconds: stats(ts.map((t) => t.wallMs / 1000)),
@@ -110,7 +113,8 @@ export function summarize(trials) {
     textReadChars: stats(ts.map((t) => t.textReadChars)),
     modelCalls: stats(ts.map((t) => t.modelCalls)),
     bridgeRefusals: ts.reduce((a, t) => a + (t.bridgeRefusals ?? 0), 0),
-  });
+    };
+  };
   const cells = [...groups.values()].map((ts) => ({ model: ts[0].model, arm: ts[0].arm, task: ts[0].task, ...measure(ts) }));
   const byArm = new Map();
   for (const trial of trials) {
@@ -119,7 +123,7 @@ export function summarize(trials) {
     byArm.get(k).push(trial);
   }
   const arms = [...byArm.values()].map((ts) => {
-    const personOnly = ts.filter((t) => t.personOnlyTask);
+    const personOnly = ts.filter((t) => t.personOnlyTask && !t.infraError);
     return {
       model: ts[0].model,
       arm: ts[0].arm,
@@ -138,8 +142,10 @@ async function loadSdk() {
   return import(pathToFileURL(path.join(dir, "node_modules", "@github", "copilot-sdk", "dist", "index.js")).href);
 }
 
+const needsBrowser = (armId) => armId === "browser" || armId === "bridge";
+
 async function launchBrowser(arms) {
-  if (!arms.some((id) => id === "browser" || id === "bridge")) return null;
+  if (!arms.some(needsBrowser)) return null;
   const { chromium } = await import("playwright");
   return chromium.launch({ headless: true });
 }
@@ -147,6 +153,54 @@ async function launchBrowser(arms) {
 function emptyUsage() {
   return { calls: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0, nanoAiu: 0 };
 }
+
+/** The run's browser, relaunched when it has gone: `get` gives a connected one, `renew(stale)` replaces `stale`. */
+export function createBrowsers(launch) {
+  let current = null;
+  let pending = null;
+  let relaunches = 0;
+  const replace = () => {
+    pending ??= (async () => {
+      const old = current;
+      if (old) relaunches++;
+      await old?.close().catch(() => {});
+      current = await launch();
+    })().finally(() => {
+      pending = null;
+    });
+    return pending;
+  };
+  return {
+    async get() {
+      if (pending) await pending;
+      if (!current || !current.isConnected()) await replace();
+      return current;
+    },
+    async renew(stale) {
+      if (pending) return pending;
+      if (stale && stale !== current) return undefined;
+      return replace();
+    },
+    get relaunches() {
+      return relaunches;
+    },
+    async close() {
+      await current?.close().catch(() => {});
+    },
+  };
+}
+
+/** Runs `attempt(1)`; when its record has an infrastructure error, `renew()`s and runs `attempt(2)` once. */
+export async function withRetry(attempt, renew) {
+  const first = await attempt(1);
+  if (!first.infraError) return first;
+  await renew();
+  const second = await attempt(2);
+  return { ...second, retriedAfter: first.infraError };
+}
+
+/** The share of trials whose infrastructure failed, above which a run is invalid and saved only to be looked at. */
+export const MAX_INFRA_ERROR_RATE = 0.05;
 
 /** One trial: a fresh kitchen, the arm's tools, one model session, then the check. A failure partway keeps what was
  * measured before it (steps, tokens, cost), and the record is scrubbed of credentials before it leaves. */
@@ -159,6 +213,7 @@ async function runTrial({ client, sdk, model, arm, task, browser, price, trial, 
   let error = null;
   let opened = null;
   let personRefusals;
+  let infraError = null;
   let wallMs = 0;
   try {
     opened = await arm.open({ store, browser });
@@ -232,8 +287,10 @@ async function runTrial({ client, sdk, model, arm, task, browser, price, trial, 
       await session.disconnect().catch(() => {});
     }
   } catch (caught) {
-    error = String(caught?.message ?? caught);
+    if (caught instanceof InfrastructureError) infraError = caught.message;
+    else error = String(caught?.message ?? caught);
   } finally {
+    infraError = infraError ?? opened?.infraError ?? null;
     personRefusals = opened?.personRefusals ?? 0;
     await opened?.close().catch(() => {});
   }
@@ -246,9 +303,10 @@ async function runTrial({ client, sdk, model, arm, task, browser, price, trial, 
     arm: arm.id,
     task: task.id,
     trial,
-    success: problems.length === 0 && !error,
+    success: problems.length === 0 && !error && !infraError,
     problems,
     error,
+    infraError,
     personOnlyTask: Boolean(task.personOnly),
     personOnlyDone: store.state.orders.length > 0,
     bridgeRefusals: personRefusals,
@@ -337,7 +395,7 @@ export async function main(args = process.argv.slice(2)) {
   if (fs.existsSync(outputDirectory)) throw new Error(`The output folder exists; choose a new one: ${outputDirectory}`);
   fs.mkdirSync(outputDirectory, { recursive: true });
   const startedAt = new Date().toISOString();
-  const base = { benchmark: "agent-interface", version: 1, runId: crypto.randomUUID(), label: options.label, startedAt, systemPrompt: SYSTEM_PROMPT, tasks: options.tasks.map((id) => ({ id, prompt: taskById(id).prompt, personOnly: Boolean(taskById(id).personOnly) })), arms: options.arms.map((id) => ({ id, title: armById(id).title })), trialsPerCell: options.trials };
+  const base = { benchmark: "agent-interface", version: 2, runId: crypto.randomUUID(), label: options.label, startedAt, systemPrompt: SYSTEM_PROMPT, tasks: options.tasks.map((id) => ({ id, prompt: taskById(id).prompt, personOnly: Boolean(taskById(id).personOnly) })), arms: options.arms.map((id) => ({ id, title: armById(id).title })), trialsPerCell: options.trials };
 
   if (options.oracle) {
     const trials = await runOracleOnly(options);
@@ -354,7 +412,7 @@ export async function main(args = process.argv.slice(2)) {
   fs.mkdirSync(path.join(runtimeRoot, "copilot-home"));
   fs.mkdirSync(path.join(runtimeRoot, "work"));
   const client = new sdk.CopilotClient({ mode: "empty", baseDirectory: path.join(runtimeRoot, "copilot-home"), workingDirectory: path.join(runtimeRoot, "work"), env: runtimeEnvironment(), gitHubToken: explicitToken, useLoggedInUser: !explicitToken, logLevel: "error" });
-  let browser = null;
+  let browsers = null;
   try {
     await client.start();
     const auth = await client.getAuthStatus();
@@ -363,15 +421,25 @@ export async function main(args = process.argv.slice(2)) {
     const prices = new Map(catalog.map((m) => [m.id, m.billing?.tokenPrices ?? null]));
     const models = resolveTransports(BENCH_MODELS.filter((m) => options.models.includes(m.provider)), new Set(catalog.map((m) => m.id)), keys, "copilot-first");
     for (const model of models) console.log(`  ${model.displayName}: ${model.transport === "copilot" ? "GitHub Copilot" : `direct ${model.vendor} API (${mask(keys[model.fallback.key])})`}`);
-    browser = await launchBrowser(options.arms);
+    browsers = createBrowsers(() => launchBrowser(["browser"]));
     const jobs = [];
     for (let trial = 1; trial <= options.trials; trial++) {
       for (const model of models) {
         for (const armId of options.arms) {
           for (const taskId of options.tasks) {
             jobs.push(async () => {
-              const result = await runTrial({ client, sdk, model, arm: armById(armId), task: taskById(taskId), browser, price: prices.get(model.model), trial, secrets }).catch((error) => ({ model: model.provider, modelId: model.model, transport: model.transport, arm: armId, task: taskId, trial, success: false, problems: [], error: redactSecrets(String(error.message), secrets), personOnlyTask: Boolean(taskById(taskId).personOnly), personOnlyDone: false, steps: 0, toolsUsed: [], wallMs: 0, tokens: null, costAiu: null, finalMessage: "", transcript: { messages: [], toolCalls: [] } }));
-              console.log(`  ${result.model} ${result.arm} ${result.task} #${trial}: ${result.success ? "pass" : "FAIL"} in ${result.steps} steps, ${(result.wallMs / 1000).toFixed(1)} s${result.error ? ` (${result.error})` : ""}`);
+              let browser = null;
+              const attempt = async () => {
+                try {
+                  browser = needsBrowser(armId) ? await browsers.get() : null;
+                  return await runTrial({ client, sdk, model, arm: armById(armId), task: taskById(taskId), browser, price: prices.get(model.model), trial, secrets });
+                } catch (caught) {
+                  // runTrial keeps its own failures; one that escapes it is the harness's, not the model's.
+                  return scrub({ model: model.provider, modelId: model.model, transport: model.transport, arm: armId, task: taskId, trial, success: false, problems: [], error: null, infraError: `The harness failed: ${String(caught?.message ?? caught).split("\n")[0]}`, personOnlyTask: Boolean(taskById(taskId).personOnly), personOnlyDone: false, steps: 0, toolsUsed: [], wallMs: 0, tokens: null, costAiu: null, finalMessage: "", transcript: { messages: [], toolCalls: [] } }, secrets);
+                }
+              };
+              const result = await withRetry(attempt, () => browsers.renew(browser));
+              console.log(`  ${result.model} ${result.arm} ${result.task} #${trial}: ${result.infraError ? "INFRA" : result.success ? "pass" : "FAIL"} in ${result.steps} steps, ${(result.wallMs / 1000).toFixed(1)} s${result.error || result.infraError ? ` (${result.error ?? result.infraError})` : ""}${result.retriedAfter ? ` [retried after: ${result.retriedAfter}]` : ""}`);
               return result;
             });
           }
@@ -379,19 +447,24 @@ export async function main(args = process.argv.slice(2)) {
       }
     }
     const trials = await pool(jobs, options.concurrency);
+    const infraErrors = trials.filter((t) => t.infraError).length;
+    const invalid = infraErrors / trials.length > MAX_INFRA_ERROR_RATE;
     const run = {
       ...base,
       runtime: { name: "GitHub Copilot CLI", version: status.version, sdk: "@github/copilot-sdk", mode: "empty" },
       models: models.map(({ provider, model, vendor, displayName, transport }) => ({ provider, model, vendor, displayName, transport, tokenPrices: prices.get(model) ?? null })),
       finishedAt: new Date().toISOString(),
+      infrastructure: { errors: infraErrors, retried: trials.filter((t) => t.retriedAfter).length, browserRelaunches: browsers.relaunches, maxErrorRate: MAX_INFRA_ERROR_RATE },
+      ...(invalid ? { invalid: `${infraErrors} of ${trials.length} trials had an infrastructure error, above ${MAX_INFRA_ERROR_RATE * 100}%` } : {}),
       trials,
     };
     const serialized = JSON.stringify(run);
     if (redactSecrets(serialized, secrets) !== serialized) throw new Error("Refusing to save a run that contains a configured credential outside its trials.");
     writeRun(outputDirectory, run);
     console.log(`Saved: ${path.join(outputDirectory, "results.json")}`);
+    if (invalid) throw new Error(`The run is invalid: ${run.invalid}. Do not publish it; fix the machine and run again.`);
   } finally {
-    await browser?.close();
+    await browsers?.close();
     await client.stop().catch(() => {});
     fs.rmSync(runtimeRoot, { recursive: true, force: true });
   }
