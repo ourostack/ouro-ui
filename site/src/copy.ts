@@ -41,7 +41,7 @@ export const VOYAGE_HERO = {
    * The lede on a phone, where the porthole must start on the first screen (site/e2e/stage-pacing.spec.ts), so it is no
    * taller than the old one: the same claim, short, with the benchmark and the reviews linked after it.
    */
-  phoneSubline: claim("A design system for people and agents: one action for both, with consent built in.", {
+  phoneSubline: claim("A design system for people and agents: one action declaration for both, with consent built in.", {
     source: [
       { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
       { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
