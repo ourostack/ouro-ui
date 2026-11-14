@@ -1,0 +1,88 @@
+{
+  "model": "oracle",
+  "arm": "plain-mcp",
+  "task": "recipe-to-list",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "steps": 7,
+  "toolsUsed": [
+    "search_recipes",
+    "get_recipe",
+    "add_item",
+    "add_item",
+    "add_item",
+    "add_item",
+    "add_item"
+  ],
+  "textReadChars": 477,
+  "wallMs": 0,
+  "tokens": null,
+  "costAiu": 0,
+  "transcript": {
+    "messages": [],
+    "toolCalls": [
+      {
+        "name": "search_recipes",
+        "args": {
+          "q": "charred lemon orzo"
+        },
+        "result": "{\"recipes\":\"[{\\\"id\\\":\\\"r1\\\",\\\"title\\\":\\\"Charred Lemon Orzo\\\"}]\"}"
+      },
+      {
+        "name": "get_recipe",
+        "args": {
+          "id": "r1"
+        },
+        "result": "{\"id\":\"r1\",\"title\":\"Charred Lemon Orzo\",\"ingredients\":[{\"name\":\"orzo\",\"quantity\":250,\"unit\":\"g\"},{\"name\":\"lemons\",\"quantity\":2,\"unit\":null},{\"name\":\"garlic\",\"quantity\":3,\"unit\":\"cloves\"},{\"name\":\"parmesan\",\"quantity\":50,\"unit\":\"g\"},{\"name\":\"basil\",\"quantity\":1,\"unit\":\"bunch\"}]}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "orzo",
+          "quantity": 250,
+          "unit": "g"
+        },
+        "result": "{\"id\":\"i6\",\"name\":\"orzo\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "lemons",
+          "quantity": 2
+        },
+        "result": "{\"id\":\"i7\",\"name\":\"lemons\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "garlic",
+          "quantity": 3,
+          "unit": "cloves"
+        },
+        "result": "{\"id\":\"i8\",\"name\":\"garlic\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "parmesan",
+          "quantity": 50,
+          "unit": "g"
+        },
+        "result": "{\"id\":\"i9\",\"name\":\"parmesan\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "basil",
+          "quantity": 1,
+          "unit": "bunch"
+        },
+        "result": "{\"id\":\"i10\",\"name\":\"basil\"}"
+      }
+    ]
+  }
+}

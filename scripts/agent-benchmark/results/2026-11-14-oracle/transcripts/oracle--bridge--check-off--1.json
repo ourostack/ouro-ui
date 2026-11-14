@@ -1,0 +1,42 @@
+{
+  "model": "oracle",
+  "arm": "bridge",
+  "task": "check-off",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "steps": 1,
+  "toolsUsed": [
+    "act"
+  ],
+  "textReadChars": 1587,
+  "wallMs": 34,
+  "tokens": null,
+  "costAiu": 0,
+  "transcript": {
+    "messages": [],
+    "toolCalls": [
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "Bought eggs",
+              "action": "setChecked",
+              "value": true
+            },
+            {
+              "target": "Bought spinach",
+              "action": "setChecked",
+              "value": true
+            }
+          ]
+        },
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c1\",\"result\":\"done\"},{\"step\":1,\"ref\":\"c2\",\"result\":\"done\"}],\"page\":\"/\",\"text\":{\"title\":\"Shopping list\",\"messages\":[\"Updated the list.\"]},\"components\":[{\"ref\":\"c3\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c1\",\"component\":\"checkbox\",\"label\":\"Bought eggs\",\"row\":\"eggs (12)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c2\",\"component\":\"checkbox\",\"label\":\"Bought spinach\",\"row\":\"spinach (1 bag)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c5\",\"component\":\"checkbox\",\"label\":\"Bought lemons\",\"row\":\"lemons (3)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c6\",\"component\":\"checkbox\",\"label\":\"Bought parmesan\",\"row\":\"parmesan (100 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c7\",\"component\":\"checkbox\",\"label\":\"Bought olive oil\",\"row\":\"olive oil (1 bottle)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Item\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"number\",\"label\":\"Quantity\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c10\",\"component\":\"textbox\",\"label\":\"Unit\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c11\",\"component\":\"button\",\"label\":\"Add to list\",\"actions\":[\"press\"]},{\"ref\":\"c12\",\"component\":\"select\",\"label\":\"Store\",\"value\":\"corner\",\"items\":[{\"value\":\"corner\",\"label\":\"Corner store\"},{\"value\":\"market\",\"label\":\"Market\"}],\"actions\":[\"select\"]},{\"ref\":\"c13\",\"component\":\"button\",\"label\":\"Place order\",\"confirm\":\"Place this order and pay for it\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  }
+}

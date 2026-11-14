@@ -27,6 +27,11 @@
       "reason": "scripts/agent-usability/page.mts renders it from the scored runs in scripts/agent-usability/runs/; pnpm claims:check renders it again and compares"
     },
     {
+      "match": "^docs/guides/agent-interfaces\\.md$",
+      "mode": "generated",
+      "reason": "scripts/agent-benchmark/page.mjs renders it from the published runs in scripts/agent-benchmark/results/; pnpm claims:check renders it again and compares"
+    },
+    {
       "match": "^scripts/agent-usability/runs/",
       "mode": "evidence",
       "reason": "a scored run's record, written by the agent-usability harness"

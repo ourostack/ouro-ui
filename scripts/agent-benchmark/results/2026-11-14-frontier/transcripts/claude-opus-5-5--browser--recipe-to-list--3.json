@@ -1,0 +1,87 @@
+{
+  "model": "claude-opus-5-5",
+  "modelId": "claude-opus-5.5",
+  "transport": "copilot",
+  "arm": "browser",
+  "task": "recipe-to-list",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 5,
+  "toolsUsed": [
+    "browser_navigate",
+    "browser_snapshot",
+    "browser_snapshot",
+    "browser_click",
+    "browser_click"
+  ],
+  "textReadChars": 4733,
+  "wallMs": 9150,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 10995,
+    "output": 388,
+    "cacheRead": 6936,
+    "cacheWrite": 4049,
+    "reasoning": 41,
+    "total": 11383
+  },
+  "costAiu": 2.94322,
+  "costSource": "runtime",
+  "finalMessage": "I added all 5 ingredients for the Charred Lemon Orzo to your shopping list: orzo (250 g), 2 lemons, 3 cloves of garlic, parmesan (50 g) and a bunch of basil.",
+  "transcript": {
+    "messages": [
+      "I added all 5 ingredients for the Charred Lemon Orzo to your shopping list: orzo (250 g), 2 lemons, 3 cloves of garlic, parmesan (50 g) and a bunch of basil."
+    ],
+    "toolCalls": [
+      {
+        "name": "browser_navigate",
+        "args": {
+          "url": "/recipes"
+        },
+        "ms": 288,
+        "resultChars": 1050,
+        "result": "- Page URL: /recipes\n- Page Title: Recipes · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f1e1]:\n  - navigation \"Pantry\" [ref=f1e2]:\n    - link \"Shopping list\" [ref=f1e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f1e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f1e5]:\n    - heading \"Recipes\" [level=1] [ref=f1e6]\n    - search [ref=f1e7]:\n      - text: Search recipes\n      - textbox \"Search recipes\" [ref=f1e8]\n      - button \"Search\" [ref=f1e9]\n    - list \"Recipes\" [ref=f1e10]:\n      - listitem [ref=f1e11]:\n        - link \"Charred Lemon Orzo\" [ref=f1e12] [cursor=pointer]:\n          - /url: /recipes/r1\n      - listitem [ref=f1e13]:\n        - link \"Charred Corn Salad\" [ref=f1e14] [cursor=pointer]:\n          - /url: /recipes/r2\n      - listitem [ref=f1e15]:\n        - link \"Miso Mushroom Toast\" [ref=f1e16] [cursor=pointer]:\n          - /url: /recipes/r3\n      - listitem [ref=f1e17]:\n        - link \"Weeknight Chickpea Curry\" [ref=f1e18] [cursor=pointer]:\n          - /url: /recipes/r4\n```"
+      },
+      {
+        "name": "browser_snapshot",
+        "args": {},
+        "ms": 1058,
+        "resultChars": 1050,
+        "result": "- Page URL: /recipes\n- Page Title: Recipes · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f1e1]:\n  - navigation \"Pantry\" [ref=f1e2]:\n    - link \"Shopping list\" [ref=f1e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f1e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f1e5]:\n    - heading \"Recipes\" [level=1] [ref=f1e6]\n    - search [ref=f1e7]:\n      - text: Search recipes\n      - textbox \"Search recipes\" [ref=f1e8]\n      - button \"Search\" [ref=f1e9]\n    - list \"Recipes\" [ref=f1e10]:\n      - listitem [ref=f1e11]:\n        - link \"Charred Lemon Orzo\" [ref=f1e12] [cursor=pointer]:\n          - /url: /recipes/r1\n      - listitem [ref=f1e13]:\n        - link \"Charred Corn Salad\" [ref=f1e14] [cursor=pointer]:\n          - /url: /recipes/r2\n      - listitem [ref=f1e15]:\n        - link \"Miso Mushroom Toast\" [ref=f1e16] [cursor=pointer]:\n          - /url: /recipes/r3\n      - listitem [ref=f1e17]:\n        - link \"Weeknight Chickpea Curry\" [ref=f1e18] [cursor=pointer]:\n          - /url: /recipes/r4\n```"
+      },
+      {
+        "name": "browser_snapshot",
+        "args": {},
+        "ms": 41,
+        "resultChars": 1050,
+        "result": "- Page URL: /recipes\n- Page Title: Recipes · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f1e1]:\n  - navigation \"Pantry\" [ref=f1e2]:\n    - link \"Shopping list\" [ref=f1e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f1e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f1e5]:\n    - heading \"Recipes\" [level=1] [ref=f1e6]\n    - search [ref=f1e7]:\n      - text: Search recipes\n      - textbox \"Search recipes\" [ref=f1e8]\n      - button \"Search\" [ref=f1e9]\n    - list \"Recipes\" [ref=f1e10]:\n      - listitem [ref=f1e11]:\n        - link \"Charred Lemon Orzo\" [ref=f1e12] [cursor=pointer]:\n          - /url: /recipes/r1\n      - listitem [ref=f1e13]:\n        - link \"Charred Corn Salad\" [ref=f1e14] [cursor=pointer]:\n          - /url: /recipes/r2\n      - listitem [ref=f1e15]:\n        - link \"Miso Mushroom Toast\" [ref=f1e16] [cursor=pointer]:\n          - /url: /recipes/r3\n      - listitem [ref=f1e17]:\n        - link \"Weeknight Chickpea Curry\" [ref=f1e18] [cursor=pointer]:\n          - /url: /recipes/r4\n```"
+      },
+      {
+        "name": "browser_click",
+        "args": {
+          "element": "Charred Lemon Orzo",
+          "ref": "f1e12"
+        },
+        "ms": 664,
+        "resultChars": 757,
+        "result": "- Page URL: /recipes/r1\n- Page Title: Charred Lemon Orzo · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f2e1]:\n  - navigation \"Pantry\" [ref=f2e2]:\n    - link \"Shopping list\" [ref=f2e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f2e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f2e5]:\n    - heading \"Charred Lemon Orzo\" [level=1] [ref=f2e6]\n    - heading \"Ingredients\" [level=2] [ref=f2e7]\n    - list \"Ingredients\" [ref=f2e8]:\n      - listitem [ref=f2e9]: orzo (250 g)\n      - listitem [ref=f2e10]: lemons (2)\n      - listitem [ref=f2e11]: garlic (3 cloves)\n      - listitem [ref=f2e12]: parmesan (50 g)\n      - listitem [ref=f2e13]: basil (1 bunch)\n    - button \"Add ingredients to list\" [ref=f2e15]\n```"
+      },
+      {
+        "name": "browser_click",
+        "args": {
+          "element": "Add ingredients to list",
+          "ref": "f2e15"
+        },
+        "ms": 491,
+        "resultChars": 826,
+        "result": "- Page URL: /recipes/r1\n- Page Title: Charred Lemon Orzo · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f3e1]:\n  - navigation \"Pantry\" [ref=f3e2]:\n    - link \"Shopping list\" [ref=f3e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f3e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f3e5]:\n    - heading \"Charred Lemon Orzo\" [level=1] [ref=f3e6]\n    - status [ref=f3e7]: Added 5 ingredients to your shopping list.\n    - heading \"Ingredients\" [level=2] [ref=f3e8]\n    - list \"Ingredients\" [ref=f3e9]:\n      - listitem [ref=f3e10]: orzo (250 g)\n      - listitem [ref=f3e11]: lemons (2)\n      - listitem [ref=f3e12]: garlic (3 cloves)\n      - listitem [ref=f3e13]: parmesan (50 g)\n      - listitem [ref=f3e14]: basil (1 bunch)\n    - button \"Add ingredients to list\" [ref=f3e16]\n```"
+      }
+    ]
+  },
+  "redacted": false
+}

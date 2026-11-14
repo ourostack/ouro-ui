@@ -46,6 +46,13 @@ async function generatedFailures(root) {
     const path = join(root, "docs/guides", name);
     if (!existsSync(path) || readFileSync(path, "utf8") !== text) failures.push({ message: `docs/guides/${name} differs from what scripts/agent-usability/page.mts renders from ${runs}. Render it again: node scripts/agent-usability/page.mts ${runs} docs/guides/why-no-skill.md.` });
   }
+  const benchmarkPage = join(root, "docs/guides/agent-interfaces.md");
+  if (existsSync(join(root, "scripts/agent-benchmark/page.mjs")) && existsSync(benchmarkPage)) {
+    const { renderPage, publishedRuns } = await import(pathToFileURL(join(root, "scripts/agent-benchmark/page.mjs")).href);
+    if (readFileSync(benchmarkPage, "utf8") !== renderPage(publishedRuns(join(root, "scripts/agent-benchmark/results")))) {
+      failures.push({ message: "docs/guides/agent-interfaces.md differs from what scripts/agent-benchmark/page.mjs renders from scripts/agent-benchmark/results/. Render it again: node scripts/agent-benchmark/page.mjs docs/guides/agent-interfaces.md." });
+    }
+  }
   return failures;
 }
 

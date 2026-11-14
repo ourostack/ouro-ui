@@ -1,0 +1,59 @@
+{
+  "model": "grok-4-7",
+  "modelId": "grok-4.7",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "recipe-to-list",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 2,
+  "toolsUsed": [
+    "search_recipes",
+    "add_recipe_to_shopping_list"
+  ],
+  "textReadChars": 75,
+  "wallMs": 5486,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 6614,
+    "output": 121,
+    "cacheRead": 6272,
+    "cacheWrite": 0,
+    "reasoning": 71,
+    "total": 6735
+  },
+  "costAiu": 0.4546,
+  "costSource": "runtime",
+  "finalMessage": "I put the five ingredients for Charred Lemon Orzo on your shopping list.",
+  "transcript": {
+    "messages": [
+      "I put the five ingredients for Charred Lemon Orzo on your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "search_recipes",
+        "args": {
+          "query": "Charred Lemon Orzo"
+        },
+        "ms": 3,
+        "resultChars": 64,
+        "result": "{\"recipes\":\"[{\\\"id\\\":\\\"r1\\\",\\\"title\\\":\\\"Charred Lemon Orzo\\\"}]\"}"
+      },
+      {
+        "name": "add_recipe_to_shopping_list",
+        "args": {
+          "recipeId": "r1"
+        },
+        "ms": 0,
+        "resultChars": 11,
+        "result": "{\"added\":5}"
+      }
+    ]
+  },
+  "redacted": false
+}

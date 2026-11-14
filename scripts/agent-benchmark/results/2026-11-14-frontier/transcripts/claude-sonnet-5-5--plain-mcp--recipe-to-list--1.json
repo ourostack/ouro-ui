@@ -1,0 +1,104 @@
+{
+  "model": "claude-sonnet-5-5",
+  "modelId": "claude-sonnet-5.5",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "task": "recipe-to-list",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 6,
+  "toolsUsed": [
+    "search_recipes",
+    "list_items",
+    "get_recipe",
+    "add_item",
+    "add_item",
+    "add_item"
+  ],
+  "textReadChars": 864,
+  "wallMs": 6092,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 6050,
+    "output": 533,
+    "cacheRead": 4809,
+    "cacheWrite": 1231,
+    "reasoning": 0,
+    "total": 6583
+  },
+  "costAiu": 0.89084,
+  "costSource": "runtime",
+  "finalMessage": "I added orzo (250 g), garlic (3 cloves) and basil (1 bunch) to your shopping list. The recipe also needs lemons (2) and parmesan (50 g). Your list already has 3 lemons and 100 g of parmesan, so I didn't add those again.",
+  "transcript": {
+    "messages": [
+      "Lemons and parmesan are already on the list in enough quantity. Adding the rest.",
+      "I added orzo (250 g), garlic (3 cloves) and basil (1 bunch) to your shopping list. The recipe also needs lemons (2) and parmesan (50 g). Your list already has 3 lemons and 100 g of parmesan, so I didn't add those again."
+    ],
+    "toolCalls": [
+      {
+        "name": "search_recipes",
+        "args": {
+          "q": "Charred Lemon Orzo"
+        },
+        "ms": 0,
+        "resultChars": 64,
+        "result": "{\"recipes\":\"[{\\\"id\\\":\\\"r1\\\",\\\"title\\\":\\\"Charred Lemon Orzo\\\"}]\"}"
+      },
+      {
+        "name": "list_items",
+        "args": {},
+        "ms": 0,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "get_recipe",
+        "args": {
+          "id": "r1"
+        },
+        "ms": 0,
+        "resultChars": 278,
+        "result": "{\"id\":\"r1\",\"title\":\"Charred Lemon Orzo\",\"ingredients\":[{\"name\":\"orzo\",\"quantity\":250,\"unit\":\"g\"},{\"name\":\"lemons\",\"quantity\":2,\"unit\":null},{\"name\":\"garlic\",\"quantity\":3,\"unit\":\"cloves\"},{\"name\":\"parmesan\",\"quantity\":50,\"unit\":\"g\"},{\"name\":\"basil\",\"quantity\":1,\"unit\":\"bunch\"}]}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "orzo",
+          "quantity": 250,
+          "unit": "g"
+        },
+        "ms": 0,
+        "resultChars": 25,
+        "result": "{\"id\":\"i6\",\"name\":\"orzo\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "garlic",
+          "quantity": 3,
+          "unit": "cloves"
+        },
+        "ms": 0,
+        "resultChars": 27,
+        "result": "{\"id\":\"i7\",\"name\":\"garlic\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "basil",
+          "quantity": 1,
+          "unit": "bunch"
+        },
+        "ms": 0,
+        "resultChars": 26,
+        "result": "{\"id\":\"i8\",\"name\":\"basil\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

@@ -1,0 +1,69 @@
+{
+  "model": "claude-opus-5-5",
+  "modelId": "claude-opus-5.5",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "check-off",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "get_shopping_list",
+    "set_shopping_list_item_checked",
+    "set_shopping_list_item_checked"
+  ],
+  "textReadChars": 448,
+  "wallMs": 5533,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 4280,
+    "output": 220,
+    "cacheRead": 3607,
+    "cacheWrite": 665,
+    "reasoning": 0,
+    "total": 4500
+  },
+  "costAiu": 0.84784,
+  "costSource": "runtime",
+  "finalMessage": "I've ticked the eggs and spinach off your list as bought. You still need the lemons and parmesan.",
+  "transcript": {
+    "messages": [
+      "I've ticked the eggs and spinach off your list as bought. You still need the lemons and parmesan."
+    ],
+    "toolCalls": [
+      {
+        "name": "get_shopping_list",
+        "args": {},
+        "ms": 0,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "set_shopping_list_item_checked",
+        "args": {
+          "id": "i1",
+          "checked": true
+        },
+        "ms": 9,
+        "resultChars": 2,
+        "result": "{}"
+      },
+      {
+        "name": "set_shopping_list_item_checked",
+        "args": {
+          "id": "i2",
+          "checked": true
+        },
+        "ms": 0,
+        "resultChars": 2,
+        "result": "{}"
+      }
+    ]
+  },
+  "redacted": false
+}

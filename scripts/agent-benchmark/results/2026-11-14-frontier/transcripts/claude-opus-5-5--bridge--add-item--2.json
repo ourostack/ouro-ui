@@ -1,0 +1,77 @@
+{
+  "model": "claude-opus-5-5",
+  "modelId": "claude-opus-5.5",
+  "transport": "copilot",
+  "arm": "bridge",
+  "task": "add-item",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 2,
+  "toolsUsed": [
+    "snapshot",
+    "act"
+  ],
+  "textReadChars": 3258,
+  "wallMs": 4183,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 4523,
+    "output": 184,
+    "cacheRead": 2170,
+    "cacheWrite": 2345,
+    "reasoning": 0,
+    "total": 4707
+  },
+  "costAiu": 1.5871,
+  "costSource": "runtime",
+  "finalMessage": "I added oat milk (2 cartons) to your shopping list. I didn't place an order.",
+  "transcript": {
+    "messages": [
+      "I added oat milk (2 cartons) to your shopping list. I didn't place an order."
+    ],
+    "toolCalls": [
+      {
+        "name": "snapshot",
+        "args": {},
+        "ms": 29,
+        "resultChars": 1460,
+        "result": "{\"page\":\"/\",\"text\":{\"title\":\"Shopping list\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"checkbox\",\"label\":\"Bought eggs\",\"row\":\"eggs (12)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c4\",\"component\":\"checkbox\",\"label\":\"Bought spinach\",\"row\":\"spinach (1 bag)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c5\",\"component\":\"checkbox\",\"label\":\"Bought lemons\",\"row\":\"lemons (3)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c6\",\"component\":\"checkbox\",\"label\":\"Bought parmesan\",\"row\":\"parmesan (100 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c7\",\"component\":\"checkbox\",\"label\":\"Bought olive oil\",\"row\":\"olive oil (1 bottle)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Item\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"number\",\"label\":\"Quantity\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c10\",\"component\":\"textbox\",\"label\":\"Unit\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c11\",\"component\":\"button\",\"label\":\"Add to list\",\"actions\":[\"press\"]},{\"ref\":\"c12\",\"component\":\"select\",\"label\":\"Store\",\"value\":\"corner\",\"items\":[{\"value\":\"corner\",\"label\":\"Corner store\"},{\"value\":\"market\",\"label\":\"Market\"}],\"actions\":[\"select\"]},{\"ref\":\"c13\",\"component\":\"button\",\"label\":\"Place order\",\"confirm\":\"Place this order and pay for it\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "c8",
+              "action": "setValue",
+              "value": "oat milk"
+            },
+            {
+              "target": "c9",
+              "action": "setValue",
+              "value": 2
+            },
+            {
+              "target": "c10",
+              "action": "setValue",
+              "value": "cartons"
+            },
+            {
+              "target": "c11",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 109,
+        "resultChars": 1798,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c8\",\"result\":\"done\"},{\"step\":1,\"ref\":\"c9\",\"result\":\"done\"},{\"step\":2,\"ref\":\"c10\",\"result\":\"done\"},{\"step\":3,\"ref\":\"c11\",\"result\":\"done\"}],\"page\":\"/\",\"text\":{\"title\":\"Shopping list\",\"messages\":[\"Added oat milk.\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"checkbox\",\"label\":\"Bought eggs\",\"row\":\"eggs (12)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c4\",\"component\":\"checkbox\",\"label\":\"Bought spinach\",\"row\":\"spinach (1 bag)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c5\",\"component\":\"checkbox\",\"label\":\"Bought lemons\",\"row\":\"lemons (3)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c6\",\"component\":\"checkbox\",\"label\":\"Bought parmesan\",\"row\":\"parmesan (100 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c7\",\"component\":\"checkbox\",\"label\":\"Bought olive oil\",\"row\":\"olive oil (1 bottle)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c14\",\"component\":\"checkbox\",\"label\":\"Bought oat milk\",\"row\":\"oat milk (2 cartons)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Item\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"number\",\"label\":\"Quantity\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c10\",\"component\":\"textbox\",\"label\":\"Unit\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c11\",\"component\":\"button\",\"label\":\"Add to list\",\"actions\":[\"press\"]},{\"ref\":\"c12\",\"component\":\"select\",\"label\":\"Store\",\"value\":\"corner\",\"items\":[{\"value\":\"corner\",\"label\":\"Corner store\"},{\"value\":\"market\",\"label\":\"Market\"}],\"actions\":[\"select\"]},{\"ref\":\"c13\",\"component\":\"button\",\"label\":\"Place order\",\"confirm\":\"Place this order and pay for it\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  },
+  "redacted": false
+}

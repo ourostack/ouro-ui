@@ -1,0 +1,95 @@
+{
+  "model": "gemini-4-carbon",
+  "modelId": "gemini-4-carbon",
+  "transport": "copilot",
+  "arm": "browser",
+  "task": "add-item",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 5,
+  "toolsUsed": [
+    "browser_snapshot",
+    "browser_type",
+    "browser_type",
+    "browser_type",
+    "browser_click"
+  ],
+  "textReadChars": 8447,
+  "wallMs": 21172,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 9371,
+    "output": 297,
+    "cacheRead": 1292,
+    "cacheWrite": 0,
+    "reasoning": 125,
+    "total": 9668
+  },
+  "costAiu": 1.92572,
+  "costSource": "runtime",
+  "finalMessage": "I added 2 cartons of oat milk to your shopping list.",
+  "transcript": {
+    "messages": [
+      "I added 2 cartons of oat milk to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "browser_snapshot",
+        "args": {},
+        "ms": 184,
+        "resultChars": 1635,
+        "result": "- Page URL: /\n- Page Title: Shopping list · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=e1]:\n  - navigation \"Pantry\" [ref=e2]:\n    - link \"Shopping list\" [ref=e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=e5]:\n    - heading \"Shopping list\" [level=1] [ref=e6]\n    - list \"Items\" [ref=e7]:\n      - listitem [ref=e8]:\n        - checkbox \"Bought eggs\" [ref=e10]\n        - text: eggs (12)\n      - listitem [ref=e11]:\n        - checkbox \"Bought spinach\" [ref=e13]\n        - text: spinach (1 bag)\n      - listitem [ref=e14]:\n        - checkbox \"Bought lemons\" [ref=e16]\n        - text: lemons (3)\n      - listitem [ref=e17]:\n        - checkbox \"Bought parmesan\" [ref=e19]\n        - text: parmesan (100 g)\n      - listitem [ref=e20]:\n        - checkbox \"Bought olive oil\" [checked] [ref=e22]\n        - text: olive oil (1 bottle)\n    - heading \"Add an item\" [level=2] [ref=e23]\n    - generic [ref=e24]:\n      - paragraph [ref=e25]:\n        - text: Item\n        - textbox \"Item\" [ref=e26]\n      - paragraph [ref=e27]:\n        - text: Quantity\n        - spinbutton \"Quantity\" [ref=e28]\n      - paragraph [ref=e29]:\n        - text: Unit\n        - textbox \"Unit\" [ref=e30]\n      - paragraph [ref=e31]:\n        - button \"Add to list\" [ref=e32]\n    - heading \"Order\" [level=2] [ref=e33]\n    - generic [ref=e34]:\n      - paragraph [ref=e35]:\n        - text: Store\n        - combobox \"Store\" [ref=e36]:\n          - option \"Corner store\" [selected]\n          - option \"Market\"\n      - paragraph [ref=e37]:\n        - button \"Place order\" [ref=e38]\n```"
+      },
+      {
+        "name": "browser_type",
+        "args": {
+          "element": "Item textbox",
+          "ref": "e26",
+          "text": "oat milk"
+        },
+        "ms": 172,
+        "resultChars": 1645,
+        "result": "- Page URL: /\n- Page Title: Shopping list · Pantry\n- Page Snapshot:\n```yaml\n- generic [ref=e1]:\n  - navigation \"Pantry\" [ref=e2]:\n    - link \"Shopping list\" [ref=e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=e5]:\n    - heading \"Shopping list\" [level=1] [ref=e6]\n    - list \"Items\" [ref=e7]:\n      - listitem [ref=e8]:\n        - checkbox \"Bought eggs\" [ref=e10]\n        - text: eggs (12)\n      - listitem [ref=e11]:\n        - checkbox \"Bought spinach\" [ref=e13]\n        - text: spinach (1 bag)\n      - listitem [ref=e14]:\n        - checkbox \"Bought lemons\" [ref=e16]\n        - text: lemons (3)\n      - listitem [ref=e17]:\n        - checkbox \"Bought parmesan\" [ref=e19]\n        - text: parmesan (100 g)\n      - listitem [ref=e20]:\n        - checkbox \"Bought olive oil\" [checked] [ref=e22]\n        - text: olive oil (1 bottle)\n    - heading \"Add an item\" [level=2] [ref=e23]\n    - generic [ref=e24]:\n      - paragraph [ref=e25]:\n        - text: Item\n        - textbox \"Item\" [active] [ref=e26]: oat milk\n      - paragraph [ref=e27]:\n        - text: Quantity\n        - spinbutton \"Quantity\" [ref=e28]\n      - paragraph [ref=e29]:\n        - text: Unit\n        - textbox \"Unit\" [ref=e30]\n      - paragraph [ref=e31]:\n        - button \"Add to list\" [ref=e32]\n    - heading \"Order\" [level=2] [ref=e33]\n    - generic [ref=e34]:\n      - paragraph [ref=e35]:\n        - text: Store\n        - combobox \"Store\" [ref=e36]:\n          - option \"Corner store\" [selected]\n          - option \"Market\"\n      - paragraph [ref=e37]:\n        - button \"Place order\" [ref=e38]\n```"
+      },
+      {
+        "name": "browser_type",
+        "args": {
+          "element": "Quantity spinbutton",
+          "ref": "e28",
+          "text": "2"
+        },
+        "ms": 192,
+        "resultChars": 1650,
+        "result": "- Page URL: /\n- Page Title: Shopping list · Pantry\n- Page Snapshot:\n```yaml\n- generic [ref=e1]:\n  - navigation \"Pantry\" [ref=e2]:\n    - link \"Shopping list\" [ref=e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=e5]:\n    - heading \"Shopping list\" [level=1] [ref=e6]\n    - list \"Items\" [ref=e7]:\n      - listitem [ref=e8]:\n        - checkbox \"Bought eggs\" [ref=e10]\n        - text: eggs (12)\n      - listitem [ref=e11]:\n        - checkbox \"Bought spinach\" [ref=e13]\n        - text: spinach (1 bag)\n      - listitem [ref=e14]:\n        - checkbox \"Bought lemons\" [ref=e16]\n        - text: lemons (3)\n      - listitem [ref=e17]:\n        - checkbox \"Bought parmesan\" [ref=e19]\n        - text: parmesan (100 g)\n      - listitem [ref=e20]:\n        - checkbox \"Bought olive oil\" [checked] [ref=e22]\n        - text: olive oil (1 bottle)\n    - heading \"Add an item\" [level=2] [ref=e23]\n    - generic [ref=e24]:\n      - paragraph [ref=e25]:\n        - text: Item\n        - textbox \"Item\" [ref=e26]: oat milk\n      - paragraph [ref=e27]:\n        - text: Quantity\n        - spinbutton \"Quantity\" [active] [ref=e28]: \"2\"\n      - paragraph [ref=e29]:\n        - text: Unit\n        - textbox \"Unit\" [ref=e30]\n      - paragraph [ref=e31]:\n        - button \"Add to list\" [ref=e32]\n    - heading \"Order\" [level=2] [ref=e33]\n    - generic [ref=e34]:\n      - paragraph [ref=e35]:\n        - text: Store\n        - combobox \"Store\" [ref=e36]:\n          - option \"Corner store\" [selected]\n          - option \"Market\"\n      - paragraph [ref=e37]:\n        - button \"Place order\" [ref=e38]\n```"
+      },
+      {
+        "name": "browser_type",
+        "args": {
+          "element": "Unit textbox",
+          "ref": "e30",
+          "text": "cartons"
+        },
+        "ms": 200,
+        "resultChars": 1659,
+        "result": "- Page URL: /\n- Page Title: Shopping list · Pantry\n- Page Snapshot:\n```yaml\n- generic [ref=e1]:\n  - navigation \"Pantry\" [ref=e2]:\n    - link \"Shopping list\" [ref=e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=e5]:\n    - heading \"Shopping list\" [level=1] [ref=e6]\n    - list \"Items\" [ref=e7]:\n      - listitem [ref=e8]:\n        - checkbox \"Bought eggs\" [ref=e10]\n        - text: eggs (12)\n      - listitem [ref=e11]:\n        - checkbox \"Bought spinach\" [ref=e13]\n        - text: spinach (1 bag)\n      - listitem [ref=e14]:\n        - checkbox \"Bought lemons\" [ref=e16]\n        - text: lemons (3)\n      - listitem [ref=e17]:\n        - checkbox \"Bought parmesan\" [ref=e19]\n        - text: parmesan (100 g)\n      - listitem [ref=e20]:\n        - checkbox \"Bought olive oil\" [checked] [ref=e22]\n        - text: olive oil (1 bottle)\n    - heading \"Add an item\" [level=2] [ref=e23]\n    - generic [ref=e24]:\n      - paragraph [ref=e25]:\n        - text: Item\n        - textbox \"Item\" [ref=e26]: oat milk\n      - paragraph [ref=e27]:\n        - text: Quantity\n        - spinbutton \"Quantity\" [ref=e28]: \"2\"\n      - paragraph [ref=e29]:\n        - text: Unit\n        - textbox \"Unit\" [active] [ref=e30]: cartons\n      - paragraph [ref=e31]:\n        - button \"Add to list\" [ref=e32]\n    - heading \"Order\" [level=2] [ref=e33]\n    - generic [ref=e34]:\n      - paragraph [ref=e35]:\n        - text: Store\n        - combobox \"Store\" [ref=e36]:\n          - option \"Corner store\" [selected]\n          - option \"Market\"\n      - paragraph [ref=e37]:\n        - button \"Place order\" [ref=e38]\n```"
+      },
+      {
+        "name": "browser_click",
+        "args": {
+          "element": "Add to list button",
+          "ref": "e32"
+        },
+        "ms": 574,
+        "resultChars": 1858,
+        "result": "- Page URL: /\n- Page Title: Shopping list · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f1e1]:\n  - navigation \"Pantry\" [ref=f1e2]:\n    - link \"Shopping list\" [ref=f1e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f1e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f1e5]:\n    - heading \"Shopping list\" [level=1] [ref=f1e6]\n    - status [ref=f1e7]: Added oat milk.\n    - list \"Items\" [ref=f1e8]:\n      - listitem [ref=f1e9]:\n        - checkbox \"Bought eggs\" [ref=f1e11]\n        - text: eggs (12)\n      - listitem [ref=f1e12]:\n        - checkbox \"Bought spinach\" [ref=f1e14]\n        - text: spinach (1 bag)\n      - listitem [ref=f1e15]:\n        - checkbox \"Bought lemons\" [ref=f1e17]\n        - text: lemons (3)\n      - listitem [ref=f1e18]:\n        - checkbox \"Bought parmesan\" [ref=f1e20]\n        - text: parmesan (100 g)\n      - listitem [ref=f1e21]:\n        - checkbox \"Bought olive oil\" [checked] [ref=f1e23]\n        - text: olive oil (1 bottle)\n      - listitem [ref=f1e24]:\n        - checkbox \"Bought oat milk\" [ref=f1e26]\n        - text: oat milk (2 cartons)\n    - heading \"Add an item\" [level=2] [ref=f1e27]\n    - generic [ref=f1e28]:\n      - paragraph [ref=f1e29]:\n        - text: Item\n        - textbox \"Item\" [ref=f1e30]\n      - paragraph [ref=f1e31]:\n        - text: Quantity\n        - spinbutton \"Quantity\" [ref=f1e32]\n      - paragraph [ref=f1e33]:\n        - text: Unit\n        - textbox \"Unit\" [ref=f1e34]\n      - paragraph [ref=f1e35]:\n        - button \"Add to list\" [ref=f1e36]\n    - heading \"Order\" [level=2] [ref=f1e37]\n    - generic [ref=f1e38]:\n      - paragraph [ref=f1e39]:\n        - text: Store\n        - combobox \"Store\" [ref=f1e40]:\n          - option \"Corner store\" [selected]\n          - option \"Market\"\n      - paragraph [ref=f1e41]:\n        - button \"Place order\" [ref=f1e42]\n```"
+      }
+    ]
+  },
+  "redacted": false
+}
