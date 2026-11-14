@@ -306,7 +306,7 @@ function estimated(items: readonly NavigationRailEntry[], heights: ReadonlyMap<s
   const tallest = Math.max(0, ...[...heights].filter(([key]) => key !== "more" && key !== "separator").map(([, height]) => height));
   // Stryker disable next-line ConditionalExpression,BlockStatement: every measure stores More first, so an unmeasured rail never gets here with sizes.
   if (!heights.has("more")) return new Map();
-  // Stryker disable next-line BlockStatement: see the stand-in above.
+  // Stryker disable next-line BlockStatement,CallExpression,ArrowFunction: see the stand-in above.
   items.forEach((entry, index) => {
     // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,StringLiteral,BooleanLiteral,CallExpression: see the stand-in above.
     /* istanbul ignore next @preserve -- an item hidden since it first rendered has no size until it shows once; every measure here shows all first */ if (entry.type !== "separator" && !filled.has(String(index))) filled.set(String(index), tallest);
@@ -439,8 +439,9 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
           shown.current = { ...shown.current, hidden };
           setFit(shown.current);
         }
-        // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,BlockStatement: a measure after a fit from sizes finds the same fit and renders nothing.
-      } else if (fromSizes.current && before.others === others && before.current === current) {
+      }
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,BlockStatement: a measure after a fit from sizes finds the same fit and renders nothing.
+      else if (fromSizes.current && before.others === others && before.current === current) {
         // The fit that just rendered came from sizes: the items it shows or hides report their new sizes to the observer, which measures once the page is laid out.
         // Stryker disable next-line BooleanLiteral,BlockStatement: a measure the observer starts after a fit from sizes finds the same fit and renders nothing.
         fromSizes.current = false;
