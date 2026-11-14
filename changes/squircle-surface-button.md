@@ -1,0 +1,1 @@
+- Safari and other engines without `corner-shape` now draw Button as a true squircle with no JavaScript: a `[data-ouro-surface]` layer paints the fill and the border ring through a clip-path squircle, while the element keeps a 0.7× radius for its shadow and focus ring.
