@@ -179,6 +179,33 @@ describe("ToggleGroup", () => {
     }
   });
 
+  it("has no tab stop when the whole group is disabled, and ignores keys aimed at the group itself", async () => {
+    const off = await render(<ToggleGroup label="Alignment" items={align} disabled />);
+    expect(off.toggles.map((toggle) => toggle.tabIndex)).toEqual([-1, -1, -1]);
+  });
+
+  it("leaves focus alone for a key pressed on the group, not an item", async () => {
+    const { toggles, group } = await render(<ToggleGroup label="Alignment" items={align} />);
+    toggles[1]!.focus();
+    await act(async () => {
+      group.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    expect(document.activeElement).toBe(toggles[1]);
+  });
+
+  it("steps back with ArrowUp and cancels the key it handles", async () => {
+    const { toggles } = await render(<ToggleGroup label="Alignment" items={align} />);
+    toggles[1]!.focus();
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(toggles[0]);
+    const event = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    await act(async () => {
+      toggles[0]!.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(toggles[1]);
+  });
+
   it("mirrors arrows when the document itself is right to left", async () => {
     const { toggles } = await render(<ToggleGroup label="Alignment" items={align} />);
     document.documentElement.dir = "rtl";

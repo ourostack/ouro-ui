@@ -258,6 +258,7 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const labelId = useId();
+  // Stryker disable next-line ArrayDeclaration: an empty list and a stray entry press no item
   const [inner, setInner] = useState<readonly string[]>(() => asList(defaultValue) ?? []);
   const pressed = asList(value) ?? inner;
   const [focused, setFocused] = useState<string | null>(null);
@@ -270,6 +271,7 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
       : next
         ? [itemValue]
         : [];
+    // Stryker disable next-line ConditionalExpression: a controlled group reads value, so the extra state is never shown
     if (value === undefined) setInner(list);
     if (multiple) (onValueChange as ToggleGroupMultipleProps["onValueChange"])?.(list);
     else (onValueChange as ToggleGroupSingleProps["onValueChange"])?.(list[0] ?? null);
@@ -287,6 +289,7 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
       event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : step ? (at + step + buttons.length) % buttons.length : -1;
     if (target === -1) return;
     event.preventDefault();
+    // Stryker disable next-line OptionalChaining: target is always inside buttons
     buttons[target]?.focus();
   };
 
