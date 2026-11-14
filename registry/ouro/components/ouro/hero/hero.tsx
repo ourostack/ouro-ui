@@ -170,6 +170,14 @@ export interface HeroOwnProps {
   /**
    * The big picture, shown under the text: `{ light, dark }`, the same scene by day and at
    * night, swapped with the page's dark mode. Both are required: a hero has night art.
+   *
+   * Once the picture shown has loaded, the media frame carries `data-loaded`, so a site or a test
+   * can wait on `[data-slot="media"][data-loaded]`. A small inline script in the server's HTML
+   * sets it before any JavaScript bundle runs, and Hero sets it itself after hydration or a client
+   * render, so it also arrives where a content security policy blocks inline scripts.
+   *
+   * @claim "A small inline script in the server's HTML" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > marks the frame data-loaded once the picture shown has loaded, from server HTML with no hydration)
+   * @claim "so it also arrives where a content security policy blocks inline scripts" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > marks a picture that loaded before hydration once it hydrates, where the page's scripts did not run)
    */
   picture?: HeroPictures | undefined;
   /**
@@ -285,10 +293,14 @@ const layoutMedia: Record<HeroLayout, string> = {
 // technology hears one picture, and a lazy image that is not shown is never fetched.
 const schemeClass = { light: "dark:hidden", dark: "hidden dark:block" } as const;
 
-// Run as the parser reaches it, after both twins and once the page's CSS has loaded: it loads the
-// twin shown at first paint now, and leaves the hidden one lazy, so it is never fetched.
-const firstPaintScript =
-  '(function(s){var p=s.parentNode.children;for(var i=0;i<p.length;i++){var g=p[i].tagName==="PICTURE"&&getComputedStyle(p[i]).display!=="none"&&p[i].querySelector("img");if(g&&g.loading==="lazy")g.loading="eager"}})(document.currentScript)';
+// Run as the parser reaches it, after the pictures and once the page's CSS has loaded: it marks the
+// frame `data-loaded` once the picture shown has loaded, and for urgent twins (`u`) it loads that
+// picture now, leaving the hidden one lazy, so it is never fetched.
+const firstPaintScript = (urgent: boolean) =>
+  `(function(s,u){var f=s.parentNode,p=f.children;for(var i=0;i<p.length;i++){var g=p[i].tagName==="PICTURE"&&getComputedStyle(p[i]).display!=="none"&&p[i].querySelector("img");if(g){if(u&&g.loading==="lazy")g.loading="eager";var d=function(){f.setAttribute("data-loaded","")};if(g.complete&&g.naturalWidth)d();else g.addEventListener("load",d)}}})(document.currentScript,${urgent ? 1 : 0})`;
+
+/** Whether the picture holding this image is the one shown, rather than its twin for the other scheme. */
+const isShown = (image: HTMLImageElement) => getComputedStyle(image.parentElement!).display !== "none";
 
 // Stryker disable next-line ArrowFunction: the type never changes after hydration, so nothing subscribes and the unsubscribe has nothing to undo.
 const noSubscription = () => () => {};
@@ -299,9 +311,9 @@ const serverScriptType = () => undefined;
  * The script, in the server's HTML only. A client render marks it as data, which React neither runs
  * nor warns about; hydration keeps the server's type until it has adopted the script, which has run.
  */
-function FirstPaintScript(): JSX.Element {
+function FirstPaintScript({ urgent }: { urgent: boolean }): JSX.Element {
   const type = useSyncExternalStore(noSubscription, clientScriptType, serverScriptType);
-  return <script type={type} dangerouslySetInnerHTML={{ __html: firstPaintScript }} />;
+  return <script type={type} dangerouslySetInnerHTML={{ __html: firstPaintScript(urgent) }} />;
 }
 
 // The dark twin is the same scene as `day`, so it takes day's alt text, decorative flag and focus unless it has its own.
@@ -310,7 +322,7 @@ function renderPicture(
   picture: HeroPicture,
   crop: string | undefined,
   scheme: "light" | "dark" | undefined,
-  load: { eager: boolean; urgent: boolean },
+  load: { eager: boolean; urgent: boolean; onLoad: (image: HTMLImageElement) => void },
   day?: HeroPicture,
 ): JSX.Element {
   const decorative = picture.decorative ?? day?.decorative;
@@ -340,6 +352,7 @@ function renderPicture(
         decoding={load.urgent ? undefined : "async"}
         // The first-paint script may have set loading="eager" before React hydrates.
         suppressHydrationWarning={load.urgent}
+        onLoad={(event) => load.onLoad(event.currentTarget)}
         style={{ objectPosition: picture.focus ?? day?.focus ?? "50% 42%", backgroundColor: picture.placeholder }}
         className={cn(
           "block h-auto w-full object-cover select-none",
@@ -415,12 +428,19 @@ export function Hero(props: HeroProps): JSX.Element {
   // The marker names the rise for the motion evidence. It is set only once the rise is seen running here, never in the
   // server's HTML, so a page that never hydrates keeps no marker, and it goes when the rise ends.
   const [rising, setRising] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const onImageLoad = (image: HTMLImageElement) => {
+    if (isShown(image)) setLoaded(true);
+  };
   const mediaRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(
     () => {
       // A finished transition leaves the list, so any animation here is the rise still running.
       const running = mediaRef.current?.getAnimations().length;
       if (running) setRising(true);
+      // A picture that loaded before hydration, where the page's scripts did not run, fired its load event unheard.
+      const shownImage = [...(mediaRef.current?.querySelectorAll<HTMLImageElement>("picture > img") ?? [])].find(isShown);
+      if (shownImage?.complete && shownImage.naturalWidth > 0) setLoaded(true);
     },
     // Stryker disable next-line ArrayDeclaration: any constant list runs the effect once, like an empty one.
     [],
@@ -489,12 +509,15 @@ export function Hero(props: HeroProps): JSX.Element {
   const shown = light ? (
     dark ? (
       <>
-        {renderPicture(light, crop, "light", { eager: light.priority === true && dark.priority !== true, urgent })}
-        {renderPicture(dark, crop, "dark", { eager: dark.priority === true && light.priority !== true, urgent }, light)}
-        {urgent ? <FirstPaintScript /> : null}
+        {renderPicture(light, crop, "light", { eager: light.priority === true && dark.priority !== true, urgent, onLoad: onImageLoad })}
+        {renderPicture(dark, crop, "dark", { eager: dark.priority === true && light.priority !== true, urgent, onLoad: onImageLoad }, light)}
+        <FirstPaintScript urgent={urgent} />
       </>
     ) : (
-      renderPicture(light, crop, undefined, { eager: light.priority === true, urgent })
+      <>
+        {renderPicture(light, crop, undefined, { eager: light.priority === true, urgent, onLoad: onImageLoad })}
+        <FirstPaintScript urgent={false} />
+      </>
     )
   ) : typeof media === "boolean" ? null : (
     // `media={isWide && <video … />}` passes false: no empty frame rises in its place.
@@ -562,6 +585,9 @@ export function Hero(props: HeroProps): JSX.Element {
           data-ouro-part="media"
           ref={mediaRef}
           data-starting-style={rising ? "" : undefined}
+          data-loaded={loaded ? "" : undefined}
+          // The first-paint script may have set data-loaded before React hydrates.
+          suppressHydrationWarning
           onTransitionEnd={() => setRising(false)}
           style={pictureStyle}
           className={cn(
