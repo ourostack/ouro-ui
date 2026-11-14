@@ -100,7 +100,7 @@ function Row({ surface }: { surface: Surface }): JSX.Element {
               ))}
             </ul>
           ) : (
-            <span className="adoption-detail">no Ouro UI dependency found</span>
+            <span className="adoption-detail">not detected</span>
           )}
         </Cell>
         <Cell name="HX use" cell={hx}>
@@ -147,12 +147,12 @@ function Row({ surface }: { surface: Surface }): JSX.Element {
             <ul className="adoption-plain">
               {tracking.value.map((issue) => (
                 <li key={issue.title}>
-                  {issue.url ? <Link href={issue.url}>#{issue.number}</Link> : <span className="adoption-null">no issue yet</span>} <span className="adoption-detail">{issue.state}</span>
+                  {issue.url ? <Link href={issue.url}>#{issue.number}</Link> : <span className="adoption-null">issue pending</span>} <span className="adoption-detail">{issue.state}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <span className="adoption-null">no issue yet</span>
+            <span className="adoption-null">issue pending</span>
           )}
           {tracking.note ? <span className="adoption-detail">{tracking.note}</span> : null}
         </Cell>
@@ -201,12 +201,12 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
           </h1>
           <div className="site-lede adoption-lede">
             <p>
-              Every product we still maintain should use Ouro UI and give back to it. A product is <strong>confirmed</strong> when all four hold: it is on current Ouro UI, its actions are on the one-action model, its AX <code>must</code> claims pass in CI, and it has given back. This page is the one place that tracks it, in public, measured from GitHub and CI.
+              Our maintained products should use Ouro UI and give back to it. A product is <strong>confirmed</strong> when its pins are current, its actions are on the one-action model, its AX <code>must</code> claims pass in CI, and it has given back. This page is the one place that tracks it, in public, measured from GitHub and CI.
             </p>
             <p className="adoption-fresh">
               Measured <time dateTime={ledger.generatedAt}>{stamp(ledger.generatedAt)}</time>
-              {refreshed ? " (newer than this page's build)" : ""}, again every hour. {summary.unmeasuredCells} cells are{" "}
-              {NOT_YET}, and each says why. <Link href="https://github.com/ourostack/ouro-ui/tree/main/scripts/adoption#readme">How it is measured</Link>,{" "}
+              {refreshed ? " (newer than this page's build)" : ""}, and hourly after that. {summary.unmeasuredCells} cells are{" "}
+              {NOT_YET}, with a reason beside it. <Link href="https://github.com/ourostack/ouro-ui/tree/main/scripts/adoption#readme">How it is measured</Link>,{" "}
               <Link href="https://github.com/ourostack/ouro-ui/issues?q=is%3Aissue+label%3Aadoption">the tracking issues</Link>,{" "}
               <Link href={LIVE_URL}>ledger.json</Link>.
             </p>
@@ -312,9 +312,9 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
                       <Link href={card.issue.url ?? program.source}>Issue #{card.issue.number}</Link>, {card.issue.state}
                     </>
                   ) : (
-                    <span className="adoption-null">no issue yet</span>
+                    <span className="adoption-null">issue pending</span>
                   )}
-                  {card.surfaces.length ? ` · ${card.surfaces.map((id) => byId.get(id)?.name ?? id).join(", ")}` : " · every product"}
+                  {card.surfaces.length ? ` · ${card.surfaces.map((id) => byId.get(id)?.name ?? id).join(", ")}` : " · cross-cutting"}
                 </p>
               </li>
             ))}
