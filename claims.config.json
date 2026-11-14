@@ -37,6 +37,11 @@
       "reason": "vendored source of ourostack/hyperellipse (MIT, from Mikhail Mogilnikov's hyperellipse): its comments describe the CSS Borders spec's geometry and the code's own steps, not the product, and its tests prove the behaviour"
     },
     {
+      "match": "^docs/guides/model-reviews\\.md$",
+      "mode": "generated",
+      "reason": "scripts/model-reviews/page.mjs renders it from the published runs in scripts/model-reviews/results/; pnpm claims:check renders it again and compares"
+    },
+    {
       "match": "^scripts/agent-usability/runs/",
       "mode": "evidence",
       "reason": "a scored run's record, written by the agent-usability harness"
@@ -70,6 +75,11 @@
       "match": "^scripts/agent-benchmark/results/",
       "mode": "evidence",
       "reason": "an agent interface benchmark run's record (results.json and transcripts), written by scripts/agent-benchmark/run.mjs"
+    },
+    {
+      "match": "^scripts/model-reviews/results/",
+      "mode": "evidence",
+      "reason": "a model reviews run's record (run.json and transcripts), written by scripts/model-reviews/model-reviews.mjs and copied unchanged"
     },
     {
       "match": "^scripts/agent-usability/(screens|arms)/",

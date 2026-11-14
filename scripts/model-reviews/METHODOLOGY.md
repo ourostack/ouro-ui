@@ -1,6 +1,6 @@
 # Model reviews: which interface toolkit would a model choose?
 
-This measures one thing: asked independently and neutrally, which design system or interface toolkit does each frontier model choose to build interfaces that both people and agents use, across web and native? Nothing about Ouro UI is published from it yet. A claim that models choose Ouro UI is made only from a run of this script that shows it, and its raw output is the only source for any model's words.
+This measures one thing: asked independently and neutrally, which design system or interface toolkit does each frontier model choose to build interfaces that both people and agents use, across web and native? The results are published at [/docs/model-reviews/](https://ui.ouroboros.bot/docs/model-reviews/), rendered by a script from the runs' records. A claim that models choose Ouro UI is made only from a run of this script that shows it, and its raw output is the only source for any model's words.
 
 It is the Ouro UI counterpart of `scripts/model-reviews.cjs` in [ourostack/ouroboros-website](https://github.com/ourostack/ouroboros-website), which backs ouroboros.bot/model-reviews, and it keeps that script's method.
 
@@ -19,7 +19,7 @@ It then lists the candidates by name and URL, and gives three tools: `search` (P
 3. **The same tools, the same text, one runtime.** Models share the Ouroboros script's stripped GitHub Copilot runtime (`empty` mode: no skills, memory, instructions, hooks or host tools, no compaction, no large-output indirection). A run that compacted is rejected, so no hidden context decides a vote.
 4. **Sources are pinned.** A candidate on GitHub is read at the commit current at the cutoff, whatever branch or path the model asks for. A candidate that is not a repository (Material 3 and Jetpack Compose, SwiftUI and the Human Interface Guidelines) is captured when first fetched, with a hash of its first page recorded.
 5. **Repair access symmetrically.** Apple's documentation needs JavaScript, so its pages come back as the JSON they render from (`developer.apple.com/tutorials/data/...json`). That is the only rewrite beyond pinning GitHub, and it applies to every Apple page whoever asks.
-6. **Reject incomplete research.** A verdict is refused unless the model fetched a source for every candidate (at its pinned revision, for a repository) and links only pages it fetched. The model sees the refusal and can continue.
+6. **Reject incomplete research.** A verdict is refused unless the model fetched a source for every candidate (at its pinned revision, for a repository) and links only pages it fetched. The model sees the refusal, with the rule it broke, and can continue. (Until 2026-11-14 a refusal reached the model only as the runtime's generic "Tool execution failed", which names no rule; the 2026-11-13 baseline ran that way.)
 7. **Never curate.** No quote is edited, paraphrased or picked from a longer one. An unusable output may have its *format* constraints changed, and the run repeated, without steering toward a candidate or a dimension. An undesired choice is not malformed output, and an unchanged input is not rerun to seek another vote.
 8. **Save everything privately.** A run writes to a new folder outside this repository (`--output-dir`). Credentials are redacted from every log, and a finished artifact containing one is refused.
 
@@ -77,4 +77,9 @@ In the output folder:
 - **Position is controlled by shuffling, not removed.** Read `subjectPositions` beside the picks.
 - **A model's reasons are its own and may be wrong.** Check a factual objection against the source it links before treating it as a defect, and keep both the claim and the check.
 - **Pinned means a snapshot.** A fix merged after the cutoff is not seen until the next run. Rerun after fixing, as a new baseline with its own date, never to replace an unwelcome result.
-- **A headline needs the data.** Publish "models choose Ouro UI" only when a complete run shows it, derived from the run's `summary`, with the transcripts alongside.
+- **A headline needs the data.** The page says models choose Ouro UI only when more than half of the models that gave a verdict chose it, and "all" only when every model asked did; otherwise it says Ouro UI is not yet their choice, with the counts.
+
+## Publishing a run
+
+1. Copy the run's `run.json` and `transcripts/` (never `raw/`) to `scripts/model-reviews/results/<series>--<run>/`, unchanged. A series is one review of the panel, named by its date and a word (`2026-11-14-rerun`); a retry of a model that gave no verdict is another run in the same series (`2026-11-14-rerun--run-2-gemini-4-carbon-retry`). The page refuses two verdicts from one model in a series.
+2. `node scripts/model-reviews/page.mjs docs/guides/model-reviews.md` renders the page from every published run: the headline and table from the latest series, the comparison with the series before it over the models both answered, and each model's verbatim evaluation of Ouro UI. `pnpm claims:check` renders it again and fails when the committed page differs.

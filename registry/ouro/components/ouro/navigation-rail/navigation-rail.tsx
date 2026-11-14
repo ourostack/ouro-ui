@@ -342,15 +342,22 @@ function measureFit(element: HTMLUListElement, items: readonly NavigationRailEnt
   sizes.gap = gap;
   sizes.room = room;
   const indexes = items.flatMap((entry, index) => (entry.type === "separator" ? [] : [index]));
-  const kept = keptItems(items, current, heights, gap, room);
+  // More is not on the list until something hides, so its height stands in as the tallest item's: the first measure then leaves room for it.
+  const withMore = new Map(heights);
+  // Stryker disable next-line ConditionalExpression,StringLiteral: the stand-in only saves a later re-measure; the fit that settles is the same without it
+  if (!withMore.has("more")) withMore.set("more", Math.max(0, ...[...measured.values()]));
+  const kept = keptItems(items, current, withMore, gap, room);
   // Labels hidden under More, or by hideLabels, measure nothing and are never set smaller.
-  const labels = [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")].filter((text) => text.clientWidth > 1);
+  // The labels of items about to move under More are left out too, so the one measure gives the fit that settles.
+  // Stryker disable next-line MethodExpression: the spread only makes the NodeList an array; the filter that follows keeps the same labels
+  const shownLabels = [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")].filter((text) => kept.has(Number(text.dataset.ouroNavigationRailLabel)));
+  const labels = shownLabels.filter((text) => text.clientWidth > 1);
   const isSqueezed = (text: HTMLElement) => text.hasAttribute("data-ouro-navigation-rail-squeezed");
   return {
     hidden: indexes.filter((index) => !kept.has(index)),
     // A label cut short: by its two lines, or by a word too wide even a size smaller, which breaks within it. (A word too
     // wide at the label's own size sets it smaller first.)
-    truncated: [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")]
+    truncated: shownLabels
       .filter((text) => text.scrollHeight > text.clientHeight || (isSqueezed(text) && wordTooWide(text)))
       .map((text) => Number(text.dataset.ouroNavigationRailLabel)),
     // A label with a word too wide is set a size smaller, and stays so while its words stay the same: a size smaller, it would measure as fitting.
