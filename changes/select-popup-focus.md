@@ -1,0 +1,1 @@
+- Select: a keyboard open always puts focus on an option, never on the list's frame, when Base UI's two queued focus moves arrive in the other order.
