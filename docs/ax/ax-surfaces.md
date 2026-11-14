@@ -12,7 +12,7 @@ What a repository hands the checker: its agent-facing words as one JSON file a r
 An `id` is stable across edits to the wording (a code, a tool name, or `file#first-words`), because the ratchet records findings by it.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-surfaces#v1.3.17
+npx shadcn@latest add ourostack/ouro-ui/ax-surfaces#v1.3.18
 ```
 
 It installs `lib/ouro/ax/surfaces.ts`, with `ax-dev-commands`, `ax-exit-codes`, `ax-problem`. Its tests are `ax-surfaces-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
