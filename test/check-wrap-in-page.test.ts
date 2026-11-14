@@ -52,6 +52,7 @@ describe("findWrapIssues: lone-word", () => {
       <p style="${mono(16, "10ch")}">aaaa bbbb cccc</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc https://example.com/a</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc averyveryverylongtokenname</p>
+      <p style="${mono(16, "15ch")}">aaaa bbbb 2026-11-14-rerun--run-1</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc a</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc fn(x)</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc <code>dddd</code></p>
