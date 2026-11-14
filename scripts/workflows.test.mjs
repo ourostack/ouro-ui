@@ -1492,7 +1492,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.ok(mine.length > 0 && mySpecs.length > 0);
   const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
   assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=2 ${escaped(mine)}$`, "m"));
-  assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel ${escaped(mySpecs)}$`, "m"));
+  assert.match(shard.stdout, new RegExp(`^npx playwright test --fully-parallel --reporter=list ${escaped(mySpecs)}$`, "m"));
   const empty = run({ OURO_SHARD: "2/2" });
   assert.equal(empty.status, 1);
   assert.match(empty.stdout, /Shard 2\/2 has no shipped test file to run/);
