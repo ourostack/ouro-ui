@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -233,7 +233,7 @@ test("scripts/retry.sh runs a failed fetch again after each wait, and fails with
   assert.equal(first.stdout, "");
 });
 
-test("only the jobs that push, release.yml's release job, keep the checkout's credentials", () => {
+test("only the jobs that push, release.yml's release job and docs-pin.yml's pin job, keep the checkout's credentials", () => {
   const problems = [];
   for (const { file, text } of workflows) {
     const lines = text.split("\n");
@@ -242,7 +242,8 @@ test("only the jobs that push, release.yml's release job, keep the checkout's cr
       const step = lines.slice(index + 1, index + 4).join("\n");
       const persists = !/^\s+persist-credentials: false$/m.test(step);
       const job = lines.slice(0, index).findLast((above) => /^ {2}[\w-]+:$/.test(above))?.trim().slice(0, -1);
-      if (persists !== ((file === "release.yml" && job === "release"))) problems.push(`${file}:${index + 1}`);
+      const pushes = (file === "release.yml" && job === "release") || (file === "docs-pin.yml" && job === "pin");
+      if (persists !== pushes) problems.push(`${file}:${index + 1}`);
     });
   }
   assert.deepEqual(problems, [], "Set persist-credentials: false on every checkout that never pushes.");
@@ -1771,21 +1772,25 @@ const releaseJobs = () =>
       .map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]),
   );
 
+/** The scopes a job block asks for, as `{ scope: level }`. */
+const permissionsOf = (block) => {
+  const lines = (block.split(/^ {4}permissions:\n/m)[1] ?? "").split("\n");
+  const own = lines.slice(0, lines.findIndex((line) => !/^ {6}[\w-]+: \w+/.test(line)));
+  return Object.fromEntries(own.map((line) => line.trim().match(/^([\w-]+): (\w+)/).slice(1)));
+};
+
 test("a release gives each job its own permissions, and none may write commit statuses or pull requests", () => {
   const release = workflow("release.yml");
   assert.match(release, /^permissions: \{\}$/m);
   const jobs = releaseJobs();
-  assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next"]);
-  const permissions = (block) => {
-    const lines = (block.split(/^ {4}permissions:\n/m)[1] ?? "").split("\n");
-    const own = lines.slice(0, lines.findIndex((line) => !/^ {6}[\w-]+: \w+/.test(line)));
-    return Object.fromEntries(own.map((line) => line.trim().match(/^([\w-]+): (\w+)/).slice(1)));
-  };
+  assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next", "docs-pin"]);
+  const permissions = permissionsOf;
   assert.deepEqual(permissions(jobs.release), { contents: "write" });
   assert.deepEqual(permissions(jobs.pages), { actions: "write" });
   assert.deepEqual(permissions(jobs.publish), {});
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
   assert.deepEqual(permissions(jobs.next), { actions: "write" });
+  assert.deepEqual(permissions(jobs["docs-pin"]), { actions: "write" });
   for (const block of Object.values(jobs)) assert.doesNotMatch(block, /statuses: write|pull-requests: write/);
 });
 
@@ -2212,6 +2217,141 @@ test("Release auto releases a commit once main's push CI and lane have ended, na
   assert.match(auto, /--workflow screen-reader\.yml --commit "\$sha" --event push/);
   assert.match(auto, /--workflow ci\.yml --commit "\$sha" --event push/);
   assert.match(auto, /\[ "\$RUN_EVENT" = push \]/);
+});
+
+test("Release auto starts nothing for a commit that only points the docs at a release, and releases any other", () => {
+  const step = stepScript(workflow("release-auto.yml"), "Release the newest commit whose runs passed");
+  const pkg = (tag) => `${JSON.stringify({ description: `Install #${tag}`, ouro: { latestRelease: tag } }, null, 2)}\n`;
+  const releaseFor = (changes) => {
+    const dir = scratchDir("ouro-release-auto-");
+    const git = (args) => execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();
+    git(["init", "-q"]);
+    git(["config", "user.email", "maintainer@example.com"]);
+    git(["config", "user.name", "Maintainer"]);
+    mkdirSync(join(dir, "scripts"));
+    copyFileSync(join(root, "scripts/pin-only.mjs"), join(dir, "scripts/pin-only.mjs"));
+    const commit = (files) => {
+      for (const [path, text] of Object.entries(files)) writeFileSync(join(dir, path), text);
+      git(["add", "-A"]);
+      git(["commit", "-q", "--allow-empty", "-m", "change"]);
+      return git(["rev-parse", "HEAD"]);
+    };
+    commit({ "package.json": pkg("v1.3.17"), "README.md": "Install #v1.3.17.\n" });
+    const sha = commit(changes);
+    const log = join(dir, "gh.log");
+    // Stands in for gh: one unreleased fragment, the newest release v1.3.56, and no run in progress.
+    const stub = `gh() {
+  printf 'gh %s\\n' "$*" >> "$LOG"
+  case "$*" in
+    "release view"*) ;;
+    "api repos/"*"/contents/changes?"*) echo fragment.md ;;
+    "api -H"*) echo "- New: a change" ;;
+    "run list --workflow release.yml --status"*) echo 0 ;;
+    "run list"*) echo 1 ;;
+    "api repos/"*"/releases/latest"*) echo v1.3.56 ;;
+  esac
+}`;
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stub}\n${step}`], {
+      cwd: dir,
+      encoding: "utf8",
+      env: { ...process.env, GITHUB_REPOSITORY: "ourostack/ouro-ui", EVENT: "workflow_run", RUN_EVENT: "push", RUN_SHA: sha, AFTER: "", LOG: log, GITHUB_STEP_SUMMARY: join(dir, "summary.md") },
+    });
+    const calls = existsSync(log) ? readFileSync(log, "utf8") : "";
+    return { status: result.status, output: result.stdout + result.stderr, calls, sha };
+  };
+  const pin = releaseFor({ "package.json": pkg("v1.3.56"), "README.md": "Install #v1.3.56.\n" });
+  assert.equal(pin.status, 0, pin.output);
+  assert.match(pin.output, new RegExp(`::notice::${pin.sha} only points the docs at a release; nothing to release\\.`));
+  assert.doesNotMatch(pin.calls, /workflow run release\.yml/);
+  const other = releaseFor({ "package.json": pkg("v1.3.56"), "README.md": "Install #v1.3.56.\n", "app.ts": "export const x = 2;\n" });
+  assert.equal(other.status, 0, other.output);
+  assert.match(other.output, /app\.ts is not a file the docs pin changes/);
+  assert.match(other.calls, /workflow run release\.yml --ref main -f version=1\.3\.57 -f sha=/);
+});
+
+test("Docs pin points main's docs at the newest release through one pull request, and turns auto-merge on", () => {
+  const docsPin = workflow("docs-pin.yml");
+  assert.match(docsPin, /^permissions: \{\}$/m);
+  assert.match(docsPin, /^on:\n {2}workflow_dispatch:\n {4}inputs:\n {6}tag:\n/m);
+  assert.match(docsPin, /^concurrency:\n {2}group: docs-pin\n {2}cancel-in-progress: false$/m);
+  const pin = docsPin.split("\n  pin:\n")[1];
+  assert.deepEqual(permissionsOf(pin), { contents: "write", "pull-requests": "write" });
+  assert.doesNotMatch(docsPin, /actions: write|\/approve|required-producers/);
+  assert.match(pin, /\n {10}token: \$\{\{ secrets\.DOCS_PIN_TOKEN \|\| github\.token \}\}\n/);
+  assert.match(pin, /\n {6}GH_TOKEN: \$\{\{ secrets\.DOCS_PIN_TOKEN \|\| github\.token \}\}\n/);
+  assert.match(pin, /\n {6}BRANCH: docs\/point-at-release\n/);
+  assert.deepEqual(
+    stepScript(pin, "Point the docs at the release").split("\n").filter((line) => /^(node|pnpm) /.test(line)),
+    ['node scripts/latest-release.mjs set "$TAG"', "pnpm run docs"],
+  );
+  const push = stepScript(pin, "Commit the docs and push their branch");
+  assert.match(push, /git push -q --force origin "\$BRANCH"/);
+  assert.match(push, /41898282\+github-actions\[bot\]@users\.noreply\.github\.com/);
+  const open = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
+  assert.match(open, /gh pr list --head "\$BRANCH" --base main --state open/);
+  assert.match(open, /gh pr edit "\$number" --title "\$title"/);
+  assert.match(open, /gh pr create --base main --head "\$BRANCH"/);
+  assert.match(open, /gh pr merge "\$number" --auto --squash/);
+});
+
+test("Docs pin changes nothing for a tag that is not the newest release, and says whether main already names it", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Point the docs at the release");
+  const env = { TAG: "v1.3.56", GITHUB_REPOSITORY: "ourostack/ouro-ui" };
+  const newer = runStep(`gh() { case "$*" in "api repos/"*"/releases/latest"*) echo v1.3.57 ;; esac; }\n${script}`, env);
+  assert.equal(newer.status, 0, newer.calls);
+  assert.equal(newer.output.result, "stale");
+  assert.doesNotMatch(newer.calls, /CALL (node|pnpm)/);
+  const latest = `gh() { case "$*" in "api repos/"*"/releases/latest"*) echo v1.3.56 ;; esac; }\n`;
+  const current = runStep(`${latest}git() { :; }\n${script}`, env);
+  assert.equal(current.output.result, "current");
+  const changed = runStep(`${latest}git() { echo " M README.md"; }\n${script}`, env);
+  assert.equal(changed.output.result, "changed");
+  assert.match(changed.calls, /CALL node scripts\/latest-release\.mjs set/);
+});
+
+test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
+  const dir = scratchDir("ouro-docs-pin-");
+  const gh = `gh() {
+  printf 'gh %s\\n' "$*" >> "$LOG"
+  case "$*" in
+    "pr list"*) echo 7 ;;
+  esac
+}`;
+  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
+  assert.equal(result.status, 0, result.stdout + result.calls);
+  const calls = readFileSync(join(dir, "gh.log"), "utf8");
+  assert.match(calls, /^gh pr edit 7 --title Point the docs at a release /m);
+  assert.doesNotMatch(calls, /gh pr create/);
+  assert.match(calls, /^gh pr merge 7 --auto --squash$/m);
+  assert.match(readFileSync(join(dir, "summary.md"), "utf8"), /Auto-merge is on for #7/);
+});
+
+test("Docs pin fails, and names the pull request, when GitHub will not turn auto-merge on", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
+  const dir = scratchDir("ouro-docs-pin-");
+  const gh = `gh() {
+  printf 'gh %s\\n' "$*" >> "$LOG"
+  case "$*" in
+    "pr list"*) echo 7 ;;
+    "pr merge"*) return 1 ;;
+    "pr view"*) echo OPEN ;;
+  esac
+}`;
+  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
+  assert.equal(result.status, 1, result.stdout + result.calls);
+  assert.match(result.stdout, /::error::Could not turn auto-merge on for #7\./);
+});
+
+test("Release starts Docs pin once it has tagged, and no job waits for it", () => {
+  const jobs = releaseJobs();
+  assert.match(jobs["docs-pin"], /^ {4}needs: release$/m);
+  assert.match(jobs["docs-pin"], /if: \$\{\{ needs\.release\.result == 'success' \}\}/);
+  assert.match(jobs["docs-pin"], /gh workflow run docs-pin\.yml --ref main -f tag="\$TAG"/);
+  for (const id of ["pages", "publish", "finish", "next"]) assert.doesNotMatch(jobs[id], /docs-pin/, id);
 });
 
 test("install prep caches a base keyed on the runtime files, then adds the shipped tests over it", () => {
