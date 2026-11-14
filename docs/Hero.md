@@ -89,7 +89,7 @@ interface HeroPicture {
   srcSet?: string;
   /** The `<img>`'s `sizes`. */
   sizes?: string;
-  /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. */
+  /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. In `{ light, dark }`, see `HeroPictures` for how each twin loads. */
   priority?: boolean;
   /** A wide aspect ratio, such as `"8 / 3"`, applied on wider screens. Without it the picture keeps its own ratio. */
   crop?: string;
@@ -100,7 +100,7 @@ interface HeroPicture {
 
 ### `HeroPictures`
 
-The hero's art in light and dark mode: the same scene by day and at night. Hero shows `light` or `dark` with the page's dark mode, the `.dark` class on the root that a stored theme toggle sets, in CSS, so the right one is there from the first paint. `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so without its own `alt` or `decorative` it takes `light`'s. It always loads lazily, so a page in light mode never downloads it; its `priority` only raises its fetch priority once it shows.
+The hero's art in light and dark mode: the same scene by day and at night. Hero shows `light` or `dark` in CSS, with your app's Tailwind `dark` variant, the one every Ouro component's dark styles follow, so the right one is there from the first paint. That variant reads the `.dark` class Ouro's `colorSchemeScript` sets; a site that marks dark mode with `data-theme` or the system setting redefines it, as the theming guide shows, and Hero follows. `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so without its own `alt` or `decorative` it takes `light`'s. `priority` decides how the twin that shows loads. A twin without it is lazy, and a hidden lazy image is never fetched. Give `priority` to the twin most of your visitors see, and it loads straight from the HTML at high fetch priority while the other stays lazy. Give it to both when the page preloads the art for its scheme: both wait in the HTML, and an inline script after them, which runs once the page's CSS has loaded, loads the one that shows, so neither scheme downloads both. A preload for the dark twin, which follows the system setting, is `<link rel="preload" as="image" fetchpriority="high" media="(prefers-color-scheme: dark)" imagesrcset="/night-960.avif 960w, /night.avif 1920w" imagesizes="100vw">`, with exactly the twin's `srcSet` and `sizes` (and a `type` for a `sources` format); a page that stores the person's choice adds the link from the script in its `<head>` that applies the choice.
 
 ```ts
 interface HeroPictures {
@@ -125,5 +125,13 @@ interface HeroPictureSource {
   media?: string;
   /** The `sizes` for this source. */
   sizes?: string;
+  /**
+   * This source's intrinsic pixel width, when its art has another shape than the picture's own,
+   * such as a phone crop. With `height`, it holds the image's box to this source's shape before
+   * the file arrives, so the page doesn't shift.
+   */
+  width?: number;
+  /** This source's intrinsic pixel height, with `width`. */
+  height?: number;
 }
 ```

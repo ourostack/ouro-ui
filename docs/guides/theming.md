@@ -47,6 +47,21 @@ Headings are set a little tighter at each larger size, which suits a sans-serif.
 
 Set light values in `:root` and dark values in `.dark`. Ouro HX switches with the `dark` class on `<html>`, as shadcn/ui does.
 
+A site that marks dark mode another way, such as `data-theme="dark"` on `<html>` with the system setting when no theme is chosen, keys its dark values to that instead, and redefines Tailwind's `dark` variant to match, so Ouro HX's `dark:` styles, Hero's night art among them, follow the same signal.[^variant]
+
+```css
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+```
+
 ## Live
 
 The site's Live theme is Pearl under your own sky. It reads only your device's clock and time zone, so nothing asks for your location. At dawn the page turns rosy, by day it is Pearl's blue, at dusk it goes golden and at night it lights indigo lanterns. The porthole's sky, sun and sea follow along. Your own app can do the same by swapping a few of the variables above on a timer.
@@ -54,3 +69,5 @@ The site's Live theme is Pearl under your own sky. It reads only your device's c
 [^tracking]: registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading tracking > scales the tightening by the theme's --ouro-heading-tracking, so a serif heading font can keep its own spacing)
 
 [^tighter]: registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading tracking > tightens as the text grows: none at body size, more at each larger size)
+
+[^variant]: registry/ouro/components/ouro/hero/hero.tsx verify:fileLine(registry/ouro/components/ouro/hero/hero.tsx, /dark: "hidden dark:block"/)
