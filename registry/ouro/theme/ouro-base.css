@@ -153,6 +153,7 @@
   [data-ouro-squircle] {
     background-color: transparent;
     border-color: transparent;
+    --tw-ring-color: transparent;
   }
   [data-ouro-squircle]::before {
     display: none;
