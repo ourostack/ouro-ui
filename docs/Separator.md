@@ -2,7 +2,7 @@
 
 # Separator
 
-A thin line in the theme's border color between groups of content, horizontal or vertical. Built on Base UI's Separator, so it is a `role="separator"` with its orientation for screen readers, unless `decorative`. With `label` it is a horizontal line with a word in its middle, such as "or" between two ways to sign in.
+A thin line in the theme's border color between groups of content, horizontal or vertical. Built on Base UI's Separator, so it is a `role="separator"` with its orientation for screen readers, unless `decorative`. With `label` it is a horizontal line with a word in its middle, such as "or" between two ways to sign in. With `tone` the lines and the label take the tone's color, such as an accent line where unread messages start.
 
 ```tsx
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
@@ -18,6 +18,7 @@ import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
   <Button variant="plain">Share</Button>
 </div>
 <Separator label="or" className="my-6" />
+<Separator tone="primary" label="New since you left · 2 messages" />
 ```
 
 ## Use instead when
@@ -35,6 +36,7 @@ Type: `SeparatorProps`.
 | `label` | `ReactNode` |  | A short word in the middle of a horizontal line, such as "or" between two ways to sign in: `<Separator label="or" />`. The label is read as text in its place, and the lines on either side are hidden from screen readers. Only for `horizontal`. |
 | `orientation` | `"vertical" \| "horizontal"` | `"horizontal"` | `horizontal` spans the width of its container between stacked content; `vertical` stands as tall as its row between side-by-side items (put it in a flex row). |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
+| `tone` | `"primary" \| "destructive" \| "success" \| "warning"` |  | Colors the lines and the label from the theme, for an accent line such as where unread messages start. Without it the lines are the border color and the label is muted. `secondary` is a surface, not a line color, so it is not a tone here. |
 
 ## Native attributes
 
