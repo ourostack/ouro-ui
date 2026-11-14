@@ -55,6 +55,21 @@
   body {
     @apply m-0 font-sans antialiased;
   }
+  /* Text wraps on purpose: headings balance their lines, and running text never leaves its last word alone. A
+     component's own wrap class is a utility, so it still wins. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  dd,
+  blockquote,
+  figcaption {
+    text-wrap: pretty;
+  }
   /* The site draws three weights: regular, medium and semibold. Bold in running text is the semibold, not a fourth
      (this follows Tailwind's own `bolder` rule for these, so it wins at the same specificity). */
   strong,
