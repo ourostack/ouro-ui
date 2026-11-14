@@ -12,6 +12,16 @@
 
 Ouro HX is the half of Ouro UI for the interfaces people use: React components you copy in with the shadcn CLI. **[Ouro AX](#ouro-ax)** is the other half, for the interfaces agents use.
 
+Ouro UI has a web half (this repository) and an Apple half ([ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple), a Swift package), with a side for people and a side for agents in both:
+
+| | Web | Apple |
+|---|---|---|
+| People (Ouro HX) | React components you copy in, below | SwiftUI `OuroButton`, `OuroEmptyState`, `OuroBanner`, `.ouroSheet` and toasts, with the spring, haptics and themes[^apple-box] |
+| Agents (Ouro AX) | [the kit and X-ray](#ouro-ax) for command lines, HTTP APIs and MCP servers | typed outcomes, an X-ray for an app's App Intents, and Ouro Reins to drive its screens[^apple-box] |
+| Both, from one declaration | a command line, MCP and WebMCP tools and a web control | an App Intent, a SwiftUI button and a Reins action[^actions] |
+
+[Web and Apple parity](https://ui.ouroboros.bot/apple/#parity) is a table built from ouro-ui-core's claim files, and it marks the gaps. The Apple half has [releases](https://github.com/ourostack/ouro-ui-apple/releases/latest) but has not reached a first stable version. The one action model is in [ouro-ui-core](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md): declare an action once, and its generator writes the surfaces above, with a check that fails your CI when a generated file drifts from the declaration.[^actions] Android and Windows are [open for a builder](docs/platforms/README.md).
+
 ```sh
 # In an app set up with shadcn init (see Quick start):
 npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.17  # once per app: the tokens
@@ -777,3 +787,5 @@ MIT
 [^spoonjoy]: site/scripts/spoonjoy.mts verify:fileLine(site/src/pages/docs.tsx, /<InSpoonjoy name=\{item\.name\} \/>/) verify:testExists(site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub)
 [^exit-codes]: test:scripts/check/check.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings verify:testExists(scripts/check/check.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings)
 [^long-lines]: test:scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements verify:testExists(scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements)
+[^apple-box]: https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box)
+[^actions]: https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md)
