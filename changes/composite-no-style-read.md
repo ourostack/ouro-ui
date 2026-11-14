@@ -1,1 +1,1 @@
-- Fixed: Mounting a ToggleGroup skips Base UI composite's per-item style check, which forced a style recalculation on every item.
+- Fixed: Mounting a ToggleGroup skips Base UI composite's per-item style check, which forced a style recalculation.
