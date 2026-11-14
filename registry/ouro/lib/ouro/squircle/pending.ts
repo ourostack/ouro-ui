@@ -1,5 +1,5 @@
-import { splitTopLevel } from "./parse";
-import { CORNER_SCALE_VAR, type PendingRadiusRule } from "./scan";
+import { splitTopLevel } from "./parse.ts";
+import { CORNER_SCALE_VAR, type PendingRadiusRule } from "./scan.ts";
 
 /**
  * Automatic pending radius reduction (secondary to the CSS `--corner-scale`

@@ -4,7 +4,7 @@ import {
   contourPath,
   offsetCorners,
   type ResolvedCorners,
-} from "./geometry";
+} from "./geometry.ts";
 import {
   type CornerRadiusList,
   expandLayerList,
@@ -15,8 +15,8 @@ import {
   parseRadiusLonghand,
   resolveRadii,
   splitTopLevel,
-} from "./parse";
-import { CORNER_SHAPE_VAR } from "./scan";
+} from "./parse.ts";
+import { CORNER_SHAPE_VAR } from "./scan.ts";
 
 /** Native `round` — no fallback needed when all corners use this shape. */
 const ROUND_SHAPE = 1;
