@@ -1,4 +1,5 @@
 import { appendFileSync } from "node:fs";
+import { cpus } from "node:os";
 import { expect, test, type Page } from "@playwright/test";
 
 // Click-to-paint latency for the voyage's controls, shared by every *.latency.spec.ts (run alone by
@@ -97,6 +98,20 @@ export function splitPress(entry: { startTime: number; processingStart: number; 
   const inputDelay = Math.round(entry.processingStart - entry.startTime);
   const processing = Math.round(entry.processingEnd - entry.processingStart);
   return { inputDelay, processing, presentation: Math.round(entry.duration) - inputDelay - processing };
+}
+
+/**
+ * How much of a press's wait for the paint was the main thread's frame and how much came after it (ms), from the long
+ * animation frame that holds its rendering: the first one that ends after the press's handlers and starts before its
+ * paint. Null when no frame holds it, which means its rendering on the main thread took under 50 ms, since a long
+ * animation frame is one of 50 ms or more. The duration is rounded to 8 ms and the other times are not, like splitPress.
+ */
+export function splitPaint(entry: { startTime: number; processingEnd: number; duration: number }, frames: ReadonlyArray<{ startTime: number; duration: number }>): { mainThread: number; afterMainThread: number } | null {
+  const paint = entry.startTime + entry.duration;
+  const frame = frames.find((candidate) => candidate.startTime + candidate.duration > entry.processingEnd && candidate.startTime <= paint);
+  if (!frame) return null;
+  const frameEnd = frame.startTime + frame.duration;
+  return { mainThread: Math.max(0, Math.round(frameEnd - entry.processingEnd)), afterMainThread: Math.max(0, Math.round(paint - frameEnd)) };
 }
 
 /**
@@ -246,6 +261,16 @@ export async function measure(
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration, entry.startTime, entry.processingStart, entry.processingEnd, entry.name]);
     }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
+    // Long animation frames show whether a slow press's wait for the paint was the main thread's frame (Chromium only).
+    const frames: Array<[number, number, number, number]> = [];
+    (window as unknown as { __latencyFrames: typeof frames }).__latencyFrames = frames;
+    try {
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as Array<PerformanceEntry & { renderStart: number; styleAndLayoutStart: number }>) frames.push([entry.startTime, entry.duration, entry.renderStart, entry.styleAndLayoutStart]);
+      }).observe({ type: "long-animation-frame", buffered: false } as PerformanceObserverInit);
+    } catch {
+      // A browser without long animation frames records none.
+    }
   });
   const cdp = await page.context().newCDPSession(page);
   const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
@@ -259,8 +284,10 @@ export async function measure(
   const interactions = () => page.evaluate(() => (performance as Performance & { interactionCount: number }).interactionCount);
   // A new CDP session starts at full speed, so the probe runs before the throttle is set.
   const speed = await runnerSpeed(page);
-  test.info().annotations.push({ type: "latency-runner", description: `${label}: script ${speed.script} ms, frame ${speed.frame} ms (full speed)` });
-  console.log(`latency-runner ${label}: script ${speed.script} ms, frame ${speed.frame} ms (full speed)`);
+  const host = cpus();
+  const runnerLine = `${label}: script ${speed.script} ms, frame ${speed.frame} ms (full speed), CPU ${host[0]?.model ?? "unknown CPU"} × ${host.length}`;
+  test.info().annotations.push({ type: "latency-runner", description: runnerLine });
+  console.log(`latency-runner ${runnerLine}`);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
   if (prepare) await unthrottled(prepare);
   // The calibration probe's presses, at the same throttle as the control's: the first of each round is a warm-up.
@@ -294,7 +321,10 @@ export async function measure(
   let presses = warmUps + LATENCY.samples;
   for (let index = 0; index < presses; index++) {
     if (setUp) await unthrottled(() => setUp(indexFrom + index));
-    await page.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
+    await page.evaluate(() => {
+      (window as unknown as { __latency: unknown[] }).__latency.length = 0;
+      (window as unknown as { __latencyFrames: unknown[] }).__latencyFrames.length = 0;
+    });
     // The press starts from a page settled at the throttle too: the set-up's settle ran at full speed, so
     // whatever still runs once the throttle is back ends before the press, as it would before a person's
     // press a beat later, rather than becoming the press's input delay.
@@ -313,7 +343,10 @@ export async function measure(
       if (slowest && slowest[0] > LATENCY.p95) {
         // Event Timing gives a press's later entries (pointerup, click) its first event's start (pointerdown's), so their input delay runs from pointerdown.
         const { inputDelay, processing, presentation } = splitPress({ duration: slowest[0], startTime: slowest[1], processingStart: slowest[2], processingEnd: slowest[3] });
-        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint (${slowest[4]} entry)`;
+        const frames = await page.evaluate(() => (window as unknown as { __latencyFrames: Array<[number, number, number, number]> }).__latencyFrames);
+        const paint = splitPaint({ duration: slowest[0], startTime: slowest[1], processingEnd: slowest[3] }, frames.map(([startTime, duration]) => ({ startTime, duration })));
+        const paintPart = paint ? `; of the wait, ${paint.mainThread} ms in the main thread's frame and ${paint.afterMainThread} ms after it` : "; no long animation frame held it, so the main thread's part was under 50 ms";
+        const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint (${slowest[4]} entry)${paintPart}`;
         test.info().annotations.push({ type: "latency-slow", description: split });
         console.log(`latency-slow ${split}`);
       }

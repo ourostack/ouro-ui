@@ -756,6 +756,7 @@
     "registry/ouro/e2e/ouro/toggle.spec.ts": 2161,
     "registry/ouro/e2e/ouro/toolbar.spec.ts": 23200,
     "registry/ouro/e2e/ouro/tooltip.spec.ts": 13295,
+    "registry/ouro/e2e/ouro/unread-dot.spec.ts": 2000,
     "site/e2e/catalog.spec.ts": 27296,
     "site/e2e/chapter-one.spec.ts": 97554,
     "site/e2e/chapter-three.spec.ts": 130824,

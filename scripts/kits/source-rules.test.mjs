@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, GATED_LOAD_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -35,6 +35,7 @@ describe("findOffendersInSource: each category", () => {
             "vague-failure-copy",
             "hand-drawn-avatar",
             "hand-drawn-presence-dot",
+            "hand-drawn-unread-dot",
             "uses-hand-rolled-control",
         ]);
     });
@@ -254,6 +255,14 @@ describe("hand-drawn avatar and presence dot", () => {
     });
     it("finds an empty round dot, a presence dot by hand", () => {
         expect(categories(`export function A() { return <span className="size-2.5 rounded-full bg-green-500" />; }`)).toEqual(["hand-drawn-presence-dot"]);
+    });
+    it("tells a presence dot on an avatar from an unread mark in a row, and names each part", () => {
+        const presence = `export function A() { return <span className="absolute bottom-0 end-0 size-2.5 rounded-full bg-primary" />; }`;
+        const unread = `export function A() { return <span className="size-2 rounded-full bg-primary" />; }`;
+        expect(categories(presence)).toEqual(["hand-drawn-presence-dot"]);
+        expect(categories(unread)).toEqual(["hand-drawn-unread-dot"]);
+        expect(HAND_DRAWN_PRESENCE_DOT_FIX).toContain("<Avatar presence=");
+        expect(HAND_DRAWN_UNREAD_DOT_FIX).toContain("<UnreadDot");
     });
     it("leaves a small round element with no fill, or with content, and a square picture box alone", () => {
         expect(scan(`export function A() { return <span className="size-2 rounded-full" />; }`)).toEqual([]);

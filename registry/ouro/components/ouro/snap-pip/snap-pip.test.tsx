@@ -327,9 +327,9 @@ describe("SnapPiP", () => {
     expect(hintShown()).toBe(true);
     await act(async () => void hint().dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
     expect(element.getAttribute("data-size")).toBe("small");
-    // Away from both: it goes.
+    // Away from both: it goes, as soon as the pointer's leave arrives, which WebKit can deliver after the move resolves.
     await park();
-    expect(hintShown()).toBe(false);
+    await expect.poll(() => hintShown()).toBe(false);
     // A pointer that leaves before the delay never shows it, and nor does one that presses first.
     await enter("mouse");
     await leave("mouse");

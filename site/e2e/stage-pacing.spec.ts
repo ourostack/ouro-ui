@@ -25,15 +25,37 @@ test("a screen too slow to swim the fish gets still water, its speed at Stop, an
  * Times the page to the stage's beat (its 500 ms wait before it reads the frames). `stall` holds the page that long inside
  * the second the stage reads (after its first frame); `delay` puts the first beat off. With `starve`, the page draws no frame from
  * each beat on (requestAnimationFrame's callbacks wait) until `lift[n]` ms after the nth beat, if that is given; `hideAt`
- * hides the page and shows it again that long after the first beat.
+ * hides the page and shows it again that long after the first beat. With `hold`, the first beat waits until the page's
+ * `__releaseBeat()` is called, and the stage clearing it (as it does once a press has judged the screen) cancels it.
  */
 const onTheBeat = (
   page: Page,
-  { stall = 0, delay = 0, starve = false, lift = [], hideAt = 0 }: { stall?: number; delay?: number; starve?: boolean; lift?: (number | undefined)[]; hideAt?: number },
+  {
+    stall = 0,
+    delay = 0,
+    starve = false,
+    lift = [],
+    hideAt = 0,
+    hold = false,
+  }: { stall?: number; delay?: number; starve?: boolean; lift?: (number | undefined)[]; hideAt?: number; hold?: boolean },
 ) =>
   page.addInitScript(
-    ({ stall, delay, starve, lift, hideAt }) => {
+    ({ stall, delay, starve, lift, hideAt, hold }) => {
       const original = window.setTimeout;
+      const clear = window.clearTimeout;
+      // A held beat has an id of its own (negative, apart from the browser's), so clearing it still cancels it.
+      const heldBeats = new Map<number, () => void>();
+      let releaseId = 0;
+      let released = !hold;
+      (window as unknown as { __releaseBeat: () => void }).__releaseBeat = () => {
+        released = true;
+        for (const start of heldBeats.values()) start();
+        heldBeats.clear();
+      };
+      window.clearTimeout = ((id?: number) => {
+        if (typeof id === "number" && heldBeats.delete(id)) return;
+        clear(id);
+      }) as typeof clearTimeout;
       const frames = window.requestAnimationFrame.bind(window);
       const cancel = window.cancelAnimationFrame.bind(window);
       let starving = false;
@@ -60,7 +82,13 @@ const onTheBeat = (
       let scheduled = 0;
       window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
         if (ms !== 500) return original(callback, ms, ...rest);
-        const later = scheduled++ === 0 ? delay : 0;
+        const first = scheduled++ === 0;
+        const later = first ? delay : 0;
+        if (first && !released) {
+          const id = --releaseId;
+          heldBeats.set(id, () => window.setTimeout(callback, 500, ...rest));
+          return id;
+        }
         return original(
           () => {
             const beat = beats++;
@@ -89,7 +117,7 @@ const onTheBeat = (
         );
       }) as typeof setTimeout;
     },
-    { stall, delay, starve, lift, hideAt },
+    { stall, delay, starve, lift, hideAt, hold },
   );
 
 test("one long task is not a slow screen: the fish keep swimming", async ({ page, browserName }) => {
@@ -146,8 +174,9 @@ for (const { choice, press, speed } of [
 ]) {
   test(`${choice} chosen before the stage has judged the screen stands, however slow it draws`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
-    // The stage's beat put off by four seconds, so the visitor's press comes first.
-    await onTheBeat(page, { delay: 4000 });
+    // The stage's first beat held until after the visitor's press, so the press comes first however slow the runner: a
+    // beat put off by a fixed four seconds came first on a loaded WebKit, and the stage judged the screen before the press (ourostack/ouro-ui#1267).
+    await onTheBeat(page, { hold: true });
     await slowFrames(page, 150);
     await openSlow(page);
     await bringUp(page);
@@ -155,7 +184,8 @@ for (const { choice, press, speed } of [
     await press(page);
     // real clock: the press itself marks the stage as judged; no timer is involved.
     await expect(page.locator("[data-stage]")).toHaveAttribute("data-paced", "");
-    // real clock: past the stage's put-off beat and a second of frames, to show it no longer judges.
+    await page.evaluate(() => (window as unknown as { __releaseBeat: () => void }).__releaseBeat());
+    // real clock: past the released beat and the stage's judging of the frames, to show it no longer judges.
     await page.waitForTimeout(6000);
     await expect(scene(page)).toHaveAttribute("data-speed", speed);
     await expect(lastLog(page)).not.toContainText(LOG.stillWater.text);

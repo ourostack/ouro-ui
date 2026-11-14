@@ -19,6 +19,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { UnreadDot } from "@/registry/ouro/components/ouro/unread-dot/unread-dot";
 import {
   DialogBackdrop,
   DialogClose,
@@ -329,22 +330,6 @@ const shown = (node: ReactNode): boolean => node !== undefined && node !== null 
 
 // Muted, but mixed toward the text so it keeps its contrast on the highlighted row.
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
-
-/** The unread dot, or only its spoken label when a mark takes its place. */
-function Unread({ label, dot }: { label: string; dot: boolean }): JSX.Element {
-  if (!dot)
-    return (
-      <span data-ouro-command-unread="" className="sr-only">
-        {label}
-      </span>
-    );
-  return (
-    <span data-ouro-command-unread="" className="flex shrink-0 items-center">
-      <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
-      <span className="sr-only">{label}</span>
-    </span>
-  );
-}
 
 /**
  * A 16px magnifier in the text color.
@@ -710,7 +695,7 @@ export function Command(props: CommandProps): JSX.Element {
                           {item.mark}
                         </span>
                       )}
-                      {item.unread && <Unread label={unreadLabel} dot={!shown(item.mark)} />}
+                      {item.unread && <UnreadDot data-ouro-command-unread="" label={unreadLabel} dot={!shown(item.mark)} />}
                       {item.shortcut && <Kbd keys={item.shortcut} aria-hidden="true" />}
                     </Autocomplete.Item>
                   )}
