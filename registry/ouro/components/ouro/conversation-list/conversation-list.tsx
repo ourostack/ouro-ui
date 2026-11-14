@@ -3,7 +3,6 @@
 import {
   memo,
   useCallback,
-  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -200,7 +199,7 @@ const moves: Readonly<Record<string, (index: number, last: number) => number>> =
 const shown = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
 
 // Above this many conversations the list renders only the rows near the view, so a long list costs what a screenful does.
-const windowAbove = 60;
+const windowAbove = 20;
 // How far past the view's top and bottom edges rows still render, in pixels, so a scroll shows rows already drawn.
 const overscan = 320;
 // How much of the list renders before the view is known, as in server HTML, in pixels.
@@ -429,7 +428,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
  * is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows
  * move between rows, Home and End jump to the first and last, and Enter, Space or a click
  * calls `onSelect`. Rows can group under `sections`, whose headers open and close them.
- * A list of more than 60 conversations renders only the rows near the view, and the Tab stop and the open row,
+ * A list of more than 20 conversations renders only the rows near the view, and the Tab stop and the open row,
  * each placed where it would be in the whole list and measured as it renders, so a long list costs about what a
  * screenful does. The arrow keys, Home and End still reach every row, and the open conversation's row scrolls
  * into view. A long list's other rows are not in the page, so code that reads the rows from the page, and the
@@ -450,9 +449,9 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
  * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps the open conversation highlighted under the pointer)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is one Tab stop, which lands on the open conversation)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > moves focus with the arrow keys, Home and End)
- * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > keeps a list of 60 conversations whole, as a short list always was)
- * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders only the rows near the view of a long list, in a list as tall as all of them)
- * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders the rows a scroll reaches, in order, and drops the rows it leaves)
+ * @claim "A list of more than 20" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > keeps a list of 20 conversations whole, as a short list always was)
+ * @claim "A list of more than 20" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders only the rows near the view of a long list, in a list as tall as all of them)
+ * @claim "A list of more than 20" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders the rows a scroll reaches, in order, and drops the rows it leaves)
  * @claim "The arrow keys, Home and End still reach every row" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > moves focus to the last row with End and back with Home, rendering and showing the row it reaches)
  * @claim "The arrow keys, Home and End still reach every row" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > walks down past the rows first rendered with the Down arrow, scrolling only as far as the row with focus needs)
  * @claim "A long list's other rows are not in the page" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders only the rows near the view of a long list, in a list as tall as all of them)
@@ -493,25 +492,6 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [measured, setMeasured] = useState<{ density: ConversationListDensity; heights: ReadonlyMap<string, number> } | null>(null);
   const [range, setRange] = useState<readonly [number, number] | null>(null);
   const [reach, setReach] = useState<string | null>(null);
-  // A short list's first render holds only the rows the first view reaches; the rest render once it has painted.
-  const [settled, setSettled] = useState(false);
-  useEffect(() => {
-    // After the first frame has painted, so rows below the first view cost it no layout.
-    let timer = 0;
-    const frame = requestAnimationFrame(() => {
-      timer = window.setTimeout(() => setSettled(true));
-    });
-    // Stryker disable next-line BlockStatement: cleanup only spares a state update on an unmounted list, which React ignores.
-    return () => {
-      // Stryker disable next-line CallExpression: cleanup only spares a state update on an unmounted list, which React ignores.
-      cancelAnimationFrame(frame);
-      // Stryker disable next-line CallExpression: cleanup only spares a state update on an unmounted list, which React ignores.
-      clearTimeout(timer);
-    };
-  },
-    // Stryker disable next-line ArrayDeclaration: the effect reads nothing, so rerunning it only sets the state again.
-    [],
-  );
   const controls = useRef(new Map<string, HTMLButtonElement>());
   const latest = useRef<Laid | null>(null);
   const clips = useRef<HTMLElement[] | null>(null);
@@ -584,7 +564,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const kept = useMemo(() => new Set([tabStop, current, reach]), [tabStop, current, reach]);
   const rendered = (key: string) => {
     const index = indexes.get(key)!;
-    if (!windowed) return settled || index < firstRows || kept.has(key);
+    if (!windowed) return true;
     return (index >= start && index < end) || kept.has(key);
   };
   // In a windowed list a control's slot is placed where it would be, with the gap before it as padding, and says

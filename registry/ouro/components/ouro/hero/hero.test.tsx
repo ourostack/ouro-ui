@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
-import { Hero, type HeroPicture, type HeroProps } from "@/registry/ouro/components/ouro/hero/hero";
+import { Hero, type HeroPicture, type HeroPictures, type HeroProps } from "@/registry/ouro/components/ouro/hero/hero";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
@@ -55,8 +55,22 @@ function ledeLines(lede: HTMLElement): string[] {
 }
 const night: HeroPicture = { src: `${svg(1536, 576)}%3C!--night--%3E`, width: 1536, height: 576 };
 
+/** Light art with its night twin, as every hero takes it. */
+const pair = (light: HeroPicture): HeroPictures => ({ light, dark: night });
+
 const shownIn = (part: (name: string) => HTMLElement | null) =>
   [...part("media")!.querySelectorAll("picture")].filter((picture) => getComputedStyle(picture).display !== "none").map((picture) => picture.getAttribute("data-scheme"));
+
+/**
+ * The transitions a hero's server HTML runs as it first appears, by property and duration, then waits for them to end.
+ * Nothing hydrates such HTML, so it carries no state marker for expectMotion; the client tests record the evidence.
+ */
+async function expectRiseFromHtml(media: HTMLElement, properties: Record<string, number>) {
+  const running = media.getAnimations().filter((animation): animation is CSSTransition => animation instanceof CSSTransition);
+  expect(Object.fromEntries(running.map((transition) => [transition.transitionProperty, Math.round(Number(transition.effect!.getComputedTiming().duration))]))).toEqual(properties);
+  await Promise.all(running.map((transition) => transition.finished));
+  expect(media.hasAttribute("data-starting-style")).toBe(false);
+}
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -79,7 +93,7 @@ describe("Hero", () => {
         title="Dinner, sorted"
         description="Plan the week and shop once."
         actions={<button type="button">Start planning</button>}
-        picture={wide}
+        picture={pair(wide)}
       />,
     );
     expect(header.tagName).toBe("HEADER");
@@ -114,6 +128,36 @@ describe("Hero", () => {
     expect(part("description")!.querySelectorAll("p")).toHaveLength(2);
   });
 
+  it("clears the outer margins of the lede's first and last blocks, and keeps the space between them", async () => {
+    // A site's prose styles, in a layer below Tailwind's utilities, as a stylesheet of its own would set them.
+    const prose = document.createElement("style");
+    prose.textContent = "@layer components { .hero-prose p { margin: 1em 0; } }";
+    document.head.append(prose);
+    try {
+      const { part } = await render(
+        <div className="hero-prose">
+          <Hero
+            title="Dinner"
+            description={
+              <>
+                <p>Plan the week.</p>
+                <p>Shop once.</p>
+              </>
+            }
+          />
+        </div>,
+      );
+      const [first, last] = [...part("description")!.querySelectorAll("p")].map((p) => getComputedStyle(p));
+      expect(first!.marginTop).toBe("0px");
+      expect(last!.marginBottom).toBe("0px");
+      expect(first!.marginBottom).toBe(first!.fontSize);
+      const own = await render(<Hero title="Own" description={<p className="mt-4">Plan the week.</p>} />);
+      expect(getComputedStyle(own.part("description")!.querySelector("p")!).marginTop).toBe("16px");
+    } finally {
+      prose.remove();
+    }
+  });
+
   it("renders the title as an h2 when it heads a section", async () => {
     const { header } = await render(<Hero title="Plans" headingLevel={2} />);
     expect(header.querySelector("h2")!.textContent).toBe("Plans");
@@ -122,7 +166,7 @@ describe("Hero", () => {
 
   it("renders no optional slots it was not given", async () => {
     const { part } = await render(<Hero title="Plain" />);
-    for (const name of ["eyebrow", "description", "actions", "media", "image"]) expect(part(name)).toBeNull();
+    for (const name of ["breadcrumb", "eyebrow", "badge", "description", "actions", "more", "media", "image"]) expect(part(name)).toBeNull();
   });
 
   it("switches to the column layout", async () => {
@@ -169,18 +213,75 @@ describe("Hero", () => {
     }
   });
 
-  it("balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start", async () => {
-    await page.viewport(1440, 900);
-    const stage = await render(<Hero title="Dinner, sorted" description={plainLede} picture={wide} />);
-    const centred = stage.part("description")!;
-    expect(getComputedStyle(centred).textWrapStyle).toBe("balance");
-    const lengths = ledeLines(centred).map((line) => line.length);
-    expect(lengths.length).toBeGreaterThan(1);
-    expect((Math.max(...lengths) - Math.min(...lengths)) / Math.max(...lengths)).toBeLessThan(0.15);
-    for (const layout of ["column", "split"] as const) {
-      const { part } = await render(<Hero title="Dinner, sorted" layout={layout} description={plainLede} picture={wide} />);
-      expect(getComputedStyle(part("description")!).textWrapStyle).toBe("pretty");
+  it("balances the lede in each layout, so its last line is never short", async () => {
+    // The lede the Ouroboros website's 404 page showed with "with it." alone on its last line.
+    const lost = "Ouro wandered off the glowing trail, out through the garden gate, and this page wandered off with it.";
+    for (const width of [390, 768, 1440]) {
+      await page.viewport(width, 900);
+      for (const layout of ["stage", "column", "split"] as const) {
+        for (const lede of [lost, plainLede]) {
+          const { part } = await render(<Hero title="Lost in the coils." layout={layout} description={lede} picture={pair(wide)} />);
+          const description = part("description")!;
+          expect(getComputedStyle(description).textWrapStyle).toBe("balance");
+          const lengths = ledeLines(description).map((line) => line.length);
+          if (lengths.length > 1) expect(lengths.at(-1)! / Math.max(...lengths), `${layout} at ${width}: ${ledeLines(description).join(" / ")}`).toBeGreaterThan(0.5);
+        }
+      }
     }
+  });
+
+  it("sets the actions right under the lede, a step further from it than the lines of text, on the lede's edge", async () => {
+    await page.viewport(1440, 900);
+    for (const layout of ["stage", "column", "split"] as const) {
+      const { header, part } = await render(
+        <Hero eyebrow="Recipes" title="Dinner" layout={layout} description="Plan the week." actions={<button type="button">Start</button>} media={<div style={{ height: 120 }}>Live</div>} />,
+      );
+      const lede = part("description")!;
+      const actions = part("actions")!;
+      expect(lede.nextElementSibling).toBe(actions);
+      const textGap = lede.getBoundingClientRect().top - header.querySelector("h1")!.getBoundingClientRect().bottom;
+      expect(actions.getBoundingClientRect().top - lede.getBoundingClientRect().bottom).toBe(textGap + 8);
+      const button = actions.querySelector("button")!.getBoundingClientRect();
+      const words = document.createRange();
+      words.selectNodeContents(lede);
+      const line = words.getBoundingClientRect();
+      if (layout === "stage") expect(button.left + button.width / 2).toBeCloseTo(line.left + line.width / 2, 0);
+      else expect(button.left).toBe(line.left);
+    }
+  });
+
+  it("puts the trail above the eyebrow and the badge beside it, on the text's edge", async () => {
+    await page.viewport(1440, 900);
+    for (const layout of ["stage", "column", "split"] as const) {
+      const { header, part } = await render(
+        <Hero layout={layout} breadcrumb={<nav aria-label="Breadcrumb">Lab / Story</nav>} eyebrow="Lab" badge={<span>Beta</span>} title="Story" />,
+      );
+      const column = header.firstElementChild!;
+      expect(column.firstElementChild).toBe(part("breadcrumb"));
+      const eyebrow = part("eyebrow")!.getBoundingClientRect();
+      const badge = part("badge")!.getBoundingClientRect();
+      expect(badge.left).toBeGreaterThan(eyebrow.right);
+      expect(badge.top + badge.height / 2).toBeCloseTo(eyebrow.top + eyebrow.height / 2, 0);
+      expect(part("breadcrumb")!.getBoundingClientRect().bottom).toBeLessThanOrEqual(eyebrow.top);
+      const box = column.getBoundingClientRect();
+      if (layout === "stage") expect((eyebrow.left + badge.right) / 2).toBeCloseTo(box.left + box.width / 2, 0);
+      else expect(eyebrow.left).toBe(box.left);
+    }
+    const alone = await render(<Hero title="Story" badge={<span>Beta</span>} />);
+    expect(alone.part("eyebrow")).toBeNull();
+    expect(alone.part("badge")!.textContent).toBe("Beta");
+  });
+
+  it("sets more under the actions in the text column, beside the art in the split layout", async () => {
+    await page.viewport(1440, 900);
+    const { part } = await render(
+      <Hero layout="split" title="Ouro MD" actions={<button type="button">Download</button>} media={<div style={{ height: 300 }}>Scene</div>}>
+        <p>A recording of an agent's edit.</p>
+      </Hero>,
+    );
+    const more = part("more")!;
+    expect(part("actions")!.nextElementSibling).toBe(more);
+    expect(more.getBoundingClientRect().right).toBeLessThanOrEqual(part("media")!.getBoundingClientRect().left);
   });
 
   it("takes its container's width with fullWidth, with no gutter or cap of its own", async () => {
@@ -216,30 +317,47 @@ describe("Hero", () => {
 
   it("never shows the picture wider than its intrinsic width", async () => {
     await page.viewport(2400, 900);
-    const { part } = await render(<Hero title="Wide" picture={wide} />);
+    const { part } = await render(<Hero title="Wide" picture={pair(wide)} />);
     const media = part("media")!;
     expect(media.style.maxWidth).toBe("1536px");
     expect(media.getBoundingClientRect().width).toBeLessThanOrEqual(1536);
   });
 
   it("keeps the picture's own aspect ratio unless it is given a crop", async () => {
-    const { part } = await render(<Hero title="Plain" picture={wide} />);
+    const { part } = await render(<Hero title="Plain" picture={pair(wide)} />);
     expect(part("media")!.className).not.toContain("aspect-");
-    const { part: cropped } = await render(<Hero title="Cropped" picture={{ ...wide, crop: "8 / 3", focus: "30% 10%" }} />);
+    const { part: cropped } = await render(<Hero title="Cropped" picture={pair({ ...wide, crop: "8 / 3", focus: "30% 10%" })} />);
     expect(cropped("media")!.className).toContain("aspect-[var(--hero-crop)]");
     expect(cropped("image")!.style.objectPosition).toBe("30% 10%");
   });
 
   it("uses the default focus when the picture has none", async () => {
-    const { part } = await render(<Hero title="Focus" picture={wide} />);
+    const { part } = await render(<Hero title="Focus" picture={pair(wide)} />);
     expect(part("image")!.style.objectPosition).toBe("50% 42%");
   });
 
+  it("gives the dark picture the light one's focus unless it has its own", async () => {
+    const dayFocus = { ...wide, crop: "8 / 3", focus: "50% 80%" };
+    const shared = await render(<Hero title="Shared" picture={{ light: dayFocus, dark: night }} />);
+    expect(shared.part("media")!.querySelector<HTMLImageElement>('[data-scheme="dark"] img')!.style.objectPosition).toBe("50% 80%");
+    const own = await render(<Hero title="Own" picture={{ light: dayFocus, dark: { ...night, focus: "50% 20%" } }} />);
+    expect(own.part("media")!.querySelector<HTMLImageElement>('[data-scheme="dark"] img')!.style.objectPosition).toBe("50% 20%");
+  });
+
+  it("shows the whole picture in the split layout, so a wide crop never cuts its subject in the narrower column", async () => {
+    await page.viewport(1440, 900);
+    const tall = { ...wide, src: svg(1200, 900), width: 1200, height: 900, crop: "8 / 3" };
+    const { part } = await render(<Hero title="Split" layout="split" picture={pair(tall)} />);
+    const box = part("media")!.getBoundingClientRect();
+    expect(box.width / box.height).toBeCloseTo(1200 / 900, 1);
+    expect(getComputedStyle(part("image")!).position).toBe("static");
+  });
+
   it("loads a picture lazily unless it is a priority", async () => {
-    const lazy = await render(<Hero title="Lazy" picture={wide} />);
+    const lazy = await render(<Hero title="Lazy" picture={pair(wide)} />);
     expect(lazy.part("image")!.getAttribute("loading")).toBe("lazy");
     expect(lazy.part("image")!.getAttribute("decoding")).toBe("async");
-    const eager = await render(<Hero title="Eager" picture={{ ...wide, priority: true }} />);
+    const eager = await render(<Hero title="Eager" picture={pair({ ...wide, priority: true })} />);
     expect(eager.part("image")!.getAttribute("fetchpriority")).toBe("high");
     expect(eager.part("image")!.hasAttribute("loading")).toBe(false);
   });
@@ -248,13 +366,13 @@ describe("Hero", () => {
     const { part } = await render(
       <Hero
         title="Sources"
-        picture={{
+        picture={pair({
           ...wide,
           sources: [
             { srcSet: "/phone.avif", type: "image/avif", media: "(max-width: 40rem)" },
             { srcSet: "/wide.jpg" },
           ],
-        }}
+        })}
       />,
     );
     const sources = [...part("media")!.querySelectorAll("source")];
@@ -265,14 +383,30 @@ describe("Hero", () => {
     expect(sources[0]!.compareDocumentPosition(part("image")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("gives each source its own width and height, so a source of another shape holds its box before it loads", async () => {
+    await page.viewport(390, 844);
+    const phone = { srcSet: "/phone.avif", type: "image/avif", media: "(max-width: 40rem)", width: 800, height: 600 };
+    const { part } = await render(
+      <Hero title="Sources" picture={{ light: { ...wide, sources: [phone, { srcSet: "/wide.avif", type: "image/avif" }] }, dark: { ...night, sources: [{ ...phone, srcSet: "/phone-night.avif", width: 640, height: 640 }] } }} />,
+    );
+    const [lightPhone, lightWide] = [...part("media")!.querySelectorAll('[data-scheme="light"] source')];
+    expect([lightPhone!.getAttribute("width"), lightPhone!.getAttribute("height")]).toEqual(["800", "600"]);
+    expect(lightWide!.hasAttribute("width")).toBe(false);
+    expect(lightWide!.hasAttribute("height")).toBe(false);
+    const darkPhone = part("media")!.querySelector('[data-scheme="dark"] source')!;
+    expect([darkPhone.getAttribute("width"), darkPhone.getAttribute("height")]).toEqual(["640", "640"]);
+    // The phone source is chosen, and its shape, not the fallback's, sets the image's ratio.
+    expect(getComputedStyle(part("media")!.querySelector('[data-scheme="light"] img')!).aspectRatio).toBe("auto 800 / 600");
+  });
+
   it("hides a decorative picture from assistive technology", async () => {
-    const { part } = await render(<Hero title="Decor" picture={{ src: wide.src, width: 1536, height: 576, decorative: true }} />);
+    const { part } = await render(<Hero title="Decor" picture={pair({ src: wide.src, width: 1536, height: 576, decorative: true })} />);
     expect(part("image")!.getAttribute("alt")).toBe("");
     expect(part("media")!.querySelector("picture")!.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("says so, and keeps the picture, when it has no alt text", async () => {
-    await render(<Hero title="Bare" picture={{ src: wide.src, width: 1536, height: 576 }} />);
+    await render(<Hero title="Bare" picture={pair({ src: wide.src, width: 1536, height: 576 })} />);
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />.',
     );
@@ -302,7 +436,7 @@ describe("Hero", () => {
   });
 
   it("is server-rendered with its slots", () => {
-    const html = renderToString(<Hero title="Server" eyebrow="Recipes" picture={wide} />);
+    const html = renderToString(<Hero title="Server" eyebrow="Recipes" picture={pair(wide)} />);
     expect(html).toContain('data-ouro="hero"');
     expect(html).toContain('data-slot="image"');
     expect(html).toContain("Server");
@@ -323,7 +457,7 @@ describe("Hero", () => {
       const root = createRoot(host);
       roots.push(root);
       // No await before the checks: the rise lasts only as long as the slow token, which a loaded browser can finish first.
-      flushSync(() => root.render(<Hero title="Rise" picture={wide} />));
+      flushSync(() => root.render(<Hero title="Rise" picture={pair(wide)} />));
       const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
       expect(media.getAttribute("data-starting-style")).toBe("");
       await expectMotion(media, {
@@ -346,35 +480,82 @@ describe("Hero", () => {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       // The server's HTML, never hydrated: nothing but CSS can move it.
       const host = document.createElement("div");
-      host.innerHTML = renderToString(<Hero title="Rise" picture={wide} />);
+      host.innerHTML = renderToString(<Hero title="Rise" picture={pair(wide)} />);
       document.body.append(host);
       mounted.push(host);
       const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
-      await expectMotion(media, {
-        stem: "hero",
-        state: "data-starting-style",
-        properties: reduced ? { opacity: fast } : { opacity: slow, transform: slow },
-        reduced,
-      });
+      await expectRiseFromHtml(media, reduced ? { opacity: fast } : { opacity: slow, transform: slow });
     }
     await commands.emulateMedia({ reducedMotion: "no-preference" });
   });
 
+  it("rises with no keyframes: its own transition, on ouro-base's durations and easing", async () => {
+    const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
+    const slow = token("--ouro-duration-slow");
+    const fast = token("--ouro-duration-fast");
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      await expect.poll(() => matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(reduced);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const host = document.createElement("div");
+      host.innerHTML = renderToString(
+        <div>
+          <Hero title="Rise" picture={pair(wide)} />
+        </div>,
+      );
+      document.body.append(host);
+      mounted.push(host);
+      const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      expect(getComputedStyle(media).animationName).toBe("none");
+      // One easing per property the transition runs, each of them ouro-base's ease-out.
+      const easings = getComputedStyle(media).transitionTimingFunction.split(/, (?=[a-z])/);
+      expect(new Set(easings)).toEqual(new Set(["cubic-bezier(0.23, 1, 0.32, 1)"]));
+      await expectRiseFromHtml(media, reduced ? { opacity: fast } : { opacity: slow, transform: slow });
+    }
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+  });
+
+  it("marks the rise only while it runs, so server HTML that never hydrates carries no marker", async () => {
+    const html = renderToString(<Hero title="Rise" picture={pair(wide)} />);
+    expect(html).not.toContain("data-starting-style");
+    // Hydrated while the rise still runs: the marker shows for the rest of it, then goes.
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const root = hydrateRoot(host, <Hero title="Rise" picture={pair(wide)} />);
+    roots.push(root);
+    await act(async () => {});
+    expect(media.getAttribute("data-starting-style")).toBe("");
+    await expect.poll(() => media.hasAttribute("data-starting-style")).toBe(false);
+    // Hydrated after it has finished: no marker at all.
+    const late = document.createElement("div");
+    late.innerHTML = html;
+    document.body.append(late);
+    mounted.push(late);
+    const lateMedia = late.querySelector<HTMLElement>('[data-slot="media"]')!;
+    await expect.poll(() => lateMedia.getAnimations().length).toBe(0);
+    roots.push(hydrateRoot(late, <Hero title="Rise" picture={pair(wide)} />));
+    await act(async () => {});
+    expect(lateMedia.hasAttribute("data-starting-style")).toBe(false);
+  });
+
   it("does not move the picture in at all when motion is none", async () => {
-    const { part } = await render(<Hero title="Still" picture={wide} motion="none" />);
+    const { part } = await render(<Hero title="Still" picture={pair(wide)} motion="none" />);
     expect(part("media")!).not.toHaveAttribute("data-starting-style");
   });
 
-  it("gives the picture its rise animation by default, and none with motion none", async () => {
-    const rising = await render(<Hero title="Rise" picture={wide} />);
-    expect(rising.part("media")!.className).toContain("animate-[ouro-hero-rise");
-    const still = await render(<Hero title="Still" picture={wide} motion="none" />);
-    expect(still.part("media")!.className).not.toContain("animate-[ouro-hero");
+  it("gives the picture its rise by default, and none with motion none", async () => {
+    const rising = await render(<Hero title="Rise" picture={pair(wide)} />);
+    expect(rising.part("media")!.className).toContain("starting:opacity-0");
+    const still = await render(<Hero title="Still" picture={pair(wide)} motion="none" />);
+    expect(still.part("media")!.className).not.toContain("starting:");
   });
 
   it("applies each layout's classes to its own parts only", async () => {
     const stage = await render(
-      <Hero eyebrow="Recipes" title="Stage" actions={<button type="button">Start</button>} picture={wide} />,
+      <Hero eyebrow="Recipes" title="Stage" actions={<button type="button">Start</button>} picture={pair(wide)} />,
     );
     expect(stage.header.className).toContain("min(80rem,");
     expect(stage.header.className).not.toContain("min(72rem,");
@@ -390,7 +571,7 @@ describe("Hero", () => {
         title="Column"
         layout="column"
         actions={<button type="button">Start</button>}
-        picture={wide}
+        picture={pair(wide)}
       />,
     );
     expect(column.header.className).toContain("min(75rem,");
@@ -410,14 +591,14 @@ describe("Hero", () => {
         title="Dinner, sorted"
         description="Plan the week and shop once."
         actions={<button type="button">Start planning</button>}
-        picture={wide}
+        picture={pair(wide)}
       />,
     );
     expect(warn).not.toHaveBeenCalled();
   });
 
   it("does not ask a decorative picture for alt text", async () => {
-    await render(<Hero title="Decor" picture={{ src: wide.src, width: 1536, height: 576, decorative: true }} />);
+    await render(<Hero title="Decor" picture={pair({ src: wide.src, width: 1536, height: 576, decorative: true })} />);
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -429,7 +610,7 @@ describe("Hero", () => {
     } as unknown as HeroProps;
     await render(<Hero {...legacy} />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: heading is not a prop. Fix: <Hero title="Dinner, sorted" />.');
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: image is not a prop. Fix: <Hero picture={{ src, width, height, alt }} />.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: image is not a prop. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.');
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Hero: action is not a prop. Fix: <Hero actions={<Button>Start</Button>} />.');
   });
 
@@ -441,14 +622,22 @@ describe("Hero", () => {
   });
 
   it("keeps the picture from being dragged out of the page", async () => {
-    const { part } = await render(<Hero title="Drag" picture={wide} />);
+    const { part } = await render(<Hero title="Drag" picture={pair(wide)} />);
     expect(part("image")!.getAttribute("draggable")).toBe("false");
   });
 
+  it("frames the picture with 24px squircle corners", async () => {
+    const { part } = await render(<Hero title="Corners" picture={pair(wide)} />);
+    const frame = getComputedStyle(part("media")!);
+    expect(frame.borderTopLeftRadius).toBe("24px");
+    expect(frame.borderBottomRightRadius).toBe("24px");
+    expect(frame.getPropertyValue("corner-shape")).toBe("superellipse(2)");
+  });
+
   it("lets a cropped picture fill its frame only on wider screens", async () => {
-    const plain = await render(<Hero title="Plain" picture={wide} />);
+    const plain = await render(<Hero title="Plain" picture={pair(wide)} />);
     expect(plain.part("image")!.className).not.toContain("min-[40rem]:absolute");
-    const cropped = await render(<Hero title="Cropped" picture={{ ...wide, crop: "8 / 3" }} />);
+    const cropped = await render(<Hero title="Cropped" picture={pair({ ...wide, crop: "8 / 3" })} />);
     expect(cropped.part("image")!.className).toContain("min-[40rem]:absolute");
   });
 
@@ -470,7 +659,7 @@ describe("Hero", () => {
     const media = part("media")!;
     expect(media.style.maxWidth).toBe("1536px");
     expect(media.getBoundingClientRect().width).toBeLessThanOrEqual(1536);
-    const both = await render(<Hero title="Both" mediaWidth={400} picture={wide} />);
+    const both = await render(<Hero title="Both" mediaWidth={400} picture={pair(wide)} />);
     expect(both.part("media")!.style.maxWidth).toBe("1536px");
   });
 
@@ -501,11 +690,11 @@ describe("Hero", () => {
     }
     const still = await render(<Hero title="Still" media={<video data-testid="clip" />} motion="none" />);
     expect(still.part("media")!).not.toHaveAttribute("data-starting-style");
-    expect(still.part("media")!.className).not.toContain("animate-[ouro-hero");
+    expect(still.part("media")!.className).not.toContain("starting:");
   });
 
   it("shows the picture and warns when picture and media are both set", async () => {
-    const { part } = await render(<Hero title="Both" picture={wide} media={<video data-testid="clip" />} />);
+    const { part } = await render(<Hero title="Both" picture={pair(wide)} media={<video data-testid="clip" />} />);
     expect(part("image")).not.toBeNull();
     expect(part("media")!.querySelector('[data-testid="clip"]')).toBeNull();
     expect(warn).toHaveBeenCalledWith(
@@ -526,19 +715,163 @@ describe("Hero", () => {
     expect(shownIn(part)).toEqual(["light"]);
   });
 
-  it("loads the dark picture lazily, raising its fetch priority only with priority", async () => {
-    const plain = await render(<Hero title="Plain" picture={{ light: { ...wide, priority: true }, dark: night }} />);
-    const [light, dark] = [...plain.part("media")!.querySelectorAll("img")];
-    expect(light!.getAttribute("fetchpriority")).toBe("high");
+  it("paints each picture's placeholder behind it while it loads, and the day's never at night", async () => {
+    const day = { ...wide, placeholder: "rgb(47, 107, 79)" };
+    const { part } = await render(<Hero title="Night" picture={{ light: day, dark: { ...night, placeholder: "rgb(16, 38, 28)" } }} />);
+    const [light, dark] = [...part("media")!.querySelectorAll("img")];
+    expect(getComputedStyle(light!).backgroundColor).toBe("rgb(47, 107, 79)");
+    document.documentElement.classList.add("dark");
+    expect(getComputedStyle(dark!).backgroundColor).toBe("rgb(16, 38, 28)");
+    const unset = await render(<Hero title="Unset" picture={{ light: day, dark: night }} />);
+    expect(getComputedStyle(unset.part("media")!.querySelector('[data-scheme="dark"] img')!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    document.documentElement.classList.remove("dark");
+  });
+
+  it("keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority", async () => {
+    const day = await render(<Hero title="Day" picture={{ light: { ...wide, priority: true }, dark: night }} />);
+    const [light, dark] = [...day.part("media")!.querySelectorAll("img")];
     expect(light!.hasAttribute("loading")).toBe(false);
     expect(dark!.getAttribute("loading")).toBe("lazy");
-    expect(dark!.hasAttribute("fetchpriority")).toBe(false);
-    expect(dark!.getAttribute("decoding")).toBe("async");
-    const urgent = await render(<Hero title="Urgent" picture={{ light: wide, dark: { ...night, priority: true } }} />);
-    const [, urgentDark] = [...urgent.part("media")!.querySelectorAll("img")];
-    expect(urgentDark!.getAttribute("loading")).toBe("lazy");
-    expect(urgentDark!.getAttribute("fetchpriority")).toBe("high");
-    expect(urgentDark!.hasAttribute("decoding")).toBe(false);
+    for (const twin of [light!, dark!]) {
+      expect(twin.getAttribute("fetchpriority")).toBe("high");
+      expect(twin.hasAttribute("decoding")).toBe(false);
+    }
+    const nightFirst = await render(<Hero title="Night" picture={{ light: wide, dark: { ...night, priority: true } }} />);
+    const [nightLight, nightDark] = [...nightFirst.part("media")!.querySelectorAll("img")];
+    expect(nightLight!.getAttribute("loading")).toBe("lazy");
+    expect(nightDark!.hasAttribute("loading")).toBe(false);
+    expect([nightLight!, nightDark!].map((twin) => twin.getAttribute("fetchpriority"))).toEqual(["high", "high"]);
+    // Untyped code without night art: the day art alone loads from the HTML only with priority.
+    const lone = await render(<Hero title="Lone" picture={{ light: { ...wide, priority: true } } as unknown as HeroPictures} />);
+    expect(lone.part("image")!.hasAttribute("loading")).toBe(false);
+    expect(lone.part("image")!.getAttribute("fetchpriority")).toBe("high");
+    const loneLazy = await render(<Hero title="Lone lazy" picture={{ light: wide } as unknown as HeroPictures} />);
+    expect(loneLazy.part("image")!.getAttribute("loading")).toBe("lazy");
+    const both = await render(<Hero title="Both" picture={{ light: { ...wide, priority: true }, dark: { ...night, priority: true } }} />);
+    expect([...both.part("media")!.querySelectorAll("img")].map((img) => img.getAttribute("loading"))).toEqual(["lazy", "lazy"]);
+    const plain = await render(<Hero title="Plain" picture={{ light: wide, dark: night }} />);
+    for (const twin of plain.part("media")!.querySelectorAll("img")) {
+      expect(twin.getAttribute("loading")).toBe("lazy");
+      expect(twin.hasAttribute("fetchpriority")).toBe(false);
+      expect(twin.getAttribute("decoding")).toBe("async");
+    }
+  });
+
+  it("loads the twin shown at first paint eagerly from server HTML, and leaves the hidden one lazy", async () => {
+    // Inserted as the parser would run it: the fragment's inline script runs where it stands.
+    const serve = (node: ReactNode) => {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      host.append(document.createRange().createContextualFragment(renderToString(node)));
+      return [...host.querySelectorAll("img")];
+    };
+    const twins = { light: { ...wide, priority: true }, dark: { ...night, priority: true } };
+    const [lightByDay, darkByDay] = serve(<Hero title="Day" picture={twins} />);
+    expect(lightByDay!.loading).toBe("eager");
+    expect(darkByDay!.loading).toBe("lazy");
+    document.documentElement.classList.add("dark");
+    const [lightAtNight, darkAtNight] = serve(<Hero title="Night" picture={twins} />);
+    expect(lightAtNight!.loading).toBe("lazy");
+    expect(darkAtNight!.loading).toBe("eager");
+    await expect.poll(() => darkAtNight!.complete && darkAtNight!.currentSrc).toBe(night.src);
+    const [, lone] = serve(<Hero title="Lone" picture={{ light: { ...wide, priority: true }, dark: night }} />);
+    expect(lone!.loading).toBe("eager");
+    const plain = serve(<Hero title="Plain" picture={{ light: wide, dark: night }} />);
+    expect(plain.map((twin) => twin.loading)).toEqual(["lazy", "lazy"]);
+  });
+
+  it("marks the frame data-loaded once the picture shown has loaded, from server HTML with no hydration", async () => {
+    const serve = (node: ReactNode) => {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      host.append(document.createRange().createContextualFragment(renderToString(node)));
+      return host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    };
+    const day = serve(<Hero title="Day" picture={pair(wide)} />);
+    await expect.poll(() => day.hasAttribute("data-loaded")).toBe(true);
+    const lone = serve(<Hero title="Lone" picture={{ light: wide } as unknown as HeroPictures} />);
+    await expect.poll(() => lone.hasAttribute("data-loaded")).toBe(true);
+    expect(lone.querySelector("img")!.loading).toBe("lazy");
+    // At night the day art loads from the HTML, hidden, while the night art shown fails: the frame waits for the night art.
+    document.documentElement.classList.add("dark");
+    const broken = { ...night, src: "/hero-night-art-that-is-not-there.avif" };
+    const waiting = serve(<Hero title="Night" picture={{ light: { ...wide, priority: true }, dark: broken }} />);
+    const hidden = waiting.querySelector<HTMLImageElement>('[data-scheme="light"] img')!;
+    await expect.poll(() => hidden.complete && hidden.naturalWidth > 0).toBe(true);
+    await new Promise((settle) => setTimeout(settle, 300));
+    expect(waiting.hasAttribute("data-loaded")).toBe(false);
+  });
+
+  it("marks the frame data-loaded on the client too, once the picture shown has loaded", async () => {
+    // A file of its own, not in the image cache, so it loads after Hero mounts.
+    const { part } = await render(<Hero title="Client" picture={pair({ ...wide, src: `${wide.src}%3C!--client--%3E` })} />);
+    await expect.poll(() => part("media")!.getAttribute("data-loaded")).toBe("");
+    document.documentElement.classList.add("dark");
+    const broken = { ...night, src: "/hero-night-art-that-is-not-there.avif" };
+    const waiting = await render(<Hero title="Night" picture={{ light: { ...wide, priority: true }, dark: broken }} />);
+    const hidden = waiting.part("media")!.querySelector<HTMLImageElement>('[data-scheme="light"] img')!;
+    await expect.poll(() => hidden.complete && hidden.naturalWidth > 0).toBe(true);
+    await new Promise((settle) => setTimeout(settle, 300));
+    expect(waiting.part("media")!.hasAttribute("data-loaded")).toBe(false);
+    // The shown picture's load event marks the frame, and the hidden one's doesn't.
+    const [hiddenDay, shownNight] = [...waiting.part("media")!.querySelectorAll("img")];
+    await act(async () => hiddenDay!.dispatchEvent(new Event("load")));
+    expect(waiting.part("media")!.hasAttribute("data-loaded")).toBe(false);
+    await act(async () => shownNight!.dispatchEvent(new Event("load")));
+    expect(waiting.part("media")!.getAttribute("data-loaded")).toBe("");
+    const live = await render(<Hero title="Live" media={<div>Live</div>} />);
+    expect(live.part("media")!.hasAttribute("data-loaded")).toBe(false);
+  });
+
+  it("marks a picture that loaded before hydration once it hydrates, where the page's scripts did not run", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const node = <Hero title="Blocked" picture={pair({ ...wide, src: `${wide.src}%3C!--blocked--%3E` })} />;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    // innerHTML runs no scripts, as on a page whose content security policy blocks inline ones.
+    host.innerHTML = renderToString(node);
+    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const shown = media.querySelector("img")!;
+    // The load event follows `complete` in a task of its own: wait for it, so it has fired before hydration.
+    await new Promise((settle) => shown.addEventListener("load", settle, { once: true }));
+    await new Promise((settle) => setTimeout(settle, 50));
+    expect(media.hasAttribute("data-loaded")).toBe(false);
+    const root = hydrateRoot(host, node, { onRecoverableError: (cause) => error(cause) });
+    roots.push(root);
+    await act(async () => {});
+    expect(media.getAttribute("data-loaded")).toBe("");
+    // A picture that failed before hydration has not loaded.
+    const failed = <Hero title="Failed" picture={pair({ ...wide, src: "/hero-day-art-that-is-not-there.avif" })} />;
+    const failedHost = document.createElement("div");
+    document.body.append(failedHost);
+    mounted.push(failedHost);
+    failedHost.innerHTML = renderToString(failed);
+    const failedImage = failedHost.querySelector("img")!;
+    await expect.poll(() => failedImage.complete).toBe(true);
+    roots.push(hydrateRoot(failedHost, failed, { onRecoverableError: (cause) => error(cause) }));
+    await act(async () => {});
+    expect(failedHost.querySelector('[data-slot="media"]')!.hasAttribute("data-loaded")).toBe(false);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("hydrates the first-paint script and its twins quietly, and renders it on the client without running it", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const twins = { light: { ...wide, priority: true }, dark: { ...night, priority: true } };
+    const node = <Hero title="Hydrate" picture={twins} />;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    host.append(document.createRange().createContextualFragment(renderToString(node)));
+    expect(host.querySelector("img")!.loading).toBe("eager");
+    const root = hydrateRoot(host, node, { onRecoverableError: (cause) => error(cause) });
+    roots.push(root);
+    await act(async () => {});
+    expect(host.querySelector("script")!.getAttribute("type")).toBe("text/plain");
+    await render(node);
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("gives the dark picture the light one's alt text, frame and crop unless it has its own", async () => {
@@ -559,21 +892,31 @@ describe("Hero", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("says so when light and dark art have no alt text", async () => {
-    await render(<Hero title="Bare" picture={{ light: { src: wide.src, width: 1536, height: 576 }, dark: night }} />);
+  it("says so when the night art is missing, and shows the day art in both modes", async () => {
+    const { part } = await render(<Hero title="One" picture={{ light: wide } as unknown as HeroPictures} />);
     expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />.',
+      "[ouro-ui] Hero: picture needs light and dark art, the same scene by day and at night. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.",
     );
-  });
-
-  it("still shows a single picture in light and dark mode", async () => {
-    const { part } = await render(<Hero title="One" picture={wide} />);
     const pictures = part("media")!.querySelectorAll("picture");
     expect(pictures).toHaveLength(1);
     expect(pictures[0]!.hasAttribute("data-scheme")).toBe(false);
-    expect(pictures[0]!.className).toBe("block");
     document.documentElement.classList.add("dark");
     expect(getComputedStyle(pictures[0]!).display).toBe("block");
+  });
+
+  it("says so, and shows nothing, when a single picture is passed without light and dark", async () => {
+    const { part } = await render(<Hero title="Old" picture={wide as unknown as HeroPictures} />);
+    expect(warn).toHaveBeenCalledWith(
+      "[ouro-ui] Hero: picture needs light and dark art, the same scene by day and at night. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.",
+    );
+    expect(part("media")).toBeNull();
+  });
+
+  it("says so when the day art is missing", async () => {
+    await render(<Hero title="Night only" picture={{ dark: night } as unknown as HeroPictures} />);
+    expect(warn).toHaveBeenCalledWith(
+      "[ouro-ui] Hero: picture needs light and dark art, the same scene by day and at night. Fix: <Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />.",
+    );
   });
 
   it("renders no media wrapper when media is null or false", async () => {

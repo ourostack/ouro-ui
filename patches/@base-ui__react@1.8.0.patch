@@ -1,3 +1,103 @@
+diff --git a/floating-ui-react/utils/composite.d.mts b/floating-ui-react/utils/composite.d.mts
+index 12e11c7615fc161b266e0cfaa60b8d2480627417..59fa273de652319286c54f55c7081dc32563bc9a 100644
+--- a/floating-ui-react/utils/composite.d.mts
++++ b/floating-ui-react/utils/composite.d.mts
+@@ -46,6 +46,6 @@ export declare function createGridCellMap(sizes: Dimensions[], cols: number, den
+ export declare function getGridCellIndexOfCorner(index: number, sizes: Dimensions[], cellMap: (number | undefined)[], cols: number, corner: 'tl' | 'tr' | 'bl' | 'br'): number;
+ /** Gets all cell indices that correspond to the specified indices */
+ export declare function getGridCellIndices(indices: (number | undefined)[], cellMap: (number | undefined)[]): number[];
+-export declare function isListIndexDisabled(list: ReadonlyArray<HTMLElement | null>, index: number, disabledIndices?: DisabledIndices): boolean;
++export declare function isListIndexDisabled(list: ReadonlyArray<HTMLElement | null>, index: number, disabledIndices?: DisabledIndices, skipVisibility?: boolean): boolean;
+ export declare function isHiddenByStyles(styles: CSSStyleDeclaration): boolean;
+ export declare function isElementVisible(element: Element | null, styles?: CSSStyleDeclaration | null): boolean;
+\ No newline at end of file
+diff --git a/floating-ui-react/utils/composite.d.ts b/floating-ui-react/utils/composite.d.ts
+index 0b1fa513d40e2548cbd09751d147e067f381849c..4a58a113d85844997f9ac85e472621b9b5bf3fe2 100644
+--- a/floating-ui-react/utils/composite.d.ts
++++ b/floating-ui-react/utils/composite.d.ts
+@@ -46,6 +46,6 @@ export declare function createGridCellMap(sizes: Dimensions[], cols: number, den
+ export declare function getGridCellIndexOfCorner(index: number, sizes: Dimensions[], cellMap: (number | undefined)[], cols: number, corner: 'tl' | 'tr' | 'bl' | 'br'): number;
+ /** Gets all cell indices that correspond to the specified indices */
+ export declare function getGridCellIndices(indices: (number | undefined)[], cellMap: (number | undefined)[]): number[];
+-export declare function isListIndexDisabled(list: ReadonlyArray<HTMLElement | null>, index: number, disabledIndices?: DisabledIndices): boolean;
++export declare function isListIndexDisabled(list: ReadonlyArray<HTMLElement | null>, index: number, disabledIndices?: DisabledIndices, skipVisibility?: boolean): boolean;
+ export declare function isHiddenByStyles(styles: CSSStyleDeclaration): boolean;
+ export declare function isElementVisible(element: Element | null, styles?: CSSStyleDeclaration | null): boolean;
+\ No newline at end of file
+diff --git a/floating-ui-react/utils/composite.js b/floating-ui-react/utils/composite.js
+index 723c19959957bbb52b9b7edf6908b452bfbbf81e..cb7b846363a14d8d593d9748822773558ce414f9 100644
+--- a/floating-ui-react/utils/composite.js
++++ b/floating-ui-react/utils/composite.js
+@@ -375,7 +375,7 @@ function getGridCellIndexOfCorner(index, sizes, cellMap, cols, corner) {
+ function getGridCellIndices(indices, cellMap) {
+   return cellMap.flatMap((index, cellIndex) => indices.includes(index) ? [cellIndex] : []);
+ }
+-function isListIndexDisabled(list, index, disabledIndices) {
++function isListIndexDisabled(list, index, disabledIndices, skipVisibility = false) {
+   const isExplicitlyDisabled = typeof disabledIndices === 'function' ? disabledIndices(index) : disabledIndices?.includes(index) ?? false;
+   if (isExplicitlyDisabled) {
+     return true;
+@@ -384,7 +384,9 @@ function isListIndexDisabled(list, index, disabledIndices) {
+   if (!element) {
+     return false;
+   }
+-  if (!isElementVisible(element)) {
++  // A composite that has only just mounted skips the visibility check: it reads computed style, which
++  // forces a style recalculation in the middle of React's commit (ourostack/ouro-ui).
++  if (!skipVisibility && !isElementVisible(element)) {
+     return true;
+   }
+ 
+diff --git a/floating-ui-react/utils/composite.mjs b/floating-ui-react/utils/composite.mjs
+index 2b677d4c6f5dc41e6f9ffdf3818d43fcb4494850..ff59ef903cacdde0d3b79acac5ec450af281d858 100644
+--- a/floating-ui-react/utils/composite.mjs
++++ b/floating-ui-react/utils/composite.mjs
+@@ -358,7 +358,7 @@ export function getGridCellIndexOfCorner(index, sizes, cellMap, cols, corner) {
+ export function getGridCellIndices(indices, cellMap) {
+   return cellMap.flatMap((index, cellIndex) => indices.includes(index) ? [cellIndex] : []);
+ }
+-export function isListIndexDisabled(list, index, disabledIndices) {
++export function isListIndexDisabled(list, index, disabledIndices, skipVisibility = false) {
+   const isExplicitlyDisabled = typeof disabledIndices === 'function' ? disabledIndices(index) : disabledIndices?.includes(index) ?? false;
+   if (isExplicitlyDisabled) {
+     return true;
+@@ -367,7 +367,9 @@ export function isListIndexDisabled(list, index, disabledIndices) {
+   if (!element) {
+     return false;
+   }
+-  if (!isElementVisible(element)) {
++  // A composite that has only just mounted skips the visibility check: it reads computed style, which
++  // forces a style recalculation in the middle of React's commit (ourostack/ouro-ui).
++  if (!skipVisibility && !isElementVisible(element)) {
+     return true;
+   }
+ 
+diff --git a/internals/composite/root/useCompositeRoot.js b/internals/composite/root/useCompositeRoot.js
+index 5ad4542a27a7d39ffb56aed14d00f08ae6ed204a..badca8cf081a860d8bdc12d7e471e183a06ae8e1 100644
+--- a/internals/composite/root/useCompositeRoot.js
++++ b/internals/composite/root/useCompositeRoot.js
+@@ -79,7 +79,7 @@ function useCompositeRoot(params) {
+     const activeIndex = activeItem ? map.get(activeItem)?.index ?? -1 : -1;
+     if (activeIndex !== -1) {
+       onHighlightedIndexChange(activeIndex);
+-    } else if ((0, _composite.isListIndexDisabled)(sortedElements, highlightedIndex, disabledIndices)) {
++    } else if ((0, _composite.isListIndexDisabled)(sortedElements, highlightedIndex, disabledIndices, true)) {
+       // The default highlighted item is disabled, so it should not hold the single
+       // roving tab stop: a natively disabled element is removed from the tab order,
+       // and an aria-disabled one should not be the entry point. Move the tab stop
+diff --git a/internals/composite/root/useCompositeRoot.mjs b/internals/composite/root/useCompositeRoot.mjs
+index da8223eb8b05cebf1e8a5ba5732dbff360f6beb3..9e42c3c3f42e2afe840a966129923e8b16bbf273 100644
+--- a/internals/composite/root/useCompositeRoot.mjs
++++ b/internals/composite/root/useCompositeRoot.mjs
+@@ -73,7 +73,7 @@ export function useCompositeRoot(params) {
+     const activeIndex = activeItem ? map.get(activeItem)?.index ?? -1 : -1;
+     if (activeIndex !== -1) {
+       onHighlightedIndexChange(activeIndex);
+-    } else if (isListIndexDisabled(sortedElements, highlightedIndex, disabledIndices)) {
++    } else if (isListIndexDisabled(sortedElements, highlightedIndex, disabledIndices, true)) {
+       // The default highlighted item is disabled, so it should not hold the single
+       // roving tab stop: a natively disabled element is removed from the tab order,
+       // and an aria-disabled one should not be the entry point. Move the tab stop
 diff --git a/toast/root/ToastRoot.js b/toast/root/ToastRoot.js
 index 279d92eacb384a225695e63a924066aff60e7532..741ce642e798196d4edb4cd2aa0ed40cb32e4d02 100644
 --- a/toast/root/ToastRoot.js

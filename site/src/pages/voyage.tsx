@@ -7,7 +7,7 @@ import { AxHero } from "../ax/hero";
 import { Popups, PopupsProvider } from "../components/popups";
 import { HydrateInTurn } from "../hydrate";
 import { APPLE_PATHS, href, normalizePath } from "../paths";
-import { AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland, RepaintIsland } from "../voyage/chapters/island";
+import { AdoptionIsland, AppleAxIsland, AppleFeelIsland, AppleHomeIsland, AppleHxIsland, AppleReinsIsland, AppleStartIsland, AxExhibitIsland, AxIsland, ChapterOneIsland, ChapterThreeIsland, ChapterTwoIsland, HomeReferenceIsland, RepaintIsland } from "../voyage/chapters/island";
 import { useEggs } from "../voyage/eggs/listen";
 import { VoyageHeader } from "../voyage/header";
 import { TwoShips } from "../voyage/home";
@@ -115,6 +115,11 @@ export default function VoyagePage({ path }: { path: string }): JSX.Element {
           {isApple(page) ? (
             <main id="main">
               <ApplePage page={page} />
+              <Popups />
+            </main>
+          ) : page === "/adoption/" ? (
+            <main id="main">
+              <AdoptionIsland />
               <Popups />
             </main>
           ) : page === "/ax/" ? (

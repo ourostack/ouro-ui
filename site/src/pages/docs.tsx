@@ -248,7 +248,7 @@ export function PlatformTitle({ title }: { title: string }): JSX.Element {
   return (
     <>
       {title.slice(0, at)}{" "}
-      <span data-platform-for="" className="text-[0.6em] font-medium text-(--story-ink-soft)">
+      <span data-platform-for="" className="text-[0.6em] font-medium text-muted-foreground">
         {title.slice(at + 1)}
       </span>
     </>

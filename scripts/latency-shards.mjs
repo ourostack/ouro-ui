@@ -13,7 +13,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** Each shard's spec files, with the seconds they took in run 43494330894. */
 export const LATENCY_SHARDS = [
   { files: ["chapter-one.latency.spec.ts", "stage.latency.spec.ts"], seconds: 290 },
-  { files: ["chapter-two.latency.spec.ts", "site-menu.latency.spec.ts"], seconds: 230 },
+  { files: ["chapter-two.latency.spec.ts", "site-menu.latency.spec.ts", "squircle-polyfill.latency.spec.ts"], seconds: 260 },
   { files: ["chapter-three.latency.spec.ts", "stage-switch.latency.spec.ts"], seconds: 236 },
 ];
 

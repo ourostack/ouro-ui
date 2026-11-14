@@ -151,11 +151,11 @@ describe("AgentPresence", () => {
       "inbox agent listening for your name, and anything about the empty state Stop",
       "notes agent Stop",
     ]);
-    // The initials are drawn from an attribute, not written, so they are no text in the row.
-    expect(rows.map((row) => row.querySelector("[data-ouro-avatar-initials]")?.getAttribute("data-ouro-avatar-initials"))).toEqual(["IA", "NA"]);
-    // Each agent wears the agent hexagon, read once: its name is written beside it.
+    // Each agent wears the agent glyph, not initials.
+    expect(rows.map((row) => row.querySelector("[data-ouro-avatar-glyph]") !== null)).toEqual([true, true]);
+    // Each agent wears the agent tile, read once: its name is written beside it.
     const avatar = rows[0]!.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
-    expect(avatar.getAttribute("data-shape")).toBe("hexagon");
+    expect(avatar.getAttribute("data-shape")).toBe("agent");
     expect(avatar.getAttribute("aria-hidden")).toBe("true");
     expect(stops().map((stop) => stop.textContent)).toEqual(["Stop", "Stop"]);
     expect(stops().map((stop) => stop.getAttribute("aria-label"))).toEqual(["Stop inbox agent", "Stop notes agent"]);

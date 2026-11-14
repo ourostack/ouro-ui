@@ -42,9 +42,9 @@ function ScenePicture({ scene, priority, sizes, decorative, night = false }: { s
 }
 
 /**
- * A page's way into the storybook world: an open dawn sky (a night sky in dark mode) that carries on from the top of the scene,
- * with the page's first words in it, then the scene, full width, ending on its own hard edges. No frame
- * and no card: the picture is the place, and the page continues below it.
+ * A page's way into the storybook world: the page's first words on its own plain background, then the scene, full
+ * width, ending on its own hard edges. No gradient behind the words, no frame and no card: the picture is the place,
+ * and the page continues below it.
  *
  * - `arrival`: the first thing on the page, full width, fetched first (the page's largest paint).
  * - `band`: further down a page, full width, fetched as it nears the screen.
@@ -59,36 +59,28 @@ export function StoryWorld({
 }: {
   scene: SceneName;
   variant?: "arrival" | "band";
-  /** The words in the sky. */
+  /** The words above the scene. */
   children?: ReactNode;
   className?: string | undefined;
   /** How wide the scene draws, for the browser's file choice; defaults to the full-width world's width. */
   sizes?: string;
-  /** A picture that only sets the scene, as on every docs page: screen readers skip it rather than hear it each time. */
+  /** A picture that only sets the scene: screen readers skip it rather than hear it each time. */
   decorative?: boolean;
 }): JSX.Element {
-  const { sky, sun, band, shortY, night } = SCENES[scene];
-  const style = {
-    ...Object.fromEntries(sky.map((colour, index) => [`--story-sky-${index + 1}`, colour])),
-    ...Object.fromEntries(night.sky.map((colour, index) => [`--story-night-${index + 1}`, colour])),
-    "--story-sun-x": `${sun[0]}%`,
-    "--story-sun-y": `${sun[1]}%`,
-    "--story-band-y": `${band}%`,
-    ...(shortY === undefined ? {} : { "--story-short-y": `${shortY}%` }),
-  } as CSSProperties;
+  const { shortY } = SCENES[scene];
+  const style = shortY === undefined ? undefined : ({ "--story-short-y": `${shortY}%` } as CSSProperties);
   return (
     <div className={cn("story-world", `story-world-${variant}`, className)} style={style}>
       {children ? <div className="story-world-sky">{children}</div> : null}
       <div className="story-world-view">
         <ScenePicture scene={scene} priority={variant !== "band"} sizes={sizes} decorative={decorative} />
         <ScenePicture scene={scene} priority={false} sizes={sizes} decorative={decorative} night />
-        <span aria-hidden="true" className="story-world-sun" />
       </div>
     </div>
   );
 }
 
-/** A page's opening scene with one line in its sky, told as a story, for a page whose own hero follows. */
+/** A page's opening scene with one line above it, told as a story, for a page whose own hero follows. */
 export function StoryOpener({ scene, line, short = true }: { scene: SceneName; line: string; short?: boolean }): JSX.Element {
   return (
     <StoryWorld scene={scene} className={short ? "story-world-short" : undefined}>

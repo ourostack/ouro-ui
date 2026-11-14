@@ -20,3 +20,6 @@ export const FIELD_CLASS = "mt-1 block";
 
 /** The field's label before its value. */
 export const FIELD_LABEL_CLASS = "font-medium text-foreground";
+
+/** The id a name stands in for, small and muted beside the name. */
+export const RAW_CLASS = "text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";

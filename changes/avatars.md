@@ -1,0 +1,1 @@
+- Avatars: a person is a squircle, a team a squircle with a second edge behind it, and an AI agent a less-rounded white tile with a presence dot, replacing the hexagon (`shape="agent"` is new, `shape="hexagon"` is gone).

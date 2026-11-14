@@ -14,8 +14,8 @@ export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
   alt: string;
   /**
-   * The colour along the scene's top edge, left to right in fifths (sampled from the 1536px header),
-   * so the sky above the picture carries on from it without a seam.
+   * The colour along the scene's top edge, left to right in fifths (sampled from the 1536px header), for the halo a
+   * link-preview card's words carry on the scene and the address's pill (site/scripts/og-cards.mts).
    */
   sky: readonly [string, string, string, string, string];
   /** The 1536px header's height: 576, or 512 for the whole-world panorama. */
@@ -25,8 +25,6 @@ export interface Scene {
    * so its shape is its own (ourostack/.github brand/AGENTS.md), and the picture follows it.
    */
   phoneHeight: number;
-  /** Where the sun rises in the wide scene, in percent across and down, for its glow. */
-  sun: readonly [number, number];
   /**
    * Where a short band of the wide scene sits, in percent down (CSS object-position): a docs page opens on about
    * three fifths of the scene's height, framed so its friends' heads are whole, Ouro's included.
@@ -38,11 +36,11 @@ export interface Scene {
    */
   shortY?: number;
   /**
-   * The same scene at night, shown in dark mode (files named `<scene>-dark`, at the same widths): its own sky, sampled
-   * the same way, and its phone crop's height, which is its own where the night crop was framed differently. It shares
-   * the scene's `alt` unless that names the time of day, when it has its own.
+   * The same scene at night, shown in dark mode (files named `<scene>-dark`, at the same widths): its phone crop's
+   * height, which is its own where the night crop was framed differently. It shares the scene's `alt` unless that names
+   * the time of day, when it has its own.
    */
-  night: { sky: readonly [string, string, string, string, string]; phoneHeight: number; alt?: string };
+  night: { phoneHeight: number; alt?: string };
 }
 
 export const SCENES: Record<SceneName, Scene> = {
@@ -51,10 +49,8 @@ export const SCENES: Record<SceneName, Scene> = {
     sky: ["#cfc0d0", "#c4c1da", "#cfcbdb", "#faceb4", "#fbd9b6"],
     height: 576,
     phoneHeight: 432,
-    sun: [86, 30],
     band: 27,
     night: {
-      sky: ["#193075", "#1f3b83", "#113279", "#193e8a", "#556db1"],
       phoneHeight: 432,
       alt: "A woman and a little white robot build a big green switch panel on a wooden workbench at night, while Ouro, a smiling green snake curled into an O, watches from the glowing trail.",
     },
@@ -64,29 +60,25 @@ export const SCENES: Record<SceneName, Scene> = {
     sky: ["#fcb8a7", "#fab8a2", "#f9b19b", "#fdc08f", "#fde290"],
     height: 576,
     phoneHeight: 432,
-    sun: [87, 11],
     band: 8,
     shortY: 20,
-    night: { sky: ["#021e52", "#042259", "#04215a", "#08235c", "#20376e"], phoneHeight: 432 },
+    night: { phoneHeight: 432 },
   },
   "ouro-ui-core": {
     alt: "Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.",
     sky: ["#edb6b1", "#f7c7b1", "#fac0a5", "#fcd693", "#fdec95"],
     height: 576,
     phoneHeight: 576,
-    sun: [86, 13],
     band: 24,
-    night: { sky: ["#07277d", "#0a2d8b", "#0a318e", "#1747a9", "#164aad"], phoneHeight: 576 },
+    night: { phoneHeight: 576 },
   },
   "playwright-focus-proof": {
     alt: "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
     sky: ["#dac0c6", "#d1c5cf", "#d3ceda", "#f9cfb6", "#fbd6a7"],
     height: 576,
     phoneHeight: 320,
-    sun: [87, 28],
     band: 61,
     night: {
-      sky: ["#0f2f7f", "#103086", "#11338d", "#1a3fa3", "#1f48b3"],
       phoneHeight: 300,
       alt: "One night in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
     },
@@ -96,20 +88,17 @@ export const SCENES: Record<SceneName, Scene> = {
     sky: ["#ebb7ae", "#f1c3a0", "#fcc4a8", "#fcda9d", "#fdeca2"],
     height: 576,
     phoneHeight: 320,
-    sun: [93, 3],
     band: 12,
     shortY: 8,
-    night: { sky: ["#16326e", "#163881", "#163f93", "#183787", "#324ea3"], phoneHeight: 320 },
+    night: { phoneHeight: 320 },
   },
   ourostack: {
     alt: "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
     sky: ["#f8bcad", "#fabc9f", "#fbb59b", "#fdcb9d", "#fde99e"],
     height: 512,
     phoneHeight: 384,
-    sun: [86, 12],
     band: 65,
     night: {
-      sky: ["#1e3b82", "#1b3c85", "#193d88", "#244b9a", "#3862b0"],
       phoneHeight: 384,
       alt: "Ouro's whole world at night: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
     },
@@ -135,12 +124,12 @@ export interface Card {
   size?: number;
   /**
    * Which stretch of the wide 1536px header to show, left to right, when the og crop cuts a figure off: it is drawn
-   * across the card's width under a band of the scene's own sky, which meets it on a hard edge.
+   * across the card's width under a band of the page's plain background, which meets it on a hard edge.
    */
   crop?: { from: number; to: number };
   /**
    * Where the site's address goes, clear of every drawn figure: a bottom corner (the words' side unless `addressSide`
-   * says otherwise), or, on a card with a band of sky, the band's other end.
+   * says otherwise), or, on a card with a band, the band's other end.
    */
   address?: "corner" | "band";
   addressSide?: "left" | "right";

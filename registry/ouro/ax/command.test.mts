@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkInput, defineCli, defineCommand, exampleArgv, findCommand, inputSchema, parse, toArgv, usageOf, type Parsed } from "./command.ts";
+import { checkInput, defineCli, defineCommand, exampleArgv, findCommand, inputSchema, invocation, parse, toArgv, usageOf, type Parsed } from "./command.ts";
 import { renderCommand } from "./help.ts";
 import { AxError } from "./problem.ts";
 import { DEFAULT_OUTCOME_EXITS } from "./outcome.ts";
@@ -439,13 +439,109 @@ test("help is asked for a one-command tool with --help or -h, and the word help 
   assert.deepEqual(parse(images, ["help", "--json"]), { kind: "help", topic: undefined, json: true });
 });
 
-test("defineCli takes command or commands, never both or neither, and a tool with command has no command words", () => {
+test("defineCli needs command or commands, and takes both: the default beside the named commands", () => {
   const one = imagesCommand;
-  assert.throws(() => defineCli({ name: "t", about: [], command: one, commands: [one] } as never), /^Error: t: defineCli takes command or commands, not both\. Fix: keep command for a tool with one thing to do, or commands for several\.$/);
   assert.throws(() => defineCli({ name: "t", about: [] } as never), /^Error: t: defineCli needs command \(one thing to do\) or commands \(several\)\. Fix: command: defineCommand/);
+  const merge = defineCommand({ name: "merge", summary: "M.", effect: "private", examples: ["t merge a"], args: [{ name: "dir", description: "D.", rest: "list" }], run: () => null });
+  const both = defineCli({ name: "t", about: [], command: one, commands: [merge] });
+  assert.equal(both.single, false);
+  assert.equal(both.defaultCommand, one);
+  assert.deepEqual(
+    both.commands.map((c) => c.name),
+    ["images", "merge"],
+  );
+  assert.equal(defineCli({ name: "t", about: [], commands: [merge] }).defaultCommand, null);
+  assert.equal(defineCli({ name: "t", about: [], command: one }).defaultCommand, one);
   const meanings = [{ means: "a note", use: "note {args}" }];
+  assert.doesNotThrow(() => defineCli({ name: "t", about: [], command: one, commands: [merge], ambiguous: { edit: meanings }, personOnly: { unmute: { reason: "x", how: "y" } }, groups: {} }));
   assert.throws(() => defineCli({ name: "t", about: [], command: one, ambiguous: { edit: meanings } } as never), /^Error: t: ambiguous name command words, and a tool with command has none\. Fix: remove it, or define commands instead\.$/);
   assert.throws(() => defineCli({ name: "t", about: [], command: one, personOnly: { unmute: { reason: "x", how: "y" } }, groups: {} } as never), /^Error: t: personOnly, groups name command words.*Fix: remove them/);
   assert.throws(() => defineCli({ name: "t", about: [], command: defineCommand({ ...one, aliases: ["pics"] }) }), /^Error: t: aliases name command words/);
+  assert.throws(() => defineCli({ name: "t", about: [], command: defineCommand({ ...one, aliases: ["pics"] }), commands: [merge] }), /^Error: t: aliases name command words, and the default command takes none\. Fix: remove them from command\.$/);
   assert.throws(() => defineCli({ name: "t", about: [], command: defineCommand({ name: "images", summary: "I.", effect: "private", examples: ["t images site"], args: [{ name: "folder", description: "F." }] }) }), /the example "t images site" does not parse/);
+});
+
+test("a tool with a default command runs it for any leading word that is not a command word, and a command word goes after --", () => {
+  const merge = defineCommand({ name: "merge", summary: "Merge.", effect: "private", args: [{ name: "out", description: "O.", rest: "list" }], flags: { force: { type: "boolean", description: "F." } }, run: () => null });
+  const check = defineCommand({
+    name: "check",
+    summary: "Check.",
+    effect: "private",
+    args: [{ name: "target", description: "T.", rest: "list", required: true }],
+    flags: { pages: { type: "string", description: "P." }, ready: { type: "string", description: "R.", repeat: true } },
+    run: (input) => input,
+  });
+  const tool = defineCli({ name: "ouro-check", about: [], command: check, commands: [merge] });
+  const runOf = (argv: string[]) => {
+    const p = parse(tool, argv) as Parsed;
+    assert.equal(p.kind, "run");
+    return p;
+  };
+  assert.deepEqual(runOf(["site", "--pages", "docs"]).input, { target: ["site"], pages: "docs" });
+  assert.equal(runOf(["site", "--pages", "docs"]).command, check);
+  assert.deepEqual(runOf(["--pages", "docs", "a", "b"]).input, { target: ["a", "b"], pages: "docs" });
+  assert.deepEqual(runOf(["site", "merge"]).input, { target: ["site", "merge"] });
+  assert.deepEqual(runOf(["merge", "out1", "--force"]).input, { out: ["out1"], force: true });
+  assert.equal(runOf(["merge", "out1", "--force"]).command, merge);
+  assert.deepEqual(runOf(["--", "merge"]).input, { target: ["merge"] });
+  assert.deepEqual(runOf(["--", "help"]).input, { target: ["help"] });
+  assert.deepEqual(runOf(["--json", "--", "merge"]).input, { target: ["merge"], json: true });
+  assert.deepEqual(runOf(["site", "--ready", "a", "--ready=b"]).input, { target: ["site"], ready: ["a", "b"] });
+  assert.equal(refusalOf(tool, []).code, "missing-arg");
+  assert.equal(refusalOf(tool, []).fix, "ouro-check <target>");
+  assert.deepEqual(parse(tool, ["merge", "--help"]), { kind: "help", topic: "merge", json: false, command: merge });
+  assert.deepEqual(parse(tool, ["site", "--help"]), { kind: "help", topic: undefined, json: false });
+  assert.deepEqual(parse(tool, ["--help"]), { kind: "help", topic: undefined, json: false });
+  assert.equal(findCommand(tool, ["ouro-check"]), null);
+  assert.equal(findCommand(tool, ["site"]), null);
+  assert.equal(usageOf(tool, check), "<target...> [--pages <pages>] [--ready <ready>...]");
+  assert.equal(invocation(tool, check), "ouro-check");
+  assert.equal(invocation(tool, merge), "ouro-check merge");
+  assert.deepEqual(toArgv(tool, check, { target: ["a"], ready: ["x", "y"] }), { argv: ["a", "--ready", "x", "--ready", "y"], stdin: null });
+  const guarded = defineCli({
+    name: "t",
+    about: [],
+    command: check,
+    commands: [merge],
+    ambiguous: { edit: [{ means: "a note", use: "note {args}" }, { means: "a post", use: "post {args}" }] },
+    personOnly: { unmute: { reason: "You can't unmute for the person.", how: "in the call's controls" } },
+  });
+  assert.equal(refusalOf(guarded, ["edit", "x"]).code, "ambiguous");
+  assert.equal(refusalOf(guarded, ["unmute"]).code, "person-only");
+  assert.deepEqual((parse(guarded, ["--", "edit"]) as Parsed).input, { target: ["edit"] });
+});
+
+test("a repeat flag collects each value in order, in either form, and is absent when not given", () => {
+  const watch = defineCli({
+    name: "t",
+    about: [],
+    commands: [
+      defineCommand({
+        name: "watch",
+        summary: "Watch.",
+        effect: "private",
+        flags: { ready: { type: "string", description: "Ready.", repeat: true }, tag: { type: "string", description: "Tag.", repeat: true, required: true } },
+        run: (input) => input,
+      }),
+    ],
+  });
+  const cmd = watch.commands[0]!;
+  assert.deepEqual((parse(watch, ["watch", "--tag", "x", "--ready", "a", "--ready=b"]) as Parsed).input, { tag: ["x"], ready: ["a", "b"] });
+  assert.deepEqual((parse(watch, ["watch", "--tag", "x"]) as Parsed).input, { tag: ["x"] });
+  assert.equal(refusalOf(watch, ["watch", "--tag", "x", "--tag"]).code, "missing-value");
+  assert.equal(refusalOf(watch, ["watch", "--tag", "x", "--ready"]).code, "missing-value");
+  assert.equal(usageOf(watch, cmd), "watch --tag <tag>... [--ready <ready>...]");
+  assert.deepEqual(inputSchema(watch, cmd).properties["ready"], { type: "array", description: "Ready.", items: { type: "string" } });
+  assert.deepEqual(inputSchema(watch, cmd).required, ["tag"]);
+  assert.throws(() => checkInput(watch, cmd, { tag: "x" }), /"tag" is an array of strings, not string/);
+  assert.deepEqual(checkInput(watch, cmd, { tag: ["x"], ready: ["a", "b"] }), { tag: ["x"], ready: ["a", "b"] });
+  assert.deepEqual(toArgv(watch, cmd, { tag: ["x"], ready: ["a", "b"] }), { argv: ["watch", "--ready", "a", "--ready", "b", "--tag", "x"], stdin: null });
+  assert.deepEqual(toArgv(watch, cmd, { tag: ["x"], ready: [] }), { argv: ["watch", "--tag", "x"], stdin: null });
+});
+
+test("defineCli refuses repeat on a flag that is not a string, or repeat: false, naming the fix", () => {
+  const flagged = (flags: Record<string, unknown>) => defineCli({ name: "t", about: [], commands: [defineCommand({ name: "w", summary: "W.", effect: "private", flags: flags as never, run: () => null })] });
+  assert.throws(() => flagged({ n: { type: "boolean", description: "N.", repeat: true } }), /^Error: t w: --n takes repeat only as true on a string flag\. Fix: type: "string" with repeat: true, or leave repeat out\.$/);
+  assert.throws(() => flagged({ n: { type: "string", description: "N.", repeat: false } }), /^Error: t w: --n takes repeat only as true on a string flag\./);
+  assert.doesNotThrow(() => flagged({ n: { type: "string", description: "N." } }));
 });
