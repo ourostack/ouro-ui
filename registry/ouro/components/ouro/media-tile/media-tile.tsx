@@ -491,7 +491,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
                 title={upperFirst(pausedWords)}
                 className={cn(
                   plateClass,
-                  "absolute flex size-7 items-center justify-center rounded-full",
+                  "absolute flex size-7 items-center justify-center [--corner-shape:round] [corner-shape:round] rounded-full",
                   // On a photo of 48px or less the glyph would cover the initials, so it sits beside the photo.
                   smallPhotos.includes(shownSize) ? "start-full bottom-0 ms-1" : "-end-1.5 -bottom-1.5",
                 )}
