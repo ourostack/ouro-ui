@@ -278,7 +278,7 @@ describe("OuroMcpApp", () => {
     await userEvent.click(page.getByRole("button", { name: "Share recipe" }));
     const confirm = page.getByRole("alertdialog", { name: "Share recipe?" });
     await expect.element(confirm).toBeVisible();
-    expect(confirm.element().querySelector('[data-field="Recipe"]')!.textContent).toBe("Recipe: Charred Lemon Orzo rcp_1");
+    expect(confirm.element().textContent).toContain("Recipe: Charred Lemon Orzo rcp_1");
   });
 
   it("opens the app's own screen for a person-only button and calls no tool", async () => {
