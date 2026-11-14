@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { Breadcrumb } from "@/registry/ouro/components/ouro/breadcrumb/breadcrumb";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 
@@ -54,6 +56,20 @@ export const LongLede: Story = {
         <span style={{ display: "inline-block" }}>and the fridge never fills with food you forgot you bought last week or the week before.</span>
       </>
     ),
+  },
+};
+
+/** A trail above the eyebrow, a status beside it and a byline under the actions, beside the picture in the split layout. */
+export const TrailAndStatus: Story = {
+  args: {
+    layout: "split",
+    breadcrumb: <Breadcrumb items={[{ label: "Home", href: "#" }, { label: "Recipes", href: "#" }, { label: "Dinner, sorted" }]} />,
+    badge: (
+      <Badge tone="success" variant="soft">
+        New
+      </Badge>
+    ),
+    children: <p style={{ margin: 0, color: "var(--muted-foreground)" }}>By the Recipes team, updated every Sunday.</p>,
   },
 };
 

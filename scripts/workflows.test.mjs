@@ -2028,7 +2028,7 @@ const calendarLog = logLines("install (shadcn@latest, nova)", [
   "##[error]Process completed with exit code 1.",
 ]);
 const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
-const diveLog = logLines("browser (5/6)", [
+const diveLog = logLines("browser (5/10)", [
   ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
   " Test Files  1 failed | 75 passed (76)",
   "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
@@ -2061,10 +2061,10 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
   const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
   const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
-  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/6)", "success"), job(5, "motion-coverage", "success")];
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/10)", "success"), job(5, "motion-coverage", "success")];
   const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
   const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
-  const dive = [job(4, "browser (5/6)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
+  const dive = [job(4, "browser (5/10)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
 
   // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
   const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
@@ -2098,9 +2098,9 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
   assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
   // A gate that read a skipped job failed on that, which no test explains.
-  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/6)", "skipped")]), contexts, entries: [diveEntry] });
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/10)", "skipped")]), contexts, entries: [diveEntry] });
   assert.equal(skippedShard.retry, false);
-  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/6\), which was skipped/);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/10\), which was skipped/);
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });

@@ -78,8 +78,22 @@ export interface HeroPictures {
 export interface HeroOwnProps {
   /** The hero's headline, its `<h1>` (or `<h2>` with `headingLevel={2}`). Required. */
   title: ReactNode;
+  /**
+   * A trail above everything else, such as a `Breadcrumb`, on the text's edge.
+   *
+   * @claim "A trail above everything else" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > puts the trail above the eyebrow and the badge beside it, on the text's edge)
+   */
+  breadcrumb?: ReactNode;
   /** A short line above the title that says what kind of page this is. */
   eyebrow?: ReactNode;
+  /**
+   * A short status beside the eyebrow, such as a `Badge`: `badge={<Badge>Beta</Badge>}`. Hero
+   * sets it on the eyebrow's line, or on that line alone without an eyebrow, and leaves its look
+   * to what you pass.
+   *
+   * @claim "Hero sets it on the eyebrow's line" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > puts the trail above the eyebrow and the badge beside it, on the text's edge)
+   */
+  badge?: ReactNode;
   /**
    * The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as
    * paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the
@@ -107,6 +121,14 @@ export interface HeroOwnProps {
    * night, swapped with the page's dark mode. Both are required: a hero has night art.
    */
   picture?: HeroPictures | undefined;
+  /**
+   * More under the actions, in the text column, such as a byline, a note or a short recording. In
+   * the split layout it sits beside the picture. A second picture or a demo belongs in the next
+   * section, not the hero.
+   *
+   * @claim "In the split layout it sits beside the picture" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > sets more under the actions in the text column, beside the art in the split layout)
+   */
+  children?: ReactNode;
   /** Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. */
   media?: ReactNode;
   /**
@@ -136,12 +158,10 @@ export interface HeroOwnProps {
    * rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from
    * server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to
    * import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`,
-   * `--ouro-duration-fast` and `--ouro-ease-out`, and from `ouro-base`'s own values where a page
-   * leaves them unset.
+   * `--ouro-duration-fast` and `--ouro-ease-out`.
    *
    * @claim "so it plays from server-rendered HTML" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in from server-rendered HTML before any JavaScript runs, and only fades it with reduced motion)
-   * @claim "it needs no keyframes and no stylesheet" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes or ouro-base: its own transition, on ouro-base's durations when they are unset)
-   * @claim "from `ouro-base`'s own values where a page" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes or ouro-base: its own transition, on ouro-base's durations when they are unset)
+   * @claim "it needs no keyframes and no stylesheet" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes: its own transition, on ouro-base's durations and easing)
    * @default "rise"
    */
   motion?: "rise" | "none" | (string & { 'Use "rise" or "none"': never }) | undefined;
@@ -165,9 +185,9 @@ export interface HeroOwnProps {
 export type HeroProps = Omit<HTMLAttributes<HTMLElement>, keyof HeroOwnProps> & HeroOwnProps;
 
 // The rise is a transition from @starting-style, in the hero's own classes, so it needs no keyframes
-// and no script. The fallbacks are ouro-base's values, for a page that does not load it.
+// and no script. Its durations and easing are ouro-base's tokens, which every app loads.
 const riseMotion =
-  "ease-[var(--ouro-ease-out,cubic-bezier(0.23,1,0.32,1))] starting:opacity-0 motion-safe:transition-[opacity,transform] motion-safe:duration-[var(--ouro-duration-slow,300ms)] motion-safe:starting:[transform:translateY(1rem)] motion-reduce:transition-opacity motion-reduce:duration-[var(--ouro-duration-fast,150ms)]";
+  "starting:opacity-0 motion-safe:[transition:opacity_var(--ouro-duration-slow)_var(--ouro-ease-out),transform_var(--ouro-duration-slow)_var(--ouro-ease-out)] motion-safe:starting:[transform:translateY(1rem)] motion-reduce:[transition:opacity_var(--ouro-duration-fast)_var(--ouro-ease-out)]";
 
 const layoutRoot: Record<HeroLayout, string> = {
   stage:
@@ -256,13 +276,14 @@ function renderPicture(picture: HeroPicture, crop: string | undefined, scheme: "
 }
 
 /**
- * The top of a page: a headline with an optional line above it (`eyebrow`), a lede under
- * it (`description`), the page's buttons (`actions`) and a big picture, or something live in
- * its place (`media`), below. The picture is light and dark art, swapped with the page's dark
+ * The top of a page: a headline with an optional line above it (`eyebrow`) and a status beside
+ * that (`badge`), a trail above them (`breadcrumb`), a lede under the headline (`description`),
+ * the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or
+ * something live in its place (`media`), below. The picture is light and dark art, swapped with the page's dark
  * mode. The picture rises into place when it first appears unless `motion="none"`,
  * and it is never shown wider than its intrinsic width.
  *
- * Use `PageHeader` instead for a page's top with a breadcrumb or no picture, and `Heading`
+ * Use `PageHeader` instead for a page's top with no picture, and `Heading`
  * for a plain title with nothing around it.
  *
  * @claim "it is never shown wider than its intrinsic width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > never shows the picture wider than its intrinsic width)
@@ -284,9 +305,12 @@ function renderPicture(picture: HeroPicture, crop: string | undefined, scheme: "
 export function Hero(props: HeroProps): JSX.Element {
   const {
     title,
+    breadcrumb,
     eyebrow,
+    badge,
     description,
     actions,
+    children,
     picture,
     media,
     mediaWidth,
@@ -380,6 +404,12 @@ export function Hero(props: HeroProps): JSX.Element {
     // `media={isWide && <video … />}` passes false: no empty frame rises in its place.
     media
   );
+  const eyebrowLine =
+    eyebrow != null ? (
+      <p data-slot="eyebrow" className="m-0 text-sm leading-5 font-medium text-muted-foreground">
+        {eyebrow}
+      </p>
+    ) : null;
   return (
     <header
       {...rest}
@@ -388,11 +418,21 @@ export function Hero(props: HeroProps): JSX.Element {
       className={cn("grid min-w-0", (fullWidth ? fullWidthRoot : layoutRoot)[layout], layout === "split" && shown != null && splitColumns, className)}
     >
       <div className={fullWidth && layout === "stage" ? fullWidthStageText : layoutText[layout]}>
-        {eyebrow != null ? (
-          <p data-slot="eyebrow" className="m-0 text-sm leading-5 font-medium text-muted-foreground">
-            {eyebrow}
-          </p>
+        {breadcrumb != null ? (
+          <div data-slot="breadcrumb" className="min-w-0">
+            {breadcrumb}
+          </div>
         ) : null}
+        {badge != null ? (
+          <div className={cn("flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1", layoutActions[layout])}>
+            {eyebrowLine}
+            <span data-slot="badge" className="inline-flex">
+              {badge}
+            </span>
+          </div>
+        ) : (
+          eyebrowLine
+        )}
         <Heading level={headingLevel} size="display" className="min-w-0 text-balance">
           {title}
         </Heading>
@@ -411,6 +451,11 @@ export function Hero(props: HeroProps): JSX.Element {
           // A step further from the lede than the lines of text are from each other, so the buttons read as the lede's next move.
           <div data-slot="actions" className={cn("mt-2 flex flex-wrap gap-3", layoutActions[layout])}>
             {actions}
+          </div>
+        ) : null}
+        {children != null ? (
+          <div data-slot="more" className="min-w-0">
+            {children}
           </div>
         ) : null}
       </div>
