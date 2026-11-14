@@ -14,7 +14,7 @@ export function newest(current, candidate) {
 
 async function main([url, file]) {
   const current = JSON.parse(readFileSync(file, "utf8"));
-  let candidate = null;
+  let candidate;
   try {
     const response = await globalThis.fetch(url);
     if (!response.ok) throw new Error(`${url} answered ${response.status}`);
