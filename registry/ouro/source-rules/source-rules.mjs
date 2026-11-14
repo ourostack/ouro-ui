@@ -37,6 +37,8 @@ import ts from "typescript";
 //   draws: a round picture (`img`, or `overflow-hidden`/`object-cover`, `rounded-full`, at least
 //   24px square), or an empty round dot (at most 12px, `bg-*`). Counted where written; use
 //   <Avatar shape presence>.
+// - hand-drawn-hero: an intrinsic `section` or `header` whose class names a hero (`hero`, `hero-banner`, `page-hero`),
+//   which is a hero frame drawn by hand. Ouro UI's `Hero` is the one hero; a registry component passes.
 // - content-spinner: a spinner standing where content would: Ouro UI's `<Spinner>` (imported from a
 //   spinner/spinner module) or any element with an `animate-spin` class, returned or assigned on its
 //   own or the only thing in its element. Inline progress passes: in a prop, in an object's icon, or
@@ -162,6 +164,7 @@ export const CATEGORIES = [
   "content-spinner",
   "render-index",
   "gated-load",
+  "hand-drawn-hero",
   "vague-failure-copy",
   "hand-drawn-avatar",
   "hand-drawn-presence-dot",
@@ -290,6 +293,9 @@ export const HAND_DRAWN_AVATAR_FIX =
 /** What the hand-drawn-presence-dot rule tells an app to do. */
 export const HAND_DRAWN_PRESENCE_DOT_FIX =
   'Show presence as <Avatar presence="available" presenceLabel="Ana Lind, Available" ...>, which draws each state in its own shape and tone on the avatar\'s corner and says it aloud. For an unread or status marker that is not presence, use <Badge>.';
+/** What the hand-drawn-hero rule tells an app to do. */
+export const HAND_DRAWN_HERO_FIX =
+  "Use Hero from the registry (`<Hero title=\"...\" picture={...} />`), so its picture, frame and layout, and any change to heroes, reach this one too.";
 
 // What each category's message says, for the categories whose fix is not an Ouro component.
 const CATEGORY_MESSAGES = {
@@ -298,6 +304,7 @@ const CATEGORY_MESSAGES = {
   "content-spinner": { headline: "New spinner standing in for content", fix: CONTENT_SPINNER_FIX },
   "render-index": { headline: "New index built in render", fix: RENDER_INDEX_FIX },
   "layout-animation": { headline: "New animation of a layout property", fix: LAYOUT_ANIMATION_FIX },
+  "hand-drawn-hero": { headline: "New hero drawn by hand", fix: HAND_DRAWN_HERO_FIX },
   "gated-load": { headline: "New load that waits for focus, visibility, idle or scrolling", fix: GATED_LOAD_FIX },
   // Names the phrase it found, the fingerprint's tag.
   "vague-failure-copy": (phrase) => ({
@@ -1531,6 +1538,13 @@ function scanScript(module, resolver, failureCopyAllow) {
     const classStrings = [...attributes]
       .filter(([name, initializer]) => CLASS_ATTRIBUTE.test(name) && initializer)
       .flatMap(([, initializer]) => collectStrings(initializer, declarations));
+    if (
+      control.tags.length === 1 &&
+      (control.tags[0] === "section" || control.tags[0] === "header") &&
+      classStrings.some((text) => /(^|[\s:-])hero($|[\s_-])/.test(text))
+    ) {
+      offenders.push({ category: "hand-drawn-hero", fingerprint: [file, componentName(node), "hand-drawn-hero", control.display, props].join("::"), file, line: lineOf(node) });
+    }
     if (hasControlStateClass(classStrings)) add("control-state-style", node, control.display, props);
     const spins = classStrings.some((text) => text.split(/\s+/).some((token) => SPIN_CLASS.test(splitVariants(token).at(-1))));
     if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !inButton(node, control) && standsAlone(node)) addSpinner(node, control.display, props);
