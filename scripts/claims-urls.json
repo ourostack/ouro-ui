@@ -570,5 +570,33 @@
   "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/": {
     "status": 200,
     "checked": "2026-11-06"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.10": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.12": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.6": {
+    "status": 200,
+    "checked": "2026-11-14"
   }
 }
