@@ -12,7 +12,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.17
 ```
 
-It installs `lib/ouro/ax/xray.ts`, with `ax-checks`, `ax-claims`, `ax-component`, `ax-dev-commands`, `ax-outcome`, `ax-precise-copy`, `ax-terminal`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/xray.ts`, with `ax-checks`, `ax-claims`, `ax-cli`, `ax-command`, `ax-component`, `ax-dev-commands`, `ax-exit-codes`, `ax-outcome`, `ax-precise-copy`, `ax-problem`, `ax-terminal`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 
@@ -94,7 +94,7 @@ interface InventoryCompare {
 
 ### `main`
 
-The command: parses argv, runs, writes the reports; resolves the exit code.
+The command: the kit parses argv, runs the check or `claims`, prints the report or the one error line, and resolves the exit code.
 
 ```ts
 function main(argv: readonly string[], io?: Io): Promise<number>
@@ -109,6 +109,8 @@ function misspell(flag: string): string
 ```
 
 ### `parseArgs`
+
+The options a command line gives: `help`, `claims`, or the check's options. A refused flag or value throws an AxError.
 
 ```ts
 function parseArgs(argv: readonly string[]): XrayOptions

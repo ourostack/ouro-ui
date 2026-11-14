@@ -16,7 +16,7 @@ A platform gets its own repository and pins a release of [Ouro UI core](https://
 | Ouro HX & AX | Release checked | The core it meets | How we know |
 | --- | --- | --- | --- |
 | For web | [v1.3.7](https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7)[^web-release] | core v0.5.0, for its tokens[^web-core] | Core's parity check compares its web stylesheets with web's, byte for byte.[^web-core] |
-| For Apple | [v0.5.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0)[^apple-release] | core v0.4.0[^apple-core] | The release's `core-provenance.json` names the tag and each file's SHA-256, and CI checks the hashes.[^apple-core] |
+| For Apple | [v0.5.1](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1)[^apple-release] | core v0.4.0[^apple-core] | The release's `core-provenance.json` names the tag and each file's SHA-256, and CI checks the hashes.[^apple-core] |
 | For Android | none yet | none yet | [Build it](android.md) |
 | For Windows | none yet | none yet | [Build it](windows.md) |
 
@@ -35,6 +35,6 @@ Start with the [guide for platform builders](contributing.md): the contract a pl
 [^apple-core]: https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/core-provenance.json; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96)
 [^core-v0.5.0]: https://github.com/ourostack/ouro-ui-core/releases/tag/v0.5.0 verify:urlOk(https://github.com/ourostack/ouro-ui-core/releases/tag/v0.5.0)
 [^web-release]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7)
-[^apple-release]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0)
+[^apple-release]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1)
 [^core-today]: https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md)
 [^web-home]: https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md verify:urlOk(https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md)
