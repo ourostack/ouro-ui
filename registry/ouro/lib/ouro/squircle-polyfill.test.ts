@@ -3,7 +3,9 @@ import { registerSquirclePolyfill } from "@/registry/ouro/lib/ouro/squircle-poly
 
 describe("registerSquirclePolyfill", () => {
   it("keeps the polyfill's own colour transitions from marking corners dirty", async () => {
+    expect(document.querySelector("style[data-hyperellipse]")).toBeNull();
     await registerSquirclePolyfill();
+    expect(document.querySelector("style[data-hyperellipse]")).not.toBeNull();
     const make = (type: string, propertyName: string) => {
       const event = new Event(type, { bubbles: true });
       Object.assign(event, { propertyName });
