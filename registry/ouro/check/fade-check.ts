@@ -105,13 +105,10 @@ function findImageFades(): PageIssue[] {
   // Whether a radial layer's arguments cut a shape out of the picture (a bite or a hole): it is clear first and opaque
   // for the rest, and turns from one to the other within 2px, so no edge of the picture dissolves.
   const cutsHole = (args: string[], whole: number) => {
-    const stops = args.filter((part) => /^(?:rgba?|hsla?|oklch|oklab|lab|lch|color|transparent|#)/.test(part));
+    const stops = args.map((part) => /^rgba?\(([^)]*)\)\s+(\S.*)$/.exec(part)).filter((stop) => stop !== null);
     if (stops.length !== 2) return false;
-    const alphas = stops.map((part) => (/^(?:rgba|transparent)|\//.test(part) ? Number(/transparent/.test(part) ? 0 : part.replace(/\).*$/, "").split(/[\s,/]+/).at(-1)) : 1));
-    const rests = stops.map((part) => part.replace(/^(?:[a-z-]+\([^()]*\)|[a-z]+|#\w+)\s*/, ""));
-    if (rests.some((rest) => !rest)) return false;
-    const places = rests.map((rest) => lengthOf(rest, whole));
-    return alphas[0]! < 0.01 && alphas[1]! >= 0.99 && places[1]! - places[0]! <= 2;
+    const alphas = stops.map((stop) => (stop[1]!.split(",").length === 4 ? Number(stop[1]!.split(",")[3]) : 1));
+    return alphas[1]! - alphas[0]! >= 0.99 && lengthOf(stops[1]![2]!, whole) - lengthOf(stops[0]![2]!, whole) <= 2;
   };
   // Whether the gradient mask on `el` fades any of `picture`. Each linear layer is read along its line (to a side, or a
   // right angle) for the bands where it is not opaque, inside `el`'s box; a band of no width fades nothing. A mask it
