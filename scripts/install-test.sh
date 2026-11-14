@@ -717,7 +717,10 @@ echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
 if [ "${#spec_filters[@]}" -gt 0 ]; then
-  npx playwright test --fully-parallel ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${spec_shard[@]+"${spec_shard[@]}"} "${spec_filters[@]}"
+  # A sharded run lists each test with its time, so the log shows which specs the installed app runs slowly.
+  reporter=()
+  [ -z "${OURO_SHARD:-}" ] || reporter=(--reporter=list)
+  npx playwright test --fully-parallel ${reporter[@]+"${reporter[@]}"} ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${spec_shard[@]+"${spec_shard[@]}"} "${spec_filters[@]}"
 else
   echo "No selected component has a spec."
 fi
