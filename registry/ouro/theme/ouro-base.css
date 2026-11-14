@@ -35,13 +35,13 @@
  */
 @theme inline {
   --color-input: var(--input);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-sm: calc(var(--radius) * var(--ouro-radius-scale, 1) * 0.6);
+  --radius-md: calc(var(--radius) * var(--ouro-radius-scale, 1) * 0.8);
+  --radius-lg: calc(var(--radius) * var(--ouro-radius-scale, 1));
+  --radius-xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 1.4);
+  --radius-2xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 1.8);
+  --radius-3xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 2.2);
+  --radius-4xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 2.6);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -53,6 +53,7 @@
   --input: oklch(0.922 0 0);
   --radius: 0.9375rem;
   --ouro-corner-shape: squircle;
+  --ouro-radius-scale: 1;
   --destructive-foreground: #ffffff;
   --success: #157d3c;
   --success-foreground: #ffffff;
@@ -134,6 +135,13 @@
   [class*="rounded-full"] {
     --corner-shape: round;
     corner-shape: round;
+  }
+}
+
+/* Where the engine has no corner-shape, a circular corner at 0.7 of the squircle's radius stays within 6% of it, so box-shadow, outline and the element's own box follow the squircle closely. */
+@supports not (corner-shape: squircle) {
+  :root {
+    --ouro-radius-scale: 0.7;
   }
 }
 
