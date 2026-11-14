@@ -82,7 +82,10 @@ export interface HeroOwnProps {
   eyebrow?: ReactNode;
   /**
    * The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as
-   * paragraphs or a list, is set in a `<div>` so it can hold blocks.
+   * paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the
+   * hero's text column, like the title.
+   *
+   * @claim "It runs the full width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > runs the lede the full width of the text column in each layout)
    */
   description?: ReactNode;
   /** The hero's buttons or links, such as Ouro buttons. */
@@ -340,7 +343,7 @@ export function Hero(props: HeroProps): JSX.Element {
         {description != null ? (
           <Lede
             data-slot="description"
-            className="m-0 max-w-[70ch] text-base leading-7 text-muted-foreground text-pretty min-[40rem]:text-lg min-[40rem]:leading-8"
+            className="m-0 text-base leading-7 text-muted-foreground text-pretty min-[40rem]:text-lg min-[40rem]:leading-8"
           >
             {description}
           </Lede>
