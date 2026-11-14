@@ -53,6 +53,13 @@ async function generatedFailures(root) {
       failures.push({ message: "docs/guides/agent-interfaces.md differs from what scripts/agent-benchmark/page.mjs renders from scripts/agent-benchmark/results/. Render it again: node scripts/agent-benchmark/page.mjs docs/guides/agent-interfaces.md." });
     }
   }
+  const reviewsPage = join(root, "docs/guides/model-reviews.md");
+  if (existsSync(join(root, "scripts/model-reviews/page.mjs")) && existsSync(reviewsPage)) {
+    const { renderPage, publishedRuns } = await import(pathToFileURL(join(root, "scripts/model-reviews/page.mjs")).href);
+    if (readFileSync(reviewsPage, "utf8") !== renderPage(publishedRuns(join(root, "scripts/model-reviews/results")))) {
+      failures.push({ message: "docs/guides/model-reviews.md differs from what scripts/model-reviews/page.mjs renders from scripts/model-reviews/results/. Render it again: node scripts/model-reviews/page.mjs docs/guides/model-reviews.md." });
+    }
+  }
   return failures;
 }
 
