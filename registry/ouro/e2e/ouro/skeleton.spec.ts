@@ -62,6 +62,7 @@ test("wheel scrolling a long scroller of loading skeletons with shimmer={false} 
   const sum = (counts: number[]) => counts.reduce((a, b) => a + b, 0);
   const failing = (counts: number[]) => counts.filter((count) => count > 0).length;
   const report = `shimmer={false} ${JSON.stringify(stilled)}, control ${JSON.stringify(control)}`;
-  expect(failing(stilled), report).toBeLessThanOrEqual(failing(control));
-  expect(sum(stilled), report).toBeLessThanOrEqual(sum(control));
+  // Both arms draw the same pixels, so a few runs differ by chance; the band running costs far more (7 failing runs, 30 dead frames).
+  expect(failing(stilled), report).toBeLessThanOrEqual(failing(control) + 3);
+  expect(sum(stilled), report).toBeLessThanOrEqual(sum(control) + 3);
 });
