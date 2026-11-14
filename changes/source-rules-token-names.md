@@ -1,0 +1,1 @@
+- Source rules: the corner, switch and hero messages name the squircle corner shape, the Quiet glass tokens and the light and dark hero picture.
