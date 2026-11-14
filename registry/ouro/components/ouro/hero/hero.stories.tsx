@@ -83,6 +83,17 @@ export const LiveMedia: Story = {
   },
 };
 
+/** Inside a page column that already sets the width: `fullWidth` lines the hero up with the page's own edges. */
+export const FullWidth: Story = {
+  args: { layout: "column", fullWidth: true },
+  render: (args) => (
+    <div style={{ display: "grid", gap: 24, width: "min(56rem, 100%)", marginInline: "auto", color: "var(--foreground)" }}>
+      <Hero {...args} />
+      <p style={{ margin: 0 }}>The post starts here, on the same edge as the hero.</p>
+    </div>
+  ),
+};
+
 /** The page's content sits under the hero, and the heading is a section title (level 2). */
 export const InContext: Story = {
   args: { headingLevel: 2, title: "This week's plans", layout: "column" },

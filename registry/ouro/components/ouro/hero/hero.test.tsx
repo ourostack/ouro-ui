@@ -149,6 +149,29 @@ describe("Hero", () => {
     }
   });
 
+  it("takes its container's width with fullWidth, with no gutter or cap of its own", async () => {
+    await page.viewport(1440, 900);
+    for (const layout of ["stage", "column", "split"] as const) {
+      const media = <div style={{ height: 120 }}>Live</div>;
+      const own = await render(<div style={{ width: 900 }}><Hero title="Inset" layout={layout} media={media} /></div>);
+      expect(own.header.firstElementChild!.getBoundingClientRect().width).toBeLessThan(900);
+      const full = await render(<div style={{ width: 900 }}><Hero title="Full" layout={layout} media={media} fullWidth /></div>);
+      expect(full.header.getBoundingClientRect().width).toBe(900);
+      expect(getComputedStyle(full.header).paddingTop).toBe(getComputedStyle(own.header).paddingTop);
+      const words = document.createRange();
+      words.selectNodeContents(full.header.querySelector("h1")!);
+      const title = words.getBoundingClientRect();
+      if (layout === "stage") expect(title.left + title.width / 2).toBeCloseTo(full.host.getBoundingClientRect().left + 450, 0);
+      else expect(title.left).toBe(full.host.getBoundingClientRect().left);
+      if (layout === "split") {
+        expect(full.header.getBoundingClientRect().left).toBe(full.host.getBoundingClientRect().left);
+      } else {
+        expect(full.header.firstElementChild!.getBoundingClientRect().width).toBe(900);
+        expect(full.part("media")!.getBoundingClientRect().width).toBe(900);
+      }
+    }
+  });
+
   it("keeps stage and column media below the words on a wide screen", async () => {
     await page.viewport(1400, 900);
     for (const layout of ["stage", "column"] as const) {
