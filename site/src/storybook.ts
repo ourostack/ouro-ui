@@ -50,7 +50,7 @@ export const SCENES: Record<SceneName, Scene> = {
   },
   "ouro-ui-apple": {
     alt: "A little white robot leans over a phone, a tablet and a laptop on a garden bench, each showing the same green card with a switch, while Ouro smiles beside them.",
-    sky: ["#fcbdac", "#f9bda6", "#f9b39e", "#fdc794", "#fde893"],
+    sky: ["#fcb8a7", "#fab8a2", "#f9b19b", "#fdc08f", "#fde290"],
     height: 576,
     phoneHeight: 432,
     sun: [87, 11],
@@ -77,9 +77,10 @@ export const SCENES: Record<SceneName, Scene> = {
     alt: "A little robot reads an unrolled scroll beside a bookshelf full of ribboned scrolls and books, while Ouro hands another scroll to a second robot.",
     sky: ["#ebb7ae", "#f1c3a0", "#fcc4a8", "#fcda9d", "#fdeca2"],
     height: 576,
-    phoneHeight: 384,
-    sun: [86, 16],
-    band: 49,
+    phoneHeight: 320,
+    sun: [93, 3],
+    band: 12,
+    shortY: 8,
   },
   ourostack: {
     alt: "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
