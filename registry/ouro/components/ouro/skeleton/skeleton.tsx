@@ -14,9 +14,8 @@ interface SkeletonCommonProps {
   className?: string | undefined;
   ref?: Ref<HTMLSpanElement> | undefined;
   /**
-   * Whether the band sweeps across the placeholder. `false` draws it still, as reduced motion does,
-   * for a screen with many placeholders at once (a long list of pictures) on a browser where
-   * animating them all costs scrolling.
+   * Whether the band sweeps across the placeholder. `false` draws it still, as reduced motion does.
+   * Choose it for a long list of pictures loading at once, where a sweep on each may slow scrolling.
    * @default true
    */
   shimmer?: boolean | undefined;

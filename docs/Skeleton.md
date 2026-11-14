@@ -36,7 +36,7 @@ The props the modes share. Type: `SkeletonProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
-| `shimmer` | `boolean` | `true` | Whether the band sweeps across the placeholder. `false` draws it still, as reduced motion does, for a screen with many placeholders at once (a long list of pictures) on a browser where animating them all costs scrolling. |
+| `shimmer` | `boolean` | `true` | Whether the band sweeps across the placeholder. `false` draws it still, as reduced motion does. Choose it for a long list of pictures loading at once, where a sweep on each may slow scrolling. |
 
 ## Modes
 
