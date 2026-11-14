@@ -180,13 +180,16 @@ if [ "$variant" = next ]; then
   exit 0
 fi
 
-# shadcn add fetches each file from raw.githubusercontent.com, and a fetch drops now and then (a rerun
-# passes). Retry the same add only for that failure, with a warning each time; any other failure stays red.
+# shadcn add fetches each file from raw.githubusercontent.com, and a fetch drops now and then. Two layers
+# retry it. The preload (scripts/raw-fetch-retry-preload.mjs) retries each such request inside the
+# shadcn process, so one dropped file costs one request. This function then reruns the whole add for a
+# failure the preload did not absorb, with a warning each time; any other failure stays red.
 # Usage: add_retrying_raw_fetch <shadcn package spec> <address>...
 add_retrying_raw_fetch() {
   local pin=$1 log="$registry/add.log" attempt=0 delays=(5 15) file
+  local preload="$root/scripts/raw-fetch-retry-preload.mjs"
   shift
-  while ! npx --yes "$pin" add --yes "$@" 2>&1 | tee "$log"; do
+  while ! NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--import=$preload" npx --yes "$pin" add --yes "$@" 2>&1 | tee "$log"; do
     grep -q 'RegistrySourceFileError' "$log" && grep -q 'could not fetch from raw.githubusercontent.com' "$log" || return 1
     [ "$attempt" -lt "${#delays[@]}" ] || return 1
     file=$(sed -n 's/.*Failed to read GitHub source file "\([^"]*\)".*/\1/p' "$log" | head -n 1)
