@@ -2323,7 +2323,7 @@ test("Docs pin reuses its open pull request and turns auto-merge on for it", () 
   const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
   assert.equal(result.status, 0, result.stdout + result.calls);
   const calls = readFileSync(join(dir, "gh.log"), "utf8");
-  assert.match(calls, /^gh pr edit 7 --title Point docs at v1\.3\.56/m);
+  assert.match(calls, /^gh pr edit 7 --title Point the docs at a release /m);
   assert.doesNotMatch(calls, /gh pr create/);
   assert.match(calls, /^gh pr merge 7 --auto --squash$/m);
   assert.match(readFileSync(join(dir, "summary.md"), "utf8"), /Auto-merge is on for #7/);

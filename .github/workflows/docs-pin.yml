@@ -2,7 +2,7 @@ name: Docs pin
 # Points main's docs at the newest release: the install commands in README.md, site/llms.txt and
 # the guides, and package.json's description, which `pnpm run docs` writes from ouro.latestRelease.
 # Release dispatches it once it has tagged a release, and never waits for it. It keeps one pull
-# request open on one branch, "Point docs at <tag>", force-updating it, and turns auto-merge on, so
+# request open on one branch, "Point the docs at a release" (a title the claims lint accepts), force-updating it, and turns auto-merge on, so
 # the pull request merges once the checks main's ruleset requires pass. Release auto starts nothing
 # for the commit it makes (scripts/pin-only.mjs).
 # The branch is pushed with DOCS_PIN_TOKEN when the repository has that secret. A push with the
@@ -77,8 +77,8 @@ jobs:
       - if: steps.pin.outputs.result == 'changed'
         name: Open or update the pull request, and turn auto-merge on
         run: |
-          title="Point docs at $TAG"
-          body=$(printf '%s\n\n%s\n\n%s\n' "Points the docs at $TAG, the newest release, with \`node scripts/latest-release.mjs set $TAG\` and \`pnpm run docs\`. Release opened this pull request after it tagged $TAG.[^latest]" "If CI has not started on this pull request, a maintainer pushes an empty commit to $BRANCH to start it. That is needed when the repository has no DOCS_PIN_TOKEN secret, since a push with the workflow's own token starts no CI.[^token][^github]" "[^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG
+          title="Point the docs at a release"
+          body=$(printf '%s\n\n%s\n\n%s\n' "Release opened this pull request after it tagged $TAG, to point the docs at that tag with \`node scripts/latest-release.mjs set $TAG\` and \`pnpm run docs\`.[^latest]" "If CI has not started on this pull request, a maintainer pushes an empty commit to $BRANCH to start it. That is needed when the repository has no DOCS_PIN_TOKEN secret, since a push with the workflow's own token starts no CI.[^token][^github]" "[^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG
           [^token]: .github/workflows/docs-pin.yml verify:fileLine(.github/workflows/docs-pin.yml, /DOCS_PIN_TOKEN/)
           [^github]: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow verify:urlOk(https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)")
           number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
