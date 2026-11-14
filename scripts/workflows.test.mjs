@@ -567,7 +567,7 @@ test("published-release verification refuses unfinished main, drafts, prerelease
 
 test("Pages deploys on every push to main from that commit, never after main's CI", () => {
   const pages = workflow("pages.yml");
-  assert.match(pages, /\non:\n  push:\n    branches: \[main\]\n  workflow_dispatch:/);
+  assert.match(pages, /\non:\n {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:/);
   assert.doesNotMatch(pages, /workflow_run/);
   assert.match(pages, /ref: \$\{\{ github\.sha \}\}/);
   assert.match(pages, /\$tip" = "\$HEAD_SHA"/);
