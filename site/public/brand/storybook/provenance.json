@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@d15cb04253bdb90c2c918790042cb4c0de7ce94d:brand/",
+  "origin": "ourostack/.github@42ad9bbc97d9516c783ed0ef31f6fdc40df1980d:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -97,19 +97,19 @@
     },
     {
       "file": "phone/ouro-ui-apple-1152.avif",
-      "sha256": "4599ced2c68fcf527dc6a1efb62076dace956ac6bc14bff40de94ce5a5b572c5"
+      "sha256": "1b8803a17fd22a442164547d7cdef420abfbd5445ddfb990c713f0683a73c928"
     },
     {
       "file": "phone/ouro-ui-apple-1152.webp",
-      "sha256": "674f6d3eceef7c84297a36d0f3d7cb057ce05cd343071ea48e8d642d0abcbe98"
+      "sha256": "b63c794be4585293992939e685f4e1efd972dabaedc4c5e33e602dce5a8de3db"
     },
     {
       "file": "phone/ouro-ui-apple-1536.avif",
-      "sha256": "914482013fc124851c0a5488de8a60bdbc87de902837b2fd7919e08615d06870"
+      "sha256": "6e939144e5197822cfb87b26a65a30060505dbb75daf1056d149595195b17be6"
     },
     {
       "file": "phone/ouro-ui-apple-1536.webp",
-      "sha256": "8e7a080553e37e971483f10e6e29c29c4214fe12b7101c3f1923903a04aee6b3"
+      "sha256": "68a2e81250a10efd22a289ff48e33e6102810604e5879b9998ebeb7fc944bb70"
     },
     {
       "file": "phone/ouro-ui-apple-384.avif",
@@ -161,19 +161,19 @@
     },
     {
       "file": "phone/ouroboros-skills-1152.avif",
-      "sha256": "dcd502fcdf587f114d6231cb484c1e4aee78c3162ef01e4240abb2af4eb43e59"
+      "sha256": "3f2ac2823de51adbe23e23744900b4c5fedd1979fd2b483a2246c280a5098c10"
     },
     {
       "file": "phone/ouroboros-skills-1152.webp",
-      "sha256": "174c2c40d90fe2099bbfebefac3300da209006f3e365568d1876ec7096adda12"
+      "sha256": "4fc7cc54396254f333cddddc28103f7b8a1ec1f57e6904324613098ae8d77ff9"
     },
     {
       "file": "phone/ouroboros-skills-1536.avif",
-      "sha256": "c2d0c3d4684502b8c68de41502db3352f71b48ac35ad74b5c89545a990dad75d"
+      "sha256": "fb0892ef2e171216f1f095102110ef44756475d035a0d3781fb8d9a90e709e28"
     },
     {
       "file": "phone/ouroboros-skills-1536.webp",
-      "sha256": "2c8311d7bcf6a45958bbcc861fafe15101c71e0aa6e1aac09423b633561b8860"
+      "sha256": "ce968d62795efbd52b5712a86ef3f7d7ddcf3cf18a212f35d2cb7e17fc101f53"
     },
     {
       "file": "phone/ouroboros-skills-384.avif",
