@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Collapsible, type CollapsibleProps } from "@/registry/ouro/components/ouro/collapsible/collapsible";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -53,6 +54,26 @@ async function settled(element: Element) {
 const facts = <p>Calories 420, protein 18g</p>;
 
 describe("Collapsible", () => {
+  it("reads no style or layout when it mounts closed, however many there are", async () => {
+    // The development theme check reads once per page; let it happen first.
+    await render(<Collapsible title="Warm up">{facts}</Collapsible>);
+    const watch = watchLayoutReads();
+    try {
+      await render(
+        <>
+          {Array.from({ length: 20 }, (_, i) => (
+            <Collapsible key={i} title={`Section ${i}`}>
+              {facts}
+            </Collapsible>
+          ))}
+        </>,
+      );
+    } finally {
+      watch.stop();
+    }
+    expect(watch.names()).toEqual([]);
+  });
+
   it("keeps the trigger's edge under forced colours, which drop its fill", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
     try {
@@ -113,12 +134,12 @@ describe("Collapsible", () => {
     expect(second.host.querySelector("output")!.textContent).toBe("true");
   });
 
-  it("animates the panel to its measured height, and not with reduced motion", async () => {
+  it("animates the panel open with a grid row, and not with reduced motion", async () => {
     const r = await render(<Collapsible title="Nutrition facts">{facts}</Collapsible>);
     const panel = r.panel;
     let heightStarted = false;
     const record = (event: TransitionEvent) => {
-      if (event.target === panel && event.propertyName === "height") heightStarted = true;
+      if (event.target === panel && event.propertyName === "grid-template-rows") heightStarted = true;
     };
     panel.addEventListener("transitionrun", record);
     try {
@@ -128,9 +149,14 @@ describe("Collapsible", () => {
       panel.removeEventListener("transitionrun", record);
     }
     await settled(r.panel);
-    expect(r.panel.getBoundingClientRect().height).toBeCloseTo(r.panel.scrollHeight, 0);
+    expect(r.panel.getBoundingClientRect().height).toBeGreaterThan(20);
+    await userEvent.click(r.trigger);
+    await expect.poll(() => r.panel.hasAttribute("hidden")).toBe(true);
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    expect(getComputedStyle(r.panel).transitionProperty).not.toMatch(/height/);
+    expect(getComputedStyle(r.panel).transitionProperty).not.toMatch(/grid-template-rows/);
+    await userEvent.click(r.trigger);
+    await userEvent.click(r.trigger);
+    await expect.poll(() => r.panel.hasAttribute("hidden")).toBe(true);
   });
 
   it("rotates the chevron while open", async () => {

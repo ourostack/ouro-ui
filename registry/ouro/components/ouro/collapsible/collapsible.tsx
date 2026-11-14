@@ -1,7 +1,6 @@
 "use client";
 
-import { Collapsible as BaseCollapsible } from "@base-ui/react/collapsible";
-import { useSyncExternalStore, type JSX, type ReactNode, type Ref } from "react";
+import { useEffect, useLayoutEffect, useId, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -107,17 +106,70 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const untilFound = useUntilFound();
+  const panelId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [own, setOwn] = useState(defaultOpen === true);
+  const expanded = open ?? own;
+  const change = (next: boolean) => {
+    if (open === undefined) setOwn(next);
+    onOpenChange?.(next);
+  };
+  const changeRef = useRef(change);
+  useLayoutEffect(() => {
+    changeRef.current = change;
+  });
+  // The panel stays shown through its closing transition, then hides.
+  const [seen, setSeen] = useState(expanded);
+  const [closing, setClosing] = useState(false);
+  const [moved, setMoved] = useState(false);
+  if (seen !== expanded) {
+    setSeen(expanded);
+    setMoved(true);
+    setClosing(!expanded);
+  }
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const found = () => changeRef.current(true);
+    panel.addEventListener("beforematch", found);
+    return () => panel.removeEventListener("beforematch", found);
+  }, []);
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!closing || !panel) return;
+    if (panel.getAnimations().length === 0) {
+      setClosing(false);
+      return;
+    }
+    const done = (event: Event) => {
+      if (event.target === panel) setClosing(false);
+    };
+    panel.addEventListener("transitionend", done);
+    panel.addEventListener("transitioncancel", done);
+    return () => {
+      panel.removeEventListener("transitionend", done);
+      panel.removeEventListener("transitioncancel", done);
+    };
+  }, [closing]);
+  const shown = expanded || closing;
+  // React writes a plain `hidden`; the until-found value is set by hand.
+  useLayoutEffect(() => {
+    if (!shown && untilFound) panelRef.current?.setAttribute("hidden", "until-found");
+  }, [shown, untilFound]);
   return (
-    <BaseCollapsible.Root
-      ref={ref}
-      open={open}
-      defaultOpen={defaultOpen}
-      onOpenChange={onOpenChange ? (next: boolean) => onOpenChange(next) : undefined}
-      disabled={disabled}
-      data-ouro="collapsible"
-      className={cn(rootClass, className)}
-    >
-      <BaseCollapsible.Trigger data-ouro-control="collapsible" data-ouro-part="trigger" className={triggerClass}>
+    <div ref={ref} data-ouro="collapsible" className={cn(rootClass, className)}>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-expanded={expanded}
+        aria-controls={expanded ? panelId : undefined}
+        data-disabled={disabled ? "" : undefined}
+        data-panel-open={expanded ? "" : undefined}
+        data-ouro-control="collapsible"
+        data-ouro-part="trigger"
+        className={triggerClass}
+        onClick={() => change(!expanded)}
+      >
         {title}
         <svg
           aria-hidden="true"
@@ -131,10 +183,20 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
         >
           <path d="m4 6 4 4 4-4" />
         </svg>
-      </BaseCollapsible.Trigger>
-      <BaseCollapsible.Panel keepMounted hiddenUntilFound={untilFound} data-ouro-collapsible-panel="" className={panelClass}>
-        <div className="pt-1 pb-2">{children}</div>
-      </BaseCollapsible.Panel>
-    </BaseCollapsible.Root>
+      </button>
+      <div
+        ref={panelRef}
+        id={panelId}
+        hidden={shown ? undefined : true}
+        data-open={expanded ? "" : undefined}
+        data-moved={moved ? "" : undefined}
+        data-ouro-collapsible-panel=""
+        className={panelClass}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="pt-1 pb-2">{children}</div>
+        </div>
+      </div>
+    </div>
   );
 }

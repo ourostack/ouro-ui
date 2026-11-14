@@ -1,0 +1,1 @@
+- Collapsible no longer reads style or layout when it mounts: its panel is Ouro's own CSS-driven one, not Base UI's, so a page of closed Collapsibles mounts with no forced reflow.
