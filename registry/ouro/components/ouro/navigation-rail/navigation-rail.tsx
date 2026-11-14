@@ -268,6 +268,50 @@ interface Sizes {
   heights: Map<string, number>;
   width: number;
   textChanged: boolean;
+  /** The list's row gap and height at the last measure, so a change of the current item fits arithmetically. */
+  gap: number;
+  room: number;
+}
+
+/** The items that stay on the list, worked out from cached sizes alone: the current one is kept, and room is left for More. */
+function keptItems(items: readonly NavigationRailEntry[], current: number, heights: ReadonlyMap<string, number>, gap: number, room: number): Set<number> {
+  const indexes = items.flatMap((entry, index) => (entry.type === "separator" ? [] : [index]));
+  /** The list's height with `shown` items on it, and More when `more`. */
+  const total = (shown: ReadonlySet<number>, more: boolean) => {
+    const separators = shownSeparators(items, (index) => shown.has(index));
+    const keys = [...[...shown].map(String), ...[...separators].map(() => "separator"), ...(more ? ["more"] : [])];
+    return keys.reduce((sum, key) => sum + (heights.get(key) ?? 0), 0) + gap * (keys.length - 1);
+  };
+  let kept = new Set(indexes);
+  // Stryker disable next-line EqualityOperator: heights are whole pixels and gaps CSS lengths, so a total is never exactly half a pixel over.
+  if (total(kept, false) > room + 0.5) {
+    kept = new Set(current === -1 ? [] : [current]);
+    for (const index of indexes) {
+      if (index === current) continue;
+      kept.add(index);
+      // Stryker disable next-line EqualityOperator: as above, a total is never exactly half a pixel over.
+      if (total(kept, true) > room + 0.5) {
+        kept.delete(index);
+        break;
+      }
+    }
+  }
+  return kept;
+}
+
+/** The heights the fit adds up, with the tallest known size standing in for an item not measured yet (one hidden since it first rendered), until the observer reports its own. Empty when nothing is measured. */
+function estimated(items: readonly NavigationRailEntry[], heights: ReadonlyMap<string, number>): Map<string, number> {
+  const filled = new Map(heights);
+  // Stryker disable next-line MethodExpression,ArrayDeclaration,ArrowFunction,ConditionalExpression,LogicalOperator,EqualityOperator,StringLiteral: the stand-in only matters for an item hidden since it first rendered, which a measure never leaves unmeasured.
+  const tallest = Math.max(0, ...[...heights].filter(([key]) => key !== "more" && key !== "separator").map(([, height]) => height));
+  // Stryker disable next-line ConditionalExpression,BlockStatement: every measure stores More first, so an unmeasured rail never gets here with sizes.
+  if (!heights.has("more")) return new Map();
+  // Stryker disable next-line BlockStatement,CallExpression,ArrowFunction: see the stand-in above.
+  items.forEach((entry, index) => {
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,StringLiteral,BooleanLiteral,CallExpression: see the stand-in above.
+    /* istanbul ignore next @preserve -- an item hidden since it first rendered has no size until it shows once; every measure here shows all first */ if (entry.type !== "separator" && !filled.has(String(index))) filled.set(String(index), tallest);
+  });
+  return filled;
 }
 
 // What fits the laid-out list: the items that move under More, from the last, with the current
@@ -295,27 +339,10 @@ function measureFit(element: HTMLUListElement, items: readonly NavigationRailEnt
   sizes.textChanged = false;
   const gap = parseFloat(getComputedStyle(element).rowGap);
   const room = element.clientHeight;
+  sizes.gap = gap;
+  sizes.room = room;
   const indexes = items.flatMap((entry, index) => (entry.type === "separator" ? [] : [index]));
-  /** The list's height with `shown` items on it, and More when `more`. */
-  const total = (shown: ReadonlySet<number>, more: boolean) => {
-    const separators = shownSeparators(items, (index) => shown.has(index));
-    const keys = [...[...shown].map(String), ...[...separators].map(() => "separator"), ...(more ? ["more"] : [])];
-    return keys.reduce((sum, key) => sum + (heights.get(key) ?? 0), 0) + gap * (keys.length - 1);
-  };
-  let kept = new Set(indexes);
-  // Stryker disable next-line EqualityOperator: heights are whole pixels and gaps CSS lengths, so a total is never exactly half a pixel over.
-  if (total(kept, false) > room + 0.5) {
-    kept = new Set(current === -1 ? [] : [current]);
-    for (const index of indexes) {
-      if (index === current) continue;
-      kept.add(index);
-      // Stryker disable next-line EqualityOperator: as above, a total is never exactly half a pixel over.
-      if (total(kept, true) > room + 0.5) {
-        kept.delete(index);
-        break;
-      }
-    }
-  }
+  const kept = keptItems(items, current, heights, gap, room);
   // Labels hidden under More, or by hideLabels, measure nothing and are never set smaller.
   const labels = [...element.querySelectorAll<HTMLElement>("[data-ouro-navigation-rail-label]")].filter((text) => text.clientWidth > 1);
   const isSqueezed = (text: HTMLElement) => text.hasAttribute("data-ouro-navigation-rail-squeezed");
@@ -349,18 +376,24 @@ function fitInputs(items: readonly NavigationRailEntry[], current: number, hideL
 // reports each element it starts to watch, measures then, before the first paint, and sets a fit
 // only when it differs: a rail whose items fit renders once, and one that overflows paints with its
 // items already under More.
-function useFit(list: { readonly current: HTMLUListElement | null }, items: readonly NavigationRailEntry[], current: number, inputs: string): Fit {
+function useFit(list: { readonly current: HTMLUListElement | null }, items: readonly NavigationRailEntry[], current: number, inputs: string, others: string): Fit {
   // Stryker disable next-line ArrayDeclaration: a place that is no item's moves and cuts nothing, as an empty list does.
   const [fit, setFit] = useState<Fit>({ hidden: [], truncated: [], squeezed: [] });
   // One not yet measured counts nothing until it shows, and the measure that follows corrects the fit before paint.
   // Stryker disable next-line BooleanLiteral: the first measure has no heights to forget, whatever this says.
-  const sizes = useRef<Sizes>({ heights: new Map(), width: 0, textChanged: false });
+  // Stryker disable next-line ObjectLiteral,BooleanLiteral: sizes start empty and the first measure fills every field.
+  const sizes = useRef<Sizes>({ heights: new Map(), width: 0, textChanged: false, gap: 0, room: 0 });
   const measure = useRef<() => void>(null);
   const observer = useRef<ResizeObserver | null>(null);
   const observed = useRef(new WeakSet<Element>());
   // The fit the last commit showed, so a measure that finds it again renders nothing.
   const shown = useRef(fit);
   const committed = useRef(false);
+  // What the last effect ran for, and whether its fit came from sizes alone.
+  // Stryker disable next-line ObjectLiteral: the first commit only records what it ran for; no branch reads it before a later commit sets it.
+  const last = useRef({ others, current });
+  // Stryker disable next-line BooleanLiteral: the first commit never reads it before it is set.
+  const fromSizes = useRef(false);
   // Every later commit measures before paint, so a change never shows items that do not fit. The
   // observer calls the latest measure, which reads the entries and current item of the render that
   // set it: until `inputs` change, any later render's give the same fit.
@@ -388,11 +421,43 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
       observed.current.add(element);
       observer.current.observe(element);
     }
-    if (committed.current) measure.current!();
+    const before = last.current;
+    // Stryker disable next-line ObjectLiteral: see the ref above.
+    last.current = { others, current };
+    if (committed.current) {
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: a measure after a fit from sizes finds the same fit and renders nothing.
+      const settled = fromSizes.current && before.others === others && before.current === current;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: without sizes the arithmetic fit is empty, and the measure that follows corrects it before paint.
+      if (before.others === others && before.current !== current && sizes.current.heights.size > 0) {
+        // Only the current item changed: what fits follows from the sizes the observer keeps current, and a layout read inside the commit would lay the page out.
+        const filled = estimated(items, sizes.current.heights);
+        const kept = keptItems(items, current, filled, sizes.current.gap, sizes.current.room);
+        // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,ArrayDeclaration,ArrowFunction,BlockStatement,StringLiteral,BooleanLiteral: the observer's measure that follows corrects any fit the sizes get wrong before paint, so only the final fit shows.
+        const hidden = items.flatMap((entry, index) => (entry.type === "separator" || kept.has(index) ? [] : [index]));
+        // Stryker disable next-line ConditionalExpression,BlockStatement: as above.
+        if (!same(shown.current.hidden, hidden)) {
+          // Stryker disable next-line BooleanLiteral: as above.
+          fromSizes.current = true;
+          shown.current = { ...shown.current, hidden };
+          setFit(shown.current);
+        }
+      }
+      else {
+        // The fit that just rendered came from sizes: the items it shows or hides report their new sizes to the observer, which measures once the page is laid out.
+        // Stryker disable next-line ConditionalExpression,BlockStatement: a measure the observer starts after a fit from sizes finds the same fit and renders nothing.
+        if (settled) {
+          // Stryker disable next-line BooleanLiteral,BlockStatement: as above.
+          fromSizes.current = false;
+        } else {
+          fromSizes.current = false;
+          measure.current!();
+        }
+      }
+    }
     committed.current = true;
     // A new fit can change sizes the measure read (More shows, a label is set smaller), so it measures again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputs, fit]);
+  }, [inputs, current, fit]);
   // A font that loads changes the labels' widths, and maybe nothing the observer sees, so the rail measures again once
   // the fonts are ready, outside any commit, where the page lays out the new text anyway. (WebKit sends no
   // loadingdone for a face it finds at once, only loading.)
@@ -690,7 +755,8 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
   const nav = useRef<HTMLElement>(null);
   const navRef = useMergedRef(ref, nav);
   const list = useRef<HTMLUListElement>(null);
-  const fit = useFit(list, items, current, fitInputs(items, current, hideLabels, moreLabel, className));
+  // Stryker disable next-line UnaryOperator: -2 only stands for "no current item"; +2 is as absent from the rail's items.
+  const fit = useFit(list, items, current, fitInputs(items, current, hideLabels, moreLabel, className), fitInputs(items, -2, hideLabels, moreLabel, className));
   // Indexed once per measure, which keeps its last result while nothing moves.
   const { hidden, truncated, squeezed } = useMemo(() => ({ hidden: new Set(fit.hidden), truncated: new Set(fit.truncated), squeezed: new Set(fit.squeezed) }), [fit]);
 

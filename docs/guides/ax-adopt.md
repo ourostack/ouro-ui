@@ -55,6 +55,8 @@ For a CLI without an HTTP API, run step 4's command in CI with `--commit` and a 
       --home "$RUNNER_TEMP/xray-home" --env "TOOL_URL=$MOCK_URL" --guard "node scripts/assert-mock.mjs" --commit "$GITHUB_SHA" --json --md xray.md > xray.json
 ```
 
+Gate CI on the exit code, not on `xray.json` alone: a run that refuses its options or fails before it checks (exit 2, or 1) writes an error object to `xray.json` under `--json`, in place of a report.[^ax-gate]
+
 ## 6. Give it a voice, if you want one
 
 ```ts
@@ -94,4 +96,5 @@ Give fresh agents real tasks against your mock, with only your CLI allowed, and 
 [^flows]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/agent-flow-review.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/agent-flow-review.md, /593 checks, 30 failing/)
 [^text]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md; evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-after-440.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-baseline.md, /\| T4 Recovery \(ambiguous verb: edit\) \| 0\/2 \|/) verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-after-440.md, /\| T4 Recovery \(ambiguous verb: edit\) \| 2\/2 \|/)
 [^hang]: evidence:docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md verify:fileLine(docs/decisions/2026-10-30-ouro-ax/evidence/eval-method.md, /every prompt-mode run with .--allow-tool. hung after startup/)
+[^ax-gate]: registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::the kit answers help, an unknown flag is one line with its fix, and repeat flags keep every value) verify:testExists(registry/ouro/ax/xray.test.mts::the command: claims, help, usage errors with the fix, exit codes, written reports)
 [^v13]: test:registry/ouro/ax/xray.test.mts::a voice in a pipe or --json, text without its refs, an unlisted command, long help, an unnamed audience, a closed pipe verify:testExists(registry/ouro/ax/xray.test.mts::a voice in a pipe or --json, text without its refs, an unlisted command, long help, an unnamed audience, a closed pipe)

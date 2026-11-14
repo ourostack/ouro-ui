@@ -4,10 +4,10 @@ The same colours, motion and manners as this site, in Swift, for iPhone, iPad an
 
 ## What ships today
 
-Release [v0.5.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0) meets core v0.4.0: its tokens are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core] Add it with Swift Package Manager:
+Release [v0.5.1](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1) meets core v0.4.0: its tokens are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core] Add it with Swift Package Manager:
 
 ```swift
-.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.0")
+.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.5.1")
 ```
 
 Version 0.5.0 adds `OuroA2UI`, which draws agent-composed UI from Ouro HX's A2UI catalog and is proved against all 10 of core v0.7.1's conformance cases.[^a2ui]

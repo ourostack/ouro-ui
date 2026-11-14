@@ -7,7 +7,7 @@ import { GITHUB } from "../paths";
 /**
  * Renders the Markdown that scripts/gen-docs.mts writes. It is a small, fixed subset,
  * so a parser this size covers it: `#` headings, paragraphs, fenced code, pipe tables,
- * `-` lists, inline code and links, and the claim syntax (docs/guides/claims.md): a link's
+ * `-` lists, inline code, links and `**bold**`, and the claim syntax (docs/guides/claims.md): a link's
  * `"verify:…"` title, and footnotes (`[^id]` with `[^id]: <source> verify:<check>`), which
  * gather into a Claim sources list at the end. Anything else would be a gen-docs change, and the
  * docs tests would show it.
@@ -117,12 +117,12 @@ export function slug(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
-/** Inline code and links. `link` maps a Markdown href to the site's. */
+/** Inline code, links and `**bold**`. `link` maps a Markdown href to the site's. */
 export function inline(text: string, link: (href: string) => string = (href) => href): ReactNode[] {
   const out: ReactNode[] = [];
   // A code span is a run of backticks and the text up to the next run of as many, as in CommonMark, so `` a `b` `` holds
   // its backticks; one space inside each end is dropped.
-  const pattern = /(`+)(?!`)([\s\S]*?[^`])\1(?!`)|\[\^([^\]]+)\]|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  const pattern = /(`+)(?!`)([\s\S]*?[^`])\1(?!`)|\[\^([^\]]+)\]|\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|\*\*(?=\S)([\s\S]*?\S)\*\*/g;
   let last = 0;
   for (const match of text.matchAll(pattern)) {
     if (match.index > last) out.push(text.slice(last, match.index));
@@ -135,6 +135,7 @@ export function inline(text: string, link: (href: string) => string = (href) => 
           </a>
         </sup>,
       );
+    else if (match[6] !== undefined) out.push(<strong key={match.index}>{inline(match[6], link)}</strong>);
     else
       out.push(
         <a key={match.index} href={link(match[5]!)} className="font-medium text-primary underline underline-offset-4">
