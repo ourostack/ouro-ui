@@ -127,6 +127,27 @@ describe("ConversationList windowing", () => {
     await expect.poll(() => parseFloat(view.rows()[0]!.parentElement!.style.top)).toBe(0);
   });
 
+  it("forces no style or layout while a list with many sections mounts", async () => {
+    const warm = document.createElement("div");
+    document.body.append(warm);
+    mounted.push(warm);
+    const warmRoot = createRoot(warm);
+    roots.push(warmRoot);
+    await act(async () => warmRoot.render(<ConversationList label="Warm" items={many(2)} onSelect={() => {}} />));
+    const pane = document.createElement("div");
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    const sections = Array.from({ length: 12 }, (_, index) => ({ id: `s${index}`, title: `Section ${index}` }));
+    const items = many(60).map((item, index) => ({ ...item, section: `s${index % 12}` }));
+    const reads = watchLayoutReads();
+    flushSync(() => root.render(<ConversationList label="Sectioned" sections={sections} items={items} onSelect={() => {}} />));
+    const mount = reads.names();
+    reads.stop();
+    expect(mount).toEqual([]);
+  });
+
   it("lays nothing out in the commit that switches the open conversation, to one in view or out of it", async () => {
     const list = (id: string) => <ConversationList label="Conversations" items={many(200)} selectedId={id} onSelect={() => {}} />;
     const view = await render(list("c1"));

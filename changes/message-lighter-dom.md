@@ -1,0 +1,1 @@
+- Message draws a text-only message in 12 elements, not 13: it no longer wraps the bubble in a row of its own when it has no actions bar.
