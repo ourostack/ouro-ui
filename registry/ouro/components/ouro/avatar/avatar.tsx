@@ -194,9 +194,9 @@ const sizeNames = Object.keys(sizes).map((name) => `"${name}"`).join(", ");
 // A team's second edge peeks out behind it, up and to the end, cut off by a gap in the
 // surface's color. An agent's tile is white in light mode and a slightly lighter surface in
 // dark, with a hairline over its art.
-const squareEdge =
+const squareEdgeClass =
   "isolate shadow-[0_0_0_1.4px_var(--ouro-avatar-ring,var(--background))] before:absolute before:-top-[7%] before:bottom-[7%] before:start-[7%] before:-end-[7%] before:-z-10 before:rounded-[inherit] before:bg-foreground/20 before:content-[''] dark:before:bg-foreground/30";
-const agentTile =
+const agentTileClass =
   "bg-white dark:bg-[color-mix(in_oklab,white_14%,var(--background))] after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-black/7 after:content-[''] dark:after:border-white/12 forced-colors:after:border-[CanvasText]";
 
 // The presence dot: its whole size, the ring (padding in the surface's color) and where its
@@ -444,8 +444,8 @@ export function Avatar(props: AvatarProps): JSX.Element {
         "relative box-border inline-flex shrink-0 items-center justify-center align-middle",
         "font-medium leading-none select-none",
         shape === "circle" ? "rounded-[34%]" : "rounded-[24%]",
-        shape === "square" && squareEdge,
-        shape === "agent" && agentTile,
+        shape === "square" && squareEdgeClass,
+        shape === "agent" && agentTileClass,
         !nameLoading && (shape === "agent" ? ink : tint),
         sizes[size],
         className,
