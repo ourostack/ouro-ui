@@ -272,6 +272,15 @@ describe("OuroMcpApp", () => {
     expect(host.requests("tools/call")).toEqual([{ name: "share_recipe", arguments: { recipe: "rcp_1", with: "sam@example.com" } }]);
   });
 
+  it("shows the app's own name for an id on the confirm sheet, with the id beside it", async () => {
+    const host = testHost();
+    await openCard(host, { label: ({ field }) => (field === "recipe" ? "Charred Lemon Orzo" : undefined) });
+    await userEvent.click(page.getByRole("button", { name: "Share recipe" }));
+    const confirm = page.getByRole("alertdialog", { name: "Share recipe?" });
+    await expect.element(confirm).toBeVisible();
+    expect(confirm.element().textContent).toContain("Recipe: Charred Lemon Orzo rcp_1");
+  });
+
   it("opens the app's own screen for a person-only button and calls no tool", async () => {
     const handoffUrl = vi.fn(({ action }: { action: string }) => `https://kitchen.example.com/recipes/rcp_1?do=${action}`);
     const host = testHost();

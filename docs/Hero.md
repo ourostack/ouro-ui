@@ -45,7 +45,7 @@ Type: `HeroProps`.
 | `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. |
 | `mediaWidth` | `number` |  | The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead. |
 | `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`, `--ouro-duration-fast` and `--ouro-ease-out`. The wrapper carries `data-starting-style` only while a hydrated page sees the rise running, so server HTML that never hydrates, such as an Astro page without client JavaScript, carries no marker. |
-| `picture` | `HeroPictures` |  | The big picture, shown under the text: `{ light, dark }`, the same scene by day and at night, swapped with the page's dark mode. Both are required: a hero has night art. |
+| `picture` | `HeroPictures` |  | The big picture, shown under the text: `{ light, dark }`, the same scene by day and at night, swapped with the page's dark mode. Both are required: a hero has night art. Once the picture shown has loaded, the media frame carries `data-loaded`, so a site or a test can wait on `[data-slot="media"][data-loaded]`. A small inline script in the server's HTML sets it before any JavaScript bundle runs, and Hero sets it itself after hydration or a client render, so it also arrives where a content security policy blocks inline scripts. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `title` (required) | `ReactNode` |  | The hero's headline, its `<h1>` (or `<h2>` with `headingLevel={2}`). Required. |
 
@@ -105,12 +105,22 @@ interface HeroPicture {
    * @default "50% 42%"
    */
   focus?: string;
+  /**
+   * A colour painted in the picture's box while the image loads, such as the art's main colour,
+   * in place of an empty hole. It fills the box the `width` and `height` already reserve, so it
+   * moves nothing, and an opaque image covers it once it decodes. Give the dark picture its own,
+   * as it never takes the light one's: a day colour would flash at night. Hero has the file's
+   * address but not its pixels, so take the colour from your image pipeline, for example the
+   * `dominant` colour of `sharp(file).stats()`, or pick it by eye. Leave it out for art with
+   * transparency, which would show it through.
+   */
+  placeholder?: string;
 }
 ```
 
 ### `HeroPictures`
 
-The hero's art in light and dark mode: the same scene by day and at night. Hero shows `light` or `dark` in CSS, with your app's Tailwind `dark` variant, the one every Ouro component's dark styles follow, so the right one is there from the first paint. That variant reads the `.dark` class Ouro's `colorSchemeScript` sets; a site that marks dark mode with `data-theme` or the system setting redefines it, as the theming guide shows, and Hero follows. `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so without its own `alt`, `decorative` or `focus` it takes `light`'s. `priority` decides how the twin that shows loads. A twin without it is lazy, and a hidden lazy image is never fetched. Give `priority` to the twin most of your visitors see, and it loads straight from the HTML at high fetch priority while the other stays lazy. Give it to both when the page preloads the art for its scheme: both wait in the HTML, and an inline script after them, which runs once the page's CSS has loaded, loads the one that shows, so neither scheme downloads both. A preload for the dark twin, which follows the system setting, is `<link rel="preload" as="image" fetchpriority="high" media="(prefers-color-scheme: dark)" imagesrcset="/night-960.avif 960w, /night.avif 1920w" imagesizes="100vw">`, with exactly the twin's `srcSet` and `sizes` (and a `type` for a `sources` format); a page that stores the person's choice adds the link from the script in its `<head>` that applies the choice.
+The hero's art in light and dark mode: the same scene by day and at night. Hero shows `light` or `dark` in CSS, with your app's Tailwind `dark` variant, the one every Ouro component's dark styles follow, so the right one is there from the first paint. That variant reads the `.dark` class Ouro's `colorSchemeScript` sets; a site that marks dark mode with `data-theme` or the system setting redefines it, as the theming guide's [dark mode recipe](guides/theming.md#dark-mode) shows, and Hero follows. `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so without its own `alt`, `decorative` or `focus` it takes `light`'s. `priority` decides how the twin that shows loads. A twin without it is lazy, and a hidden lazy image is never fetched. Give `priority` to the twin most of your visitors see, and it loads straight from the HTML at high fetch priority while the other stays lazy. Give it to both when the page preloads the art for its scheme: both wait in the HTML, and an inline script after them, which runs once the page's CSS has loaded, loads the one that shows, so neither scheme downloads both. A preload for the dark twin, which follows the system setting, is `<link rel="preload" as="image" fetchpriority="high" media="(prefers-color-scheme: dark)" imagesrcset="/night-960.avif 960w, /night.avif 1920w" imagesizes="100vw">`, with exactly the twin's `srcSet` and `sizes` (and a `type` for a `sources` format); a page that stores the person's choice adds the link from the script in its `<head>` that applies the choice.
 
 ```ts
 interface HeroPictures {
