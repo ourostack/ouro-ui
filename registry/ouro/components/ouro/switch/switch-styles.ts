@@ -34,8 +34,8 @@ const trackClass =
  * pointer is down it stretches 4px toward the way it will travel: toward the inline end when
  * off, toward the start when on (right and left in a left-to-right page). With reduced motion it
  * neither slides nor stretches.
- * It is Liquid Glass: white tint at 34% in light mode and 12% in dark (twice that when on), a 0.75px
- * rim, a 0.5px hairline and the theme's small shadow; with reduced transparency or more contrast it
+ * It is Liquid Glass: a light tint of white, a thin rim and hairline and the theme's small
+ * shadow; with reduced transparency or more contrast it
  * is a solid surface. The track's fill tells on from off.
  *
  * @internal
