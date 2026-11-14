@@ -1,0 +1,1 @@
+- Pull request CI now ends by merging current main into the pull request and re-running the registry, docs, site build and CSS size checks, so pull requests that pass alone cannot break main together.
