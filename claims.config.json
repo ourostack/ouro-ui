@@ -229,6 +229,16 @@
       "file": "site/src/storybook.ts",
       "sentence": "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "One night in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "Ouro's whole world at night: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
     }
   ],
   "instructionVerbs": [

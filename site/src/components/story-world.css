@@ -1,10 +1,9 @@
 /*
  * The storybook world (story-world.tsx): a dawn sky that carries on from the top of a scene, then the
  * scene below it, full width and ending on its own hard edges, with no frame or card around it. The
- * sky's colours are the scene's own (storybook.ts), the same in every theme, so the sky meets the
- * picture's top edge in the picture's own colours. In dark mode the sky is the page's own dark, only
- * tinted by the scene's colours, and the scene dims a touch, so a dawn picture never glares out of a
- * dark page.
+ * sky's colours are the scene's own (storybook.ts), so the sky meets the picture's top edge in the
+ * picture's own colours. In dark mode the scene is the same place at night, its own file, and the sky
+ * is the page's own dark, only tinted by the night picture's colours, so its words keep their contrast.
  */
 @layer components {
   .story-world {
@@ -32,6 +31,11 @@
     --story-ink: var(--foreground);
     --story-ink-soft: color-mix(in oklab, var(--foreground) 86%, var(--background));
     --story-sky-top: var(--background);
+    --story-sky-1: var(--story-night-1);
+    --story-sky-2: var(--story-night-2);
+    --story-sky-3: var(--story-night-3);
+    --story-sky-4: var(--story-night-4);
+    --story-sky-5: var(--story-night-5);
   }
 
   .story-world-sky {
@@ -106,7 +110,15 @@
     z-index: 1;
     overflow: clip;
   }
+  /* Day or night, by the site's theme (the stored toggle's `.dark`): the other picture is not drawn, so a screen reader hears only the shown one, and the night picture loads lazily, so a page by day skips it. */
   .story-world-picture {
+    display: block;
+  }
+  .story-world-night,
+  .dark .story-world-day {
+    display: none;
+  }
+  .dark .story-world-night {
     display: block;
   }
   .story-world-img {
@@ -118,30 +130,6 @@
     object-position: 50% var(--story-short-y, 42%);
     user-select: none;
   }
-  .dark .story-world-img {
-    filter: brightness(0.86) saturate(0.95);
-  }
-  /*
-   * A docs page's scene at night is dusk (`.story-world-still`, components/docs-shell.tsx): dimmer and cooler, its sun
-   * low, so it sits behind a dark page's words instead of glowing out of it. The home page keeps its brighter dawn: it
-   * is the arrival, read once, not a page read every day.
-   */
-  .dark .story-world-still .story-world-img {
-    filter: brightness(0.78) saturate(0.84);
-  }
-  .dark .story-world-still .story-world-sun {
-    opacity: 0.12;
-  }
-  /* The dusk itself: a blue-violet evening laid over the dawn, over exactly the picture's box (the view clips it). */
-  .dark .story-world-still .story-world-view::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(to bottom, rgb(58 62 128), rgb(40 44 96));
-    mix-blend-mode: multiply;
-    opacity: 0.5;
-  }
   /* The sunrise, glowing where the scene's sun is, over exactly the picture's box (the view clips it). */
   .story-world-sun {
     position: absolute;
@@ -150,6 +138,10 @@
     opacity: 0.55;
     background: radial-gradient(circle at var(--story-sun-x) var(--story-sun-y), rgb(255 238 196 / 0.75), rgb(255 214 150 / 0.25) 9vw, transparent 18vw);
     mix-blend-mode: soft-light;
+  }
+  /* Night has no sunrise. */
+  .dark .story-world-sun {
+    display: none;
   }
 
   /*
