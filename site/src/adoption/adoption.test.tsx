@@ -29,7 +29,7 @@ describe("the adoption ledger", () => {
     const host = await renderPage("/adoption/");
     const line = host.querySelector(".adoption-behind")?.textContent ?? "";
     expect(SNAPSHOT.summary.releasesBehind).toBeTypeOf("number");
-    expect(line).toContain(SNAPSHOT.summary.releasesBehind === 0 ? "newest Ouro UI releases" : `${SNAPSHOT.summary.releasesBehind} releases behind`);
+    expect(line).toContain(`${SNAPSHOT.summary.releasesBehind} releases behind`);
     for (const item of SNAPSHOT.summary.late ?? []) expect(line).toContain(`${item.name} (${item.late})`);
   });
 

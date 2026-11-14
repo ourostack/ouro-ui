@@ -219,16 +219,8 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
             </p>
             {summary.releasesBehind === undefined ? null : (
               <p className="adoption-behind">
-                {summary.releasesBehind === 0 ? (
-                  "Every counted product is on the newest Ouro UI releases."
-                ) : (
-                  <>
-                    Counted products are <strong>{summary.releasesBehind} releases behind</strong> in all.{" "}
-                    {summary.late?.length
-                      ? `More than a day late: ${summary.late.map((item) => `${item.name} (${item.late})`).join(", ")}.`
-                      : "None has lacked a release for more than a day."}
-                  </>
-                )}
+                Counted products are <strong>{summary.releasesBehind} releases behind</strong> in total.
+                {summary.late?.length ? ` More than a day late: ${summary.late.map((item) => `${item.name} (${item.late})`).join(", ")}.` : null}
               </p>
             )}
             <p className="adoption-newer" aria-live="polite">
