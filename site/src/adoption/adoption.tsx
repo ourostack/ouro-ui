@@ -1,6 +1,5 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
-import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Container } from "../voyage/layout";
 import { isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger, type LedgerCell, type Surface } from "./ledger";
@@ -216,9 +215,9 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
               {waiting ? (
                 <>
                   A newer measurement is ready, from <time dateTime={waiting.generatedAt}>{stamp(waiting.generatedAt)}</time>.{" "}
-                  <Button
-                    size="inline"
-                    variant="plain"
+                  <button
+                    type="button"
+                    className="adoption-show"
                     onClick={() => {
                       setLedger(waiting);
                       setRefreshed(true);
@@ -226,7 +225,7 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
                     }}
                   >
                     Show it
-                  </Button>
+                  </button>
                 </>
               ) : null}
             </p>

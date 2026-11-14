@@ -22,6 +22,25 @@
     min-height: 2.5rem;
     margin: calc(var(--spacing) * 2) 0 0;
   }
+  .adoption-show {
+    min-height: 1.5rem;
+    padding: 0 calc(var(--spacing) * 1);
+    font: inherit;
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+    border-radius: var(--radius-xs, 2px);
+  }
+  .adoption-show:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    .adoption-show {
+      min-height: 2.75rem;
+    }
+  }
   .adoption-fresh,
   .adoption-newer,
   .adoption-detail,
