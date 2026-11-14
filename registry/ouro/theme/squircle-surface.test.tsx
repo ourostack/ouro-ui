@@ -3,6 +3,7 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
@@ -62,6 +63,28 @@ describe("squircle surface where the engine has no corner-shape", () => {
     expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(getComputedStyle(label).position).toBe("relative");
     expect(getComputedStyle(button).borderTopLeftRadius).not.toBe("0px");
+  });
+
+  it("paints a Card's fill and ring through the surface, and leaves a plain Card without one", async () => {
+    applyFallback();
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    roots.push({ root, host });
+    await act(() =>
+      root.render(
+        <>
+          <Card title="Outlined">x</Card>
+          <Card title="Bare" variant="plain">x</Card>
+        </>,
+      ),
+    );
+    const [outlined, bare] = [...host.querySelectorAll<HTMLElement>("[data-ouro=card]")];
+    const surface = outlined!.querySelector<HTMLElement>(":scope > [data-ouro-surface]")!;
+    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(surface).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(outlined!).borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    expect(bare!.querySelector("[data-ouro-surface]")).toBeNull();
   });
 });
 
