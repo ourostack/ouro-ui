@@ -222,6 +222,7 @@ jobs:
             git fetch --no-tags --depth=1 origin "$BASE_REF"
             CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
             REAL_CLOCK_BASE_REF="origin/$BASE_REF" node scripts/real-clock-ratchet.mjs
+            PATCH_GUARD_BASE_REF="origin/$BASE_REF" node scripts/patch-guard.mjs
             CLAIMS_BASE_REF="origin/$BASE_REF" pnpm claims:check --network=changed
           else
             pnpm claims:check
