@@ -1,0 +1,1 @@
+- Skeleton's shipped end-to-end spec judges shimmer={false} in WebKit alone, fails when a skeleton animates with shimmer={false}, and compares its dropped frames with a permutation test instead of a fixed margin.
