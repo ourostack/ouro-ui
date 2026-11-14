@@ -1,0 +1,1 @@
+- The install prepare cache keys on the install scripts only, so a pull request that changes other scripts restores the prepared app.
