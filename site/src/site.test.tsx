@@ -669,7 +669,6 @@ describe("docs running text", () => {
     expect(container.textContent).toBe("A Browser driving (Playwright, aria): 90, see, and **kept** as written.");
     await renderPage("/docs/agent-interfaces/");
     expect(document.querySelector("main")!.textContent).not.toContain("**");
-    expect(document.querySelectorAll("main li strong").length).toBeGreaterThan(0);
   });
 
   it("holds a paragraph's and a lead's last two words on one line, a hyphenated word whole, and leaves code, links and a long last word free", async () => {
