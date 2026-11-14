@@ -219,11 +219,14 @@ jobs:
             export PR_BODY="$live"
           fi
           if [ -n "$BASE_REF" ]; then
-            git fetch --no-tags --depth=1 origin "$BASE_REF"
-            CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
-            REAL_CLOCK_BASE_REF="origin/$BASE_REF" node scripts/real-clock-ratchet.mjs
-            PATCH_GUARD_BASE_REF="origin/$BASE_REF" node scripts/patch-guard.mjs
-            CLAIMS_BASE_REF="origin/$BASE_REF" pnpm claims:check --network=changed
+            # The checkout is GitHub's merge of the pull request into its base, so the base is that merge's first
+            # parent: main as the merge saw it. Main's tip can be newer (it moved since, or this is a re-run), and
+            # its changes would then read as the pull request's.
+            git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+            CLAIMS_BASE_REF="HEAD^1" node scripts/claims.mjs ratchet
+            REAL_CLOCK_BASE_REF="HEAD^1" node scripts/real-clock-ratchet.mjs
+            PATCH_GUARD_BASE_REF="HEAD^1" node scripts/patch-guard.mjs
+            CLAIMS_BASE_REF="HEAD^1" pnpm claims:check --network=changed
           else
             pnpm claims:check
           fi
@@ -1506,9 +1509,39 @@ jobs:
           key: install-npm-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'test/install-fixture*/package.json') }}
           restore-keys: |
             install-npm-${{ matrix.variant }}-${{ matrix.preset }}-
+      # The base (everything before the shipped tests are added) is a function of the runtime files
+      # only, so a commit that changes just tests, stories or specs restores it and runs only the
+      # add of the shipped tests, which overwrites what the base holds.
+      - id: base
+        if: steps.prepared.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/base.tar.zst
+          key: install-base-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('registry/**', '!registry/**/*.test.ts', '!registry/**/*.test.tsx', '!registry/**/*.test-d.ts', '!registry/**/*.stories.tsx', '!registry/ouro/e2e/**', '!registry/ouro/lib/ouro/testing/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
       - if: steps.prepared.outputs.cache-hit != 'true'
         run: pnpm i --frozen-lockfile
-      - name: Prepare the app
+      - name: Restore the base
+        if: steps.prepared.outputs.cache-hit != 'true' && steps.base.outputs.cache-hit == 'true'
+        run: tar -I zstd -xf "$RUNNER_TEMP/base.tar.zst" -C "$(dirname "$OURO_APP")"
+      - name: Prepare the base
+        if: steps.prepared.outputs.cache-hit != 'true' && steps.base.outputs.cache-hit != 'true'
+        env:
+          VARIANT: ${{ matrix.variant }}
+          REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          npm_config_cache: ${{ runner.temp }}/npm-cache
+          npm_config_prefer_offline: "true"
+          npm_config_audit: "false"
+          npm_config_fund: "false"
+        run: OURO_BASE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
+      - name: Pack the base
+        if: steps.prepared.outputs.cache-hit != 'true' && steps.base.outputs.cache-hit != 'true'
+        run: tar -I zstd -cf "$RUNNER_TEMP/base.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/base.tar.zst"
+      - if: steps.prepared.outputs.cache-hit != 'true' && steps.base.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/base.tar.zst
+          key: ${{ steps.base.outputs.cache-primary-key }}
+      - name: Add the shipped tests
         if: steps.prepared.outputs.cache-hit != 'true'
         env:
           VARIANT: ${{ matrix.variant }}
@@ -1517,7 +1550,7 @@ jobs:
           npm_config_prefer_offline: "true"
           npm_config_audit: "false"
           npm_config_fund: "false"
-        run: OURO_PREPARE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
+        run: OURO_DELTA=1 OURO_PREPARE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
       - name: Pack the app
         if: steps.prepared.outputs.cache-hit != 'true'
         run: tar -I zstd -cf "$RUNNER_TEMP/app.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/app.tar.zst"

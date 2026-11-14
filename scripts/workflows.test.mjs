@@ -1048,9 +1048,18 @@ test("the required ci job runs the claims ratchet on a pull request, against its
   const step = block.slice(block.search(/^ {6}- name: Claims\n/m)).split(/\n {6}- /)[0];
   assert.match(step, /^ {10}PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}$/m);
   const script = `git() { printf 'CALL git %s\\n' "$*" >&2; }\n${stepScript(block, "Claims")}`;
-  const pull = runStep(script, { BASE_REF: "main" });
+  const pull = runStep(script, { BASE_REF: "main", GITHUB_SHA: "f00d" });
   assert.equal(pull.status, 0);
-  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=1 origin main\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
+  assert.match(pull.calls, /^CALL git fetch --no-tags --depth=2 origin f00d\nCALL node scripts\/claims\.mjs ratchet\nCALL node scripts\/real-clock-ratchet\.mjs\nCALL node scripts\/patch-guard\.mjs\nCALL pnpm claims:check --network=changed$/m);
+  // Against the merge's first parent, main as GitHub merged the pull request into it, never main's tip, which may have
+  // moved since: its changes would read as the pull request's (#726).
+  const exemptions = workflow("claims.yml").slice(workflow("claims.yml").search(/^ {6}- name: Exemptions against the base\n/m));
+  for (const name of ["CLAIMS_BASE_REF", "REAL_CLOCK_BASE_REF", "PATCH_GUARD_BASE_REF"]) {
+    assert.doesNotMatch(step, new RegExp(`${name}="origin/`));
+    assert.doesNotMatch(exemptions, new RegExp(`${name}="origin/`));
+  }
+  assert.match(exemptions, /git fetch --no-tags --depth=2 origin "\$GITHUB_SHA"\n {10}CLAIMS_BASE_REF="HEAD\^1" node scripts\/claims\.mjs ratchet\n {10}REAL_CLOCK_BASE_REF="HEAD\^1" node scripts\/real-clock-ratchet\.mjs/);
+  assert.equal(step.match(/(?:CLAIMS|REAL_CLOCK|PATCH_GUARD)_BASE_REF="HEAD\^1"/g)?.length, 4);
   // A failing ratchet fails the job.
   assert.notEqual(runStep(script, { BASE_REF: "main" }, { nodeStatus: 1 }).status, 0);
   assert.doesNotMatch(runStep(script, { BASE_REF: "" }).calls, /ratchet/);
@@ -2210,4 +2219,15 @@ test("Release auto releases a commit once main's push CI and lane have ended, na
   assert.match(auto, /--workflow screen-reader\.yml --commit "\$sha" --event push/);
   assert.match(auto, /--workflow ci\.yml --commit "\$sha" --event push/);
   assert.match(auto, /\[ "\$RUN_EVENT" = push \]/);
+});
+
+test("install prep caches a base keyed on the runtime files, then adds the shipped tests over it", () => {
+  const ciText = readFileSync(".github/workflows/ci.yml", "utf8");
+  const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
+  const baseKey = prep.match(/key: install-base-[^\n]*/)[0];
+  for (const left of ["!registry/**/*.test.tsx", "!registry/**/*.stories.tsx", "!registry/ouro/e2e/**"]) assert.ok(baseKey.includes(left), left);
+  assert.ok(prep.includes("OURO_BASE_ONLY=1"));
+  assert.ok(prep.includes("OURO_DELTA=1 OURO_PREPARE_ONLY=1"));
+  const script = readFileSync("scripts/install-test.sh", "utf8");
+  assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
 });

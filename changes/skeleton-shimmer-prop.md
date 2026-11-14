@@ -1,0 +1,1 @@
+- New: `Skeleton` takes `shimmer={false}` to draw its placeholders still, as reduced motion does; the default shimmer is unchanged.

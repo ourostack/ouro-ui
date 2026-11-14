@@ -220,4 +220,13 @@ describe("engine corner-scale lifecycle", () => {
     expect(element?.style.getPropertyValue(CORNER_SCALE_VAR)).toBe("1");
     expect(readClipPath(element as HTMLElement)).toBe("");
   });
+
+  it("reads sources through a rule scoped to the dirty elements, never the whole document", async () => {
+    const readStyle = document.querySelector<HTMLStyleElement>(
+      'style[data-hyperellipse="read"]'
+    );
+    expect(readStyle).not.toBeNull();
+    expect(readStyle?.textContent).not.toMatch(/(^|[\s,}])\*\s*\{/);
+    expect(readStyle?.textContent).toContain("data-hyperellipse-reading");
+  });
 });

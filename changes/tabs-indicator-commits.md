@@ -1,0 +1,1 @@
+- Fixed: the Tabs indicator skips measuring the tab list when its parent re-renders and nothing moved.

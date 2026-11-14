@@ -136,9 +136,24 @@ describe("home page", () => {
       expect(text).not.toMatch(/still being defined|coming soon/i);
     }
     expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
+    // The hero says what Ouro UI is beside A2UI, and links the benchmark, the model reviews and the platform gap.
+    expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).toContain(VOYAGE_HERO.subline);
+    expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Agent benchmark", "/docs/agent-interfaces/"],
+      ["Model reviews", "/docs/model-reviews/"],
+      ["No Android or Windows kit yet", "/docs/platforms/"],
+    ]);
+    // On a phone, a lede no taller than the old one, so the porthole still starts on the first screen, with the same two links.
+    const phone = document.querySelector("[data-site-hero-phone]")!;
+    expect(phone.textContent).toContain(VOYAGE_HERO.phoneSubline);
+    expect([...phone.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(["/docs/agent-interfaces/", "/docs/model-reviews/"]);
     expect(routes[0]!.title).toBe("Ouro UI");
-    // The README opens with the ourostack brand mark every repository shares, then its title.
-    expect(readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "").startsWith("# Ouro HX\n")).toBe(true);
+    // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what it is beside A2UI.
+    const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
+    expect(opening.startsWith("# Ouro UI\n\n**A design system for people and agents.** Ouro UI renders [A2UI]")).toBe(true);
+    for (const link of ["https://ui.ouroboros.bot/docs/agent-interfaces/", "https://ui.ouroboros.bot/docs/model-reviews/", "docs/platforms/android.md"]) {
+      expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
+    }
     expect(llms.startsWith("# Ouro HX\n")).toBe(true);
     for (const text of [readme, llms]) {
       expect(text).not.toMatch(/under construction/i);

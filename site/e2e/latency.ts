@@ -1,3 +1,4 @@
+import { appendFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 // Click-to-paint latency for the voyage's controls, shared by every *.latency.spec.ts (run alone by
@@ -225,7 +226,9 @@ export async function measure(
   { press, prepare, setUp }: Presses,
   throttle: number = LATENCY.throttle,
   more?: (samples: readonly number[], factor: number) => boolean,
-): Promise<{ samples: number[]; probe: number[]; factor: number }> {
+  /** The index the first press takes, so a second measurement of a control carries on where its first stopped. */
+  indexFrom = 0,
+): Promise<{ samples: number[]; probe: number[]; factor: number; presses: number }> {
   await page.evaluate(() => {
     const store: Array<[number, number, number, number, string]> = [];
     (window as unknown as { __latency: typeof store }).__latency = store;
@@ -279,14 +282,14 @@ export async function measure(
   browserWarmed = true;
   let presses = warmUps + LATENCY.samples;
   for (let index = 0; index < presses; index++) {
-    if (setUp) await unthrottled(() => setUp(index));
+    if (setUp) await unthrottled(() => setUp(indexFrom + index));
     await page.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
     // The press starts from a page settled at the throttle too: the set-up's settle ran at full speed, so
     // whatever still runs once the throttle is back ends before the press, as it would before a person's
     // press a beat later, rather than becoming the press's input delay.
     await settle();
     const before = await interactions();
-    await press(index);
+    await press(indexFrom + index);
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
     const entries = await page.evaluate(() => (window as unknown as { __latency: Array<[number, number, number, number, string]> }).__latency);
     const durations = entries.map(([duration]) => duration);
@@ -317,7 +320,7 @@ export async function measure(
   test.info().annotations.push({ type: "latency-probe", description: line });
   console.log(`latency-probe ${line}`);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-  return { samples, probe, factor };
+  return { samples, probe, factor, presses };
 }
 
 /** Holds a control's samples to the budget and its baseline's median ceiling, each times the runner's factor, reporting every sample, pass or fail. */
@@ -329,8 +332,47 @@ export function expectWithinBudget(label: string, samples: readonly number[], ba
   expect(median, `${label} ${report}`).toBeLessThanOrEqual(medianCeiling(baseline) * factor);
 }
 
-/** Measures a control (with LATENCY.more presses more when its first samples call for them) and holds it to the budget, at the runner's factor. */
+/**
+ * Whether the probe read the runner past the slowest it is calibrated for (LATENCY.maxFactor): its median over
+ * LATENCY.probeQuiet, before the factor is capped. Decided from the probe alone, never from the control's result.
+ */
+export function pastCap(probe: readonly number[]): boolean {
+  return median(probe) / LATENCY.probeQuiet > LATENCY.maxFactor;
+}
+
+/** Re-measures in this worker, for the count in the job summary. */
+let remeasures = 0;
+let measured = 0;
+/** Appends a line to the CI job's summary, where there is one. */
+function summary(line: string): void {
+  const file = process.env["GITHUB_STEP_SUMMARY"];
+  if (file) appendFileSync(file, `${line}\n`);
+}
+process.once("exit", () => {
+  if (measured > 0) summary(`Latency: ${remeasures} of ${measured} controls re-measured on a runner the probe read past ${LATENCY.maxFactor}× slower.`);
+});
+
+/**
+ * Measures a control (with LATENCY.more presses more when its first samples call for them) and holds it to the budget,
+ * at the runner's factor. When the probe reads the runner past the cap (pastCap), the control is measured again, pass
+ * or fail, and the second measurement alone is judged; when that probe is past the cap too, the control fails as
+ * too loaded to judge, so an overloaded runner never passes a control unmeasured. Each re-measure goes to the job
+ * summary with both probes' readings.
+ */
 export async function expectPressesWithinBudget(page: Page, label: string, presses: Presses, baseline: number): Promise<void> {
-  const { samples, factor } = await measure(page, label, presses, LATENCY.throttle, (first, before) => morePresses(first, baseline, before));
-  expectWithinBudget(label, samples, baseline, factor);
+  const more = (first: readonly number[], before: number) => morePresses(first, baseline, before);
+  measured += 1;
+  let result = await measure(page, label, presses, LATENCY.throttle, more);
+  if (pastCap(result.probe)) {
+    remeasures += 1;
+    const first = median(result.probe);
+    result = await measure(page, `${label} (again)`, presses, LATENCY.throttle, more, result.presses);
+    const second = median(result.probe);
+    const line = `${label}: re-measured, the probe read ${first} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms); again ${second} ms`;
+    test.info().annotations.push({ type: "latency-remeasure", description: line });
+    console.log(`latency-remeasure ${line}`);
+    summary(`- ${line}`);
+    expect(pastCap(result.probe), `${label}: runner too loaded to judge: probe ${second} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), twice`).toBe(false);
+  }
+  expectWithinBudget(label, result.samples, baseline, result.factor);
 }
