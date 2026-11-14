@@ -6,6 +6,9 @@ import { APPLE_PATHS } from "../paths";
 import { routes } from "../routes";
 import { CLIPS } from "./clips";
 import { tapsFor } from "./haptics";
+import actionClaims from "../../../scripts/parity-data/actions.claims.json";
+import componentClaims from "../../../scripts/parity-data/components.claims.json";
+import { cellText, componentRows, surfaceRows } from "../../../scripts/parity-rows.mjs";
 import kit from "./kit.json";
 import { TWIN } from "./spring-twin";
 import { FRESH, report, TAP_LOCK, tap } from "./feel-duel";
@@ -39,6 +42,25 @@ describe("Ouro UI for Apple", () => {
     const menu = page.getByRole("navigation", { name: "Ouro UI for Apple", includeHidden: true });
     expect(menu.element().querySelector('[aria-current="page"]')?.getAttribute("href")).toMatch(new RegExp(`${path}$`));
     expect(routes.some((route) => route.path === path)).toBe(true);
+  });
+
+  it("states the release the package has today, and no component is in the workshop", async () => {
+    await renderPage("/apple/");
+    const text = document.body.innerText;
+    expect(text).toContain(`Ouro UI for Apple ${kit.release} has five components`);
+    expect(text).not.toContain("workshop");
+    expect(kit.packageLine).toContain(`from: "${kit.release}"`);
+    expect(kit.releaseUrl).toBe(`https://github.com/ourostack/ouro-ui-apple/releases/tag/v${kit.release}`);
+  });
+
+  it("shows web and Apple parity from core's claim files, gaps included", async () => {
+    await renderPage("/apple/");
+    const rows = componentRows(componentClaims);
+    const table = page.getByRole("region", { name: "Component promises, web and Apple" }).element();
+    const cells = [...table.querySelectorAll("tbody tr")].map((row) => [...row.querySelectorAll("th, td")].map((cell) => cell.textContent));
+    expect(cells).toEqual(rows.map((row) => [row.id, row.appliesTo.map((name) => name[0]!.toUpperCase() + name.slice(1)).join(", "), cellText(row.web), cellText(row.apple)]));
+    expect(cells.some((cell) => cell[2] === "Not yet")).toBe(true);
+    expect(surfaceRows(actionClaims).map((row) => row.id)).toEqual(["cli", "mcp", "webmcp", "web-control", "app-intent", "swiftui-button", "reins"]);
   });
 
   it("puts the X-ray's real numbers on the page, from the reports it shows", () => {
