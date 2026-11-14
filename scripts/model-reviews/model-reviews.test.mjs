@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { setTimeout } from "node:timers";
 import { Buffer } from "node:buffer";
 import { URL, fileURLToPath } from "node:url";
 import { scratchDir } from "../scratch.mjs";
@@ -25,6 +26,7 @@ import {
   requestPerplexity,
   resolveResearchUrl,
   resolveTransports,
+  runPool,
   runtimeEnvironment,
   shuffle,
   snapshotCandidates,
@@ -306,9 +308,19 @@ test("the panel has stable unique provider slugs and keeps every vendor's flagsh
   assert.deepEqual([...new Set(REVIEW_MODELS.map(({ vendor }) => vendor))].sort(), ["Anthropic", "Google", "MiniMax", "OpenAI", "xAI"]);
 });
 
+test("models added after the 2026-11-13 baseline are marked, so a comparison reads only the baseline's own panel", () => {
+  const baseline = ["claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "gpt-6-1-sol", "gpt-6-astra", "gemini-4-carbon", "gemini-4-hydrogen", "grok-4-7", "minimax-m3"];
+  assert.deepEqual(REVIEW_MODELS.filter(({ addedAfterBaseline }) => !addedAfterBaseline).map(({ provider }) => provider), baseline);
+  for (const review of REVIEW_MODELS.filter(({ addedAfterBaseline }) => addedAfterBaseline)) assert.match(review.addedAfterBaseline, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(REVIEW_MODELS.some(({ provider }) => provider === "gpt-6-1-terra"));
+});
+
 test("options require a new output folder outside the repository and a known inference mode and panel", () => {
-  assert.deepEqual(parseOptions(["--output-dir", "/x", "--inference", "copilot-first", "--models", "grok-4-7, gpt-6-astra", "--preflight"]), { outputDir: "/x", preflight: true, inferenceMode: "copilot-first", models: ["grok-4-7", "gpt-6-astra"] });
-  assert.deepEqual(parseOptions(["--output-dir", "/x"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null });
+  assert.deepEqual(parseOptions(["--output-dir", "/x", "--inference", "copilot-first", "--models", "grok-4-7, gpt-6-astra", "--preflight"]), { outputDir: "/x", preflight: true, inferenceMode: "copilot-first", models: ["grok-4-7", "gpt-6-astra"], concurrency: Infinity, maxLoad: Infinity });
+  assert.deepEqual(parseOptions(["--output-dir", "/x"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null, concurrency: Infinity, maxLoad: Infinity });
+  assert.deepEqual(parseOptions(["--output-dir", "/x", "--concurrency", "3", "--max-load", "60"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null, concurrency: 3, maxLoad: 60 });
+  assert.throws(() => parseOptions(["--output-dir", "/x", "--concurrency", "0"]), /--concurrency/);
+  assert.throws(() => parseOptions(["--output-dir", "/x", "--max-load", "x"]), /--max-load/);
   assert.throws(() => parseOptions([]), /--output-dir/);
   assert.throws(() => parseOptions(["--output-dir", " "]), /--output-dir/);
   assert.throws(() => parseOptions(["--output-dir", "/x", "--inference", "cloud"]), /--inference/);
@@ -362,4 +374,27 @@ test("a refused verdict reaches the model with its reason, so it can fix it and 
   assert.match(reply.textResultForLlm, /^Verdict refused: final_verdict\.verdict must name a known candidate\. Fix this and call final_verdict again\.$/);
   assert.equal(rounds.length === 0 || rounds.flatMap((round) => round.actions).every((action) => action.type !== "verdict"), true);
   assert.deepEqual(accepted, []);
+});
+
+test("the pool keeps order, caps concurrency, and runs one at a time while the machine is loaded", async () => {
+  let running = 0;
+  let peak = 0;
+  const peaks = [];
+  const job = (value) => async () => {
+    running++;
+    peak = Math.max(peak, running);
+    peaks.push(running);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    running--;
+    return value;
+  };
+  assert.deepEqual(await runPool([1, 2, 3, 4, 5].map(job), { concurrency: 2 }), [1, 2, 3, 4, 5]);
+  assert.equal(peak, 2);
+  peak = 0;
+  // Busy machine: a second job never starts beside a running one.
+  assert.deepEqual(await runPool([1, 2, 3].map(job), { concurrency: 3, maxLoad: 60, load: () => 90, waitMs: 1 }), [1, 2, 3]);
+  assert.equal(peak, 1);
+  peak = 0;
+  assert.deepEqual(await runPool([1, 2, 3].map(job), { concurrency: 3, maxLoad: 60, load: () => 10, waitMs: 1 }), [1, 2, 3]);
+  assert.equal(peak, 3);
 });

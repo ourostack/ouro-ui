@@ -85,6 +85,8 @@ export const REVIEW_MODELS = [
   { provider: "claude-sonnet-5-5", model: "claude-sonnet-5.5", vendor: "Anthropic", displayName: "Claude Sonnet 5.5" },
   { provider: "gpt-6-1-sol", model: "gpt-6.1-sol", vendor: "OpenAI", displayName: "GPT-6.1 Sol" },
   { provider: "gpt-6-astra", model: "gpt-6-astra", vendor: "OpenAI", displayName: "GPT-6 Astra" },
+  // Added after the 2026-11-13 baseline: an extra row, so a comparison with the baseline reads only the rows without this mark.
+  { provider: "gpt-6-1-terra", model: "gpt-6.1-terra", vendor: "OpenAI", displayName: "GPT-6.1 Terra", addedAfterBaseline: "2026-11-14" },
   { provider: "gemini-4-carbon", model: "gemini-4-carbon", vendor: "Google", displayName: "Gemini 4 Carbon" },
   { provider: "gemini-4-hydrogen", model: "gemini-4-hydrogen", vendor: "Google", displayName: "Gemini 4 Hydrogen" },
   { provider: "grok-4-7", model: "grok-4.7", vendor: "xAI", displayName: "Grok 4.7" },
@@ -809,14 +811,58 @@ export const serializeJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 export function parseOptions(args) {
   const { values } = parseArgs({
     args,
-    options: { headless: { type: "boolean", default: true }, "output-dir": { type: "string" }, preflight: { type: "boolean", default: false }, inference: { type: "string" }, models: { type: "string" } },
+    options: {
+      headless: { type: "boolean", default: true },
+      "output-dir": { type: "string" },
+      preflight: { type: "boolean", default: false },
+      inference: { type: "string" },
+      models: { type: "string" },
+      concurrency: { type: "string" },
+      "max-load": { type: "string" },
+    },
   });
   if (values["output-dir"] === undefined || values["output-dir"].trim().length === 0) throw new Error("--output-dir requires a nonempty path");
   const inferenceMode = values.inference ?? "direct-api";
   if (!INFERENCE_MODES.includes(inferenceMode)) throw new Error("--inference must be direct-api or copilot-first");
   const models = values.models ? values.models.split(",").map((entry) => entry.trim()).filter(Boolean) : null;
   if (models) for (const provider of models) if (!REVIEW_MODELS.some((review) => review.provider === provider)) throw new Error(`--models names an unknown provider ${provider}`);
-  return { outputDir: values["output-dir"], preflight: values.preflight, inferenceMode, models };
+  const concurrency = values.concurrency === undefined ? Infinity : Number(values.concurrency);
+  if (!Number.isInteger(concurrency) && concurrency !== Infinity) throw new Error("--concurrency must be a whole number of models at once");
+  if (concurrency < 1) throw new Error("--concurrency must be at least 1");
+  const maxLoad = values["max-load"] === undefined ? Infinity : Number(values["max-load"]);
+  if (!(maxLoad > 0)) throw new Error("--max-load must be a positive load average");
+  return { outputDir: values["output-dir"], preflight: values.preflight, inferenceMode, models, concurrency, maxLoad };
+}
+
+/**
+ * Runs `jobs` (functions returning promises) and resolves with their results in order. At most `concurrency` run at
+ * once, and while the one-minute load average is above `maxLoad` a job starts only when none is running, so a run on a
+ * shared machine drops to one model at a time instead of adding to the load. The jobs are independent evaluations, so
+ * how many run at once changes nothing a model sees.
+ */
+export async function runPool(jobs, { concurrency = Infinity, maxLoad = Infinity, load = () => os.loadavg()[0], waitMs = 60_000 } = {}) {
+  const results = new Array(jobs.length);
+  let next = 0;
+  let running = 0;
+  await new Promise((resolve, reject) => {
+    const launch = () => {
+      if (next === jobs.length && running === 0) return resolve();
+      while (next < jobs.length && running < concurrency) {
+        if (running > 0 && load() > maxLoad) return void setTimeout(launch, waitMs);
+        const index = next++;
+        running++;
+        Promise.resolve()
+          .then(jobs[index])
+          .then((value) => {
+            results[index] = value;
+            running--;
+            launch();
+          }, reject);
+      }
+    };
+    launch();
+  });
+  return results;
 }
 
 /** A run folder must be new and outside the repository, so a run's raw evidence is never committed there by accident. */
@@ -868,7 +914,7 @@ export async function main(args = process.argv.slice(2)) {
     const [status, availableModels] = await Promise.all([client.getStatus(), copilotFirst ? client.listModels() : []]);
     const panel = options.models ? REVIEW_MODELS.filter(({ provider }) => options.models.includes(provider)) : REVIEW_MODELS;
     selected = resolveTransports(panel, new Set(availableModels.map(({ id }) => id)), keys, options.inferenceMode);
-    const runtime = { name: "GitHub Copilot CLI", version: status.version, protocolVersion: status.protocolVersion, sdk: "@github/copilot-sdk", mode: "empty", inferenceMode: options.inferenceMode, infiniteSessions: false, largeOutputIndirection: false };
+    const runtime = { name: "GitHub Copilot CLI", version: status.version, protocolVersion: status.protocolVersion, sdk: "@github/copilot-sdk", mode: "empty", inferenceMode: options.inferenceMode, infiniteSessions: false, largeOutputIndirection: false, concurrency: Number.isFinite(options.concurrency) ? options.concurrency : "all", maxLoad: Number.isFinite(options.maxLoad) ? options.maxLoad : null };
 
     console.log("Selected models:");
     for (const review of selected) console.log(`  ${review.displayName}: ${review.transport === "copilot" ? "GitHub Copilot inference" : `direct ${review.vendor} API (${mask(keys[review.fallback.key])})`}`);
@@ -886,7 +932,7 @@ export async function main(args = process.argv.slice(2)) {
       const writeLog = createLogger(path.join(outputDirectory, "raw", `${review.provider}.log`));
       review.log = (message) => writeLog(redactSecrets(message, secrets));
     }
-    results = await Promise.all(selected.map(async (review) => {
+    results = await runPool(selected.map((review) => async () => {
       const transcript = [];
       try {
         const result = await runEvaluation(client, sdk, review, keys.perplexity, review.log, experiment, research, transcript);
@@ -899,7 +945,7 @@ export async function main(args = process.argv.slice(2)) {
         console.error(`  ${review.displayName} failed: ${message}`);
         return { provider: review.provider, model: review.model, vendor: review.vendor, displayName: review.displayName, transport: review.transport, error: message, transcript };
       }
-    }));
+    }), { concurrency: options.concurrency, maxLoad: options.maxLoad });
 
     const documents = await Promise.all(research.documents.values());
     const rawEvidence = serializeJson({ documents, results });

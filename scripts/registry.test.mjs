@@ -282,10 +282,12 @@ test("helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro
   for (const name of libs) {
     assert.equal(item(name).type, "registry:lib");
     // One module each; lib-claims also ships the Node script that checks its claims.
-    assert.equal(item(name).files.filter((file) => !file.path.endsWith(".mjs")).length, 1, `${name} is one module`);
+    // lib-squircle-polyfill also ships its vendored engine (lib/ouro/squircle/).
+    const modules = item(name).files.filter((file) => !file.path.endsWith(".mjs") && !file.path.includes("/squircle/"));
+    assert.equal(modules.length, 1, `${name} is one module`);
     for (const file of item(name).files) {
       assert.equal(file.type, "registry:lib");
-      assert.match(file.target, /^@lib\/ouro\/[\w.-]+$/);
+      assert.match(file.target, /^@lib\/ouro\/(?:squircle\/)?[\w.-]+$/);
     }
   }
   assert.equal(item("ouro-lib").files, undefined);
@@ -369,10 +371,11 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
   // OuroProvider groups tooltips with Base UI's Tooltip.Provider.
   assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0"]);
-  // The squircle polyfill is opt-in: only its own item carries it, and no component or helper installs that item.
-  assert.deepEqual(item("lib-squircle-polyfill").dependencies, ["hyperellipse@^1.0.5"]);
+  // The squircle polyfill is opt-in, and its engine is vendored source: no npm dependency, and no component or helper installs the item.
+  assert.equal(item("lib-squircle-polyfill").dependencies, undefined);
+  assert.ok(item("lib-squircle-polyfill").files.some((file) => file.path.endsWith("/squircle/register.ts")));
   for (const entry of registry.items) {
-    if (entry.name !== "lib-squircle-polyfill") assert.ok(!(entry.dependencies ?? []).some((dep) => dep.startsWith("hyperellipse")), `${entry.name} installs the polyfill`);
+    assert.ok(!(entry.dependencies ?? []).some((dep) => dep.startsWith("hyperellipse")), `${entry.name} installs hyperellipse from npm`);
     if (!/^(ouro-lib|ouro-tests|lib-squircle-polyfill)(-tests)?$/.test(entry.name)) assert.ok(!(entry.registryDependencies ?? []).some((dep) => dep.includes("squircle-polyfill")), `${entry.name} pulls in the polyfill`);
   }
   assert.deepEqual(item("lib-cn").dependencies, ["clsx@^2.1.1", "tailwind-merge@^3.7.0"]);

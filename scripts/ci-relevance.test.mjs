@@ -140,7 +140,7 @@ const namedButUnread = {
   },
   screens: {
     ...Object.fromEntries(
-      ["registry/ouro/e2e/ouro/", "registry/ouro/e2e/screen-reader/", "registry/ouro/lib/ouro/testing/", "registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/components/ouro/toggle/toggle-group.patched.test.tsx"].map((path) => [
+      ["registry/ouro/e2e/ouro/", "registry/ouro/e2e/screen-reader/", "registry/ouro/lib/ouro/testing/", "registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx"].map((path) => [
         `scripts/registry.mts ${path}`,
         "which item ships a test file, in registry.json's -tests items, whose files no page shows",
       ]),

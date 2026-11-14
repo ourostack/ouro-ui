@@ -32,6 +32,11 @@
       "reason": "scripts/agent-benchmark/page.mjs renders it from the published runs in scripts/agent-benchmark/results/; pnpm claims:check renders it again and compares"
     },
     {
+      "match": "^registry/ouro/lib/ouro/squircle/",
+      "mode": "input",
+      "reason": "vendored source of ourostack/hyperellipse (MIT, from Mikhail Mogilnikov's hyperellipse): its comments describe the CSS Borders spec's geometry and the code's own steps, not the product, and its tests prove the behaviour"
+    },
+    {
       "match": "^scripts/agent-usability/runs/",
       "mode": "evidence",
       "reason": "a scored run's record, written by the agent-usability harness"

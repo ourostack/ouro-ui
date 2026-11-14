@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@base-ui/react@1.8.0':
-    hash: 0cc8b8992f1ded69bf6bfc263f5277425abd7dd05a9e0f8bb619cf3dd12541ec
+    hash: 117655d36ec64f51cdf4f1157c17472022022c90750a8592a23135c0e8f8dd24
     path: patches/@base-ui__react@1.8.0.patch
 
 importers:
@@ -15,13 +15,10 @@ importers:
     dependencies:
       '@base-ui/react':
         specifier: ^1.8.0
-        version: 1.8.0(patch_hash=0cc8b8992f1ded69bf6bfc263f5277425abd7dd05a9e0f8bb619cf3dd12541ec)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 1.8.0(patch_hash=117655d36ec64f51cdf4f1157c17472022022c90750a8592a23135c0e8f8dd24)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      hyperellipse:
-        specifier: ^1.0.5
-        version: 1.0.5
       recharts:
         specifier: ^3.10.1
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.3.0)(react@19.3.0)(redux@5.0.1)
@@ -2552,9 +2549,6 @@ packages:
     resolution: {integrity: sha1-8Iu1k7bR2zU5M9BhVs7eyQq+Ufs=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/human-signals/-/human-signals-8.0.1.tgz}
     engines: {node: '>=18.18.0'}
 
-  hyperellipse@1.0.5:
-    resolution: {integrity: sha512-kXHjOE7xShPPfD5wT6bTSxyuzspBmsTXnzN4rxZm3eIbRHWW2OIAc/TCCfIiJ9fAqppmi8uIQDi2OHDU3mzO7g==, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/hyperellipse/-/hyperellipse-1.0.5.tgz}
-
   iconv-lite@0.7.3:
     resolution: {integrity: sha1-hO4S+WPn3lC8AaE+FgoHizsPQV8=, tarball: https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/iconv-lite/-/iconv-lite-0.7.3.tgz}
     engines: {node: '>=0.10.0'}
@@ -3925,7 +3919,7 @@ snapshots:
       '@babel/helper-string-parser': 8.0.6
       '@babel/helper-validator-identifier': 8.0.6
 
-  '@base-ui/react@1.8.0(patch_hash=0cc8b8992f1ded69bf6bfc263f5277425abd7dd05a9e0f8bb619cf3dd12541ec)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@base-ui/react@1.8.0(patch_hash=117655d36ec64f51cdf4f1157c17472022022c90750a8592a23135c0e8f8dd24)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@base-ui/utils': 0.4.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -5840,8 +5834,6 @@ snapshots:
     optional: true
 
   human-signals@8.0.1: {}
-
-  hyperellipse@1.0.5: {}
 
   iconv-lite@0.7.3:
     dependencies:
