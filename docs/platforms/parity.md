@@ -8,13 +8,13 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v0.5.1](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.5.1") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | Not yet: [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows) is waiting for a builder |
+| Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | Not yet: [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows) is waiting for a builder |
 
-Components: Web has 121 of 121, Apple has 5 of 121, Android has 0 of 121, Windows has 0 of 121.[^matrix]
+Components: Web has 121 of 121, Apple has 8 of 121, Android has 0 of 121, Windows has 0 of 121.[^matrix]
 
-Claims covered: Web 8 of 13, Apple 13 of 13, Android 0 of 13, Windows 0 of 13.[^matrix]
+Claims covered: Web 7 of 13, Apple 13 of 13, Android 0 of 13, Windows 0 of 13.[^matrix]
 
-Gap cells: 389.[^matrix]
+Gap cells: 387.[^matrix]
 
 ### Components
 
@@ -47,7 +47,7 @@ Gap cells: 389.[^matrix]
 | [progress](https://ui.ouroboros.bot/docs/progress/) | `progress` | Not yet | Not yet | Not yet |
 | [skeleton](https://ui.ouroboros.bot/docs/skeleton/) | `skeleton` | Not yet | Not yet | Not yet |
 | [avatar](https://ui.ouroboros.bot/docs/avatar/) | `avatar` | Not yet | Not yet | Not yet |
-| [badge](https://ui.ouroboros.bot/docs/badge/) | `badge` | Not yet | Not yet | Not yet |
+| [badge](https://ui.ouroboros.bot/docs/badge/) | `badge` | `OuroBadge` | Not yet | Not yet |
 | [alert](https://ui.ouroboros.bot/docs/alert/) | `alert` | `OuroBanner` | Not yet | Not yet |
 | [separator](https://ui.ouroboros.bot/docs/separator/) | `separator` | Not yet | Not yet | Not yet |
 | [kbd](https://ui.ouroboros.bot/docs/kbd/) | `kbd` | Not yet | Not yet | Not yet |
@@ -61,8 +61,8 @@ Gap cells: 389.[^matrix]
 | [accordion](https://ui.ouroboros.bot/docs/accordion/) | `accordion` | Not yet | Not yet | Not yet |
 | [collapsible](https://ui.ouroboros.bot/docs/collapsible/) | `collapsible` | Not yet | Not yet | Not yet |
 | [show-more](https://ui.ouroboros.bot/docs/show-more/) | `show-more` | Not yet | Not yet | Not yet |
-| [card](https://ui.ouroboros.bot/docs/card/) | `card` | Not yet | Not yet | Not yet |
-| [item](https://ui.ouroboros.bot/docs/item/) | `item` | Not yet | Not yet | Not yet |
+| [card](https://ui.ouroboros.bot/docs/card/) | `card` | `OuroCard` | Not yet | Not yet |
+| [item](https://ui.ouroboros.bot/docs/item/) | `item` | `OuroItem` | Not yet | Not yet |
 | [item-group](https://ui.ouroboros.bot/docs/item-group/) | `item-group` | Not yet | Not yet | Not yet |
 | [empty](https://ui.ouroboros.bot/docs/empty/) | `empty` | `OuroEmptyState` | Not yet | Not yet |
 | [scroll-area](https://ui.ouroboros.bot/docs/scroll-area/) | `scroll-area` | Not yet | Not yet | Not yet |
@@ -148,7 +148,7 @@ Gap cells: 389.[^matrix]
 |---|---|---|---|---|---|---|
 | `target.touch` | must | component | Partly | Covered | Not yet | Not yet |
 | `motion.reduced` | must | component | Partly | Covered | Not yet | Not yet |
-| `name.spoken` | must | component | Covered | Covered | Not yet | Not yet |
+| `name.spoken` | must | component | Partly | Covered | Not yet | Not yet |
 | `text.reflows` | must | component | Not yet | Covered | Not yet | Not yet |
 | `contrast.text` | must | component | Partly | Covered | Not yet | Not yet |
 | `announce.urgency` | should | component | Partly | Covered | Not yet | Not yet |

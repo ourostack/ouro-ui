@@ -47,7 +47,7 @@ describe("Ouro UI for Apple", () => {
   it("states the release the package has today, and no component is in the workshop", async () => {
     await renderPage("/apple/");
     const text = document.body.innerText;
-    expect(text).toContain(`Ouro UI for Apple ${kit.release} has five components`);
+    expect(text).toContain(`Ouro UI for Apple ${kit.release} has eight components`);
     expect(text).not.toContain("workshop");
     expect(kit.packageLine).toContain(`from: "${kit.release}"`);
     expect(kit.releaseUrl).toBe(`https://github.com/ourostack/ouro-ui-apple/releases/tag/v${kit.release}`);
