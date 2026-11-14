@@ -291,7 +291,7 @@
     "status": 200,
     "checked": "2026-11-14"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/7318fe269a18e4aeb30f648f39168e1b07786b99/parity.json": {
+  "https://github.com/ourostack/ouro-ui-core/blob/4368a1610e870afeaf6126168d0a94993e3cd8ba/parity.json": {
     "status": 200,
     "checked": "2026-11-14"
   },
@@ -311,19 +311,19 @@
     "status": 200,
     "checked": "2026-11-04"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md#how-each-claim-is-checked": {
-    "status": 200,
-    "checked": "2026-11-14"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md": {
     "status": 200,
     "checked": "2026-11-04"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md#how-each-claim-is-checked": {
+    "status": 200,
+    "checked": "2026-11-14"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json": {
     "status": 200,
     "checked": "2026-11-13"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.11.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.12.0": {
     "status": 200,
     "checked": "2026-11-14"
   },
