@@ -446,7 +446,8 @@ Components:
 `toggle`,
 `toggle-group`,
 `toolbar`,
-`tooltip`.
+`tooltip`,
+`unread-dot`.
 
 Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs. `ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.
 
@@ -685,6 +686,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **OuroMcpApp** — The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's `structuredContent.a2ui` with `A2UISurface`. [Docs](docs/OuroMcpApp.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. [Docs](docs/Skeleton.md)
+- **UnreadDot** — The dot that marks something unread: a small round dot in the theme's primary color, with a spoken label. [Docs](docs/UnreadDot.md)
 
 ### Lists
 

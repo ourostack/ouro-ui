@@ -1,0 +1,1 @@
+- New: `UnreadDot` draws the unread dot ConversationList and Command use, and the source rules send a hand-drawn unread mark to it (`hand-drawn-unread-dot`) and a dot on an avatar to `Avatar` `presence`.
