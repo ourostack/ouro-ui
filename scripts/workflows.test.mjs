@@ -1571,7 +1571,8 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   // browser shards), once per shard, and once per fallback shard when the full suite decided. The reduced run
   // names every project too (scripts/test-impact.mjs).
   const config = (await import("../vitest.config.ts")).default;
-  const projects = config.test.projects.map((project) => project.test.name);
+  // The squircle-* projects write no motion evidence (scripts/motion-reporter.mts).
+  const projects = config.test.projects.map((project) => project.test.name).filter((name) => !name.startsWith("squircle-"));
   assert.deepEqual(projects, ["ouro-chromium", "ouro-webkit", "ouro-touch", "site"]);
   const shards = shardCount(jobs.browser);
   assert.equal(coverage.match(/^ {6}MOTION_PARTITIONS: (.+)$/m)?.[1], projects.map((name) => `${name}:${shards}`).join(","));
