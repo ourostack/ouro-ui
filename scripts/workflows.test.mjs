@@ -84,7 +84,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "sweep-shard", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -1443,10 +1443,17 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.doesNotMatch(empty.calls, /CALL pnpm/);
   // A failing selection or split fails the shard rather than running nothing or everything.
   assert.notEqual(runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/4" }, { nodeStatus: 1 }).status, 0);
-  assert.match(jobs.e2e, /^ {4}needs: \[plan, e2e-shard\]$/m);
+  assert.match(jobs.e2e, /^ {4}needs: \[plan, e2e-shard, sweep-shard\]$/m);
   const gate = stepScript(jobs.e2e, "Every shard passed");
-  assert.equal(runStep(gate, { SHARDS: "success" }).status, 0);
-  assert.equal(runStep(gate, { SHARDS: "failure" }).status, 1);
+  assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "success" }).status, 0);
+  assert.equal(runStep(gate, { SHARDS: "failure", SWEEPS: "success" }).status, 1);
+  assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "failure" }).status, 1);
+  // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
+  const { sweepFiles } = await import("./shard.mjs");
+  const sweeps = Array.from({ length: 4 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 4 }, readTimings("e2e")));
+  assert.deepEqual(sweeps.flat().sort(), sweepFiles());
+  assert.ok(sweeps.every((share) => share.length > 0));
+  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/4$/m);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {

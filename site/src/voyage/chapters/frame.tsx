@@ -46,7 +46,7 @@ export function Handoff({ art, line }: { art: Art; line: string }): JSX.Element 
     <Container className="flex items-center gap-4 py-8 text-muted-foreground lg:py-10" data-chapter-handoff="">
       <span className="h-px flex-1 bg-border" aria-hidden="true" />
       <svg
-        className="w-16 shrink-0"
+        className="w-16 shrink-0 tracking-normal"
         viewBox={art.viewBox}
         aria-hidden="true"
         fill="none"

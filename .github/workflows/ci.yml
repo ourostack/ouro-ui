@@ -1254,9 +1254,63 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
+  sweep-shard:
+    # The site's cross-page sameness and state sweeps (site/e2e/sameness-*.spec.ts, states-*.spec.ts),
+    # in shards of their own beside the e2e ones so none passes the longest of those: each takes the
+    # spec files whose measured times add up to its share (`node scripts/shard.mjs sweeps`). Part of
+    # the e2e check.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    # In Playwright's image (see the note above jobs:).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    name: sweeps (${{ matrix.shard }}/4)
+    env:
+      SHARD: ${{ matrix.shard }}/4
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of4.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - name: Sweep specs
+        run: |
+          specs=$(node scripts/shard.mjs sweeps "$SHARD")
+          [ -n "$specs" ] || { echo "::error::Shard $SHARD has no sweep spec to run."; exit 1; }
+          # Word splitting is wanted: the paths have no spaces.
+          # shellcheck disable=SC2086
+          pnpm test:e2e $specs
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sweeps-report-${{ matrix.shard }}
+          path: playwright-report/
+          if-no-files-found: ignore
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timings-sweeps-${{ matrix.shard }}
+          path: .tmp/timings/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30
   e2e:
     # Passes when every e2e shard passed.
-    needs: [plan, e2e-shard]
+    needs: [plan, e2e-shard, sweep-shard]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1264,11 +1318,25 @@ jobs:
       - name: Every shard passed
         env:
           SHARDS: ${{ needs.e2e-shard.result }}
+          SWEEPS: ${{ needs.sweep-shard.result }}
         run: |
-          if [ "$SHARDS" != success ]; then
+          if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ]; then
             echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/4) jobs."
             exit 1
           fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: timings-sweeps-*
+          path: .tmp/sweep-waivers
+      - name: No sweep waiver is stale
+        run: node scripts/waivers.mjs .tmp/sweep-waivers
   theme-install:
     name: theme-install
     # The copy-theme install proof (site/scripts/theme-install-test.sh): each site preset's "Copy

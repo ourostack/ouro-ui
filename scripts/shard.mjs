@@ -161,7 +161,15 @@ export function collectTimings(dir) {
  */
 export function e2eFiles(rootDir = root) {
   const specs = (dir) => (existsSync(join(rootDir, dir)) ? treeFiles(join(rootDir, dir)).map((file) => `${dir}/${file}`) : []);
-  return [...specs("registry/ouro/e2e"), ...specs("site/e2e")].filter((file) => file.endsWith(".spec.ts") && !/\.(sr|latency)\.spec\.ts$/.test(file) && !/\/probes\//.test(file)).sort();
+  return [...specs("registry/ouro/e2e"), ...specs("site/e2e")].filter((file) => file.endsWith(".spec.ts") && !/\.(sr|latency)\.spec\.ts$/.test(file) && !/\/probes\//.test(file) && !SWEEP.test(file)).sort();
+}
+
+const SWEEP = /^site\/e2e\/(sameness|states)-[\w-]+\.spec\.ts$/;
+
+/** The sweep specs (cross-page sameness and state sweeps), which run in their own shards beside the e2e ones. */
+export function sweepFiles(rootDir = root) {
+  const dir = join(rootDir, "site/e2e");
+  return existsSync(dir) ? treeFiles(dir).map((file) => `site/e2e/${file}`).filter((file) => SWEEP.test(file)).sort() : [];
 }
 
 /**
@@ -240,6 +248,10 @@ function main([command, ...args]) {
     console.log(shardKeys(files, parseShard(args[0]), readTimings("e2e")).join("\n"));
     return 0;
   }
+  if (command === "sweeps") {
+    console.log(shardKeys(sweepFiles(), parseShard(args[0]), readTimings("e2e")).join("\n"));
+    return 0;
+  }
   if (command === "install-e2e") {
     console.log(installSpecShard(installSpecs(args[1] ?? "."), parseShard(args[0])).join("\n"));
     return 0;
@@ -251,7 +263,7 @@ function main([command, ...args]) {
   if (command === "plan") {
     const [kind, count] = args;
     const timings = readTimings(kind);
-    const keys = kind === "scripts" ? scriptTestFiles() : kind === "e2e" ? e2eFiles() : Object.keys(timings).filter((key) => !isSliced(key));
+    const keys = kind === "scripts" ? scriptTestFiles() : kind === "e2e" ? [...e2eFiles(), ...sweepFiles()] : Object.keys(timings).filter((key) => !isSliced(key));
     // Every browser shard also runs its slice of each sliced suite; a shard's report holds its slice's time.
     const sliced = kind === "vitest" ? Object.keys(timings).filter(isSliced).reduce((sum, key) => sum + timings[key], 0) : 0;
     for (const [position, shard] of balance(keys, Number(count), timings).entries()) console.log(`${position + 1}/${count}: ${((shard.weight + sliced) / 1000).toFixed(0)} s of test files, ${shard.keys.length} files${sliced ? " and a slice of each sliced suite" : ""}`);
