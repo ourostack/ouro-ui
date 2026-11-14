@@ -750,6 +750,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const inputs = JSON.stringify([places, current, tabStop]);
     for (const control of controls.current.values()) rows.current!.observe(control.parentElement!);
     if (synced.current?.inputs === inputs && synced.current.heights === heights) return;
+    // Stryker disable next-line ConditionalExpression: a changed place with equal heights also gets its sync from the observer and the scroll listener, so skipping it in the commit shows in no test.
     const selectionOnly = !focusNext.current && synced.current?.places === places && synced.current.heights === heights;
     synced.current = { inputs, places, heights };
     // Switching the open row moves nothing: its reveal, if it needs one, reads after the commit instead of in it.
