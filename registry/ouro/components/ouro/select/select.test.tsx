@@ -1,4 +1,4 @@
-import { createRef, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createRef, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -70,7 +70,7 @@ const option = (name: string) => page.getByRole("option", { name });
  * A bare list frame that the Enter key focuses, the way a keyboard open focuses a list, so the
  * fallbacks in `focusOptionFromPopup` run with no option highlighted by Base UI.
  */
-function FrameHarness({ children }: { children?: ReactNode }) {
+function FrameHarness({ children, style }: { children?: ReactNode; style?: CSSProperties }) {
   const frame = useRef<HTMLDivElement>(null);
   return (
     <>
@@ -82,7 +82,7 @@ function FrameHarness({ children }: { children?: ReactNode }) {
       >
         Open
       </button>
-      <div ref={frame} role="presentation" tabIndex={-1} onFocus={focusOptionFromPopup}>
+      <div ref={frame} role="presentation" tabIndex={-1} onFocus={focusOptionFromPopup} style={style}>
         {children}
       </div>
     </>
@@ -384,6 +384,20 @@ describe("Select", () => {
     );
     await enterFrame(host);
     await expect.poll(() => document.activeElement?.textContent).toBe("Main");
+  });
+
+  it("moves focus from a list's frame to an option without scrolling the list, which Base UI scrolls itself", async () => {
+    const { host } = await render(
+      <FrameHarness style={{ height: 40, overflowY: "auto" }}>
+        <div style={{ height: 400 }} />
+        <div role="option" tabIndex={-1} aria-selected="false">
+          Dessert
+        </div>
+      </FrameHarness>,
+    );
+    await enterFrame(host);
+    await expect.poll(() => document.activeElement?.textContent).toBe("Dessert");
+    expect(host.querySelector('[role="presentation"]')!.scrollTop).toBe(0);
   });
 
   it("leaves focus on a list's frame that has no option to move to", async () => {

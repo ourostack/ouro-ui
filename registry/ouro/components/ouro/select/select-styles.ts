@@ -54,7 +54,7 @@ function focusOptionFromPopup(event: FocusEvent<HTMLElement>): void {
   for (const selector of selectors) {
     const option = popup.querySelector<HTMLElement>(selector);
     if (option) {
-      option.focus();
+      option.focus({ preventScroll: true });
       return;
     }
   }
