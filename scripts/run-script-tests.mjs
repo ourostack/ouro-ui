@@ -4,18 +4,25 @@
 // left it can be fixed; the run's result is the tests' own. OURO_STRICT_TMPDIR=1 fails the run on it
 // instead, to hunt a leak locally.
 //
-//   node scripts/run-script-tests.mjs [node --test options] <test files>
+// With no test file among the arguments, every script test runs (scriptTestFiles). Give an option's
+// value with `=` (`--test-reporter=spec`): a value in its own argument would count as a test file.
+//
+//   node scripts/run-script-tests.mjs [node --test options] [<test files>]
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { scriptTestFiles } from "./script-tests.mjs";
 
 /**
  * What the tools under test leave in a temp folder of their own accord, which this removes with the
  * folder: Node's compile cache, and the folders Chromium leaves on Linux for each browser launched.
  */
 export const toolLeftovers = (name) => name === "node-compile-cache" || name.startsWith(".org.chromium.Chromium.");
+
+/** The arguments for `node --test`: the ones given, plus every script test when none names a file. */
+export const withScriptTests = (args) => (args.some((arg) => !arg.startsWith("-")) ? args : [...args, ...scriptTestFiles()]);
 
 /**
  * Runs `node --test` over `args` with TMPDIR set to a new folder, and returns its exit status; with
@@ -27,7 +34,7 @@ export function runScriptTests(args, { log = console.error, strict = process.env
     const env = { ...process.env, TMPDIR: temp, TMP: temp, TEMP: temp };
     // This run is its own test runner, even when a test starts it.
     delete env["NODE_TEST_CONTEXT"];
-    const result = spawnSync(process.execPath, ["--test", ...args], { stdio: "inherit", env });
+    const result = spawnSync(process.execPath, ["--test", ...withScriptTests(args)], { stdio: "inherit", env });
     const left = readdirSync(temp).filter((name) => !toolLeftovers(name));
     if (left.length > 0) {
       log(`::warning::The script tests left ${left.length} item(s) in their temp folder, removed with it: ${left.join(", ")}. Make each in its test with scratchDir (scripts/scratch.mjs), which removes it.`);

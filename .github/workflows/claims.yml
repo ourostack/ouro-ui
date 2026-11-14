@@ -47,7 +47,6 @@ jobs:
       # file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs).
       - name: Exemptions against the base
         env:
-          BASE_REF: ${{ github.base_ref }}
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -55,6 +54,7 @@ jobs:
           if live=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body --jq .body); then
             export PR_BODY="$live"
           fi
-          git fetch --no-tags --depth=1 origin "$BASE_REF"
-          CLAIMS_BASE_REF="origin/$BASE_REF" node scripts/claims.mjs ratchet
-          REAL_CLOCK_BASE_REF="origin/$BASE_REF" node scripts/real-clock-ratchet.mjs
+          # Against the merge's first parent, main as GitHub merged the pull request into it (as in ci.yml's Claims step).
+          git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+          CLAIMS_BASE_REF="HEAD^1" node scripts/claims.mjs ratchet
+          REAL_CLOCK_BASE_REF="HEAD^1" node scripts/real-clock-ratchet.mjs

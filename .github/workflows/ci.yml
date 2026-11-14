@@ -225,6 +225,7 @@ jobs:
             git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
             CLAIMS_BASE_REF="HEAD^1" node scripts/claims.mjs ratchet
             REAL_CLOCK_BASE_REF="HEAD^1" node scripts/real-clock-ratchet.mjs
+            PATCH_GUARD_BASE_REF="HEAD^1" node scripts/patch-guard.mjs
             CLAIMS_BASE_REF="HEAD^1" pnpm claims:check --network=changed
           else
             pnpm claims:check
@@ -314,6 +315,9 @@ jobs:
           path: coverage/coverage-final.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Coverage of installed subsets
+        run: |
+          if [ "$FULL" = true ]; then node scripts/subset-coverage.mjs --shard "$SHARD"; else node scripts/subset-coverage.mjs --touching "$COMPONENTS" --shard "$SHARD"; fi
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -322,9 +326,6 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 30
-      - name: Coverage of installed subsets
-        run: |
-          if [ "$FULL" = true ]; then node scripts/subset-coverage.mjs --shard "$SHARD"; else node scripts/subset-coverage.mjs --touching "$COMPONENTS" --shard "$SHARD"; fi
   scripts:
     # pnpm test:scripts, in shards that run side by side, each with the files whose measured times
     # (scripts/shard-timings.json) add up to its share (`node scripts/shard.mjs scripts`), but the
@@ -1448,6 +1449,9 @@ jobs:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
           npm_config_cache: ${{ runner.temp }}/npm-cache
+          npm_config_prefer_offline: "true"
+          npm_config_audit: "false"
+          npm_config_fund: "false"
         run: OURO_PREPARE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
       - name: Pack the app
         if: steps.prepared.outputs.cache-hit != 'true'

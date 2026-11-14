@@ -1,0 +1,1 @@
+- Changed: the `hand-drawn-corner` source rule also flags an inline-style or stylesheet border radius and `rounded-full` on a large non-round box, and leaves dots, pills, thumbs and rings alone.

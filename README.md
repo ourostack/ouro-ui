@@ -4,7 +4,19 @@
 </p>
 <!-- ourostack:brand:end -->
 
-# Ouro HX
+# Ouro UI
+
+**A design system for people and agents.** Ouro UI renders [A2UI](https://a2ui.org/), the format agents compose interfaces in, and works alongside it: it ships a catalog of its components for A2UI and renderers for it on the web and in SwiftUI.[^a2ui-render] It adds what A2UI leaves to the app:
+
+- **One action declaration.** Declare an action once, and core's generator writes its CLI command, MCP and WebMCP tools, web control, App Intent, SwiftUI button and Reins action, with a check that fails your CI when a generated file drifts.[^one-action]
+- **Person-only actions, refused.** An action only the person may start, such as paying, is offered through no agent door, and each door answers an agent with a typed refusal.[^person-only]
+- **X-ray checks.** `ax-xray` calls an app's CLI, HTTP API or MCP server the way an agent would and reports which claims hold, and `ouro-ax-xray` checks an app's App Intents.[^xray]
+
+See how agents do with it in the [agent benchmark](https://ui.ouroboros.bot/docs/agent-interfaces/), and what frontier models chose when they compared it with A2UI and other options in the [model reviews](https://ui.ouroboros.bot/docs/model-reviews/).
+
+Ouro UI runs on the web (this repository) and on Apple ([ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple)), and the Apple package has not reached 1.0.[^apple-pre-1] There is no Android or Windows kit yet.[^no-kit] [The Android plan](docs/platforms/android.md) and [the Windows plan](docs/platforms/windows.md) say what one needs.
+
+## Ouro HX
 
 **React components for people, and for the agents who build them.** Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
@@ -842,3 +854,9 @@ MIT
 [^long-lines]: test:scripts/check/check-pages.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements verify:testExists(scripts/check/check-pages.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements)
 [^apple-box]: https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box)
 [^actions]: https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md)
+[^a2ui-render]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json; test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#agent-composed-ui-a2ui)
+[^one-action]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5)
+[^person-only]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45; test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > hands a person-only action to the app's own screen and never runs it verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > hands a person-only action to the app's own screen and never runs it)
+[^xray]: test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#whats-in-the-box verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/README.md#whats-in-the-box)
+[^no-kit]: docs/platforms/README.md verify:fileLine(docs/platforms/README.md, /^\| For Android \| none yet/) verify:fileLine(docs/platforms/README.md, /^\| For Windows \| none yet/)
+[^apple-pre-1]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.1) verify:equals(site/src/apple/kit.json#release)=0.5.1
