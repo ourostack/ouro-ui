@@ -1,15 +1,15 @@
 name: Release
-# Cuts v<version> from the commit of main that a passing rehearsal of it (release-rehearsal.yml)
-# tested: main's head, or an earlier commit of main when merges came after the rehearsal; those go
-# out in the next release (scripts/rehearsal-evidence.mjs pick).
+# Cuts v<version> from a commit of main whose own push runs passed: CI and the other workflows
+# that report the checks main's rules require, and the screen-reader lane (screen-reader.yml, on
+# every push to main). Release auto (release-auto.yml) names the newest such commit; a run
+# dispatched by hand takes main's head. Nothing runs twice: the suite that tested the commit on
+# main is the proof, and only release-only steps run here.
 # The tag points at a release commit that main never receives: a branch
 # off green main whose registry.json pins every same-repo registryDependency to the tag
 # (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
 # installs every Ouro dependency at that tag while main stays unpinned. The @ouro namespace
 # built from that commit must match its registry.json and files byte for byte
-# (scripts/public-registry.mjs verify-build). CI runs on that
-# commit (with the shadcn@latest install, ci.yml's install-latest job), then the screen-reader
-# lane (screen-reader.yml: VoiceOver and NVDA); when both pass, the commit is tagged, the
+# (scripts/public-registry.mjs verify-build). When that passes, the commit is tagged, the
 # GitHub release is created and the branch is deleted (the tag keeps the commit). Because
 # main never receives the release commit, main keeps its change fragments: a release's notes list
 # only the fragment lines the last release's notes lack (scripts/changes.mjs), and no pull request
@@ -27,6 +27,9 @@ on:
       version:
         description: "Version to release, without the v (for example 0.1.0)"
         required: true
+      sha:
+        description: "The commit of main to release (its full SHA); main's head when empty"
+        required: false
 # Each job asks for its own permissions.
 permissions: {}
 concurrency:
@@ -37,20 +40,17 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # push the release branch and the tag, create the release
-      actions: write # run CI on the release branch and the screen-reader lane
-      issues: write # report a screen-reader lane that failed twice on infrastructure (scripts/sr-infra-issue.sh)
-    # Two CI runs, 45 minutes each with the runner pool's queues, on the release commit (with the
-    # shadcn@latest install, beside CI's other jobs), the second for a quarantined test's retry; the screen-reader lane
-    # between them, 8 minutes, once more after an infrastructure failure; and the namespace checks,
-    # 2: 153, and 1.5 times that 230 (scripts/workflows.test.mjs, which holds the numbers). Pages
-    # is a later job with its own.
-    timeout-minutes: 230
+    # Waiting for none of main's runs: reading them, the install, the release commit and the
+    # namespace checks, 20 minutes, and 1.5 times that 30 (scripts/workflows.test.mjs, which holds
+    # the numbers). Pages is a later job with its own.
+    timeout-minutes: 30
     outputs:
       new: ${{ steps.check.outputs.new }}
       producers: ${{ steps.check.outputs.producers }}
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
+      SHA: ${{ inputs.sha }}
       TAG: v${{ inputs.version }}
       BRANCH: release/v${{ inputs.version }}
     steps:
@@ -77,11 +77,13 @@ jobs:
             fi
             exit 1
           fi
-          # The commit a passing rehearsal of this version tested (scripts/rehearsal-evidence.mjs pick):
-          # main's head when its newest rehearsal passed, else the newest such commit of main, so
-          # merges while a rehearsal runs never make it stale; they go out in the next release.
-          # Everything below checks and releases that commit.
-          sha=$(node scripts/rehearsal-evidence.mjs pick "$TAG" "$(git rev-parse HEAD)") || { echo "::error::No passing rehearsal of $TAG on main to release. Run it first: gh workflow run release-rehearsal.yml -f version=$VERSION"; exit 1; }
+          # The commit to release: the one Release auto named, or main's head. It must be main's own,
+          # an earlier commit of it when merges came after.
+          sha=${SHA:-$(git rev-parse HEAD)}
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::sha must be a full 40-character commit SHA, not '$sha'."; exit 1; }
+          rel=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$sha" --jq .status) || { echo "::error::Could not compare $sha with main."; exit 1; }
+          [ "$rel" = identical ] || [ "$rel" = behind ] || { echo "::error::$sha is not a commit of main ($rel)."; exit 1; }
+          git fetch -q --depth=1 origin "$sha"
           git checkout -q --detach "$sha"
           # The workflows that report the checks main's rules require (CI, conformance exemptions:
           # scripts/required-producers.mjs), which this run dispatches where GITHUB_TOKEN starts none.
@@ -110,17 +112,15 @@ jobs:
             github=$(awk -F '\t' '$1 == "install-github" { print $2; exit }' <<<"$jobs")
             [ "$github" = success ] || { echo "::error::install-github is '${github:-not in the run}' in main's own CI run $own ($sha), not success: the install a user runs today must pass before a release."; exit 1; }
           fi
-          # A rehearsal of this version (release-rehearsal.yml) ran the full CI and the screen-reader
-          # lane on the release commit as this run will write it, so a check that fails only on a
-          # release commit stops there, before anything is cut. The newest rehearsal on this commit
-          # decides; with none, the newest on a commit of main at most 50 commits before it, started
-          # in the last 24 hours, decides, and holds only when this commit differs from that one in
-          # tests and records that ship nowhere alone (scripts/rehearsal-evidence.mjs). Checked
-          # after main's own CI on this commit above; any error refuses it. The run and the files
-          # go to the summary and, for the release notes, to $RUNNER_TEMP/rehearsal.md.
-          rehearsed=$(node scripts/rehearsal-evidence.mjs "$TAG" "$sha" --notes "$RUNNER_TEMP/rehearsal.md") || { echo "::error::No passing rehearsal of $TAG holds for main ($sha). Run it first: gh workflow run release-rehearsal.yml -f version=$VERSION"; exit 1; }
-          # What the rehearsal passed only on a quarantined test's retry (scripts/quarantine.mjs), shown here too.
-          node scripts/quarantine.mjs rehearsed "$rehearsed"
+          # The screen-reader lane, which main runs on every push (screen-reader.yml), passed on this commit.
+          lane=$(gh run list --workflow screen-reader.yml --commit "$sha" --event push --json databaseId,conclusion --jq '[.[] | select(.conclusion == "success")][0].databaseId // empty')
+          [ -n "$lane" ] || { echo "::error::The screen-reader lane has not passed on main ($sha): VoiceOver and NVDA must pass on the commit that is released."; exit 1; }
+          {
+            echo "Tagged from main's commit \`$sha\`, which main's own runs passed, so nothing ran twice:"
+            for id in $runs; do echo "- CI run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$id"; done
+            echo "- Screen-reader lane (VoiceOver and NVDA): $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$lane"
+          } > "$RUNNER_TEMP/proof.md"
+          cat "$RUNNER_TEMP/proof.md" >> "$GITHUB_STEP_SUMMARY"
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.new == 'true'
@@ -151,123 +151,19 @@ jobs:
           git commit -am "Release $TAG"
           git push --force origin "$BRANCH"
       - if: steps.check.outputs.new == 'true'
-        id: reuse
-        name: Reuse the rehearsal's proof when it tested this very tree
-        run: |
-          # The rehearsal wrote the release commit with the same script and ran CI and the
-          # screen-reader lane on it. When its commit has this commit's tree, that proof is for
-          # these bytes: the same checks are judged on its runs instead of being run again.
-          # Anything else, a different tree, a missing run or a check that did not pass, takes
-          # the full path below, unchanged.
-          echo "reuse=false" >> "$GITHUB_OUTPUT"
-          rbranch="release/$TAG-rehearsal"
-          tree=$(git rev-parse 'HEAD^{tree}')
-          shas=$(gh run list --workflow ci.yml --branch "$rbranch" --event workflow_dispatch --limit 20 --json headSha,createdAt --jq 'sort_by(.createdAt) | reverse | [.[].headSha] | unique | .[]') || shas=
-          for rsha in $shas; do
-            [ "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$rsha" --jq .tree.sha 2>/dev/null || true)" = "$tree" ] || continue
-            runs=
-            for workflow in $PRODUCERS; do
-              id=$(gh run list --workflow "$workflow" --branch "$rbranch" --event workflow_dispatch --commit "$rsha" --json databaseId,createdAt --jq 'sort_by(.createdAt) | last | .databaseId // empty')
-              runs="$runs $id"
-            done
-            [[ "$runs" != *"  "* && -n "${runs// }" ]] || continue
-            # shellcheck disable=SC2086 # one argument per run
-            scripts/required-ci.sh --also "install (shadcn@latest, nova)" $runs || continue
-            lane=$(gh run list --workflow screen-reader.yml --branch "$rbranch" --event workflow_dispatch --json databaseId,headSha,conclusion,createdAt --jq "[.[] | select(.headSha == \"$rsha\" and .conclusion == \"success\")] | sort_by(.createdAt) | last | .databaseId // empty")
-            [ -n "$lane" ] || continue
-            echo "reuse=true" >> "$GITHUB_OUTPUT"
-            {
-              echo "Reused the rehearsal's proof: its commit \`$rsha\` has this release commit's tree (\`$tree\`)."
-              for id in $runs; do echo "- CI run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$id"; done
-              echo "- Screen-reader lane: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$lane"
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          done
-          echo "No rehearsal commit has this tree with CI and the screen-reader lane passed: running both on the release commit."
-      - if: steps.check.outputs.new == 'true'
         name: Build and check the @ouro namespace for the release commit
         run: |
           # What Pages will serve at /r/ for this release: the namespace built from this commit
           # (scripts/namespace.sh), checked against the commit's registry.json and files byte for
-          # byte, every item and no other (scripts/public-registry.mjs), before CI, the
-          # screen-reader lane and the tag.
+          # byte, every item and no other (scripts/public-registry.mjs), before the tag.
           scripts/namespace.sh "$RUNNER_TEMP/ns" "$TAG"
           node scripts/public-registry.mjs verify-build "$RUNNER_TEMP/ns" HEAD
-      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
-        name: Start the screen-reader lane on the release commit
-        run: |
-          # Dispatched before CI, so the two run side by side; "Pass the screen-reader lane"
-          # waits for this run (SR_BEFORE marks the runs that came before it).
-          sha=$(git rev-parse HEAD)
-          before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
-          gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
-          echo "SR_BEFORE=$before" >> "$GITHUB_ENV"
-      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
-        name: Run CI on the release commit
-        run: |
-          sha=$(git rev-parse HEAD)
-          # CI and every other workflow that reports a check main's rules require, judged on those
-          # checks and on the release-only gates the rules cannot require, as main never runs them:
-          # ci.yml's install-latest job. ci-budget does not decide.
-          run=$(scripts/dispatch-required.sh "$BRANCH" "$sha")
-          # A check that failed only because of quarantined tests (.github/quarantine.json) is retried
-          # once, recorded, and judged again (scripts/quarantine.mjs); any other failure, or a second
-          # one, stops the release.
-          # shellcheck disable=SC2086 # one argument per run
-          if ! scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run; then
-            # shellcheck disable=SC2086 # one argument per run
-            node scripts/quarantine.mjs retry --also "install (shadcn@latest, nova)" $run || exit 1
-            # shellcheck disable=SC2086 # one argument per run
-            scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run || { echo "- After the retry, CI still failed." >> "$GITHUB_STEP_SUMMARY"; exit 1; }
-            echo "- After the retry, CI passed the checks main's rules require." >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
-        name: Pass the screen-reader lane on the release commit
-        run: |
-          # The release commit is tagged only when VoiceOver and NVDA pass on that exact commit
-          # (screen-reader.yml, dispatched on the release branch with source_sha set to it, the
-          # first time alongside CI). An infrastructure failure (scripts/sr-classify.mjs) is
-          # dispatched once more; a second one, or an accessibility failure, stops the release.
-          sha=$(git rev-parse HEAD)
-          for attempt in 1 2; do
-            if [ "$attempt" = 1 ]; then
-              before=$SR_BEFORE
-            else
-              before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
-              gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
-            fi
-            run=
-            for _ in $(seq 60); do
-              # The newest dispatched run for this exact commit created after this dispatch.
-              run=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --json databaseId,headSha,event,createdAt --jq "[.[] | select(.event == \"workflow_dispatch\" and .headSha == \"$sha\" and .databaseId > $before)] | sort_by(.createdAt) | last | .databaseId // empty")
-              [ -n "$run" ] && break
-              sleep "${POLL_SECONDS:-5}"
-            done
-            [ -n "$run" ] || { echo "::error::The screen-reader lane did not start on $BRANCH ($sha)."; exit 1; }
-            url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run"
-            echo "Screen-reader lane, attempt $attempt: $url" >> "$GITHUB_STEP_SUMMARY"
-            if gh run watch "$run" --exit-status --interval 30 >/dev/null; then
-              verdict=$(gh run view "$run" --json conclusion,headSha --jq '"\(.conclusion) \(.headSha)"')
-              [ "$verdict" = "success $sha" ] || { echo "::error::Screen-reader run $url concluded '$verdict', not success for $sha."; exit 1; }
-              echo "VoiceOver and NVDA passed on $sha: $url"
-              exit 0
-            fi
-            classes=$(gh run view "$run" --log-failed | grep -o 'SR_CLASS=[a-z]*' | sort -u | tr '\n' ' ' | sed 's/ $//' || true)
-            if [ "$classes" != "SR_CLASS=infrastructure" ]; then
-              echo "::error::The screen-reader lane failed on $sha (${classes:-unclassified}): $url. An accessibility failure blocks the release; fix main and run Release again."
-              exit 1
-            fi
-            echo "::warning::The screen-reader lane could not drive its screen reader (attempt $attempt): $url"
-          done
-          issue=$(GH_REPO="$GITHUB_REPOSITORY" scripts/sr-infra-issue.sh "$url" "release $TAG" || true)
-          echo "::error::The screen-reader lane failed twice on infrastructure, so $TAG is not tagged: ${issue:-$url}"
-          exit 1
       - if: steps.check.outputs.new == 'true'
         name: Tag and publish the release
         run: |
-          # The rehearsal this release rests on, written by "Check the version, the tag and main's CI":
-          # without it nothing is tagged.
-          [ -s "$RUNNER_TEMP/rehearsal.md" ] || { echo "::error::$RUNNER_TEMP/rehearsal.md, the rehearsal this release rests on, is missing, so $TAG is not tagged."; exit 1; }
+          # The main runs this release rests on, written by "Check the version, the tag and main's CI":
+          # without them nothing is tagged.
+          [ -s "$RUNNER_TEMP/proof.md" ] || { echo "::error::$RUNNER_TEMP/proof.md, the main runs this release rests on, is missing, so $TAG is not tagged."; exit 1; }
           # The notes are assembled and measured before the tag exists: GitHub refuses a release
           # body over 125,000 characters, and a tag pushed without its release blocks a rerun.
           {
@@ -301,9 +197,8 @@ jobs:
             echo 'npx shadcn@latest add @ouro/ouro-base @ouro/dialog'
             echo '```'
             echo
-            # The rehearsal this release rests on and, when it ran on an earlier commit of main, the
-            # files this one changes since ("Check the version, the tag and main's CI").
-            cat "$RUNNER_TEMP/rehearsal.md"
+            # The main runs this release rests on ("Check the version, the tag and main's CI").
+            cat "$RUNNER_TEMP/proof.md"
             echo
             # By name only: with every description the list alone outgrew GitHub's limit.
             echo "Items, by name. The [docs](https://ui.ouroboros.bot/docs/) describe each component, and the tag's [registry.json](https://github.com/$GITHUB_REPOSITORY/blob/$TAG/registry.json) holds every item's description:"
@@ -428,10 +323,10 @@ jobs:
           exit 1
   next:
     # A run that Release auto dispatched with GITHUB_TOKEN starts no workflow_run when it ends, so
-    # the release that follows is started from here, whatever this one's result, so a failed step cannot stall the train; Release auto's own checks decide.
+    # the release that follows is started from here once the tag is out; a release that failed before its tag starts nothing, so a failure cannot repeat itself, and the next push's green CI starts the next.
     # The run id says this run no longer counts as a release in progress.
     needs: [release, pages, publish]
-    if: ${{ always() && needs.release.result != 'cancelled' }}
+    if: ${{ needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       actions: write # start Release auto
