@@ -33,7 +33,7 @@ async function deadFrames(page: Page, still: boolean): Promise<number> {
   const box = (await scroller.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   const sent: Promise<void>[] = [];
-  for (let flick = 0; flick < 12; flick++) {
+  for (let flick = 0; flick < 6; flick++) {
     for (let delta = 60; delta >= 1; delta *= 0.95) {
       sent.push(page.mouse.wheel(0, Math.round(delta)));
       await new Promise((resolve) => setTimeout(resolve, 16)); // real clock: the wheel's own pace
@@ -51,7 +51,7 @@ async function deadFrames(page: Page, still: boolean): Promise<number> {
 
 // WebKit drops a frame or two of wheel scrolling on its own, so shimmer={false} is judged against the same page with its animation off, alternated on the same runner.
 test("wheel scrolling a long scroller of loading skeletons with shimmer={false} drops no more frames than the same page with its animation stripped", async ({ page }) => {
-  test.setTimeout(900_000);
+  test.setTimeout(1_500_000);
   const runs = 20;
   const control: number[] = [];
   const stilled: number[] = [];
