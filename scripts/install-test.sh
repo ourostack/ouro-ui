@@ -751,7 +751,9 @@ npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit
 # overlapped).
 workers=()
 [ -z "${OURO_SHARD:-}" ] || workers=(--maxWorkers=2)
-npx vitest run ${workers[@]+"${workers[@]}"} ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
+vitest_log="${RUNNER_TEMP:-/tmp}/shipped-vitest.log"
+npx vitest run ${workers[@]+"${workers[@]}"} ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"} > "$vitest_log" 2>&1 &
+vitest_pid=$!
 echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
@@ -764,3 +766,9 @@ else
   echo "No selected component has a spec."
 fi
 echo "::endgroup::"
+vitest_status=0
+wait "$vitest_pid" || vitest_status=$?
+echo "::group::Shipped Vitest output"
+cat "$vitest_log"
+echo "::endgroup::"
+[ "$vitest_status" -eq 0 ] || { echo "Shipped Vitest browser tests failed" >&2; exit "$vitest_status"; }
