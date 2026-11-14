@@ -83,6 +83,8 @@ const isStyleNode = (node: Node): boolean =>
  * Fallback engine: discovers elements, observes DOM/size changes, batches
  * read/write phases per animation frame, and applies inline fallback styles.
  */
+const READ_ATTR = "data-hyperellipse-reading";
+
 export const createEngine = (doc: Document, options: EngineOptions): Engine => {
   const entries = new WeakMap<HTMLElement, Entry>();
   const tracked = new Set<HTMLElement>();
@@ -103,7 +105,7 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
   // (`--corner-scale` from the `@supports` snippet) so geometry uses the
   // full radius. `!important` also wins over scoped declarations on ancestors.
   const readSheet = createManagedSheet(doc, "read");
-  readSheet.update(`*{${CORNER_SCALE_VAR}:1 !important;}`);
+  readSheet.update(`[${READ_ATTR}]{${CORNER_SCALE_VAR}:1 !important;}`);
   readSheet.setDisabled(true);
 
   const resizeObserver = new ResizeObserver((roEntries) => {
@@ -435,6 +437,7 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
     for (const element of dirtyList) {
       const entry = entries.get(element);
       if (entry) {
+        element.setAttribute(READ_ATTR, "");
         removeApplied(element, entry);
       }
     }
@@ -449,6 +452,7 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
       if (entry) {
         restoreApplied(element, entry);
       }
+      element.removeAttribute(READ_ATTR);
     }
     readSheet.setDisabled(true);
     pendingSheet.setDisabled(false);
