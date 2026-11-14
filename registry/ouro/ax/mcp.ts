@@ -50,8 +50,8 @@ interface McpTool {
   annotations: { title: string; readOnlyHint: boolean; destructiveHint: boolean; openWorldHint: boolean };
 }
 
-/** "draft set" is the tool draft_set; a tool defined with `command` is one tool, named after the tool. */
-const toolName = (cli: Pick<Cli, "name" | "single">, cmd: CommandDef) => (cli.single ? cli.name : cmd.name.replace(/ /g, "_"));
+/** "draft set" is the tool draft_set; the default command is word-less, so it is the tool itself, named after the tool. */
+const toolName = (cli: Pick<Cli, "name" | "defaultCommand">, cmd: CommandDef) => (cmd === cli.defaultCommand ? cli.name : cmd.name.replace(/ /g, "_"));
 
 function toolsOf(options: McpOptions): CommandDef[] {
   const include = options.include ?? ((c: CommandDef) => !c.hidden);

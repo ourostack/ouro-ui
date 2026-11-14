@@ -40,6 +40,14 @@ interface FlagSpec {
    * @claim "errors and fixes never print back" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::an unknown flag's fix drops its value once the command's words are all given; a sensitive value is never printed back)
    */
   sensitive?: boolean;
+  /**
+   * The flag may be given more than once: its values come as a list, in the order given, and it is absent when not
+   * given. A string flag only. Use it for names a person passes one at a time, such as `--ready-event a --ready-event b`.
+   *
+   * @claim "its values come as a list, in the order given" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a repeat flag collects each value in order, in either form, and is absent when not given)
+   * @claim "A string flag only" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::defineCli refuses repeat on a flag that is not a string, or repeat: false, naming the fix)
+   */
+  repeat?: true;
 }
 
 interface ArgSpec {
@@ -197,26 +205,33 @@ interface CliDefBase {
 }
 
 /**
- * A tool is defined either with `command`, its one thing to do, which takes no command word (`ouro-images <folder>`),
- * or with `commands`, several words that each name a command. Give exactly one; `defineCli` refuses both or neither.
+ * A tool is defined with `command`, its one thing to do, which takes no command word (`ouro-images <folder>`); with
+ * `commands`, several command words (`tasks assign`); or with both. With both, `command` is the default: it runs when no
+ * command word leads (`ouro-check <url>`), and a target named like a command word goes after `--`. `defineCli` refuses
+ * neither.
  *
  * @claim "which takes no command word" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
- * @claim "refuses both or neither" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::defineCli takes command or commands, never both or neither, and a tool with command has no command words)
+ * @claim "a target named like a command word goes after" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with a default command runs it for any leading word that is not a command word, and a command word goes after --)
+ * @claim "`defineCli` refuses neither" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::defineCli needs command or commands, and takes both: the default beside the named commands)
  */
-type CliDef<C extends RunContext = RunContext> = CliDefBase &
-  ({ command: CommandDef<unknown, C>; commands?: undefined } | { commands: readonly CommandDef<unknown, C>[]; command?: undefined });
+type CliDef<C extends RunContext = RunContext> = CliDefBase & ({ command: CommandDef<unknown, C>; commands?: readonly CommandDef<unknown, C>[] } | { commands: readonly CommandDef<unknown, C>[]; command?: undefined });
 
 interface Cli<C extends RunContext = RunContext> {
   readonly name: string;
   readonly about: readonly string[];
-  /** The tool's commands; a tool defined with `command` has exactly that one. */
+  /** The tool's commands, the default command among them when it has one. */
   readonly commands: readonly CommandDef<unknown, C>[];
   /**
-   * Whether the tool was defined with `command`: its one command takes no command word.
+   * Whether the tool was defined with `command` alone: its one command takes no command word.
    *
    * @claim "its one command takes no command word" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
    */
   readonly single: boolean;
+  /**
+   * The word-less command: a tool defined with `command` has only it, a tool defined with both has it beside its
+   * `commands`, and a tool defined with `commands` alone has null.
+   */
+  readonly defaultCommand: CommandDef<unknown, C> | null;
   readonly exits: ExitTable;
   readonly headings: EffectHeadings;
   readonly globalFlags: Readonly<Record<string, FlagSpec>>;
@@ -250,16 +265,16 @@ const wordsOf = (name: string) => name.split(" ");
 const unlessOf = (spec: { unless?: string | readonly string[] }): readonly string[] => (spec.unless === undefined ? [] : typeof spec.unless === "string" ? [spec.unless] : spec.unless);
 
 /**
- * The words a command adds after the tool's name: its name's words, or none for a tool defined with `command`.
+ * The words a command adds after the tool's name: its name's words, or none for the default command, which takes no word.
  *
- * @claim "or none for a tool defined with" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
+ * @claim "or none for the default command" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
  */
-function commandWords(cli: Pick<Cli, "single">, cmd: CommandDef): string[] {
-  return cli.single ? [] : wordsOf(cmd.name);
+function commandWords(cli: Pick<Cli, "defaultCommand">, cmd: CommandDef): string[] {
+  return cmd === cli.defaultCommand ? [] : wordsOf(cmd.name);
 }
 
 /** The tool's name and the command's words, as a fix or a help line writes them: `ouro-images`, or `tasks assign`. */
-function invocation(cli: Pick<Cli, "name" | "single">, cmd: CommandDef): string {
+function invocation(cli: Pick<Cli, "name" | "defaultCommand">, cmd: CommandDef): string {
   return [cli.name, ...commandWords(cli, cmd)].join(" ");
 }
 
@@ -279,22 +294,21 @@ function flagsOf(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): Record<string,
 /** Builds the tool and checks its definitions: unique names, a valid exit table, examples that parse. */
 function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
   const hasOne = def.command !== undefined;
-  if (hasOne === (def.commands !== undefined)) {
-    throw new Error(
-      hasOne
-        ? `${def.name}: defineCli takes command or commands, not both. Fix: keep command for a tool with one thing to do, or commands for several.`
-        : `${def.name}: defineCli needs command (one thing to do) or commands (several). Fix: command: defineCommand({ name: "<name>", summary: "<what it does>", effect: "private", run }).`,
-    );
-  }
-  const single = hasOne;
-  const commands = single ? [def.command!] : def.commands!;
-  const wordy = [...(["ambiguous", "personOnly", "groups"] as const).filter((k) => def[k] !== undefined), ...(single && def.command!.aliases?.length ? ["aliases"] : [])];
+  const hasMany = def.commands !== undefined;
+  if (!hasOne && !hasMany) throw new Error(`${def.name}: defineCli needs command (one thing to do) or commands (several). Fix: command: defineCommand({ name: "<name>", summary: "<what it does>", effect: "private", run }).`);
+  const single = hasOne && !hasMany;
+  const defaultCommand = def.command ?? null;
+  const named = def.commands ?? [];
+  const commands = defaultCommand ? [defaultCommand, ...named] : named;
+  const wordy = [...(["ambiguous", "personOnly", "groups"] as const).filter((k) => def[k] !== undefined), ...(single && defaultCommand?.aliases?.length ? ["aliases"] : [])];
   if (single && wordy.length) throw new Error(`${def.name}: ${wordy.join(", ")} name command words, and a tool with command has none. Fix: remove ${wordy.length > 1 ? "them" : "it"}, or define commands instead.`);
+  if (!single && defaultCommand?.aliases?.length) throw new Error(`${def.name}: aliases name command words, and the default command takes none. Fix: remove them from command.`);
   const cli: Cli<C> = {
     name: def.name,
     about: def.about,
     commands,
     single,
+    defaultCommand,
     exits: def.exits ?? defineExitCodes(BASE_EXIT_CODES),
     headings: def.headings ?? DEFAULT_HEADINGS,
     globalFlags: def.voice && !def.globalFlags?.["quiet"] ? { ...def.globalFlags, quiet: QUIET_FLAG } : (def.globalFlags ?? {}),
@@ -308,14 +322,19 @@ function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
   if (def.voice) checkVoice(def.name, def.voice);
   for (const names of [cli.outcomeExits, cli.waitExits]) for (const name of Object.values(names)) cli.exits.code(name);
   const seen = new Set<string>();
-  for (const cmd of cli.commands) {
+  for (const cmd of named) {
     for (const n of [cmd.name, ...(cmd.aliases ?? [])]) {
       if (seen.has(n)) throw new Error(`${def.name}: two commands are named "${n}". Fix: rename one.`);
       seen.add(n);
     }
+  }
+  for (const cmd of cli.commands) {
     const args = cmd.args ?? [];
     const flags = flagsOf(cli, cmd);
-    const where = single ? def.name : `${def.name} ${cmd.name}`;
+    const where = cmd === defaultCommand ? def.name : `${def.name} ${cmd.name}`;
+    for (const [name, spec] of Object.entries(flags)) {
+      if (spec.repeat !== undefined && (spec.repeat !== true || spec.type !== "string")) throw new Error(`${where}: --${name} takes repeat only as true on a string flag. Fix: type: "string" with repeat: true, or leave repeat out.`);
+    }
     if (cmd.self && typeof cmd.self.owner !== "function") throw new Error(`${where}: self needs owner, which says whose item a call names. Fix: self: { owner: (input) => <the agent that owns the item> }.`);
     if (cmd.self?.instead !== undefined && (typeof cmd.self.instead !== "string" || !cmd.self.instead.trim() || /[\r\n]/.test(cmd.self.instead))) throw new Error(`${where}: self.instead needs one line. Fix: instead: "${[...commandWords(cli, cmd), "<agent>", "--agent", "<agent>"].join(" ")}", or leave it out.`);
     args.forEach((a, i) => {
@@ -368,13 +387,15 @@ function placeholderOf(name: string, spec: FlagSpec): string {
   return `<${name}>`;
 }
 
-/** `--name <value>`, or `--name` for a boolean. */
+/** `--name <value>`, or `--name` for a boolean; a repeat flag's value ends in `...`, as a rest argument's does. */
 function flagUsage(name: string, spec: FlagSpec): string {
-  return spec.type === "boolean" ? `--${name}` : `--${name} ${placeholderOf(name, spec)}`;
+  if (spec.type === "boolean") return `--${name}`;
+  const usage = `--${name} ${placeholderOf(name, spec)}`;
+  return spec.repeat ? `${usage}...` : usage;
 }
 
 /** The command's usage line from its definition: words, arguments, required flags, then the optional ones. */
-function usageOf(cli: Pick<Cli, "globalFlags" | "single">, cmd: CommandDef): string {
+function usageOf(cli: Pick<Cli, "globalFlags" | "defaultCommand">, cmd: CommandDef): string {
   const flags = Object.entries(flagsOf(cli, cmd)).filter(([name]) => !(name in BUILTIN_FLAGS) && !(name in cli.globalFlags));
   const required = flags.filter(([, s]) => s.required).map(([n, s]) => flagUsage(n, s));
   const optional = flags.filter(([, s]) => !s.required).map(([n, s]) => `[${flagUsage(n, s)}]`);
@@ -398,10 +419,11 @@ interface HelpAsked {
   command?: CommandDef;
 }
 
-/** The command the leading words name (the longest match), and how many words it took. */
-function findCommand(cli: Pick<Cli, "commands">, words: readonly string[]): { command: CommandDef; used: number } | null {
+/** The command the leading words name (the longest match), and how many words it took. The default command is word-less, so findCommand skips it. */
+function findCommand(cli: Pick<Cli, "commands" | "defaultCommand">, words: readonly string[]): { command: CommandDef; used: number } | null {
   let best: { command: CommandDef; used: number } | null = null;
   for (const command of cli.commands) {
+    if (command === cli.defaultCommand) continue;
     for (const name of [command.name, ...(command.aliases ?? [])]) {
       const w = wordsOf(name);
       if (w.length <= words.length && w.every((x, i) => words[i] === x) && (!best || w.length > best.used)) best = { command, used: w.length };
@@ -429,7 +451,11 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
     if (!spec) break;
     lead += spec.type !== "boolean" && !t.includes("=") ? 2 : 1;
   }
-  const tokens = [...argv.slice(lead), ...argv.slice(0, lead)];
+  // The leading globals move after the command's words, but before a `--`, so they stay flags.
+  const after = argv.slice(lead);
+  const dash = after.indexOf("--");
+  const split = dash === -1 ? after.length : dash;
+  const tokens = [...after.slice(0, split), ...argv.slice(0, lead), ...after.slice(split)];
   const json = tokens.includes("--json");
   /** Whether --help or -h is asked, and not as the value of a flag before it (`--category -h`). */
   const helpIn = (flags: Readonly<Record<string, FlagSpec>>) =>
@@ -444,19 +470,23 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
     leading.push(t);
   }
   if (leading[0] === "help") return { kind: "help", topic: leading.slice(1).join(" ") || undefined, json };
-  // A tool with one command has no command words, so there is nothing to lack: its tokens are the command's own.
-  if (leading.length === 0 && !cli.single) {
+  // A tool with a default command, or one command with no word, has nothing to lack: its tokens are the default's own.
+  if (leading.length === 0 && !cli.defaultCommand) {
     if (helpIn(globals)) return { kind: "help", topic: undefined, json };
     throw new AxError({ code: "no-command", exit: usage(cli), thing: cli.name, problem: "no command given", fix: `${cli.name} --help` });
   }
-  const found = cli.single ? { command: cli.commands[0]!, used: 0 } : findCommand(cli, leading);
+  const found = findCommand(cli, leading) ?? (cli.defaultCommand ? { command: cli.defaultCommand, used: 0 } : null);
   const refused = ambiguousWord(cli, leading);
   if (refused && (!found || wordsOf(refused).length > found.used)) throw ambiguousError(cli, refused, tokens.slice(wordsOf(refused).length));
   const theirs = longestKey(cli.personOnly, leading);
   if (theirs && (!found || wordsOf(theirs).length > found.used)) throw personOnlyError(cli, theirs);
   if (!found) throw unknownCommand(cli, leading);
   const { command, used } = found;
-  if (helpIn(flagsOf(cli, command))) return { kind: "help", topic: command.name, json, command };
+  if (helpIn(flagsOf(cli, command))) {
+    // A tool with a default command shows its overview for --help, which lists the default and its commands.
+    if (command === cli.defaultCommand && !cli.single) return { kind: "help", topic: undefined, json };
+    return { kind: "help", topic: command.name, json, command };
+  }
   const words = tokens.slice(0, used);
   const rest = tokens.slice(used);
   const flags = flagsOf(cli, command);
@@ -521,7 +551,7 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
         fix: near ? at(i, [`--${near}${inline === undefined ? "" : `=${inline}`}`]) : at(i, [], span),
       });
     }
-    if (Object.hasOwn(input, name)) throw new AxError({ code: "duplicate-flag", exit: usage(cli), thing, problem: `--${name} is given twice`, fix: at(i, [], spec.type === "boolean" || inline !== undefined ? 1 : 2) });
+    if (Object.hasOwn(input, name) && !spec.repeat) throw new AxError({ code: "duplicate-flag", exit: usage(cli), thing, problem: `--${name} is given twice`, fix: at(i, [], spec.type === "boolean" || inline !== undefined ? 1 : 2) });
     if (spec.type === "boolean") {
       if (inline !== undefined && inline !== "true" && inline !== "false") throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} takes no value`, fix: at(i, [`--${name}`]) });
       input[name] = inline !== "false";
@@ -535,7 +565,9 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
       raw = next;
       i++;
     }
-    input[name] = valueOf(cli, thing, name, spec, raw, (replacement) => at(start, [`--${name}`, replacement], i - start + 1));
+    const value = valueOf(cli, thing, name, spec, raw, (replacement) => at(start, [`--${name}`, replacement], i - start + 1));
+    // A repeat flag keeps each value in the order given; any other flag keeps the one value it was given.
+    input[name] = spec.repeat ? [...((input[name] as readonly string[] | undefined) ?? []), String(value)] : value;
   }
   const args = command.args ?? [];
   const given = [...positional];
@@ -758,11 +790,12 @@ function inputSchema(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): JsonSchema
   for (const [name, spec] of Object.entries(flagsOf(cli, cmd))) {
     if (name in BUILTIN_FLAGS || spec === QUIET_FLAG) continue;
     const unless = unlessOf(spec);
-    const type = spec.type === "boolean" ? "boolean" : spec.type === "number" ? "number" : spec.type === "list" ? "array" : "string";
+    const array = spec.type === "list" || spec.repeat === true;
+    const type = spec.type === "boolean" ? "boolean" : spec.type === "number" ? "number" : array ? "array" : "string";
     const s: JsonSchema & { type: string } = { type, description: spec.description + (unless.length ? ` Not needed with ${unless.join(" or ")}.` : "") };
     if (spec.min !== undefined) s.minimum = spec.min;
     if (spec.max !== undefined) s.maximum = spec.max;
-    if (spec.type === "list") s.items = { type: "string" };
+    if (array) s.items = { type: "string" };
     if (spec.values) s.enum = spec.values;
     properties[name] = s;
     if (spec.required && !unlessOf(spec).length) required.push(name);
@@ -841,7 +874,7 @@ function checkInput(cli: Cli, cmd: CommandDef, raw: unknown, thing: string = cmd
  * The argv that runs a command with this input, the way an agent would type it; the first stdin-capable argument's
  * text goes on stdin ("-"), so text that starts with "-" or spans lines passes whole.
  */
-function toArgv(cli: Pick<Cli, "globalFlags" | "single">, cmd: CommandDef, input: Input): { argv: string[]; stdin: string | null } {
+function toArgv(cli: Pick<Cli, "globalFlags" | "defaultCommand">, cmd: CommandDef, input: Input): { argv: string[]; stdin: string | null } {
   const argv = commandWords(cli, cmd);
   let stdin: string | null = null;
   for (const a of cmd.args ?? []) {
@@ -862,6 +895,8 @@ function toArgv(cli: Pick<Cli, "globalFlags" | "single">, cmd: CommandDef, input
     if (value === undefined || name in BUILTIN_FLAGS || spec === QUIET_FLAG) continue;
     if (spec.type === "boolean") {
       if (value === true) argv.push(`--${name}`);
+    } else if (spec.repeat) {
+      for (const v of [value].flat().map(String)) argv.push(`--${name}`, v);
     } else argv.push(`--${name}`, Array.isArray(value) ? value.join(",") : String(value));
   }
   return { argv, stdin };

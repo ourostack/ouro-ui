@@ -74,6 +74,7 @@ interface Cli<C extends RunContext = RunContext> {
   readonly about: readonly string[];
   readonly commands: readonly CommandDef<unknown, C>[];
   readonly single: boolean;
+  readonly defaultCommand: CommandDef<unknown, C> | null;
   readonly exits: ExitTable;
   readonly headings: EffectHeadings;
   readonly globalFlags: Readonly<Record<string, FlagSpec>>;
@@ -88,11 +89,10 @@ interface Cli<C extends RunContext = RunContext> {
 
 ### `CliDef`
 
-A tool is defined either with `command`, its one thing to do, which takes no command word (`ouro-images <folder>`), or with `commands`, several words that each name a command. Give exactly one; `defineCli` refuses both or neither.
+A tool is defined with `command`, its one thing to do, which takes no command word (`ouro-images <folder>`); with `commands`, several command words (`tasks assign`); or with both. With both, `command` is the default: it runs when no command word leads (`ouro-check <url>`), and a target named like a command word goes after `--`. `defineCli` refuses neither.
 
 ```ts
-type CliDef<C extends RunContext = RunContext> = CliDefBase &
-  ({ command: CommandDef<unknown, C>; commands?: undefined } | { commands: readonly CommandDef<unknown, C>[]; command?: undefined });
+type CliDef<C extends RunContext = RunContext> = CliDefBase & ({ command: CommandDef<unknown, C>; commands?: readonly CommandDef<unknown, C>[] } | { commands: readonly CommandDef<unknown, C>[]; command?: undefined });
 ```
 
 ### `CommandDef`
@@ -123,10 +123,10 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
 
 ### `commandWords`
 
-The words a command adds after the tool's name: its name's words, or none for a tool defined with `command`.
+The words a command adds after the tool's name: its name's words, or none for the default command, which takes no word.
 
 ```ts
-function commandWords(cli: Pick<Cli<RunContext>, "single">, cmd: CommandDef<unknown, RunContext>): string[]
+function commandWords(cli: Pick<Cli<RunContext>, "defaultCommand">, cmd: CommandDef<unknown, RunContext>): string[]
 ```
 
 ### `defineCli`
@@ -153,10 +153,10 @@ function exampleArgv(tool: string, example: string): string[] | null
 
 ### `findCommand`
 
-The command the leading words name (the longest match), and how many words it took.
+The command the leading words name (the longest match), and how many words it took. The default command is word-less, so findCommand skips it.
 
 ```ts
-function findCommand(cli: Pick<Cli<RunContext>, "commands">, words: readonly string[]): { command: CommandDef<unknown, RunContext>; used: number; } | null
+function findCommand(cli: Pick<Cli<RunContext>, "defaultCommand" | "commands">, words: readonly string[]): { command: CommandDef<unknown, RunContext>; used: number; } | null
 ```
 
 ### `flagsOf`
@@ -181,6 +181,7 @@ interface FlagSpec {
   stdin?: boolean;
   unless?: string | readonly string[];
   sensitive?: boolean;
+  repeat?: true;
 }
 ```
 
@@ -194,7 +195,7 @@ type FlagType = "boolean" | "string" | "number" | "enum" | "list";
 
 ### `flagUsage`
 
-`--name <value>`, or `--name` for a boolean.
+`--name <value>`, or `--name` for a boolean; a repeat flag's value ends in `...`, as a rest argument's does.
 
 ```ts
 function flagUsage(name: string, spec: FlagSpec): string
@@ -236,7 +237,7 @@ type InputValue = string | number | boolean | readonly string[];
 The tool's name and the command's words, as a fix or a help line writes them: `ouro-images`, or `tasks assign`.
 
 ```ts
-function invocation(cli: Pick<Cli<RunContext>, "name" | "single">, cmd: CommandDef<unknown, RunContext>): string
+function invocation(cli: Pick<Cli<RunContext>, "name" | "defaultCommand">, cmd: CommandDef<unknown, RunContext>): string
 ```
 
 ### `JsonSchema`
@@ -324,7 +325,7 @@ interface SelfScope<C extends RunContext = RunContext> {
 The argv that runs a command with this input, the way an agent would type it; the first stdin-capable argument's text goes on stdin ("-"), so text that starts with "-" or spans lines passes whole.
 
 ```ts
-function toArgv(cli: Pick<Cli<RunContext>, "single" | "globalFlags">, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>): { argv: string[]; stdin: string | null; }
+function toArgv(cli: Pick<Cli<RunContext>, "defaultCommand" | "globalFlags">, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>): { argv: string[]; stdin: string | null; }
 ```
 
 ### `usageOf`
@@ -332,5 +333,5 @@ function toArgv(cli: Pick<Cli<RunContext>, "single" | "globalFlags">, cmd: Comma
 The command's usage line from its definition: words, arguments, required flags, then the optional ones.
 
 ```ts
-function usageOf(cli: Pick<Cli<RunContext>, "single" | "globalFlags">, cmd: CommandDef<unknown, RunContext>): string
+function usageOf(cli: Pick<Cli<RunContext>, "defaultCommand" | "globalFlags">, cmd: CommandDef<unknown, RunContext>): string
 ```

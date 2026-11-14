@@ -165,3 +165,19 @@ test("a tool with one command offers one MCP tool, named after the tool, with th
   const wrong = (await single({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "images", arguments: {} } })) as { result: { isError: boolean; structuredContent: { error: { fix: string } } } };
   assert.deepEqual([wrong.result.isError, wrong.result.structuredContent.error.fix], [true, "ouro-images"]);
 });
+
+test("a default command is the tool itself, named after it, beside the tools its commands name", () => {
+  const tool = defineCli({
+    name: "ouro-check",
+    about: [],
+    command: defineCommand({ name: "check", summary: "Checks.", effect: "private", args: [{ name: "target", description: "T.", rest: "list", required: true }], run: () => null }),
+    commands: [defineCommand({ name: "draft set", summary: "Sets.", effect: "private", run: () => null })],
+  });
+  assert.deepEqual(
+    mcpTools({ cli: tool }).map((t) => [t.name, t.title]),
+    [
+      ["ouro-check", "ouro-check"],
+      ["draft_set", "ouro-check draft set"],
+    ],
+  );
+});
