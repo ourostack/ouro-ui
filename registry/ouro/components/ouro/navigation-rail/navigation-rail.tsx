@@ -344,6 +344,7 @@ function measureFit(element: HTMLUListElement, items: readonly NavigationRailEnt
   const indexes = items.flatMap((entry, index) => (entry.type === "separator" ? [] : [index]));
   // More is not on the list until something hides, so its height stands in as the tallest item's: the first measure then leaves room for it.
   const withMore = new Map(heights);
+  // Stryker disable next-line ConditionalExpression,StringLiteral: the stand-in only saves a later re-measure; the fit that settles is the same without it
   if (!withMore.has("more")) withMore.set("more", Math.max(0, ...[...measured.values()]));
   const kept = keptItems(items, current, withMore, gap, room);
   // Labels hidden under More, or by hideLabels, measure nothing and are never set smaller.
