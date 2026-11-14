@@ -19,6 +19,9 @@ on:
       - scripts/platform-versions.mjs
       - scripts/parity-rows.mjs
       - scripts/parity-data/**
+      - docs/platforms/parity.md
+      - scripts/parity-matrix.mjs
+      - registry/ouro/components/ouro/*/component.json
       - .github/workflows/apple-release.yml
   pull_request:
     paths:
@@ -30,6 +33,9 @@ on:
       - scripts/platform-versions.mjs
       - scripts/parity-rows.mjs
       - scripts/parity-data/**
+      - docs/platforms/parity.md
+      - scripts/parity-matrix.mjs
+      - registry/ouro/components/ouro/*/component.json
       - .github/workflows/apple-release.yml
   workflow_dispatch:
 permissions:
@@ -45,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      behind: ${{ steps.compare.outputs.behind == 'true' || steps.versions.outputs.behind == 'true' }}
+      behind: ${{ steps.compare.outputs.behind == 'true' || steps.versions.outputs.behind == 'true' || steps.parity.outputs.behind == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -59,6 +65,9 @@ jobs:
             scripts/platform-versions.mjs
             scripts/parity-rows.mjs
             scripts/parity-data
+            docs/platforms/parity.md
+            scripts/parity-matrix.mjs
+            registry/ouro/components/ouro/*/component.json
           sparse-checkout-cone-mode: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -83,6 +92,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/platform-versions.mjs --live
+      - name: The parity matrix's platforms are GitHub's
+        # scripts/parity-data/platforms.json (Apple's components, and whether an Android or Windows kit exists) against GitHub,
+        # and the parity page against it. Exits 1 on drift (fix with node scripts/parity-matrix.mjs --write), 2 when
+        # the API cannot be read.
+        id: parity
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/parity-matrix.mjs --live
   report:
     # One issue for a page behind on main, opened or commented on at most daily (scripts/scheduled-failure.sh).
     needs: [compare]
@@ -101,4 +119,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           QUIET_HOURS: 24
-        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple or Platforms pages state a version other than the newest release of ouro-ui-apple or ouro-ui-core"
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple or Platforms pages state a version other than the newest release of ouro-ui-apple or ouro-ui-core, or the parity matrix misses a platform's component or kit"
