@@ -35,6 +35,17 @@ describe("Tabs layout reads", () => {
     const root = createRoot(host);
     roots.push(root);
     await act(async () => root.render(<Screen count={0} />));
+    // Base UI's TabsList observes the list's size, and a ResizeObserver reports once after it starts
+    // observing, at the next rendering step: the indicator measures then. Let that pass first, so the
+    // watch sees only what the commits below cause, not a first report that came late.
+    const observed = new Promise<void>((resolve) => {
+      const observer = new ResizeObserver(() => (observer.disconnect(), resolve()));
+      observer.observe(host.querySelector("[role='tablist']")!);
+    });
+    await act(async () => {
+      await observed;
+      await new Promise((frame) => requestAnimationFrame(() => requestAnimationFrame(frame)));
+    });
     const watch = watchLayoutReads();
     await act(async () => root.render(<Screen count={1} />));
     await act(async () => root.render(<Screen count={2} />));
