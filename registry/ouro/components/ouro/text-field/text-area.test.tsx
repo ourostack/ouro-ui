@@ -283,6 +283,25 @@ describe("TextArea autoGrow", () => {
     expect(supportsFieldSizing()).toBe(chromium);
   });
 
+  it("measures with fitHeight when the user agent is Safari, clearing what the native path set, and back again", async () => {
+    const safari = "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+    const agent = vi.spyOn(navigator, "userAgent", "get").mockReturnValue(safari);
+    const { textarea, rerender } = await render(<TextArea label="Notes" autoGrow rows={1} maxRows={4} defaultValue={"a\nb\nc"} />);
+    expect(textarea.style.getPropertyValue("field-sizing")).toBe("");
+    expect(textarea.style.minHeight).toBe("");
+    expect(textarea.style.maxHeight).toBe("");
+    expect(textarea.style.height).not.toBe("");
+    expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+    agent.mockRestore();
+    await rerender(<TextArea label="Notes" autoGrow rows={1} maxRows={4} defaultValue={"a\nb\nc"} />);
+    if (supportsFieldSizing()) expect(textarea.style.getPropertyValue("field-sizing")).toBe("content");
+    await rerender(<TextArea label="Notes" rows={2} defaultValue={"a\nb\nc"} />);
+    expect(textarea.style.height).toBe("");
+    expect(textarea.style.getPropertyValue("field-sizing")).toBe("");
+    expect(textarea.style.minHeight).toBe("");
+    expect(textarea.style.maxHeight).toBe("");
+  });
+
   it("hands the height to the browser: it clears the inline height and overflow, and caps only with maxRows", async () => {
     const { textarea } = await render(<TextArea label="Notes" rows={2} />);
     textarea.style.height = "99px";
