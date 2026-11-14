@@ -322,7 +322,7 @@ export const HAND_DRAWN_HERO_FIX =
   "Use Hero from the registry (`<Hero title=\"...\" picture={{ light, dark }} />`), so its light and dark art, squircle frame and layout, and any change to heroes, reach this one too.";
 /** What the hand-drawn-corner rule tells an app to do. */
 export const HAND_DRAWN_CORNER_FIX =
-  "Take the radius from the theme: a scale class (rounded-md, rounded-lg, rounded-xl) or var(--radius), so it takes the squircle corner shape (--ouro-corner-shape) and the raised radius with every other corner. A circle stays rounded-full, and a deliberate round corner is [corner-shape:round].";
+  "Take the radius from the theme: a scale class (rounded-md, rounded-lg, rounded-xl) or var(--radius), in a class, an inline style or a stylesheet, so it takes the squircle corner shape (--ouro-corner-shape) and the raised radius with every other corner. A circle, dot, thumb, ring or pill stays rounded-full; rounded-full on a large box that is not one takes the scale instead. A deliberate round corner is [corner-shape:round].";
 /** What the hand-drawn-switch rule tells an app to do. */
 export const HAND_DRAWN_SWITCH_FIX =
   "Use Switch from the registry (`<Switch label=\"...\" checked={on} onCheckedChange={setOn} />`), so it gets the Quiet glass look (the --ouro-glass tokens), focus, touch target and any change to switches.";
@@ -1026,6 +1026,41 @@ const fixedRadius = (token) => {
   return value !== undefined && !CIRCLE_RADIUS.test(value.replace(/_/g, " "));
 };
 
+const RADIUS_PROPERTY = /^border(?:(?:Top|Bottom)(?:Left|Right)|(?:Start|End)(?:Start|End))?Radius$/;
+const RADIUS_DECLARATION = /^border(?:-(?:top|bottom)-(?:left|right)|-(?:start|end)-(?:start|end))?-radius$/i;
+// A radius value that follows the theme, is a circle or is zero; anything else is a hand-set corner.
+const themedRadius = (value) => {
+  const text = value.trim().replace(/\s+/g, " ");
+  return /^(?:inherit|initial|unset|revert)$/i.test(text) || /var\(|^calc\(var/.test(text) || text.split(/[\s/]+/).every((part) => CIRCLE_RADIUS.test(part));
+};
+// Whether an inline style object sets a corner radius by hand (`style={{ borderRadius: 12 }}`).
+function inlineRadius(initializer) {
+  const expression = initializer && ts.isJsxExpression(initializer) ? initializer.expression : initializer;
+  return [...objectAttributes(expression && ts.isObjectLiteralExpression(expression) ? expression : undefined)].some(([name, value]) => {
+    if (!RADIUS_PROPERTY.test(name)) return false;
+    if (ts.isNumericLiteral(value)) return Number(value.text) !== 0;
+    if (ts.isStringLiteralLike(value)) return !themedRadius(value.text);
+    return false;
+  });
+}
+// `rounded-full` on a box that is not a dot, pill, thumb or ring: a block that is wide and tall (both
+// sides over 48px, and not alike), or a structural element. Squares, small pills and pictures are round parts.
+const ROUND_PART_MARKER = /(?:^|[-_:\s])(?:dot|thumb|ring|pill|badge|avatar|spinner|circle|chip|tag|knob|handle|track|bar)(?:$|[-_\s])/i;
+const STRUCTURAL_TAG = /^(?:section|article|main|aside|header|footer|nav|form|table|ul|ol|li|p|h[1-6])$/;
+function roundedBlock(tokens, tag, classStrings) {
+  if (!tokens.includes("rounded-full") || tokens.some((token) => SPIN_CLASS.test(token))) return false;
+  if (tag === "img" || tokens.some((token) => ROUND_PART_MARKER.test(token)) || classStrings.some((text) => ROUND_PART_MARKER.test(text))) return false;
+  if (STRUCTURAL_TAG.test(tag) && tokens.some((token) => /^(?:p|px|py|min-h|min-w|w|h)-/.test(token))) return true;
+  const sizes = new Map();
+  for (const token of tokens) {
+    const match = SIZE_STEP.exec(token);
+    if (match) sizes.set(token.split("-")[0], Number(match[1]));
+  }
+  const h = sizes.get("size") ?? sizes.get("h");
+  const w = sizes.get("size") ?? sizes.get("w");
+  return h !== undefined && w !== undefined && h !== w && Math.min(h, w) > 12;
+}
+
 const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
 
 // Failure copy: the attributes and object properties whose values are not copy, a string that is
@@ -1662,7 +1697,10 @@ function scanScript(module, resolver, failureCopyAllow) {
       if (drawn) offenders.push({ category: drawn, fingerprint: [file, componentName(node), drawn, control.display, props].join("::"), file, line: lineOf(node) });
     }
     // Counted where it is written, like a spinner. Only an intrinsic element counts, so a registry component and its className never do.
-    if (control.tags.length === 1 && fixedRadiusIn(classStrings)) {
+    if (
+      control.tags.length === 1 &&
+      (fixedRadiusIn(classStrings) || inlineRadius(attributes.get("style")) || roundedBlock(baseTokens(classStrings), control.tags[0], classStrings))
+    ) {
       offenders.push({ category: "hand-drawn-corner", fingerprint: [file, componentName(node), "hand-drawn-corner", control.display, props].join("::"), file, line: lineOf(node) });
     }
   };
@@ -1825,6 +1863,15 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
         const found = token && layoutAnimationClass(token);
         if (found) addLayout(node, scope, `@apply ${token}`);
       }
+    }
+    if (node.type === "decl" && RADIUS_DECLARATION.test(node.prop) && !themedRadius(node.value) && !ROUND_PART_MARKER.test(rules.join(" "))) {
+      const scope = rules.join(" ");
+      offenders.push({
+        category: "hand-drawn-corner",
+        fingerprint: [file, "(stylesheet)", "hand-drawn-corner", scope, node.prop].join("::"),
+        file,
+        line: node.source.start.line,
+      });
     }
     if (node.type === "decl" && /^(?:-webkit-)?transition(?:-property)?$/i.test(node.prop)) {
       const found = layoutTransitionProperty(node.value, { list: /property$/i.test(node.prop) });
