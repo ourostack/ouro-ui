@@ -59,9 +59,22 @@ export interface HeroPicture {
   sizes?: string;
   /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. In `{ light, dark }`, see `HeroPictures` for how each twin loads. */
   priority?: boolean;
-  /** A wide aspect ratio, such as `"8 / 3"`, applied on wider screens. Without it the picture keeps its own ratio. */
+  /**
+   * A wide aspect ratio, such as `"8 / 3"`, applied on wider screens in the stage and column
+   * layouts. Without it the picture keeps its own ratio, as it does on a phone and in the split
+   * layout, so a wide crop never cuts the subject in the split layout's narrower column.
+   *
+   * @claim "as it does on a phone and in the split" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the whole picture in the split layout, so a wide crop never cuts its subject in the narrower column)
+   */
   crop?: string;
-  /** The `object-position` used when the picture is cropped. @default "50% 42%" */
+  /**
+   * The focal point kept in view when the picture is cropped, as an `object-position`, such as
+   * `"50% 80%"` for a subject near the bottom. Set it on each picture: the dark one takes the
+   * light one's unless it has its own.
+   *
+   * @claim "the dark one takes the light one's unless it has its own" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > gives the dark picture the light one's focus unless it has its own)
+   * @default "50% 42%"
+   */
   focus?: string;
 }
 
@@ -73,7 +86,7 @@ export interface HeroPicture {
  * system setting redefines it, as the theming guide shows, and Hero follows.
  *
  * `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so
- * without its own `alt` or `decorative` it takes `light`'s.
+ * without its own `alt`, `decorative` or `focus` it takes `light`'s.
  *
  * `priority` decides how the twin that shows loads. A twin without it is lazy, and a hidden lazy
  * image is never fetched. Give `priority` to the twin most of your visitors see, and it loads
@@ -276,7 +289,7 @@ function FirstPaintScript(): JSX.Element {
   return <script type={type} dangerouslySetInnerHTML={{ __html: firstPaintScript }} />;
 }
 
-// The dark twin is the same scene as `day`, so it takes day's alt text and decorative flag unless it has its own.
+// The dark twin is the same scene as `day`, so it takes day's alt text, decorative flag and focus unless it has its own.
 // `eager` loads it straight from the HTML; `urgent` fetches it first once it loads, and lets the script flip it.
 function renderPicture(
   picture: HeroPicture,
@@ -312,7 +325,7 @@ function renderPicture(
         decoding={load.urgent ? undefined : "async"}
         // The first-paint script may have set loading="eager" before React hydrates.
         suppressHydrationWarning={load.urgent}
-        style={{ objectPosition: picture.focus ?? "50% 42%" }}
+        style={{ objectPosition: picture.focus ?? day?.focus ?? "50% 42%" }}
         className={cn(
           "block h-auto w-full object-cover select-none",
           crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
@@ -445,7 +458,7 @@ export function Hero(props: HeroProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const crop = light?.crop;
+  const crop = layout === "split" ? undefined : light?.crop;
   const pictureStyle = light
     ? ({
         maxWidth: `${light.width}px`,
