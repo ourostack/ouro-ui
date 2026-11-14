@@ -929,7 +929,7 @@ test("a push to main whose commit the merge queue already tested runs only insta
   // heavy-queued, the heavy tier's notices, runs only on a pull request whose plan said heavy=queue,
   // which a push to main never does.
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1008,7 +1008,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-upgrade" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-upgrade" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
