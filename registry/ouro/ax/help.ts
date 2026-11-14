@@ -145,7 +145,11 @@ interface CommandManifest {
   hidden: boolean;
   /** `"self"` on a command an agent runs only on its own item (`--agent`); left out otherwise. */
   scope?: "self";
-  /** `true` on the one command of a tool defined with `command`: its usage and calls take no command word. */
+  /**
+   * `true` on the one command of a tool defined with `command`: its usage and calls take no command word.
+   *
+   * @claim "its usage and calls take no command word" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a tool with one command runs with no command word, and its output, help and refusals name none)
+   */
   single?: true;
 }
 

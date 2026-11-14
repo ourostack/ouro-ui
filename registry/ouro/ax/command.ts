@@ -129,7 +129,9 @@ interface SelfScope<C extends RunContext = RunContext> {
 interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   /**
    * One or more words: "today", "draft set". A tool defined with `command` takes no command word, so its name labels its
-   * errors and `help --json` only, and is never typed.
+   * errors and `help --json` only.
+   *
+   * @claim "takes no command word" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
    */
   name: string;
   aliases?: readonly string[];
@@ -209,7 +211,11 @@ interface Cli<C extends RunContext = RunContext> {
   readonly about: readonly string[];
   /** The tool's commands; a tool defined with `command` has exactly that one. */
   readonly commands: readonly CommandDef<unknown, C>[];
-  /** Whether the tool was defined with `command`: its one command takes no command word. */
+  /**
+   * Whether the tool was defined with `command`: its one command takes no command word.
+   *
+   * @claim "its one command takes no command word" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
+   */
   readonly single: boolean;
   readonly exits: ExitTable;
   readonly headings: EffectHeadings;
@@ -243,7 +249,11 @@ function defineCommand<R, C extends RunContext = RunContext>(def: CommandDef<R, 
 const wordsOf = (name: string) => name.split(" ");
 const unlessOf = (spec: { unless?: string | readonly string[] }): readonly string[] => (spec.unless === undefined ? [] : typeof spec.unless === "string" ? [spec.unless] : spec.unless);
 
-/** The words a command adds after the tool's name: its name's words, or none for a tool defined with `command`. */
+/**
+ * The words a command adds after the tool's name: its name's words, or none for a tool defined with `command`.
+ *
+ * @claim "or none for a tool defined with" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
+ */
 function commandWords(cli: Pick<Cli, "single">, cmd: CommandDef): string[] {
   return cli.single ? [] : wordsOf(cmd.name);
 }

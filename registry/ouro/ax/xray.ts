@@ -475,7 +475,11 @@ const refusedNote = (safety: Safety) => `not run: the target is not proven a moc
 
 interface CliCommand {
   name: string;
-  /** The words a call starts with: none for the one command of a tool defined with `command` (`single` in help JSON). */
+  /**
+   * The words a call starts with: none for the one command of a tool defined with `command` (`single` in help JSON).
+   *
+   * @claim "none for the one command of a tool defined with" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::a tool with one command conforms: its reads take the folder with no command word, and its help names none)
+   */
   words: string[];
   effect: string | null;
   readOnly: boolean | null;
@@ -567,7 +571,11 @@ async function checkCli(ctx: Context) {
   }
   const names = commands.map((c) => c.name);
   const unique = [...new Set(names)];
-  /** A tool with one command: its command has no words, so every word is an argument. */
+  /**
+   * A tool with one command takes its tokens as the command's arguments.
+   *
+   * @claim "takes its tokens as the command's arguments" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::a tool with one command conforms: its reads take the folder with no command word, and its help names none)
+   */
   const single = commands.some((c) => c.words.length === 0);
   recordInventory(rec, "cli.inventory", ctx.inventory?.cli ? compareInventory(ctx.inventory.cli, names) : null, "help --json");
 
@@ -876,7 +884,11 @@ async function checkCli(ctx: Context) {
     return w[0] === name ? w.slice(1) : w;
   };
   const listed = help ? commands : [];
-  /** The command the leading words name, the longest first, as help --json lists it (none for a one-command tool's words). */
+  /**
+   * The command the leading words name, the longest first, as help --json lists it (none for a one-command tool's words).
+   *
+   * @claim "none for a one-command tool's words" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::a tool with one command conforms: its reads take the folder with no command word, and its help names none)
+   */
   const commandOf = (ws: readonly string[]): CliCommand | null => {
     for (let n = ws.length; n >= 0; n--) {
       const found = listed.find((c) => c.words.join(" ") === ws.slice(0, n).join(" "));
