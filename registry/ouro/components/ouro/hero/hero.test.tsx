@@ -134,6 +134,16 @@ describe("Hero", () => {
     expect(header.className).not.toContain("grid-cols-");
   });
 
+  it("runs the lede the full width of the text column in each layout", async () => {
+    await page.viewport(1440, 900);
+    const lede = "Plan the week, shop once and cook with what you already have, so dinner is never a scramble and the fridge never fills with food you forgot you bought. ".repeat(3);
+    for (const layout of ["stage", "column", "split"] as const) {
+      const { header, part } = await render(<Hero title="Dinner" layout={layout} description={lede} />);
+      const column = header.firstElementChild!.getBoundingClientRect().width;
+      expect(part("description")!.getBoundingClientRect().width).toBeCloseTo(column, 0);
+    }
+  });
+
   it("keeps stage and column media below the words on a wide screen", async () => {
     await page.viewport(1400, 900);
     for (const layout of ["stage", "column"] as const) {

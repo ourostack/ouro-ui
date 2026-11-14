@@ -31,7 +31,7 @@ Type: `HeroProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `actions` | `ReactNode` |  | The hero's buttons or links, such as Ouro buttons. |
-| `description` | `ReactNode` |  | The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as paragraphs or a list, is set in a `<div>` so it can hold blocks. |
+| `description` | `ReactNode` |  | The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the hero's text column, like the title. |
 | `eyebrow` | `ReactNode` |  | A short line above the title that says what kind of page this is. |
 | `headingLevel` | `1 \| 2` | `1` | The title's heading level: `1` for the page's headline, `2` when the hero heads a section. |
 | `layout` | `"stage" \| "column" \| "split"` | `"stage"` | `stage` centres the text over the picture; `column` aligns both to a reading column; `split` puts the copy and the media side by side from 64rem, and stacks them like `column` below that, for a page whose picture or live media belongs next to its words. |
