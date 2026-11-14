@@ -207,6 +207,8 @@ const overscan = 320;
 const firstView = 1000;
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
+// The shortest a row is assumed to be on the first frame, in pixels: rows shorter than the estimates still fill the view, so the window never grows once measured.
+const shortest = 40;
 const noHeights: ReadonlyMap<string, number> = new Map();
 // The default for sections: one array, so the rows are put in order again only when they or their sections change.
 const noSections: readonly ConversationListSection[] = [];
@@ -551,7 +553,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const heights = measured?.density === density ? measured.heights : noHeights;
   const { offsets, total } = useMemo(() => place(keys, heights, estimates[density]), [keys, heights, density]);
   // The first frame counts its rows from the estimates alone: counting from measured heights would grow the window after the first measurement.
-  const guessed = place(keys, noHeights, estimates[density]).offsets;
+  const guessed = place(keys, noHeights, Math.min(estimates[density], shortest)).offsets;
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
   const firstRows = guessed.filter((offset) => offset < firstView).length;
   const [start, end] = range ?? [0, firstRows];
