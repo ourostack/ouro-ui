@@ -1,0 +1,1 @@
+- Resizable hands its panels and handles the same context value while its panels, labels, sizes and options stay the same, so a re-render of the group no longer walks the content inside it.

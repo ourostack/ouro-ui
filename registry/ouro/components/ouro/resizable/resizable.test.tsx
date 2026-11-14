@@ -697,3 +697,37 @@ describe("Resizable development messages", () => {
     expect(error).not.toHaveBeenCalled();
   });
 });
+
+describe("Resizable context value", () => {
+  it("does not re-render a handle that reads the group when the group re-renders with the same panels", async () => {
+    const { Profiler, useState, memo } = await import("react");
+    let handleCommits = 0;
+    const Handle = memo(function Handle() {
+      return (
+        <Profiler id="handle" onRender={() => handleCommits++}>
+          <ResizableHandle />
+        </Profiler>
+      );
+    });
+    let bump = () => {};
+    const kids = [
+      <ResizablePanel key="a" label="A" defaultSize={30}>
+        a
+      </ResizablePanel>,
+      <Handle key="h" />,
+      <ResizablePanel key="b" label="B">
+        b
+      </ResizablePanel>,
+    ];
+    function Host() {
+      const [, set] = useState(0);
+      bump = () => set((n) => n + 1);
+      return <Resizable onLayout={() => {}}>{kids}</Resizable>;
+    }
+    await render(<Host />);
+    const before = handleCommits;
+    expect(before).toBeGreaterThan(0);
+    await act(async () => bump());
+    expect(handleCommits).toBe(before);
+  });
+});
