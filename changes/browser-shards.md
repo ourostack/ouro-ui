@@ -1,0 +1,1 @@
+- Browser tests run in more parallel shards, so a pull request's slowest browser job finishes sooner.
