@@ -9,6 +9,7 @@ import { assemble } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
 
 // The workflows publish the registry and push to the repository, so what they run must not
@@ -800,8 +801,7 @@ test("a release checks last that Pages serves the tag's @ouro namespace byte for
 });
 
 test("the release runs the public-registry tests with the script tests", () => {
-  const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts["test:scripts"];
-  assert.match(scripts, / scripts\/public-registry\.test\.mjs /);
+  assert.ok(scriptTestFiles().includes("scripts/public-registry.test.mjs"));
 });
 
 /** ci.yml's jobs, by name, each the text of its block. */
@@ -1119,7 +1119,7 @@ test("the script test shards run every file of pnpm test:scripts between them", 
   assert.match(block, new RegExp(`^ {6}SHARD: \\$\\{\\{ matrix\\.shard \\}\\}/${count}$`, "m"));
   assert.match(block, new RegExp(`^ {6}TIMINGS: \\.tmp/timings/scripts-\\$\\{\\{ matrix\\.shard \\}\\}of${count}\\.json$`, "m"));
   assert.match(stepScript(block, "Script tests"), /^node scripts\/run-script-tests\.mjs --test-reporter=spec --test-reporter-destination=stdout --test-reporter=\.\/scripts\/timings-node-reporter\.mjs --test-reporter-destination="\$TIMINGS" \$\(node scripts\/shard\.mjs scripts "\$SHARD"\)$/m);
-  const { readTimings, scriptTestFiles, shardKeys } = await import("./shard.mjs");
+  const { readTimings, shardKeys } = await import("./shard.mjs");
   const all = Array.from({ length: count }, (_, index) => shardKeys(scriptTestFiles(), { index: index + 1, count }, readTimings("scripts"))).flat();
   assert.deepEqual(all.sort(), scriptTestFiles().sort());
 });
@@ -1709,7 +1709,7 @@ test("the screen-reader packages are pinned exactly, and test:sr runs its own co
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   for (const name of ["@guidepup/guidepup", "@guidepup/playwright", "@guidepup/setup"]) assert.match(pkg.devDependencies[name] ?? "", /^\d+\.\d+\.\d+$/, name);
   assert.equal(pkg.scripts["test:sr"], "playwright test --config playwright.screen-reader.config.ts");
-  assert.match(pkg.scripts["test:scripts"], /scripts\/sr-classify\.test\.mjs/);
+  assert.ok(scriptTestFiles().includes("scripts/sr-classify.test.mjs"));
 });
 
 test("the site's end-to-end specs run against the build served as GitHub Pages serves it, over HTTP/2 and TLS", async () => {

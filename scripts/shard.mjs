@@ -3,7 +3,7 @@
 // to the shard with the least so far. The times are scripts/shard-timings.json, written from a CI
 // run's timing reports (`refresh`); a file it does not know yet weighs the median of every time it holds.
 //
-//   node scripts/shard.mjs scripts <index>/<count>   the test:scripts files of one shard, one per line
+//   node scripts/shard.mjs scripts <index>/<count>   the script test files of one shard, one per line
 //   node scripts/shard.mjs e2e <index>/<count> [<path>...]
 //                                                    the end-to-end spec files of one shard, of those
 //                                                    that are a <path> or under one when any is given
@@ -19,6 +19,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -115,12 +116,6 @@ export function browserBalance(count, extra = [], file = timingsFile) {
 
 /** A Vitest timing key's project, as Vitest names it: `ouro-touch (chromium)` of `ouro-touch (chromium) <path>`. */
 export const projectOf = (key) => key.slice(0, key.indexOf(") ") + 1);
-
-/** The files `pnpm test:scripts` runs, from package.json. */
-export function scriptTestFiles(rootDir = root) {
-  const script = JSON.parse(readFileSync(join(rootDir, "package.json"), "utf8")).scripts["test:scripts"];
-  return script.split(/\s+/).filter((word) => /\.test\.m?[jt]s$/.test(word));
-}
 
 /** The modules `file` (relative to `rootDir`) imports for their runtime, not for types only: the specifiers. */
 const runtimeImports = (file, rootDir) => [...readFileSync(join(rootDir, file), "utf8").matchAll(/^import (?!type )[^;]*?from "([^"]+)";/gms)].map((match) => match[1]);
