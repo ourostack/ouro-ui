@@ -82,7 +82,7 @@ export function SystemBand(): JSX.Element {
         {claim("One declaration generates the command line, MCP, WebMCP, web control, App Intent, SwiftUI button and Reins surfaces, and core's check fails an app's CI when a generated file drifts from it.", {
           source: { spec: "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md" },
           verify: [
-            { testExists: "scripts/platform-versions.test.mjs::the parity tables' copies are at core's newest release" },
+            { testExists: "scripts/platform-versions.test.mjs::the parity tables' copies are the release the Platforms pages name, which the Pages build sets to core's newest" },
             { count: "scripts/parity-data/actions.claims.json#claims", is: 5 },
             { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md" },
           ],

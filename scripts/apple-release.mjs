@@ -63,7 +63,7 @@ export function staleness(found, latest) {
 /** Words for one stale statement, with what to do. */
 export function describe({ where, version, kind }, latest) {
   if (kind === "unreadable") return `${where} says "${version}", which is no version number.`;
-  if (kind === "behind") return `${where} says ${version}, and ouro-ui-apple's newest release is ${latest}. Update the Apple pages and the Platforms pages to ${latest}.`;
+  if (kind === "behind") return `${where} says ${version}, and ouro-ui-apple's newest release is ${latest}. Update the Apple pages to ${latest}, then pin it with node scripts/platform-versions.mjs --apple v${latest}.`;
   return `${where} says ${version}, which is newer than ouro-ui-apple's newest release (${latest}). State only a release that exists.`;
 }
 

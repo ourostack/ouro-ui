@@ -643,6 +643,23 @@ test("Pages names GitHub's newest release before it builds, whatever main's pack
   assert.ok(pages.indexOf("scripts/namespace.sh _site/r") > set, "and before the namespace builds");
 });
 
+test("Pages writes core's newest release into the Platforms pages before it builds, and keeps main's copies when GitHub cannot be read", () => {
+  const pages = workflow("pages.yml");
+  const write = pages.indexOf("node scripts/platform-versions.mjs --write || code=$?");
+  const render = pages.indexOf("node scripts/parity-matrix.mjs --render");
+  assert.ok(write > 0, "pages.yml writes core's copies and the Platforms pages from GitHub");
+  assert.ok(render > write, "then renders the parity page from the copies it wrote");
+  assert.ok(pages.indexOf("pnpm site:build") > render, "before the site builds");
+  assert.match(pages, /if \[ "\$code" = 2 \]; then\n\s+echo "Core's newest release could not be read[^\n]*>> "\$GITHUB_STEP_SUMMARY"\n\s+elif \[ "\$code" != 0 \]; then\n\s+exit "\$code"\n\s+fi\n/);
+});
+
+test("the scheduled Apple check holds only what is pinned, through --live, and only Pages writes core's release", () => {
+  const apple = workflow("apple-release.yml");
+  assert.match(apple, /run: node scripts\/platform-versions\.mjs --live$/m);
+  assert.doesNotMatch(apple, /platform-versions\.mjs --(write|render|apple)/);
+  assert.match(workflow("pages.yml"), /node scripts\/platform-versions\.mjs --write/);
+});
+
 test("CI cancels only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
   const text = workflow("ci.yml");
   const block = text.split("\nconcurrency:\n")[1].split(/\n(?=\S)/)[0];
