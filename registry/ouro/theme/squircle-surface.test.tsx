@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
+import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
@@ -120,5 +121,23 @@ describe("a Dialog where the engine has no corner-shape", () => {
     expect(getComputedStyle(first).borderTopColor).toBe("rgba(0, 0, 0, 0)");
     const bd = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").backgroundColor;
     expect(bd(second)).not.toBe(bd(first));
+  });
+
+  it("paints a Badge's fill and border through the surface", async () => {
+    applyFallback();
+    await mount(
+      <>
+        <Badge tone="primary">Solid</Badge>
+        <Badge variant="outline">Outline</Badge>
+      </>,
+    );
+    const [solid, outline] = [...document.querySelectorAll<HTMLElement>('[data-ouro="badge"]')] as [HTMLElement, HTMLElement];
+    const surface = solid.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(surface).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(solid).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    const ring = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").backgroundColor;
+    expect(ring(outline)).not.toBe("rgba(0, 0, 0, 0)");
+    expect(ring(solid)).toBe("rgba(0, 0, 0, 0)");
   });
 });

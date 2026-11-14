@@ -56,13 +56,13 @@ describe("AttentionCard", () => {
     const { card, rerender } = await render(<AttentionCard {...base}>Hi</AttentionCard>);
     const badge = () => card.querySelector<HTMLElement>('[data-ouro="badge"]')!;
     expect(badge().textContent).toBe("Asked you");
-    expect(badge().className).toContain("bg-primary/10");
+    expect(badge().className).toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
     await rerender(
       <AttentionCard {...base} tone="warning">
         Hi
       </AttentionCard>,
     );
-    expect(badge().className).toContain("bg-warning/10");
+    expect(badge().className).toContain("[--ouro-bg:color-mix(in_oklab,var(--warning)_10%");
   });
 
   it("opens from the message when onOpen is given", async () => {
@@ -216,7 +216,7 @@ describe("AttentionCard development messages", () => {
   it("renders an unknown tone as primary", async () => {
     const props = { ...base, children: "Hi", tone: "pink" } as unknown as AttentionCardProps;
     const { card } = await render(<AttentionCard {...props} />);
-    expect(card.querySelector('[data-ouro="badge"]')!.className).toContain("bg-primary/10");
+    expect(card.querySelector('[data-ouro="badge"]')!.className).toContain("[--ouro-bg:color-mix(in_oklab,var(--primary)_10%");
   });
 
   it("checks the className", async () => {
