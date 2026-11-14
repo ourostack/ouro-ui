@@ -5,5 +5,4 @@ export function readTimings(kind: "vitest" | "scripts", file?: string): Record<s
 export function balance(keys: readonly string[], count: number, timings: Record<string, number>, groupOf?: (key: string) => string): Array<{ keys: string[]; weight: number }>;
 export function shardKeys(keys: readonly string[], shard: { index: number; count: number }, timings: Record<string, number>, groupOf?: (key: string) => string): string[];
 export function projectOf(key: string): string;
-export function scriptTestFiles(rootDir?: string): string[];
 export function collectTimings(dir: string): { vitest: Record<string, number>; scripts: Record<string, number> };
