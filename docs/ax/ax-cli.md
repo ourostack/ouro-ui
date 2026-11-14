@@ -42,7 +42,7 @@ function isEmptyResult(result: unknown): boolean
 
 ### `printResult`
 
-Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text styled for stdout and every check under `--verbose`, anything else as its text or `--json`. A report whose checks all ran and passed may get the voice's `healthy` line. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
+Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text styled for stdout and every check under `--verbose`, anything else as its text or `--json`, with the exit code its command's `exit` names (0 when it names none). A report whose checks all ran and passed may get the voice's `healthy` line. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
 
 ```ts
 function printResult(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice | undefined, env?: Readonly<Record<string, string | undefined>>): number
