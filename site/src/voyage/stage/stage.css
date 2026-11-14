@@ -1207,10 +1207,6 @@
   font-weight: 600;
 }
 
-/* A button that waits for the tanks (Dive) stays readable: it says what comes next. */
-.stage button:disabled {
-  opacity: 0.72;
-}
 .stage-console {
   display: grid;
   padding: var(--row-gap) 1.5rem;

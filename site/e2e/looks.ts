@@ -43,7 +43,7 @@ export interface Described {
 
 // Runs in the page, so it refers to nothing outside itself.
 export function describe(arg: { selector: string; only?: number }): Described {
-  const stateAttr = /^data-(checked|unchecked|disabled|invalid|variant|tone|size|orientation|open|pressed|selected|shape)$/;
+  const stateAttr = /^data-(checked|unchecked|disabled|invalid|variant|tone|size|orientation|open|pressed|selected|shape|highlighted)$/;
   const ariaState = /^aria-(checked|pressed|selected|expanded|disabled|invalid|current)$/;
   const all = [...document.querySelectorAll<HTMLElement>(arg.selector)];
   const looks: Look[] = [];
@@ -62,13 +62,14 @@ export function describe(arg: { selector: string; only?: number }): Described {
   };
   // Components whose full-radius shape is the squircle on purpose; dots, lights, thumbs and pills are not.
   const SQUIRCLE_BY_DESIGN = new Set(["avatar", "avatar-group", "checkbox", "checklist", "skeleton", "media-tile"]);
-  // A hover lift under 2px is sub-pixel layout, not a look: translate offsets are compared in 2px steps.
+  // A hover lift of up to 2px is layout settling, not a look: a translate-only transform that small reads as none.
   const lift = (t: string) => {
     const m = /^matrix\((.*)\)$/.exec(t);
     if (!m) return t;
     const v = m[1]!.split(",").map(Number);
-    if (v.join() === "1,0,0,1,0,0") return "none";
-    return `matrix(${v.slice(0, 4).join(",")},${Math.round(v[4]! / 2) * 2},${Math.round(v[5]! / 2) * 2})`;
+    const still = Math.abs(v[0]! - 1) < 0.001 && Math.abs(v[3]! - 1) < 0.001 && Math.abs(v[1]!) < 0.001 && Math.abs(v[2]!) < 0.001;
+    if (still && Math.abs(v[4]!) <= 2 && Math.abs(v[5]!) <= 2) return "none";
+    return `matrix(${v.slice(0, 4).map((n) => Math.round(n * 100) / 100).join(",")},${Math.round(v[4]! / 2) * 2},${Math.round(v[5]! / 2) * 2})`;
   };
   const behindOf = (el: HTMLElement) => {
     for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
@@ -114,12 +115,12 @@ export function describe(arg: { selector: string; only?: number }): Described {
       .map((a) => `${a.name}=${a.value}`)
       .sort()
       .join(",");
-    const inGroup = el.closest("[data-ouro='button-group'], [data-ouro='scroll-area']") !== null;
+    const inGroup = el.closest("[data-ouro='button-group'], [data-ouro='scroll-area'], [data-ouro='avatar-group']") !== null;
     const name = root?.dataset["ouro"];
     const theme = el.closest<HTMLElement>("[data-theme]")?.dataset["theme"] ?? "";
     const sizeOf = `${px(String(rect.width))}x${px(String(rect.height))}`;
     const labelled = (el.textContent ?? "").trim().length > 0;
-    const shapeOf = labelled ? `h${px(String(rect.height))}` : sizeOf;
+    const shapeOf = (labelled ? `h${px(String(rect.height))}` : sizeOf) + (el.querySelector("svg") ? "+icon" : "") + (el.closest("main") ? "" : "+chrome");
     // Size comes from props that leave no attribute, and a preset repaints its subtree, so both belong to the key.
     const key = `${inGroup ? "grouped " : ""}${name}|${el.dataset["ouroPart"] ?? ""}|${el.tagName.toLowerCase()}|${attrs}|${shapeOf}|${theme}|${labelled ? rgb(cs.color) : ""}`;
     const radii = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius];

@@ -516,6 +516,7 @@ export function Button(props: ButtonProps): JSX.Element {
         className={classes}
         data-ouro="button"
         data-variant={variant}
+        data-tone={tone}
         data-loading={loading ? "" : undefined}
         data-disabled={loading ? "" : undefined}
         aria-busy={loading || anchorProps["aria-busy"]}
@@ -558,6 +559,7 @@ export function Button(props: ButtonProps): JSX.Element {
       className={classes}
       data-ouro="button"
       data-variant={variant}
+      data-tone={tone}
       data-loading={loading ? "" : undefined}
       data-default={isDefault ? "" : undefined}
       aria-keyshortcuts={isDefault ? "Enter" : buttonProps["aria-keyshortcuts"]}

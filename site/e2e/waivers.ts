@@ -15,12 +15,6 @@ export type Waiver = {
 };
 
 export const WAIVERS: Waiver[] = [
-  { component: "button", part: "root", variant: "outline", state: "", page: "/docs/edit-sheet/", property: "border", reason: "the demo sets tone=secondary, a prop that leaves no attribute", source: "site/src/docs/demos/edit-sheet.demo.tsx" },
-  { component: "button", part: "root", variant: "outline", state: "", page: "/docs/card/", property: "border", reason: "the demo sets tone=secondary, a prop that leaves no attribute", source: "site/src/docs/demos/card.demo.tsx" },
-  { component: "button", part: "root", variant: "outline", state: "", page: "/docs/porthole/", property: "border", reason: "the demo sets tone=secondary, a prop that leaves no attribute", source: "site/src/docs/demos/porthole.demo.tsx" },
-  { component: "button", part: "root", variant: "outline", state: "", page: "/docs/route-progress/", property: "border", reason: "the demo sets tone=secondary, a prop that leaves no attribute", source: "site/src/docs/demos/route-progress.demo.tsx" },
-  { component: "button", part: "root", variant: "outline", state: "", page: "/docs/separator/", property: "border", reason: "the demo sets tone=secondary, a prop that leaves no attribute", source: "site/src/docs/demos/separator.demo.tsx" },
-  { component: "button", part: "root", variant: "solid", state: "", page: "/nautilus/", property: "background", reason: "the squid button is tone=destructive, a prop that leaves no attribute", source: "site/src/voyage/chapters/chapter-three.tsx" },
   { component: "button", part: "root", variant: "soft", state: "", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
   { component: "button", part: "root", variant: "soft", state: "hover", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
   { component: "button", part: "root", variant: "soft", state: "focus", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
