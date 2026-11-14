@@ -14,8 +14,8 @@ export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
   alt: string;
   /**
-   * The colour along the scene's top edge, left to right in fifths (sampled from the 1536px header), for the band of
-   * sky a link-preview card draws above the scene (site/scripts/og-cards.mts).
+   * The colour along the scene's top edge, left to right in fifths (sampled from the 1536px header), for the halo a
+   * link-preview card's words carry on the scene and the address's pill (site/scripts/og-cards.mts).
    */
   sky: readonly [string, string, string, string, string];
   /** The 1536px header's height: 576, or 512 for the whole-world panorama. */
@@ -124,12 +124,12 @@ export interface Card {
   size?: number;
   /**
    * Which stretch of the wide 1536px header to show, left to right, when the og crop cuts a figure off: it is drawn
-   * across the card's width under a band of the scene's own sky, which meets it on a hard edge.
+   * across the card's width under a band of the page's plain background, which meets it on a hard edge.
    */
   crop?: { from: number; to: number };
   /**
    * Where the site's address goes, clear of every drawn figure: a bottom corner (the words' side unless `addressSide`
-   * says otherwise), or, on a card with a band of sky, the band's other end.
+   * says otherwise), or, on a card with a band, the band's other end.
    */
   address?: "corner" | "band";
   addressSide?: "left" | "right";
