@@ -147,7 +147,7 @@ const chats: ConversationListItem[] = [
     id: "halden",
     title: "Halden",
     nameTag: "AI agent",
-    avatar: <Avatar name="Halden" alt="" size="sm" shape="hexagon" />,
+    avatar: <Avatar name="Halden" alt="" size="sm" shape="agent" />,
     preview: "I'll post the summary of the launch notes by 4:00.",
     time: "8:52",
     section: "recent",
@@ -176,7 +176,7 @@ function Chats({ filter }: { filter?: "unread" }) {
 /**
  * A chat app's list: sections with headers that open and close (Quiet starts closed, with a dot for its unread
  * row), a channel's team after its title, a pin and a muted bell before titles, a mention and a meeting about to
- * start as each row's mark, and avatars the app passes in, among them an AI agent's hexagon with its "AI agent" name
+ * start as each row's mark, and avatars the app passes in, among them an AI agent's tile with its "AI agent" name
  * tag. Tab reaches the list once, on the open chat.
  */
 export const Sections: Story = {

@@ -288,7 +288,7 @@ export const GATED_LOAD_FIX =
 
 /** What the hand-drawn-avatar rule tells an app to do. */
 export const HAND_DRAWN_AVATAR_FIX =
-  'Draw it with Ouro UI\'s <Avatar name="Ana Lind" src={url} shape="circle">: shape is "circle" for a person, "square" for a team, channel or app, and "hexagon" for an AI agent, and the picture, initials, size and loading shimmer come with it, so a design change to avatars reaches every one.';
+  'Draw it with Ouro UI\'s <Avatar name="Ana Lind" src={url} shape="circle">: shape is "circle" for a person, "square" for a team, channel or app, and "agent" for an AI agent, and the picture, initials, size and loading shimmer come with it, so a design change to avatars reaches every one.';
 
 /** What the hand-drawn-presence-dot rule tells an app to do. */
 export const HAND_DRAWN_PRESENCE_DOT_FIX =

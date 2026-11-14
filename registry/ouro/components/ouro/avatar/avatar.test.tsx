@@ -201,7 +201,7 @@ describe("Avatar", () => {
   it("keeps a loading avatar's edge in forced colours, in each shape", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
     try {
-      for (const shape of ["circle", "square", "hexagon"] as const) {
+      for (const shape of ["circle", "square", "agent"] as const) {
         const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
         const style = getComputedStyle(avatar.querySelector<HTMLElement>('[data-ouro="skeleton"]')!);
         expect(style.outlineStyle).toBe("solid");
@@ -213,7 +213,7 @@ describe("Avatar", () => {
   });
 
   it("shimmers in its own size and shape while the name loads, and says so", async () => {
-    for (const shape of ["circle", "square", "hexagon"] as const) {
+    for (const shape of ["circle", "square", "agent"] as const) {
       const named = (await render(<Avatar name="Ana Lind" size="lg" shape={shape} />)).avatar.getBoundingClientRect();
       const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
       expect(avatar.getAttribute("aria-label")).toBe("Name loading");
@@ -407,51 +407,27 @@ describe("Avatar shapes and icons", () => {
     const [circle, square] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     expect(circle!.getAttribute("data-shape")).toBe("circle");
     expect(square!.getAttribute("data-shape")).toBe("square");
-    // Only a hexagon is clipped.
-    expect(getComputedStyle(circle!).clipPath).toBe("none");
-    expect(getComputedStyle(square!).clipPath).toBe("none");
     expect(parseFloat(getComputedStyle(circle!).borderTopLeftRadius)).toBeGreaterThanOrEqual(24);
     const corner = parseFloat(getComputedStyle(square!).borderTopLeftRadius);
     expect(corner).toBeGreaterThan(0);
-    expect(corner).toBeLessThan(16);
+    expect(corner).toBeLessThan(34);
   });
 
-  it("rounds a square's corners more as it grows", async () => {
-    const sizes = ["xs", "md", "xl", "3xl"] as const;
-    const { host } = await render(
-      <>
-        {sizes.map((size) => (
-          <Avatar key={size} name="Design reviews" shape="square" size={size} />
-        ))}
-      </>,
-    );
-    const corners = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => parseFloat(getComputedStyle(avatar).borderTopLeftRadius));
-    expect([...corners].sort((a, b) => a - b)).toEqual(corners);
-    expect(corners[0]).toBeLessThan(corners.at(-1)!);
-  });
-
-  it("draws an agent as a rounded hexagon at every size, its initials and picture inside it", async () => {
+  it("draws an agent as a tile at every size, its initials and picture inside it", async () => {
     const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
     const { host } = await render(
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
         {sizes.map((size) => (
-          <Avatar key={size} name="Halden Agent" shape="hexagon" size={size} />
+          <Avatar key={size} name="Halden Agent" shape="agent" size={size} />
         ))}
-        <Avatar name="Halden Agent" shape="hexagon" size="xl" src={photo} />
+        <Avatar name="Halden Agent" shape="agent" size="xl" src={photo} />
       </div>,
     );
     await expect.poll(() => host.querySelector("img")).not.toBeNull();
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     for (const avatar of avatars) {
-      expect(avatar.getAttribute("data-shape")).toBe("hexagon");
-      expect(getComputedStyle(avatar).clipPath).toMatch(/^polygon\(/);
-      expect(getComputedStyle(avatar).borderTopLeftRadius).toBe("0px");
-      const box = avatar.getBoundingClientRect();
-      const at = (x: number, y: number) => document.elementFromPoint(box.left + box.width * x, box.top + box.height * y);
-      // Point up: the middle and the top point are inside; the four box corners are clipped away.
-      expect(avatar.contains(at(0.5, 0.5))).toBe(true);
-      expect(avatar.contains(at(0.5, 0.08))).toBe(true);
-      for (const [x, y] of [[0.08, 0.08], [0.92, 0.08], [0.08, 0.92], [0.92, 0.92]] as const) expect(avatar.contains(at(x, y)), `${box.width}px at ${x}, ${y}`).toBe(false);
+      expect(avatar.getAttribute("data-shape")).toBe("agent");
+      expect(getComputedStyle(avatar).borderTopLeftRadius).toBe("24%");
     }
     for (const avatar of avatars.slice(0, -1)) {
       const box = avatar.getBoundingClientRect();
@@ -464,21 +440,28 @@ describe("Avatar shapes and icons", () => {
     expect(picture.querySelector("img")!.getBoundingClientRect().width).toBe(picture.getBoundingClientRect().width);
   });
 
-  it("shows no presence on a hexagon, and names the fix", async () => {
-    const { avatar } = await render(<Avatar name="Halden" shape="hexagon" presence="available" presenceLabel="Available" />);
+  it("shows no presence on a square, and names the fix", async () => {
+    const { avatar } = await render(<Avatar name="Design reviews" shape="square" presence="available" presenceLabel="Available" />);
     expect(avatar.querySelector("[data-ouro-avatar-presence]")).toBeNull();
     expect(avatar.hasAttribute("data-presence")).toBe(false);
-    expect(avatar.getAttribute("aria-label")).toBe("Halden");
+    expect(avatar.getAttribute("aria-label")).toBe("Design reviews");
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Avatar: an agent shows no presence, so a hexagon draws no dot. Fix: <Avatar name="Halden" shape="hexagon" />.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Avatar: a team shows no presence, so a square draws no dot. Fix: <Avatar name="Design reviews" shape="square" />.');
   });
 
-  it("asks nothing of a hexagon without presence, or of a circle with it", async () => {
+  it("gives an agent a presence dot, like a person", async () => {
+    const { avatar } = await render(<Avatar name="Halden" shape="agent" presence="busy" presenceLabel="Busy" />);
+    expect(avatar.querySelector("[data-ouro-avatar-presence]")).not.toBeNull();
+    expect(avatar.getAttribute("aria-label")).toBe("Halden, Busy");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("asks nothing of a square without presence, or of an agent or a circle with it", async () => {
     await render(
       <>
-        <Avatar name="Halden" shape="hexagon" />
+        <Avatar name="Design reviews" shape="square" />
         <Avatar name="Ana Lind" presence="busy" presenceLabel="Busy" />
-        <Avatar name="Design reviews" shape="square" presence="away" presenceLabel="Away" />
+        <Avatar name="Halden" shape="agent" presence="away" presenceLabel="Away" />
       </>,
     );
     expect(warn).not.toHaveBeenCalled();
@@ -722,7 +705,7 @@ describe("Avatar presence", () => {
   });
 
   it("renders the dot in server HTML", () => {
-    const html = renderToString(<Avatar name="Ana Lind" presence="do-not-disturb" presenceLabel="Do not disturb" shape="square" />);
+    const html = renderToString(<Avatar name="Ana Lind" presence="do-not-disturb" presenceLabel="Do not disturb" shape="agent" />);
     expect(html).toContain('aria-label="Ana Lind, Do not disturb"');
     expect(html).toContain('data-presence="do-not-disturb"');
     expect(html).toContain("data-ouro-avatar-presence");
@@ -818,8 +801,8 @@ describe("Avatar development messages", () => {
   });
 
   it.each([
-    ["shape", { shape: "rounded" }, 'shape="rounded" is not a shape; use "circle", "square", "hexagon"', '<Avatar shape="square">'],
-    ["agent shape", { shape: "agent" }, 'shape="agent" is not a shape; use "circle", "square", "hexagon"', '<Avatar shape="hexagon">'],
+    ["shape", { shape: "rounded" }, 'shape="rounded" is not a shape; use "circle", "square", "agent"', '<Avatar shape="square">'],
+    ["hexagon shape", { shape: "hexagon" }, 'shape="hexagon" is not a shape; use "circle", "square", "agent"', '<Avatar shape="agent">'],
     ["color", { color: "blue" }, 'color="blue" is not a color; use "colorful", "brand", "neutral"', '<Avatar color="colorful">'],
     [
       "presence",
@@ -920,7 +903,7 @@ describe("Avatar inside a link or button that has its own name", () => {
     ["initials it is given", <Avatar key="a" name="Ana Lind" initials="AnL" />],
     ["its initials and a presence dot", <Avatar key="a" name="Ana Lind" presence="busy" presenceLabel="In a meeting" />],
     ["a square's initials", <Avatar key="a" name="Ana Lind" shape="square" />],
-    ["an agent's hexagon and initials", <Avatar key="a" name="Ana Lind" shape="hexagon" />],
+    ["an agent's tile and initials", <Avatar key="a" name="Ana Lind" shape="agent" />],
     ["its initials after the picture fails", <Avatar key="a" name="Ana Lind" src={broken} />],
   ])("a link named \"Ana Lind's profile\" around %s has no label-content-name-mismatch", async (_case, avatar) => {
     const { host } = await render(
@@ -995,7 +978,7 @@ describe("Avatar's drawn letters", () => {
             <Avatar key={size} name="Grace Hopper" size={size} />
           ))}
           <Avatar name="Ana Lind" shape="square" color="brand" />
-          <Avatar name="Halden Agent" shape="hexagon" color="neutral" size="lg" />
+          <Avatar name="Halden Agent" shape="agent" color="neutral" size="lg" />
           <Avatar name="Émile Zola" presence="away" presenceLabel="Away" size="xl" />
           <Avatar name="😀 Smile" size="lg" />
           <AvatarGroup label="Cooks" max={2}>
