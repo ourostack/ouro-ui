@@ -22,7 +22,7 @@ export { thumbClass, trackClass };
 const trackClass =
   "group relative m-0 box-border inline-flex h-6 w-10 shrink-0 items-center p-0 sm:pointer-fine:h-5 sm:pointer-fine:w-9 " +
   "[--ouro-switch-thumb:calc(var(--spacing)*5)] sm:pointer-fine:[--ouro-switch-thumb:calc(var(--spacing)*4)] " +
-  "rounded-full border-2 border-solid border-muted-foreground bg-transparent data-checked:border-primary data-checked:bg-primary " +
+  "[corner-shape:round] rounded-full border-2 border-solid border-muted-foreground bg-transparent data-checked:border-primary data-checked:bg-primary " +
   "transition-[background-color,border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "cursor-default select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
@@ -43,7 +43,7 @@ const trackClass =
  * @claim "The thumb slides 16px in the" registry/ouro/components/ouro/switch/switch.test.tsx verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > stretches by scaling and slides on translate, never by animating its width, with one timing for both)
  */
 const thumbClass =
-  "pointer-events-none block size-(--ouro-switch-thumb) rounded-full bg-muted-foreground data-checked:bg-primary-foreground shadow-(--shadow-sm) " +
+  "pointer-events-none block size-(--ouro-switch-thumb) [corner-shape:round] rounded-full bg-muted-foreground data-checked:bg-primary-foreground shadow-(--shadow-sm) " +
   // Translate and origin have no logical form, so a right-to-left page reverses them: the thumb
   // starts at the inline start and slides toward the inline end either way.
   "translate-x-0 data-checked:translate-x-4 rtl:data-checked:-translate-x-4 " +
