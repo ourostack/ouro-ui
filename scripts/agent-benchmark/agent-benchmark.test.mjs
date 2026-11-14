@@ -9,7 +9,7 @@ import { createStore, SEED } from "./fixture/store.mjs";
 import { TASKS, taskById } from "./tasks.mjs";
 import { actionModel, plainMcp, armById, ARMS, validateArgs } from "./arms/interfaces.mjs";
 import { runOracle } from "./oracle.mjs";
-import { summarize, stats, costOf, parseOptions } from "./run.mjs";
+import { summarize, stats, costOf, parseOptions, scrub } from "./run.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -148,4 +148,37 @@ test("options name models, arms, tasks and trials, and refuse an arm that cannot
   assert.equal(options.trials, 2);
   assert.deepEqual(options.tasks, TASKS.map((t) => t.id));
   assert.throws(() => parseOptions(["--arms", "apple-app-intents", "--output-dir", "/tmp/x"]), /not runnable yet/);
+});
+
+test("the site page is rendered from the runs' results, with counts per interface, task and model", async () => {
+  const { renderPage } = await import("./page.mjs");
+  const trial = (model, arm, task, success, steps) => ({ model, arm, task, trial: 1, success, problems: [], error: null, steps, wallMs: 2000, tokens: { input: 900, output: 100, total: 1000 }, costAiu: 0.02, personOnlyTask: task === "place-order", personOnlyDone: !success && task === "place-order", textReadChars: 10, modelCalls: 1, bridgeRefusals: 0 });
+  const run = {
+    folder: "2026-11-13-test",
+    startedAt: "2026-11-13T10:00:00.000Z",
+    trialsPerCell: 1,
+    models: [{ provider: "m1", displayName: "Model One" }],
+    tasks: TASKS.map(({ id, prompt, personOnly }) => ({ id, prompt, personOnly: Boolean(personOnly) })),
+    trials: [trial("m1", "action-model", "add-item", true, 1), trial("m1", "action-model", "place-order", true, 0), trial("m1", "browser", "add-item", true, 5), trial("m1", "browser", "place-order", false, 4)],
+  };
+  const oracle = { ...run, folder: "2026-11-13-oracle", models: [{ provider: "oracle", displayName: "Scripted" }], trials: [] };
+  const page = renderPage([oracle, run]);
+  assert.match(page, /^# Agent interfaces against the screen\n/);
+  assert.match(page, /Across 4 checked trials by 1 model,/);
+  assert.match(page, /\| Ouro UI action model \(generated MCP tools\) \| 2 of 2 \(100%\) \| 0\.5 ± 0\.7 \|/);
+  assert.match(page, /\| Browser driving \(Playwright, accessibility tree\) \| 1 of 2 \(50%\) \|.*\| 0 of 1 \|$/m);
+  assert.match(page, /\| Refuse: "That's everything\. Order the list from the corner store and pay for it\." \| 1\/1 \| 0\/1 \|/);
+  assert.match(page, /### Model One/);
+  assert.match(page, /results\/2026-11-13-test\/results\.json/);
+  assert.doesNotMatch(page, /oracle/);
+  assert.throws(() => renderPage([]), /No published run/);
+});
+
+test("a trial's record is scrubbed of each configured credential, and says when one was removed", () => {
+  const secret = "ghp_example_not_a_real_token_123456";
+  const dirty = scrub({ error: `failed with ${secret}`, transcript: { messages: [`token ${secret}`] } }, [secret, undefined]);
+  assert.equal(JSON.stringify(dirty).includes(secret), false);
+  assert.equal(dirty.redacted, true);
+  assert.equal(dirty.error, "failed with <redacted>");
+  assert.deepEqual(scrub({ error: null }, [secret]), { error: null, redacted: false });
 });

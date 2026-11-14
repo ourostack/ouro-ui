@@ -17,7 +17,7 @@ after(async () => {
 
 for (const arm of [browserArm, bridge]) {
   for (const task of TASKS) {
-    test(`the scripted agent does ${task.id} through ${arm.id}`, async () => {
+    test(`the scripted agent does ${task.id} on the screen through ${arm.id}`, async () => {
       const store = createStore();
       const opened = await arm.open({ store, browser });
       try {
