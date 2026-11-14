@@ -565,6 +565,14 @@ test("published-release verification refuses unfinished main, drafts, prerelease
   assert.match(missing.stderr, /release not found/);
 });
 
+test("Pages deploys on every push to main from that commit, never after main's CI", () => {
+  const pages = workflow("pages.yml");
+  assert.match(pages, /\non:\n {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:/);
+  assert.doesNotMatch(pages, /workflow_run/);
+  assert.match(pages, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(pages, /\$tip" = "\$HEAD_SHA"/);
+});
+
 test("Pages names GitHub's newest release before it builds, whatever main's package.json says", () => {
   const pages = workflow("pages.yml");
   const name = pages.indexOf('gh api "repos/$REPO/releases/latest" --jq .tag_name');
@@ -2345,6 +2353,7 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
 
 test("the workflows beside CI cancel only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
   const blocks = {
+    "apple-release.yml": "  group: apple-release-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "conformance-exemptions.yml": "  group: conformance-exemptions-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",

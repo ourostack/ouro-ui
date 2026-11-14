@@ -1,0 +1,92 @@
+name: Apple release
+# The Apple version the site and the Platforms pages state, against ouro-ui-apple's newest release
+# (scripts/apple-release.mjs, GET /repos/ourostack/ouro-ui-apple/releases/latest), so the Apple page
+# cannot go on saying 0.2.1 after 0.4.1 is out. Hourly, since a release in another repository starts no
+# workflow here, and on a change to the pages that state a version. Behind on main opens, or comments on
+# (at most daily), one "Apple pages are behind" issue; an API error fails the run but is no drift.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  push:
+    branches: [main]
+    paths:
+      - site/src/apple/kit.json
+      - docs/platforms/README.md
+      - docs/platforms/apple.md
+      - scripts/apple-release.mjs
+      - scripts/platform-parity.mjs
+      - scripts/parity-rows.mjs
+      - scripts/parity-data/**
+      - .github/workflows/apple-release.yml
+  pull_request:
+    paths:
+      - site/src/apple/kit.json
+      - docs/platforms/README.md
+      - docs/platforms/apple.md
+      - scripts/apple-release.mjs
+      - scripts/platform-parity.mjs
+      - scripts/parity-rows.mjs
+      - scripts/parity-data/**
+      - .github/workflows/apple-release.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+# A push to a pull request cancels that pull request's run in progress: only its newest commit can
+# merge. Every other run (hourly, on main, by hand) is in a group of its own and runs to the end.
+concurrency:
+  group: apple-release-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  compare:
+    name: apple release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      behind: ${{ steps.compare.outputs.behind }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            site/src/apple/kit.json
+            docs/platforms/README.md
+            docs/platforms/apple.md
+            scripts/apple-release.mjs
+            scripts/platform-parity.mjs
+            scripts/parity-rows.mjs
+            scripts/parity-data
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: The pages state ouro-ui-apple's newest release
+        # Exits 1 when a page names another version (behind=true), 2 when the API cannot be read, which is no drift.
+        id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/apple-release.mjs
+      - name: The parity tables' copies of core's files are core's, byte for byte
+        # Core's release, read from GitHub: the claim files' hashes in its dist-manifest.json, and parity.json at its tag.
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/platform-parity.mjs --pins
+  report:
+    # One issue for a page behind on main, opened or commented on at most daily (scripts/scheduled-failure.sh).
+    needs: [compare]
+    if: always() && needs.compare.outputs.behind == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          QUIET_HOURS: 24
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple pages state a version other than ouro-ui-apple's newest release"

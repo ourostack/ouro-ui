@@ -7,7 +7,7 @@
  * turns this file into the site's [data-theme="pearl"] rules and the "Copy theme" CSS (themes.json).
  */
 :root {
-  --radius: 0.75rem;
+  --radius: 1.125rem;
   --background: #ffffff;
   --foreground: #1d1d1f;
   --card: #ffffff;

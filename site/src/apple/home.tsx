@@ -9,6 +9,7 @@ import { LayersBand } from "./layers";
 import { Loop } from "./loop";
 import { StoryOpener } from "../components/story-world";
 import { AppleBand, AppleMenu, NextPage } from "./shell";
+import { SystemBand } from "./system";
 import ouroMd from "./xray/ouro-md.json";
 import spoonjoy from "./xray/spoonjoy.json";
 
@@ -211,16 +212,34 @@ export default function AppleHome(): JSX.Element {
         </div>
       </AppleBand>
 
+      <SystemBand />
+
       <LayersBand lede={<p>Ask the same app different questions, so neither people nor agents have to find out the hard way.</p>} />
 
       <Container className="apple-soon">
-        <p className="site-eyebrow">Coming up</p>
+        <p className="site-eyebrow">Where it stands</p>
         <p className="apple-soon-line">
-          Components are in the workshop. They ship when a taste panel is properly delighted by them on an Apple screen, and not a spring sooner.
+          {claim("Ouro UI for Apple 0.4.1 has five components, the foundations, the X-ray, Ouro Feel and Ouro Reins. It is pre-1.0.", {
+            source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box" },
+            verify: [
+              { equals: "site/src/apple/kit.json#release", is: "0.4.1" },
+              { count: "site/src/apple/kit.json#components", is: 5 },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.4.1" },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box" },
+            ],
+          })}
         </p>
         <p className="apple-fine">
-          Ouro UI for Apple {kit.release} has the foundations and the X-ray.{" "}
-          {kit.feelReinsRelease ? `Ouro Feel and Ouro Reins ship in ${kit.feelReinsRelease}.` : "Ouro Feel and Ouro Reins are on its main branch, and come in a later release."}
+          {claim("A CI check compares the Apple version on this site with ouro-ui-apple's latest release, and fails when they differ.", {
+            source: { spec: "https://github.com/ourostack/ouro-ui/blob/main/scripts/apple-release.mjs" },
+            verify: [
+              { testExists: "scripts/apple-release.test.mjs::the workflow runs hourly, on a change to the pages and by hand, and reports behind-ness, and only that, in one issue at most daily" },
+              { testExists: "scripts/apple-release.test.mjs::a page left on the old release is behind, with its place named and what to do" },
+            ],
+          })}{" "}
+          <a className="apple-inline-link" href={`${kit.repository}/releases`}>
+            Releases are on GitHub.
+          </a>
         </p>
       </Container>
       <NextPage current="/apple/" />
