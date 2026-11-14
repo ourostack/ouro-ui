@@ -38,7 +38,7 @@ describe("findWrapIssues: lone-word", () => {
     const issues = of("lone-word");
     expect(issues.map(({ element, detail }) => [element, detail])).toEqual([
       ['p#widow "aaaa bbbb cccc dddd"', 'ends on "dddd" alone: aaaa bbbb cccc / dddd'],
-      ['li "aaaa bbbb cccc-dddd"', 'ends on "cccc-dddd" alone: aaaa bbbb cccc-dddd / cccc-dddd'],
+      ['li "aaaa bbbb cccc-dddd"', 'ends on "dddd" alone: aaaa bbbb cccc- / dddd'],
       ['h2 "aaaa bbbb cccc dddd"', 'ends on "dddd" alone: aaaa bbbb cccc / dddd'],
       ['p "A paragraph whose words run on well past…"', 'ends on "ends" alone: A paragraph whose words run on well past forty letters / ends'],
       ['p "eeee ffff gggg hhhh"', 'ends on "hhhh" alone: eeee ffff gggg / hhhh'],
@@ -52,6 +52,7 @@ describe("findWrapIssues: lone-word", () => {
       <p style="${mono(16, "10ch")}">aaaa bbbb cccc</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc https://example.com/a</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc averyveryverylongtokenname</p>
+      <p style="${mono(16, "15ch")}">aaaa bbbb 2026-11-14-rerun--run-1</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc a</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc fn(x)</p>
       <p style="${mono(16, "15ch")}">aaaa bbbb cccc <code>dddd</code></p>

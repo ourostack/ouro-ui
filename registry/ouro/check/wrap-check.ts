@@ -58,7 +58,7 @@ function findWrapIssues({ displayPx = 36, tallLines = 5, bigPx = 28, narrowShare
   };
   // The lines the browser drew, top to bottom, each the words on it, inline code and footnote marks included. A word split
   // across lines (at its hyphen) puts a piece on each. A code block and visually hidden text are left out.
-  type Word = { text: string; code: boolean; width: number };
+  type Word = { text: string; whole: string; code: boolean; width: number };
   const linesOf = (el: Element) => {
     const rows: { top: number; height: number; words: Word[] }[] = [];
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -70,9 +70,21 @@ function findWrapIssues({ displayPx = 36, tallLines = 5, bigPx = 28, narrowShare
         const range = document.createRange();
         range.setStart(node, match.index);
         range.setEnd(node, match.index + match[0].length);
-        for (const box of [...range.getClientRects()].filter((b) => b.width > 0)) {
+        const boxes = [...range.getClientRects()].filter((b) => b.width > 0);
+        // A word split across lines is named by the piece each line drew ("agent-" / "native?"), not the whole word twice.
+        const pieces = boxes.length < 2 ? [match[0]] : boxes.map(() => "");
+        if (boxes.length > 1) {
+          for (let i = 0; i < match[0].length; i++) {
+            range.setStart(node, match.index + i);
+            range.setEnd(node, match.index + i + 1);
+            const top = range.getBoundingClientRect().top;
+            const at = boxes.findIndex((b) => Math.abs(b.top - top) < b.height / 2);
+            pieces[Math.max(at, 0)] += match[0].charAt(i);
+          }
+        }
+        for (const [index, box] of boxes.entries()) {
           const row = rows.find((r) => Math.abs(r.top - box.top) < Math.max(r.height, box.height) / 2);
-          const word = { text: match[0], code, width: box.width };
+          const word = { text: pieces[index]!, whole: match[0], code, width: box.width };
           if (row) row.words.push(word);
           else rows.push({ top: box.top, height: box.height, words: [word] });
         }
@@ -94,8 +106,9 @@ function findWrapIssues({ displayPx = 36, tallLines = 5, bigPx = 28, narrowShare
     const shown = rows.filter((row) => row.top + row.height / 2 >= top && row.top + row.height / 2 <= bottom).slice(0, clamp > 0 ? clamp : undefined);
     return { lines: shown.map((row) => row.words), cut: shown.length < rows.length };
   };
-  const breakable = ({ text, code }: Word) => {
-    const bare = text.replace(/^\W+|\W+$/g, "");
+  // Judged by the whole word, so a long token split at its hyphens stays unbreakable however short its last piece.
+  const breakable = ({ whole, code }: Word) => {
+    const bare = whole.replace(/^\W+|\W+$/g, "");
     return !code && bare.length > 1 && bare.length <= 20 && !/[/:@=_<>{}()[\]]|\.\w/.test(bare);
   };
   const nameOf = (el: Element) => el.textContent!.trim().replace(/\s+/g, " ");
