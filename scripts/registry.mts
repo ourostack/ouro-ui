@@ -61,9 +61,10 @@ const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/t
 
 /**
  * Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA,
- * which no app's CI has, and the MCP App host harness builds the view and starts the example server from this repository.
+ * which no app's CI has, the MCP App host harness builds the view and starts the example server from this repository,
+ * and the probes (playwright.probes.config.ts) measure on a schedule, not in an app's tests.
  */
-const repoOnlyDirs = ["registry/ouro/e2e/screen-reader/", "registry/ouro/e2e/mcp-app-host/"];
+const repoOnlyDirs = ["registry/ouro/e2e/screen-reader/", "registry/ouro/e2e/mcp-app-host/", "registry/ouro/e2e/probes/"];
 
 /** Packages every app already has. */
 const appPackages = new Set(["react", "react-dom"]);

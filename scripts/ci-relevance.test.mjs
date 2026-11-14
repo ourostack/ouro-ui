@@ -146,6 +146,7 @@ const namedButUnread = {
       ]),
     ),
     "scripts/registry.mts registry/ouro/e2e/mcp-app-host/": "the repository-only specs, which no item ships and no page shows",
+    "scripts/registry.mts registry/ouro/e2e/probes/": "the repository-only probes, which no item ships and no page shows",
     ...Object.fromEntries(
       ["chapter-one", "chapter-three", "chapter-two", "stage"].map((spec) => [`site/scripts/stage-census.mts site/e2e/${spec}.spec.ts`, "the control census, which only its Node test runs, not the site build"]),
     ),
