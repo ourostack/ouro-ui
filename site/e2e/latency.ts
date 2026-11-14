@@ -2,7 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 // Click-to-paint latency for the voyage's controls, shared by every *.latency.spec.ts (run alone by
 // `pnpm test:latency`, playwright.latency.config.ts, and CI's latency job). Each control is pressed
-// LATENCY.warmUps times to warm up (the first press of anything compiles code), then LATENCY.samples
+// LATENCY.warmUps times to warm up (the first press of anything compiles code; LATENCY.firstWarmUps for a worker's
+// first control, which warms the browser too), then LATENCY.samples
 // times on a CPU throttled LATENCY.throttle×. The control passes when its 95th percentile (the 19th of
 // 20, so one slow frame on a shared runner is not a failure) is within LATENCY.p95, the hard ceiling
 // for every control, and its median is within its own ceiling, set from the median it measures on CI
@@ -42,6 +43,12 @@ export const LATENCY = {
   more: 20,
   /** Presses before them that don't. */
   warmUps: 2,
+  /**
+   * Presses that don't count before the first control a latency run's worker measures. That browser's first presses
+   * pay for warming caches every later page shares: on CI, a shard's first control read 80 to 96 ms for its first presses
+   * and then settled near 56 (#749), while later controls, each on a fresh page, started where they settled.
+   */
+  firstWarmUps: 10,
   /** How many times slower than the runner the CPU is. */
   throttle: 4,
   /**
@@ -209,6 +216,9 @@ function median(values: readonly number[]): number {
  * so does its tail (the porthole's repaint after the press), and the page then settles again at the
  * throttle before the press, so a press is measured from a settled page, as a person's would be a beat later.
  */
+/** Whether this worker's browser has measured a control yet (LATENCY.firstWarmUps). */
+let browserWarmed = false;
+
 export async function measure(
   page: Page,
   label: string,
@@ -264,7 +274,10 @@ export async function measure(
   };
   const probeBefore = await probeRound();
   const samples: number[] = [];
-  let presses = LATENCY.warmUps + LATENCY.samples;
+  // Only the latency run's own projects: the rules spec's slow pages count presses by index from the usual warm-ups.
+  const warmUps = !browserWarmed && test.info().project.name.startsWith("site-latency") ? LATENCY.firstWarmUps : LATENCY.warmUps;
+  browserWarmed = true;
+  let presses = warmUps + LATENCY.samples;
   for (let index = 0; index < presses; index++) {
     if (setUp) await unthrottled(() => setUp(index));
     await page.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
@@ -279,7 +292,7 @@ export async function measure(
     const durations = entries.map(([duration]) => duration);
     const pressed = (await interactions()) > before;
     expect(durations.length > 0 || pressed, `${label}, press ${index}: the press happened and Event Timing saw it or it was under 16 ms`).toBe(true);
-    if (index >= LATENCY.warmUps) {
+    if (index >= warmUps) {
       samples.push(durations.length > 0 ? Math.max(...durations) : 16);
       // Where an over-budget press's time went, so the next failure says whether it was the page's thread or the wait for the paint.
       const slowest = entries.find(([duration]) => duration === Math.max(...durations));
@@ -291,7 +304,7 @@ export async function measure(
         console.log(`latency-slow ${split}`);
       }
     }
-    if (samples.length === LATENCY.samples && presses === LATENCY.warmUps + LATENCY.samples && more?.(samples, runnerFactor(probeBefore))) {
+    if (samples.length === LATENCY.samples && presses === warmUps + LATENCY.samples && more?.(samples, runnerFactor(probeBefore))) {
       presses += LATENCY.more;
       test.info().annotations.push({ type: "latency-more", description: `${label}: ${LATENCY.more} presses more after the first ${LATENCY.samples}: ${samples.join(", ")}` });
     }
