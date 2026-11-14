@@ -61,7 +61,7 @@ const components = readComponents(root).map((entry) => entry.name);
 /** The helper items, one per file in lib/ouro, and the helpers that have tests. */
 const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$/.test(file));
 const libs = libFiles.filter((file) => !/\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
-const axRuntime = ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-precise-copy", "ax-problem", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
+const axRuntime = ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-precise-copy", "ax-problem", "ax-surfaces", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
 const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$/, "")}-tests`))].sort();
 /** The components this repository had when the manifests replaced the script's list: their order never changes. */
 const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
@@ -240,7 +240,7 @@ test("theme items come from the repository's CSS, in shadcn's cssVars format", (
   const theme = item("ouro-theme");
   assert.equal(theme.type, "registry:theme");
   assert.equal(theme.cssVars.light.primary, "#0066cc");
-  assert.equal(theme.cssVars.light.radius, "0.75rem");
+  assert.equal(theme.cssVars.light.radius, "1.125rem");
   assert.equal(theme.cssVars.dark.primary, "#2997ff");
   assert.equal(theme.files, undefined);
 });
@@ -367,8 +367,8 @@ test("Ouro AX items depend on the ax items they import", () => {
 
 test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
-  // OuroProvider groups tooltips with Base UI's Tooltip.Provider.
-  assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0"]);
+  // OuroProvider groups tooltips with Base UI's Tooltip.Provider and registers the squircle polyfill.
+  assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0", "hyperellipse@^1.0.5"]);
   assert.deepEqual(item("lib-cn").dependencies, ["clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
   assert.equal(item("ouro-lib").dependencies, undefined);
   assert.ok(!JSON.stringify(registry).includes('"motion@'), "no item depends on motion");

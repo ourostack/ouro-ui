@@ -47,6 +47,11 @@
       "reason": "a guide's evidence: records copied as GitHub's API returned them, so a guide's claim about GitHub's behaviour can be checked"
     },
     {
+      "match": "^scripts/model-reviews/METHODOLOGY\\.md$",
+      "mode": "input",
+      "reason": "the rules of a measurement protocol, which scripts/model-reviews/model-reviews.test.mjs checks one by one; it states what the script does, so it makes no claim about the product"
+    },
+    {
       "match": "^scripts/agent-usability/(screens|arms)/",
       "mode": "input",
       "reason": "what the benchmark gives each agent, frozen with its cohort"

@@ -1,1 +1,0 @@
-- New: Ouro check's `type-scale` rule honours an element's opt-out: text inside an element with `data-ouro-allow="type-scale"` (or `all`) and a non-empty `data-ouro-allow-why` is left out of the page's text size and font weight counts, and the rest of the page is still held to the scale. A `document.body` opt-out still skips the rule for the whole page.

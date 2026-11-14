@@ -83,7 +83,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "conformance-shard", "design", "e2e-shard", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "theme-install", "themes"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -565,6 +565,14 @@ test("published-release verification refuses unfinished main, drafts, prerelease
   assert.match(missing.stderr, /release not found/);
 });
 
+test("Pages deploys on every push to main from that commit, never after main's CI", () => {
+  const pages = workflow("pages.yml");
+  assert.match(pages, /\non:\n {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:/);
+  assert.doesNotMatch(pages, /workflow_run/);
+  assert.match(pages, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(pages, /\$tip" = "\$HEAD_SHA"/);
+});
+
 test("Pages names GitHub's newest release before it builds, whatever main's package.json says", () => {
   const pages = workflow("pages.yml");
   const name = pages.indexOf('gh api "repos/$REPO/releases/latest" --jq .tag_name');
@@ -698,8 +706,10 @@ test("Release deploys Pages itself and fails when the published llms.txt or READ
   const release = workflow("release.yml");
   const deploy = release.indexOf("gh workflow run pages.yml --ref main");
   const check = release.indexOf('node scripts/published-release.mjs "$TAG" --wait');
-  assert.ok(deploy > release.indexOf('gh release create "$TAG"'), "Pages is deployed after the release is created");
-  assert.ok(check > deploy, "and the published pages are checked last");
+  assert.ok(deploy > release.indexOf('git tag "$TAG"'), "Pages is deployed once the tag is out, in a job of its own");
+  assert.match(release, /^ {2}pages:\n(?: {4}#.*\n)* {4}needs: release$/m, "which does not wait for the pull request that prepares main");
+  assert.match(release, /^ {4}needs: \[release, queue, pages\]$/m, "and the published pages are checked once main names the release");
+  assert.ok(check > deploy);
 });
 
 /** The rehearsal "Check the version, the tag and main's CI" records for the notes (scripts/rehearsal-evidence.mjs). */
@@ -887,7 +897,7 @@ const releaseStep = (name) => {
   return lines.slice(0, end === -1 ? undefined : end).map((line) => line.slice(10)).join("\n");
 };
 
-const scenarios = ["success", "queued", "queue-rebuilt", "queue-tip", "pr-ci-failed", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "queue-dropped", "approval-failed", "tip-advanced"];
+const scenarios = ["success", "queued", "queue-rebuilt", "queue-tip", "pr-ci-failed", "ci-failed", "ci-missing", "dispatch-failed", "not-merged", "queue-dropped", "approval-failed"];
 for (const scenario of scenarios) {
   const passes = ["success", "queued", "queue-rebuilt", "queue-tip"].includes(scenario);
   test(`Release's main CI gate ${passes ? "permits" : "blocks"} Pages (${scenario})`, () => {
@@ -899,7 +909,8 @@ for (const scenario of scenarios) {
     const gate = prepare.slice(prepare.indexOf("sha=$(git rev-parse HEAD)\nruns="));
     const queue = releaseStep("Pass the merge queue and CI on main");
     const remove = releaseStep("Delete the branch that prepared main");
-    const deploy = releaseStep("Deploy Pages and check what is published");
+    const deploy = releaseStep("Deploy Pages and check the namespace it serves");
+    const published = releaseStep("Check what is published");
     const install = workflow("release.yml").includes("name: Install dependencies for the public proofs")
       ? releaseStep("Install dependencies for the public proofs")
       : "";
@@ -986,12 +997,11 @@ for (const scenario of scenarios) {
       ${gate}
       NUMBER=$(sed -n 's/^number=//p' "$GITHUB_OUTPUT")
       ${queue}
-      VERIFIED_MAIN_SHA=$(sed -n 's/^main_sha=//p' "$GITHUB_OUTPUT")
-      if [ "$SCENARIO" = tip-advanced ]; then VERIFIED_MAIN_SHA=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb; fi
       ${install}
       ${remove}
       GH_TOKEN=publishing-token
       ${deploy}
+      ${published}
     `], {
       cwd: root, encoding: "utf8",
       env: { ...process.env, GH_TOKEN: "", SCENARIO: scenario, PRODUCERS: "ci.yml", NEXT_BRANCH: "prepare/after-v9.9.9", TAG: "v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", GITHUB_SERVER_URL: "https://github.com", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output, QUEUE_LOOKS: looks, DEPENDENCIES_READY: join(fixture, "dependencies-ready") },
@@ -1022,12 +1032,12 @@ for (const scenario of scenarios) {
       assert.doesNotMatch(result.stderr, /gh-readonly-queue/);
     }
     // Main whose tip is the queue's passing commit needs no CI run of its own.
-    assert.equal(/CALL workflow run ci\.yml --ref main/.test(result.stderr), passes && scenario !== "queue-tip" || ["ci-failed", "ci-missing", "dispatch-failed", "tip-advanced"].includes(scenario));
+    assert.equal(/CALL workflow run ci\.yml --ref main/.test(result.stderr), passes && scenario !== "queue-tip" || ["ci-failed", "ci-missing", "dispatch-failed"].includes(scenario));
     if (passes) {
       assert.equal(result.status, 0, result.stderr);
       assert.match(readFileSync(output, "utf8"), new RegExp(`^main_sha=${scenario === "queue-tip" ? "1{40}" : "a{40}"}$`, "m"));
       assert.match(result.stderr, /CALL workflow run pages.yml --ref main/);
-      assert.match(result.stdout, /PUBLISHED scripts\/published-release.mjs v9.9.9 --wait 900\nPUBLISHED scripts\/public-registry.mjs verify-live v9.9.9 --wait 900\n/);
+      assert.match(result.stdout, /PUBLISHED scripts\/public-registry.mjs verify-live v9.9.9 --wait 900\nPUBLISHED scripts\/published-release.mjs v9.9.9 --wait 900\n/);
       assert.match(result.stderr, /CALL api -X DELETE repos\/ourostack\/ouro-ui\/git\/refs\/heads\/prepare\/after-v9.9.9/);
     } else {
       assert.notEqual(result.status, 0, result.stderr);
@@ -1038,13 +1048,13 @@ for (const scenario of scenarios) {
 }
 
 test("public proof dependencies are installed without the publishing token, and an install failure stops the job", () => {
-  const publish = workflow("release.yml").split("\n  publish:\n")[1].split("\n  finish:\n")[0];
+  const publish = workflow("release.yml").split("\n  pages:\n")[1].split("\n  finish:\n")[0];
   const manager = publish.indexOf("uses: pnpm/action-setup@");
   assert.ok(manager >= 0 && manager < publish.indexOf("uses: actions/setup-node@"));
   assert.ok(publish.indexOf("name: Install dependencies for the public proofs") > manager);
   assert.doesNotMatch(publish.split("\n    steps:\n")[0], /^\s+GH_TOKEN:/m);
   for (const step of publish.split(/\n(?= {6}- )/).filter((step) => step.includes("GH_TOKEN:"))) {
-    assert.match(step, /name: (Delete the branch that prepared main|Deploy Pages and check what is published)\n/);
+    assert.match(step, /name: (Delete the branch that prepared main|Deploy Pages and check the namespace it serves)\n/);
   }
   const install = releaseStep("Install dependencies for the public proofs");
   const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c",
@@ -1067,9 +1077,9 @@ test("a release builds the @ouro namespace from its commit and checks it byte fo
 });
 
 test("a release checks last that Pages serves the tag's @ouro namespace byte for byte, after the published pages", () => {
-  const deploy = releaseStep("Deploy Pages and check what is published");
+  const deploy = releaseStep("Deploy Pages and check the namespace it serves");
   const lines = deploy.trimEnd().split("\n");
-  assert.deepEqual(lines.filter((line) => line.startsWith("node ")), ['node scripts/published-release.mjs "$TAG" --wait 900', 'node scripts/public-registry.mjs verify-live "$TAG" --wait 900']);
+  assert.deepEqual(lines.filter((line) => line.startsWith("node ")), ['node scripts/public-registry.mjs verify-live "$TAG" --wait 900']);
   assert.equal(lines.at(-1), 'node scripts/public-registry.mjs verify-live "$TAG" --wait 900');
   assert.ok(deploy.indexOf("verify-live") > deploy.indexOf('gh run watch "$run"'), "after the Pages deploy finishes");
 });
@@ -1079,10 +1089,9 @@ test("the release runs the public-registry tests with the script tests", () => {
   assert.match(scripts, / scripts\/public-registry\.test\.mjs /);
 });
 
-test("Release passes the verified main SHA to Pages and does not bypass the ruleset", () => {
+test("Release deploys Pages from main without waiting on the queue and does not bypass the ruleset", () => {
   const release = workflow("release.yml");
   assert.match(release, /id: prepare/);
-  assert.match(release, /VERIFIED_MAIN_SHA: \$\{\{ needs\.queue\.outputs\.main_sha \}\}/);
   assert.doesNotMatch(release, /gh pr merge[^\n]*--admin/);
 });
 
@@ -1301,7 +1310,7 @@ test("every job that reads the plan runs whatever happened to it, and runs every
   assert.deepEqual(readers.sort(), ["browser", "conformance-shard", "coverage", "e2e-shard", "install-shard", "themes"]);
   for (const name of readers) {
     // install-shard also waits for the merge queue on a pull request (installs=queue, the install test's own test).
-    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : heavyJobs.includes(name) ? heavyRuns : untested;
+    const condition = name === "install-shard" ? queuedInstalls : name === "browser" ? browserRuns : [...heavyJobs, "latency-shard"].includes(name) ? heavyRuns : untested;
     const needs = jobs[name].match(new RegExp(`^ {4}needs: \\[([^\\]]*)\\]\\n {4}if: ${condition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"))?.[1].split(",").map((need) => need.trim());
     assert.ok(needs?.includes("plan"), `${name} needs plan and runs unless the run was cancelled`);
     const full = jobs[name].match(/^ {6}FULL: \$\{\{ (.+) \}\}$/m)?.[1];
@@ -1366,7 +1375,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : heavyJobs.includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs, "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -2130,7 +2139,7 @@ test("a release gives each job its own permissions, and only the queue job, whic
   const release = workflow("release.yml");
   assert.match(release, /^permissions: \{\}$/m);
   const jobs = releaseJobs();
-  assert.deepEqual(Object.keys(jobs), ["release", "queue", "publish", "finish", "next"]);
+  assert.deepEqual(Object.keys(jobs), ["release", "queue", "pages", "publish", "finish", "next"]);
   const permissions = (block) => {
     const lines = (block.split(/^ {4}permissions:\n/m)[1] ?? "").split("\n");
     const own = lines.slice(0, lines.findIndex((line) => !/^ {6}[\w-]+: \w+/.test(line)));
@@ -2138,7 +2147,8 @@ test("a release gives each job its own permissions, and only the queue job, whic
   };
   assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "write", "pull-requests": "write", issues: "write" });
   assert.deepEqual(permissions(jobs.queue), { actions: "write", statuses: "write", "pull-requests": "read", contents: "read" });
-  assert.deepEqual(permissions(jobs.publish), { contents: "write", actions: "write" });
+  assert.deepEqual(permissions(jobs.pages), { actions: "write" });
+  assert.deepEqual(permissions(jobs.publish), { contents: "write" });
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
   assert.deepEqual(permissions(jobs.next), { actions: "write" });
   // The queue job checks nothing out, installs nothing and runs no script of the repository.
@@ -2153,13 +2163,14 @@ test("a release's tag never stays out without main and Pages following unnoticed
   // The release job cleans up after a failure or a cancel, a timeout's included.
   assert.match(jobs.release, /^ {6}- if: \(failure\(\) \|\| cancelled\(\)\) && steps\.check\.outputs\.new == 'true'\n {8}name: Clean up after a failure$/m);
   // The finish job runs whatever happened before it, and reports a pushed tag main and Pages did not follow.
-  assert.match(jobs.finish, /^ {4}needs: \[release, queue, publish\]$/m);
+  assert.match(jobs.finish, /^ {4}needs: \[release, queue, pages, publish\]$/m);
   const condition = jobs.finish.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)?.[1];
-  const runs = (release, queue, publish, fresh = "true") =>
-    runInNewContext(condition.replace("always()", "true"), { needs: { release: { result: release, outputs: { new: fresh } }, queue: { result: queue }, publish: { result: publish } } });
+  const runs = (release, queue, publish, fresh = "true", pages = "success") =>
+    runInNewContext(condition.replace("always()", "true"), { needs: { release: { result: release, outputs: { new: fresh } }, queue: { result: queue }, pages: { result: pages }, publish: { result: publish } } });
   assert.equal(runs("success", "success", "success"), false);
   assert.equal(runs("success", "cancelled", "skipped"), true);
   assert.equal(runs("success", "success", "failure"), true);
+  assert.equal(runs("success", "success", "success", "true", "failure"), true);
   assert.equal(runs("cancelled", "skipped", "skipped", undefined), true);
   // The check step's own output, from its script against a stand-in git and gh: a rerun for a
   // version that is already released did nothing, so finish stays out of it and the run is green;
@@ -2310,8 +2321,9 @@ test("each release job's time limit is at least 1.5 times what it waits for, the
   // The queue job: CI on the queue's commit, once more after a rebuild, and on main when main moved
   // past the queue's commit.
   assert.ok(limit("queue") >= 3 * ci, `queue: timeout-minutes ${limit("queue")}`);
-  // The publish job: the Pages deploy and the two checks of what it serves.
-  assert.ok(limit("publish") >= Math.ceil(1.5 * (pagesDeploy + 2 * publishedWait)), `publish: timeout-minutes ${limit("publish")}`);
+  // The pages job: the Pages deploy and the check of the namespace it serves; the publish job: the check of the two published pages.
+  assert.ok(limit("pages") >= Math.ceil(1.5 * (pagesDeploy + publishedWait)), `pages: timeout-minutes ${limit("pages")}`);
+  assert.ok(limit("publish") >= Math.ceil(1.5 * publishedWait), `publish: timeout-minutes ${limit("publish")}`);
   for (const job of Object.keys(jobs)) assert.ok(limit(job) > 0 && limit(job) <= 360, `${job}: GitHub's limit for a job`);
 });
 

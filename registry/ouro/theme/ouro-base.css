@@ -10,6 +10,9 @@
  * - Motion: a Motion spring(0.4, 0.15) as CSS, quick ease durations, the press scale and
  *   the dimming behind sheets and dialogs. These are not colors, so they keep the
  *   --ouro- prefix.
+ * - --ouro-corner-shape: the shape of every corner, a squircle (CSS corner-shape, n=4), applied to each
+ *   Ouro element; set it to round to go back to circular arcs. Switch, radios, slider thumbs,
+ *   presence dots and spinners stay round.
  * - --ouro-layer: the z-index of sheet and dialog portals.
  * - --input and --radius, with shadcn's stock values, for an app whose theme has neither:
  *   fields draw their border in --input and round their corners on the --radius scale.
@@ -48,7 +51,8 @@
 
 :root {
   --input: oklch(0.922 0 0);
-  --radius: 0.625rem;
+  --radius: 0.9375rem;
+  --ouro-corner-shape: squircle;
   --destructive-foreground: #ffffff;
   --success: #157d3c;
   --success-foreground: #ffffff;
@@ -108,6 +112,14 @@
   --avatar-7: #c3a6ec;
   --avatar-8: #ef85e2;
   --ouro-backdrop-color: #000000;
+}
+
+/* Every rounded Ouro element takes the corner shape (only those: setting it on every element slowed paint); Switch, radios, slider thumbs, presence dots and spinners say round. */
+@layer base {
+  :where([data-ouro], [data-ouro] *)[class*="rounded"] {
+    --corner-shape: var(--ouro-corner-shape);
+    corner-shape: var(--ouro-corner-shape);
+  }
 }
 
 /*

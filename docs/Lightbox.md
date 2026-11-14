@@ -45,7 +45,7 @@ The props the modes share. Type: `LightboxProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `closeLabel` | `string` | `"Close"` | The close button's accessible name. |
-| `fullScreen` | `boolean` |  | The viewer covers the whole screen at every width, with no frame around it, rather than sitting in a dialog with the page around it. Use it where pictures are the point, as in a chat's photos. |
+| `fullScreen` | `boolean` |  | The viewer covers the whole screen at every width, with no frame around it, rather than sitting in a dialog with the page around it. Use it where pictures are the point, as in a chat's photos. Below an app's `--ouro-inset-top` bar it starts under the bar, as a dialog does. |
 | `images` (required) | `readonly LightboxImage[]` |  | The images, in order. The viewer steps through them, and the thumbnails show them in a grid. |
 | `label` (required) | `string` |  | Names the viewer for screen readers, with the position ("Kitchen photos, 2 of 4"), and shows at its top, such as "Kitchen photos". With thumbnails it names their list too. It is always required. |
 | `loop` | `boolean` |  | Next on the last image goes back to the first, and Previous on the first goes to the last. |

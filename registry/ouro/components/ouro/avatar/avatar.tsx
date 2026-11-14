@@ -451,7 +451,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
       className={cn(
         "relative box-border inline-flex shrink-0 items-center justify-center align-middle",
         "font-medium leading-none select-none",
-        shape === "square" ? squareRadii[size] : shape === "circle" && "rounded-full",
+        shape === "square" ? squareRadii[size] : shape === "circle" && "rounded-[34%]",
         !nameLoading && tint,
         sizes[size],
         className,
@@ -487,7 +487,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
       {presence && (
         <span
           data-ouro-avatar-presence=""
-          className={cn("pointer-events-none absolute box-border flex rounded-full bg-(--ouro-avatar-ring,var(--background))", presenceSizes[size])}
+          className={cn("pointer-events-none absolute box-border flex [corner-shape:round] rounded-full bg-(--ouro-avatar-ring,var(--background))", presenceSizes[size])}
         >
           <PresenceGlyph presence={presence} />
         </span>
@@ -561,7 +561,7 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
         <span
           data-ouro-avatar-more=""
           className={cn(
-            "relative box-border inline-flex shrink-0 items-center justify-center rounded-full bg-muted font-medium leading-none text-foreground",
+            "relative box-border inline-flex shrink-0 items-center justify-center rounded-[34%] bg-muted font-medium leading-none text-foreground",
             sizes[size],
           )}
         >

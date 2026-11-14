@@ -363,7 +363,7 @@ export function DocsIndex(): JSX.Element {
           <Door to="/docs/switching-from-shadcn/" title="Switching from shadcn">
             shadcn/ui components and props, and their Ouro HX equivalents.
           </Door>
-          <Door to="/docs/updating/" title="Updating installed components">
+          <Door to="/docs/updating/" title="Updating components">
             Review upstream changes, then overwrite and reapply your edits.
           </Door>
         </DoorList>
@@ -454,7 +454,7 @@ export function Switching(): JSX.Element {
 
 export function Updating(): JSX.Element {
   return (
-    <DocsShell current="/docs/updating/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "Updating installed components" }}>
+    <DocsShell current="/docs/updating/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "Updating components" }}>
       <Lead>Ouro HX components are copied into your project, so they're yours to edit. To take an upstream change, compare first, then decide.</Lead>
       <ol className="m-0 grid list-none gap-12 p-0">
         <li className="grid gap-3">

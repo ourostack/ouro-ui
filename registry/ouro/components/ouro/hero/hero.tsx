@@ -55,6 +55,25 @@ export interface HeroPicture {
   focus?: string;
 }
 
+/**
+ * The hero's art in light and dark mode: the same scene by day and at night. Hero shows `light`
+ * or `dark` with the page's dark mode, the `.dark` class on the root that a stored theme toggle
+ * sets, in CSS, so the right one is there from the first paint.
+ *
+ * `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so
+ * without its own `alt` or `decorative` it takes `light`'s. It always loads lazily, so a page
+ * in light mode never downloads it; its `priority` only raises its fetch priority once it shows.
+ *
+ * @claim "Hero shows `light` or `dark` with the page's dark mode" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the dark picture only while the page is in dark mode)
+ * @claim "It always loads lazily" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > loads the dark picture lazily, raising its fetch priority only with priority)
+ */
+export interface HeroPictures {
+  /** The art shown in light mode, and the frame both are shown in. */
+  light: HeroPicture;
+  /** The same scene at night, shown in dark mode. */
+  dark: HeroPicture;
+}
+
 /** The props Hero adds to the `<header>` attributes it passes through. */
 export interface HeroOwnProps {
   /** The hero's headline, its `<h1>` (or `<h2>` with `headingLevel={2}`). Required. */
@@ -68,8 +87,12 @@ export interface HeroOwnProps {
   description?: ReactNode;
   /** The hero's buttons or links, such as Ouro buttons. */
   actions?: ReactNode;
-  /** The big picture, shown under the text. */
-  picture?: HeroPicture | undefined;
+  /**
+   * The big picture, shown under the text: `{ light, dark }`, the same scene by day and at
+   * night, swapped with the page's dark mode. A single picture still works and shows in both
+   * modes, but it is deprecated: pass `{ light, dark }`. A later release makes `{ light, dark }` required.
+   */
+  picture?: HeroPictures | HeroPicture | undefined;
   /** Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. */
   media?: ReactNode;
   /**
@@ -121,7 +144,7 @@ const layoutRoot: Record<HeroLayout, string> = {
 const splitColumns = "min-[64rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] min-[64rem]:items-center min-[64rem]:gap-16";
 
 const layoutText: Record<HeroLayout, string> = {
-  stage: "mx-auto grid w-[min(42rem,var(--hero-width))] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
+  stage: "mx-auto grid w-[calc(100%_-_2rem)] min-[40rem]:w-[min(80rem,calc(100%_-_4rem))] justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12",
   column: "mx-auto grid w-[var(--hero-width)] justify-items-start gap-4 text-start pt-10 min-[40rem]:pt-12",
   split: "grid w-[var(--hero-width)] min-w-0 justify-items-start gap-4 text-start",
 };
@@ -138,10 +161,53 @@ const layoutMedia: Record<HeroLayout, string> = {
   split: "mx-auto mt-8 min-[64rem]:mt-0",
 };
 
+// A twinned picture shows only in its scheme. The hidden one is display: none, so assistive
+// technology hears one picture, and a lazy image that is not shown is never fetched.
+const schemeClass = { light: "dark:hidden", dark: "hidden dark:block" } as const;
+
+// The dark twin is the same scene as `day`, so it takes day's alt text and decorative flag unless it has its own.
+function renderPicture(picture: HeroPicture, crop: string | undefined, scheme: "light" | "dark" | undefined, day?: HeroPicture): JSX.Element {
+  const lazy = scheme === "dark" || !picture.priority;
+  const decorative = picture.decorative ?? day?.decorative;
+  return (
+    <picture
+      key={scheme}
+      data-scheme={scheme}
+      aria-hidden={decorative ? true : undefined}
+      className={cn("block", scheme && schemeClass[scheme])}
+    >
+      {picture.sources?.map((source) => {
+        // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
+        const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
+        return <source key={key} srcSet={source.srcSet} type={source.type} media={source.media} sizes={source.sizes} />;
+      })}
+      <img
+        data-slot="image"
+        src={picture.src}
+        srcSet={picture.srcSet}
+        sizes={picture.sizes}
+        width={picture.width}
+        height={picture.height}
+        alt={decorative ? "" : (picture.alt ?? day?.alt)}
+        draggable={false}
+        fetchPriority={picture.priority ? "high" : undefined}
+        loading={lazy ? "lazy" : undefined}
+        decoding={picture.priority ? undefined : "async"}
+        style={{ objectPosition: picture.focus ?? "50% 42%" }}
+        className={cn(
+          "block h-auto w-full object-cover select-none",
+          crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
+        )}
+      />
+    </picture>
+  );
+}
+
 /**
  * The top of a page: a headline with an optional line above it (`eyebrow`), a lede under
  * it (`description`), the page's buttons (`actions`) and a big picture, or something live in
- * its place (`media`), below. The picture rises into place on mount unless `motion="none"`,
+ * its place (`media`), below. The picture is light and dark art, swapped with the page's dark
+ * mode. The picture rises into place on mount unless `motion="none"`,
  * and it is never shown wider than its intrinsic width.
  *
  * Use `PageHeader` instead for a page's top with a breadcrumb or no picture, and `Heading`
@@ -157,7 +223,10 @@ const layoutMedia: Record<HeroLayout, string> = {
  *   title="Dinner, sorted"
  *   description="Plan the week, shop once, cook without the scramble."
  *   actions={<Button>Start planning</Button>}
- *   picture={{ src: "/hero.jpg", width: 1536, height: 576, alt: "A table set for four" }}
+ *   picture={{
+ *     light: { src: "/hero.jpg", width: 1536, height: 576, alt: "A table set for four" },
+ *     dark: { src: "/hero-night.jpg", width: 1536, height: 576 },
+ *   }}
  * />
  */
 export function Hero(props: HeroProps): JSX.Element {
@@ -182,6 +251,8 @@ export function Hero(props: HeroProps): JSX.Element {
     ...rest
   } = props;
   // A lede that is only text is a paragraph; one made of blocks needs a <div> to be valid HTML.
+  const light = picture && "light" in picture ? picture.light : picture;
+  const dark = picture && "light" in picture ? picture.dark : undefined;
   const Lede = typeof description === "string" || typeof description === "number" ? "p" : "div";
   const layout: HeroLayout = layoutProp === "column" ? "column" : layoutProp === "split" ? "split" : "stage";
   // Stryker disable next-line StringLiteral: motion is only compared with "rise", so "" and "none" behave the same.
@@ -212,13 +283,13 @@ export function Hero(props: HeroProps): JSX.Element {
             `headingLevel={${String(headingLevelProp)}} is not a heading level; use 1 for the page headline or 2 for a section`,
             '<Hero headingLevel={2} />',
           ],
-          picture !== undefined &&
-            picture.alt === undefined &&
-            picture.decorative !== true && [
+          light !== undefined &&
+            light.alt === undefined &&
+            light.decorative !== true && [
               "picture has no alt text",
-              '<Hero picture={{ src, width, height, alt: "A table set for four" }} />',
+              '<Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />',
             ],
-          picture !== undefined &&
+          light !== undefined &&
             media != null && [
               "picture and media are both set; show one: picture for a still image, media for something live",
               '<Hero media={<video src="..." muted autoPlay loop playsInline />} />',
@@ -231,50 +302,21 @@ export function Hero(props: HeroProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const crop = picture?.crop;
-  const pictureStyle = picture
+  const crop = light?.crop;
+  const pictureStyle = light
     ? ({
-        maxWidth: `${picture.width}px`,
+        maxWidth: `${light.width}px`,
         ...(crop ? { "--hero-crop": crop } : {}),
       } as CSSProperties)
     : // Stryker disable next-line ConditionalExpression: without mediaWidth the style would be "undefinedpx", which the browser drops, so the page is the same.
       mediaWidth !== undefined
       ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
       : undefined;
-  const shown = picture ? (
-    <picture aria-hidden={picture.decorative ? true : undefined} className="block">
-      {picture.sources?.map((source) => {
-        // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
-        const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
-        return (
-          <source
-            key={key}
-            srcSet={source.srcSet}
-            type={source.type}
-            media={source.media}
-            sizes={source.sizes}
-          />
-        );
-      })}
-      <img
-        data-slot="image"
-        src={picture.src}
-        srcSet={picture.srcSet}
-        sizes={picture.sizes}
-        width={picture.width}
-        height={picture.height}
-        alt={picture.decorative ? "" : picture.alt}
-        draggable={false}
-        fetchPriority={picture.priority ? "high" : undefined}
-        loading={picture.priority ? undefined : "lazy"}
-        decoding={picture.priority ? undefined : "async"}
-        style={{ objectPosition: picture.focus ?? "50% 42%" }}
-        className={cn(
-          "block h-auto w-full object-cover select-none",
-          crop && "min-[40rem]:absolute min-[40rem]:inset-0 min-[40rem]:h-full",
-        )}
-      />
-    </picture>
+  const shown = light ? (
+    <>
+      {renderPicture(light, crop, dark ? "light" : undefined)}
+      {dark ? renderPicture(dark, crop, "dark", light) : null}
+    </>
   ) : typeof media === "boolean" ? null : (
     // `media={isWide && <video … />}` passes false: no empty frame rises in its place.
     media
@@ -298,7 +340,7 @@ export function Hero(props: HeroProps): JSX.Element {
         {description != null ? (
           <Lede
             data-slot="description"
-            className="m-0 max-w-[60ch] text-base leading-7 text-muted-foreground text-pretty min-[40rem]:text-lg min-[40rem]:leading-8"
+            className="m-0 max-w-[70ch] text-base leading-7 text-muted-foreground text-pretty min-[40rem]:text-lg min-[40rem]:leading-8"
           >
             {description}
           </Lede>
