@@ -1,1 +1,1 @@
-- The script tests that drive a browser run in shards split by measured time, so that job is no longer the longest in CI.
+- The script tests that drive a browser run in shards split by measured time, which shortens CI.
