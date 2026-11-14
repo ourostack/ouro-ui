@@ -264,7 +264,9 @@ jobs:
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Shards take about ten minutes (10.5 at most in recent runs), so a hang ends the job in minutes
+    # rather than an hour (#671). The test step's limit below ends it first.
+    timeout-minutes: 20
     # In Playwright's image (see the note above jobs:).
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
@@ -290,8 +292,11 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
+      # A hang ends this step in fifteen minutes, before the job's own limit, so the timings below
+      # still upload and the log names what hung (#671).
       - id: tests
         name: Browser tests
+        timeout-minutes: 15
         run: |
           if [ "$FULL" = true ]; then
             pnpm exec vitest run --coverage --shard="$SHARD"
@@ -519,8 +524,10 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
+      # A hang ends this step in fifteen minutes, before the job's own limit (#671).
       - id: tests
         name: Browser tests
+        timeout-minutes: 15
         run: |
           pnpm exec vitest run --coverage --shard="$SHARD"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

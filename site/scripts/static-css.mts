@@ -55,8 +55,10 @@ export function splitBase(css: string): { inline: string; utilities: string[]; k
   const keyframes = [...source.matchAll(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g)].map((match) => match[0]);
   const supportsPattern = /@supports[^{]*\{(?:\s*[^{}]*\{[^{}]*\})*\s*\}/g;
   const supports = [...source.matchAll(supportsPattern)].map((match) => {
-    const [, query, selector, body] = /(@supports[^{]*?)\s*\{\s*([^{}]*?)\s*\{([^{}]*)\}\s*\}/.exec(match[0])!;
-    return `${query} {\n${rule(selector!, declarations(body!), "  ")}\n}`;
+    const query = /(@supports[^{]*?)\s*\{/.exec(match[0])![1]!;
+    const inner = match[0].slice(match[0].indexOf("{") + 1, match[0].lastIndexOf("}"));
+    const rules = [...inner.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((rm) => rule(rm[1]!.trim(), declarations(rm[2]!), "  "));
+    return `${query} {\n${rules.join("\n")}\n}`;
   });
   const rest = source
     .replace(inline[0], "")
