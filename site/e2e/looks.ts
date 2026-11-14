@@ -73,7 +73,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
   };
   const behindOf = (el: HTMLElement) => {
     // The site header floats over scrolling content (Ctrl+K differed on / alone). A sidebar control's crop in WebKit dark differed from page to page on whichever page ran, with every property equal; the properties judge it.
-    if (el.closest("[data-ouro=sidebar], header, [data-ouro=code-block]") || /(, 0?\.\d+\)|\/ 0?\.\d+\))$/.test(getComputedStyle(el).backgroundColor)) return "translucent";
+    if (el.closest("[data-ouro=sidebar], header, [data-ouro=code-block], [data-site-preset]") || el.textContent === "Copy" || /(, 0?\.\d+\)|\/ 0?\.\d+\))$/.test(getComputedStyle(el).backgroundColor)) return "translucent";
     for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
       const s = getComputedStyle(n);
       const c = s.backgroundColor;
