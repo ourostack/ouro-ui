@@ -24,6 +24,8 @@ export function runtimeSource(path) {
   if (!/\.(ts|tsx)$/.test(path) || /\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\.touch\.test\./.test(path)) return false;
   // A file vendored from core can't take a Stryker comment without breaking its pin (scripts/vendored.mjs).
   if (vendored.includes(path)) return false;
+  // The squircle engine is ourostack/hyperellipse's, mutated and tested there.
+  if (path.startsWith("registry/ouro/lib/ouro/squircle/")) return false;
   if (path.startsWith(componentsDir)) return true;
   return path.startsWith(libDir) && !path.startsWith(`${libDir}testing/`);
 }
