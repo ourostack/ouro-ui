@@ -91,6 +91,28 @@ export function balance(keys, count, timings, groupOf) {
 /** The keys shard `index` (from 1) of `count` runs, each group spread across the shards with `groupOf` (balance). */
 export const shardKeys = (keys, { index, count }, timings, groupOf) => balance(keys, count, timings, groupOf)[index - 1].keys;
 
+/**
+ * The browser shards: the test files (but not the sliced suites, which every shard runs) and the
+ * installed-subset checks (scripts/subset-coverage.mjs), weighed by their recorded times, in one
+ * longest-first split, so each shard's tests and subset checks add up evenly. `extra` are files
+ * with no recorded time, each added to the lightest shard at the median. The subset checks come
+ * from the recorded times alone, so the browser job and the subset step agree whatever files a
+ * run selects.
+ */
+export function browserBalance(count, extra = [], file = timingsFile) {
+  const vitest = readTimings("vitest", file);
+  const subset = readTimings("subset", file);
+  const timings = { ...vitest, ...subset };
+  const shards = balance([...Object.keys(vitest).filter((key) => !isSliced(key)), ...Object.keys(subset)], count, timings, projectOf);
+  const fallback = median(Object.values(timings).filter((value) => typeof value === "number"));
+  for (const key of [...new Set(extra)].filter((key) => !(key in timings)).sort()) {
+    const lightest = shards.reduce((best, shard) => (shard.weight < best.weight ? shard : best), shards[0]);
+    lightest.keys.push(key);
+    lightest.weight += fallback;
+  }
+  return shards;
+}
+
 /** A Vitest timing key's project, as Vitest names it: `ouro-touch (chromium)` of `ouro-touch (chromium) <path>`. */
 export const projectOf = (key) => key.slice(0, key.indexOf(") ") + 1);
 
@@ -128,9 +150,9 @@ const filesUnder = (dir) => readdirSync(dir, { recursive: true }).map(String).ma
  * the longer time.
  */
 export function collectTimings(dir) {
-  const timings = { vitest: {}, scripts: {}, e2e: {} };
+  const timings = { vitest: {}, scripts: {}, e2e: {}, subset: {} };
   for (const file of filesUnder(dir).sort()) {
-    const kind = /(?:^|\/)(vitest|scripts|e2e)-[^/]*\.json$/.exec(file)?.[1];
+    const kind = /(?:^|\/)(vitest|scripts|e2e|subset)-[^/]*\.json$/.exec(file)?.[1];
     if (!kind) continue;
     for (const [key, ms] of Object.entries(JSON.parse(readFileSync(file, "utf8")))) timings[kind][key] = Math.max(timings[kind][key] ?? 0, Math.round(ms));
   }
@@ -248,7 +270,7 @@ function main([command, ...args]) {
       return 1;
     }
     const previous = existsSync(timingsFile) ? JSON.parse(readFileSync(timingsFile, "utf8")) : {};
-    const next = Object.fromEntries(["vitest", "scripts", "e2e"].map((kind) => [kind, sortedObject(Object.keys(found[kind]).length > 0 ? found[kind] : (previous[kind] ?? {}))]));
+    const next = Object.fromEntries(["vitest", "scripts", "e2e", "subset"].map((kind) => [kind, sortedObject(Object.keys(found[kind]).length > 0 ? found[kind] : (previous[kind] ?? {}))]));
     writeFileSync(timingsFile, `${JSON.stringify(next, null, 2)}\n`);
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;

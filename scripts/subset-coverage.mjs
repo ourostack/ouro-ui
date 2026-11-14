@@ -19,10 +19,10 @@
 // three browser projects, and measures coverage over only the runtime files in it, with the
 // repository's 100% thresholds. A line that only another component's tests reach fails.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseShard } from "./shard.mjs";
+import { browserBalance, parseShard } from "./shard.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -61,14 +61,20 @@ export function setsTouching(registry, items) {
   return sets.filter((set) => subset(registry, set).items.some((name) => items.includes(name)));
 }
 
+/** A set's key in scripts/shard-timings.json's `subset` times. */
+export const setKey = (set) => set.join(",");
+
 /**
- * The sets shard `index` (from 1) of `count` checks. With ten shards the dearest sets (positions 3
- * and 4, about 143 s and 122 s measured, the others 49 to 84 s) go to the shards whose browser tests
- * finish first (8, 10, 7, 6); with six, to 5 and 1; otherwise every `count`th.
+ * The sets shard `index` (from 1) of `count` checks: the browser tests' own longest-first split
+ * (scripts/shard.mjs browserBalance) places each set by its recorded time. A set with no time goes
+ * to every `count`th shard.
  */
-const shardOrders = { 6: [5, 1, 3, 2, 6], 10: [1, 7, 6, 8, 10] };
-export const shardSets = (chosen, { index, count }) =>
-  chosen.filter((_, position) => (shardOrders[count]?.[position] ?? (position % count) + 1) === index);
+export function shardSets(chosen, { index, count }) {
+  const placed = browserBalance(count);
+  const known = new Set(placed.flatMap((shard) => shard.keys));
+  const mine = new Set(placed[index - 1].keys);
+  return chosen.filter((set, position) => (known.has(setKey(set)) ? mine.has(setKey(set)) : (position % count) + 1 === index));
+}
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const all = process.argv.slice(2);
@@ -84,12 +90,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const chosen = shard ? shardSets(every, shard) : every;
   if (shard) console.log(`Shard ${shard.index}/${shard.count}: ${chosen.length} of ${every.length} set${every.length === 1 ? "" : "s"}${chosen.length > 0 ? `: ${chosen.map((set) => set.join(", ")).join("; ")}` : ""}.`);
   if (touching) console.log(chosen.length > 0 ? `Sets that install ${items.join(", ")}: ${chosen.map((set) => set.join(", ")).join("; ")}` : `No set installs ${items.join(", ") || "any selected component"}; nothing to check.`);
+  const times = {};
   for (const set of chosen) {
     const { items, runtime, tests } = subset(registry, set);
     if (list) {
       console.log(JSON.stringify({ items, runtime, tests }, null, 2));
       continue;
     }
+    const started = Date.now();
     console.log(`::group::Coverage of an install of ${set.join(", ")} with tests: ${runtime.length} files, ${tests.length} test files`);
     const result = spawnSync(
       join(root, "node_modules/.bin/vitest"),
@@ -108,10 +116,15 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       { cwd: root, stdio: "inherit" },
     );
     console.log("::endgroup::");
+    times[setKey(set)] = Date.now() - started;
     if (result.status !== 0) {
       console.log(`::error::An app that installs ${set.join(", ")} with tests does not reach 100% coverage of the installed files (or a test failed). Cover the line in the item's own tests.`);
       process.exit(result.status ?? 1);
     }
+  }
+  if (shard && !list && !touching && chosen.length > 0) {
+    mkdirSync(join(root, ".tmp/timings"), { recursive: true });
+    writeFileSync(join(root, ".tmp/timings", `subset-${shard.index}of${shard.count}.json`), `${JSON.stringify(times, null, 2)}\n`);
   }
   if (!list && chosen.length > 0) console.log("Each set's installed tests cover its installed files to 100%.");
 }

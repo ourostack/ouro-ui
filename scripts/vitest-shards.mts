@@ -7,7 +7,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { BaseSequencer, type Reporter, type TestModule, type TestSpecification, type Vitest } from "vitest/node";
-import { projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { browserBalance, readTimings, slicedSuites } from "./shard.mjs";
 
 export { slicedSuites };
 
@@ -34,8 +34,9 @@ export class TimedSequencer extends BaseSequencer {
     const key = (spec: TestSpecification) => timingKey(spec.project.name, config.root, spec.moduleId);
     const sliced = files.filter((spec) => slicedSuites.includes(path(spec)));
     const rest = files.filter((spec) => !slicedSuites.includes(path(spec)));
-    // Each project spread across the shards: Vitest runs the projects side by side.
-    const mine = new Set(shardKeys(rest.map(key), { index, count }, readTimings("vitest"), projectOf));
+    // With the installed-subset checks in the same split (scripts/subset-coverage.mjs), each project spread across the shards: Vitest runs the projects side by side.
+    const recorded = readTimings("vitest");
+    const mine = new Set(browserBalance(count, rest.map(key).filter((name) => !(name in recorded)))[index - 1].keys);
     return [...sliced, ...rest.filter((spec) => mine.has(key(spec)))];
   }
 }
