@@ -108,3 +108,56 @@ test("the bridge keeps a control's ref across page loads, reports a blocked form
   assert.equal(store.state.items.length, 5);
   assert.deepEqual(store.state.orders, []);
 });
+
+test("the screen arms run tool calls one at a time, as Playwright MCP does, when a model sends several in one turn", async () => {
+  for (const arm of [browserArm, bridge]) {
+    const store = createStore();
+    const opened = await arm.open({ store, browser });
+    const tool = (name) => opened.tools.find((t) => t.name === name);
+    try {
+      if (arm === browserArm) {
+        const page = await tool("browser_snapshot").handler({});
+        await Promise.all([
+          tool("browser_type").handler({ ref: refIn(page, "textbox", "Item"), text: "oat milk" }),
+          tool("browser_type").handler({ ref: refIn(page, "spinbutton", "Quantity"), text: "2" }),
+          tool("browser_type").handler({ ref: refIn(page, "textbox", "Unit"), text: "cartons" }),
+        ]);
+        await tool("browser_click").handler({ ref: refIn(page, "button", "Add to list") });
+      } else {
+        await Promise.all([
+          tool("act").handler({ steps: [{ target: "Item", action: "setValue", value: "oat milk" }] }),
+          tool("act").handler({ steps: [{ target: "Quantity", action: "setValue", value: 2 }] }),
+          tool("act").handler({ steps: [{ target: "Unit", action: "setValue", value: "cartons" }] }),
+        ]);
+        await tool("act").handler({ steps: [{ target: "Add to list", action: "press" }] });
+      }
+    } finally {
+      await opened.close();
+    }
+    assert.deepEqual(store.state.items.at(-1), { id: "i6", name: "oat milk", quantity: 2, unit: "cartons", checked: false }, arm.id);
+  }
+});
+
+test("a browser that goes away is relaunched, and a trial on it reports an infrastructure error, not the model's", async () => {
+  const { createBrowsers } = await import("./run.mjs");
+  const { InfrastructureError } = await import("./arms/interfaces.mjs");
+  const browsers = createBrowsers(() => chromium.launch({ headless: true }));
+  try {
+    const first = await browsers.get();
+    const opened = await bridge.open({ store: createStore(), browser: first });
+    assert.equal(opened.infraError, null);
+    await first.close();
+    assert.equal(opened.infraError, "The browser disconnected during the trial.");
+    await opened.close();
+    await assert.rejects(browserArm.open({ store: createStore(), browser: first }), InfrastructureError);
+    await browsers.renew(first);
+    const second = await browsers.get();
+    assert.notEqual(second, first);
+    assert.equal(second.isConnected(), true);
+    assert.equal(browsers.relaunches, 1);
+    await browsers.renew(first);
+    assert.equal(await browsers.get(), second, "a stale renew leaves the new browser alone");
+  } finally {
+    await browsers.close();
+  }
+});

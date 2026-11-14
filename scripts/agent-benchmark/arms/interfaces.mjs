@@ -13,6 +13,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const generatedMcp = JSON.parse(fs.readFileSync(path.join(here, "..", "fixture", "generated", "mcp.json"), "utf8"));
 
 const json = (value) => JSON.stringify(value);
+
+/** A failure of the machine (the browser, the page), not of the model: such a trial is retried once, never scored. */
+export class InfrastructureError extends Error {}
 const failure = (error) => {
   if (error instanceof PantryError) return json({ error: error.message });
   throw error;
@@ -141,18 +144,50 @@ export const plainMcp = {
 
 // ---- the web screen, for the two arms that use it ----------------------------------------------------------------
 
+/**
+ * `tools` with their handlers queued, so calls a model sends in one turn run one after another on the one tab, as
+ * Playwright MCP runs them. Run at once, two `fill`s race for focus and type into the wrong field.
+ */
+export function oneAtATime(tools) {
+  let queue = Promise.resolve();
+  return tools.map((tool) => ({
+    ...tool,
+    handler: (args) => {
+      const run = queue.then(() => tool.handler(args));
+      queue = run.catch(() => {});
+      return run;
+    },
+  }));
+}
+
 async function openScreen({ store, browser }) {
   if (!browser) throw new Error("This arm needs a browser: pass one from playwright's chromium.launch().");
+  if (!browser.isConnected()) throw new InfrastructureError("The browser is not connected.");
   const server = await startServer(store);
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  const page = await context.newPage();
-  page.setDefaultTimeout(5_000);
-  await page.goto(server.url);
+  let context = null;
+  let infraError = null;
+  const onDisconnected = () => {
+    infraError = infraError ?? "The browser disconnected during the trial.";
+  };
+  browser.on("disconnected", onDisconnected);
   const close = async () => {
-    await context.close();
+    browser.off("disconnected", onDisconnected);
+    await context?.close().catch(() => {});
     await server.close();
   };
-  return { server, page, close };
+  try {
+    context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    page.on("crash", () => {
+      infraError = infraError ?? "The page crashed during the trial.";
+    });
+    page.setDefaultTimeout(5_000);
+    await page.goto(server.url);
+    return { server, page, close, infraError: () => infraError };
+  } catch (error) {
+    await close();
+    throw new InfrastructureError(`The screen did not open: ${String(error.message).split("\n")[0]}`);
+  }
 }
 
 // ---- 2. browser driving: Playwright over the accessibility tree --------------------------------------------------
@@ -244,7 +279,7 @@ export const browser = {
         }),
       },
     ];
-    return { tools, refusals: [], close: screen.close };
+    return { tools: oneAtATime(tools), refusals: [], close: screen.close, get infraError() { return screen.infraError(); } };
   },
 };
 
@@ -313,7 +348,7 @@ export const bridge = {
         },
       },
     ];
-    return { tools, refusals: [], close: screen.close, get personRefusals() { return refused; } };
+    return { tools: oneAtATime(tools), refusals: [], close: screen.close, get infraError() { return screen.infraError(); }, get personRefusals() { return refused; } };
   },
 };
 
@@ -321,13 +356,13 @@ export const bridge = {
 
 /**
  * The hook for App Intents. The generated `OuroActions.swift` (fixture/generated/) already declares this set's
- * intents; the arm waits until Spoonjoy's Apple app serves its own (spoonjoy/spoonjoy-apple#348) and a model can call
+ * intents, and Spoonjoy's Apple app serves its own (spoonjoy/spoonjoy-apple#348); the arm waits until a model can call
  * App Intents headlessly in CI. Selecting it fails with that reason.
  */
 export const appleAppIntents = {
   id: "apple-app-intents",
   title: "App Intents (Apple)",
-  pending: "waits for spoonjoy/spoonjoy-apple#348 and a headless way for a model to call App Intents",
+  pending: "waits for a headless way for a model to call App Intents on a hosted macOS runner (ourostack/ouro-ui#1156)",
   async open() {
     throw new Error(`The apple-app-intents arm is not runnable yet: it ${this.pending}.`);
   },

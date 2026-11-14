@@ -45,6 +45,8 @@ The other variables cover the rest of the room: `--background` and `--foreground
 
 Headings are set a little tighter at each larger size, which suits a sans-serif.[^tighter] A serif heading font has less room between its letters, so with one in `--font-heading`, set `--ouro-heading-tracking` in `:root` to the share of that tightening to keep: `0.5` for half, `0` for the font's own spacing. It defaults to `1`.[^tracking]
 
+### Dark mode
+
 Set light values in `:root` and dark values in `.dark`. Ouro HX switches with the `dark` class on `<html>`, as shadcn/ui does.
 
 A site that marks dark mode another way, such as `data-theme="dark"` on `<html>` with the system setting when no theme is chosen, keys its dark values to that instead, and redefines Tailwind's `dark` variant to match, so Ouro HX's `dark:` styles, Hero's night art among them, follow the same signal.[^variant]

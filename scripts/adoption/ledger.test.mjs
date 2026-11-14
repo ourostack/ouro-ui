@@ -172,3 +172,18 @@ test("code search waits its turn and retries a refusal", () => {
   assert.equal(context.search("q", "o/r").total, 1);
   assert.ok(waits.includes(30000));
 });
+
+test("code search waits as long as GitHub says on an HTTP 429, within a cap", () => {
+  const messages = ["gh: try again in 14.98s (HTTP 429)", "gh: try again in 732.6s (HTTP 429)", "gh: try again in 588ms (HTTP 429)"];
+  const waits = [];
+  const context = createContext({
+    gh: () => {
+      if (messages.length) throw new Error(messages.shift());
+      return JSON.stringify({ total_count: 1, items: [{ path: "a" }] });
+    },
+    now: () => NOW,
+    sleep: (ms) => waits.push(ms),
+  });
+  assert.equal(context.search("q", "o/r").total, 1);
+  assert.deepEqual(waits.filter((ms) => ms !== 6500).slice(-3), [15980, 90000, 1588]);
+});

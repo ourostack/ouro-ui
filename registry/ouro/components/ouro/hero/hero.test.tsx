@@ -715,6 +715,18 @@ describe("Hero", () => {
     expect(shownIn(part)).toEqual(["light"]);
   });
 
+  it("paints each picture's placeholder behind it while it loads, and the day's never at night", async () => {
+    const day = { ...wide, placeholder: "rgb(47, 107, 79)" };
+    const { part } = await render(<Hero title="Night" picture={{ light: day, dark: { ...night, placeholder: "rgb(16, 38, 28)" } }} />);
+    const [light, dark] = [...part("media")!.querySelectorAll("img")];
+    expect(getComputedStyle(light!).backgroundColor).toBe("rgb(47, 107, 79)");
+    document.documentElement.classList.add("dark");
+    expect(getComputedStyle(dark!).backgroundColor).toBe("rgb(16, 38, 28)");
+    const unset = await render(<Hero title="Unset" picture={{ light: day, dark: night }} />);
+    expect(getComputedStyle(unset.part("media")!.querySelector('[data-scheme="dark"] img')!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    document.documentElement.classList.remove("dark");
+  });
+
   it("keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority", async () => {
     const day = await render(<Hero title="Day" picture={{ light: { ...wide, priority: true }, dark: night }} />);
     const [light, dark] = [...day.part("media")!.querySelectorAll("img")];
@@ -765,7 +777,84 @@ describe("Hero", () => {
     await expect.poll(() => darkAtNight!.complete && darkAtNight!.currentSrc).toBe(night.src);
     const [, lone] = serve(<Hero title="Lone" picture={{ light: { ...wide, priority: true }, dark: night }} />);
     expect(lone!.loading).toBe("eager");
-    expect(renderToString(<Hero title="Plain" picture={{ light: wide, dark: night }} />)).not.toContain("<script");
+    const plain = serve(<Hero title="Plain" picture={{ light: wide, dark: night }} />);
+    expect(plain.map((twin) => twin.loading)).toEqual(["lazy", "lazy"]);
+  });
+
+  it("marks the frame data-loaded once the picture shown has loaded, from server HTML with no hydration", async () => {
+    const serve = (node: ReactNode) => {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      host.append(document.createRange().createContextualFragment(renderToString(node)));
+      return host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    };
+    const day = serve(<Hero title="Day" picture={pair(wide)} />);
+    await expect.poll(() => day.hasAttribute("data-loaded")).toBe(true);
+    const lone = serve(<Hero title="Lone" picture={{ light: wide } as unknown as HeroPictures} />);
+    await expect.poll(() => lone.hasAttribute("data-loaded")).toBe(true);
+    expect(lone.querySelector("img")!.loading).toBe("lazy");
+    // At night the day art loads from the HTML, hidden, while the night art shown fails: the frame waits for the night art.
+    document.documentElement.classList.add("dark");
+    const broken = { ...night, src: "/hero-night-art-that-is-not-there.avif" };
+    const waiting = serve(<Hero title="Night" picture={{ light: { ...wide, priority: true }, dark: broken }} />);
+    const hidden = waiting.querySelector<HTMLImageElement>('[data-scheme="light"] img')!;
+    await expect.poll(() => hidden.complete && hidden.naturalWidth > 0).toBe(true);
+    await new Promise((settle) => setTimeout(settle, 300));
+    expect(waiting.hasAttribute("data-loaded")).toBe(false);
+  });
+
+  it("marks the frame data-loaded on the client too, once the picture shown has loaded", async () => {
+    // A file of its own, not in the image cache, so it loads after Hero mounts.
+    const { part } = await render(<Hero title="Client" picture={pair({ ...wide, src: `${wide.src}%3C!--client--%3E` })} />);
+    await expect.poll(() => part("media")!.getAttribute("data-loaded")).toBe("");
+    document.documentElement.classList.add("dark");
+    const broken = { ...night, src: "/hero-night-art-that-is-not-there.avif" };
+    const waiting = await render(<Hero title="Night" picture={{ light: { ...wide, priority: true }, dark: broken }} />);
+    const hidden = waiting.part("media")!.querySelector<HTMLImageElement>('[data-scheme="light"] img')!;
+    await expect.poll(() => hidden.complete && hidden.naturalWidth > 0).toBe(true);
+    await new Promise((settle) => setTimeout(settle, 300));
+    expect(waiting.part("media")!.hasAttribute("data-loaded")).toBe(false);
+    // The shown picture's load event marks the frame, and the hidden one's doesn't.
+    const [hiddenDay, shownNight] = [...waiting.part("media")!.querySelectorAll("img")];
+    await act(async () => hiddenDay!.dispatchEvent(new Event("load")));
+    expect(waiting.part("media")!.hasAttribute("data-loaded")).toBe(false);
+    await act(async () => shownNight!.dispatchEvent(new Event("load")));
+    expect(waiting.part("media")!.getAttribute("data-loaded")).toBe("");
+    const live = await render(<Hero title="Live" media={<div>Live</div>} />);
+    expect(live.part("media")!.hasAttribute("data-loaded")).toBe(false);
+  });
+
+  it("marks a picture that loaded before hydration once it hydrates, where the page's scripts did not run", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const node = <Hero title="Blocked" picture={pair({ ...wide, src: `${wide.src}%3C!--blocked--%3E` })} />;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    // innerHTML runs no scripts, as on a page whose content security policy blocks inline ones.
+    host.innerHTML = renderToString(node);
+    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const shown = media.querySelector("img")!;
+    // The load event follows `complete` in a task of its own: wait for it, so it has fired before hydration.
+    await new Promise((settle) => shown.addEventListener("load", settle, { once: true }));
+    await new Promise((settle) => setTimeout(settle, 50));
+    expect(media.hasAttribute("data-loaded")).toBe(false);
+    const root = hydrateRoot(host, node, { onRecoverableError: (cause) => error(cause) });
+    roots.push(root);
+    await act(async () => {});
+    expect(media.getAttribute("data-loaded")).toBe("");
+    // A picture that failed before hydration has not loaded.
+    const failed = <Hero title="Failed" picture={pair({ ...wide, src: "/hero-day-art-that-is-not-there.avif" })} />;
+    const failedHost = document.createElement("div");
+    document.body.append(failedHost);
+    mounted.push(failedHost);
+    failedHost.innerHTML = renderToString(failed);
+    const failedImage = failedHost.querySelector("img")!;
+    await expect.poll(() => failedImage.complete).toBe(true);
+    roots.push(hydrateRoot(failedHost, failed, { onRecoverableError: (cause) => error(cause) }));
+    await act(async () => {});
+    expect(failedHost.querySelector('[data-slot="media"]')!.hasAttribute("data-loaded")).toBe(false);
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("hydrates the first-paint script and its twins quietly, and renders it on the client without running it", async () => {

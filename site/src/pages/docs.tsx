@@ -15,7 +15,7 @@ import { LiveDemo } from "../components/live-demo";
 import { siteGroups, type SiteGroup } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown, markdown } from "../docs/content";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
-import { inline, Markdown, parse, type Block } from "../docs/markdown";
+import { holdLastWords, inline, Markdown, parse, type Block } from "../docs/markdown";
 import { docsPages, exportPages, guidePages, pageMarkdown, publishedName, repositoryLink, type DocsPage } from "../docs/pages";
 import { href, routeFor } from "../routes";
 import { latestRelease } from "../latest-release";
@@ -98,7 +98,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
   const { purpose, importLine, body } = pageBlocks(item);
   return (
     <DocsShell current={`/docs/${item.name}/`} opener={{ scene: groupScene(item.group), eyebrow: item.group, title: item.title }}>
-      <Lead>{inline(purpose)}</Lead>
+      <Lead>{inline(holdLastWords(purpose))}</Lead>
       <section
         aria-label="Live demo"
         className="flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 py-10 sm:px-10 dark:bg-muted/65"
@@ -268,7 +268,7 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
       current={`/docs/${page.name}/`}
       opener={{ scene: sceneFor(page), eyebrow: page.group, title: page.kind === "platform" ? <PlatformTitle title={page.title} /> : page.title, tall: page.kind === "platform" }}
     >
-      <Lead>{inline(lead.text, link)}</Lead>
+      <Lead>{inline(holdLastWords(lead.text), link)}</Lead>
       <Markdown blocks={body} link={link} />
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
         <a href={`${GITHUB}/blob/main/${page.file}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
@@ -327,7 +327,7 @@ export function DocsIndex(): JSX.Element {
               .filter((item) => item.group === group)
               .map((item) => (
                 <Door key={item.name} to={`/docs/${item.name}/`} title={item.title}>
-                  {inline(item.summary)}
+                  {inline(holdLastWords(item.summary))}
                 </Door>
               ))}
           </DoorList>
@@ -357,7 +357,7 @@ export function DocsIndex(): JSX.Element {
         <DoorList>
           {guidePages.map((page) => (
             <Door key={page.name} to={`/docs/${page.name}/`} title={page.title}>
-              {inline(page.summary)}
+              {inline(holdLastWords(page.summary))}
             </Door>
           ))}
           <Door to="/docs/switching-from-shadcn/" title="Switching from shadcn">

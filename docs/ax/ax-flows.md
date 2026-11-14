@@ -12,7 +12,7 @@ node lib/ouro/ax/flows.ts run <suite module> [--out report] [--flows a,b] [--sla
 npx shadcn@latest add ourostack/ouro-ui/ax-flows#v1.3.17
 ```
 
-It installs `lib/ouro/ax/flows.ts`. Its tests are `ax-flows-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `lib/ouro/ax/flows.ts`, with `ax-cli`, `ax-command`, `ax-outcome`, `ax-problem`. Its tests are `ax-flows-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 

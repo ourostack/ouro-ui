@@ -198,7 +198,8 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
         <Container>
           <p className="site-eyebrow">Adoption ledger</p>
           <h1 id="adoption-title" className="site-h1">
-            {summary.confirmed} of {summary.total} products confirmed.
+            {/* "products confirmed." holds together, so a phone breaks the line after the count, not before its last word. */}
+            {summary.confirmed} of {summary.total} products{"\u00a0"}confirmed.
           </h1>
           <div className="site-lede adoption-lede">
             <p>
