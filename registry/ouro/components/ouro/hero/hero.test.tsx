@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
@@ -383,19 +383,17 @@ describe("Hero", () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
   });
 
-  it("rises with no keyframes or ouro-base: its own transition, on ouro-base's durations when they are unset", async () => {
+  it("rises with no keyframes: its own transition, on ouro-base's durations and easing", async () => {
     const token = (name: string) => parseDuration(getComputedStyle(document.documentElement).getPropertyValue(name));
     const slow = token("--ouro-duration-slow");
     const fast = token("--ouro-duration-fast");
-    // A page without ouro-base: its motion tokens are unset where the hero is.
-    const unset = { "--ouro-duration-slow": "initial", "--ouro-duration-fast": "initial", "--ouro-ease-out": "initial" } as CSSProperties;
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
       await expect.poll(() => matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(reduced);
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const host = document.createElement("div");
       host.innerHTML = renderToString(
-        <div style={unset}>
+        <div>
           <Hero title="Rise" picture={pair(wide)} />
         </div>,
       );
@@ -403,7 +401,9 @@ describe("Hero", () => {
       mounted.push(host);
       const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
       expect(getComputedStyle(media).animationName).toBe("none");
-      expect(getComputedStyle(media).transitionTimingFunction).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+      // One easing per property the transition runs, each of them ouro-base's ease-out.
+      const easings = getComputedStyle(media).transitionTimingFunction.split(/, (?=[a-z])/);
+      expect(new Set(easings)).toEqual(new Set(["cubic-bezier(0.23, 1, 0.32, 1)"]));
       await expectMotion(media, {
         stem: "hero",
         state: "data-starting-style",
