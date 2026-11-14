@@ -464,7 +464,7 @@ const STRETCH = 0.25;
 const ARMED = 250;
 /** How long, in ms, after a wheel turn the list leaves the reader's place unwritten, and past the frame it turned in: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
-/** A gap between two wheel events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
+/** A gap between a wheel's events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
 const WHEEL_GAP = 4 * WHEEL_REST;
 /** Drift up to this size, in px, is held back while the wheel turns: it comes from measuring a message, where a page of history above is larger. */
 const WHEEL_DRIFT = 48;
