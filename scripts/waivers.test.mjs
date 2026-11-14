@@ -11,9 +11,11 @@ test("every sweep waiver names its component, part, page, property, reason and s
 });
 
 test("a waiver covers one page only and a sweep finding on several is not waived", () => {
+  WAIVERS.push({ component: "switch", part: "track", variant: "", state: "", page: "/apple/feel/", property: "border", reason: "test", source: "test" });
   const line = "switch|track|span|data-unchecked|h24|pearl|1,1,1,1 on /apple/feel/, /docs/dialog/: border 1px solid ";
   assert.equal(waived(line), false);
   assert.equal(waived(line.replace(", /docs/dialog/", "")), true);
+  WAIVERS.pop();
 });
 
 test("a waiver no sweep used is stale", () => {
