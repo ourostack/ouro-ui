@@ -83,7 +83,8 @@ export interface HeroPicture {
  * or `dark` in CSS, with your app's Tailwind `dark` variant, the one every Ouro component's dark
  * styles follow, so the right one is there from the first paint. That variant reads the `.dark`
  * class Ouro's `colorSchemeScript` sets; a site that marks dark mode with `data-theme` or the
- * system setting redefines it, as the theming guide shows, and Hero follows.
+ * system setting redefines it, as the theming guide's [dark mode recipe](guides/theming.md#dark-mode)
+ * shows, and Hero follows.
  *
  * `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so
  * without its own `alt`, `decorative` or `focus` it takes `light`'s.
@@ -102,7 +103,7 @@ export interface HeroPicture {
  * @claim "and a hidden lazy" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority)
  * @claim "and it loads" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority)
  * @claim "loads the one that shows" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > loads the twin shown at first paint eagerly from server HTML, and leaves the hidden one lazy)
- * @claim "redefines it, as the theming guide shows" docs/guides/theming.md verify:fileLine(docs/guides/theming.md, /@custom-variant dark/)
+ * @claim "redefines it, as the theming guide's" docs/guides/theming.md verify:fileLine(docs/guides/theming.md, /@custom-variant dark/)
  */
 export interface HeroPictures {
   /** The art shown in light mode, and the frame both are shown in. */
