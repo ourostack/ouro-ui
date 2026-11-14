@@ -4,6 +4,12 @@
  * variable or mixed from one, so light, dark and the six presets all repaint it. Nothing here moves.
  */
 @layer components {
+  .adoption-cell strong,
+  .adoption-lede strong,
+  .adoption-number strong,
+  .adoption-fresh strong {
+    font-weight: 600;
+  }
   .adoption {
     --adoption-hairline: color-mix(in oklab, var(--border) 70%, transparent);
     --adoption-quiet: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));
@@ -52,7 +58,7 @@
   }
   .adoption-count {
     font-size: 2.25rem;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1;
   }
   .adoption-count span {
@@ -108,7 +114,7 @@
   .adoption-number dt {
     margin-bottom: calc(var(--spacing) * 1);
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
