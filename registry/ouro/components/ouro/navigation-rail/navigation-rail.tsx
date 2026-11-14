@@ -425,6 +425,8 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
     // Stryker disable next-line ObjectLiteral: see the ref above.
     last.current = { others, current };
     if (committed.current) {
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: a measure after a fit from sizes finds the same fit and renders nothing.
+      const settled = fromSizes.current && before.others === others && before.current === current;
       // Stryker disable next-line ConditionalExpression,EqualityOperator: without sizes the arithmetic fit is empty, and the measure that follows corrects it before paint.
       if (before.others === others && before.current !== current && sizes.current.heights.size > 0) {
         // Only the current item changed: what fits follows from the sizes the observer keeps current, and a layout read inside the commit would lay the page out.
@@ -440,8 +442,7 @@ function useFit(list: { readonly current: HTMLUListElement | null }, items: read
           setFit(shown.current);
         }
       }
-      // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,BlockStatement: a measure after a fit from sizes finds the same fit and renders nothing.
-      else if (fromSizes.current && before.others === others && before.current === current) {
+      else if (settled) {
         // The fit that just rendered came from sizes: the items it shows or hides report their new sizes to the observer, which measures once the page is laid out.
         // Stryker disable next-line BooleanLiteral,BlockStatement: a measure the observer starts after a fit from sizes finds the same fit and renders nothing.
         fromSizes.current = false;
