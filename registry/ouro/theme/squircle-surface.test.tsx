@@ -3,6 +3,7 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
@@ -102,5 +103,22 @@ describe("a Dialog where the engine has no corner-shape", () => {
     expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
     expect(getComputedStyle(popup).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(popup).getPropertyValue("--tw-ring-color")).toBe("transparent");
+  });
+
+  it("paints a TextField's fill and border through the surface, and turns the border destructive when invalid", async () => {
+    applyFallback();
+    await mount(
+      <>
+        <TextField label="Name" />
+        <TextField label="Email" error="Required" />
+      </>,
+    );
+    const groups = [...document.querySelectorAll<HTMLElement>("[data-ouro-input-group]")];
+    const surface = groups[0].querySelector<HTMLElement>("[data-ouro-surface]")!;
+    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
+    expect(getComputedStyle(groups[0]).borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    const bd = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").backgroundColor;
+    expect(bd(groups[1])).not.toBe(bd(groups[0]));
   });
 });
