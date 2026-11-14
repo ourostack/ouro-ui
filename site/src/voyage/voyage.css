@@ -123,9 +123,6 @@
     min-width: 0;
   }
   /* The headline's second sentence answers the first: quieter than the headline, never faint. */
-  .site-hero-line {
-    display: block;
-  }
   .site-hero-line-second {
     color: color-mix(in oklab, var(--muted-foreground) 75%, var(--foreground));
   }

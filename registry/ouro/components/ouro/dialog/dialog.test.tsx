@@ -316,6 +316,34 @@ describe("trigger", () => {
   });
 });
 
+describe("Dialog below an app's own bar", () => {
+  const viewport = () => document.querySelector<HTMLElement>('[data-ouro="dialog-viewport"]')!;
+  const setInset = () => document.documentElement.style.setProperty("--ouro-inset-top", "40px");
+
+  afterEach(() => {
+    document.documentElement.style.removeProperty("--ouro-inset-top");
+  });
+
+  it("starts the backdrop and the centered viewport below --ouro-inset-top, and centres in the space under it", async () => {
+    setInset();
+    const element = await openUncontrolled();
+    const layer = backdrop()!.getBoundingClientRect();
+    const frame = viewport().getBoundingClientRect();
+    expect(layer.top).toBe(40);
+    expect(Math.round(layer.bottom)).toBeGreaterThanOrEqual(innerHeight);
+    expect(frame.top).toBe(40);
+    expect(Math.round(frame.bottom)).toBe(innerHeight);
+    const rect = element.getBoundingClientRect();
+    expect(Math.abs(rect.top + rect.height / 2 - (40 + innerHeight) / 2)).toBeLessThanOrEqual(1);
+  });
+
+  it("starts the backdrop and the viewport at the window's top when the app sets no inset", async () => {
+    await openUncontrolled();
+    expect(backdrop()!.getBoundingClientRect().top).toBe(0);
+    expect(viewport().getBoundingClientRect().top).toBe(0);
+  });
+});
+
 describe("Dialog stacking above the app's fixed bars", () => {
   /** The app's `--ouro-layer`: 50 from ouro-base, unless the app raised it. */
   const layer = () => Number(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer"));
@@ -947,6 +975,29 @@ describe("Dialog iOS backdrop rule", () => {
       .toBe(true);
     expect(window.scrollY).toBe(2000);
     window.scrollTo(0, 0);
+  });
+
+  it("clips the backdrop below --ouro-inset-top, since its top is anchored to the screen", async () => {
+    const ios = document.createElement("style");
+    ios.textContent = withIosRules(pageCss());
+    document.head.append(ios);
+    mounted.push(ios);
+    document.documentElement.style.setProperty("--ouro-inset-top", "40px");
+    try {
+      await render(
+        <Dialog title="Inset" open onOpenChange={() => {}}>
+          Body
+        </Dialog>,
+      );
+      await settled();
+      const layer = backdrop()!;
+      expect(getComputedStyle(layer).position).toBe("absolute");
+      expect(getComputedStyle(layer).clipPath).toBe("inset(40px 0px 0px)");
+      const bar = document.elementFromPoint(100, 20);
+      expect(layer.contains(bar)).toBe(false);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-inset-top");
+    }
   });
 });
 

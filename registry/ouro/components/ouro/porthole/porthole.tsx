@@ -344,7 +344,17 @@ export function Porthole(props: PortholeProps): JSX.Element {
     // Stryker disable next-line ArrayDeclaration: any list that never changes keeps the one measure
     [],
   );
-  useLayoutEffect(fit, [fit, line.text, action?.label, dismissable, open]);
+  // The first commit measures nothing: a measure reads layout, which inside a commit lays the page out at once. The
+  // resize observer below reports each element it starts to watch once the page is laid out, before the first paint,
+  // and its measure writes styles only, so the first frame is drawn from that and nothing renders again.
+  const measured = useRef(false);
+  useLayoutEffect(() => {
+    if (!measured.current) {
+      measured.current = true;
+      return;
+    }
+    fit();
+  }, [fit, line.text, action?.label, dismissable, open]);
   useLayoutEffect(
     () => {
       const observer = new ResizeObserver(fit);

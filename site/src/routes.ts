@@ -63,7 +63,7 @@ export const routes: Route[] = [
   },
   {
     path: "/docs/updating/",
-    title: "Updating installed components · Ouro HX",
+    title: "Updating components · Ouro HX",
     description: "Review upstream changes with add --diff, then overwrite and reapply your edits.",
   },
 ];

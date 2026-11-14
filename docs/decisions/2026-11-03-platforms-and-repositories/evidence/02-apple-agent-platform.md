@@ -3,7 +3,7 @@
 Researched 2026-11-03 from primary sources where they could be found. The research ran as a read-only child agent; this is its report, lightly edited.
 
 Apple's agent path in the 27 releases is App Intents and nothing else: entities, schemas, view annotations and Spotlight indexing, plus a test framework.
-- There is no MCP, no third-party agent API and no chatbot plug-in for Siri.
+- There is no MCP for App Intents or Siri, no third-party agent API and no chatbot plug-in for Siri. (Corrected 2026-11-13: this said "no MCP", but Xcode 27's plug-ins do use MCP, [Apple Newsroom, June 2026](https://www.apple.com/newsroom/2026/06/apple-aids-app-development-with-new-intelligence-frameworks-and-advanced-tools/).)
 - Apple has no schema domain for cooking.
 - The books, reader and word-processor domains reach only the Shortcuts app, not Siri.
 
@@ -33,7 +33,7 @@ Apple's agent path in the 27 releases is App Intents and nothing else: entities,
 - Image input, Vision tools the model can call, free Private Cloud Compute for Small Business Program apps under 2 million first-time downloads, an Evaluations framework, and an `fm` CLI with a Python SDK ([iOS guide](https://developer.apple.com/wwdc26/guides/ios/)).
 
 **Not shipped or not announced**
-- **MCP:** no Apple documentation mentions it, and a forum thread asking has no Apple answer ([forum](https://developer.apple.com/forums/thread/809361)). Press saw groundwork in the 26.1 betas ([9to5Mac](https://9to5mac.com/2025/09/22/macos-tahoe-26-1-beta-1-mcp-integration/)).
+- **MCP:** no Apple documentation mentions it for App Intents or Siri, and a forum thread asking has no Apple answer ([forum](https://developer.apple.com/forums/thread/809361)). Press saw groundwork in the 26.1 betas ([9to5Mac](https://9to5mac.com/2025/09/22/macos-tahoe-26-1-beta-1-mcp-integration/)). Corrected 2026-11-13: Apple's one shipped use of MCP is Xcode 27's plug-ins, for developer tools, not for apps ([Apple Newsroom, June 2026](https://www.apple.com/newsroom/2026/06/apple-aids-app-development-with-new-intelligence-frameworks-and-advanced-tools/)).
 - **Third-party chatbots in Siri ("Extensions"):** reported only by Bloomberg ([MacRumors](https://www.macrumors.com/2026/06/02/ios-27-siri-features/)) and press ([Gigazine](https://gigazine.net/gsc_news/en/20260615-apple-siri-extensions/)), and not announced.
 - **Access beyond App Intents:** a forum thread asking has no answer ([thread](https://developer.apple.com/forums/thread/832390)).
 
@@ -56,7 +56,7 @@ Apple's agent path in the 27 releases is App Intents and nothing else: entities,
 
 ## 3. Other platforms
 
-- **Android:** AppFunctions is experimental on Android 16+. Google calls it "the mobile equivalent of tools within MCP". Gemini can use it only in a private preview ([docs](https://developer.android.com/ai/appfunctions)).
+- **Android:** AppFunctions runs on Android 16+. Google calls it "the mobile equivalent of tools within MCP" and now brands it "Android MCP". Gemini can use it only through an Early Access Program ([docs](https://developer.android.com/ai/appfunctions)). (Corrected 2026-11-13: this said "experimental", as the overview page still does; Google called it beta at Android Dev Summit, and the Jetpack library reached 1.0.0-beta01 on 2026-10-21 and 1.0.0-rc01 on 2026-11-04, [release notes](https://developer.android.com/jetpack/androidx/releases/appfunctions).)
 - **Windows:** the On-device Agent Registry registers app MCP servers, which run contained (prerelease, [Learn](https://learn.microsoft.com/en-us/windows/ai/mcp/overview)). App Actions are separate ([Learn](https://learn.microsoft.com/windows/ai/app-actions)).
 - On Apple, the realistic pattern is App Intents locally plus a remote MCP server, as Spoonjoy does (inference).
 

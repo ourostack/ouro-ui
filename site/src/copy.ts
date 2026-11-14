@@ -15,7 +15,7 @@ export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 /**
  * The voyage hero's words (site-design.md, revision 4), which replace the ones above when the voyage
  * becomes the landing page. The title is two sentences, one for the people using an app and one for
- * the agents building it; the hero sets each on its own lines. The eyebrow is the name alone: apps
+ * the agents building it; the hero sets them as one flowing headline. The eyebrow is the name alone: apps
  * ship with HX, so it no longer says "under construction" (Ari, 2026-10-30). The site is Ouro UI,
  * whose two halves are HX and AX (coordinator's ruling, 2026-11-08). The header already names Ouro UI, so the
  * eyebrow names its two halves instead of saying the name twice.
