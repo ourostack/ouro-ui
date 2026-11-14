@@ -1,1 +1,1 @@
-- Fixed: ConversationList's first frame no longer gains a row after the first measurement, so frame one equals the settled screen; the first frame counts its rows from the estimates alone, and the window adds its overscan only on the first scroll or size change.
+- Fixed: ConversationList counts its first frame's rows from the estimates alone and adds overscan on the first scroll or size change, so frame one holds the rows the settled screen holds.

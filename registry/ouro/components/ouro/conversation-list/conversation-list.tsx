@@ -613,7 +613,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       first = Math.min(first, was[0]);
       last = Math.max(last, was[1]);
       // A first window that already covers the view does not grow once measured rows are shorter than the estimates.
-      // Stryker disable next-line ConditionalExpression, EqualityOperator: a window ending exactly at the view's bottom covers it either way.
+      // Stryker disable next-line ConditionalExpression: a window ending exactly at the view's bottom covers it either way.
+      // Stryker disable next-line EqualityOperator: a window ending exactly at the view's bottom covers it either way.
       if ((at[was[1]] ?? height) >= bottom) last = was[1];
     }
     if (was[0] !== first || was[1] !== last) setRange([first, last]);
