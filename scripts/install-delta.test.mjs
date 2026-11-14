@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { URL } from "node:url";
 import test from "node:test";
 import { closure, manifestOf, plan, readItems } from "./install-delta.mjs";
 import { scratchDir } from "./scratch.mjs";
