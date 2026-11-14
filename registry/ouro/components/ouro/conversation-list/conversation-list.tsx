@@ -615,6 +615,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       // A first window that already covers the view does not grow once measured rows are shorter than the estimates.
       // Stryker disable next-line ConditionalExpression: a window ending exactly at the view's bottom covers it either way.
       // Stryker disable next-line EqualityOperator: a window ending exactly at the view's bottom covers it either way.
+      // Stryker disable next-line LogicalOperator: past the last row the window already ends at the list's end, so keeping it changes nothing.
       if ((at[was[1]] ?? height) >= bottom) last = was[1];
     }
     if (was[0] !== first || was[1] !== last) setRange([first, last]);
