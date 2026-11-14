@@ -48,13 +48,13 @@ export function seriesOf(runs) {
         for (const review of run.reviews ?? []) {
           const row = rows.get(review.provider);
           if (row?.review) throw new Error(`Series ${id} has two verdicts from ${review.provider} (${row.run.folder} and ${run.folder}). A model is asked once per series; run it again only when it gave no verdict.`);
-          rows.set(review.provider, { provider: review.provider, displayName: review.displayName, review, run });
+          rows.set(review.provider, { provider: review.provider, displayName: review.displayName, review, run, earlier: row?.earlier ?? [] });
         }
         for (const failure of run.failures ?? []) {
           if (rows.get(failure.provider)?.review) continue;
           const displayName = run.reviewers?.find((r) => r.provider === failure.provider)?.displayName ?? rows.get(failure.provider)?.displayName ?? REVIEW_MODELS.find((r) => r.provider === failure.provider)?.displayName ?? failure.provider;
-          const attempts = (rows.get(failure.provider)?.attempts ?? 0) + 1;
-          rows.set(failure.provider, { provider: failure.provider, displayName, error: failure.error, attempts, run });
+          const earlier = [...(rows.get(failure.provider)?.earlier ?? []), run];
+          rows.set(failure.provider, { provider: failure.provider, displayName, error: failure.error, attempts: earlier.length, run, earlier });
         }
       }
       return { id, runs: members, rows: [...rows.values()] };
@@ -133,7 +133,8 @@ export function renderPage(runs, subject = SUBJECT) {
   for (const row of latest.rows) {
     if (row.review) {
       const place = row.review.candidateOrder.indexOf(subject) + 1;
-      out.push(`| ${row.displayName} | ${row.review.verdict} | ${place} of ${row.review.candidateOrder.length} | ${row.review.rounds} | [${row.provider}](${blob(row.run, `transcripts/${row.provider}.json`)}) |`);
+      const before = row.earlier.map((run, i) => `; attempt ${i + 1}, no verdict: [${run.folder}](${blob(run, `transcripts/${row.provider}.json`)})`).join("");
+      out.push(`| ${row.displayName} | ${row.review.verdict}${row.earlier.length ? ` (attempt ${row.earlier.length + 1})` : ""} | ${place} of ${row.review.candidateOrder.length} | ${row.review.rounds} | [${row.provider}](${blob(row.run, `transcripts/${row.provider}.json`)})${before} |`);
     } else {
       out.push(`| ${row.displayName} | no verdict (${cell(row.error)}; ${plural(row.attempts, "attempt")}) | n/a | n/a | [${row.provider}](${blob(row.run, `transcripts/${row.provider}.json`)}) |`);
     }
@@ -158,7 +159,7 @@ export function renderPage(runs, subject = SUBJECT) {
   const pinned = latest.runs[0].candidates.find((c) => c.name === subject);
   out.push(`- Question, tools and rules: the [methodology](${REPO}/blob/main/scripts/model-reviews/METHODOLOGY.md) and the [script](${REPO}/blob/main/scripts/model-reviews/model-reviews.mjs). The prompt names each candidate and its link, and nothing else.`);
   out.push(`- Sources were pinned at each run's cutoff; ${subject} was read at [\`${pinned.sha.slice(0, 8)}\`](${REPO}/tree/${pinned.sha}).`);
-  out.push(`- Runs in this review: ${latest.runs.map((run) => `[\`${run.folder}\`](${blob(run, "run.json")}) (cutoff ${run.asOf.slice(0, 16).replace("T", " ")} UTC)`).join(", ")}. A model that gave no verdict was run again with the same input; a verdict is never asked for twice.`);
+  out.push(`- Runs in this review: ${latest.runs.map((run) => `[\`${run.folder}\`](${blob(run, "run.json")}) (cutoff ${run.asOf.slice(0, 16).replace("T", " ")} UTC)`).join(", ")}. A model that gave no verdict was run again with the same input, and the table links its earlier attempts; a verdict is never asked for twice.`);
   out.push(`- Inference: ${[...new Set(latest.runs.map((run) => run.runtime?.name).filter(Boolean))].join(", ")} for models in its catalog, and a model's own API for the rest (${[...new Set(latest.rows.filter((r) => r.review?.transport === "direct-api").map((r) => r.displayName))].join(", ") || "none"}).`);
   out.push(`- One verdict per model is a sample, not a rate. A result is about the models that ran, on that date.`);
   if (all.length > 1) out.push(`- Earlier reviews, still published: ${all.slice(0, -1).map((s) => `${date(s)} (${headline(s, subject)})`).join("; ")}`);

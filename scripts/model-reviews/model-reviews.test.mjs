@@ -414,6 +414,9 @@ test("the page's headline is derived from the latest review and says so honestly
   assert.match(page, /counting only the 3 models that answered both times: 1 chose Ouro UI then and 2 now\. Changed: B \(A2UI to Ouro UI\)\./);
   assert.match(page, /\| D \| A2UI \| 2 of 3 \| 4 \| \[d\]\(https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\/scripts\/model-reviews\/results\/2026-11-14-rerun--run-1\/transcripts\/d\.json\) \|/);
   assert.match(page, /### D, who chose A2UI\n\nOuro UI — d on Ouro UI \[src\]\(https:\/\/x\.test\/a\)\n\nWhy it chose A2UI: "A2UI because reasons"/);
+  // The baseline's C answered on its second attempt; the table says so and links the first.
+  const baselinePage = renderPage([baseline, retry]);
+  assert.match(baselinePage, /\| C \| A2UI \(attempt 2\) \| 2 of 3 \| 4 \| \[c\]\([^)]+run-2-c-retry\/transcripts\/c\.json\); attempt 1, no verdict: \[2026-11-13-baseline--run-1\]\([^)]+run-1\/transcripts\/c\.json\) \|/);
   assert.match(page, /Earlier reviews, still published: 2026-11-13 \(Ouro UI is not yet the models' choice: 1 of 3 models chose it; 2 chose A2UI\.\)/);
   // A majority, then every model, changes the headline.
   assert.match(renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI"), pageReview("c", "A2UI")])]), /^# Which toolkit models choose\n\n2 of 3 models chose Ouro UI; 1 chose A2UI\./);
