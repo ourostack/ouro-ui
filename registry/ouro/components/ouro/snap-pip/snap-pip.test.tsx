@@ -12,6 +12,18 @@ import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcemen
 import { holdFrames, type HeldFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
+/** Tab from the top of the page, as from a fresh load: blur() alone leaves Chromium 158 tabbing on from the blurred element. */
+async function tabFromTop() {
+  const start = document.createElement("button");
+  start.type = "button";
+  start.textContent = "Start";
+  start.dataset["testHarness"] = "";
+  document.body.prepend(start);
+  start.focus();
+  await pressTab();
+  start.remove();
+}
+
 // Most drags here are dispatched pointer events, each with a time the test sets, so a release is
 // exactly as fast as the test says and runs the same in Chromium and WebKit. The real mouse throws
 // and drags (`commands.flick`, `commands.drag`) are Chromium's.
@@ -198,8 +210,7 @@ describe("SnapPiP", () => {
     expect(document.activeElement).toBe(element);
     expect(hintShown()).toBe(false);
     await park();
-    element.blur();
-    await pressTab();
+    await tabFromTop();
     expect(document.activeElement).toBe(element);
     expect(hintShown()).toBe(true);
     expect(shown.getAttribute("data-open")).toBe("");
