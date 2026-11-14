@@ -39,8 +39,8 @@ function isGroup(entry: SelectOption | SelectOptionGroup): entry is SelectOption
 }
 
 /**
- * Moves focus from the list's own frame onto an option. Base UI queues two focus moves on a
- * keyboard open, and when the frame's lands last, focus stays on the frame, where a screen
+ * Moves focus from the list's own frame onto an option. Base UI queues a focus move for the frame
+ * and another for an option on a keyboard open, and when the frame's lands last, focus stays on the frame, where a screen
  * reader announces nothing and arrow keys highlight an option the user cannot hear. A pointer
  * open keeps Base UI's choice, so only a keyboard focus (`:focus-visible`) is moved.
  *
