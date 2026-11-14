@@ -600,6 +600,23 @@ describe("NavigationRail fit", () => {
     expect(rail.items[1]!.querySelector("[data-icon]")!.getAttribute("data-icon")).toBe("chat-new");
   });
 
+  it("lays nothing out when the current item changes, and keeps it shown, at a narrow width too", async () => {
+    for (const height of [tight, 16 + 2 * 56 + 4]) {
+      const rail = await render(<NavigationRail label="Main" items={many} currentPath="/chat" />, height);
+      await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      for (const [path, label] of [["/help", "Help"], ["/files", "Files"], ["/chat", "Chat"], ["/notes", "Notes"]] as const) {
+        const reads = watchLayoutReads();
+        await rail.rerender(<NavigationRail label="Main" items={many} currentPath={path} />);
+        reads.stop();
+        expect(reads.names()).toEqual([]);
+        expect(rail.shown.map(labelOf), `${height} ${path}`).toContain(label);
+        const list = rail.nav.querySelector("ul")!;
+        expect(list.scrollHeight).toBeLessThanOrEqual(list.clientHeight + 1);
+        await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      }
+    }
+  });
+
   it("lays nothing out and renders once in its first commit, and paints its fit in its first frame", async () => {
     for (const [height, fits] of [
       [600, true],
