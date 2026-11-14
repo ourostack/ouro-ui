@@ -113,12 +113,12 @@ describe("a Dialog where the engine has no corner-shape", () => {
         <TextField label="Email" error="Required" />
       </>,
     );
-    const groups = [...document.querySelectorAll<HTMLElement>("[data-ouro-input-group]")];
-    const surface = groups[0].querySelector<HTMLElement>("[data-ouro-surface]")!;
+    const [first, second] = [...document.querySelectorAll<HTMLElement>("[data-ouro-input-group]")] as [HTMLElement, HTMLElement];
+    const surface = first.querySelector<HTMLElement>("[data-ouro-surface]")!;
     expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
     expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
-    expect(getComputedStyle(groups[0]).borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(first).borderTopColor).toBe("rgba(0, 0, 0, 0)");
     const bd = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").backgroundColor;
-    expect(bd(groups[1])).not.toBe(bd(groups[0]));
+    expect(bd(second)).not.toBe(bd(first));
   });
 });
