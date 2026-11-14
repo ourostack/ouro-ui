@@ -4,7 +4,7 @@ export type { CommandManifest, OverviewOptions };
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
-import { argUsage, BUILTIN_FLAGS, flagsOf, flagUsage, inputSchema, usageOf, type Cli, type CommandDef, type JsonSchema } from "./command.ts";
+import { argUsage, BUILTIN_FLAGS, flagsOf, flagUsage, inputSchema, invocation, usageOf, type Cli, type CommandDef, type JsonSchema } from "./command.ts";
 import { DRY_RUN_FLAG, WHY_FLAG } from "./effects.ts";
 import { voiceLines } from "./voice.ts";
 
@@ -61,17 +61,24 @@ function rows(cli: Cli, effect: "private" | "others"): { name: string; summary: 
 
 /**
  * The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only
- * the person acts on, the footer.
+ * the person acts on, the footer. A tool defined with `command` shows its one command's usage and summary in place of
+ * the command list.
  *
  * @claim "the words only the person acts on" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::person-only words are listed in the overview and in help --json, with the reason and how the person does it)
+ * @claim "shows its one command's usage and summary" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::a one-command tool's overview and command help name the tool and its usage, never a command word)
  */
 function renderOverview(cli: Cli, options: OverviewOptions = {}): string {
   const width = options.width ?? DEFAULT_WIDTH;
+  const footer = options.footer ?? [...wrap(`Output: --json on every command. ${cli.exits.line()} Errors: one line that says what to do instead.`, 0, 0, width), `Details: ${cli.single ? `${cli.name} --help` : `${cli.name} help <command>`}`];
+  if (cli.single) {
+    const cmd = cli.commands[0]!;
+    const heading = cmd.effect === "others" ? `${cli.headings.others}${options.othersNote ?? ""}` : cli.headings.private;
+    return [...cli.about, "", heading, ...columns(usageOf(cli, cmd), cmd.summary, width), "", ...footer, ""].join("\n");
+  }
   const mine = rows(cli, "private");
   const theirs = rows(cli, "others");
   const pad = Math.max(...[...mine, ...theirs].map((r) => r.name.length)) + 2;
   const line = (r: { name: string; summary: string }) => `  ${r.name.padEnd(pad)} ${r.summary}`;
-  const footer = options.footer ?? [...wrap(`Output: --json on every command. ${cli.exits.line()} Errors: one line that says what to do instead.`, 0, 0, width), `Details: ${cli.name} help <command>`];
   const theirsOnly = Object.keys(cli.personOnly);
   const person = theirsOnly.length ? [...wrap(`Only the person does these, never you: ${theirsOnly.join(", ")}. Why and where: ${cli.name} help --json.`, 0, 0, width), ""] : [];
   return [...cli.about, "", cli.headings.private, ...mine.map(line), "", `${cli.headings.others}${options.othersNote ?? ""}`, ...theirs.map(line), "", ...person, ...footer, ""].join("\n");
@@ -109,7 +116,7 @@ function definitionLines(cli: Cli, cmd: CommandDef, width: number = DEFAULT_WIDT
 function renderCommand(cli: Cli, cmd: CommandDef, width: number = DEFAULT_WIDTH): string {
   const lines = [
     ...(cmd.effect === "others" ? [...wrap(`${cli.headings.others}: run it only when a human asked you to, with --${WHY_FLAG}.`, 0, 0, width), ""] : []),
-    ...wrap(`${cli.name} ${cmd.name}: ${cmd.summary}`, 2, 0, width),
+    ...wrap(`${invocation(cli, cmd)}: ${cmd.summary}`, 2, 0, width),
     "",
     ...definitionLines(cli, cmd, width),
   ];
@@ -138,6 +145,12 @@ interface CommandManifest {
   hidden: boolean;
   /** `"self"` on a command an agent runs only on its own item (`--agent`); left out otherwise. */
   scope?: "self";
+  /**
+   * `true` on the one command of a tool defined with `command`: its usage and calls take no command word.
+   *
+   * @claim "its usage and calls take no command word" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a tool with one command runs with no command word, and its output, help and refusals name none)
+   */
+  single?: true;
 }
 
 /** One command as data. */
@@ -159,6 +172,7 @@ function commandManifest(cli: Cli, cmd: CommandDef): CommandManifest {
     examples: cmd.examples ?? [],
     hidden: cmd.hidden === true,
     ...(cmd.self ? { scope: "self" as const } : {}),
+    ...(cli.single ? { single: true as const } : {}),
   };
 }
 

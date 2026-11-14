@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@42ad9bbc97d9516c783ed0ef31f6fdc40df1980d:brand/",
+  "origin": "ourostack/.github@fad758e52e066e198aca938be4c684d128eb25a1:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -289,11 +289,11 @@
     },
     {
       "file": "scenes/ouro-ui-apple-3072.avif",
-      "sha256": "0447d67f519c0dff13d1517d87f2cb8ef527203798a4f6b4115e185499d9ec54"
+      "sha256": "fdb786e303b21e1114fc03921b158d164e836ad44ff58d92f753a226c2452ee0"
     },
     {
       "file": "scenes/ouro-ui-apple-3072.webp",
-      "sha256": "c13a2c7b97b6bc2f8485d5b1542ce02e070f156541e237c113583209cae9a67a"
+      "sha256": "2cbc2aae89e0023f585e97f496b6974a9ec489ba40eba0cf465b53bc764b95fa"
     },
     {
       "file": "scenes/ouro-ui-apple-640.avif",
@@ -345,11 +345,11 @@
     },
     {
       "file": "scenes/ouroboros-skills-3072.avif",
-      "sha256": "8d9b6f615f1b7a6f370dfdc97edd04edebf604bb4e17d1e3382854b562d7f384"
+      "sha256": "186fdd9f0bf11de818d1cdcfc7cbe0b527575cbe0aa4963ebf7dd3a7103a95a2"
     },
     {
       "file": "scenes/ouroboros-skills-3072.webp",
-      "sha256": "2f9c7bf5f3005ec9614011e0e55a83f3a60d572da0b1c09a04c1df2c06179e55"
+      "sha256": "8734a4a47331a2a294bca7cc9f019fc06384e46824c86dd5ea58dece0fe0bc70"
     },
     {
       "file": "scenes/ouroboros-skills-640.avif",

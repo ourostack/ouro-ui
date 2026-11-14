@@ -42,6 +42,8 @@ import ts from "typescript";
 // - hand-drawn-corner: a fixed corner radius written by hand in a class (`rounded-[12px]`, `rounded-t-[0.5rem]`) on an intrinsic element. A fixed radius
 //   ignores the theme's `--radius` scale, so it misses a change to every corner (squircles included).
 //   The scale's own classes (`rounded-lg`), `var(...)` values, circles (`rounded-full`, 50%, 9999px) and 0 pass.
+// - hand-drawn-switch: an intrinsic element given `role="switch"`, which is an on/off switch drawn by hand. Ouro UI's
+//   `Switch` is the one switch; a registry component, or any element without that role, passes.
 // - content-spinner: a spinner standing where content would: Ouro UI's `<Spinner>` (imported from a
 //   spinner/spinner module) or any element with an `animate-spin` class, returned or assigned on its
 //   own or the only thing in its element. Inline progress passes: in a prop, in an object's icon, or
@@ -169,6 +171,7 @@ export const CATEGORIES = [
   "gated-load",
   "hand-drawn-hero",
   "hand-drawn-corner",
+  "hand-drawn-switch",
   "vague-failure-copy",
   "hand-drawn-avatar",
   "hand-drawn-presence-dot",
@@ -303,6 +306,9 @@ export const HAND_DRAWN_HERO_FIX =
 /** What the hand-drawn-corner rule tells an app to do. */
 export const HAND_DRAWN_CORNER_FIX =
   "Take the radius from the theme: a scale class (rounded-md, rounded-lg, rounded-xl) or var(--radius), so a change to the corners, squircles included, reaches this one too. A circle stays rounded-full.";
+/** What the hand-drawn-switch rule tells an app to do. */
+export const HAND_DRAWN_SWITCH_FIX =
+  "Use Switch from the registry (`<Switch label=\"...\" checked={on} onCheckedChange={setOn} />`), so its look, focus, touch target and any change to switches reach this one too.";
 
 // What each category's message says, for the categories whose fix is not an Ouro component.
 const CATEGORY_MESSAGES = {
@@ -313,6 +319,7 @@ const CATEGORY_MESSAGES = {
   "layout-animation": { headline: "New animation of a layout property", fix: LAYOUT_ANIMATION_FIX },
   "hand-drawn-hero": { headline: "New hero drawn by hand", fix: HAND_DRAWN_HERO_FIX },
   "hand-drawn-corner": { headline: "New fixed corner radius", fix: HAND_DRAWN_CORNER_FIX },
+  "hand-drawn-switch": { headline: "New switch drawn by hand", fix: HAND_DRAWN_SWITCH_FIX },
   "gated-load": { headline: "New load that waits for focus, visibility, idle or scrolling", fix: GATED_LOAD_FIX },
   // Names the phrase it found, the fingerprint's tag.
   "vague-failure-copy": (phrase) => ({
@@ -1550,6 +1557,14 @@ function scanScript(module, resolver, failureCopyAllow) {
         collectStrings(initializer).some((text) => text.split(/\s+/).some((role) => INTERACTIVE_ROLES.has(role)))
       ) {
         add("interactive-role", node, control.display, props);
+      }
+      if (
+        name === "role" &&
+        control.tags.length === 1 &&
+        initializer &&
+        collectStrings(initializer).some((text) => text.split(/\s+/).includes("switch"))
+      ) {
+        offenders.push({ category: "hand-drawn-switch", fingerprint: [file, componentName(node), "hand-drawn-switch", control.display, props].join("::"), file, line: lineOf(node) });
       }
       if (name.startsWith("data-ouro")) add("data-ouro-attr", node, `${control.display}[${name}]`, props);
     }

@@ -1,4 +1,4 @@
-export { AGENT_FLAG, argUsage, BUILTIN_FLAGS, checkInput, checkOwner, defineCli, defineCommand, exampleArgv, findCommand, flagsOf, flagUsage, inputSchema, parse, toArgv, usageOf };
+export { AGENT_FLAG, argUsage, BUILTIN_FLAGS, checkInput, checkOwner, commandWords, defineCli, defineCommand, exampleArgv, findCommand, flagsOf, flagUsage, inputSchema, invocation, parse, toArgv, usageOf };
 export type { ArgSpec, Cli, CliDef, CommandDef, FlagSpec, FlagType, HelpAsked, Input, InputValue, JsonSchema, Meaning, Parsed, PersonOnly, RunContext, SelfScope };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
@@ -118,7 +118,8 @@ interface SelfScope<C extends RunContext = RunContext> {
   owner(input: Input, ctx: C): string | null | Promise<string | null>;
   /**
    * The command for the caller's own item instead, the refusal's fix, without the tool's name: `<name>` takes the
-   * call's input of that name, so `<agent>` is the calling agent (`"unfollow <meeting> <agent> --agent <agent>"`).
+   * call's input of that name, so `<agent>` is the calling agent (`"unfollow <meeting> <agent> --agent <agent>"`; for a
+   * tool defined with `command`, leave out the command's word: `"<agent> --agent <agent>"`).
    * Without it, the refusal says to ask the person.
    */
   instead?: string;
@@ -126,7 +127,12 @@ interface SelfScope<C extends RunContext = RunContext> {
 
 /** A command's definition. `C` is the context run() and plan() get: RunContext, or an adopter's own that extends it. */
 interface CommandDef<R = unknown, C extends RunContext = RunContext> {
-  /** One or more words: "today", "draft set". */
+  /**
+   * One or more words: "today", "draft set". A tool defined with `command` takes no command word, so its name labels its
+   * errors and `help --json` only.
+   *
+   * @claim "takes no command word" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
+   */
   name: string;
   aliases?: readonly string[];
   summary: string;
@@ -159,11 +165,10 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   text?(result: R, input: Input): string;
 }
 
-interface CliDef<C extends RunContext = RunContext> {
+interface CliDefBase {
   name: string;
   /** The overview's first lines: what the tool is and when to use it. */
   about: readonly string[];
-  commands: readonly CommandDef<unknown, C>[];
   exits?: ExitTable;
   headings?: EffectHeadings;
   /** The tool's global flags, besides --json and --help. */
@@ -191,10 +196,27 @@ interface CliDef<C extends RunContext = RunContext> {
   voice?: VoiceDef;
 }
 
+/**
+ * A tool is defined either with `command`, its one thing to do, which takes no command word (`ouro-images <folder>`),
+ * or with `commands`, several words that each name a command. Give exactly one; `defineCli` refuses both or neither.
+ *
+ * @claim "which takes no command word" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
+ * @claim "refuses both or neither" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::defineCli takes command or commands, never both or neither, and a tool with command has no command words)
+ */
+type CliDef<C extends RunContext = RunContext> = CliDefBase &
+  ({ command: CommandDef<unknown, C>; commands?: undefined } | { commands: readonly CommandDef<unknown, C>[]; command?: undefined });
+
 interface Cli<C extends RunContext = RunContext> {
   readonly name: string;
   readonly about: readonly string[];
+  /** The tool's commands; a tool defined with `command` has exactly that one. */
   readonly commands: readonly CommandDef<unknown, C>[];
+  /**
+   * Whether the tool was defined with `command`: its one command takes no command word.
+   *
+   * @claim "its one command takes no command word" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
+   */
+  readonly single: boolean;
   readonly exits: ExitTable;
   readonly headings: EffectHeadings;
   readonly globalFlags: Readonly<Record<string, FlagSpec>>;
@@ -228,6 +250,20 @@ const wordsOf = (name: string) => name.split(" ");
 const unlessOf = (spec: { unless?: string | readonly string[] }): readonly string[] => (spec.unless === undefined ? [] : typeof spec.unless === "string" ? [spec.unless] : spec.unless);
 
 /**
+ * The words a command adds after the tool's name: its name's words, or none for a tool defined with `command`.
+ *
+ * @claim "or none for a tool defined with" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)
+ */
+function commandWords(cli: Pick<Cli, "single">, cmd: CommandDef): string[] {
+  return cli.single ? [] : wordsOf(cmd.name);
+}
+
+/** The tool's name and the command's words, as a fix or a help line writes them: `ouro-images`, or `tasks assign`. */
+function invocation(cli: Pick<Cli, "name" | "single">, cmd: CommandDef): string {
+  return [cli.name, ...commandWords(cli, cmd)].join(" ");
+}
+
+/**
  * The flags a command takes: the built-ins, the tool's, --why where asked for, --dry-run on an "others" command, then
  * its own; a command's own flag replaces a generated one of the same name, except a self-scoped command's `--agent`,
  * which the owner check needs.
@@ -242,10 +278,23 @@ function flagsOf(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): Record<string,
 
 /** Builds the tool and checks its definitions: unique names, a valid exit table, examples that parse. */
 function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
+  const hasOne = def.command !== undefined;
+  if (hasOne === (def.commands !== undefined)) {
+    throw new Error(
+      hasOne
+        ? `${def.name}: defineCli takes command or commands, not both. Fix: keep command for a tool with one thing to do, or commands for several.`
+        : `${def.name}: defineCli needs command (one thing to do) or commands (several). Fix: command: defineCommand({ name: "<name>", summary: "<what it does>", effect: "private", run }).`,
+    );
+  }
+  const single = hasOne;
+  const commands = single ? [def.command!] : def.commands!;
+  const wordy = [...(["ambiguous", "personOnly", "groups"] as const).filter((k) => def[k] !== undefined), ...(single && def.command!.aliases?.length ? ["aliases"] : [])];
+  if (single && wordy.length) throw new Error(`${def.name}: ${wordy.join(", ")} name command words, and a tool with command has none. Fix: remove ${wordy.length > 1 ? "them" : "it"}, or define commands instead.`);
   const cli: Cli<C> = {
     name: def.name,
     about: def.about,
-    commands: def.commands,
+    commands,
+    single,
     exits: def.exits ?? defineExitCodes(BASE_EXIT_CODES),
     headings: def.headings ?? DEFAULT_HEADINGS,
     globalFlags: def.voice && !def.globalFlags?.["quiet"] ? { ...def.globalFlags, quiet: QUIET_FLAG } : (def.globalFlags ?? {}),
@@ -266,11 +315,12 @@ function defineCli<C extends RunContext = RunContext>(def: CliDef<C>): Cli<C> {
     }
     const args = cmd.args ?? [];
     const flags = flagsOf(cli, cmd);
-    if (cmd.self && typeof cmd.self.owner !== "function") throw new Error(`${def.name} ${cmd.name}: self needs owner, which says whose item a call names. Fix: self: { owner: (input) => <the agent that owns the item> }.`);
-    if (cmd.self?.instead !== undefined && (typeof cmd.self.instead !== "string" || !cmd.self.instead.trim() || /[\r\n]/.test(cmd.self.instead))) throw new Error(`${def.name} ${cmd.name}: self.instead needs one line. Fix: instead: "${cmd.name} <agent> --agent <agent>", or leave it out.`);
+    const where = single ? def.name : `${def.name} ${cmd.name}`;
+    if (cmd.self && typeof cmd.self.owner !== "function") throw new Error(`${where}: self needs owner, which says whose item a call names. Fix: self: { owner: (input) => <the agent that owns the item> }.`);
+    if (cmd.self?.instead !== undefined && (typeof cmd.self.instead !== "string" || !cmd.self.instead.trim() || /[\r\n]/.test(cmd.self.instead))) throw new Error(`${where}: self.instead needs one line. Fix: instead: "${[...commandWords(cli, cmd), "<agent>", "--agent", "<agent>"].join(" ")}", or leave it out.`);
     args.forEach((a, i) => {
-      if (a.rest && i !== args.length - 1) throw new Error(`${def.name} ${cmd.name}: <${a.name}> takes the rest of the words, so it must be the last argument. Fix: move it last.`);
-      if (Object.hasOwn(flags, a.name)) throw new Error(`${def.name} ${cmd.name}: <${a.name}> and --${a.name} share one input key. Fix: rename one.`);
+      if (a.rest && i !== args.length - 1) throw new Error(`${where}: <${a.name}> takes the rest of the words, so it must be the last argument. Fix: move it last.`);
+      if (Object.hasOwn(flags, a.name)) throw new Error(`${where}: <${a.name}> and --${a.name} share one input key. Fix: rename one.`);
     });
   }
   for (const word of Object.keys(cli.ambiguous)) if (seen.has(word)) throw new Error(`${def.name}: "${word}" is both a command and an ambiguous word. Fix: remove one.`);
@@ -324,11 +374,11 @@ function flagUsage(name: string, spec: FlagSpec): string {
 }
 
 /** The command's usage line from its definition: words, arguments, required flags, then the optional ones. */
-function usageOf(cli: Pick<Cli, "globalFlags">, cmd: CommandDef): string {
+function usageOf(cli: Pick<Cli, "globalFlags" | "single">, cmd: CommandDef): string {
   const flags = Object.entries(flagsOf(cli, cmd)).filter(([name]) => !(name in BUILTIN_FLAGS) && !(name in cli.globalFlags));
   const required = flags.filter(([, s]) => s.required).map(([n, s]) => flagUsage(n, s));
   const optional = flags.filter(([, s]) => !s.required).map(([n, s]) => `[${flagUsage(n, s)}]`);
-  return [cmd.name, ...(cmd.args ?? []).map(argUsage), ...required, ...optional].join(" ");
+  return [...commandWords(cli, cmd), ...(cmd.args ?? []).map(argUsage), ...required, ...optional].join(" ");
 }
 
 interface Parsed {
@@ -344,6 +394,8 @@ interface HelpAsked {
   /** The command or topic asked about; undefined for the overview. */
   topic: string | undefined;
   json: boolean;
+  /** The command whose `--help` was asked: the one command of a tool defined with `command`, or the command named before it. */
+  command?: CommandDef;
 }
 
 /** The command the leading words name (the longest match), and how many words it took. */
@@ -392,18 +444,19 @@ function parse(cli: Cli, argv: readonly string[]): Parsed | HelpAsked {
     leading.push(t);
   }
   if (leading[0] === "help") return { kind: "help", topic: leading.slice(1).join(" ") || undefined, json };
-  if (leading.length === 0) {
+  // A tool with one command has no command words, so there is nothing to lack: its tokens are the command's own.
+  if (leading.length === 0 && !cli.single) {
     if (helpIn(globals)) return { kind: "help", topic: undefined, json };
     throw new AxError({ code: "no-command", exit: usage(cli), thing: cli.name, problem: "no command given", fix: `${cli.name} --help` });
   }
-  const found = findCommand(cli, leading);
+  const found = cli.single ? { command: cli.commands[0]!, used: 0 } : findCommand(cli, leading);
   const refused = ambiguousWord(cli, leading);
   if (refused && (!found || wordsOf(refused).length > found.used)) throw ambiguousError(cli, refused, tokens.slice(wordsOf(refused).length));
   const theirs = longestKey(cli.personOnly, leading);
   if (theirs && (!found || wordsOf(theirs).length > found.used)) throw personOnlyError(cli, theirs);
   if (!found) throw unknownCommand(cli, leading);
   const { command, used } = found;
-  if (helpIn(flagsOf(cli, command))) return { kind: "help", topic: command.name, json };
+  if (helpIn(flagsOf(cli, command))) return { kind: "help", topic: command.name, json, command };
   const words = tokens.slice(0, used);
   const rest = tokens.slice(used);
   const flags = flagsOf(cli, command);
@@ -788,8 +841,8 @@ function checkInput(cli: Cli, cmd: CommandDef, raw: unknown, thing: string = cmd
  * The argv that runs a command with this input, the way an agent would type it; the first stdin-capable argument's
  * text goes on stdin ("-"), so text that starts with "-" or spans lines passes whole.
  */
-function toArgv(cli: Pick<Cli, "globalFlags">, cmd: CommandDef, input: Input): { argv: string[]; stdin: string | null } {
-  const argv = wordsOf(cmd.name);
+function toArgv(cli: Pick<Cli, "globalFlags" | "single">, cmd: CommandDef, input: Input): { argv: string[]; stdin: string | null } {
+  const argv = commandWords(cli, cmd);
   let stdin: string | null = null;
   for (const a of cmd.args ?? []) {
     const value = input[a.name];

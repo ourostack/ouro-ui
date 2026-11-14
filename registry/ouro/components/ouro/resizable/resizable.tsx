@@ -6,7 +6,9 @@ import {
   isValidElement,
   useCallback,
   useContext,
+  useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -120,6 +122,12 @@ const isPanel = (child: unknown): child is ReactElement<ResizablePanelProps> =>
 /** A child that is surely neither a panel nor a handle: text or an HTML element. Any other element counts as a handle. */
 const isStray = (child: unknown) => !isValidElement(child) || typeof child.type === "string";
 
+function useByContent<T>(value: T): T {
+  const key = JSON.stringify(value);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => value, [key]);
+}
+
 /**
  * The group behind `Resizable` and `ResizablePanelGroup`; `owner` names it in dev messages.
  *
@@ -195,17 +203,20 @@ export function ResizableGroupFrame({
   const sizes = own?.length === panels.length ? own : (parseSaved(savedText, panels) ?? defaults);
   const [resizing, setResizing] = useState(false);
 
-  const state: GroupState = {
-    orientation,
-    handleLabel,
-    sizes,
-    panels,
-    labels,
-    ids,
-    preview: setOwn,
-    commit: (next) => {
+  // Compared by content, so a re-render with the same panels hands the context the same objects
+  // and a memoized child reading it is not walked again.
+  const stableSizes = useByContent(sizes);
+  const stablePanels = useByContent(panels);
+  const stableLabels = useByContent(labels);
+  const stableIds = useByContent(ids);
+  const onLayoutRef = useRef(onLayout);
+  useEffect(() => {
+    onLayoutRef.current = onLayout;
+  });
+  const commit = useCallback(
+    (next: number[]) => {
       setOwn(next);
-      onLayout?.(next);
+      onLayoutRef.current?.(next);
       if (!autoSaveId) return;
       try {
         localStorage.setItem(storageKey(autoSaveId), JSON.stringify(next));
@@ -213,8 +224,22 @@ export function ResizableGroupFrame({
         // Storage is unavailable or full: the layout still applies for this visit.
       }
     },
-    setResizing,
-  };
+    [autoSaveId],
+  );
+  const state = useMemo<GroupState>(
+    () => ({
+      orientation,
+      handleLabel,
+      sizes: stableSizes,
+      panels: stablePanels,
+      labels: stableLabels,
+      ids: stableIds,
+      preview: setOwn,
+      commit,
+      setResizing,
+    }),
+    [orientation, handleLabel, stableSizes, stablePanels, stableLabels, stableIds, commit],
+  );
 
   let panelIndex = -1;
   const placed = items.map((child, position) => {
