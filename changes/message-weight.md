@@ -1,0 +1,1 @@
+- Message drops one wrapper element from each text-only chat message, so a list of messages has fewer elements to style and lay out.
