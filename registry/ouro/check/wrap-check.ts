@@ -70,9 +70,21 @@ function findWrapIssues({ displayPx = 36, tallLines = 5, bigPx = 28, narrowShare
         const range = document.createRange();
         range.setStart(node, match.index);
         range.setEnd(node, match.index + match[0].length);
-        for (const box of [...range.getClientRects()].filter((b) => b.width > 0)) {
+        const boxes = [...range.getClientRects()].filter((b) => b.width > 0);
+        // A word split across lines is named by the piece each line drew ("agent-" / "native?"), not the whole word twice.
+        const pieces = boxes.length < 2 ? [match[0]] : boxes.map(() => "");
+        if (boxes.length > 1) {
+          for (let i = 0; i < match[0].length; i++) {
+            range.setStart(node, match.index + i);
+            range.setEnd(node, match.index + i + 1);
+            const top = range.getBoundingClientRect().top;
+            const at = boxes.findIndex((b) => Math.abs(b.top - top) < b.height / 2);
+            pieces[Math.max(at, 0)] += match[0].charAt(i);
+          }
+        }
+        for (const [index, box] of boxes.entries()) {
           const row = rows.find((r) => Math.abs(r.top - box.top) < Math.max(r.height, box.height) / 2);
-          const word = { text: match[0], code, width: box.width };
+          const word = { text: pieces[index]!, code, width: box.width };
           if (row) row.words.push(word);
           else rows.push({ top: box.top, height: box.height, words: [word] });
         }
