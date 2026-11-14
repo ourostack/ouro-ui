@@ -171,6 +171,10 @@
     "status": 200,
     "checked": "2026-11-08"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/665c7cbbd3a2c35e2ed9bb7041c103b84b31a73e/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
   "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L11-L13": {
     "status": 200,
     "checked": "2026-11-06"
@@ -231,10 +235,6 @@
     "status": 200,
     "checked": "2026-11-13"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-13"
-  },
   "https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box": {
     "status": 200,
     "checked": "2026-11-13"
@@ -267,15 +267,15 @@
     "status": 200,
     "checked": "2026-11-14"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/parity.json": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md": {
     "status": 200,
     "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md": {
-    "status": 200,
-    "checked": "2026-11-13"
-  },
-  "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/parity.json": {
     "status": 200,
     "checked": "2026-11-13"
   },
@@ -307,9 +307,9 @@
     "status": 200,
     "checked": "2026-11-13"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.5.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.10.0": {
     "status": 200,
-    "checked": "2026-11-13"
+    "checked": "2026-11-14"
   },
   "https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md": {
     "status": 200,
@@ -382,6 +382,38 @@
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.2.2": {
     "status": 200,
     "checked": "2026-11-13"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.10": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.12": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.24": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.6": {
+    "status": 200,
+    "checked": "2026-11-14"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7": {
     "status": 200,
@@ -582,33 +614,5 @@
   "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/": {
     "status": 200,
     "checked": "2026-11-06"
-  },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.10": {
-    "status": 200,
-    "checked": "2026-11-14"
-  },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.12": {
-    "status": 200,
-    "checked": "2026-11-14"
-  },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13": {
-    "status": 200,
-    "checked": "2026-11-14"
-  },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15": {
-    "status": 200,
-    "checked": "2026-11-14"
-  },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17": {
-    "status": 200,
-    "checked": "2026-11-14"
-  },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5": {
-    "status": 200,
-    "checked": "2026-11-14"
-  },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.6": {
-    "status": 200,
-    "checked": "2026-11-14"
   }
 }
