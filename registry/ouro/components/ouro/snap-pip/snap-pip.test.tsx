@@ -386,29 +386,21 @@ describe("SnapPiP", () => {
     // Never wider than the stage less its inset on each side.
     expect([widthFor(300, "large", 16), widthFor(150, "small", 16), widthFor(20, "small", 16)]).toEqual([240, 118, 0]);
     const element = await render(self({ aspectRatio: 9 / 16 }));
-    // What the stage's resizes and the frames did while the width was awaited: once in a while WebKit keeps the narrow
-    // width for the whole wait (ourostack/ouro-ui#919), and the failure says which of them stopped.
-    const seen: number[] = [];
-    const watch = new ResizeObserver((entries) => void seen.push(Math.round(entries[0]!.contentRect.width)));
-    watch.observe(stage);
-    let ticks = 0;
-    let ticking = true;
-    const tick = () => {
-      ticks++;
-      if (ticking) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
+    // Waits for the browser's own report of the wider stage, not a timed poll: a poll asks for no rendering step, and
+    // WebKit in CI could go the whole wait without the one that delivers the resize (ourostack/ouro-ui#919). The
+    // picture's observer is older, so it has run by this one's turn in the same step: the width is read in that step.
+    const resized = new Promise<DOMRect>((done) => {
+      const after = new ResizeObserver(([entry]) => {
+        if (entry!.contentRect.width !== 1200) return;
+        after.disconnect();
+        done(element.getBoundingClientRect());
+      });
+      after.observe(stage);
+    });
     stage.style.width = "1200px";
-    try {
-      await expect.poll(() => element.getBoundingClientRect().width).toBe(200);
-    } catch (problem) {
-      /* istanbul ignore next @preserve -- only when the wait fails */
-      throw new Error(`${(problem as Error).message}; a second observer on the stage saw widths [${seen.join(", ")}], the stage is ${stage.clientWidth}px wide, ${ticks} frames ran, and the page is ${document.visibilityState}`, { cause: problem });
-    } finally {
-      ticking = false;
-      watch.disconnect();
-    }
-    expect(element.getBoundingClientRect().height).toBeCloseTo((200 * 16) / 9, 0);
+    const box = await resized;
+    expect(box.width).toBe(200);
+    expect(box.height).toBeCloseTo((200 * 16) / 9, 0);
   });
 
   it("renders to a string in its corner, placed by CSS until it measures its container", () => {
