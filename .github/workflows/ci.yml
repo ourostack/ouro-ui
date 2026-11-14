@@ -1418,14 +1418,30 @@ jobs:
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      # The prepared app is a function of the files below, so a commit that changes none of them
+      # restores the app an earlier commit prepared and checked (a cache is saved only by a job that
+      # passed), and the prepare steps are skipped.
+      - id: prepared
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/app.tar.zst
+          key: install-app-pw1.63.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/*.sh', 'scripts/*.mjs', 'scripts/*.mts', '!scripts/*.test.mjs', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
+      - if: steps.prepared.outputs.cache-hit != 'true'
+        run: pnpm i --frozen-lockfile
       - name: Prepare the app
+        if: steps.prepared.outputs.cache-hit != 'true'
         env:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
         run: OURO_PREPARE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
       - name: Pack the app
+        if: steps.prepared.outputs.cache-hit != 'true'
         run: tar -I zstd -cf "$RUNNER_TEMP/app.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/app.tar.zst"
+      - if: steps.prepared.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/app.tar.zst
+          key: ${{ steps.prepared.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: install-app-${{ matrix.variant }}-${{ matrix.preset }}
