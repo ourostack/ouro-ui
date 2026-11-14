@@ -319,17 +319,19 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
   assert.equal(await main(["--help"], c.io), 0);
   assert.match(c.o.out, new RegExp(`^ax-xray ${XRAY_VERSION.replaceAll(".", "\\.")}: checks an agent-facing interface`));
   for (const [argv, message] of [
-    [["--jsn"], /there is no --jsn\. Fix: --json\./],
-    [["oops"], /unexpected "oops"/],
+    [["--jsn"], /there is no --jsn; its flags are --cli, .*\. Fix: ax-xray --json\.\n$/],
+    [["oops"], /"oops" is one word too many/],
     [["--cli"], /--cli needs a value/],
-    [["--env", "X"], /--env takes K=V/],
-    [["--width", "0", "--cli", "x"], /--width takes a positive number/],
-    [["--http", "http://x"], /--http needs --routes/],
-    [[], /nothing to check/],
-    [["--cli", "x", "--conformance"], /--conformance needs --inventory/],
+    [["--env", "X"], /--env: takes K=V, not "X"\. Fix: ax-xray --env NAME=value\.\n$/],
+    [["--width", "0", "--cli", "x"], /--width: takes a positive number, not "0"/],
+    [["--http", "http://x"], /--http: needs --routes/],
+    [[], /check: nothing to check/],
+    [["--cli", "x", "--conformance"], /--conformance: needs --inventory/],
   ] as [string[], RegExp][]) {
     const d = io();
     assert.equal(await main(argv, d.io), 2, argv.join(" "));
+    assert.equal(d.o.out, "", argv.join(" "));
+    assert.equal(d.o.err.split("\n").length, 2, argv.join(" "));
     assert.match(d.o.err, message);
   }
   const o = parseArgs(["--cli", "x", "--sample", "a=b", "--state", "log", "--volatile", "at,id", "--timeout", "500", "--width", "80", "--md", "m", "--html", "h", "--json"]);
@@ -356,6 +358,20 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
   const missing = io();
   assert.equal(await main(["--cli", "x", "--inventory", join(scratch, "nope.json")], missing.io), 1);
   assert.match(missing.o.err, /ENOENT/);
+});
+
+test("the kit answers help, an unknown flag is one line with its fix, and repeat flags keep every value", async () => {
+  const h = io();
+  assert.equal(await main(["help"], h.io), 0);
+  assert.match(h.o.out, /^ax-xray 1\.5\.0: checks an agent-facing interface/);
+  assert.match(h.o.out, /--env K=V\.\.\./);
+  const u = io();
+  assert.equal(await main(["--cli", "x", "--jsn", "--json"], u.io), 2);
+  assert.match(u.o.err, /^ax-xray: check: there is no --jsn; its flags are --cli, .*\. Fix: ax-xray .*\n$/);
+  assert.equal(JSON.parse(u.o.out).error.code, "unknown-flag");
+  const o = parseArgs(["--cli", "x", "--env", "A=1", "--env", "B=2", "--env", "A=3", "--state", "log", "--state", "list", "--sample", "k=v", "--volatile", "at,id"]);
+  assert.deepEqual([o.env, o.state, o.samples, o.volatile], [{ A: "3", B: "2" }, ["log", "list"], { k: "v" }, ["at", "id"]]);
+  assert.deepEqual([parseArgs(["help"]).command, parseArgs(["claims", "--json"]).command, parseArgs(["claims", "--json"]).json], ["help", "claims", true]);
 });
 
 test("the guide's tool conforms", async () => {
@@ -459,7 +475,7 @@ test("a mock check that answers text, a key path through a value that is not an 
   assert.deepEqual([o.env, o.timeoutMs], [{ A: "b" }, 500]);
   const t = io();
   assert.equal(await main(["--cli", "x", "--timeout", "-1"], t.io), 2);
-  assert.match(t.o.err, /--timeout takes a positive number, not "-1"\. Fix: --timeout 20000\./);
+  assert.match(t.o.err, /^ax-xray: --timeout: takes a positive number, not "-1"\. Fix: ax-xray --timeout 20000\.\n$/);
   const inventory = join(scratch, "inv-notes-full.json");
   writeFileSync(inventory, JSON.stringify({ cli: ["rooms", "note", "post", "watch"] }));
   const good = io();
@@ -686,7 +702,7 @@ test("a CLI whose failures say something went wrong fails copy.precise-failure o
   writeFileSync(allowFile, JSON.stringify([{ match: "could not" }]));
   const bad = io();
   assert.equal(await main(["--cli", fixture("bad-cli.mjs"), "--failure-copy-allow", allowFile], bad.io), 2);
-  assert.match(bad.o.err, /--failure-copy-allow .*failure-copy-allow\.json: the failure copy allow-list has 1 problem:\nentry 0 \{"match":"could not"\} needs a non-empty "match" and a "reason"/);
+  assert.match(bad.o.err, /^ax-xray: --failure-copy-allow: .*failure-copy-allow\.json: the failure copy allow-list has 1 problem: entry 0 \{"match":"could not"\} needs a non-empty "match" and a "reason"\. Fix: \{ "match": "<part of the text>", "reason": "<why this wording is precise>" \}\.\n$/);
   assert.equal(parseArgs(["--cli", "x", "--failure-copy-allow", "a.json"]).failureCopyAllow, "a.json");
 });
 
