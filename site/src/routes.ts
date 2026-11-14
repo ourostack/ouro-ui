@@ -37,6 +37,7 @@ export const routes: Route[] = [
   { path: "/apple/ax/", title: "Ouro AX for Apple", description: "The App Intents X-ray reads a built app from outside and checks it against Apple's side of the Ouro AX standard. Browse the real reports from Spoonjoy and Ouro MD, before and after." },
   { path: "/apple/reins/", title: "Ouro Reins · Ouro UI for Apple", description: "Agents drive an app's screens as state and actions with ls and do: headless, in milliseconds, with the network blocked. Drive a pretend kitchen in your browser and race the simulator." },
   { path: "/apple/start/", title: "Get started · Ouro UI for Apple", description: "Add one Swift package, set a theme, animate with the shared spring, play a named haptic, and X-ray your App Intents in CI." },
+  { path: "/adoption/", title: "Adoption · Ouro UI", description: "Who uses Ouro UI, and who gives back to it: our maintained products, measured from GitHub and CI hourly, furthest from confirmed first." },
   {
     path: "/docs/",
     title: "Components · Ouro HX",

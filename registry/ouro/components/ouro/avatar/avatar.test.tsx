@@ -407,7 +407,7 @@ describe("Avatar shapes and icons", () => {
       </>,
     );
     const [square, agent, circle, loading] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
-    expect(getComputedStyle(square!, "::before").content).toBe('""');
+    expect(getComputedStyle(square!).boxShadow).toMatch(/ 3\.36px -3\.36px 0px 0px$/);
     expect(getComputedStyle(agent!, "::after").content).toBe('""');
     expect(getComputedStyle(agent!).color).toBe(getComputedStyle(circle!).color);
     expect(getComputedStyle(agent!).backgroundColor).not.toBe(getComputedStyle(circle!).backgroundColor);
@@ -436,6 +436,36 @@ describe("Avatar shapes and icons", () => {
     }
   });
 
+  it("keeps every layer of an avatar exactly on its box, and a team's second edge behind its fill", async () => {
+    const { host } = await render(
+      <>
+        <Avatar name="Design reviews" shape="square" size="lg" />
+        <Avatar name="Design reviews" shape="square" size="lg" src={photo} />
+        <Avatar name="Halden" shape="agent" size="lg" presence="busy" presenceLabel="Busy" />
+        <Avatar name="Ana Lind" size="lg" presence="busy" presenceLabel="Busy" />
+      </>,
+    );
+    for (const avatar of host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')) {
+      for (const layer of ["::before", "::after"]) {
+        const style = getComputedStyle(avatar, layer);
+        if (style.content === "none") continue;
+        for (const side of ["top", "right", "bottom", "left"] as const) expect(parseFloat(style[side])).toBe(0);
+      }
+    }
+    const square = host.querySelector<HTMLElement>('[data-shape="square"]')!;
+    const [ring, edge] = getComputedStyle(square).boxShadow.split(/, (?=[a-z])/).slice(-2);
+    expect(ring).toContain(" 1.4px");
+    expect(edge).not.toMatch(/ 0px 0px 0px/);
+  });
+
+  it("draws a team's cover art over its whole square, with its second edge and no presence", async () => {
+    const { host } = await render(<Avatar name="Design reviews" shape="square" size="lg" src={photo} />);
+    const avatar = host.querySelector<HTMLElement>('[data-shape="square"]')!;
+    await expect.poll(() => avatar.querySelector("img")?.getBoundingClientRect().width).toBe(avatar.getBoundingClientRect().width);
+    expect(avatar.querySelector("[data-ouro-avatar-presence]")).toBeNull();
+    expect(getComputedStyle(avatar).boxShadow).toMatch(/ 3\.36px -3\.36px 0px 0px$/);
+  });
+
   it("draws an agent as a tile at every size, its initials and picture inside it", async () => {
     const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
     const { host } = await render(
@@ -454,8 +484,9 @@ describe("Avatar shapes and icons", () => {
     }
     for (const avatar of avatars.slice(0, -1)) {
       const box = avatar.getBoundingClientRect();
-      const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-initials]")!.getBoundingClientRect();
-      expect(drawn(avatar)).toBe("HA");
+      const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-glyph]")!.getBoundingClientRect();
+      expect(avatar.querySelector("[data-ouro-avatar-initials]")).toBeNull();
+      expect(getComputedStyle(avatar.querySelector("[data-ouro-avatar-glyph]")!).fill).toBe(getComputedStyle(avatar).color);
       expect(Math.abs(letters.left + letters.width / 2 - (box.left + box.width / 2))).toBeLessThanOrEqual(0.5);
       expect(Math.abs(letters.top + letters.height / 2 - (box.top + box.height / 2))).toBeLessThanOrEqual(0.5);
     }
@@ -926,7 +957,7 @@ describe("Avatar inside a link or button that has its own name", () => {
     ["initials it is given", <Avatar key="a" name="Ana Lind" initials="AnL" />],
     ["its initials and a presence dot", <Avatar key="a" name="Ana Lind" presence="busy" presenceLabel="In a meeting" />],
     ["a square's initials", <Avatar key="a" name="Ana Lind" shape="square" />],
-    ["an agent's tile and initials", <Avatar key="a" name="Ana Lind" shape="agent" />],
+    ["an agent's tile and glyph", <Avatar key="a" name="Ana Lind" shape="agent" />],
     ["its initials after the picture fails", <Avatar key="a" name="Ana Lind" src={broken} />],
   ])("a link named \"Ana Lind's profile\" around %s has no label-content-name-mismatch", async (_case, avatar) => {
     const { host } = await render(
@@ -935,7 +966,7 @@ describe("Avatar inside a link or button that has its own name", () => {
       </a>,
     );
     await expect.poll(() => host.querySelector('[data-ouro="avatar"]')!.getAttribute("data-image")).not.toBe("loading");
-    expect(drawn(host)).not.toBe("");
+    expect(drawn(host) !== "" || host.querySelector("[data-ouro-avatar-glyph]") !== null).toBe(true);
     expect(await labelInName(host)).toEqual([]);
   });
 

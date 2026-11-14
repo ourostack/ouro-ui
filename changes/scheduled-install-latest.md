@@ -1,0 +1,1 @@
+- Scheduled install also installs with the unpinned shadcn CLI from main.

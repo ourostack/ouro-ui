@@ -104,3 +104,58 @@ test("a one-command tool's overview and command help name the tool and its usage
   const poster = defineCli({ name: "ouro-post", about: ["p"], command: defineCommand({ name: "post", summary: "Post.", effect: "others", why: "required", run: () => 1 }) });
   assert.match(renderOverview(poster, { othersNote: " (asked only)", footer: ["Footer."] }), /^p\n\nOther people see these \(asked only\)\n {2}--why "<who asked you, and what they said>" \[--dry-run\]\n {34}Post\.\n\nFooter\.\n$/);
 });
+
+test("a default command is listed in the overview under its own heading, with its arguments and flags, and never as a command word", () => {
+  const check = defineCommand({
+    name: "check",
+    summary: "Checks every page at every screen size, and writes a report.",
+    effect: "private",
+    args: [{ name: "target", description: "A URL or a built folder.", rest: "list", required: true }],
+    flags: { pages: { type: "string", description: "Only the pages the glob matches." }, ready: { type: "string", description: "An event the page fires once it has drawn.", repeat: true } },
+    run: (input) => input,
+  });
+  const merge = defineCommand({ name: "merge", summary: "Joins the out folders of a sharded run.", effect: "private", args: [{ name: "dir", description: "An out folder.", rest: "list", required: true }], run: () => null });
+  const post = defineCommand({ name: "post", summary: "Posts it.", effect: "others", why: "required", run: () => null });
+  const tool = defineCli({ name: "t", about: ["t: checks pages."], command: check, commands: [merge, post] });
+  assert.equal(
+    renderOverview(tool),
+    [
+      "t: checks pages.",
+      "",
+      "Only you see these",
+      "  <target...> [--pages <pages>] [--ready <ready>...]",
+      `${" ".repeat(34)}Checks every page at every screen size, and writes a report.`,
+      `${"  <target...>".padEnd(34)}A URL or a built folder.`,
+      `${"  --pages <pages>".padEnd(34)}Only the pages the glob matches.`,
+      `${"  --ready <ready>...".padEnd(34)}An event the page fires once it has drawn. Repeat it for each`,
+      `${" ".repeat(34)}value.`,
+      "  merge   Joins the out folders of a sharded run.",
+      "",
+      "Other people see these",
+      "  post    Posts it.",
+      "",
+      "Output: --json on every command. Exit codes: 0 ok, 1 error, 2 usage. Errors: one line that says what",
+      "to do instead.",
+      "Details: t help <command>",
+      "",
+    ].join("\n"),
+  );
+  assert.deepEqual(
+    helpJson(tool).commands.map((c) => [c.name, c.usage, "single" in c]),
+    [
+      ["check", "t <target...> [--pages <pages>] [--ready <ready>...]", true],
+      ["merge", "t merge <dir...>", false],
+      ["post", 't post --why "<who asked you, and what they said>" [--dry-run]', false],
+    ],
+  );
+});
+
+test("a default command that reaches other people is listed under their heading, and a hidden one only in help --json", () => {
+  const merge = defineCommand({ name: "merge", summary: "Merges.", effect: "private", run: () => null });
+  const post = defineCommand({ name: "post", summary: "Posts it.", effect: "others", why: "required", run: () => null });
+  const reaching = renderOverview(defineCli({ name: "t", about: [], command: post, commands: [merge] }));
+  assert.ok(reaching.indexOf("Only you see these") < reaching.indexOf("  merge") && reaching.indexOf("  merge") < reaching.indexOf("Other people see these") && reaching.indexOf("Other people see these") < reaching.indexOf("Posts it."));
+  const hidden = defineCli({ name: "t", about: [], command: defineCommand({ ...post, effect: "private", hidden: true, why: "none" }), commands: [merge] });
+  assert.doesNotMatch(renderOverview(hidden), /Posts it\./);
+  assert.equal(helpJson(hidden).commands[0]!.single, true);
+});

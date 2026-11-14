@@ -149,6 +149,43 @@ describe("A2UISurface", () => {
     expect(onAction.mock.calls[0]![0]).toMatchObject({ action: { name: "share_recipe", context: { recipe: "rcp_1", with: "sam@example.com" }, metadata: { extensions: { bot_ouroboros_action: { consent: "consequential", by: "person", confirmed: true } } } } });
   });
 
+  it("shows a confirm row's name, with its id small beside it, and a row with no name shows its value alone", async () => {
+    const host = await render(<A2UISurface {...props({ label: ({ value }) => (value === "rcp_1" ? "Charred Lemon Orzo" : undefined) })} />);
+    await userEvent.click(host.querySelector<HTMLButtonElement>('button[data-action="share_recipe"]')!);
+    const dialog = page.getByRole("alertdialog").element();
+    const [recipe, withRow] = [...dialog.querySelectorAll<HTMLElement>("p span.block")];
+    expect(recipe!.textContent).toBe("Recipe: Charred Lemon Orzo rcp_1");
+    const id = recipe!.querySelector<HTMLElement>("span:last-child")!;
+    expect(id.textContent).toBe("rcp_1");
+    expect(parseFloat(getComputedStyle(id).fontSize)).toBeLessThan(parseFloat(getComputedStyle(recipe!).fontSize));
+    expect(getComputedStyle(id).color).not.toBe(getComputedStyle(recipe!).color);
+    expect(withRow!.textContent).toBe("With: sam@example.com");
+    expect(withRow!.querySelectorAll("span")).toHaveLength(1);
+  });
+
+  it("passes the app's resolver each confirm row's id, and shows the name it gives", async () => {
+    const label = vi.fn((context: { value: string }) => (context.value === "rcp_1" ? "Charred Lemon Orzo" : undefined));
+    const host = await render(<A2UISurface {...props({ label })} />);
+    await userEvent.click(host.querySelector<HTMLButtonElement>('button[data-action="share_recipe"]')!);
+    expect(label).toHaveBeenCalledWith({ action: "share_recipe", field: "recipe", value: "rcp_1", input: { recipe: "rcp_1", with: "sam@example.com" } });
+    expect(page.getByRole("alertdialog").element().textContent).toContain("Recipe: Charred Lemon Orzo rcp_1");
+  });
+
+  it("lets the app's resolver name an id the agent prepared a name for, in a field the catalog says stands in for it", async () => {
+    // The agent prepared the name too, in a field the catalog says stands in for the id; the app's resolver names it instead.
+    const share = catalog.metadata.extensions.bot_ouroboros_hx.actions.share_recipe;
+    const named = { ...catalog, metadata: { extensions: { bot_ouroboros_hx: { actions: { share_recipe: { ...share, input: { recipe: { ...field("Recipe"), shownAs: "recipeTitle" }, recipeTitle: field("Recipe title", "string", true), with: field("With") } } } } } } };
+    const prepared = surface([
+      { id: "root", component: "Card", children: ["share"] },
+      { id: "share", component: "ActionButton", action: "share_recipe", input: { recipe: "rcp_1", recipeTitle: "Agent's title", with: "sam@example.com" } },
+    ]);
+    const host = await render(<A2UISurface {...props({ catalog: named, messages: prepared, label: () => "Charred Lemon Orzo" })} />);
+    await userEvent.click(host.querySelector<HTMLButtonElement>('button[data-action="share_recipe"]')!);
+    const text = page.getByRole("alertdialog").element().textContent;
+    expect(text).toContain("Recipe: Charred Lemon Orzo rcp_1");
+    expect(text).not.toContain("Agent's title");
+  });
+
   it("hands a person-only action to the app's own screen and never runs it", async () => {
     const onAction = vi.fn();
     const onHandoff = vi.fn();

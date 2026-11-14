@@ -13,10 +13,10 @@ import { Row } from "@/registry/ouro/components/ouro/stack/row";
 import { Stack } from "@/registry/ouro/components/ouro/stack/stack";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
-import { actionMessage, resolveMessages, type Problem, type Resolved } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { actionMessage, resolveMessages, type LabelContext, type Problem, type Resolved } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { ALERT_TONES, ASPECTS, BADGE_TONES, FIELD_CLASS, FIELD_LABEL_CLASS, GAPS, LIST_CLASS } from "@/registry/ouro/components/ouro/a2ui-surface/a2ui-surface-styles";
+import { ALERT_TONES, ASPECTS, BADGE_TONES, FIELD_CLASS, FIELD_LABEL_CLASS, GAPS, LIST_CLASS, RAW_CLASS } from "@/registry/ouro/components/ouro/a2ui-surface/a2ui-surface-styles";
 
 /** A problem the validator found in the agent's messages, in A2UI's validation error format. */
 export type A2UIProblem = Problem;
@@ -67,6 +67,17 @@ export interface A2UISurfaceProps {
   onHandoff: (handoff: A2UIHandoff) => void;
   /** The validator's problems, when the messages fail it; the person sees a short alert instead. Hand them to the agent to correct. */
   onProblems?: ((problems: readonly A2UIProblem[]) => void) | undefined;
+  /**
+   * Names the ids in a confirm sheet's rows from the app's own data, such as a recipe's title for `rcp_lemon_orzo`.
+   * Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared,
+   * because the agent's text is the one thing the person can't check. Keep it stable, as `messages` is: a new function
+   * on each render resolves the messages again.
+   *
+   * @claim "The name wins over what the agent prepared" registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > lets the app's resolver name an id the agent prepared a name for, in a field the catalog says stands in for it)
+   * @example
+   * label={({ field, value }) => (field === "recipe" ? titles[value] : undefined)}
+   */
+  label?: ((context: LabelContext) => string | undefined) | undefined;
   /** Layout only: margins, width (`max-w-md`). */
   className?: string | undefined;
 
@@ -110,8 +121,8 @@ const now = () => new Date().toISOString();
  * />
  */
 export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
-  const { catalog, messages, surfaceId, onAction, onHandoff, onProblems, className, onPress } = props;
-  const result = useMemo(() => resolveMessages(catalog, messages), [catalog, messages]);
+  const { catalog, messages, surfaceId, onAction, onHandoff, onProblems, className, onPress, label } = props;
+  const result = useMemo(() => resolveMessages(catalog, messages, label ? { label } : {}), [catalog, messages, label]);
   const problems = "problems" in result ? result.problems : null;
   const surfaces = "surfaces" in result ? result.surfaces : {};
   const ids = Object.keys(surfaces);
@@ -230,7 +241,7 @@ function HandoffIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
 const SECONDARY = { tone: "secondary", variant: "soft" } as const;
 
 function ActionButton({ node, ctx }: { node: Resolved; ctx: Context }): JSX.Element {
-  const p = node.props as { label: string; press: "run" | "confirm" | "handoff"; action: string; emphasis?: string; handoff?: string; confirm?: { description: string; fields: { label: string; value: string }[] } };
+  const p = node.props as { label: string; press: "run" | "confirm" | "handoff"; action: string; emphasis?: string; handoff?: string; confirm?: { description: string; fields: { label: string; value: string; raw?: string }[] } };
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
   const primary = p.emphasis === "primary";
@@ -257,6 +268,12 @@ function ActionButton({ node, ctx }: { node: Resolved; ctx: Context }): JSX.Elem
               {p.confirm!.fields.map((f) => (
                 <span key={f.label} className={FIELD_CLASS}>
                   <span className={FIELD_LABEL_CLASS}>{f.label}:</span> {f.value}
+                  {f.raw !== undefined && (
+                    <>
+                      {" "}
+                      <span className={RAW_CLASS}>{f.raw}</span>
+                    </>
+                  )}
                 </span>
               ))}
             </>

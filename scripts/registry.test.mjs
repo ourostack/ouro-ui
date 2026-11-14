@@ -350,7 +350,7 @@ test("Ouro AX items depend on the ax items they import", () => {
   assert.deepEqual(item("ax-checks").registryDependencies, ["ax-dev-commands", "ax-exit-codes", "ax-outcome", "ax-terminal"].map(repo));
   assert.deepEqual(item("ax-terminal").registryDependencies, ["ax-outcome", "ax-voice"].map(repo));
   assert.deepEqual(item("ax-voice").registryDependencies, ["ax-outcome"].map(repo));
-  assert.deepEqual(item("ax-flows").registryDependencies, undefined);
+  assert.deepEqual(item("ax-flows").registryDependencies, ["ax-cli", "ax-command", "ax-outcome", "ax-problem"].map(repo));
   for (const name of ["ax-cli", "ax-example", "ax-flows"]) assert.ok(item("ax-flows-tests").registryDependencies.includes(repo(name)), name);
   assert.deepEqual(item("ax-cli").files.map((file) => [file.path, file.type, file.target]), [
     ["registry/ouro/ax/cli.ts", "registry:lib", "@lib/ouro/ax/cli.ts"],
@@ -367,8 +367,14 @@ test("Ouro AX items depend on the ax items they import", () => {
 
 test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
-  // OuroProvider groups tooltips with Base UI's Tooltip.Provider and registers the squircle polyfill.
-  assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0", "hyperellipse@^1.0.5"]);
+  // OuroProvider groups tooltips with Base UI's Tooltip.Provider.
+  assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0"]);
+  // The squircle polyfill is opt-in: only its own item carries it, and no component or helper installs that item.
+  assert.deepEqual(item("lib-squircle-polyfill").dependencies, ["hyperellipse@^1.0.5"]);
+  for (const entry of registry.items) {
+    if (entry.name !== "lib-squircle-polyfill") assert.ok(!(entry.dependencies ?? []).some((dep) => dep.startsWith("hyperellipse")), `${entry.name} installs the polyfill`);
+    if (!/^(ouro-lib|ouro-tests|lib-squircle-polyfill)(-tests)?$/.test(entry.name)) assert.ok(!(entry.registryDependencies ?? []).some((dep) => dep.includes("squircle-polyfill")), `${entry.name} pulls in the polyfill`);
+  }
   assert.deepEqual(item("lib-cn").dependencies, ["clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
   assert.equal(item("ouro-lib").dependencies, undefined);
   assert.ok(!JSON.stringify(registry).includes('"motion@'), "no item depends on motion");
@@ -381,6 +387,11 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
     }
     for (const dependency of entry.devDependencies ?? []) assert.doesNotMatch(dependency, /^react(-dom)?$/);
   }
+});
+
+test("Ouro check installs to @lib/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does", () => {
+  assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/check.ts").target, "@lib/ouro/check/check.ts");
+  for (const name of ["ax-cli", "ax-command", "ax-exit-codes", "ax-outcome", "ax-problem"]) assert.ok(item("ouro-check").registryDependencies.includes(repo(name)), name);
 });
 
 test("a helper's Node script names what it imports as devDependencies without a version, so lib-claims leaves the app's TypeScript alone", () => {

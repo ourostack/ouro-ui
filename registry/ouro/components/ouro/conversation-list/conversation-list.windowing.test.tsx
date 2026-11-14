@@ -127,12 +127,12 @@ describe("ConversationList windowing", () => {
     expect([...list().childNodes].every((node) => node.nodeName === "LI")).toBe(true);
   });
 
-  it("keeps a list of 60 conversations whole, as a short list always was", async () => {
-    const { rows, list, rerender, pane } = await render(<ConversationList label="Conversations" items={many(60)} onSelect={() => {}} />);
-    await expect.poll(() => rows().length).toBe(60);
+  it("keeps a list of 20 conversations whole, as a short list always was", async () => {
+    const { rows, list, rerender, pane } = await render(<ConversationList label="Conversations" items={many(20)} onSelect={() => {}} />);
+    await expect.poll(() => rows().length).toBe(20);
     expect(rows()[0]!.parentElement!.hasAttribute("aria-setsize")).toBe(false);
     expect(list().style.height).toBe("");
-    await rerender(<ConversationList label="Conversations" items={many(61)} onSelect={() => {}} />);
+    await rerender(<ConversationList label="Conversations" items={many(21)} onSelect={() => {}} />);
     expect(list().style.height).not.toBe("");
     // Grown long, the list follows its pane's scroll.
     await rerender(<ConversationList label="Conversations" items={many(200)} onSelect={() => {}} />);
@@ -296,13 +296,13 @@ describe("ConversationList windowing", () => {
   });
 
   it("leaves the view where it is when a list grows long, or long again after another conversation opened", async () => {
-    const { pane, rerender, list } = await render(<ConversationList label="Conversations" items={many(60)} selectedId="c50" onSelect={() => {}} />);
+    const { pane, rerender, list } = await render(<ConversationList label="Conversations" items={many(20)} selectedId="c15" onSelect={() => {}} />);
     expect(pane.scrollTop).toBe(0);
-    await rerender(<ConversationList label="Conversations" items={many(61)} selectedId="c50" onSelect={() => {}} />);
+    await rerender(<ConversationList label="Conversations" items={many(21)} selectedId="c15" onSelect={() => {}} />);
     expect(list().style.height).not.toBe("");
     expect(pane.scrollTop).toBe(0);
-    await rerender(<ConversationList label="Conversations" items={many(60)} selectedId="c55" onSelect={() => {}} />);
-    await rerender(<ConversationList label="Conversations" items={many(61)} selectedId="c55" onSelect={() => {}} />);
+    await rerender(<ConversationList label="Conversations" items={many(20)} selectedId="c18" onSelect={() => {}} />);
+    await rerender(<ConversationList label="Conversations" items={many(21)} selectedId="c18" onSelect={() => {}} />);
     expect(pane.scrollTop).toBe(0);
   });
 
@@ -522,7 +522,7 @@ describe("ConversationList windowing with sections", () => {
     expect(document.activeElement!.closest("li[data-ouro-conversation-section]")!.getAttribute("aria-posinset")).toBe("3");
   });
 
-  it("renders a short list's first commit with only the rows the first view reaches and the rest after it paints", async () => {
+  it("paints a short list's first commit as its finished screen, with no rows added after it", async () => {
     const items = many(50, (index) => ({ section: index % 2 ? "a" : "b" }));
     const sections = [
       { id: "a", title: "A" },
@@ -532,10 +532,9 @@ describe("ConversationList windowing with sections", () => {
     const firstRows = first.split('data-ouro-part="row"').length - 1;
     expect(firstRows).toBeGreaterThan(0);
     expect(firstRows).toBeLessThan(50);
-    expect(first.split('data-ouro-part="section"').length - 1).toBe(2);
 
     const view = await render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />);
-    await expect.poll(() => view.rows().length).toBe(50);
+    expect(view.rows().length).toBeLessThan(50);
     expect(view.pane.scrollTop).toBe(0);
   });
 

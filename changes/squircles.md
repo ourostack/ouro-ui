@@ -1,1 +1,1 @@
-- Changed: standard rounded corners become squircles (`--ouro-corner-shape`, native `corner-shape` with the `hyperellipse` polyfill registered by `OuroProvider`), radii grow by half again, and avatar circles become squircles; switches, radios, slider thumbs and presence dots stay round.
+- Changed: standard rounded corners become squircles (`--ouro-corner-shape`, native `corner-shape`; the `hyperellipse` polyfill is opt-in), radii grow by half again, and avatar circles become squircles; switches, radios, slider thumbs and presence dots stay round.
