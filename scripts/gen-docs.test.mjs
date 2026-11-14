@@ -88,7 +88,7 @@ test("the eager page index retains routing text without Markdown-only metadata",
   assert.ok(index.some((page) => page.kind === "export"));
 });
 
-test("the Platforms pages are listed under docs/platforms: the index, Apple, the others by name, then your platform and the contributor guide", () => {
+test("the Platforms pages are listed under docs/platforms: the index, Apple, the others by name, then the parity matrix, your platform and the contributor guide", () => {
   const out = scratchDir("ouro-docs-platforms-");
   const result = run("--out", out);
   assert.equal(result.status, 0, result.stderr);
@@ -96,8 +96,8 @@ test("the Platforms pages are listed under docs/platforms: the index, Apple, the
   const files = readdirSync(join(root, "docs/platforms")).filter((file) => file.endsWith(".md"));
   assert.equal(pages.length, files.length, "every Markdown file in docs/platforms has a page");
   assert.deepEqual(pages.slice(0, 2).map((page) => page.name), ["platforms", "platforms/apple"]);
-  assert.deepEqual(pages.slice(-2).map((page) => page.name), ["platforms/your-platform", "platforms/contributing"]);
-  const middle = pages.slice(2, -2).map((page) => page.name);
+  assert.deepEqual(pages.slice(-3).map((page) => page.name), ["platforms/parity", "platforms/your-platform", "platforms/contributing"]);
+  const middle = pages.slice(2, -3).map((page) => page.name);
   assert.deepEqual(middle, [...middle].sort());
   for (const page of pages) {
     assert.equal(page.group, "Platforms");

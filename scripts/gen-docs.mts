@@ -690,9 +690,9 @@ const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
 // The Platforms section (docs/platforms/, written by hand): README.md is its index at docs/platforms,
 // and each other file is one platform's page, or the contributor guide, at docs/platforms/<file>.
 // The index comes first, then Apple, the platforms that shipped first, then the others by name,
-// with "your platform" and the contributor guide last. A page starts as a guide does.
+// with the parity matrix, "your platform" and the contributor guide last. A page starts as a guide does.
 const platformsDir = join(root, "docs/platforms");
-const platformLast = ["your-platform.md", "contributing.md"];
+const platformLast = ["parity.md", "your-platform.md", "contributing.md"];
 const platformRank = (file: string) => (file === "README.md" ? 0 : file === "apple.md" ? 1 : platformLast.includes(file) ? 3 + platformLast.indexOf(file) : 2);
 const platformPages = (existsSync(platformsDir) ? readdirSync(platformsDir) : [])
   .filter((file) => file.endsWith(".md"))
