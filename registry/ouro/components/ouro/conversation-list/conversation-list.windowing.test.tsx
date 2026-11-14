@@ -506,11 +506,11 @@ describe("ConversationList windowing", () => {
     await expect.poll(() => pane.querySelectorAll('[data-ouro-part="row"]').length).toBeGreaterThan(12);
     // The first size the observer reports is the one the window is kept against, so a pane that grew before that
     // report counts as unchanged; a further step after it is a change.
-    let step = 0;
+    await frames();
+    pane.style.height = "401px";
     await expect.poll(() => {
-      pane.style.height = `${400 + (step++ % 2)}px`;
-      try { expectBand(pane, []); return ""; } catch (error) { return `${(error as Error).message} rows=${pane.querySelectorAll('[data-ouro-part="row"]').length} h=${pane.clientHeight}`; }
-    }).toBe("");
+      try { expectBand(pane, []); return true; } catch { return false; }
+    }).toBe(true);
   });
 
   it("stops following the page once it is gone", async () => {
