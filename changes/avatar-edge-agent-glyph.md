@@ -1,1 +1,1 @@
-- Changed: an avatar's team edge is a shadow offset from the box, not a layer that could drift off it; an agent with no icon or picture shows a sparkle in its hue instead of an initial; the docs show an agent with presence and a team with cover art.
+- Changed: an avatar's team edge is a shadow offset from the box, and an agent without an icon or picture shows a sparkle in its hue instead of an initial.
