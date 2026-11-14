@@ -12,8 +12,9 @@ name: Release
 # (scripts/public-registry.mjs verify-build). When that passes, the commit is tagged, the
 # GitHub release is created and the branch is deleted (the tag keeps the commit). Because
 # main never receives the release commit, main keeps its change fragments: a release's notes list
-# only the fragment lines the last release's notes lack (scripts/changes.mjs), and no pull request
-# prepares main afterwards. The run deploys Pages (the pages job: Pages' build names the newest
+# only the fragment lines the last release's notes lack (scripts/changes.mjs). Afterwards a pull
+# request points main's docs at the release (docs-pin.yml), which this run starts and never waits
+# for. The run deploys Pages (the pages job: Pages' build names the newest
 # release in the site, llms.txt and the @ouro namespace) and last checks that the site's llms.txt
 # names this release (scripts/published-release.mjs) and that Pages serves every @ouro item byte
 # for byte as built from the tag (scripts/public-registry.mjs verify-live). The next release
@@ -338,3 +339,20 @@ jobs:
       - name: Start the next release
         run: |
           gh workflow run release-auto.yml --ref main -f after="$GITHUB_RUN_ID"
+  docs-pin:
+    # Starts docs-pin.yml, which points main's docs at this release through a pull request. Only the
+    # release's own result gates it, and nothing waits for it: a failure there changes no release.
+    needs: release
+    if: ${{ needs.release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # start Docs pin
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: v${{ inputs.version }}
+    steps:
+      - name: Start Docs pin
+        run: |
+          gh workflow run docs-pin.yml --ref main -f tag="$TAG"
