@@ -487,7 +487,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
       {presence && (
         <span
           data-ouro-avatar-presence=""
-          className={cn("pointer-events-none absolute box-border flex [corner-shape:round] rounded-full bg-(--ouro-avatar-ring,var(--background))", presenceSizes[size])}
+          className={cn("pointer-events-none absolute box-border flex [--corner-shape:round] [corner-shape:round] rounded-full bg-(--ouro-avatar-ring,var(--background))", presenceSizes[size])}
         >
           <PresenceGlyph presence={presence} />
         </span>
