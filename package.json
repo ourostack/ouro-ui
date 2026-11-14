@@ -44,6 +44,7 @@
     "site:static-css": "node site/scripts/static-css.mts",
     "site:ships": "node site/scripts/ship-components.mts",
     "test:scripts": "node scripts/run-script-tests.mjs",
+    "core:check": "node scripts/core-bundle.mts --check",
     "test:e2e": "playwright test",
     "test:latency": "playwright test --config playwright.latency.config.ts",
     "test:sr": "playwright test --config playwright.screen-reader.config.ts",

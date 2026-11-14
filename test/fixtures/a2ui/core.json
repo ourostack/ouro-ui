@@ -1,19 +1,24 @@
 {
   "repository": "ourostack/ouro-ui-core",
-  "coreTag": "v0.9.0",
+  "coreTag": "v0.12.1",
   "note": "Copied from ouro-ui-core at coreTag, byte for byte. Never edit them: take a new release and update this file.",
   "files": {
     "registry/ouro/lib/ouro/a2ui-core.ts": {
       "from": "src/a2ui.mts",
-      "sha256": "115838ce939e08765a5e9e38bf1832442ba6d565282f726d110b964d8f4fc5b1"
+      "bundled": {
+        "src/composed.mts": "11225e98bc04496f1e4cd705e1971c18c4966c7c059acdf388868ab3711a004f",
+        "src/mcp-app.mts": "93c9570d032e911c244f401df0a4f7adcb06e6ffeb2d2e970c2f00b8291279dc",
+        "src/a2ui.mts": "543135ea00c07cd96be1ad552008101de7f9ac92ea2753414221007868664901"
+      },
+      "sha256": "0dc0cff17350656e6cb42afe2ed93b3460d88e4d4012d9e587facb946291a304"
     },
     "test/fixtures/a2ui/catalog.json": {
       "from": "standard/hx/a2ui/catalog.json",
-      "sha256": "b000946f4763d29384f40d1a9cd5c91b20a51fcda4268c120a0b774cffdb37dd"
+      "sha256": "04f7f0d5f22d92c8cefde0fc8a1a039abb728234f9a9b758f57d7052cf496cd4"
     },
     "test/fixtures/a2ui/recipe.catalog.json": {
       "from": "standard/hx/a2ui/conformance/recipe.catalog.json",
-      "sha256": "14679a142646e11a4d20de8771966cf870388447833a3474f49ec0dfd6957a4e"
+      "sha256": "3ad29a2d7825467ff435b3b550a41de05b6eb37b1418c5e2d42d5c81e71d2d75"
     },
     "test/fixtures/a2ui/cases/action-buttons.json": {
       "from": "standard/hx/a2ui/conformance/cases/action-buttons.json",

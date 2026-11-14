@@ -151,6 +151,12 @@ if [ "$variant" = next ]; then
   items_json=()
   for item in "${items[@]}"; do items_json+=("$registry/r/$item.json"); done
   "${shadcn[@]}" add --yes "${items_json[@]}"
+  # Core's A2UI module arrives as one file with no relative imports (scripts/core-bundle.mts), so the
+  # type check and build below prove a default create-next-app, without allowImportingTsExtensions, takes it.
+  node -e 'if (require("./tsconfig.json").compilerOptions.allowImportingTsExtensions) throw new Error("create-next-app now sets allowImportingTsExtensions, so this app no longer proves the default needs none")'
+  a2ui_core=$(find src -name a2ui-core.ts)
+  [ -n "$a2ui_core" ] || { echo "a2ui-surface did not install a2ui-core.ts"; exit 1; }
+  if grep -nE 'from "\./[^"]*\.m?tsx?"' "$a2ui_core"; then echo "$a2ui_core imports a relative .ts or .mts path"; exit 1; fi
   echo "::endgroup::"
 
   echo "::group::Every component from Server Components"
