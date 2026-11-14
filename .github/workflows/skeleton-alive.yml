@@ -30,4 +30,4 @@ jobs:
         env:
           CI: "true"
           OURO_ALIVE_MODE: ${{ matrix.mode }}
-        run: pnpm exec playwright test --config playwright.probes.config.ts --project webkit skeleton-alive 2>&1 | tee out.txt; grep RESULT out.txt >> "$GITHUB_STEP_SUMMARY" || true
+        run: pnpm exec playwright test skeleton-alive --config playwright.probes.config.ts --project=webkit 2>&1 | tee out.txt; grep RESULT out.txt >> "$GITHUB_STEP_SUMMARY" || true
