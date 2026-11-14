@@ -59,7 +59,7 @@ function CopyButton({ text, label }: { text: string; label: string }): JSX.Eleme
       variant="plain"
       tone="secondary"
       aria-label={copied ? "Copied" : label}
-      className="w-16 shrink-0"
+      className="w-16 shrink-0 tracking-normal"
       onClick={() => {
         void navigator.clipboard?.writeText(text).then(() => {
           setCopied(true);
