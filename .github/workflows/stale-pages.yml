@@ -1,0 +1,69 @@
+name: Stale pages
+# The pages that fall behind without anyone touching them (scripts/stale-pages.mjs): main's docs, whose install
+# commands name one release, and /adoption/, which shows the hourly ledger. Each has a job that keeps it current
+# (docs-pin.yml, adoption-ledger.yml); hourly, this checks that the job did. A stale page on main opens, or
+# comments on (at most daily), one "Pages are stale" issue. Apple's pages have their own check (apple-release.yml).
+on:
+  schedule:
+    - cron: "41 * * * *"
+  pull_request:
+    paths:
+      - scripts/stale-pages.mjs
+      - .github/workflows/stale-pages.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: stale-pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    name: stale pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      stale: ${{ steps.check.outputs.stale }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            package.json
+            scripts/stale-pages.mjs
+            scripts/scheduled-failure.sh
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Main's docs and /adoption/ are current
+        # Exits 1 when a page is stale (stale=true), 2 when GitHub cannot be read, which is not staleness.
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          node scripts/stale-pages.mjs | tee "$RUNNER_TEMP/stale.txt"
+          code=${PIPESTATUS[0]}
+          if [ "$code" = 1 ]; then echo "stale=true" >> "$GITHUB_OUTPUT"; fi
+          # A pull request only proves the check runs; staleness on main is reported below, not as a failed PR.
+          if [ "${{ github.event_name }}" = pull_request ] && [ "$code" = 1 ]; then exit 0; fi
+          exit "$code"
+  report:
+    # One issue while a page on main is stale, opened or commented on at most daily (scripts/scheduled-failure.sh).
+    needs: [check]
+    if: always() && needs.check.outputs.stale == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          QUIET_HOURS: 24
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Pages are stale" "Main's docs name a release more than a day old, or /adoption/'s ledger is more than three hours old; the run names which"
