@@ -61,8 +61,10 @@ export function createContext({ gh = realGh, now = () => new Date(), sleep = sle
           const data = JSON.parse(gh(["api", "-X", "GET", "search/code", "-f", `q=${query} repo:${repo}`, "-f", "per_page=100"]));
           return { total: data.total_count, paths: data.items.map((item) => item.path) };
         } catch (error) {
-          if (attempt >= 3 || !/rate limit|403|secondary|abuse/i.test(error.message)) throw error;
-          sleep(30000);
+          if (attempt >= 4 || !/rate limit|403|429|try again in|secondary|abuse/i.test(error.message)) throw error;
+          // GitHub says how long to wait ("try again in 14.9s"); a long wait is capped, and the next attempt asks again.
+          const told = /try again in ([\d.]+)(ms|s)/i.exec(error.message);
+          sleep(told ? Math.min(90000, Math.ceil(Number(told[1]) * (told[2] === "ms" ? 1 : 1000)) + 1000) : 30000);
         }
       }
     });
