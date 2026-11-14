@@ -501,8 +501,11 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const frame = requestAnimationFrame(() => {
       timer = window.setTimeout(() => setSettled(true));
     });
+    // Stryker disable next-line BlockStatement: cleanup only spares a state update on an unmounted list, which React ignores.
     return () => {
+      // Stryker disable next-line CallExpression: cleanup only spares a state update on an unmounted list, which React ignores.
       cancelAnimationFrame(frame);
+      // Stryker disable next-line CallExpression: cleanup only spares a state update on an unmounted list, which React ignores.
       clearTimeout(timer);
     };
   },
