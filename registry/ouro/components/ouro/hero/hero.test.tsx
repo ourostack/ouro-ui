@@ -32,6 +32,27 @@ async function render(node: ReactNode) {
 const svg = (width: number, height: number) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'/%3E`;
 
 const wide: HeroPicture = { src: svg(1536, 576), width: 1536, height: 576, alt: "A green snake mascot" };
+
+const longLede = "Plan the week, shop once and cook with what you already have, so dinner is never a scramble and the fridge never fills with food you forgot you bought. ".repeat(3);
+
+// The lede the shots showed running past the measure into a short orphan last line.
+const plainLede = "Plan the week and shop once and cook with what you already have so dinner is never a scramble and the fridge never fills with food you forgot you bought last week or the week before";
+
+/** The lede's text, line by line as the browser set it, read from each word's own rectangle. */
+function ledeLines(lede: HTMLElement): string[] {
+  const rows = new Map<number, string[]>();
+  const walker = document.createTreeWalker(lede, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    for (const word of (node.textContent ?? "").matchAll(/\S+/g)) {
+      const range = document.createRange();
+      range.setStart(node, word.index);
+      range.setEnd(node, word.index + word[0].length);
+      const top = Math.round(range.getBoundingClientRect().top);
+      rows.set(top, [...(rows.get(top) ?? []), word[0]]);
+    }
+  }
+  return [...rows.entries()].sort(([a], [b]) => a - b).map(([, words]) => words.join(" "));
+}
 const night: HeroPicture = { src: `${svg(1536, 576)}%3C!--night--%3E`, width: 1536, height: 576 };
 
 const shownIn = (part: (name: string) => HTMLElement | null) =>
@@ -141,11 +162,24 @@ describe("Hero", () => {
 
   it("runs the lede the full width of the text column in each layout", async () => {
     await page.viewport(1440, 900);
-    const lede = "Plan the week, shop once and cook with what you already have, so dinner is never a scramble and the fridge never fills with food you forgot you bought. ".repeat(3);
     for (const layout of ["stage", "column", "split"] as const) {
-      const { header, part } = await render(<Hero title="Dinner" layout={layout} description={lede} />);
+      const { header, part } = await render(<Hero title="Dinner" layout={layout} description={longLede} />);
       const column = header.firstElementChild!.getBoundingClientRect().width;
       expect(part("description")!.getBoundingClientRect().width).toBeCloseTo(column, 0);
+    }
+  });
+
+  it("balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start", async () => {
+    await page.viewport(1440, 900);
+    const stage = await render(<Hero title="Dinner, sorted" description={plainLede} picture={wide} />);
+    const centred = stage.part("description")!;
+    expect(getComputedStyle(centred).textWrapStyle).toBe("balance");
+    const lengths = ledeLines(centred).map((line) => line.length);
+    expect(lengths.length).toBeGreaterThan(1);
+    expect((Math.max(...lengths) - Math.min(...lengths)) / Math.max(...lengths)).toBeLessThan(0.15);
+    for (const layout of ["column", "split"] as const) {
+      const { part } = await render(<Hero title="Dinner, sorted" layout={layout} description={plainLede} picture={wide} />);
+      expect(getComputedStyle(part("description")!).textWrapStyle).toBe("pretty");
     }
   });
 
