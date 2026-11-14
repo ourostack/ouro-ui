@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@base-ui/react@1.8.0':
-    hash: 117655d36ec64f51cdf4f1157c17472022022c90750a8592a23135c0e8f8dd24
+    hash: 0cc8b8992f1ded69bf6bfc263f5277425abd7dd05a9e0f8bb619cf3dd12541ec
     path: patches/@base-ui__react@1.8.0.patch
 
 importers:
@@ -15,7 +15,7 @@ importers:
     dependencies:
       '@base-ui/react':
         specifier: ^1.8.0
-        version: 1.8.0(patch_hash=117655d36ec64f51cdf4f1157c17472022022c90750a8592a23135c0e8f8dd24)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 1.8.0(patch_hash=0cc8b8992f1ded69bf6bfc263f5277425abd7dd05a9e0f8bb619cf3dd12541ec)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -3925,7 +3925,7 @@ snapshots:
       '@babel/helper-string-parser': 8.0.6
       '@babel/helper-validator-identifier': 8.0.6
 
-  '@base-ui/react@1.8.0(patch_hash=117655d36ec64f51cdf4f1157c17472022022c90750a8592a23135c0e8f8dd24)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@base-ui/react@1.8.0(patch_hash=0cc8b8992f1ded69bf6bfc263f5277425abd7dd05a9e0f8bb619cf3dd12541ec)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@base-ui/utils': 0.4.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
