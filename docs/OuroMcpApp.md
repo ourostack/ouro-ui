@@ -2,7 +2,7 @@
 
 # OuroMcpApp
 
-The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's `structuredContent.a2ui` with `A2UISurface`. Read and write buttons call their action's own tool through the host, a consequential one only after the person confirms, and a person-only one takes the person to your app's screen. It follows the host's light or dark theme and tells the host its size.
+The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface, once it passes core's `validateTree` against the catalog, or A2UI messages in `structuredContent.a2ui` with `A2UISurface`. Read and write buttons call their action's own tool through the host, a consequential one only after the person confirms, and a person-only one takes the person to your app's screen. It follows the host's light or dark theme and tells the host its size.
 
 ```tsx
 import { OuroMcpApp } from "@/registry/ouro/components/ouro/mcp-app/ouro-mcp-app";
@@ -35,7 +35,7 @@ Type: `OuroMcpAppProps`.
 | `className` | `string` |  | Layout only: margins, width (`max-w-md`). |
 | `handoffUrl` | `((handoff: A2UIHandoff) => string \| undefined)` |  | Where a person-only button takes the person: the address of your app's own screen for that action, which the host opens with `ui/open-link`. Without one, or when the host can't open links, the view tells the person where to do it. |
 | `host` | `McpAppHostLink` | the window that framed the view, through `windowHostLink()` | The connection to the host. |
-| `label` | `A2UISurfaceProps["label"]` |  | The app's own word for an id on a confirm sheet, from its own data, in place of the agent's name. It works for a view you build in code. See A2UISurface's `label`. |
+| `label` | `A2UISurfaceProps["label"]` |  | The app's own word for an id on a confirm sheet, from its own data, in place of the agent's name. It works for a view you build in code, on an A2UI result; a composed tree's server names its ids when it builds the tree. See A2UISurface's `label`. |
 
 ## Don't use
 

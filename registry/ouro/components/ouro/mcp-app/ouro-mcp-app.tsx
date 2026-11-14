@@ -3,8 +3,9 @@
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { A2UISurface, type A2UIActionMessage, type A2UIHandoff, type A2UIProblem, type A2UISurfaceProps } from "@/registry/ouro/components/ouro/a2ui-surface/a2ui-surface";
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
+import { ComposedSurface, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
 import { Spinner } from "@/registry/ouro/components/ouro/spinner/spinner";
-import { functionCallProblem, loadCatalog } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { functionCallProblem, loadCatalog, validateTree, type ComposedNode, type LoadedCatalog, type TreeProblem } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { connectMcpApp, MCP_APPS_PROTOCOL, McpAppError, windowHostLink, type McpAppConnection, type McpAppHostLink } from "@/registry/ouro/lib/ouro/mcp-app";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -22,7 +23,8 @@ export interface OuroMcpAppProps {
   handoffUrl?: ((handoff: A2UIHandoff) => string | undefined) | undefined;
   /**
    * The app's own word for an id on a confirm sheet, from its own data, in place of the agent's name. It works for a
-   * view you build in code. See A2UISurface's `label`.
+   * view you build in code, on an A2UI result; a composed tree's server names its ids when it builds the tree. See
+   * A2UISurface's `label`.
    */
   label?: A2UISurfaceProps["label"];
   /** The connection to the host. @default the window that framed the view, through `windowHostLink()` */
@@ -45,11 +47,32 @@ interface Status {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** The A2UI messages in a tool result's `structuredContent.a2ui`, as core's `mcpAppToolResult` puts them. */
-function a2uiMessages(result: Record<string, unknown>): unknown[] | undefined {
-  const content = result.structuredContent;
-  const a2ui = isRecord(content) ? content.a2ui : undefined;
-  return isRecord(a2ui) && Array.isArray(a2ui.messages) ? a2ui.messages : undefined;
+/** The card a tool result carries: Ouro's composed tree, or A2UI messages. */
+type CardContent = { tree: unknown; catalogId: unknown } | { messages: unknown[] };
+
+/**
+ * The card in a tool result: `structuredContent.ouro`, as core's `mcpAppTreeResult` puts it, else
+ * `structuredContent.a2ui`, as core's `mcpAppToolResult` puts it.
+ */
+function cardOf(result: Record<string, unknown>): CardContent | undefined {
+  const content = isRecord(result.structuredContent) ? result.structuredContent : {};
+  const { ouro, a2ui } = content;
+  if (isRecord(ouro) && "tree" in ouro) return { tree: ouro.tree, catalogId: ouro.catalogId };
+  return isRecord(a2ui) && Array.isArray(a2ui.messages) ? { messages: a2ui.messages } : undefined;
+}
+
+/** What is wrong with a composed tree for this view: core's `validateTree` against its catalog, and the catalog it names. */
+function treeProblems(actions: LoadedCatalog, card: { tree: unknown; catalogId: unknown }): TreeProblem[] {
+  const named = card.catalogId === actions.catalogId ? [] : [{ path: "/catalogId", message: `The tree is for catalog ${JSON.stringify(card.catalogId)}; this view draws ${actions.catalogId}.` }];
+  return [...named, ...validateTree(actions, card.tree)];
+}
+
+/** What a press asks the action's own tool to do, from either format. */
+interface ToolPress {
+  name: string;
+  input: Record<string, unknown>;
+  /** The button's label, as the person read it. */
+  label: string;
 }
 
 /** The text a tool result gives an agent and a text-only host. */
@@ -70,7 +93,9 @@ function applyTheme(context: unknown): void {
 
 /**
  * The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it,
- * and it shows the latest tool result's `structuredContent.a2ui` with {@link A2UISurface}. Read and write buttons call
+ * and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface,
+ * once it passes core's `validateTree` against the catalog, or A2UI messages in `structuredContent.a2ui` with
+ * {@link A2UISurface}. Read and write buttons call
  * their action's own tool through the host, a consequential one only after the person confirms, and a person-only
  * one takes the person to your app's screen. It follows the host's light or dark theme and tells the host its size.
  *
@@ -91,7 +116,7 @@ function applyTheme(context: unknown): void {
 export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
   const { catalog, handoffUrl, label, host, appInfo, className, onAction } = props;
   const actions = useMemo(() => loadCatalog(catalog), [catalog]);
-  const [messages, setMessages] = useState<readonly unknown[] | undefined>(undefined);
+  const [card, setCard] = useState<CardContent | undefined>(undefined);
   const [status, setStatus] = useState<Status | undefined>(undefined);
   const [connection, setConnection] = useState<McpAppConnection | undefined>(undefined);
   // Stryker disable next-line BooleanLiteral: read only after the handshake has set it.
@@ -106,9 +131,9 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
     const c = connectMcpApp(link, {
       onNotification: (method, params) => {
         if (method === "ui/notifications/tool-result") {
-          const next = a2uiMessages(params);
+          const next = cardOf(params);
           if (next) {
-            setMessages(next);
+            setCard(next);
             setStatus(undefined);
           } else setStatus({ tone: "destructive", title: "This card can't be shown", description: "The tool's result had no card in it." });
         } else if (method === "ui/notifications/tool-cancelled") setStatus({ tone: "primary", title: "The agent stopped before the card was ready." });
@@ -146,20 +171,22 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
     };
   }, [host, actions, name, version]);
 
-  const runAction = useCallback(
-    async ({ action }: A2UIActionMessage) => {
+  const callTool = useCallback(
+    async ({ name, input, label }: ToolPress) => {
       try {
-        const result = await connection!.request("tools/call", { name: action.name, arguments: action.context });
-        const next = a2uiMessages(result);
-        if (next) setMessages(next);
+        const result = await connection!.request("tools/call", { name, arguments: input });
+        const next = cardOf(result);
+        if (next) setCard(next);
         const text = resultText(result);
-        setStatus(result.isError === true ? { tone: "destructive", title: `${action.userMessage} didn't go through`, ...(text ? { description: text } : {}) } : { tone: "success", title: text ?? `${action.userMessage}: done.` });
+        setStatus(result.isError === true ? { tone: "destructive", title: `${label} didn't go through`, ...(text ? { description: text } : {}) } : { tone: "success", title: text ?? `${label}: done.` });
       } catch (e) {
-        setStatus({ tone: "destructive", title: `${action.userMessage} didn't go through`, description: (e as Error).message });
+        setStatus({ tone: "destructive", title: `${label} didn't go through`, description: (e as Error).message });
       }
     },
     [connection],
   );
+  const runAction = useCallback(({ action }: A2UIActionMessage) => callTool({ name: action.name, input: action.context, label: action.userMessage }), [callTool]);
+  const pressTree = useCallback<ComposedSurfaceProps["onPress"]>((press) => callTool({ name: press.action, input: press.input, label: press.label }), [callTool]);
 
   const handOff = useCallback(
     (handoff: A2UIHandoff) => {
@@ -171,18 +198,25 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
     [connection, handoffUrl, actions],
   );
 
-  const reportProblems = useCallback(
-    (problems: readonly A2UIProblem[]) => {
+  const tellAgent = useCallback(
+    (problems: readonly { path: string; message: string }[], structuredContent: object) => {
       // The agent composed the card, so it hears what to correct.
       void connection!
         .request("ui/update-model-context", {
           content: [{ type: "text", text: `The card didn't pass the checks for composed UI: ${problems.map((p) => `${p.path}: ${p.message}`).join(" ")}` }],
-          structuredContent: { a2uiProblems: problems },
+          structuredContent,
         })
         .catch(() => {});
     },
     [connection],
   );
+  const reportProblems = useCallback((problems: readonly A2UIProblem[]) => tellAgent(problems, { a2uiProblems: problems }), [tellAgent]);
+
+  const tree = card && "tree" in card ? card : undefined;
+  const problems = useMemo(() => (tree ? treeProblems(actions, tree) : []), [actions, tree]);
+  useEffect(() => {
+    if (problems.length && connection) tellAgent(problems, { ouroProblems: problems });
+  }, [problems, connection, tellAgent]);
 
   useDevWarnings(
     "OuroMcpApp",
@@ -191,7 +225,17 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
 
   return (
     <div ref={root} data-ouro="ouro-mcp-app" className={cn(ROOT_CLASS, className)}>
-      {messages && connection ? <A2UISurface catalog={catalog} messages={messages} label={label} onAction={runAction} onHandoff={handOff} onProblems={reportProblems} /> : status ? null : <Spinner label="Waiting for the card" />}
+      {card && connection ? (
+        "messages" in card ? (
+          <A2UISurface catalog={catalog} messages={card.messages} label={label} onAction={runAction} onHandoff={handOff} onProblems={reportProblems} />
+        ) : problems.length ? (
+          <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />
+        ) : (
+          <ComposedSurface tree={card.tree as ComposedNode} onPress={pressTree} onHandoff={handOff} />
+        )
+      ) : status ? null : (
+        <Spinner label="Waiting for the card" />
+      )}
       {status ? <Alert tone={status.tone} title={status.title} description={status.description} /> : null}
     </div>
   );
