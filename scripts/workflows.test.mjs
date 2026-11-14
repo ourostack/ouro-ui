@@ -100,7 +100,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   assert.deepEqual(Object.entries(jobs).filter(([, job]) => job.includes("uses: ./.github/actions/playwright-browsers")).map(([id]) => id), ["visual"]);
   // The script tests that drive a browser run in the image; the others need none.
   assert.doesNotMatch(jobs.scripts, /container:|playwright-browsers/);
-  assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser\)/);
+  assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser \"\$SHARD\"\)/);
   assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback\]/);
   assert.match(jobs.ci, /"design=\$DESIGN"/);
   assert.match(jobs.ci, /"scripts-browser=\$SCRIPTS_BROWSER"/);

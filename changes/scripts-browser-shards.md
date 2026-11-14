@@ -1,0 +1,1 @@
+- The script tests that drive a browser run in four shards by measured time, so that job stops being the longest one in CI.
