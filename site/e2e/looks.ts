@@ -61,7 +61,6 @@ export function describe(arg: { selector: string; only?: number }): Described {
     return `${d[0]},${d[1]},${d[2]},${d[3]}`;
   };
   // Components whose full-radius shape is the squircle on purpose; dots, lights, thumbs and pills are not.
-  const SQUIRCLE_BY_DESIGN = new Set(["avatar", "avatar-group", "checkbox", "checklist", "skeleton", "media-tile"]);
   // A hover lift of up to 2px is layout settling, not a look: a translate-only transform that small reads as none.
   const lift = (t: string) => {
     const m = /^matrix\((.*)\)$/.exec(t);
@@ -103,7 +102,6 @@ export function describe(arg: { selector: string; only?: number }): Described {
       const shape = cs.getPropertyValue("corner-shape");
       if (!painted || !shape || shape === "superellipse(1)" || shape === "round") continue;
       const owner = el.closest<HTMLElement>("[data-ouro]")?.dataset["ouro"] ?? "page";
-      if (SQUIRCLE_BY_DESIGN.has(owner)) continue;
       escapes.push(`${owner}|${el.dataset["ouroPart"] ?? el.tagName.toLowerCase()}|${Math.round(rect.width)}x${Math.round(rect.height)}: round part (radius ${Math.round(radius)}px) is drawn ${shape}`);
     }
   }

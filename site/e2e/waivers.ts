@@ -15,7 +15,6 @@ export type Waiver = {
 };
 
 export const WAIVERS: Waiver[] = [
-  { component: "switch", part: "track", variant: "", state: "", page: "/apple/feel/", property: "border", reason: "the off Switch draws its outline as a border", source: "registry/ouro/components/ouro/switch/switch-styles.ts" },
 ];
 
 export const matched = new Set<number>();
