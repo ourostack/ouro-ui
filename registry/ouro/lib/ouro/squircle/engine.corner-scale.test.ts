@@ -229,4 +229,34 @@ describe("engine corner-scale lifecycle", () => {
     expect(readStyle?.textContent).not.toMatch(/(^|[\s,}])\*\s*\{/);
     expect(readStyle?.textContent).toContain("data-hyperellipse-reading");
   });
+  it("skips the read phase for a class change no rule's corner inputs use, and runs it for one that is", async () => {
+    const style = document.createElement("style");
+    style.textContent = ".sq-active { background-color: rgb(1, 2, 3); }";
+    document.head.append(style);
+    engine.refresh();
+    await flushFrames(3);
+    const element = document.querySelector<HTMLElement>(".squircle");
+    const reads: string[] = [];
+    const original = HTMLElement.prototype.setAttribute;
+    HTMLElement.prototype.setAttribute = function patched(
+      this: HTMLElement,
+      name: string,
+      value: string
+    ) {
+      if (name === "data-hyperellipse-reading") {
+        reads.push(name);
+      }
+      original.call(this, name, value);
+    };
+    try {
+      element?.classList.add("sq-unrelated");
+      await flushFrames(3);
+      expect(reads).toHaveLength(0);
+      element?.classList.add("sq-active");
+      await flushFrames(3);
+      expect(reads.length).toBeGreaterThan(0);
+    } finally {
+      HTMLElement.prototype.setAttribute = original;
+    }
+  });
 });
