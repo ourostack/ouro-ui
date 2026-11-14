@@ -2100,7 +2100,7 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   // A gate that read a skipped job failed on that, which no test explains.
   const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/10)", "skipped")]), contexts, entries: [diveEntry] });
   assert.equal(skippedShard.retry, false);
-  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/6\), which was skipped/);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/10\), which was skipped/);
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
