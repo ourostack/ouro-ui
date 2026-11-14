@@ -2,8 +2,7 @@ name: Release auto
 # Starts the next release on its own, so a merge to main reaches consumers without anyone dispatching
 # a workflow. It runs when main moves and when a release ends, and it
 # starts the rehearsal (release-rehearsal.yml) of the next patch version when
-# changes/ lists a change, no release or rehearsal is running and main is not waiting on its
-# "Prepare main for the next release" pull request. A rehearsal this workflow started dispatches this workflow again as its last step, and that run dispatches Release once the rehearsal's run has ended (a run the workflow token dispatches starts no workflow_run),
+# changes/ lists a change the newest release's notes lack and no release or rehearsal is running. A rehearsal this workflow started dispatches this workflow again as its last step, and that run dispatches Release once the rehearsal's run has ended (a run the workflow token dispatches starts no workflow_run),
 # which cuts the commit that rehearsal tested (scripts/rehearsal-evidence.mjs pick); merges that
 # came after go out in the next release, which this workflow starts when Release ends. A failed
 # rehearsal or release starts nothing again by itself: the next merge does, after the failure's
@@ -71,10 +70,16 @@ jobs:
         if: ${{ inputs.rehearsed == '' && (github.event_name != 'workflow_run' || github.event.workflow_run.name == 'Release') }}
         run: |
           [[ "${AFTER:-0}" =~ ^[0-9]+$ ]] || { echo "::error::after must be a run id."; exit 1; }
-          fragments=$(gh api "repos/$GITHUB_REPOSITORY/contents/changes?ref=main" --jq '[.[] | select(.name | endswith(".md"))] | length')
-          [ "$fragments" -gt 0 ] || { echo "::notice::changes/ lists no change, so there is nothing to release."; exit 0; }
-          preparing=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("prepare/after-"))] | length')
-          [ "$preparing" -eq 0 ] || { echo "::notice::Main is waiting on the pull request that prepares it for the next release; its merge starts this again."; exit 0; }
+          # Fragments stay in changes/ after a release, so a change is new when the newest release's notes lack its line (scripts/changes.mjs).
+          notes=$(gh release view --json body --jq .body)
+          fresh=0
+          for name in $(gh api "repos/$GITHUB_REPOSITORY/contents/changes?ref=main" --jq '.[] | select(.name | endswith(".md")) | .name'); do
+            while IFS= read -r line; do
+              [[ "$line" == "- "* ]] || continue
+              grep -qxF -- "$line" <<<"$notes" || fresh=$((fresh + 1))
+            done < <(gh api -H "Accept: application/vnd.github.raw" "repos/$GITHUB_REPOSITORY/contents/changes/$name?ref=main")
+          done
+          [ "$fresh" -gt 0 ] || { echo "::notice::changes/ lists no change the newest release lacks, so there is nothing to release."; exit 0; }
           for workflow in release.yml release-rehearsal.yml; do
             for status in queued in_progress; do
               running=$(gh run list --workflow "$workflow" --status "$status" --json databaseId --jq "[.[] | select(.databaseId != ${AFTER:-0})] | length")
