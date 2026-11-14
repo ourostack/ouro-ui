@@ -101,8 +101,9 @@ function connectMcpApp(link: McpAppHostLink, handlers: McpAppHandlers): McpAppCo
       else answer(id, message.method, params);
       return;
     }
-    const pending = id === undefined ? undefined : waiting.get(id);
+    const pending = waiting.get(id!);
     if (!pending) return;
+    // Stryker disable next-line CallExpression: a settled promise ignores a second answer; deleting frees the entry.
     waiting.delete(id!);
     const error = message.error as McpAppMessage["error"];
     if (error) pending.reject(new McpAppError(error.code, error.message, error.data));

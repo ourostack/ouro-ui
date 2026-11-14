@@ -73,7 +73,7 @@ function testHost(options: { init?: Reply; replies?: Record<string, (params: Rec
   const requests = (method: string) => sent.filter((m) => m.method === method && m.id !== undefined).map((m) => m.params);
   const notifications = (method: string) => sent.filter((m) => m.method === method && m.id === undefined).map((m) => m.params);
   const answer = (id: string) => sent.find((m) => m.id === id && m.method === undefined);
-  return { link, sent, deliver, requests, notifications, answer };
+  return { link, sent, deliver, requests, notifications, answer, listening: () => listener !== undefined };
 }
 
 const roots: Root[] = [];
@@ -356,7 +356,9 @@ describe("OuroMcpApp", () => {
     const host = testHost({ replies: { "tools/call": () => "never" } });
     const { root, container } = await openCard(host);
     await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
+    expect(host.listening()).toBe(true);
     await act(() => root.unmount());
+    expect(host.listening()).toBe(false);
     const sizes = host.notifications("ui/notifications/size-changed").length;
     await host.deliver({ method: "ui/notifications/tool-result", params: toolResult(card("Later")) });
     container.style.width = "120px";
