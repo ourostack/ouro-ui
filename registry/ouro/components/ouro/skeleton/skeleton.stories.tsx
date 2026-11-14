@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -102,3 +102,22 @@ export const Cards: Story = {
     </div>
   ),
 };
+
+function LongScrollerList({ shimmer }: { shimmer: boolean }): JSX.Element {
+  return (
+    <div aria-label="Long scroller" role="region" style={{ height: 600, width: 420, overflowY: "auto", border: "1px solid var(--border)" }} tabIndex={0}>
+      {Array.from({ length: 200 }, (_, row) => (
+        <div key={row} style={{ padding: 8, display: "grid", gap: 6 }}>
+          <span>Message {row + 1}</span>
+          {row % 3 !== 2 || row < 200 - 131 ? <Skeleton aria-hidden="true" className="h-40 w-full" shimmer={shimmer} /> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A long scroller with a loading picture in most rows: 131 shimmering placeholders at once. */
+export const LongScroller: Story = { render: () => <LongScrollerList shimmer /> };
+
+/** The same scroller with `shimmer={false}`: 131 still placeholders. */
+export const LongScrollerStill: Story = { render: () => <LongScrollerList shimmer={false} /> };

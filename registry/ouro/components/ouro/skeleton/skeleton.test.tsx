@@ -200,6 +200,28 @@ describe("Skeleton", () => {
     expect(skeleton.getAnimations({ subtree: true })).toEqual([]);
   });
 
+  it("draws every shape still with shimmer={false}: no animation on the placeholder, its bands or their pseudo-elements, and the band stays", async () => {
+    await render(
+      <>
+        <Skeleton shimmer={false} />
+        <Skeleton shape="text" lines={2} shimmer={false} />
+        <Skeleton shape="circle" shimmer={false} />
+        <Skeleton shape="row" count={2} shimmer={false} />
+        <Skeleton shape="card" shimmer={false} />
+      </>,
+    );
+    const host = mounted.at(-1)!;
+    expect(host.getAnimations({ subtree: true })).toEqual([]);
+    const fills = [...host.querySelectorAll<HTMLElement>("*")].filter((node) => getComputedStyle(node, "::before").content !== "none");
+    expect(fills.length).toBeGreaterThan(5);
+    for (const node of [...host.querySelectorAll<HTMLElement>("*"), host]) {
+      expect(getComputedStyle(node).animationName).toBe("none");
+      expect(getComputedStyle(node, "::before").animationName).toBe("none");
+      expect(getComputedStyle(node, "::after").animationName).toBe("none");
+    }
+    expect(getComputedStyle(fills[0]!, "::before").backgroundImage).toContain("gradient");
+  });
+
   it("animates only translate on each band, never the background, so a page with skeletons rests between frames", async () => {
     await render(
       <>
