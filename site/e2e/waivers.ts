@@ -15,21 +15,7 @@ export type Waiver = {
 };
 
 export const WAIVERS: Waiver[] = [
-  { component: "button", part: "root", variant: "soft", state: "", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
-  { component: "button", part: "root", variant: "soft", state: "hover", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
-  { component: "button", part: "root", variant: "soft", state: "focus", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
-  { component: "button", part: "root", variant: "soft", state: "active", page: "/docs/ouro-mcp-app/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/ouro-mcp-app.demo.tsx" },
-  { component: "button", part: "root", variant: "soft", state: "", page: "/docs/a2ui-surface/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/a2ui-surface.demo.tsx" },
-  { component: "button", part: "root", variant: "soft", state: "hover", page: "/docs/a2ui-surface/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/a2ui-surface.demo.tsx" },
-  { component: "button", part: "root", variant: "soft", state: "focus", page: "/docs/a2ui-surface/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/a2ui-surface.demo.tsx" },
-  { component: "button", part: "root", variant: "soft", state: "active", page: "/docs/a2ui-surface/", property: "icons", reason: "the demo's button holds no icon", source: "site/src/docs/demos/a2ui-surface.demo.tsx" },
   { component: "switch", part: "track", variant: "", state: "", page: "/apple/feel/", property: "border", reason: "the off Switch draws its outline as a border", source: "registry/ouro/components/ouro/switch/switch-styles.ts" },
-  { component: "checkbox", part: "box", variant: "", state: "hover", page: "/docs/checkbox-group/", property: "pixels", reason: "the crop includes the group's own surface beside the box", source: "site/src/docs/demos/checkbox-group.demo.tsx" },
-  { component: "number-field", part: "increment", variant: "", state: "hover", page: "/docs/number-field/", property: "pixels", reason: "the crop includes the field's edge beside the stepper", source: "site/src/docs/demos/number-field.demo.tsx" },
-  { component: "calendar", part: "day", variant: "", state: "hover", page: "/docs/calendar/", property: "background", reason: "WebKit reads the day's hover fill before the accent transition settles; the rule is not-aria-disabled:not-data-selected:pointer-fine:hover:bg-accent", source: "registry/ouro/components/ouro/calendar/calendar-styles.ts" },
-  { component: "checklist", part: "box", variant: "", state: "hover", page: "/docs/checklist/", property: "border", reason: "the box's border colour reads before its hover transition settles on this page; unconfirmed", source: "registry/ouro/components/ouro/checklist/checklist-styles.ts" },
-  { component: "sidebar", part: "group", variant: "", state: "hover", page: "/docs/aspect-ratio/", property: "pixels", reason: "WebKit dark antialiases this one page's hover crop differently; the properties match the majority, so only the pixels differ; unconfirmed", source: "registry/ouro/components/ouro/sidebar/sidebar.tsx" },
-  { component: "slider", part: "thumb", variant: "", state: "focus", page: "/", property: "outline", reason: "the home slider shows focus as a ring drawn on its track", source: "site/src/voyage/hero.tsx" },
 ];
 
 export const matched = new Set<number>();
