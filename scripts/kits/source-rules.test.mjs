@@ -2561,6 +2561,7 @@ describe("hand-drawn corner radius, widened", () => {
             'export const B = () => <div style={{ borderRadius: "50%" }}>x</div>;',
             'export const C = () => <div style={{ borderRadius: 0 }}>x</div>;',
             'export const D = () => <Card style={{ borderRadius: 12 }}>x</Card>;',
+            'export const E = (radius) => <div style={{ borderRadius: radius }}>x</div>;',
         ].join("\n");
         expect(categories(source)).toEqual([]);
     });
