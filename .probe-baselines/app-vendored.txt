@@ -5,18 +5,18 @@
 
 import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
-import type { MessageBarData, MessageBarLayer } from "@/components/ouro/message/message-parts";
-import { useAppearanceClassNameCheck } from "@/lib/ouro/class-name-check";
-import { cn } from "@/lib/ouro/cn";
-import { createRowLayer, RowLayerContext, type RowLayer } from "@/lib/ouro/row-hover";
-import { halveShown } from "@/lib/ouro/halve";
-import { useMergedRef } from "@/lib/ouro/refs";
-import { navigationKey } from "@/lib/ouro/navigation-key";
-import { springAt, type SpringState } from "@/lib/ouro/spring";
-import { TouchTarget } from "@/lib/ouro/touch-target";
-import { useDevWarnings } from "@/lib/ouro/use-dev-messages";
-import { useKeyboardScrollable } from "@/lib/ouro/use-keyboard-scrollable";
-import { useOuro, type OuroMotion } from "@/lib/ouro/use-ouro";
+import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
+import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { createRowLayer, RowLayerContext, type RowLayer } from "@/registry/ouro/lib/ouro/row-hover";
+import { halveShown } from "@/registry/ouro/lib/ouro/halve";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { navigationKey } from "@/registry/ouro/lib/ouro/navigation-key";
+import { springAt, type SpringState } from "@/registry/ouro/lib/ouro/spring";
+import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
+import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
+import { useOuro, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 
 /** The props MessageList adds to the `<div>` attributes it passes through. */
 export interface MessageListOwnProps {
@@ -241,7 +241,7 @@ const shifts = new WeakMap<Element, number>();
 
 // The list's one action bar and menu, loaded with the first message that has actions.
 let layerModule: Promise<typeof MessageBarLayer> | undefined;
-const loadLayer = () => (layerModule ??= import("@/components/ouro/message/message-parts").then((module) => module.MessageBarLayer));
+const loadLayer = () => (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => module.MessageBarLayer));
 
 /** Where an element is laid out: its box, less the spring of the message it is in. */
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
