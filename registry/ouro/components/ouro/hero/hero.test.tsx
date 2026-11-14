@@ -61,6 +61,17 @@ const pair = (light: HeroPicture): HeroPictures => ({ light, dark: night });
 const shownIn = (part: (name: string) => HTMLElement | null) =>
   [...part("media")!.querySelectorAll("picture")].filter((picture) => getComputedStyle(picture).display !== "none").map((picture) => picture.getAttribute("data-scheme"));
 
+/**
+ * The transitions a hero's server HTML runs as it first appears, by property and duration, then waits for them to end.
+ * Nothing hydrates such HTML, so it carries no state marker for expectMotion; the client tests record the evidence.
+ */
+async function expectRiseFromHtml(media: HTMLElement, properties: Record<string, number>) {
+  const running = media.getAnimations().filter((animation): animation is CSSTransition => animation instanceof CSSTransition);
+  expect(Object.fromEntries(running.map((transition) => [transition.transitionProperty, Math.round(Number(transition.effect!.getComputedTiming().duration))]))).toEqual(properties);
+  await Promise.all(running.map((transition) => transition.finished));
+  expect(media.hasAttribute("data-starting-style")).toBe(false);
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -426,12 +437,7 @@ describe("Hero", () => {
       document.body.append(host);
       mounted.push(host);
       const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
-      await expectMotion(media, {
-        stem: "hero",
-        state: "data-starting-style",
-        properties: reduced ? { opacity: fast } : { opacity: slow, transform: slow },
-        reduced,
-      });
+      await expectRiseFromHtml(media, reduced ? { opacity: fast } : { opacity: slow, transform: slow });
     }
     await commands.emulateMedia({ reducedMotion: "no-preference" });
   });
@@ -457,14 +463,35 @@ describe("Hero", () => {
       // One easing per property the transition runs, each of them ouro-base's ease-out.
       const easings = getComputedStyle(media).transitionTimingFunction.split(/, (?=[a-z])/);
       expect(new Set(easings)).toEqual(new Set(["cubic-bezier(0.23, 1, 0.32, 1)"]));
-      await expectMotion(media, {
-        stem: "hero",
-        state: "data-starting-style",
-        properties: reduced ? { opacity: fast } : { opacity: slow, transform: slow },
-        reduced,
-      });
+      await expectRiseFromHtml(media, reduced ? { opacity: fast } : { opacity: slow, transform: slow });
     }
     await commands.emulateMedia({ reducedMotion: "no-preference" });
+  });
+
+  it("marks the rise only while it runs, so server HTML that never hydrates carries no marker", async () => {
+    const html = renderToString(<Hero title="Rise" picture={pair(wide)} />);
+    expect(html).not.toContain("data-starting-style");
+    // Hydrated while the rise still runs: the marker shows for the rest of it, then goes.
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const root = hydrateRoot(host, <Hero title="Rise" picture={pair(wide)} />);
+    roots.push(root);
+    await act(async () => {});
+    expect(media.getAttribute("data-starting-style")).toBe("");
+    await expect.poll(() => media.hasAttribute("data-starting-style")).toBe(false);
+    // Hydrated after it has finished: no marker at all.
+    const late = document.createElement("div");
+    late.innerHTML = html;
+    document.body.append(late);
+    mounted.push(late);
+    const lateMedia = late.querySelector<HTMLElement>('[data-slot="media"]')!;
+    await expect.poll(() => lateMedia.getAnimations().length).toBe(0);
+    roots.push(hydrateRoot(late, <Hero title="Rise" picture={pair(wide)} />));
+    await act(async () => {});
+    expect(lateMedia.hasAttribute("data-starting-style")).toBe(false);
   });
 
   it("does not move the picture in at all when motion is none", async () => {

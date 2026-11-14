@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, type CSSProperties, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -181,8 +181,11 @@ export interface HeroOwnProps {
    * rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from
    * server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to
    * import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`,
-   * `--ouro-duration-fast` and `--ouro-ease-out`.
+   * `--ouro-duration-fast` and `--ouro-ease-out`. The wrapper carries `data-starting-style` only
+   * while a hydrated page sees the rise running, so server HTML that never hydrates, such as an Astro
+   * page without client JavaScript, carries no marker.
    *
+   * @claim "so server HTML that never hydrates" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > marks the rise only while it runs, so server HTML that never hydrates carries no marker)
    * @claim "so it plays from server-rendered HTML" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises the picture in from server-rendered HTML before any JavaScript runs, and only fades it with reduced motion)
    * @claim "it needs no keyframes and no stylesheet" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > rises with no keyframes: its own transition, on ouro-base's durations and easing)
    * @default "rise"
@@ -379,7 +382,19 @@ export function Hero(props: HeroProps): JSX.Element {
   // Stryker disable next-line StringLiteral: motion is only compared with "rise", so "" and "none" behave the same.
   const motion = motionProp === "none" ? "none" : "rise";
   const headingLevel = headingLevelProp === 2 ? 2 : 1;
-  const [rising, setRising] = useState(motion === "rise");
+  // The marker names the rise for the motion evidence. It is set only once the rise is seen running here, never in the
+  // server's HTML, so a page that never hydrates keeps no marker, and it goes when the rise ends.
+  const [rising, setRising] = useState(false);
+  const mediaRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(
+    () => {
+      // A finished transition leaves the list, so any animation here is the rise still running.
+      const running = mediaRef.current?.getAnimations().length;
+      if (running) setRising(true);
+    },
+    // Stryker disable next-line ArrayDeclaration: any constant list runs the effect once, like an empty one.
+    [],
+  );
   useAppearanceClassNameCheck(
     "Hero",
     className,
@@ -513,6 +528,7 @@ export function Hero(props: HeroProps): JSX.Element {
         <div
           data-slot="media"
           data-ouro-part="media"
+          ref={mediaRef}
           data-starting-style={rising ? "" : undefined}
           onTransitionEnd={() => setRising(false)}
           style={pictureStyle}
