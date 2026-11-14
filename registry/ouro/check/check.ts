@@ -25,6 +25,7 @@ import { defineCli, defineCommand, parse, toArgv, type Cli, type CommandDef, typ
 import { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE } from "../ax/exit-codes.ts";
 import { DEFAULT_OUTCOME_EXITS, outcome, type Outcome } from "../ax/outcome.ts";
 import { AxError, commandLine, didYouMean, isAxError } from "../ax/problem.ts";
+import { findWrapIssues, readHeroArt, type HeroArt } from "./wrap-check.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of
 // a dual-screen phone unfolded sideways, light and dark, at density 2 up to 3072px wide and 1 above. Pass and fail come from measurement, never from
@@ -229,6 +230,12 @@ const LABELS: Record<string, string> = {
   "dark-miss": "missed dark mode",
   "hero-dark-art": "hero without night art",
   "disabled-no-reason": "disabled, no reason",
+  "lone-word": "lone last word",
+  "tall-heading": "tall heading",
+  "one-word-line": "one-word line",
+  "hard-break": "hard break in a heading",
+  "narrow-heading": "narrow heading",
+  "dark-art": "no dark art",
   https: "no HTTPS",
 };
 const RULES = Object.keys(LABELS);
@@ -261,6 +268,12 @@ const HINTS: Record<string, string> = {
   "dark-miss": "fill it from a theme token that has a dark value, not a fixed light colour",
   "hero-dark-art": "pass picture={{ light, dark }}, the same scene by day and at night",
   "disabled-no-reason": "say why beside it and tie the words to it with aria-describedby, or give it a title",
+  "lone-word": "wrap it with text-wrap: pretty (balance for a heading or centred text), or keep a short phrase together",
+  "tall-heading": "say it in fewer words, or draw it a step smaller on this screen",
+  "one-word-line": "balance it (text-wrap: balance), and give it the column's full width",
+  "hard-break": "take out the <br> or the block-level line spans, and let text-wrap: balance break it",
+  "narrow-heading": "take off the max-width, and let the heading span its column and balance",
+  "dark-art": "give the picture a night twin for the dark theme, as Hero's picture={{ light, dark }} does",
   https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
@@ -749,6 +762,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await context.close();
     }
   };
+  // Each page's hero art in its light run, by page and size, for dark-art in its dark run.
+  const lightArt = new Map<string, HeroArt | null>();
   const checkPage = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     const runtime = listenForRuntime(page, target.url);
     const { failed, ready } = await reach(page, target);
@@ -783,6 +798,13 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       issues.push(...(await page.evaluate(findLayoutIssues, {})));
       issues.push(...(await page.evaluate(findThemeIssues, {})));
       issues.push(...(await page.evaluate(findInteractionIssues)));
+      issues.push(...(await page.evaluate(findWrapIssues, {})));
+      // dark-art: light runs before dark at each size, so the dark run compares with the light run's hero art.
+      const art = await page.evaluate(readHeroArt, {});
+      const artKey = `${target.site}\u0000${target.page}\u0000${width}x${height}`;
+      if (theme === "light") lightArt.set(artKey, art);
+      else if (theme === "dark" && art?.darkPage && lightArt.get(artKey)?.src === art.src)
+        issues.push({ ref: art.ref, rule: "dark-art", element: art.element, detail: `the dark theme shows the light theme's picture, ${art.src.split("/").pop()}` });
       issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
       issues.push(...runtime());
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
@@ -1096,7 +1118,7 @@ interface Args {
 }
 
 const ABOUT = [
-  "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; and long lines only where ouro-check.json declares a measure.",
+  "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; and long lines only where ouro-check.json declares a measure.",
   "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
 ];
 

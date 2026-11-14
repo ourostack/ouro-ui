@@ -18,19 +18,23 @@ describe("Ouro check", () => {
     const out = dir("rules");
     // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
     const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet });
-    // http-error and not-ready are about the page, not its content, and https about a site on the web: each has tests
-    // of its own.
-    for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https")) {
+    // http-error and not-ready are about the page, not its content, https about a site on the web, and dark-art compares
+    // a light run with a dark one: each has tests of its own.
+    // The wrap rules read where a font broke a page's lines, and the system font the other fixtures' words are set in breaks
+    // them differently on a Mac and on CI's Linux: each wrap rule is held to its own pages, set in monospace.
+    const wrap = new Set(["lone-word", "tall-heading", "one-word-line", "narrow-heading"]);
+    for (const rule of RULES.filter((r) => r !== "http-error" && r !== "not-ready" && r !== "https" && r !== "dark-art")) {
       assert.ok(result.findings.some((f) => f.page === `/${rule}-fail.html` && f.rule === rule), `${rule} fires on its fail page`);
-      assert.deepEqual(result.findings.filter((f) => f.page === `/${rule}-pass.html`), [], `nothing fires on the ${rule} pass page`);
+      const pass = result.findings.filter((f) => f.page === `/${rule}-pass.html` && (f.rule === rule || !wrap.has(f.rule)));
+      assert.deepEqual(pass, [], `nothing fires on the ${rule} pass page`);
     }
     // axe runs only at the phone and laptop sizes.
     assert.ok(result.findings.some((f) => f.rule === "axe" && f.width === 390) && result.findings.some((f) => f.rule === "axe" && f.width === 1440));
     assert.equal(result.gated.length, result.findings.length);
-    assert.equal(result.shots.length, 66 * 2);
+    assert.equal(result.shots.length, 76 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 66);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 66 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 76);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 76 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -51,7 +55,7 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 33);
+    assert.equal(merged.pages.length, 38);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
