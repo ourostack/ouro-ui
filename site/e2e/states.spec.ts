@@ -44,15 +44,17 @@ async function broken(page: Page, selector: string, index: number): Promise<stri
   );
 }
 
-for (const mode of ["light", "dark"] as const) {
-  test(`states keep their look on every page, ${mode}`, async ({ page, browserName }) => {
-    test.setTimeout(1_500_000);
+const CHUNKS = 3;
+
+for (const mode of ["light", "dark"] as const) for (let chunk = 0; chunk < CHUNKS; chunk++) {
+  test(`states keep their look on every page, ${mode}, part ${chunk + 1} of ${CHUNKS}`, async ({ page, browserName }) => {
+    test.setTimeout(900_000);
     page.setDefaultTimeout(5_000);
     await page.addInitScript((m) => localStorage.setItem("ouro-site-theme", JSON.stringify({ preset: "pearl", mode: m })), mode);
     const found: string[] = [];
     const looks = new Looks();
     const taken = new Map<string, number>();
-    for (const path of routes()) {
+    for (const path of routes().filter((_, n) => n % CHUNKS === chunk)) {
       await page.goto(path);
       await settled(page);
       await quiet(page);

@@ -80,8 +80,10 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const name = root?.dataset["ouro"];
     const theme = el.closest<HTMLElement>("[data-theme]")?.dataset["theme"] ?? "";
     const sizeOf = `${px(String(rect.width))}x${px(String(rect.height))}`;
+    const labelled = (el.textContent ?? "").trim().length > 0;
+    const shapeOf = labelled ? `h${px(String(rect.height))}` : sizeOf;
     // Size comes from props that leave no attribute, and a preset repaints its subtree, so both belong to the key.
-    const key = `${inGroup ? "grouped " : ""}${name}|${el.dataset["ouroPart"] ?? ""}|${el.tagName.toLowerCase()}|${attrs}|${sizeOf}|${theme}`;
+    const key = `${inGroup ? "grouped " : ""}${name}|${el.dataset["ouroPart"] ?? ""}|${el.tagName.toLowerCase()}|${attrs}|${shapeOf}|${theme}|${labelled ? rgb(cs.color) : ""}`;
     const radii = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius];
     const rounded = radii.some((r) => parseFloat(r) > 0);
     const corner = cs.getPropertyValue("corner-shape");
@@ -130,7 +132,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const isCrop = visible && (el.hasAttribute("data-ouro") || el.hasAttribute("data-ouro-control"));
     const behind = behindOf(el);
     const size = sizeOf;
-    const pictureKey = `${key}|${behind}`;
+    const pictureKey = `${key}|${sizeOf}|${behind}`;
     const pictured = isCrop && !seenPictured.has(pictureKey);
     if (pictured) seenPictured.add(pictureKey);
     looks.push({ index, key, sig, pictured, size, behind });
@@ -194,7 +196,7 @@ export class Looks {
     this.groups.set(look.key, list);
     list.push({ where, sig: look.sig });
     if (crop) {
-      const id = `${look.key}|${look.behind}`;
+      const id = `${look.key}|${look.size}|${look.behind}`;
       const pics = this.pictures.get(id) ?? [];
       this.pictures.set(id, pics);
       pics.push({ where, sig: "", crop: { id, ...crop } });
@@ -203,7 +205,7 @@ export class Looks {
 
   // A picture is worth taking until five pages have given one for its key, which keeps the cost flat.
   wants(look: Look): boolean {
-    return (this.pictures.get(`${look.key}|${look.behind}`)?.length ?? 0) < 5;
+    return (this.pictures.get(`${look.key}|${look.size}|${look.behind}`)?.length ?? 0) < 5;
   }
 
   get keys(): number {
@@ -256,6 +258,14 @@ export class Looks {
 
 // Each waiver is a difference a page asks for, with the reason.
 export const WAIVERS: [RegExp, string][] = [
+  [/^button\|root\|button\|[^ ]*data-variant=outline.* on \/docs\/(edit-sheet|card|porthole|route-progress)\/.*: border 1px solid/, "these demos set a tone on the outline button's border colour"],
+  [/^button\|root\|button\|data-disabled=.* on \/nautilus\/: opacity 0\.5/, "the Nautilus story dims its disabled controls on purpose"],
+  [/^button\|root\|button\|data-variant=soft.* on \/docs\/a2ui-surface\/: icons $/, "the A2UI demo's button holds no icon"],
+  [/^(family-bar|navbar)\|.* on \/docs\/(family-bar|navbar)\/.*: padding /, "a bar's padding follows the demo's container"],
+  [/^button\|root\|button\|data-variant=soft\|.*\|focus on \/: icons 18x18/, "the home page's soft button carries a larger icon on purpose"],
+  [/^button\|root\|button\|data-variant=soft\|.*\|focus\|.* looks different on \/docs\/emoji\//, "the emoji picker's own grid is behind the focused button"],
+  [/^switch\|track\|span\|.*\|(focus|hover)\|.* looks different on \/apple\/(hx|reins)\//, "the Apple pages draw the switch over their own backdrop"],
+  [/^link\|root\|a\|.* on \/docs\/link\/: icons 11x11/, "the Link demo shows its external-link icon"],
   [/^switch\|track.* on \/apple\/feel\/: border 2px/, "the off Switch draws its outline as a border (switch-styles.ts)"],
   [/^button\|root\|button\|data-variant=plain.* on \/apple\/(feel|reins|start)\/.*: font /, "the Apple pages set their own link-button type"],
   [/^sidebar\|link.* on \/docs\/sidebar\/: icons 20x20/, "the Sidebar demo sizes its icons"],
