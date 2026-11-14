@@ -14,6 +14,8 @@ import {
   candidateFor,
   compactTranscript,
   createPinnedLookup,
+  createTranscriptCollector,
+  handleVerdict,
   discoverKeys,
   evaluationSection,
   fetchUrl,
@@ -348,4 +350,16 @@ test("fetching refuses private hosts and pins the addresses it validated", async
   pinnedLookup("example.com", { family: 6 }, (error, address, family) => assert.deepEqual([address, family], ["2606:2800::1", 6]));
   pinnedLookup("example.com", {}, (error, address) => assert.equal(address, "93.184.216.34"));
   createPinnedLookup([])("example.com", {}, (error) => assert.match(error.message, /No validated address/));
+});
+
+test("a refused verdict reaches the model with its reason, so it can fix it and call again", () => {
+  const rounds = [];
+  const collector = createTranscriptCollector(() => {}, rounds);
+  const accepted = [];
+  const research = { candidates: CANDIDATES };
+  const reply = handleVerdict({ verdict: "Nope", pullQuote: "x", testimonial: "x", evaluations: "x" }, { toolCallId: "t1" }, { research, collector, onVerdict: (v) => accepted.push(v), log: () => {} });
+  assert.equal(reply.resultType, "failure");
+  assert.match(reply.textResultForLlm, /^Verdict refused: final_verdict\.verdict must name a known candidate\. Fix this and call final_verdict again\.$/);
+  assert.equal(rounds.length === 0 || rounds.flatMap((round) => round.actions).every((action) => action.type !== "verdict"), true);
+  assert.deepEqual(accepted, []);
 });

@@ -620,6 +620,30 @@ export function createTranscriptCollector(log, rounds) {
   return { rounds, onEvent, ensureAction, recordResult, recordError, recordVerdict, get compacted() { return compacted; } };
 }
 
+/**
+ * final_verdict's handler. A verdict that breaks a rule is refused with the rule, as text the model reads, so it can
+ * fix it and call again (METHODOLOGY.md, rule 6). A thrown error would reach the model only as the runtime's generic
+ * "Tool execution failed", which names no rule.
+ */
+export function handleVerdict(args, invocation, { research, collector, onVerdict, log }) {
+  let verdict;
+  try {
+    verdict = validateVerdict(args, research.candidates);
+    validateResearch(collector.rounds, verdict.evaluations, research.candidates);
+  } catch (error) {
+    const result = `Verdict refused: ${error.message}. Fix this and call final_verdict again.`;
+    collector.ensureAction(invocation.toolCallId, "final_verdict");
+    collector.recordError(invocation.toolCallId, error, result);
+    log(`  REFUSED: ${error.message}`);
+    // A failure result keeps the session going (final_verdict is terminal only on success) and carries the rule.
+    return { textResultForLlm: result, resultType: "failure", error: error.message };
+  }
+  collector.recordVerdict(invocation.toolCallId, verdict);
+  onVerdict(verdict);
+  log(`Choice: ${verdict.verdict}`);
+  return "Verdict accepted.";
+}
+
 function createTools(sdk, collector, perplexityKey, onVerdict, log, research, candidateOrder) {
   const common = { skipPermission: true, defer: "never" };
   return [
@@ -668,14 +692,7 @@ function createTools(sdk, collector, perplexityKey, onVerdict, log, research, ca
       description: VERDICT_DESC,
       parameters: verdictParameters(candidateOrder),
       isTerminal: true,
-      handler: (args, invocation) => {
-        const verdict = validateVerdict(args, research.candidates);
-        validateResearch(collector.rounds, verdict.evaluations, research.candidates);
-        collector.recordVerdict(invocation.toolCallId, verdict);
-        onVerdict(verdict);
-        log(`Choice: ${verdict.verdict}`);
-        return "Verdict accepted.";
-      },
+      handler: (args, invocation) => handleVerdict(args, invocation, { research, collector, onVerdict, log }),
     }),
   ];
 }
