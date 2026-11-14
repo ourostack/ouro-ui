@@ -397,6 +397,23 @@ describe("Avatar colors", () => {
 });
 
 describe("Avatar shapes and icons", () => {
+  it("draws a team's second edge and an agent's hairline, and the agent's glyph takes only the tint's ink", async () => {
+    const { host } = await render(
+      <>
+        <Avatar name="Design reviews" shape="square" size="lg" />
+        <Avatar name="Halden" shape="agent" color="brand" size="lg" />
+        <Avatar name="Halden" shape="circle" color="brand" size="lg" />
+        <Avatar name={null} shape="agent" color="brand" size="lg" />
+      </>,
+    );
+    const [square, agent, circle, loading] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    expect(getComputedStyle(square!, "::before").content).toBe('""');
+    expect(getComputedStyle(agent!, "::after").content).toBe('""');
+    expect(getComputedStyle(agent!).color).toBe(getComputedStyle(circle!).color);
+    expect(getComputedStyle(agent!).backgroundColor).not.toBe(getComputedStyle(circle!).backgroundColor);
+    expect(getComputedStyle(loading!).color).not.toBe(getComputedStyle(agent!).color);
+  });
+
   it("is a circle by default and a rounded square for a team", async () => {
     const { host } = await render(
       <>
