@@ -1,1 +1,0 @@
-- MessageList: a test pins the drift and rest limits at their boundary, so the reader's place after the wheel rests cannot drift unseen.

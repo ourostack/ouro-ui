@@ -97,6 +97,32 @@ describe("SyncStatus", () => {
     expect(heights[0]).toBeGreaterThan(20);
   });
 
+  it("sets Retry in the sentence's face, size and line height, whatever the app's own rule for buttons says", async () => {
+    // As an app's stylesheet gives its buttons their own face, in a sentence set in another.
+    const rule = document.createElement("style");
+    rule.textContent = "@layer base { button { font-family: monospace; font-size: 22px; line-height: 3; } }";
+    document.head.append(rule);
+    try {
+      const view = await render(
+        <div style={{ width: 160, fontFamily: "serif" }}>
+          <SyncStatus status="saved" onRetry={() => {}} />
+        </div>,
+      );
+      const saved = view.status.getBoundingClientRect().height;
+      await view.rerender(
+        <div style={{ width: 160, fontFamily: "serif" }}>
+          <SyncStatus status="offline" onRetry={() => {}} />
+        </div>,
+      );
+      const sentence = getComputedStyle(view.line);
+      const button = getComputedStyle(view.retry!);
+      expect([button.fontFamily, button.fontSize, button.lineHeight]).toEqual([sentence.fontFamily, sentence.fontSize, sentence.lineHeight]);
+      expect(view.status.getBoundingClientRect().height).toBe(saved);
+    } finally {
+      rule.remove();
+    }
+  });
+
   it("speaks when a problem starts and when changes are saved again, and not for every save", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const announced = watchAnnouncements();
