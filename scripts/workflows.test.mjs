@@ -2305,7 +2305,7 @@ test("CI's plan prints the repository's queued runs in its summary, and an API t
 
 test("the conformance exemptions check runs on each pull request and its description's edits, and passes in the merge queue without checking", () => {
   const { text } = workflows.find(({ file }) => file === "conformance-exemptions.yml");
-  assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n {2}workflow_dispatch:\n/m);
+  assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n(?: {2}#.*\n)? {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:\n/m);
   assert.match(text, /^ {4}name: conformance exemptions$/m);
   const steps = text.slice(text.indexOf("    steps:")).split(/\n {6}- /).slice(1);
   const queue = steps.filter((step) => /^if: github\.event_name == 'merge_group'$/m.test(step));
