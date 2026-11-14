@@ -1,1 +1,1 @@
-- TimeGrid with day summaries reads its header and viewport sizes once and again only when they resize, not on every commit.
+- TimeGrid with day summaries reads its header and viewport sizes once, and again only when they resize.
