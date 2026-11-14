@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { TextArea, type TextAreaProps } from "@/registry/ouro/components/ouro/text-field/text-area";
-import { supportsFieldSizing } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
+import { fitHeightNative, supportsFieldSizing } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
@@ -266,6 +266,21 @@ describe("TextArea autoGrow", () => {
     if (supportsFieldSizing()) expect(fits).toHaveLength(0);
     else expect(fits.length).toBeGreaterThan(0);
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+  });
+
+  it("hands the height to the browser: it clears the inline height and overflow, and caps only with maxRows", async () => {
+    const { textarea } = await render(<TextArea label="Notes" rows={2} />);
+    textarea.style.height = "99px";
+    textarea.style.overflowY = "hidden";
+    textarea.style.maxHeight = "50px";
+    fitHeightNative(textarea, 2, undefined);
+    expect(textarea.style.getPropertyValue("field-sizing")).toBe("content");
+    expect(textarea.style.height).toBe("");
+    expect(textarea.style.overflowY).toBe("");
+    expect(textarea.style.maxHeight).toBe("");
+    expect(textarea.style.minHeight).toMatch(/^calc\(2lh \+ /);
+    fitHeightNative(textarea, 2, 5);
+    expect(textarea.style.maxHeight).toMatch(/^calc\(5lh \+ /);
   });
 
   it("refits when rows, maxRows or size change", async () => {
