@@ -239,6 +239,13 @@ describe("OuroMcpApp", () => {
     expect(container.querySelector('[data-ouro="alert"]')!.outerHTML).toBe(alert.innerHTML);
   });
 
+  it("says the action is done when its tool's content has no text in it", async () => {
+    const host = testHost({ replies: { "tools/call": () => ({ result: { content: [{ type: "image", data: "", mimeType: "image/png" }] } }) } });
+    await openCard(host);
+    await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
+    await expect.element(page.getByText("Add ingredients to list: done.")).toBeInTheDocument();
+  });
+
   it("shows a tool's error result, and the host's error, as the action not going through", async () => {
     const replies = [{ result: { isError: true, content: [{ type: "text", text: "The list is full." }] } }, { result: { isError: true } }, { result: { isError: "yes", content: [{ type: "text", text: "Added." }] } }, { error: { code: -32000, message: "Denied by the person." } }];
     const host = testHost({ replies: { "tools/call": () => replies.shift()! } });
