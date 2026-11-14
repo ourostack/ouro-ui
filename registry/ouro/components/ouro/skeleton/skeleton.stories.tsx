@@ -117,7 +117,7 @@ function LongScrollerList({ shimmer }: { shimmer: boolean }): JSX.Element {
   );
 }
 
-/** A long scroller with a loading picture in most rows: 131 shimmering placeholders at once. */
+/** A long scroller with a loading picture in most rows: 131 breathing placeholders at once. */
 export const LongScroller: Story = { render: () => <LongScrollerList shimmer /> };
 
 /** The same scroller with `shimmer={false}`: 131 still placeholders. */

@@ -140,12 +140,13 @@
   }
 }
 
-@keyframes ouro-shimmer-band {
-  from {
-    translate: -100% 0;
+@keyframes ouro-skeleton-breathe {
+  0%,
+  100% {
+    opacity: 1;
   }
-  to {
-    translate: 100% 0;
+  50% {
+    opacity: 0.55;
   }
 }
 

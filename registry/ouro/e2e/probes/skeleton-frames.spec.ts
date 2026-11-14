@@ -3,13 +3,16 @@ import { expect, test } from "../ouro-fixtures";
 import { openStory } from "../ouro/story";
 
 // The Skeleton frame probe: repository-only, run by skeleton-frames.yml on a schedule and by hand, never by CI's e2e
-// shards (playwright.config.ts ignores probes/). It compares wheel scrolling of the shimmer={false} story with the
+// shards (playwright.config.ts ignores probes/). It compares wheel scrolling of the default, breathing story with the
 // same page with its animation stripped. The shipped spec checks only that no animation runs there (skeleton.spec.ts).
 
 async function deadFrames(page: Page, still: boolean): Promise<number> {
-  // The control is the shimmering story with its animation stripped; the candidate is the story that sets shimmer={false}.
-  await openStory(page, still ? "feedback-skeleton--long-scroller" : "feedback-skeleton--long-scroller-still");
-  if (still) await page.addStyleTag({ content: '[data-ouro="skeleton"]::before { animation: none !important; }' });
+  // The control is the default story with its animation stripped; the candidate is the same story breathing.
+  await openStory(page, "feedback-skeleton--long-scroller");
+  if (still) await page.addStyleTag({ content: '[data-ouro="skeleton"] { animation: none !important; }' });
+  // The breathing starts after a one-second delay; scroll once it is running.
+  // real clock: the animation's own delay, which no state in the page reports.
+  else await page.waitForTimeout(1500);
   const scroller = page.getByRole("region", { name: "Long scroller" });
   await page.evaluate(() => {
     const s = document.querySelector<HTMLElement>('[aria-label="Long scroller"]')!;
@@ -66,20 +69,20 @@ function chanceOfMore(a: number[], b: number[], shuffles = 20_000): number {
   return (asLarge + 1) / (shuffles + 1);
 }
 
-// WebKit drops a frame or two of wheel scrolling on its own, so shimmer={false} is judged against the same page with its
+// WebKit drops a frame or two of wheel scrolling on its own, so the breathing is judged against the same page with its
 // animation stripped, alternated on the same runner. The two draw the same pixels, so their counts differ only by chance:
 // a margin fails such pairs now and then, and a permutation test fails them at a fixed rate instead (1 in 1,000).
 // Chromium doesn't drop these frames, so the probe's config runs WebKit only (#1221).
-test("wheel scrolling a long scroller of loading skeletons with shimmer={false} drops no more frames than the same page with its animation stripped", async ({ page }) => {
+test("wheel scrolling a long scroller of loading skeletons breathing drops no more frames than the same page with its animation stripped", async ({ page }) => {
   // About 15 minutes of measuring in WebKit with the default runs, so a run that hangs fails here, by name, before the job's limit.
   test.setTimeout(25 * 60_000);
   const runs = Number(process.env["OURO_PROBE_RUNS"] ?? 20);
   const control: number[] = [];
-  const stilled: number[] = [];
+  const breathing: number[] = [];
   for (let run = 0; run < runs; run++) {
     control.push(await deadFrames(page, true));
-    stilled.push(await deadFrames(page, false));
+    breathing.push(await deadFrames(page, false));
   }
-  const report = `shimmer={false} ${JSON.stringify(stilled)}, control ${JSON.stringify(control)}`;
-  expect(chanceOfMore(stilled, control), report).toBeGreaterThanOrEqual(0.001);
+  const report = `breathing ${JSON.stringify(breathing)}, control ${JSON.stringify(control)}`;
+  expect(chanceOfMore(breathing, control), report).toBeGreaterThanOrEqual(0.001);
 });
