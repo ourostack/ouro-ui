@@ -12,7 +12,7 @@ import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
-import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
+import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO, WORKS_WITH } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
@@ -137,7 +137,7 @@ describe("home page", () => {
       expect(text).not.toMatch(/still being defined|coming soon/i);
     }
     expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
-    // The hero says what Ouro UI is beside A2UI, and links the benchmark, the model reviews and the platform gap.
+    // The hero says what is Ouro UI's own (one action, consent built in, the X-ray), and links the benchmark, the model reviews and the platform gap.
     expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).toContain(VOYAGE_HERO.subline);
     // No line of it breaks inside a hyphenated word: "X-ray" once wrapped as "X-" / "ray".
     expect([...document.querySelectorAll("[data-site-whole-word]")].map((word) => word.textContent)).toEqual(["person-only", "X-ray"]);
@@ -151,9 +151,19 @@ describe("home page", () => {
     expect(phone.textContent).toContain(VOYAGE_HERO.phoneSubline);
     expect([...phone.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(["/docs/agent-interfaces/", "/docs/model-reviews/"]);
     expect(routes[0]!.title).toBe("Ouro UI");
-    // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what it is beside A2UI.
+    // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what is its own;
+    // the formats agents compose interfaces in come after, under "Works with".
     const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
-    expect(opening.startsWith("# Ouro UI\n\n**A design system for people and agents.** Ouro UI renders [A2UI]")).toBe(true);
+    expect(opening.startsWith("# Ouro UI\n\n**A design system for people and agents.** Declare an action once")).toBe(true);
+    expect(opening.split("\n\n")[1]).not.toContain("A2UI");
+    expect(opening.indexOf("**Works with**")).toBeGreaterThan(opening.indexOf("**X-ray checks.**"));
+    expect(opening.indexOf("[A2UI](https://a2ui.org/)")).toBeGreaterThan(opening.indexOf("**Works with** [MCP Apps]"));
+    // The site home says the same below the fold, in the Ouro AX section, with each format linked to its renderer's docs.
+    const worksWith = document.querySelector("[data-site-works-with]")!;
+    expect(worksWith.closest("#ax-section")).not.toBeNull();
+    expect(worksWith.textContent).toContain(WORKS_WITH.lede);
+    expect([...worksWith.querySelectorAll("a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual(WORKS_WITH.formats.map((format) => [format.label, format.href]));
+    expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).not.toContain("A2UI");
     for (const link of ["https://ui.ouroboros.bot/docs/agent-interfaces/", "https://ui.ouroboros.bot/docs/model-reviews/", "docs/platforms/android.md"]) {
       expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
     }
