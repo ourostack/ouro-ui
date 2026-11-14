@@ -498,6 +498,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const scroller = useRef<Element | null>(null);
   // Whether the list has been scrolled since it mounted.
   const scrolled = useRef(false);
+  const seenTop = useRef(0);
   const viewSize = useRef("");
   const selectionFrame = useRef(0);
   // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
@@ -603,6 +604,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const update = () => {
     const { offsets: at, total: height, range: was } = latest.current!;
     const { top, bottom } = view();
+    // A scroll that moved the view without a scroll event reaching the list, as a focus scroll can, counts too.
+    if (scroller.current!.scrollTop !== seenTop.current) scrolled.current = true;
+    seenTop.current = scroller.current!.scrollTop;
     let first = at.length;
     let last = 0;
     at.forEach((offset, index) => {
@@ -647,6 +651,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       // is (Home on the first row) brings no render to wait for.
       control.focus({ preventScroll: true });
       reveal(controls.current, key, "nearest");
+      // The scroll's own event may land late, so the window follows the key's scroll from the next frame.
+      scrolled.current = true;
+      requestAnimationFrame(() => sync.current!());
     } else control.focus();
   };
 
