@@ -256,6 +256,8 @@ elif [ -n "${OURO_DELTA:-}" ]; then
   cd "$app"
   cp src/index.css "$registry/index.before.css"
   cp package.json "$registry/package.before.json"
+  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
+  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
 else
 echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
