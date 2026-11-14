@@ -26,7 +26,7 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
-      - run: pnpm add --no-save selenium-webdriver
+      - run: npm install --prefix "$RUNNER_TEMP/sel" --no-package-lock selenium-webdriver && ln -s "$RUNNER_TEMP/sel/node_modules/selenium-webdriver" node_modules/selenium-webdriver
       - run: sudo safaridriver --enable
       - run: node scripts/safari-squircle.mjs
         env:
