@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { TextArea, type TextAreaProps } from "@/registry/ouro/components/ouro/text-field/text-area";
-import { fitHeightNative, supportsFieldSizing } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
+import { canFieldSize, fitHeightNative, supportsFieldSizing } from "@/registry/ouro/components/ouro/text-field/text-area-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
@@ -266,6 +266,21 @@ describe("TextArea autoGrow", () => {
     if (supportsFieldSizing()) expect(fits).toHaveLength(0);
     else expect(fits.length).toBeGreaterThan(0);
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+  });
+
+  it("sizes a textarea itself only where the property parses, and not in WebKit alone", () => {
+    const safari = "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+    const chrome = "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
+    const edge = "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Edg/130.0";
+    const firefox = "Mozilla/5.0 (Macintosh; rv:130.0) Gecko/20100101 Firefox/130.0";
+    expect(canFieldSize(chrome, true)).toBe(true);
+    expect(canFieldSize(chrome, false)).toBe(false);
+    expect(canFieldSize(edge, true)).toBe(true);
+    expect(canFieldSize(firefox, true)).toBe(true);
+    expect(canFieldSize(safari, true)).toBe(false);
+    expect(canFieldSize(safari, false)).toBe(false);
+    const chromium = /Chrome/.test(navigator.userAgent);
+    expect(supportsFieldSizing()).toBe(chromium);
   });
 
   it("hands the height to the browser: it clears the inline height and overflow, and caps only with maxRows", async () => {

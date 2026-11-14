@@ -7,6 +7,7 @@ export {
   fitHeight,
   fitHeightNative,
   supportsFieldSizing,
+  canFieldSize,
   highlightLayerClass,
   highlightRuns,
   highlightTone,
@@ -76,9 +77,17 @@ const textAreaSizes = {
  * @internal
  */
 function supportsFieldSizing(): boolean {
-  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return false;
-  const webkit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
-  return !webkit && CSS.supports("field-sizing", "content");
+  return canFieldSize(navigator.userAgent, globalThis.CSS?.supports?.("field-sizing", "content") === true);
+}
+
+/**
+ * The decision behind `supportsFieldSizing`, from the user agent and whether the browser parses the property.
+ *
+ * @internal
+ */
+function canFieldSize(userAgent: string, parses: boolean): boolean {
+  const webkit = /AppleWebKit/.test(userAgent) && !/Chrome|Chromium|Edg/.test(userAgent);
+  return !webkit && parses;
 }
 
 /**
