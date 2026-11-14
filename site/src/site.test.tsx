@@ -18,6 +18,8 @@ import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
 import { SCENES } from "./storybook";
 import shipComponents from "./docs/ship-components.json";
+import parity from "../../scripts/parity-data/parity.json";
+import provenance from "../../scripts/parity-data/provenance.json";
 import versions from "../../scripts/parity-data/versions.json";
 import { SHIP_PAGES } from "./docs/ships";
 import readme from "../../README.md?raw";
@@ -772,7 +774,7 @@ describe("platforms", () => {
     };
     const rows = [...document.querySelectorAll("main table tbody tr")].map((row) => [...row.querySelectorAll("td")].slice(0, 3).map(text));
     expect(rows).toEqual([
-      ["For web", versions.web.tag, `core ${versions.core.tag}, for its tokens`],
+      ["For web", parity.webTag, `core ${provenance.coreTag}, for its tokens`],
       ["For Apple", versions.apple.tag, versions.apple.treeCoreTag === versions.apple.coreTag ? `core ${versions.apple.coreTag}` : `core ${versions.apple.coreTag}, and ${versions.apple.treeCoreTag} for its A2UI conformance cases`],
       ["For Android", "none yet", "none yet"],
       ["For Windows", "none yet", "none yet"],
