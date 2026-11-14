@@ -566,6 +566,7 @@
     "scripts/kits.test.mjs": 16569,
     "scripts/latest-release.test.mjs": 15135,
     "scripts/links.test.mjs": 135,
+    "scripts/mcp-app.test.mjs": 1600,
     "scripts/motion-coverage.test.mjs": 773,
     "scripts/motion.test.mjs": 6021,
     "scripts/mutation.test.mjs": 281,
@@ -604,6 +605,7 @@
     "site/scripts/themes.test.mjs": 8
   },
   "e2e": {
+    "registry/ouro/e2e/mcp-app-host/ouro-mcp-app-host.spec.ts": 40000,
     "registry/ouro/e2e/ouro/a2ui-surface.spec.ts": 6000,
     "registry/ouro/e2e/ouro/accordion.spec.ts": 7235,
     "registry/ouro/e2e/ouro/agent-presence.spec.ts": 11944,
@@ -676,6 +678,7 @@
     "registry/ouro/e2e/ouro/navigation-rail.spec.ts": 8825,
     "registry/ouro/e2e/ouro/number-field.spec.ts": 8236,
     "registry/ouro/e2e/ouro/otp-field.spec.ts": 4304,
+    "registry/ouro/e2e/ouro/ouro-mcp-app.spec.ts": 6000,
     "registry/ouro/e2e/ouro/page-header.spec.ts": 2886,
     "registry/ouro/e2e/ouro/pagination.spec.ts": 8675,
     "registry/ouro/e2e/ouro/popover.spec.ts": 17601,
