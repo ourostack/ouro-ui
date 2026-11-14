@@ -32,12 +32,17 @@ async function render(node: ReactNode) {
 const svg = (width: number, height: number) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'/%3E`;
 
 const wide: HeroPicture = { src: svg(1536, 576), width: 1536, height: 576, alt: "A green snake mascot" };
+const night: HeroPicture = { src: `${svg(1536, 576)}%3C!--night--%3E`, width: 1536, height: 576 };
+
+const shownIn = (part: (name: string) => HTMLElement | null) =>
+  [...part("media")!.querySelectorAll("picture")].filter((picture) => getComputedStyle(picture).display !== "none").map((picture) => picture.getAttribute("data-scheme"));
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
+  document.documentElement.classList.remove("dark");
   vi.restoreAllMocks();
   await page.viewport(414, 896);
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
@@ -202,7 +207,7 @@ describe("Hero", () => {
   it("says so, and keeps the picture, when it has no alt text", async () => {
     await render(<Hero title="Bare" picture={{ src: wide.src, width: 1536, height: 576 }} />);
     expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ src, width, height, alt: "A table set for four" }} />.',
+      '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />.',
     );
   });
 
@@ -415,6 +420,69 @@ describe("Hero", () => {
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Hero: picture and media are both set; show one: picture for a still image, media for something live. Fix: <Hero media={<video src="..." muted autoPlay loop playsInline />} />.',
     );
+  });
+
+  it("shows the dark picture only while the page is in dark mode", async () => {
+    const { part } = await render(<Hero title="Night" picture={{ light: wide, dark: night }} />);
+    const [light, dark] = [...part("media")!.querySelectorAll("img")];
+    expect(light!.getAttribute("src")).toBe(wide.src);
+    expect(dark!.getAttribute("src")).toBe(night.src);
+    expect(shownIn(part)).toEqual(["light"]);
+    // A stored theme toggle sets the .dark class on the root, as Ouro's dark variant reads it.
+    document.documentElement.classList.add("dark");
+    expect(shownIn(part)).toEqual(["dark"]);
+    document.documentElement.classList.remove("dark");
+    expect(shownIn(part)).toEqual(["light"]);
+  });
+
+  it("loads the dark picture lazily, raising its fetch priority only with priority", async () => {
+    const plain = await render(<Hero title="Plain" picture={{ light: { ...wide, priority: true }, dark: night }} />);
+    const [light, dark] = [...plain.part("media")!.querySelectorAll("img")];
+    expect(light!.getAttribute("fetchpriority")).toBe("high");
+    expect(light!.hasAttribute("loading")).toBe(false);
+    expect(dark!.getAttribute("loading")).toBe("lazy");
+    expect(dark!.hasAttribute("fetchpriority")).toBe(false);
+    expect(dark!.getAttribute("decoding")).toBe("async");
+    const urgent = await render(<Hero title="Urgent" picture={{ light: wide, dark: { ...night, priority: true } }} />);
+    const [, urgentDark] = [...urgent.part("media")!.querySelectorAll("img")];
+    expect(urgentDark!.getAttribute("loading")).toBe("lazy");
+    expect(urgentDark!.getAttribute("fetchpriority")).toBe("high");
+    expect(urgentDark!.hasAttribute("decoding")).toBe(false);
+  });
+
+  it("gives the dark picture the light one's alt text, frame and crop unless it has its own", async () => {
+    await page.viewport(1280, 900);
+    document.documentElement.classList.add("dark");
+    const { part } = await render(<Hero title="Twins" picture={{ light: { ...wide, width: 1200, crop: "8 / 3" }, dark: night }} />);
+    const dark = part("media")!.querySelector<HTMLImageElement>('[data-scheme="dark"] img')!;
+    expect(dark.alt).toBe("A green snake mascot");
+    expect(part("media")!.style.maxWidth).toBe("1200px");
+    expect(getComputedStyle(dark).position).toBe("absolute");
+    expect(page.getByRole("img").all()).toHaveLength(1);
+    const own = await render(<Hero title="Own" picture={{ light: wide, dark: { ...night, alt: "The mascot at night" } }} />);
+    expect(own.part("media")!.querySelector('[data-scheme="dark"] img')!.getAttribute("alt")).toBe("The mascot at night");
+    const decor = await render(<Hero title="Decor" picture={{ light: { ...wide, decorative: true }, dark: night }} />);
+    expect(decor.part("media")!.querySelector('[data-scheme="dark"]')!.getAttribute("aria-hidden")).toBe("true");
+    const shown = await render(<Hero title="Shown" picture={{ light: { ...wide, decorative: true }, dark: { ...night, alt: "Night", decorative: false } }} />);
+    expect(shown.part("media")!.querySelector('[data-scheme="dark"]')!.hasAttribute("aria-hidden")).toBe(false);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("says so when light and dark art have no alt text", async () => {
+    await render(<Hero title="Bare" picture={{ light: { src: wide.src, width: 1536, height: 576 }, dark: night }} />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Hero: picture has no alt text. Fix: <Hero picture={{ light: { src, width, height, alt: "A table set for four" }, dark }} />.',
+    );
+  });
+
+  it("still shows a single picture in light and dark mode", async () => {
+    const { part } = await render(<Hero title="One" picture={wide} />);
+    const pictures = part("media")!.querySelectorAll("picture");
+    expect(pictures).toHaveLength(1);
+    expect(pictures[0]!.hasAttribute("data-scheme")).toBe(false);
+    expect(pictures[0]!.className).toBe("block");
+    document.documentElement.classList.add("dark");
+    expect(getComputedStyle(pictures[0]!).display).toBe("block");
   });
 
   it("renders no media wrapper when media is null or false", async () => {
