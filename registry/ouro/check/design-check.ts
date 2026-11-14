@@ -452,15 +452,21 @@ async function mediaDrawn(ref: string): Promise<void> {
   const el = document.querySelector(`[data-ouro-check-ref~="${ref}"]`)!;
   const wait = (event: string) => Promise.race([new Promise((done) => el.addEventListener(event, done, { once: true })), new Promise((done) => setTimeout(done, 3000))]);
   if (el instanceof HTMLVideoElement) {
-    el.pause();
+    if (!el.paused) {
+      const paused = wait("pause");
+      el.pause();
+      await paused;
+    }
     if (el.readyState < 2) {
       el.preload = "auto";
       el.load();
       await wait("loadeddata");
     }
-    if (el.currentTime !== 0) {
+    // WebKit can report where playback stopped after a seek has landed, so look again and seek again until it holds.
+    for (let tries = 0; el.currentTime !== 0 && tries < 3; tries++) {
       el.currentTime = 0;
       await wait("seeked");
+      await new Promise((done) => requestAnimationFrame(done));
     }
   } else if (el instanceof HTMLImageElement) await el.decode().catch(() => undefined);
   await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
