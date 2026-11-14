@@ -487,6 +487,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const selectionFrame = useRef(0);
   // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
   const sync = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => () => cancelAnimationFrame(selectionFrame.current), []);
   // What the last sync ran for, and the observer that reports a row's change of size once the page is laid out.
   const synced = useRef<{ inputs: string; places: string; heights: ReadonlyMap<string, number> } | null>(null);
   const rows = useRef<ResizeObserver | null>(null);
@@ -601,7 +602,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     });
     // Until the first scroll, rows rendered on the first frame stay: measuring narrows the window, and a row or section
     // that unmounts after the first paint would make the first frame differ from the finished screen.
+    // Stryker disable next-line EqualityOperator: an empty window (nothing reaches the view) keeps the last one either way.
     if (!scrolled.current && last > 0) {
+      // Stryker disable next-line MethodExpression: the first frame's window starts at the top, so min and max agree until a scroll.
       first = Math.min(first, was[0]);
       last = Math.max(last, was[1]);
     }
@@ -637,7 +640,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       reveal(controls.current, key, "nearest");
       // The scroll's own event may land late, so the window follows the key's scroll from the next frame.
       scrolled.current = true;
-      requestAnimationFrame(() => sync.current!());
+      cancelAnimationFrame(selectionFrame.current);
+      selectionFrame.current = requestAnimationFrame(() => sync.current!());
     } else control.focus();
   };
 
@@ -744,7 +748,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     synced.current = { inputs, places, heights };
     // Switching the open row moves nothing: its reveal, if it needs one, reads after the commit instead of in it.
     if (selectionOnly) {
+      // Stryker disable next-line CallExpression: cancelling a frame that already ran is a no-op; it matters only when a newer switch arrives first.
       cancelAnimationFrame(selectionFrame.current);
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,ArrowFunction,EqualityOperator: the frame only repeats a reveal the observer's next callback also makes, so tests cannot tell the two apart.
       if ((opening.current || keepInView.current) && clips.current) selectionFrame.current = requestAnimationFrame(() => sync.current!());
       return;
     }

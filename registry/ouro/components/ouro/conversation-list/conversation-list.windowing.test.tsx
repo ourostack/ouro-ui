@@ -139,6 +139,14 @@ describe("ConversationList windowing", () => {
       await frames();
     }
     await expect.poll(() => view.pane.querySelector('[aria-current="true"], [aria-selected="true"]') !== null).toBe(true);
+    // The reveal the switch needs comes in a frame after the commit.
+    await expect
+      .poll(() => {
+        const row = view.pane.querySelector('[aria-current="true"], [aria-selected="true"]')!.getBoundingClientRect();
+        const box = view.pane.getBoundingClientRect();
+        return row.bottom > box.top && row.top < box.bottom;
+      })
+      .toBe(true);
   });
 
   it("never shows a list with no items for an open section whose rows are all outside the window", async () => {
