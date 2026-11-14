@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { closure, manifestOf, plan, readItems } from "./install-delta.mjs";
+import { scratchDir } from "./scratch.mjs";
 
 const item = (hash, paths = ["a.ts"], dependencies = []) => ({ hash, paths, dependencies });
 const base = () => ({
@@ -47,8 +47,8 @@ test("the install delta closure follows dependencies from the root", () => {
 });
 
 test("the install delta reads built items without the folder their dependencies name", () => {
-  const dir = mkdtempSync(join(tmpdir(), "delta-"));
-  try {
+  const dir = scratchDir("delta-");
+  {
     const write = (name, registryDependencies, content) =>
       writeFileSync(join(dir, `${name}.json`), JSON.stringify({ name, registryDependencies, files: [{ path: `${name}.tsx`, content }] }));
     write("one", ["/tmp/x/two.json"], "a");
@@ -59,7 +59,5 @@ test("the install delta reads built items without the folder their dependencies 
     assert.deepEqual(first.one.dependencies, ["two"]);
     write("one", ["/tmp/y/two.json"], "changed");
     assert.notEqual(readItems(dir).one.hash, first.one.hash);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
   }
 });
