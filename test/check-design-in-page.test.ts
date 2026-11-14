@@ -458,6 +458,27 @@ describe("mediaDrawn", () => {
     expect(played.paused).toBe(true);
     expect(played.currentTime).toBe(0);
   });
+
+  it("seeks a video to its first frame again when the stopped position replaces the first seek", async () => {
+    render(`<video data-ouro-check-ref="c1" src="${CLIP}" preload="auto" muted></video>`);
+    const video = host.querySelector("video")!;
+    if (video.readyState < 2) await new Promise((done) => video.addEventListener("loadeddata", done, { once: true }));
+    // As in WebKit: the position playback stopped at arrives after the first seek has landed.
+    let position = 1.008;
+    let seeks = 0;
+    Object.defineProperty(video, "currentTime", {
+      configurable: true,
+      get: () => position,
+      set: (time: number) => {
+        seeks++;
+        position = seeks === 1 ? 1.008 : time;
+        queueMicrotask(() => video.dispatchEvent(new Event("seeked")));
+      },
+    });
+    await mediaDrawn("c1");
+    expect(seeks).toBe(2);
+    expect(video.currentTime).toBe(0);
+  });
 });
 
 describe("shownCorners", () => {
