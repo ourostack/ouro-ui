@@ -50,6 +50,14 @@ function center(element: Element) {
 }
 
 describe("Card", () => {
+  it("renders a hidden surface layer behind the content of an outline card only", async () => {
+    const { card } = await render(<Card title="Outlined">x</Card>);
+    const surface = card.querySelector<HTMLElement>(":scope > [data-ouro-surface]")!;
+    expect(surface.getAttribute("aria-hidden")).toBe("true");
+    expect(surface.style.zIndex).toBe("-1");
+    const { card: bare } = await render(<Card title="Bare" variant="plain">x</Card>);
+    expect(bare.querySelector("[data-ouro-surface]")).toBeNull();
+  });
   it("renders its slots in order: media, title as <h3>, description, action, body, footer", async () => {
     const { card } = await render(
       <Card
