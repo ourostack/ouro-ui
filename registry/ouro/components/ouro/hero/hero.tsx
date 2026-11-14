@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
+import { useState, useSyncExternalStore, type CSSProperties, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -19,6 +19,16 @@ export interface HeroPictureSource {
   media?: string;
   /** The `sizes` for this source. */
   sizes?: string;
+  /**
+   * This source's intrinsic pixel width, when its art has another shape than the picture's own,
+   * such as a phone crop. With `height`, it holds the image's box to this source's shape before
+   * the file arrives, so the page doesn't shift.
+   *
+   * @claim "it holds the image's box to this source's shape" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > gives each source its own width and height, so a source of another shape holds its box before it loads)
+   */
+  width?: number;
+  /** This source's intrinsic pixel height, with `width`. */
+  height?: number;
 }
 
 /**
@@ -47,7 +57,7 @@ export interface HeroPicture {
   srcSet?: string;
   /** The `<img>`'s `sizes`. */
   sizes?: string;
-  /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. */
+  /** Loads the picture early with `fetchPriority="high"`. Otherwise it loads lazily. In `{ light, dark }`, see `HeroPictures` for how each twin loads. */
   priority?: boolean;
   /** A wide aspect ratio, such as `"8 / 3"`, applied on wider screens. Without it the picture keeps its own ratio. */
   crop?: string;
@@ -57,15 +67,29 @@ export interface HeroPicture {
 
 /**
  * The hero's art in light and dark mode: the same scene by day and at night. Hero shows `light`
- * or `dark` with the page's dark mode, the `.dark` class on the root that a stored theme toggle
- * sets, in CSS, so the right one is there from the first paint.
+ * or `dark` in CSS, with your app's Tailwind `dark` variant, the one every Ouro component's dark
+ * styles follow, so the right one is there from the first paint. That variant reads the `.dark`
+ * class Ouro's `colorSchemeScript` sets; a site that marks dark mode with `data-theme` or the
+ * system setting redefines it, as the theming guide shows, and Hero follows.
  *
  * `dark` shares `light`'s frame: its `width` and `crop` size the box. It is the same scene, so
- * without its own `alt` or `decorative` it takes `light`'s. It always loads lazily, so a page
- * in light mode never downloads it; its `priority` only raises its fetch priority once it shows.
+ * without its own `alt` or `decorative` it takes `light`'s.
  *
- * @claim "Hero shows `light` or `dark` with the page's dark mode" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the dark picture only while the page is in dark mode)
- * @claim "It always loads lazily" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > loads the dark picture lazily, raising its fetch priority only with priority)
+ * `priority` decides how the twin that shows loads. A twin without it is lazy, and a hidden lazy
+ * image is never fetched. Give `priority` to the twin most of your visitors see, and it loads
+ * straight from the HTML at high fetch priority while the other stays lazy. Give it to both when
+ * the page preloads the art for its scheme: both wait in the HTML, and an inline script after them,
+ * which runs once the page's CSS has loaded, loads the one that shows, so neither scheme downloads
+ * both. A preload for the dark twin, which follows the system setting, is
+ * `<link rel="preload" as="image" fetchpriority="high" media="(prefers-color-scheme: dark)" imagesrcset="/night-960.avif 960w, /night.avif 1920w" imagesizes="100vw">`,
+ * with exactly the twin's `srcSet` and `sizes` (and a `type` for a `sources` format); a page that
+ * stores the person's choice adds the link from the script in its `<head>` that applies the choice.
+ *
+ * @claim "Hero shows `light`" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the dark picture only while the page is in dark mode)
+ * @claim "and a hidden lazy" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority)
+ * @claim "and it loads" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority)
+ * @claim "loads the one that shows" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > loads the twin shown at first paint eagerly from server HTML, and leaves the hidden one lazy)
+ * @claim "redefines it, as the theming guide shows" docs/guides/theming.md verify:fileLine(docs/guides/theming.md, /@custom-variant dark/)
  */
 export interface HeroPictures {
   /** The art shown in light mode, and the frame both are shown in. */
@@ -97,13 +121,12 @@ export interface HeroOwnProps {
   /**
    * The lede: a short paragraph under the title. Text is set in a `<p>`; anything else, such as
    * paragraphs or a list, is set in a `<div>` so it can hold blocks. It runs the full width of the
-   * hero's text column, like the title. Centred in the stage layout, its lines are balanced to
-   * even lengths; aligned to the start, it wraps so the last line is never one word alone. To choose
-   * where a centred lede breaks, set each phrase in its own `inline-block` span, as the `LongLede`
-   * story does.
+   * hero's text column, like the title. Its lines are balanced to even lengths in every layout, so
+   * the last line is never left short; a lede longer than the browser balances, a few lines, wraps
+   * as usual. To choose where a lede breaks, set each phrase in its own `inline-block` span,
+   * as the `LongLede` story does.
    *
-   * @claim "its lines are balanced to" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start)
-   * @claim "it wraps so the last" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start)
+   * @claim "Its lines are balanced to even lengths" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > balances the lede in each layout, so its last line is never short)
    *
    * @claim "It runs the full width" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > runs the lede the full width of the text column in each layout)
    */
@@ -214,12 +237,6 @@ const layoutText: Record<HeroLayout, string> = {
 
 const fullWidthStageText = "mx-auto grid w-full justify-items-center gap-4 pt-6 text-center min-[40rem]:pt-12";
 
-// A centred lede is balanced into lines of even length; one aligned to the start avoids a lone last word.
-const ledeWrap: Record<HeroLayout, string> = {
-  stage: "text-balance",
-  column: "text-pretty",
-  split: "text-pretty",
-};
 
 const layoutActions: Record<HeroLayout, string> = {
   stage: "justify-center",
@@ -237,9 +254,34 @@ const layoutMedia: Record<HeroLayout, string> = {
 // technology hears one picture, and a lazy image that is not shown is never fetched.
 const schemeClass = { light: "dark:hidden", dark: "hidden dark:block" } as const;
 
+// Run as the parser reaches it, after both twins and once the page's CSS has loaded: it loads the
+// twin shown at first paint now, and leaves the hidden one lazy, so it is never fetched.
+const firstPaintScript =
+  '(function(s){var p=s.parentNode.children;for(var i=0;i<p.length;i++){var g=p[i].tagName==="PICTURE"&&getComputedStyle(p[i]).display!=="none"&&p[i].querySelector("img");if(g&&g.loading==="lazy")g.loading="eager"}})(document.currentScript)';
+
+// Stryker disable next-line ArrowFunction: the type never changes after hydration, so nothing subscribes and the unsubscribe has nothing to undo.
+const noSubscription = () => () => {};
+const clientScriptType = () => "text/plain";
+const serverScriptType = () => undefined;
+
+/**
+ * The script, in the server's HTML only. A client render marks it as data, which React neither runs
+ * nor warns about; hydration keeps the server's type until it has adopted the script, which has run.
+ */
+function FirstPaintScript(): JSX.Element {
+  const type = useSyncExternalStore(noSubscription, clientScriptType, serverScriptType);
+  return <script type={type} dangerouslySetInnerHTML={{ __html: firstPaintScript }} />;
+}
+
 // The dark twin is the same scene as `day`, so it takes day's alt text and decorative flag unless it has its own.
-function renderPicture(picture: HeroPicture, crop: string | undefined, scheme: "light" | "dark" | undefined, day?: HeroPicture): JSX.Element {
-  const lazy = scheme === "dark" || !picture.priority;
+// `eager` loads it straight from the HTML; `urgent` fetches it first once it loads, and lets the script flip it.
+function renderPicture(
+  picture: HeroPicture,
+  crop: string | undefined,
+  scheme: "light" | "dark" | undefined,
+  load: { eager: boolean; urgent: boolean },
+  day?: HeroPicture,
+): JSX.Element {
   const decorative = picture.decorative ?? day?.decorative;
   return (
     <picture
@@ -251,7 +293,7 @@ function renderPicture(picture: HeroPicture, crop: string | undefined, scheme: "
       {picture.sources?.map((source) => {
         // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
         const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
-        return <source key={key} srcSet={source.srcSet} type={source.type} media={source.media} sizes={source.sizes} />;
+        return <source key={key} srcSet={source.srcSet} type={source.type} media={source.media} sizes={source.sizes} width={source.width} height={source.height} />;
       })}
       <img
         data-slot="image"
@@ -262,9 +304,11 @@ function renderPicture(picture: HeroPicture, crop: string | undefined, scheme: "
         height={picture.height}
         alt={decorative ? "" : (picture.alt ?? day?.alt)}
         draggable={false}
-        fetchPriority={picture.priority ? "high" : undefined}
-        loading={lazy ? "lazy" : undefined}
-        decoding={picture.priority ? undefined : "async"}
+        fetchPriority={load.urgent ? "high" : undefined}
+        loading={load.eager ? undefined : "lazy"}
+        decoding={load.urgent ? undefined : "async"}
+        // The first-paint script may have set loading="eager" before React hydrates.
+        suppressHydrationWarning={load.urgent}
         style={{ objectPosition: picture.focus ?? "50% 42%" }}
         className={cn(
           "block h-auto w-full object-cover select-none",
@@ -395,11 +439,18 @@ export function Hero(props: HeroProps): JSX.Element {
       ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
       : undefined;
   // Untyped code can still leave out the dark art: it is warned, and the light art then shows in both modes.
+  // A twin with `priority` loads from the HTML unless both have it; then only the one shown at first paint loads.
+  const urgent = light?.priority === true || dark?.priority === true;
   const shown = light ? (
-    <>
-      {renderPicture(light, crop, dark ? "light" : undefined)}
-      {dark ? renderPicture(dark, crop, "dark", light) : null}
-    </>
+    dark ? (
+      <>
+        {renderPicture(light, crop, "light", { eager: light.priority === true && dark.priority !== true, urgent })}
+        {renderPicture(dark, crop, "dark", { eager: dark.priority === true && light.priority !== true, urgent }, light)}
+        {urgent ? <FirstPaintScript /> : null}
+      </>
+    ) : (
+      renderPicture(light, crop, undefined, { eager: light.priority === true, urgent })
+    )
   ) : typeof media === "boolean" ? null : (
     // `media={isWide && <video … />}` passes false: no empty frame rises in its place.
     media
@@ -440,8 +491,7 @@ export function Hero(props: HeroProps): JSX.Element {
           <Lede
             data-slot="description"
             className={cn(
-              "m-0 text-base leading-7 text-muted-foreground min-[40rem]:text-lg min-[40rem]:leading-8",
-              ledeWrap[layout],
+              "m-0 text-base leading-7 text-balance text-muted-foreground min-[40rem]:text-lg min-[40rem]:leading-8",
             )}
           >
             {description}

@@ -541,3 +541,22 @@ test("a tool with one command that other people see asks for --why with no comma
   const ran = await runTool(tool, ["Running late", "--why", "Jo asked", "--json"]);
   assert.equal(ran.code, 0);
 });
+
+test("a tool with a default command runs it for a bare target, and a command word runs that command", async () => {
+  const tool = defineCli({
+    name: "ouro-check",
+    about: [],
+    command: defineCommand({
+      name: "check",
+      summary: "Checks.",
+      effect: "private",
+      args: [{ name: "target", description: "T.", rest: "list", required: true }],
+      flags: { ready: { type: "string", description: "R.", repeat: true } },
+      run: (input) => ({ ran: "check", input }),
+    }),
+    commands: [defineCommand({ name: "merge", summary: "Merges.", effect: "private", run: () => ({ ran: "merge" }) })],
+  });
+  assert.deepEqual(JSON.parse((await runTool(tool, ["site", "--ready", "a", "--ready=b", "--json"])).out), { ran: "check", input: { target: ["site"], ready: ["a", "b"], json: true } });
+  assert.deepEqual(JSON.parse((await runTool(tool, ["merge", "--json"])).out), { ran: "merge" });
+  assert.deepEqual(JSON.parse((await runTool(tool, ["--json", "--", "merge"])).out), { ran: "check", input: { target: ["merge"], json: true } });
+});

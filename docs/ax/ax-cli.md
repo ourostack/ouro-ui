@@ -158,7 +158,7 @@ function renderCommand(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext
 
 ### `renderOverview`
 
-The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only the person acts on, the footer. A tool defined with `command` shows its one command's usage and summary in place of the command list.
+The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only the person acts on, the footer. A tool defined with `command` shows its one command's usage and summary in place of the command list; a tool with a default command lists the default's usage, arguments and flags under its heading.
 
 ```ts
 function renderOverview(cli: Cli<RunContext>, options?: OverviewOptions): string

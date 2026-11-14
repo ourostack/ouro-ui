@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -172,17 +172,20 @@ describe("Hero", () => {
     }
   });
 
-  it("balances a centred lede into even lines, and keeps a lone word off the last line of one aligned to the start", async () => {
-    await page.viewport(1440, 900);
-    const stage = await render(<Hero title="Dinner, sorted" description={plainLede} picture={pair(wide)} />);
-    const centred = stage.part("description")!;
-    expect(getComputedStyle(centred).textWrapStyle).toBe("balance");
-    const lengths = ledeLines(centred).map((line) => line.length);
-    expect(lengths.length).toBeGreaterThan(1);
-    expect((Math.max(...lengths) - Math.min(...lengths)) / Math.max(...lengths)).toBeLessThan(0.15);
-    for (const layout of ["column", "split"] as const) {
-      const { part } = await render(<Hero title="Dinner, sorted" layout={layout} description={plainLede} picture={pair(wide)} />);
-      expect(getComputedStyle(part("description")!).textWrapStyle).toBe("pretty");
+  it("balances the lede in each layout, so its last line is never short", async () => {
+    // The lede the Ouroboros website's 404 page showed with "with it." alone on its last line.
+    const lost = "Ouro wandered off the glowing trail, out through the garden gate, and this page wandered off with it.";
+    for (const width of [390, 768, 1440]) {
+      await page.viewport(width, 900);
+      for (const layout of ["stage", "column", "split"] as const) {
+        for (const lede of [lost, plainLede]) {
+          const { part } = await render(<Hero title="Lost in the coils." layout={layout} description={lede} picture={pair(wide)} />);
+          const description = part("description")!;
+          expect(getComputedStyle(description).textWrapStyle).toBe("balance");
+          const lengths = ledeLines(description).map((line) => line.length);
+          if (lengths.length > 1) expect(lengths.at(-1)! / Math.max(...lengths), `${layout} at ${width}: ${ledeLines(description).join(" / ")}`).toBeGreaterThan(0.5);
+        }
+      }
     }
   });
 
@@ -320,6 +323,22 @@ describe("Hero", () => {
     expect(sources[1]!.hasAttribute("type")).toBe(false);
     expect(sources[1]!.hasAttribute("media")).toBe(false);
     expect(sources[0]!.compareDocumentPosition(part("image")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("gives each source its own width and height, so a source of another shape holds its box before it loads", async () => {
+    await page.viewport(390, 844);
+    const phone = { srcSet: "/phone.avif", type: "image/avif", media: "(max-width: 40rem)", width: 800, height: 600 };
+    const { part } = await render(
+      <Hero title="Sources" picture={{ light: { ...wide, sources: [phone, { srcSet: "/wide.avif", type: "image/avif" }] }, dark: { ...night, sources: [{ ...phone, srcSet: "/phone-night.avif", width: 640, height: 640 }] } }} />,
+    );
+    const [lightPhone, lightWide] = [...part("media")!.querySelectorAll('[data-scheme="light"] source')];
+    expect([lightPhone!.getAttribute("width"), lightPhone!.getAttribute("height")]).toEqual(["800", "600"]);
+    expect(lightWide!.hasAttribute("width")).toBe(false);
+    expect(lightWide!.hasAttribute("height")).toBe(false);
+    const darkPhone = part("media")!.querySelector('[data-scheme="dark"] source')!;
+    expect([darkPhone.getAttribute("width"), darkPhone.getAttribute("height")]).toEqual(["640", "640"]);
+    // The phone source is chosen, and its shape, not the fallback's, sets the image's ratio.
+    expect(getComputedStyle(part("media")!.querySelector('[data-scheme="light"] img')!).aspectRatio).toBe("auto 800 / 600");
   });
 
   it("hides a decorative picture from assistive technology", async () => {
@@ -614,19 +633,74 @@ describe("Hero", () => {
     expect(shownIn(part)).toEqual(["light"]);
   });
 
-  it("loads the dark picture lazily, raising its fetch priority only with priority", async () => {
-    const plain = await render(<Hero title="Plain" picture={{ light: { ...wide, priority: true }, dark: night }} />);
-    const [light, dark] = [...plain.part("media")!.querySelectorAll("img")];
-    expect(light!.getAttribute("fetchpriority")).toBe("high");
+  it("keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority", async () => {
+    const day = await render(<Hero title="Day" picture={{ light: { ...wide, priority: true }, dark: night }} />);
+    const [light, dark] = [...day.part("media")!.querySelectorAll("img")];
     expect(light!.hasAttribute("loading")).toBe(false);
     expect(dark!.getAttribute("loading")).toBe("lazy");
-    expect(dark!.hasAttribute("fetchpriority")).toBe(false);
-    expect(dark!.getAttribute("decoding")).toBe("async");
-    const urgent = await render(<Hero title="Urgent" picture={{ light: wide, dark: { ...night, priority: true } }} />);
-    const [, urgentDark] = [...urgent.part("media")!.querySelectorAll("img")];
-    expect(urgentDark!.getAttribute("loading")).toBe("lazy");
-    expect(urgentDark!.getAttribute("fetchpriority")).toBe("high");
-    expect(urgentDark!.hasAttribute("decoding")).toBe(false);
+    for (const twin of [light!, dark!]) {
+      expect(twin.getAttribute("fetchpriority")).toBe("high");
+      expect(twin.hasAttribute("decoding")).toBe(false);
+    }
+    const nightFirst = await render(<Hero title="Night" picture={{ light: wide, dark: { ...night, priority: true } }} />);
+    const [nightLight, nightDark] = [...nightFirst.part("media")!.querySelectorAll("img")];
+    expect(nightLight!.getAttribute("loading")).toBe("lazy");
+    expect(nightDark!.hasAttribute("loading")).toBe(false);
+    expect([nightLight!, nightDark!].map((twin) => twin.getAttribute("fetchpriority"))).toEqual(["high", "high"]);
+    // Untyped code without night art: the day art alone loads from the HTML only with priority.
+    const lone = await render(<Hero title="Lone" picture={{ light: { ...wide, priority: true } } as unknown as HeroPictures} />);
+    expect(lone.part("image")!.hasAttribute("loading")).toBe(false);
+    expect(lone.part("image")!.getAttribute("fetchpriority")).toBe("high");
+    const loneLazy = await render(<Hero title="Lone lazy" picture={{ light: wide } as unknown as HeroPictures} />);
+    expect(loneLazy.part("image")!.getAttribute("loading")).toBe("lazy");
+    const both = await render(<Hero title="Both" picture={{ light: { ...wide, priority: true }, dark: { ...night, priority: true } }} />);
+    expect([...both.part("media")!.querySelectorAll("img")].map((img) => img.getAttribute("loading"))).toEqual(["lazy", "lazy"]);
+    const plain = await render(<Hero title="Plain" picture={{ light: wide, dark: night }} />);
+    for (const twin of plain.part("media")!.querySelectorAll("img")) {
+      expect(twin.getAttribute("loading")).toBe("lazy");
+      expect(twin.hasAttribute("fetchpriority")).toBe(false);
+      expect(twin.getAttribute("decoding")).toBe("async");
+    }
+  });
+
+  it("loads the twin shown at first paint eagerly from server HTML, and leaves the hidden one lazy", async () => {
+    // Inserted as the parser would run it: the fragment's inline script runs where it stands.
+    const serve = (node: ReactNode) => {
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      host.append(document.createRange().createContextualFragment(renderToString(node)));
+      return [...host.querySelectorAll("img")];
+    };
+    const twins = { light: { ...wide, priority: true }, dark: { ...night, priority: true } };
+    const [lightByDay, darkByDay] = serve(<Hero title="Day" picture={twins} />);
+    expect(lightByDay!.loading).toBe("eager");
+    expect(darkByDay!.loading).toBe("lazy");
+    document.documentElement.classList.add("dark");
+    const [lightAtNight, darkAtNight] = serve(<Hero title="Night" picture={twins} />);
+    expect(lightAtNight!.loading).toBe("lazy");
+    expect(darkAtNight!.loading).toBe("eager");
+    await expect.poll(() => darkAtNight!.complete && darkAtNight!.currentSrc).toBe(night.src);
+    const [, lone] = serve(<Hero title="Lone" picture={{ light: { ...wide, priority: true }, dark: night }} />);
+    expect(lone!.loading).toBe("eager");
+    expect(renderToString(<Hero title="Plain" picture={{ light: wide, dark: night }} />)).not.toContain("<script");
+  });
+
+  it("hydrates the first-paint script and its twins quietly, and renders it on the client without running it", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const twins = { light: { ...wide, priority: true }, dark: { ...night, priority: true } };
+    const node = <Hero title="Hydrate" picture={twins} />;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    host.append(document.createRange().createContextualFragment(renderToString(node)));
+    expect(host.querySelector("img")!.loading).toBe("eager");
+    const root = hydrateRoot(host, node, { onRecoverableError: (cause) => error(cause) });
+    roots.push(root);
+    await act(async () => {});
+    expect(host.querySelector("script")!.getAttribute("type")).toBe("text/plain");
+    await render(node);
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("gives the dark picture the light one's alt text, frame and crop unless it has its own", async () => {
