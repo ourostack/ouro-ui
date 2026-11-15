@@ -254,7 +254,10 @@ function tabbables(root: Element): HTMLElement[] {
 // Whether a change is only the list's one action bar moving between messages or changing in place, which leaves the
 // messages as they were: the list skips placing, marking and announcing for it.
 function barOnly(record: MutationRecord): boolean {
-  return (record.target as Element).closest("[data-ouro-message-bar-slot]") !== null;
+  if ((record.target as Element).closest("[data-ouro-message-bar-slot]") !== null) return true;
+  // The bar's host going into a message or out of it.
+  const moved = [...record.addedNodes, ...record.removedNodes];
+  return moved.length > 0 && moved.every((node) => node instanceof Element && node.matches("[data-ouro-message-bar-slot]"));
 }
 
 /** Whether a change added or removed a message. */
