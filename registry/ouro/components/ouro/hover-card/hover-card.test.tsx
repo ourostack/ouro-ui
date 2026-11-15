@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { HoverCard, type HoverCardProps } from "@/registry/ouro/components/ouro/hover-card/hover-card";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Runs in Chromium and WebKit, which can both hover.
 
@@ -145,6 +146,149 @@ describe("HoverCard", () => {
     await renderCard();
     await userEvent.hover(link());
     expect(getComputedStyle(await shown()).transitionProperty).toBe("opacity");
+  });
+
+  it("mounts no card until the link is hovered, and keeps the link's own element as it arms", async () => {
+    await renderCard();
+    const before = link();
+    expect(document.querySelector('[data-ouro="hover-card-portal"]')).toBeNull();
+    await userEvent.hover(before);
+    await shown();
+    expect(link()).toBe(before);
+    expect(before.hasAttribute("data-popup-open")).toBe(true);
+  });
+
+  it("keeps focus on the link as keyboard focus arms the card", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow</a>}>Preview</HoverCard>
+      </>,
+    );
+    await act(async () => (page.getByRole("button", { name: "Before" }).element() as HTMLElement).focus());
+    await pressTab();
+    const focused = link();
+    expect(document.activeElement).toBe(focused);
+    await shown();
+    expect(document.activeElement).toBe(focused);
+    expect(link()).toBe(focused);
+  });
+
+  it("stays open while the pointer crosses onto the card, and closes once it leaves both", async () => {
+    await renderCard();
+    await userEvent.hover(link());
+    const element = await shown();
+    // The page's clock held, so the card's close delay runs out only when the test says.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.hover(element);
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(link().hasAttribute("data-popup-open")).toBe(true);
+      // And back onto the link, and onto the card again.
+      await userEvent.hover(link());
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(link().hasAttribute("data-popup-open")).toBe(true);
+      await userEvent.hover(element);
+      await userEvent.unhover(element);
+      await act(async () => vi.advanceTimersByTime(1000));
+    } finally {
+      vi.useRealTimers();
+    }
+    await expect.poll(() => card()).toBeNull();
+  });
+
+  it("opens on neither a focus the keyboard did not make nor one it left before the delay ran out", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow</a>}>Preview</HoverCard>
+      </>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Before" }));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // Focus a click or a script gave, not the keyboard.
+      await act(async () => link().focus());
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(link().hasAttribute("data-popup-open")).toBe(false);
+      await act(async () => link().blur());
+      // Keyboard focus that leaves before the card's delay runs out.
+      await userEvent.keyboard("{Shift}");
+      await act(async () => link().focus());
+      await act(async () => link().blur());
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(link().hasAttribute("data-popup-open")).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never opens after a touch on the link, even when the touch focuses it", async () => {
+    await renderCard();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await act(() => link().dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true })));
+      await act(async () => link().focus({ focusVisible: true } as FocusOptions));
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(link().hasAttribute("data-popup-open")).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("closes on Escape and when focus leaves the link", async () => {
+    await render(
+      <>
+        <button type="button">Before</button>
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow</a>}>Preview</HoverCard>
+        <button type="button">After</button>
+      </>,
+    );
+    const before = page.getByRole("button", { name: "Before" }).element() as HTMLElement;
+    await act(async () => before.focus());
+    await pressTab();
+    expect(document.activeElement).toBe(link());
+    await shown();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => card()).toBeNull();
+    await pressTab({ shift: true });
+    await pressTab();
+    await shown();
+    await pressTab();
+    await expect.poll(() => card()).toBeNull();
+  });
+
+  it("opens no card when the pointer leaves the link before it rests there, and passes the link's own handlers on", async () => {
+    const seen: string[] = [];
+    await render(
+      <HoverCard
+        trigger={
+          <a
+            href="#cooks/ari"
+            onPointerEnter={() => seen.push("enter")}
+            onPointerLeave={() => seen.push("leave")}
+            onFocus={() => seen.push("focus")}
+            onBlur={() => seen.push("blur")}
+          >
+            Ari Mendelow
+          </a>
+        }
+      >
+        Preview
+      </HoverCard>,
+    );
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.hover(link());
+      await userEvent.unhover(link());
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(card()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+    await act(async () => link().focus());
+    await act(async () => link().blur());
+    expect(seen).toEqual(["enter", "leave", "focus", "blur"]);
   });
 
   it("renders only the link on the server", () => {

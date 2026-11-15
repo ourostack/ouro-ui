@@ -1,7 +1,7 @@
 "use client";
 
 import { PreviewCard } from "@base-ui/react/preview-card";
-import { useEffect, useRef, type JSX, type ReactElement, type ReactNode } from "react";
+import { cloneElement, useEffect, useRef, useState, type FocusEvent, type JSX, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
@@ -17,9 +17,15 @@ import {
   type FloatingSide,
 } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+
+// Base UI's own delays for a preview card: it opens after the pointer rests on the link, and lingers as it leaves.
+const OPEN_DELAY = 600;
+const CLOSE_DELAY = 300;
 
 export type { FloatingAlign as HoverCardAlign, FloatingSide as HoverCardSide } from "@/registry/ouro/lib/ouro/floating";
 
@@ -137,30 +143,99 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
   });
 
   const portal = usePortalContainer("HoverCard");
+
+  // The card mounts only once someone may want it: on the link's first hover or keyboard focus. Until then the link is
+  // the app's own element with a few handlers, so a page of links (a chat's authors) mounts no card. The link is never
+  // wrapped or drawn again as it arms, so focus and the pointer stay on it.
+  const [armed, setArmed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Opens or closes the card after a delay, in place of whatever was waiting.
+  const after = (delay: number, next: boolean) => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      // Never on a device that cannot hover, or after a touch: a phone has no way to hover it away.
+      // Stryker disable next-line ConditionalExpression: a device that cannot hover is the touch project's (hover-card.touch.test.tsx), which mutation testing does not run.
+      if (next && (!canHover || lastInput() === "touch")) return;
+      setOpen(next);
+    }, delay);
+  };
+  const want = () => {
+    setArmed(true);
+    after(OPEN_DELAY, true);
+  };
+  // A Server Component's link may come wrapped (React's lazy element): the element inside is the one to give handlers.
+  const element = serverElement(trigger);
+  const own = element.props as {
+    ref?: Ref<HTMLAnchorElement>;
+    onPointerEnter?: (event: PointerEvent<HTMLAnchorElement>) => void;
+    onPointerLeave?: (event: PointerEvent<HTMLAnchorElement>) => void;
+    onFocus?: (event: FocusEvent<HTMLAnchorElement>) => void;
+    onBlur?: (event: FocusEvent<HTMLAnchorElement>) => void;
+  };
+  const ref = useMergedRef(own.ref, triggerRef);
+  // The link takes the merged ref, which nothing reads during render.
+  // eslint-disable-next-line react-hooks/refs
+  const link = cloneElement(element as ReactElement<Record<string, unknown>>, {
+    ref,
+    // Stryker disable next-line StringLiteral: found by the attribute alone, never by its value.
+    "data-ouro-hover-card-trigger": "",
+    // Stryker disable next-line StringLiteral: read by the attribute alone, as Base UI's open trigger is.
+    "data-popup-open": open ? "" : undefined,
+    onPointerEnter: (event: PointerEvent<HTMLAnchorElement>) => {
+      own.onPointerEnter?.(event);
+      want();
+    },
+    onPointerLeave: (event: PointerEvent<HTMLAnchorElement>) => {
+      own.onPointerLeave?.(event);
+      after(CLOSE_DELAY, false);
+    },
+    onFocus: (event: FocusEvent<HTMLAnchorElement>) => {
+      own.onFocus?.(event);
+      if (event.currentTarget.matches(":focus-visible")) want();
+    },
+    onBlur: (event: FocusEvent<HTMLAnchorElement>) => {
+      own.onBlur?.(event);
+      after(0, false);
+    },
+  });
+  if (!armed) return link;
   return (
-    <PreviewCard.Root
-      onOpenChange={(next, details) => {
-        if (next && (!canHover || lastInput() === "touch")) details.cancel();
-      }}
-    >
-      <PreviewCard.Trigger render={trigger} ref={triggerRef} data-ouro-hover-card-trigger="" />
-      <PreviewCard.Portal {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
-        <PortalScope>
-          <PreviewCard.Positioner side={side} align={align} sideOffset={8} collisionPadding={8} data-ouro="hover-card-positioner">
-            <PreviewCard.Popup
-              data-ouro="hover-card"
-              className={cn(
-                floatingSurfaceClass,
-                floatingMotionClass,
-                "w-72 max-w-(--available-width) p-4 text-sm leading-5",
-                className,
-              )}
+    <>
+      {link}
+      <PreviewCard.Root
+        open={open}
+        // Base UI asks only to close a card it holds no trigger for: on Escape or a press outside it.
+        onOpenChange={(next) => after(0, next)}
+      >
+        <PreviewCard.Portal {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
+          <PortalScope>
+            <PreviewCard.Positioner
+              anchor={triggerRef}
+              side={side}
+              align={align}
+              sideOffset={8}
+              collisionPadding={8}
+              data-ouro="hover-card-positioner"
             >
-              {children}
-            </PreviewCard.Popup>
-          </PreviewCard.Positioner>
-        </PortalScope>
-      </PreviewCard.Portal>
-    </PreviewCard.Root>
+              <PreviewCard.Popup
+                data-ouro="hover-card"
+                // The pointer may cross from the link onto the card and stay: the card is part of what it hovers.
+                onPointerEnter={() => clearTimeout(timer.current)}
+                onPointerLeave={() => after(CLOSE_DELAY, false)}
+                className={cn(
+                  floatingSurfaceClass,
+                  floatingMotionClass,
+                  "w-72 max-w-(--available-width) p-4 text-sm leading-5",
+                  className,
+                )}
+              >
+                {children}
+              </PreviewCard.Popup>
+            </PreviewCard.Positioner>
+          </PortalScope>
+        </PreviewCard.Portal>
+      </PreviewCard.Root>
+    </>
   );
 }
