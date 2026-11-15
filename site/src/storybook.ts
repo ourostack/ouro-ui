@@ -159,6 +159,10 @@ export const CARDS: Record<string, Card> = {
     side: "left",
     width: 860,
     size: 40,
+    // The og crop cuts Ouro's coil at the right edge (render QA, 2026-11-14): the paint pots to Ouro's tail, whole.
+    crop: { from: 40, to: 1456 },
+    address: "band",
+    addressSide: "right",
   },
 };
 
