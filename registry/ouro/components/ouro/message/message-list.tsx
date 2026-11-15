@@ -1673,7 +1673,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       springsRef.current?.moved(scroller.scrollTop - before);
     };
     windowSync.current = (scrolled) => {
-      const { windowed, keys, measured, reach, sizeOf } = viewRef.current;
+      const { windowed, keys, measured, band, reach, sizeOf } = viewRef.current;
       // A list inside a hidden panel draws nothing to measure or place; it does once it shows, and resizes.
       if (windowed && content.getClientRects().length === 0) return;
       if (windowed && !scrolled) {
@@ -1778,6 +1778,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let to = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
       while (starts[to]! >= viewBottom + over) to--;
+      // Children already drawn stay drawn until they are twice the overscan from the view: a scroll back and forth, or code that
+      // brings one message after another into view (a contrast check measuring each), finds them still in the page.
+      const keep = 2 * over;
+      let keepFrom = from;
+      while (keepFrom > 0 && starts[keepFrom - 1]! + extent(keepFrom - 1) > viewTop - keep) keepFrom--;
+      let keepTo = to;
+      while (keepTo < keys.length - 1 && starts[keepTo + 1]! < viewBottom + keep) keepTo++;
+      const drawnFrom = band === null ? undefined : indexes.get(band.from);
+      const drawnTo = band === null ? undefined : indexes.get(band.to);
+      if (drawnFrom !== undefined && drawnTo !== undefined && drawnFrom <= to + 1 && drawnTo >= from - 1) {
+        if (drawnFrom < from && drawnFrom >= keepFrom) from = drawnFrom;
+        if (drawnTo > to && drawnTo <= keepTo) to = drawnTo;
+      }
       const inBand = keys.slice(from, to + 1);
       // Stryker disable next-line StringLiteral: keys joined with no separator tell two bands apart too, but for keys that run into each other.
       const id = inBand.join("\n");
