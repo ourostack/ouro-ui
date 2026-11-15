@@ -416,6 +416,14 @@ describe("SegmentedControl", () => {
     expect(Math.round(group.getBoundingClientRect().width)).toBe(Math.round(host.getBoundingClientRect().width - 48));
   });
 
+  it("stretches its label across with fullWidth, and keeps it to its text without", async () => {
+    const wide = await render(<SegmentedControl label="View" items={items} fullWidth />);
+    const narrow = await render(<SegmentedControl label="View" items={items} />);
+    const labelWidth = (root: HTMLElement) => root.firstElementChild!.getBoundingClientRect().width;
+    expect(labelWidth(wide.root)).toBe(wide.root.getBoundingClientRect().width);
+    expect(labelWidth(narrow.root)).toBeLessThan(narrow.root.getBoundingClientRect().width);
+  });
+
   it("shows every label whole: equal segments when they fit, and a long label keeps its width when they don't", async () => {
     const theme = [
       { value: "system", label: "Match my computer" },
