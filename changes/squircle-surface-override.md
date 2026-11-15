@@ -1,0 +1,1 @@
+- Button, Card, Dialog, TextField, Badge and Toggle: an app's own fill and border classes on the element keep painting where the engine lacks corner-shape, as they do where it has it.

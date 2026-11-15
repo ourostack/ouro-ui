@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { drift, factsOf, gatherApple, gatherCore, pinnedProblems, render, renderApple, renderPlatforms } from "./platform-versions.mjs";
+import { drift, factsOf, gatherApple, gatherCore, pinnedProblems, render, renderApple, renderPlatforms, renderWindows } from "./platform-versions.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const real = (path) => readFileSync(join(root, path), "utf8");
@@ -12,11 +12,13 @@ const PROVENANCE = "scripts/parity-data/provenance.json";
 const PARITY = "scripts/parity-data/parity.json";
 const PLATFORMS = "docs/platforms/README.md";
 const APPLE_PAGE = "docs/platforms/apple.md";
+const WINDOWS_PAGE = "docs/platforms/windows.md";
 
 const facts = {
   core: { tag: "v0.10.0", commit: "c".repeat(40) },
   web: { tag: "v1.3.24" },
   apple: { tag: "v0.5.1", commit: "a".repeat(40), coreTag: "v0.8.0", treeCoreTag: "v0.9.0" },
+  windows: { tag: "v0.2.0", commit: "b".repeat(40), coreTag: "v0.10.0", treeCoreTag: "v0.10.0" },
 };
 
 /** A stand-in for GitHub's API and raw files, answering only what gather asks. */
@@ -54,6 +56,13 @@ test("the version table is generated: each row names its release and the core it
   assert.equal(renderPlatforms(page, facts), page);
 });
 
+test("the Windows row names its release and the core it meets, with checked sources", () => {
+  const page = renderPlatforms(real(PLATFORMS), facts);
+  assert.match(page, /^\| For Windows \| \[v0\.2\.0\]\(https:\/\/github\.com\/ourostack\/ouro-ui-windows\/releases\/tag\/v0\.2\.0\)\[\^windows-release\] \| core v0\.10\.0\[\^windows-core\] \|/m);
+  assert.match(page, /^\[\^windows-core\]: https:\/\/github\.com\/ourostack\/ouro-ui-windows\/blob\/b{40}\/core-provenance\.json;.*verify:equals\(scripts\/parity-data\/versions\.json#windows\.coreTag\)=v0\.10\.0$/m);
+  assert.match(page, /^\[\^windows-release\]: .*verify:equals\(scripts\/parity-data\/versions\.json#windows\.tag\)=v0\.2\.0$/m);
+});
+
 test("an Apple release that takes all of core from one tag names that tag alone", () => {
   const page = renderPlatforms(real("docs/platforms/README.md"), { ...facts, apple: { ...facts.apple, treeCoreTag: "v0.8.0" } });
   assert.match(page, /\| core v0\.8\.0\[\^apple-core\] \|/);
@@ -64,6 +73,13 @@ test("the Apple page's release line names the core its release meets", () => {
   assert.match(page, /^Release \[v0\.5\.1\]\(https:\/\/github\.com\/ourostack\/ouro-ui-apple\/releases\/tag\/v0\.5\.1\) meets core v0\.8\.0, and v0\.9\.0 for its A2UI conformance cases:/m);
   assert.match(page, /^\[\^core\]: https:\/\/github\.com\/ourostack\/ouro-ui-apple\/releases\/tag\/v0\.5\.1; https:\/\/github\.com\/ourostack\/ouro-ui-apple\/blob\/a{40}\/core-provenance\.json/m);
   assert.equal(renderApple(page, facts), page);
+});
+
+test("the Windows page's release line names the core its release meets", () => {
+  const page = renderWindows(real(WINDOWS_PAGE), facts);
+  assert.match(page, /^Release \[v0\.2\.0\]\(https:\/\/github\.com\/ourostack\/ouro-ui-windows\/releases\/tag\/v0\.2\.0\) meets core v0\.10\.0:/m);
+  assert.match(page, /^\[\^core\]: https:\/\/github\.com\/ourostack\/ouro-ui-windows\/releases\/tag\/v0\.2\.0; https:\/\/github\.com\/ourostack\/ouro-ui-windows\/blob\/b{40}\/core-provenance\.json;.*verify:equals\(scripts\/parity-data\/versions\.json#windows\.coreTag\)=v0\.10\.0$/m);
+  assert.equal(renderWindows(page, facts), page);
 });
 
 test("a page that disagrees with the parity copies' release is drift, named by file, with the command that fixes it", () => {
@@ -113,17 +129,24 @@ test("the pinned Apple release is read from GitHub: its tag's commit and the cor
   assert.deepEqual(await gatherApple("v0.5.1", { fetch, delayMs: 0 }), facts.apple);
 });
 
-test("the pinned Apple release is drift when GitHub names another commit or core for its tag, with the command that pins it again", async () => {
+test("a pinned kit release is drift when GitHub names another commit or core for its tag, with the command that pins it again", async () => {
   const versions = JSON.parse(real(VERSIONS));
-  const { apple } = versions;
-  const answers = (commit, coreTag) => fakeGitHub({
-    [`https://api.github.com/repos/ourostack/ouro-ui-apple/commits/${apple.tag}`]: { sha: commit },
-    [`https://raw.githubusercontent.com/ourostack/ouro-ui-apple/${commit}/core-provenance.json`]: { coreTag, tree: { coreTag: apple.treeCoreTag } },
+  const repos = { apple: "ourostack/ouro-ui-apple", windows: "ourostack/ouro-ui-windows" };
+  const kitAnswers = (kit, commit, coreTag) => ({
+    [`https://api.github.com/repos/${repos[kit]}/commits/${versions[kit].tag}`]: { sha: commit },
+    [`https://raw.githubusercontent.com/${repos[kit]}/${commit}/core-provenance.json`]: { coreTag, tree: { coreTag: versions[kit].treeCoreTag } },
   });
-  assert.deepEqual(await pinnedProblems(versions, { fetch: answers(apple.commit, apple.coreTag), delayMs: 0 }), []);
-  const moved = await pinnedProblems(versions, { fetch: answers("d".repeat(40), "v9.0.0"), delayMs: 0 });
-  assert.equal(moved.length, 1);
-  assert.match(moved[0], new RegExp(`--apple ${apple.tag.replace(/\./g, "\\.")} and commit`));
+  const github = ({ apple, windows }) => fakeGitHub({
+    ...kitAnswers("apple", apple?.commit ?? versions.apple.commit, apple?.coreTag ?? versions.apple.coreTag),
+    ...kitAnswers("windows", windows?.commit ?? versions.windows.commit, windows?.coreTag ?? versions.windows.coreTag),
+  });
+  assert.deepEqual(await pinnedProblems(versions, { fetch: github({}), delayMs: 0 }), []);
+  const appleMoved = await pinnedProblems(versions, { fetch: github({ apple: { commit: "d".repeat(40), coreTag: "v9.0.0" } }), delayMs: 0 });
+  assert.equal(appleMoved.length, 1);
+  assert.match(appleMoved[0], new RegExp(`--apple ${versions.apple.tag.replace(/\./g, "\\.")} and commit`));
+  const windowsMoved = await pinnedProblems(versions, { fetch: github({ windows: { commit: "e".repeat(40), coreTag: "v0.12.1" } }), delayMs: 0 });
+  assert.equal(windowsMoved.length, 1);
+  assert.match(windowsMoved[0], new RegExp(`--windows ${versions.windows.tag.replace(/\./g, "\\.")} and commit`));
 });
 
 test("GitHub failing to answer is an error to retry, not drift", async () => {
@@ -131,10 +154,11 @@ test("GitHub failing to answer is an error to retry, not drift", async () => {
   await assert.rejects(gatherApple("v0.5.1", { fetch: fakeGitHub({}), attempts: 1, delayMs: 0 }), { name: "VersionsUnreadable" });
 });
 
-test("render writes versions.json with the Apple pin alone, and every page from the same facts", () => {
+test("render writes versions.json with both kit pins, and every page from the same facts", () => {
   const files = render(facts, real);
-  assert.deepEqual(Object.keys(files).sort(), [APPLE_PAGE, PLATFORMS, VERSIONS].sort());
+  assert.deepEqual(Object.keys(files).sort(), [APPLE_PAGE, PLATFORMS, VERSIONS, WINDOWS_PAGE].sort());
   const written = JSON.parse(files[VERSIONS]);
-  assert.deepEqual(Object.keys(written), ["$comment", "apple"]);
+  assert.deepEqual(Object.keys(written), ["$comment", "apple", "windows"]);
   assert.deepEqual(written.apple, facts.apple);
+  assert.deepEqual(written.windows, facts.windows);
 });

@@ -24,23 +24,27 @@ test("the install delta adds only the changed items the shipped tests install", 
 
 test("the install delta adds everything when the app cannot be proved to match a full add", () => {
   const before = manifestOf(base());
-  const full = { mode: "full" };
-  assert.deepEqual(plan(base(), null), full);
-  assert.deepEqual(plan(base(), {}), full);
+  const assertFull = (result) => {
+    assert.equal(result.mode, "full");
+    assert.equal(typeof result.reason, "string");
+    assert.ok(result.reason.length > 0);
+  };
+  assertFull(plan(base(), null));
+  assertFull(plan(base(), {}));
   const moved = base();
   moved.button = item("b1", ["ui/button.tsx"]);
-  assert.deepEqual(plan(moved, before), full);
+  assertFull(plan(moved, before));
   const redepended = base();
   redepended["button-tests"] = item("bt1", ["button.test.tsx"], []);
-  assert.deepEqual(plan(redepended, before), full);
+  assertFull(plan(redepended, before));
   const added = { ...base(), fresh: item("f") };
-  assert.deepEqual(plan(added, before), full);
+  assertFull(plan(added, before));
   const outside = base();
   outside.extra = item("e2", ["extra.tsx"]);
-  assert.deepEqual(plan(outside, before), full);
+  assertFull(plan(outside, before));
   const root = base();
   root["ouro-tests"] = item("t2", ["t.ts"], ["button", "button-tests"]);
-  assert.deepEqual(plan(root, before), full);
+  assertFull(plan(root, before));
 });
 
 test("the install delta closure follows dependencies from the root", () => {

@@ -596,7 +596,7 @@ if [ -z "${OURO_REUSE_APP:-}" ] && [ -z "${OURO_CHECK_ONLY:-}" ]; then
 echo "::group::The testing setup and ouro-tests"
 cp -R "$root/test/install-fixture-tests/." "$app/"
 # The CLI writes the ~640 files one at a time in one process, about three minutes on a runner, so the
-# items ouro-tests lists are added by eight processes at once; the checks below judge the whole result,
+# items ouro-tests lists are added by four processes at once; the checks below judge the whole result,
 # package.json's tools included.
 mapfile -t test_items < <(node -e 'for (const item of require(process.argv[1]).registryDependencies) console.log(item)' "$registry/r/ouro-tests.json")
 # Each add installs its devDependencies with npm, and npm installs running at once in one app race on
@@ -612,7 +612,7 @@ if [ -n "${OURO_DELTA:-}" ] && [ -f "$app/.ouro-added.json" ]; then
   if [ "$delta_mode" = incremental ]; then
     mapfile -t test_items < <(node -e 'for (const item of JSON.parse(process.argv[1]).items) console.log(process.argv[2] + "/" + item + ".json")' "$delta_plan" "$registry/r")
   fi
-  echo "Install delta: $delta_mode (${#test_items[@]} items to add)"
+  echo "Install delta: $delta_mode (${#test_items[@]} items to add) $(node -e 'console.log(JSON.parse(process.argv[1]).reason ?? "")' "$delta_plan")"
   if [ "$delta_mode" = full ]; then
     echo "the restored app does not match the built registry; start from the base"
     exit 75
@@ -635,7 +635,7 @@ OURO_SERIAL_NPM_HELD=1 "\$real_npm" "\$@" || status=\$?
 exit "\$status"
 EOF
 chmod +x "$registry/serial-npm/npm"
-add_parts=8
+add_parts=4
 [ "${#test_items[@]}" -ge "$add_parts" ] || add_parts=${#test_items[@]}
 add_pids=()
 for part in $(seq 0 $((add_parts - 1))); do

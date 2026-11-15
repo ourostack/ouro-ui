@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -7,6 +7,7 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
@@ -26,6 +27,7 @@ afterEach(async () => {
     host.remove();
   }
   for (const style of styles.splice(0)) style.remove();
+  vi.restoreAllMocks();
 });
 
 /** The fallback rules as an engine without corner-shape applies them: the same block, with its condition taken off. */
@@ -55,6 +57,19 @@ describe("squircle surface where the engine has no corner-shape", () => {
     expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
     expect(getComputedStyle(button).borderTopColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(button, "::before").display).toBe("none");
+  });
+
+  it("lets an app's own fill and border classes on a Button win, with and without corner-shape", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const own = await mount(<Button className="bg-red-500 border-blue-500">Save</Button>);
+    expect(getComputedStyle(own).backgroundColor).toMatch(/^(oklch|rgb|color)/);
+    const native = getComputedStyle(own).backgroundColor;
+    const plain = await mount(<Button>Plain</Button>);
+    expect(native).not.toBe(getComputedStyle(plain).backgroundColor);
+    applyFallback();
+    expect(getComputedStyle(own).backgroundColor).toBe(native);
+    expect(getComputedStyle(own).borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(plain).backgroundColor).toBe("rgba(0, 0, 0, 0)");
   });
 
   it("stacks the label above the surface, and leaves the box-shadow and outline on the element", async () => {
@@ -160,5 +175,20 @@ describe("a Dialog where the engine has no corner-shape", () => {
     expect(getComputedStyle(rect).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(pill.hasAttribute("data-ouro-squircle")).toBe(false);
     expect(pill.querySelector("[data-ouro-surface]")).toBeNull();
+  });
+
+  it("clips an Avatar's surface to a squircle of its own corner size, circle and square alike", async () => {
+    applyFallback();
+    await mount(
+      <>
+        <Avatar name="Ana Lind" />
+        <Avatar name="Dev Team" shape="square" />
+      </>,
+    );
+    const [round, square] = [...document.querySelectorAll<HTMLElement>("[data-ouro-avatar-surface]")] as [HTMLElement, HTMLElement];
+    expect(getComputedStyle(round).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(round).getPropertyValue("--ouro-sq-r")).toBe("44%");
+    expect(getComputedStyle(square).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(square).getPropertyValue("--ouro-sq-r")).toBe("24%");
   });
 });

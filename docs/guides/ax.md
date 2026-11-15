@@ -9,8 +9,8 @@ Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. O
 ## Install
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.101         # the kit and the X-ray
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.101   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.116         # the kit and the X-ray
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.116   # with their node:test tests
 ```
 
 The shadcn CLI copies the files into `lib/ouro/ax/` under your lib alias. Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]
@@ -139,6 +139,21 @@ Prior art:
 - [Nielsen Norman Group's error-message guidelines](https://www.nngroup.com/articles/error-message-guidelines/ "verify:urlOk(https://www.nngroup.com/articles/error-message-guidelines/)"): adopt. Say precisely what went wrong in plain words, and offer a way forward.
 - [GOV.UK's error message component](https://design-system.service.gov.uk/components/error-message/ "verify:urlOk(https://design-system.service.gov.uk/components/error-message/)"): borrow. Its wording rules are for form fields, but its stance carries over: say what happened and how to fix it, in place of "an error occurred".
 - [Apple's Human Interface Guidelines on alerts](https://developer.apple.com/design/human-interface-guidelines/alerts "verify:urlOk(https://developer.apple.com/design/human-interface-guidelines/alerts)"): watch. It governs when an alert appears and how its buttons read, more than what a failure says.
+
+## When a page asks to open an app
+
+A surface that drives a browser for an agent meets pages that try to open a desktop app. Zoom, Teams, Slack, Figma and Spotify point the page at an app address such as `zoomus:` and offer a web option for when that fails. The app is the person's to open, so refuse the launch the same way on any site, and keep the agent moving:
+
+- Let the refusal fail the way an app that is not installed fails. Pages with a timer fallback then take their web path on their own.
+- If the page only offers a button, follow the page's own web option, found by its role and name ("Join from browser", "Continue in browser"), once. Never take a download, a desktop-app or a "switch browsers" control.
+- Say it in the reply, in the same shape as an outcome: which app was refused, what the surface did instead (`page`, `followed` or `none`), and the next command when it did nothing. Name the route that opens the app itself when it does not exist yet, so the agent stops looking for it.
+
+```json
+{ "appLaunch": { "refused": ["zoomus"], "by": "zoom.us", "how": "followed", "followed": { "role": "button", "name": "Join from browser" },
+  "note": "desk-web refused zoom.us's attempt to open an app (zoomus:); desk-web never opens desktop apps. It then followed the page's own web option, the button \"Join from browser\". Opening the app itself needs its own explicit route, which desk-web does not offer yet." } }
+```
+
+A read, such as a snapshot, follows nothing: it reports the launch and the option's ref, and leaves the click to the agent.
 
 ## Check the words of a tool without the kit
 

@@ -42,11 +42,37 @@
   "android": {
     "repo": "ourostack/ouro-ui-android",
     "tag": null,
+    "commit": null,
     "components": []
   },
   "windows": {
     "repo": "ourostack/ouro-ui-windows",
-    "tag": null,
-    "components": []
+    "tag": "v0.1.1",
+    "commit": "55639374c1e097e649194ba2d8dbfef847f68534",
+    "components": [
+      {
+        "name": "OuroBadge",
+        "web": "badge"
+      },
+      {
+        "name": "OuroButton",
+        "web": "button"
+      },
+      {
+        "name": "OuroCard",
+        "web": "card"
+      },
+      {
+        "name": "OuroItem",
+        "web": "item"
+      }
+    ],
+    "claims": [
+      "contrast.text",
+      "motion.reduced",
+      "name.spoken",
+      "target.touch",
+      "text.reflows"
+    ]
   }
 }

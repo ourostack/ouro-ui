@@ -8,19 +8,19 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | Not yet: [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows) is waiting for a builder |
+| Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | [ourostack/ouro-ui-windows v0.1.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.1.1") |
 
-Components: Web has 122 of 122, Apple has 8 of 122, Android has 0 of 122, Windows has 0 of 122.[^matrix]
+Components: Web has 122 of 122, Apple has 8 of 122, Android has 0 of 122, Windows has 4 of 122.[^matrix]
 
-Claims covered: Web 7 of 13, Apple 13 of 13, Android 0 of 13, Windows 0 of 13.[^matrix]
+Claims covered: Web 7 of 13, Apple 13 of 13, Android 0 of 13, Windows 5 of 13.[^matrix]
 
-Gap cells: 390.[^matrix]
+Gap cells: 381.[^matrix]
 
 ### Components
 
 | Component | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| [button](https://ui.ouroboros.bot/docs/button/) | `button` | `OuroButton` | Not yet | Not yet |
+| [button](https://ui.ouroboros.bot/docs/button/) | `button` | `OuroButton` | Not yet | `OuroButton` |
 | [text](https://ui.ouroboros.bot/docs/text/) | `text` | Not yet | Not yet | Not yet |
 | [heading](https://ui.ouroboros.bot/docs/heading/) | `heading` | Not yet | Not yet | Not yet |
 | [sheet](https://ui.ouroboros.bot/docs/sheet/) | `sheet` | `OuroSheet` | Not yet | Not yet |
@@ -47,7 +47,7 @@ Gap cells: 390.[^matrix]
 | [progress](https://ui.ouroboros.bot/docs/progress/) | `progress` | Not yet | Not yet | Not yet |
 | [skeleton](https://ui.ouroboros.bot/docs/skeleton/) | `skeleton` | Not yet | Not yet | Not yet |
 | [avatar](https://ui.ouroboros.bot/docs/avatar/) | `avatar` | Not yet | Not yet | Not yet |
-| [badge](https://ui.ouroboros.bot/docs/badge/) | `badge` | `OuroBadge` | Not yet | Not yet |
+| [badge](https://ui.ouroboros.bot/docs/badge/) | `badge` | `OuroBadge` | Not yet | `OuroBadge` |
 | [alert](https://ui.ouroboros.bot/docs/alert/) | `alert` | `OuroBanner` | Not yet | Not yet |
 | [separator](https://ui.ouroboros.bot/docs/separator/) | `separator` | Not yet | Not yet | Not yet |
 | [kbd](https://ui.ouroboros.bot/docs/kbd/) | `kbd` | Not yet | Not yet | Not yet |
@@ -61,8 +61,8 @@ Gap cells: 390.[^matrix]
 | [accordion](https://ui.ouroboros.bot/docs/accordion/) | `accordion` | Not yet | Not yet | Not yet |
 | [collapsible](https://ui.ouroboros.bot/docs/collapsible/) | `collapsible` | Not yet | Not yet | Not yet |
 | [show-more](https://ui.ouroboros.bot/docs/show-more/) | `show-more` | Not yet | Not yet | Not yet |
-| [card](https://ui.ouroboros.bot/docs/card/) | `card` | `OuroCard` | Not yet | Not yet |
-| [item](https://ui.ouroboros.bot/docs/item/) | `item` | `OuroItem` | Not yet | Not yet |
+| [card](https://ui.ouroboros.bot/docs/card/) | `card` | `OuroCard` | Not yet | `OuroCard` |
+| [item](https://ui.ouroboros.bot/docs/item/) | `item` | `OuroItem` | Not yet | `OuroItem` |
 | [item-group](https://ui.ouroboros.bot/docs/item-group/) | `item-group` | Not yet | Not yet | Not yet |
 | [empty](https://ui.ouroboros.bot/docs/empty/) | `empty` | `OuroEmptyState` | Not yet | Not yet |
 | [scroll-area](https://ui.ouroboros.bot/docs/scroll-area/) | `scroll-area` | Not yet | Not yet | Not yet |
@@ -147,11 +147,11 @@ Gap cells: 390.[^matrix]
 
 | Claim | Tier | Kind | Web | Apple | Android | Windows |
 |---|---|---|---|---|---|---|
-| `target.touch` | must | component | Partly | Covered | Not yet | Not yet |
-| `motion.reduced` | must | component | Partly | Covered | Not yet | Not yet |
-| `name.spoken` | must | component | Partly | Covered | Not yet | Not yet |
-| `text.reflows` | must | component | Not yet | Covered | Not yet | Not yet |
-| `contrast.text` | must | component | Partly | Covered | Not yet | Not yet |
+| `target.touch` | must | component | Partly | Covered | Not yet | Covered |
+| `motion.reduced` | must | component | Partly | Covered | Not yet | Covered |
+| `name.spoken` | must | component | Partly | Covered | Not yet | Covered |
+| `text.reflows` | must | component | Not yet | Covered | Not yet | Covered |
+| `contrast.text` | must | component | Partly | Covered | Not yet | Covered |
 | `announce.urgency` | should | component | Partly | Covered | Not yet | Not yet |
 | `toast.action-stays` | must | component | Covered | Covered | Not yet | Not yet |
 | `dismiss.reachable` | must | component | Covered | Covered | Not yet | Not yet |
@@ -165,10 +165,12 @@ Gap cells: 390.[^matrix]
 
 ## How it is made
 
-The rows come from data, and nothing in the matrix is typed by hand.[^generated] Web's components are the ones its registry lists. Apple's are the SwiftUI views in `Sources/OuroHX/Components` of the ouro-ui-apple release the [Platforms page](README.md) names, under web's name where Apple's differs. The claims are core's component and action claims, the same copies the [Apple page's parity tables](https://ui.ouroboros.bot/apple/#parity) use. A component claim counts as covered on a platform when core names that platform's test for it. An action claim counts as covered where it applies to a surface that runs there. Android and Windows have no kit yet, so their cells read "Not yet" until [a kit](contributing.md) exists.[^matrix]
+The rows come from data, and nothing in the matrix is typed by hand.[^generated] Web's components are the ones its registry lists. Apple's are the SwiftUI views in `Sources/OuroHX/Components` of the ouro-ui-apple release the [Platforms page](README.md) names, under web's name where Apple's differs. Windows's are the WinUI controls `Ouro<Name>` in `src/Ouro.UI.Windows` of the ouro-ui-windows release the table names, under web's name in kebab case.[^windows] The claims are core's component and action claims, the same copies the [Apple page's parity tables](https://ui.ouroboros.bot/apple/#parity) use. A component claim counts as covered on a platform when core names that platform's test for it. An action claim counts as covered where it applies to a surface that runs there. Android has no kit yet, so its cells read "Not yet" until [a kit](contributing.md) exists.[^matrix]
 
-The hourly Apple release check reads GitHub again and fails when this page falls behind: a new Apple component, or a kit that now exists.[^hourly]
+The hourly Apple release check holds the Apple components this page pins to GitHub, and fails when they differ. Each kit's newest release is written in when the Pages build runs, so a kit's new release does not fail that check.[^hourly][^pages-matrix]
 
 [^matrix]: scripts/parity-matrix.test.mjs verify:testExists(scripts/parity-matrix.test.mjs::the parity page shows what its data renders)
 [^generated]: scripts/parity-matrix.test.mjs verify:testExists(scripts/parity-matrix.test.mjs::the parity page shows what its data renders)
 [^hourly]: .github/workflows/apple-release.yml verify:fileLine(.github/workflows/apple-release.yml, /node scripts\/parity-matrix\.mjs --live/)
+[^pages-matrix]: .github/workflows/pages.yml verify:testExists(scripts/workflows.test.mjs::Pages writes the other kits' newest releases into the parity matrix before it builds, and keeps main's copy when GitHub cannot be read)
+[^windows]: scripts/parity-matrix.test.mjs verify:testExists(scripts/parity-matrix.test.mjs::Windows's components are the Ouro<Name> controls that derive from a XAML control, under web's name)

@@ -1,0 +1,1 @@
+- Changed: Accordion panels open with a CSS grid row instead of Base UI measuring them, so closed items skip style and layout work when they mount.

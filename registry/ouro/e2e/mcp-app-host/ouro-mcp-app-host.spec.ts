@@ -49,12 +49,12 @@ test.afterAll(() => {
 });
 
 /** Opens the host at a phone's width with the card the show_recipe tool returned, and waits for it to render. */
-async function openHost(page: Page, theme: "light" | "dark" = "light") {
+async function openHost(page: Page, theme: "light" | "dark" = "light", tool = "show_recipe") {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.exposeFunction("mcp", mcp);
   await page.route(HOST + "**", (route) => route.fulfill({ contentType: "text/html", body: readFileSync(join(repo, "test/mcp-app/host.html")) }));
   await page.route(PHOTO, (route) => route.fulfill({ contentType: "image/png", body: readFileSync(join(repo, "site/public/a2ui/v1/examples/charred-lemon-orzo.png")) }));
-  await page.goto(`${HOST}?theme=${theme}`);
+  await page.goto(`${HOST}?theme=${theme}&tool=${tool}`);
   const card = page.frameLocator("#view");
   await expect(card.getByRole("heading", { level: 1 })).toHaveText("Charred Lemon Orzo");
   await expect(card.getByRole("img", { name: "A shallow pan of golden orzo with peas and charred lemon halves" })).toHaveJSProperty("complete", true);
@@ -127,4 +127,21 @@ test("the card follows the host's dark theme", async ({ page }) => {
     await confirm.scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(shots, "confirm-dark.png") });
   }
+});
+
+test("a tool that returns Ouro's composed tree renders in the host, and its buttons call their own tools", async ({ page }) => {
+  const card = await openHost(page, "light", "show_recipe_tree");
+  await expect(card.locator('[data-ouro="composed-surface"]')).toBeVisible();
+  await card.getByRole("button", { name: "Add ingredients to list" }).click();
+  await expect(card.locator('[data-ouro="alert"]')).toContainText("Added 6 ingredients for 4 servings to your shopping list.");
+  await card.getByRole("button", { name: "Share recipe" }).click();
+  const confirm = card.getByRole("alertdialog", { name: "Share recipe?" });
+  await expect(confirm).toContainText("Charred Lemon Orzo");
+  await confirm.getByRole("button", { name: "Share recipe" }).click();
+  await expect(card.locator('[data-ouro="alert"]')).toContainText("Shared Charred Lemon Orzo with sam@example.com.");
+  expect(await toolCalls(page)).toEqual([
+    { name: "add_recipe_to_shopping_list", arguments: { recipe: "rcp_lemon_orzo", servings: 4 } },
+    { name: "share_recipe", arguments: { recipe: "rcp_lemon_orzo", recipeTitle: "Charred Lemon Orzo", with: "sam@example.com" } },
+  ]);
+  if (shots) await page.screenshot({ path: join(shots, "tree-light.png"), fullPage: true });
 });

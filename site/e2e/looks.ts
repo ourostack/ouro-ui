@@ -61,7 +61,6 @@ export function describe(arg: { selector: string; only?: number }): Described {
     return `${d[0]},${d[1]},${d[2]},${d[3]}`;
   };
   // Components whose full-radius shape is the squircle on purpose; dots, lights, thumbs and pills are not.
-  const SQUIRCLE_BY_DESIGN = new Set(["avatar", "avatar-group", "checkbox", "checklist", "skeleton", "media-tile"]);
   // A hover lift of up to 2px is layout settling, not a look: a translate-only transform that small reads as none.
   const lift = (t: string) => {
     const m = /^matrix\((.*)\)$/.exec(t);
@@ -89,11 +88,17 @@ export function describe(arg: { selector: string; only?: number }): Described {
     for (const el of document.querySelectorAll<HTMLElement>("body *")) {
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden") continue;
-      const radius = parseFloat(cs.borderTopLeftRadius);
-      if (!(radius > 0)) continue;
       const rect = el.getBoundingClientRect();
       const short = Math.min(rect.width, rect.height);
+      const raw = cs.borderTopLeftRadius;
+      const radius = raw.endsWith("%") ? (parseFloat(raw) / 100) * short : parseFloat(raw);
+      if (!(radius > 0)) continue;
       if (short < 4 || short > 120 || radius < short / 2 - 0.5) continue;
+      // A token radius larger than half the box (a checkbox's rounded-sm, a skeleton line's rounded-md) is a squircle by design,
+      // not a pill: only an exact half or an unclamped rounded-full counts as a round part.
+      if (radius > short / 2 + 0.5 && radius < 1000) continue;
+      // A token radius that happens to equal half the box (a 28px plate's rounded-md) is still a squircle by design.
+      if (/(^|\s)rounded-(sm|md|lg|xl|2xl|3xl)(\s|$)/.test(String(el.getAttribute("class") ?? "")) && !/rounded-full/.test(String(el.getAttribute("class") ?? ""))) continue;
       const long = Math.max(rect.width, rect.height);
       const circle = long - short <= 1;
       const thin = short <= 12;
@@ -103,7 +108,6 @@ export function describe(arg: { selector: string; only?: number }): Described {
       const shape = cs.getPropertyValue("corner-shape");
       if (!painted || !shape || shape === "superellipse(1)" || shape === "round") continue;
       const owner = el.closest<HTMLElement>("[data-ouro]")?.dataset["ouro"] ?? "page";
-      if (SQUIRCLE_BY_DESIGN.has(owner)) continue;
       escapes.push(`${owner}|${el.dataset["ouroPart"] ?? el.tagName.toLowerCase()}|${Math.round(rect.width)}x${Math.round(rect.height)}: round part (radius ${Math.round(radius)}px) is drawn ${shape}`);
     }
   }
@@ -222,6 +226,8 @@ export async function quiet(page: Page): Promise<void> {
   await page.addStyleTag({
     content: "*,*::before,*::after{-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important;transition:none!important;animation:none!important}",
   });
+  // A transition already running (a switch a page toggles on its own) ends on the next frame, not at once.
+  await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
 }
 
 // One route gets a minute. A browser call that never returns (WebKit's mouse.up, a screenshot of a page that

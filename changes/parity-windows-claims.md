@@ -1,0 +1,1 @@
+- Changed: the parity matrix counts a core claim as covered on Windows when the Windows kit's vendored component specs name it, since [its CI checks each of them on Windows](scripts/parity-matrix.test.mjs "verify:testExists(scripts/parity-matrix.test.mjs::a claim is covered where core names a platform's check, or where an action surface runs, and Not yet elsewhere)").

@@ -1,0 +1,1 @@
+- Changed: OuroMcpApp also draws a tool result whose `structuredContent.ouro` carries Ouro's composed tree, as core's `mcpAppTreeResult` returns it, with ComposedSurface once the tree passes core's `validateTree` against the catalog.

@@ -151,17 +151,27 @@
 
 /* The squircle where corner-shape is missing: a control's surface slot (data-ouro-surface) paints the fill, the ring and the state layer through squircle clip paths, so the element keeps its box, its outline and its shadow. */
 @supports not (corner-shape: squircle) {
-  [data-ouro-squircle] {
+  [data-ouro-squircle][class*="bg-(--ouro-bg)"] {
     background-color: transparent;
+  }
+  [data-ouro-squircle][class*="border-(--ouro-bd)"] {
     border-color: transparent;
+  }
+  [data-ouro-squircle] {
     --tw-ring-color: transparent;
   }
   [data-ouro-squircle]::before {
     display: none;
   }
+  [data-ouro-surface],
+  [data-ouro-avatar-surface] {
+    --ouro-sq-o: 0 calc(var(--ouro-sq-r)*1), calc(var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), calc(var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), 100% calc(var(--ouro-sq-r)*1), 100% calc(100% - var(--ouro-sq-r)*1), calc(100% - var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), calc(100% - var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), 0 calc(100% - var(--ouro-sq-r)*1);
+  }
+  [data-ouro-avatar-surface] {
+    clip-path: polygon(var(--ouro-sq-o));
+  }
   [data-ouro-surface] {
     --ouro-sq-m: max(0px, calc(var(--ouro-sq-r) - var(--ouro-sq-w)));
-    --ouro-sq-o: 0 calc(var(--ouro-sq-r)*1), calc(var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), calc(var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), 100% calc(var(--ouro-sq-r)*1), 100% calc(100% - var(--ouro-sq-r)*1), calc(100% - var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), calc(100% - var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), 0 calc(100% - var(--ouro-sq-r)*1);
     display: block;
     position: absolute;
     inset: 0;

@@ -220,8 +220,11 @@ test("the stage judges the screen only once the site menu over it has closed", a
   await openSlow(page);
   // A record of what the stage waits on, read back if it has not judged: the menu's mark on the root, its beats (the
   // 500 ms waits) as they are set and fire, and the frames drawn. Kept from the loaded page, whose root is the one marked.
+  // Whether the page's other timers fire too (how many, and the last), and the longest gap between frames, tell a page whose
+  // timers all stopped from a beat that alone never came: once, a beat set as the menu shut had not fired 14 s later while
+  // frames went on (ourostack/ouro-ui#1370).
   await page.evaluate(() => {
-    const record = { marks: [] as string[], beats: [] as string[], frames: 0, lastFrame: 0 };
+    const record = { marks: [] as string[], beats: [] as string[], frames: 0, lastFrame: 0, otherTimers: 0, lastOtherTimer: 0, longestGap: "" };
     (window as unknown as { __stageRecord: typeof record }).__stageRecord = record;
     const at = () => Math.round(performance.now());
     new MutationObserver(() => record.marks.push(`${at()}:${document.documentElement.hasAttribute("data-site-menu-open") ? "open" : "shut"}`)).observe(document.documentElement, {
@@ -230,7 +233,16 @@ test("the stage judges the screen only once the site menu over it has closed", a
     });
     const set = window.setTimeout;
     window.setTimeout = ((callback: () => void, ms?: number, ...rest: unknown[]) => {
-      if (ms !== 500 && ms !== 2000) return set(callback, ms, ...rest);
+      if (ms !== 500 && ms !== 2000)
+        return set(
+          (...args: unknown[]) => {
+            record.otherTimers += 1;
+            record.lastOtherTimer = at();
+            if (typeof callback === "function") (callback as (...args: unknown[]) => void)(...args);
+          },
+          ms,
+          ...rest,
+        );
       const id = set(() => {
         record.beats.push(`${at()}:fire${ms}#${id}`);
         callback();
@@ -248,9 +260,15 @@ test("the stage judges the screen only once the site menu over it has closed", a
       attributes: true,
       attributeFilter: ["data-paced"],
     });
+    let gap = 0;
     const count = () => {
+      const now = at();
+      if (record.lastFrame && now - record.lastFrame > gap) {
+        gap = now - record.lastFrame;
+        record.longestGap = `${gap}ms ending at ${now}`;
+      }
       record.frames += 1;
-      record.lastFrame = at();
+      record.lastFrame = now;
       requestAnimationFrame(count);
     };
     requestAnimationFrame(count);

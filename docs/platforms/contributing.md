@@ -33,7 +33,7 @@ Ouro AX's standard is a list of claims: rules a program can check from outside a
 ## From a pull request to a repository
 
 1. Build it in your own repository, in the open, with its history.
-2. Open a pull request to [ourostack/ouro-ui](https://github.com/ourostack/ouro-ui) that adds `docs/platforms/<platform>.md` with a link to your work and a line or two on where it stands. For Android or Windows, add your link to the page that is already there. Give each factual sentence a source, and run `pnpm claims:lint docs/platforms/<platform>.md` first ([claims](../guides/claims.md)).
+2. Open a pull request to [ourostack/ouro-ui](https://github.com/ourostack/ouro-ui) that adds `docs/platforms/<platform>.md` with a link to your work and a line or two on where it stands. For Android, add your link to the page that is already there. Windows has its kit now: its page says how to contribute to [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows) ([Windows](windows.md)). Give each factual sentence a source, and run `pnpm claims:lint docs/platforms/<platform>.md` first ([claims](../guides/claims.md)).
 3. If Ari likes it, we create `ouro-ui-<platform>`, import your work with its history, and make you a contributor. Then the version table on [the Platforms page](README.md) gets a new row.
 
 [^core]: https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#whats-inside verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/README.md#whats-inside)
