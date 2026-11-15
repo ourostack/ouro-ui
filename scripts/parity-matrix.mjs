@@ -60,7 +60,8 @@ export function webComponents(dir = join(root, COMPONENTS_DIR)) {
 /**
  * Apple's components from the files of Sources/OuroHX/Components: each Ouro<Name>.swift that declares the component itself,
  * a public struct Ouro<Name> (a view such as OuroButton, or a value a modifier shows, such as OuroToast) or a public
- * ouro<Name>( modifier (OuroSheet), under web's name. Files of support types (OuroTone's enum) are not components.
+ * ouro<Name>( modifier (OuroSheet), and each public Ouro<Name> view that a file declares beside another component (OuroSkeleton
+ * in OuroLoading.swift), under web's name. Files of support types (OuroTone's enum) are not components.
  * WebNames.swift's renamed aliases (`typealias OuroEmpty… = OuroEmptyState…`) say where the names differ.
  */
 export function appleComponents(files) {
@@ -70,9 +71,14 @@ export function appleComponents(files) {
   }
   const views = new Set();
   for (const [path, text] of Object.entries(files)) {
-    const name = /(?:^|\/)Ouro(\w+)\.swift$/.exec(path)?.[1];
-    if (!name) continue;
-    if (new RegExp(`public struct Ouro${name}\\b`).test(text) || new RegExp(`public func ouro${name}\\b`).test(text)) views.add(name);
+    const file = /(?:^|\/)Ouro(\w+)\.swift$/.exec(path)?.[1];
+    if (!file) continue;
+    if (new RegExp(`public struct Ouro${file}\\b`).test(text) || new RegExp(`public func ouro${file}\\b`).test(text)) views.add(file);
+    // A file may declare more than one component (OuroLoading.swift holds Skeleton, Spinner and Progress). A view named after its
+    // file (OuroItemGroup in OuroItem.swift) is a part of that component, not a component of its own.
+    for (const [, name] of text.matchAll(/public struct Ouro(\w+)\b[^{]*:\s*(?:some\s+)?View\b/g)) {
+      if (!name.startsWith(file)) views.add(name);
+    }
   }
   return [...views].sort().map((name) => ({ name: `Ouro${name}`, web: webName.get(name) ?? kebab(name) }));
 }

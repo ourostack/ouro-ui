@@ -43,6 +43,18 @@ test("Apple's components are the files that declare the component, under web's n
   ]);
 });
 
+test("Apple's components include the views a file declares beside another, but not a part named after its file", () => {
+  const files = {
+    "Sources/OuroHX/Components/OuroLoading.swift": "public struct OuroSkeleton: View {}\npublic enum OuroSpinnerSize: String {}\npublic struct OuroSpinner: View {}\npublic struct OuroProgress: View {}",
+    "Sources/OuroHX/Components/OuroItem.swift": "public struct OuroItem<Media: View, Actions: View>: View {}\npublic struct OuroItemGroup<Content: View>: View {}",
+    "Sources/OuroHX/Components/OuroChoice.swift": "public struct OuroSegment<Value: Hashable>: Identifiable {}\npublic struct OuroSegmentedControl<Value: Hashable>: View {}",
+  };
+  assert.deepEqual(
+    appleComponents(files).map((component) => component.web),
+    ["item", "progress", "segmented-control", "skeleton", "spinner"],
+  );
+});
+
 test("Windows's components are the Ouro<Name> controls that derive from a XAML control, under web's name", () => {
   const files = {
     "src/Ouro.UI.Windows/OuroButton.cs": "public sealed partial class OuroButton : Button\n{\n}",

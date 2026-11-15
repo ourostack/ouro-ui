@@ -1,0 +1,1 @@
+- Changed: the Apple pages and the Platforms pages name Apple's release that adds the rest of its component set.

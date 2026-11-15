@@ -219,13 +219,13 @@ export default function AppleHome(): JSX.Element {
       <Container className="apple-soon">
         <p className="site-eyebrow">Where it stands</p>
         <p className="apple-soon-line">
-          {claim("Ouro UI for Apple 0.6.0 has eight components, the foundations, the X-ray, Ouro Feel, Ouro Reins and OuroA2UI (agent-composed UI). It is pre-1.0.", {
-            source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box" },
+          {claim("Ouro UI for Apple 0.7.0 has eighteen components, the foundations, the X-ray, Ouro Feel, Ouro Reins and OuroA2UI (agent-composed UI). It is pre-1.0.", {
+            source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/README.md#whats-in-the-box" },
             verify: [
-              { equals: "site/src/apple/kit.json#release", is: "0.6.0" },
-              { count: "site/src/apple/kit.json#components", is: 8 },
-              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0" },
-              { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box" },
+              { equals: "site/src/apple/kit.json#release", is: "0.7.0" },
+              { count: "site/src/apple/kit.json#components", is: 18 },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.7.0" },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/README.md#whats-in-the-box" },
             ],
           })}
         </p>
