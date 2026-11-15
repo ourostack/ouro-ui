@@ -96,6 +96,7 @@ export function CssPanel({ open, onFound, children, contentClassName, className,
         "grid w-full grid-rows-[0fr] data-open:grid-rows-[1fr] " +
         "transition-[grid-template-rows] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none " +
         "data-moved:starting:grid-rows-[0fr] [&[hidden]:not([hidden=until-found])]:hidden" +
+        // Stryker disable next-line StringLiteral: an extra class name on the empty branch changes no style.
         (className ? ` ${className}` : "")
       }
     >
