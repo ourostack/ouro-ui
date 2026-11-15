@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type 
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
-import { devThrow } from "@/registry/ouro/lib/ouro/dev";
+import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   groupClass,
@@ -187,6 +187,29 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     const checked = group.querySelector<HTMLElement>('[data-ouro-segment][aria-checked="true"]');
     if (checked) checked.focus();
   }, [selected, labelId]);
+  // Each label shows whole; when the control has less room than its labels need, they spill out of it, and development says so.
+  const spillKey = useRef({});
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production") {
+      const group = document.querySelector<HTMLElement>(`[aria-labelledby="${labelId}"]`)!;
+      const observer = new ResizeObserver(() => {
+        // The group grows to its labels' width; the component's root is the room it has.
+        const [need, room] = [group.offsetWidth, group.parentElement!.clientWidth];
+        if (need <= room) return;
+        const longest = items.reduce((a, b) => (b.label.length > a.label.length ? b : a));
+        devWarn(
+          "SegmentedControl",
+          `its labels need ${need}px and it has ${room}px, so they spill out of it`,
+          `{ value: "${longest.value}", label: "${longest.label.split(" ")[0]}" }`,
+          spillKey.current,
+        );
+      });
+      observer.observe(group);
+      observer.observe(group.parentElement!);
+      return () => observer.disconnect();
+    }
+  }, [labelId, items]);
   const thumbStyle = {
     "--ouro-segment-count": items.length,
     "--ouro-segment-index": Math.max(index, 0),
