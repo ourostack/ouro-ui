@@ -113,7 +113,7 @@ Each part checks that it sits inside `<DialogRoot>`: outside it, a part throws i
 | --- | --- |
 | `DialogBackdrop` | The dimming layer behind the dialog. On iOS it stays anchored to the top of the screen on a scrolled page. A `ref` reaches the backdrop element. |
 | `DialogClose` | Closes the dialog. Pass your button as `render={<Button>Done</Button>}`. |
-| `DialogContent` | The dialog's body. It scrolls when the dialog is taller than the screen, and while it overflows it is a tab stop, so a keyboard can scroll it. |
+| `DialogContent` | The dialog's body. It scrolls when the dialog is taller than the screen, and while it overflows it is a tab stop, so a keyboard can scroll it. Its focus ring is drawn over the content, so a header that sticks to the top never hides an edge of it. |
 | `DialogDescription` | A line under the title that describes the dialog. |
 | `DialogFooter` | The actions row. A row at the end on wider screens; on phones the actions stack full width. Put the primary action last, so it sits at the bottom on phones, nearest the thumb. |
 | `DialogPopup` | The dialog panel. It scales up from 0.96 and fades in over 300ms, and scales and fades out in 200ms; reduced motion keeps only the fade. |
