@@ -498,7 +498,7 @@ describe("Card with href, zoomMedia and revealDescription", () => {
       revealDescription:
         '[ouro-ui] Card: revealDescription needs href, a title and a description. Fix: <Card href="/path" title="…" description="…" revealDescription>.',
     };
-    expect(warn.mock.calls.map(([message]) => message)).toEqual(warned.map((name) => messages[name]));
+    expect(warn.mock.calls.map(([message]: unknown[]) => message)).toEqual(warned.map((name) => messages[name]));
   });
 });
 
