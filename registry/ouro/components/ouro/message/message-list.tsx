@@ -342,8 +342,8 @@ const OVERSCAN = 800;
 /** How much of the conversation the server HTML draws, in pixels: from its end, or around `initialAnchor`. */
 const FIRST_VIEW = 1600;
 /**
- * The height of the last view a list measured, which a list that opens in the browser takes for its own (no more than the
- * window's): the conversations an app opens one after another sit in the same pane. Before any, the window's.
+ * The height of the last view a list measured, which a list that opens in the browser takes for its own, up to the window's:
+ * the conversations an app opens one after another sit in the same pane. Before any, the window's.
  */
 let lastView: number | null = null;
 // Stryker disable next-line ArrowFunction: the store never changes, so nothing calls this.

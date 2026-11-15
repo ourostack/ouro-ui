@@ -1,4 +1,5 @@
 import { Fragment, createRef, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -701,18 +702,23 @@ describe("MessageList windowing", () => {
       mounted.push(host);
       const root = createRoot(host);
       roots.push(root);
-      await act(async () =>
-        root.render(
-          <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
-            {Array.from({ length: 300 }, (_, id) => (
-              <Counted key={id} id={id} />
-            ))}
-          </MessageList>,
-        ),
-      );
+      let opened = new Set<number>();
+      await act(async () => {
+        // The commit that opens the list, with the renders its layout effects ask for, before any frame.
+        flushSync(() =>
+          root.render(
+            <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+              {Array.from({ length: 300 }, (_, id) => (
+                <Counted key={id} id={id} />
+              ))}
+            </MessageList>,
+          ),
+        );
+        opened = new Set(renders);
+      });
       // A row is 80px and the gap 16px: the commit that opens the list draws what fills the window, and no more.
-      expect(renders.size).toBeLessThanOrEqual(Math.ceil(window.innerHeight / 96) + 1);
-      expect(renders.has(299)).toBe(true);
+      expect(opened.size).toBeLessThanOrEqual(Math.ceil(window.innerHeight / 96) + 1);
+      expect(opened.has(299)).toBe(true);
       const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
       await settle(scroller);
       // Then the overscan: 800px above the view.
