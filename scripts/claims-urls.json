@@ -339,10 +339,6 @@
     "status": 200,
     "checked": "2026-11-04"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md": {
-    "status": 200,
-    "checked": "2026-11-04"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md#how-each-claim-is-checked": {
     "status": 200,
     "checked": "2026-11-14"

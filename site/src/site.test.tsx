@@ -146,7 +146,7 @@ describe("home page", () => {
     expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Agent benchmark", "/docs/agent-interfaces/"],
       ["Model reviews", "/docs/model-reviews/"],
-      ["No Android kit yet", "/docs/platforms/"],
+      ["Android: emulators only", "/docs/platforms/"],
     ]);
     // On a phone, a lede no taller than the old one, so the porthole still starts on the first screen, with the same two links.
     const phone = document.querySelector("[data-site-hero-phone]")!;
