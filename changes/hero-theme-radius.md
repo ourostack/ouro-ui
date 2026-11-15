@@ -1,1 +1,1 @@
-- Hero: the picture frame takes its corners from the theme (`rounded-xl`) instead of a fixed 24px, so it follows the squircle scale and passes `hand-drawn-corner`.
+- Hero: the picture frame takes its corners from the theme (`rounded-xl`) instead of a fixed radius, so it follows the squircle scale and passes `hand-drawn-corner`.
