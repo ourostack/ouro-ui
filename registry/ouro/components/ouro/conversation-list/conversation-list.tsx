@@ -3,6 +3,7 @@
 import {
   memo,
   useCallback,
+  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -836,12 +837,26 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     if (menuLoaded) flushSync(() => open(menuLoaded!));
     else void loadMenu().then(open);
   };
+  // Where focus went outside the open menu: a chosen item that moved it to a field. Menu puts it back there as it closes.
+  const movedAway = useRef<Element | null>(null);
+  const menuOpen = menu?.open === true;
+  useEffect(() => {
+    if (!menuOpen) return;
+    movedAway.current = null;
+    const away = (event: FocusEvent) => {
+      const target = event.target as Element;
+      if (target.closest('[data-ouro="menu-positioner"]') === null) movedAway.current = target;
+    };
+    document.addEventListener("focusin", away);
+    return () => document.removeEventListener("focusin", away);
+  }, [menuOpen]);
   const closeMenu = () => {
     const key = menu!.key;
     setMenu((previous) => previous && { ...previous, open: false });
     // Back to the row once Menu has finished closing, unless the chosen item moved focus elsewhere; drawn again first if it
     // was scrolled out of the window.
     setTimeout(() => {
+      if (movedAway.current?.isConnected) return;
       const active = document.activeElement as Element;
       if (active === document.body || active.closest('[data-ouro="menu-positioner"]') !== null) focusKey(key);
     });
@@ -893,13 +908,15 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   useLayoutEffect(() => {
     // Stryker disable next-line ConditionalExpression: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
     if (withMenus) void loadMenu();
+    // Stryker disable next-line ArrayDeclaration: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
   }, [withMenus]);
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
     // Shift+F10 and the Menu key open a row's menu beside it, as a right-click does at the pointer.
     if ((event.key === "F10" && event.shiftKey) || event.key === "ContextMenu") {
-      const item = itemOf(key);
-      if (item === undefined || !hasMenu(item)) return;
+      // A row's own key names an item drawn from the items now.
+      const item = itemOf(key)!;
+      if (!hasMenu(item)) return;
       event.preventDefault();
       return openMenu(item, key, frozen(event.currentTarget));
     }

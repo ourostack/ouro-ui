@@ -2,7 +2,7 @@ import { useState, type MouseEvent, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { ConversationList, type ConversationListItem, type ConversationListProps } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
@@ -914,11 +914,109 @@ describe("ConversationList row menu", () => {
     await expect.poll(() => document.activeElement).toBe(row("Ana Lind"));
   });
 
-  it("leaves the browser's own menu to a row without one", async () => {
+  it("leaves the browser's own menu to a row without one, one with an empty menu, and the list around the rows", async () => {
+    const items = [...withMenu(() => {}), { id: "empty", title: "Empty menu", menu: [] }];
+    await render(<ConversationList label="Chats" items={items} onSelect={() => {}} />);
+    for (const target of [row("Trail crew"), row("Empty menu"), row("Ana Lind").closest("ul")!]) {
+      const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+      await act(async () => target.dispatchEvent(event));
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(page.getByRole("menu").query()).toBeNull();
+    // Only a row with a menu turns off the system's own long-press callout, so a finger resting on it opens the list's menu alone.
+    expect(row("Ana Lind").classList).toContain("[-webkit-touch-callout:none]");
+    expect(row("Trail crew").classList).not.toContain("[-webkit-touch-callout:none]");
+    expect(row("Empty menu").classList).not.toContain("[-webkit-touch-callout:none]");
+  });
+
+  // Four rows without a menu above one with, so a menu placed nowhere in particular is not where the row is.
+  const lower = (): ConversationListItem[] => [...["Mo", "Kai", "Lee", "Sam"].map((title) => ({ id: title, title })), ...withMenu(() => {})];
+  // How far a menu's box is from a point or a box, in px: 0 when they touch.
+  const apart = (menu: DOMRect, to: { left: number; right: number; top: number; bottom: number }) =>
+    Math.hypot(Math.max(menu.left - to.right, to.left - menu.right, 0), Math.max(menu.top - to.bottom, to.top - menu.bottom, 0));
+
+  it("opens a row's menu at the pointer, in place of the browser's own", async () => {
+    await render(<ConversationList label="Chats" items={lower()} onSelect={() => {}} />);
+    const box = row("Ana Lind").getBoundingClientRect();
+    const [x, y] = [box.left + 120, box.top + 12];
+    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: x, clientY: y });
+    await act(async () => row("Ana Lind").dispatchEvent(event));
+    expect(event.defaultPrevented).toBe(true);
+    const menu = page.getByRole("menu", { name: "Ana Lind" });
+    await expect.element(menu).toBeVisible();
+    await expect.poll(() => apart(menu.element().getBoundingClientRect(), { left: x, right: x, top: y, bottom: y })).toBeLessThan(16);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    // With Menu's code loaded, the next opens within the event, before the browser draws a frame.
+    row("Ana Lind").dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+    expect(document.querySelector('[role="menu"]')).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    // A finger resting on the row opens it where the finger is.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      row("Ana Lind").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", clientX: x, clientY: y }));
+      await act(async () => void vi.advanceTimersByTime(600));
+    } finally {
+      vi.useRealTimers();
+    }
+    await expect.element(menu).toBeVisible();
+    await expect.poll(() => apart(menu.element().getBoundingClientRect(), { left: x, right: x, top: y, bottom: y })).toBeLessThan(16);
+  });
+
+  it("puts focus back on the row when a click on nothing closes its menu", async () => {
+    const [width, height] = [innerWidth, innerHeight];
+    await page.viewport(1280, 800);
+    onTestFinished(() => page.viewport(width, height));
     await render(<ConversationList label="Chats" items={withMenu(() => {})} onSelect={() => {}} />);
-    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
-    row("Trail crew").dispatchEvent(event);
-    expect(event.defaultPrevented).toBe(false);
+    await act(async () => row("Ana Lind").focus());
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+    await expect.element(page.getByRole("menu", { name: "Ana Lind" })).toBeVisible();
+    // The page's empty middle, right of the list.
+    await userEvent.click(document.body, { position: { x: 900, y: 400 } });
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(row("Ana Lind"));
+  });
+
+  it("leaves focus where a chosen entry moved it", async () => {
+    const items: ConversationListItem[] = [{ id: "ana", title: "Ana Lind", menu: [{ label: "Write a note", onClick: () => document.querySelector<HTMLInputElement>("#note")!.focus() }] }];
+    await render(
+      <>
+        <input id="note" aria-label="Note" />
+        <ConversationList label="Chats" items={items} onSelect={() => {}} />
+      </>,
+    );
+    await userEvent.click(row("Ana Lind"), { button: "right" });
+    await userEvent.click(page.getByRole("menuitem", { name: "Write a note" }));
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    // After the list's own turn to put focus back, which it leaves.
+    await act(() => new Promise((resolve) => setTimeout(resolve)));
+    expect(document.activeElement?.id).toBe("note");
+  });
+
+  it("opens a row's menu beside it from the row's own Shift+F10 or Menu key, with no context menu event from the browser, and from no other key or row", async () => {
+    // Wide enough for a menu beside the row; below 640px it is a bottom sheet.
+    const [width, height] = [innerWidth, innerHeight];
+    await page.viewport(1280, 800);
+    onTestFinished(() => page.viewport(width, height));
+    await render(<ConversationList label="Chats" items={lower()} onSelect={() => {}} />);
+    // Keys sent by the page, which the browser follows with no context menu event of its own: only the row's key handling opens a menu.
+    const press = async (name: string, init: KeyboardEventInit) => {
+      const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+      await act(async () => row(name).dispatchEvent(event));
+      return event.defaultPrevented;
+    };
+    const menu = page.getByRole("menu", { name: "Ana Lind" });
+    for (const keys of [{ key: "F10", shiftKey: true }, { key: "ContextMenu" }]) {
+      expect(await press("Ana Lind", keys)).toBe(true);
+      await expect.element(menu).toBeVisible();
+      await expect.poll(() => apart(menu.element().getBoundingClientRect(), row("Ana Lind").getBoundingClientRect())).toBeLessThan(16);
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    }
+    expect(await press("Ana Lind", { key: "F10" })).toBe(false);
+    expect(await press("Ana Lind", { key: "a", shiftKey: true })).toBe(false);
+    expect(await press("Trail crew", { key: "F10", shiftKey: true })).toBe(false);
     expect(page.getByRole("menu").query()).toBeNull();
   });
 
@@ -952,10 +1050,17 @@ describe("ConversationList row menu", () => {
       await rest(300);
       pointer("pointerup", row("Ana Lind"), "touch");
       await rest(600);
-      expect(menuShown()).toBe(false);
-      // A finger that rests, drifting a little, opens it; the browser's own context menu event for the press leaves one menu.
+      // A second press, by a mouse, ends the finger's; a finger on the list around its rows opens nothing.
       pointer("pointerdown", row("Ana Lind"), "touch");
-      pointer("pointermove", row("Ana Lind"), "touch", 5);
+      await rest(300);
+      pointer("pointerdown", row("Ana Lind"), "mouse");
+      await rest(600);
+      pointer("pointerdown", row("Ana Lind").closest("ul")!, "touch");
+      await rest(600);
+      expect(menuShown()).toBe(false);
+      // A finger that rests, drifting no more than the slop, opens it; the browser's own context menu event for the press leaves one menu.
+      pointer("pointerdown", row("Ana Lind"), "touch");
+      pointer("pointermove", row("Ana Lind"), "touch", 10);
       await rest(600);
       expect(menuShown()).toBe(true);
       row("Ana Lind").dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
@@ -963,11 +1068,15 @@ describe("ConversationList row menu", () => {
     } finally {
       vi.useRealTimers();
     }
-    // The click that ends the press is the menu's.
-    await act(async () => row("Ana Lind").click());
+    // The click that ends the press is the menu's, and only that click.
+    const ending = new MouseEvent("click", { bubbles: true, cancelable: true });
+    await act(async () => row("Ana Lind").dispatchEvent(ending));
+    expect(ending.defaultPrevented).toBe(true);
     expect(selected).toEqual([]);
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    await act(async () => row("Ana Lind").click());
+    expect(selected).toEqual(["ana"]);
     // A press whose menu closed with no click after it leaves the next tap to select, as does a tap after the menu's click.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
@@ -982,7 +1091,7 @@ describe("ConversationList row menu", () => {
     pointer("pointerdown", row("Ana Lind"), "touch");
     pointer("pointerup", row("Ana Lind"), "touch");
     await act(async () => row("Ana Lind").click());
-    expect(selected).toEqual(["ana"]);
+    expect(selected).toEqual(["ana", "ana"]);
   });
 
   it.each([
