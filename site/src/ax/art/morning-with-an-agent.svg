@@ -76,8 +76,8 @@
   <circle cx="846" cy="288" r="4.2" fill="var(--duo-eye, #2ec4b6)" stroke="none" />
   <path d="M826 282 L804 286" stroke-width="2.4" />
   <path d="M798 280 C792 280 790 292 798 293 C803 294 806 290 805 286 C805 282 803 280 798 280 Z" stroke-width="2" />
-  <path d="M866 282 C876 286 880 291 878 296" stroke-width="2.4" />
-  <circle cx="877" cy="298" r="4.5" stroke-width="2" />
+  <path d="M866 282 C875 285 878 287 877 290" stroke-width="2.4" />
+  <circle cx="877" cy="294.5" r="4.5" stroke-width="2" />
   <!-- The agent's terminal: a slim panel of command lines -->
   <rect x="694" y="214" width="92" height="80" rx="5" stroke-width="2" />
   <path d="M694 228 H786" stroke-width="1" opacity="0.5" />
