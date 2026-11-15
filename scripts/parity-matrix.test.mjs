@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { appleComponents, claimMatrix, componentMatrix, gather, PAGE, readData, renderMatrix, renderPage } from "./parity-matrix.mjs";
+import { appleComponents, claimMatrix, componentMatrix, gather, PAGE, readData, renderMatrix, renderPage, windowsComponents } from "./parity-matrix.mjs";
 
 const real = (path) => readFileSync(path, "utf8");
 
@@ -36,6 +36,23 @@ test("Apple's components are the files that declare the component, under web's n
   ]);
 });
 
+test("Windows's components are the Ouro<Name> controls that derive from a XAML control, under web's name", () => {
+  const files = {
+    "src/Ouro.UI.Windows/OuroButton.cs": "public sealed partial class OuroButton : Button\n{\n}",
+    "src/Ouro.UI.Windows/OuroBadge.cs": "public sealed partial class OuroBadge : Control\n{\n}\npublic sealed partial class OuroBadgeAutomationPeer(OuroBadge owner) : FrameworkElementAutomationPeer(owner)\n{\n}",
+    "src/Ouro.UI.Windows/OuroPaint.cs": "public enum OuroTone { Primary }\npublic static class OuroPaint\n{\n}",
+    "src/Ouro.UI.Windows/OuroPerson.cs": "public static class OuroPerson\n{\n}",
+    "src/Ouro.UI.Windows/OuroItem.cs": "public sealed partial class OuroItem : Control\n{\n}",
+    "src/Ouro.UI.Windows/OuroCard.cs": "public sealed partial class OuroCard : ContentControl\n{\n}",
+  };
+  assert.deepEqual(windowsComponents(files), [
+    { name: "OuroBadge", web: "badge" },
+    { name: "OuroButton", web: "button" },
+    { name: "OuroCard", web: "card" },
+    { name: "OuroItem", web: "item" },
+  ]);
+});
+
 test("every platform gets a cell for every component, and a component only one platform has gets a row", () => {
   const web = { names: ["button", "toaster", "dialog"], folders: { button: "button", toast: "toaster", dialog: "dialog" } };
   const platforms = { apple: { components: [{ name: "OuroButton", web: "button" }, { name: "OuroToast", web: "toast" }, { name: "OuroDuoHinge", web: "duo-hinge" }] }, android: { components: [] } };
@@ -62,7 +79,7 @@ test("a claim is covered where core names a platform's check, or where an action
   assert.match(page, /Not yet: \[o\/android\]/);
 });
 
-test("gather reads Apple's components at the recorded commit and notes a kit whose repository does not exist", async () => {
+test("gather reads Apple's components at the recorded commit, and Windows's at its newest release's commit, and notes a kit whose repository does not exist", async () => {
   const fetch = async (url) => {
     const body = (value, status = 200) => ({ ok: status === 200, status, json: async () => value, text: async () => value });
     if (url.includes("/git/trees/abc")) return body({ tree: [{ path: "Sources/OuroHX/Components/OuroButton.swift" }, { path: "Sources/OuroHX/Color/OuroColor.swift" }] });
@@ -70,10 +87,18 @@ test("gather reads Apple's components at the recorded commit and notes a kit who
     if (url.endsWith("ouro-ui-android")) return body({}, 404);
     if (url.endsWith("ouro-ui-windows")) return body({ name: "ouro-ui-windows" });
     if (url.endsWith("ouro-ui-windows/releases/latest")) return body({ tag_name: "v0.1.0" });
+    if (url.endsWith("ouro-ui-windows/commits/v0.1.0")) return body({ sha: "def" });
+    if (url.includes("/git/trees/def")) return body({ tree: [{ path: "src/Ouro.UI.Windows/OuroBadge.cs" }, { path: "src/Ouro.UI.Windows/OuroPaint.cs" }, { path: "tests/Ouro.Tests/RuntimeTests.cs" }] });
+    if (url.endsWith("/def/src/Ouro.UI.Windows/OuroBadge.cs")) return body("public sealed partial class OuroBadge : Control\n{\n}");
+    if (url.endsWith("/def/src/Ouro.UI.Windows/OuroPaint.cs")) return body("public static class OuroPaint\n{\n}");
     return body(null, 500);
   };
   const facts = await gather({ fetch, apple: { tag: "v0.5.1", commit: "abc" } });
   assert.deepEqual(facts.apple.components, [{ name: "OuroButton", web: "button" }]);
   assert.equal(facts.android.tag, null);
+  assert.equal(facts.android.commit, null);
+  assert.deepEqual(facts.android.components, []);
   assert.equal(facts.windows.tag, "v0.1.0");
+  assert.equal(facts.windows.commit, "def");
+  assert.deepEqual(facts.windows.components, [{ name: "OuroBadge", web: "badge" }]);
 });
