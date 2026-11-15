@@ -60,13 +60,16 @@ const median = (values) => {
   return sorted.length === 0 ? 1 : sorted[Math.floor(sorted.length / 2)];
 };
 
+/** How far (ms) above the lightest shard a shard may be and still take a key for its group's sake: spreading groups never costs more total weight than this. */
+const groupSlack = 30_000;
+
 /**
  * Splits `keys` into `count` shards whose weights add up as evenly as the longest-first greedy split
  * gets them: heaviest first (ties by key), each to the lightest shard so far (ties to the lowest
  * index). The same keys and times give the same shards on every machine.
  *
  * With `groupOf`, each group's keys are spread as evenly as the shards allow too: a key goes to the
- * shard with the least of its group so far, then the least in all (ties to the lowest index). Vitest
+ * shard with the least of its group so far among those within `groupSlack` of the lightest, then the least in all (ties to the lowest index). Vitest
  * runs its projects side by side, each in its own browser, so a shard takes about as long as its
  * heaviest project, not the sum of them: a shard with twice another's WebKit files ran longest (run
  * 39773408723), and one with the heaviest touch files ran them slowest (run 39776130394).
@@ -79,7 +82,9 @@ export function balance(keys, count, timings, groupOf) {
   for (const key of ordered) {
     const group = groupOf?.(key);
     const of = (shard) => shard.groups.get(group) ?? 0;
-    const lightest = shards.reduce((best, shard) => (of(shard) < of(best) || (of(shard) === of(best) && shard.weight < best.weight) ? shard : best), shards[0]);
+    const floor = Math.min(...shards.map((shard) => shard.weight));
+    const near = groupOf ? shards.filter((shard) => shard.weight <= floor + groupSlack) : shards;
+    const lightest = near.reduce((best, shard) => (of(shard) < of(best) || (of(shard) === of(best) && shard.weight < best.weight) ? shard : best), near[0]);
     lightest.keys.push(key);
     lightest.weight += weightOf(key);
     lightest.groups.set(group, of(lightest) + weightOf(key));
