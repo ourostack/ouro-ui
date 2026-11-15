@@ -32,7 +32,7 @@ A cell is `{ value, note, source, measuredAt }`.[^cell] A value of `null` means 
 | HX use | `full`, `partial`, `none` or `n/a` | Web: the installed Ouro components (folders of `components/ouro/*/*.tsx` in the repository tree) and the files that import them (code search). `full` is 20 or more[^web-full] components in use, `partial` is some use, and `none` is the absence of both. Apple: the files using an Ouro HX component (`OuroButton`, `OuroToast`, `OuroBanner`, `OuroSheet`, `OuroEmptyState`) and the files that use `OuroHX` in any way. `full` is 5 or more[^apple-full] component files, `partial` is use of `OuroHX` without that, and `none` is neither. `n/a` is for a CLI, a server or a tool that has only a command line or a server, with the reason. |
 | AX kit | `yes`, `no` or `n/a` | `yes` when code search finds `defineCommand`, `bindAx` or `ax-mcp` outside the kit's own copy, tests and fixtures, when the product vendors the kit's files, or (Apple) when a file imports `OuroAX`. |
 | Actions on the one-action model | a count | The actions the product declares once and generates with ouro-ui-core's `ouro-actions`: every `actions.json` in its repository whose `generator` is `ouro-actions`, each action counted once per set.[^action-model] Test fixtures and benchmark copies are left out. `0` when there is no such file; `null` when the file list GitHub returned was cut short and held none.[^action-none] |
-| X-ray | claims holding, and `must` claims holding | The latest `ax-xray` report among the product's CI runs: the latest successful runs of the workflows named in the config, their artifacts, `report.json`, matched by the app's name. The cell links the run and gives the report's own date. Only Apple apps have reports. A claim set without `must` claims conforms trivially. |
+| X-ray | claims holding, and `must` claims holding | The latest `ax-xray` report among the product's CI runs: the latest successful runs of the workflows named in the config, their artifacts, `report.json`, matched by the app's name. The cell links the run and gives the report's own date. Apple apps' reports come from their App Intents X-ray, Spoonjoy web's from its MCP X-ray (`mcp-xray.yml`). A claim set without `must` claims conforms trivially. |
 | Give-back | merged pull requests | Merged pull requests into `ourostack/ouro-ui`, `ouro-ui-core` and `ouro-ui-apple` whose title, text or branch names the product (the terms are in the config; whole words only), leaving out release and "Prepare main" pull requests. It is a text heuristic, and a lower bound: a pull request that came from a product's lane without naming it is not counted, and a mention is not authorship. Ouro UI itself is `n/a`. |
 | Tracking issue | the issues for the product's work items | The `adoption` issues whose work item lists the product, with their state. A product that lacks a work item is shown as not having an issue yet. |
 | Confirmed | the conditions below, together | The list that follows. |
@@ -57,7 +57,7 @@ The steps come from the program issue's table. Ouro UI's own numbers are: the la
 ## What cannot be measured here
 
 - A product in a private repository: it is listed, with its cells "not measured yet".
-- A web product's X-ray: its CI does not run one yet.
+- A web product's X-ray, other than Spoonjoy web's, which the config names (`ledger.config.json`).
 - A pin where the product installs Ouro components as source without recording the tag (mendelow.me).
 - Code search reads a repository's default branch and can lag a push.
 
