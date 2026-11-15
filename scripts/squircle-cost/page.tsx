@@ -7,10 +7,14 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
+import { Message } from "@/registry/ouro/components/ouro/message/message";
+import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import fivePoint from "./five-point.css?raw";
 
 // The page the squircle cost probe (run.mjs, harness.swift) measures: a chat, typed into while messages arrive
-// (`?chat`), and a field of squircle controls whose surroundings repaint every frame (`?bench`). `&off` hides the
-// squircle surfaces and their layers, for the same page drawn without them.
+// (`?chat`), a field of squircle controls whose surroundings repaint every frame (`?bench`), and a long conversation to
+// scroll (`?scroll`). `&off` hides the squircle surfaces, for the same page drawn without them, and `&ref` draws them
+// as Ouro did before #1385 (five-point.css).
 const query = new URLSearchParams(location.search);
 const names = [
   "Ana Lind",
@@ -133,6 +137,32 @@ function Chat() {
   );
 }
 
+function Scroll() {
+  return (
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        padding: 8,
+      }}
+    >
+      <MessageList label="Conversation" className="flex-1">
+        {Array.from({ length: 600 }, (_, i) => (
+          <Message
+            key={i}
+            role={i % 3 === 0 ? "user" : "assistant"}
+            name={names[i % names.length]!}
+            footer={<Badge>Seen</Badge>}
+          >
+            {`Message ${i}, a line of chat that runs on a bit so the bubble has some width to it.`}
+          </Message>
+        ))}
+      </MessageList>
+    </div>
+  );
+}
+
 function Bench() {
   return (
     <div
@@ -154,12 +184,16 @@ function Bench() {
   );
 }
 
-if (query.has("off")) {
+const probeStyle = query.has("off")
+  ? "[data-ouro-surface]{display:none!important}[data-ouro-squircle],[data-ouro-avatar-surface]{will-change:auto!important;clip-path:none!important}"
+  : query.has("ref")
+    ? fivePoint
+    : "";
+if (probeStyle) {
   const style = document.createElement("style");
-  style.textContent =
-    "[data-ouro-surface]{display:none!important}[data-ouro-squircle],[data-ouro-avatar-surface]{will-change:auto!important;clip-path:none!important}";
+  style.textContent = probeStyle;
   document.head.append(style);
 }
 createRoot(document.getElementById("root")!).render(
-  query.has("bench") ? <Bench /> : <Chat />,
+  query.has("bench") ? <Bench /> : query.has("scroll") ? <Scroll /> : <Chat />,
 );

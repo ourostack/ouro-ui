@@ -1,1 +1,0 @@
-- Fixed: in Safari and WKWebView, typing beside squircle controls no longer redraws their edges: [each control draws on a layer of its own](registry/ouro/theme/squircle-surface.test.tsx "verify:fileLine(registry/ouro/theme/squircle-surface.test.tsx, /draws each squircle control on a layer of its own/)"), which keeps its clip paths drawn.
