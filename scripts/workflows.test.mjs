@@ -2006,7 +2006,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   for (const [run, result] of [["true", "skipped"], ["false", "success"], ["false", "failure"]]) assert.equal(runStep(passed, { BROWSER_RUN: run, BROWSER: result }).status, 1, `${run} ${result}`);
   // Every other coverage step waits for shards that ran.
   const steps = jobs.coverage.slice(jobs.coverage.indexOf("    steps:")).split(/\n {6}- /).slice(2);
-  for (const step of steps) assert.match(step, /^(id: \w+\n {8})?if: env\.BROWSER_RUN == 'true'$/m, step);
+  for (const step of steps) assert.match(step, /^(id: \w+\n {8})?if: env\.BROWSER_RUN == 'true'( && steps\.tests\.outputs\.fallback != 'true')?$/m, step);
   // The ci check counts a skip as a pass only when the plan asked for it.
   assert.match(jobs.ci, /^ {6}browser: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   assert.match(jobs.ci, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
