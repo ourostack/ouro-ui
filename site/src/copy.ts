@@ -56,12 +56,9 @@ export const VOYAGE_HERO = {
     benchmark: { label: "Agent benchmark", href: "/docs/agent-interfaces/" },
     reviews: { label: "Model reviews", href: "/docs/model-reviews/" },
     platforms: {
-      label: claim("No Android or Windows kit yet", {
+      label: claim("No Android kit yet", {
         source: { file: "docs/platforms/README.md" },
-        verify: [
-          { fileLine: "docs/platforms/README.md", pattern: "\\| For Android \\| none yet" },
-          { fileLine: "docs/platforms/README.md", pattern: "\\| For Windows \\| none yet" },
-        ],
+        verify: [{ fileLine: "docs/platforms/README.md", pattern: "\\| For Android \\| none yet" }],
       }),
       href: "/docs/platforms/",
     },

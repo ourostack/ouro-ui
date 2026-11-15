@@ -319,11 +319,43 @@
     "status": 200,
     "checked": "2026-11-14"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/e2ab6ea4072dff1674cecf1b1df70933e4c0f0f9/docs/decisions/2026-11-14-native-kits.md#windows-v010": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json": {
     "status": 200,
     "checked": "2026-11-13"
   },
   "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.12.1": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/81f19eaf3da945bd38d89b135d228c649e8b6d0d/.github/workflows/ci.yml": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/81f19eaf3da945bd38d89b135d228c649e8b6d0d/.github/workflows/ci.yml#L37-L48": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/81f19eaf3da945bd38d89b135d228c649e8b6d0d/AGENTS.md": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/81f19eaf3da945bd38d89b135d228c649e8b6d0d/README.md": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/81f19eaf3da945bd38d89b135d228c649e8b6d0d/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/81f19eaf3da945bd38d89b135d228c649e8b6d0d/docs/person-check.md": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.0": {
     "status": 200,
     "checked": "2026-11-14"
   },
@@ -462,14 +494,6 @@
   "https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)": {
     "status": 200,
     "checked": "2026-11-06"
-  },
-  "https://learn.microsoft.com/en-us/windows/ai/app-actions/": {
-    "status": 200,
-    "checked": "2026-11-04"
-  },
-  "https://learn.microsoft.com/en-us/windows/ai/mcp/overview": {
-    "status": 200,
-    "checked": "2026-11-04"
   },
   "https://nodejs.org/api/typescript.html#type-stripping": {
     "status": 200,
