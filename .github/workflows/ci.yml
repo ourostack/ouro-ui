@@ -620,6 +620,8 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        include:
+          - shard: fallback
     name: design (${{ matrix.shard }}/8)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -657,7 +659,7 @@ jobs:
         run: pnpm i --frozen-lockfile
       - if: steps.relevance.outputs.run != 'false'
         run: pnpm site:build
-      - if: steps.relevance.outputs.run != 'false'
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard != 'fallback'
         uses: ./.github/actions/check
         with:
           targets: site/dist
@@ -668,9 +670,9 @@ jobs:
           artifact: design-check
           install-browser: "false"
       # Safari and macOS WebView have no corner-shape, and Playwright's WebKit and Chromium do, so the
-      # fallback (the clip-path surfaces) never shows in the shards above. Shard 1 runs the check again on
+      # fallback (the clip-path surfaces) never shows in the shards above. Its own entry runs the check on
       # the pages of every converted component with the fallback rules switched on in every engine.
-      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 1
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 'fallback'
         name: Prepare the fallback copy of the site
         run: |
           fallback=site/dist-fallback
@@ -679,7 +681,7 @@ jobs:
           find "$fallback/docs" -mindepth 1 -maxdepth 1 ! -name button ! -name card ! -name dialog ! -name text-field ! -name avatar ! -name badge ! -name toggle -exec rm -rf {} +
           find "$fallback" -name '*.css' -exec sed -i.bak -E 's/@supports not \(corner-shape: ?squircle\)/@media all/g' {} +
           grep -rlE '@media all' "$fallback" --include='*.css' | head -1 | grep -q .
-      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 1
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 'fallback'
         uses: ./.github/actions/check
         with:
           targets: site/dist-fallback
