@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type
 import { useUntilFound } from "@/registry/ouro/lib/ouro/use-until-found";
 
 /** @internal */
-export interface CssPanelProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "hidden"> {
+export interface CssPanelProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "hidden" | "className"> {
   /** Whether the content is open. */
   open: boolean;
   /** Called when the browser's page search finds text in the closed content. */
@@ -23,7 +23,7 @@ export interface CssPanelProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
  *
  * @internal
  */
-export function CssPanel({ open, onFound, children, contentClassName, className, ...rest }: CssPanelProps): JSX.Element {
+export function CssPanel({ open, onFound, children, contentClassName, ...rest }: CssPanelProps): JSX.Element {
   const untilFound = useUntilFound();
   const panelRef = useRef<HTMLDivElement>(null);
   const foundRef = useRef(onFound);
@@ -95,9 +95,7 @@ export function CssPanel({ open, onFound, children, contentClassName, className,
       className={
         "grid w-full grid-rows-[0fr] data-open:grid-rows-[1fr] " +
         "transition-[grid-template-rows] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none " +
-        "data-moved:starting:grid-rows-[0fr] [&[hidden]:not([hidden=until-found])]:hidden" +
-        // Stryker disable next-line StringLiteral: an extra class name on the empty branch changes no style.
-        (className ? ` ${className}` : "")
+        "data-moved:starting:grid-rows-[0fr] [&[hidden]:not([hidden=until-found])]:hidden"
       }
     >
       <div className="min-h-0 overflow-hidden">
