@@ -1,0 +1,1 @@
+- Changed: MessageList keeps the messages it has drawn while code scrolls the list (find in page, a screen reader, a test tool, the app), so code that brings one message after another into view finds them all still in the page; they go at the reader's next scroll, once they are far from the view, or once code jumps past them.
