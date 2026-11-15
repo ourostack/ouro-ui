@@ -1,0 +1,1 @@
+- MessageList keeps a post's action bar when the list's scroll position moves without moving that post (the list holding its place at the end as rows past the view are measured); a scroll that moves the post still hides it.

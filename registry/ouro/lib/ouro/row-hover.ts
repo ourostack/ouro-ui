@@ -130,6 +130,8 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
   let row: HTMLElement | null = null;
   let via: RowHoverVia | null = null;
   let held = false;
+  // Where the row the layer is on stood in the window when the layer came, for a scroll to tell whether it moved.
+  let at = 0;
   // The row an event's target is in, among the rows that take the layer (the nearest, in a list inside a row).
   const rowOf = (target: EventTarget | null): HTMLElement | null => {
     for (let node = target instanceof Element ? target : null; node !== null && node !== root; node = node.parentElement) {
@@ -153,6 +155,7 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
     }
     row = next;
     via = to;
+    if (next !== null) at = next.getBoundingClientRect().top;
     // Stryker disable next-line ArithmeticOperator: version only forces a new object identity for the `changed` callback below, where row and via stay the same; here the guard above already means next or to differs from the previous row or via, so the object is already new regardless of which way version moves, and version itself is not part of RowHover, so no test can read it.
     const update = () => setShown((previous) => ({ row: next, via: to, version: previous.version + 1 }));
     // From the event itself, so the layer is in the page before the browser draws the next frame.
@@ -225,6 +228,9 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
   };
   const scrolled = () => {
     if (via !== "pointer" && via !== "touch") return;
+    // A scroll that left the row where it was (the list keeping its place as the content above it changes size) moved
+    // nothing under the pointer.
+    if (Math.abs(row!.getBoundingClientRect().top - at) < 0.5) return;
     hide();
     // Shown again where the pointer is once it moves: the rows moved under it, and no pointerover says so.
     root.addEventListener("pointermove", over);
@@ -291,7 +297,8 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
  * a row shows it too, and Escape hides it, putting focus back on the row if it was in the layer; an Escape in a
  * field in the row is the field's.
  * A tap on a row shows it until a press lands elsewhere. Scrolling under the pointer, the window
- * losing focus and the row going all hide it, so it never stays on a row the pointer has left.
+ * losing focus and the row going all hide it, so it never stays on a row the pointer has left; a scroll that leaves
+ * its row where it was (the list holding its place as the content above changes size) keeps it.
  * `menu` opens the app's menu for a row: right-click (except on a field, a link, a picture, a video or over
  * selected text, whose menus stay the browser's), Shift+F10 or the context-menu key on a focused row. It returns
  * whether it opened one; when it returns false, the right-click goes to the browser's menu. The layer is hidden
@@ -312,6 +319,7 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
  * @claim "Keyboard focus arriving in a row shows it too" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on keyboard focus, not on a click's, and Escape hides it with focus back on the row)
  * @claim "A tap on a row shows it until" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > shows on a tap until a press lands elsewhere, and a tap on a control is the control's)
  * @claim "Scrolling under the pointer, the window" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > hides on a scroll until the pointer moves again, on the window's blur and when the row goes)
+ * @claim "a scroll that leaves its row where it was" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > keeps the layer through a scroll that leaves its row where it was, and hides it once a scroll moves the row)
  * @claim "when it returns false, the right-click goes" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields, links and selected text to the browser)
  * @claim "`menu` opens the app's menu for a row" registry/ouro/lib/ouro/row-hover.test.tsx verify:testExists(registry/ouro/lib/ouro/row-hover.test.tsx::useRowHover > opens the menu on right-click, Shift+F10 and the context-menu key, and leaves fields, links and selected text to the browser)
  */
