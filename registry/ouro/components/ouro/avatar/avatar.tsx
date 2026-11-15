@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, createContext, isValidElement, useContext, useLayoutEffect, useState } from "react";
+import { Children, createContext, isValidElement, useContext, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { sizeFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -256,11 +256,24 @@ const GroupSize = createContext<AvatarSize | undefined>(undefined);
  * or `error`. The picture is drawn once it has loaded, so the initials show until then and after a
  * failure. A picture the browser has already shows on the first paint.
  */
+// Pictures an avatar on this page has loaded, each held by an image so the browser keeps it ready: an avatar
+// of one draws it in its first render, with no second render to swap the initials for it. The oldest go
+// past a few hundred.
+const readyPictures = new Map<string, HTMLImageElement>();
+const READY_PICTURES = 256;
+const subscribeNever = () => () => {};
+
 function useImageStatus(src: string | undefined): "idle" | "loading" | "loaded" | "error" {
+  // In server HTML and while it hydrates, no picture is ready: the initials, as the server drew them.
+  const ready = useSyncExternalStore(
+    subscribeNever,
+    () => src !== undefined && readyPictures.has(src),
+    () => false,
+  );
   // The status of the picture last asked for: an avatar with no picture never sets state, so it never draws twice.
   const [fetched, setFetched] = useState<{ src: string; status: "loading" | "loaded" | "error" } | null>(null);
   useLayoutEffect(() => {
-    if (!src) return;
+    if (!src || ready) return;
     let current = true;
     let shown: "loading" | "loaded" | "error" | undefined;
     // A status the avatar already shows sets no state, so a cached picture's late load event draws nothing again.
@@ -270,7 +283,11 @@ function useImageStatus(src: string | undefined): "idle" | "loading" | "loaded" 
       setFetched({ src, status });
     };
     const image = new window.Image();
-    image.onload = () => settle("loaded");
+    image.onload = () => {
+      readyPictures.set(src, image);
+      if (readyPictures.size > READY_PICTURES) readyPictures.delete(readyPictures.keys().next().value!);
+      settle("loaded");
+    };
     image.onerror = () => settle("error");
     image.src = src;
     // Before paint, so a picture already in the browser's cache is there on the avatar's first frame.
@@ -279,9 +296,10 @@ function useImageStatus(src: string | undefined): "idle" | "loading" | "loaded" 
     return () => {
       current = false;
     };
-  }, [src]);
+  }, [src, ready]);
   if (src === undefined) return "idle";
   if (!src) return "error";
+  if (ready) return "loaded";
   return fetched?.src === src ? fetched.status : "idle";
 }
 

@@ -230,6 +230,58 @@ describe("Avatar", () => {
     expect(commits).toBe(drawnOnMount);
   });
 
+  /** Mounts an avatar of the picture in one commit, and says how many commits it took and what it showed then. */
+  async function mountCounted(src: string) {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let commits = 0;
+    flushSync(() =>
+      root.render(
+        <Profiler id="avatar" onRender={() => (commits += 1)}>
+          <Avatar name="Ana Lind" src={src} />
+        </Profiler>,
+      ),
+    );
+    return { commits, image: host.querySelector('[data-ouro="avatar"]')!.getAttribute("data-image") };
+  }
+
+  it("draws a picture another avatar has loaded in its first render, with no second", async () => {
+    const fresh = await freshPicture();
+    const { avatar } = await render(<Avatar name="Ana Lind" src={fresh} />);
+    await expect.poll(() => avatar.getAttribute("data-image")).toBe("loaded");
+    expect(await mountCounted(fresh)).toEqual({ commits: 1, image: "loaded" });
+  });
+
+  it("keeps the last few hundred pictures ready, letting the oldest go", async () => {
+    const pictures = await Promise.all(Array.from({ length: 257 }, () => freshPicture()));
+    const { rerender, avatar } = await render(<Avatar name="Ana Lind" src={pictures[0]} />);
+    for (const picture of pictures) {
+      await rerender(<Avatar name="Ana Lind" src={picture} />);
+      await expect.poll(() => avatar.getAttribute("data-image")).toBe("loaded");
+    }
+    // The first is no longer held, so an avatar of it takes a second render; the second still is.
+    expect((await mountCounted(pictures[0]!)).commits).toBe(2);
+    expect(await mountCounted(pictures[1]!)).toEqual({ commits: 1, image: "loaded" });
+  });
+
+  it("hydrates a picture another avatar has loaded from the server's initials, then shows it", async () => {
+    const fresh = await freshPicture();
+    const first = await render(<Avatar name="Ana Lind" src={fresh} />);
+    await expect.poll(() => first.avatar.getAttribute("data-image")).toBe("loaded");
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<Avatar name="Ana Lind" src={fresh} />);
+    document.body.append(host);
+    mounted.push(host);
+    expect(host.querySelector("img")).toBeNull();
+    const recoverable = vi.fn();
+    await act(async () => void roots.push(hydrateRoot(host, <Avatar name="Ana Lind" src={fresh} />, { onRecoverableError: recoverable })));
+    await expect.poll(() => host.querySelector("img")?.getAttribute("src")).toBe(fresh);
+    expect(recoverable).not.toHaveBeenCalled();
+  });
+
   it("draws an avatar without a picture in one commit, fetching nothing", async () => {
     const host = document.createElement("div");
     document.body.append(host);
