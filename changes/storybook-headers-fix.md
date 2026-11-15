@@ -1,0 +1,1 @@
+- The ourostack, housesitter and desk storybook scenes are redrawn, so the site serves the fixed art.
