@@ -1,0 +1,1 @@
+- Fixed: the testing kit's `settled` also waits while WebKit still lists a transition that has just ended, so `getAnimations()` is empty once it resolves.
