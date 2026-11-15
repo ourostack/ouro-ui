@@ -40,8 +40,11 @@ async function finish(page: Page): Promise<void> {
     await saloon(page).getByRole("button", { name: SALOON.play }).click();
     await saloon(page).locator("[data-chapter-next]").waitFor();
   }
-  await page.evaluate(() => document.querySelectorAll<HTMLElement>('[data-ouro="toaster"] [data-ouro-part="close"]').forEach((close) => close.click()));
-  await expect(page.locator('[data-ouro="toast"]')).toHaveCount(0);
+  // The organ's toast is raised just after the way on shows, so the toasts are closed until none is left.
+  await expect(async () => {
+    await page.evaluate(() => document.querySelectorAll<HTMLElement>('[data-ouro="toaster"] [data-ouro-part="close"]').forEach((close) => close.click()));
+    await expect(page.locator('[data-ouro="toast"]')).toHaveCount(0, { timeout: 1000 });
+  }).toPass();
 }
 
 /** Holds back a link's navigation, so its press can be measured on this page. */
