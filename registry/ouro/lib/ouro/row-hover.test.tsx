@@ -684,6 +684,13 @@ describe("useRowHover", () => {
     });
     expect(row("r9").getBoundingClientRect().top).toBe(top);
     expect(layerIn("r9")).not.toBeNull();
+    // A shift under a pixel, as a list rounding its place to the pixel grid makes, keeps it too.
+    await act(async () => {
+      row("r1").style.height = "40.4px";
+      list().dispatchEvent(new Event("scroll"));
+    });
+    expect(Math.abs(row("r9").getBoundingClientRect().top - top)).toBeGreaterThan(0);
+    expect(layerIn("r9")).not.toBeNull();
     await scrollList(-40);
     expect(layers()).toHaveLength(0);
   });

@@ -1,8 +1,8 @@
-import { Fragment, createRef, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
+import { Fragment, createRef, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
@@ -50,8 +50,10 @@ function Chat({
   onQuote?: (id: number) => void;
   initialAnchor?: string;
   windowing?: boolean;
+  springy?: boolean;
   /** What to put before the message with this id, such as a day's heading. */
   before?: (id: number) => ReactNode;
+  style?: CSSProperties;
 }) {
   return (
     <MessageList label="Conversation" style={{ height: 400, width: 360 }} actionsRef={actionsRef} {...rest}>
@@ -382,6 +384,143 @@ describe("MessageList windowing", () => {
       await settle(scroller);
       expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
     }
+  });
+
+  it.each([
+    { begins: 0, from: 3000, grows: true, when: "after its last event, as WebKit animates it" },
+    { begins: 200, from: 3000, grows: true, when: "after a scroll that began past the wheel's rest, as a loaded machine begins it" },
+    // Drawn down, the content leaves no space at the end it starts near, which the wheel turns away from.
+    { begins: 0, from: Infinity, grows: false, when: "upward from the end, near which it starts, as a message above shrinks" },
+  ])("holds a message above the reader that changes size while the scroll a wheel started goes on $when, and pays it once that scroll ends", async ({ begins, from, grows }) => {
+    // Shrinking, 60px messages, one of which goes 21px shorter: as a row drawn in place of the space kept for it, shorter than the estimate.
+    const items = grows ? conversation(500) : conversation(500).map((item) => ({ ...item, tall: 60 }));
+    const { scroller, root } = await render(<Chat items={items} />);
+    await scrollTo(scroller, Math.min(from, scroller.scrollHeight));
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    // Growing, the message right above; shrinking, one a few above, which the scroll it waits for does not bring into view.
+    const above = Number(reading.message.id.slice(1)) - (grows ? 1 : 3);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    // The list's own writes to the scroll position, which would stop the browser's scroll.
+    let writes = 0;
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => own.get!.call(scroller), set: (value: number) => (writes++, own.set!.call(scroller, value)) });
+    // In the browser's own scroll, past the wheel's rest, before it ends: a message above grows, or shrinks.
+    const grow = () => {
+      // Once the scroll has left the end, which the list follows while it is there, by more than a message shrinks: the browser
+      // itself moves a scroll position past the new end. Still within a quarter of the view of it.
+      if (scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <= (grows ? 2 : 30)) return scroller.addEventListener("scroll", grow, { once: true });
+      now += 200;
+      flushSync(() => root.render(<Chat items={items.map((item) => (item.id === above ? (grows ? { ...item, text: item.text + " more words".repeat(40) } : { ...item, tall: 39 }) : item))} />));
+    };
+    scroller.addEventListener("scroll", grow, { once: true });
+    const ended = new Promise<{ writes: number; translate: string }>((resolve) =>
+      scroller.addEventListener("scrollend", () => resolve({ writes, translate: content.style.translate }), { once: true }),
+    );
+    let atEnd = { writes: -1, translate: "" };
+    await act(async () => {
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+      now += begins;
+      // A scroll the browser animates over frames, as WebKit does a wheel's.
+      scroller.scrollBy({ top: -300, behavior: "smooth" });
+      atEnd = await ended;
+    });
+    delete (scroller as { scrollTop?: number }).scrollTop;
+    // Held by drawing the content up, never by writing the scroll position, until the scroll ended.
+    expect(atEnd.writes).toBe(0);
+    expect(atEnd.translate).not.toBe("");
+    // Once the scroll has ended, written to the scroll position.
+    now += 100;
+    await expect.poll(() => content.style.translate).toBe("");
+    await settle(scroller);
+    // Where the reader's scroll took it, the growth above taken out.
+    expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top + 300))).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it.each([
+    { when: "near the bottom, turning up, the end it turns toward being the top", from: -50, by: -50, tall: 39, pays: false },
+    { when: "near the bottom, turning down toward it", from: -50, by: 50, tall: 39, pays: true },
+    { when: "near the top, turning down, a message above shrinking, which would show space above the first", from: 110, by: 50, tall: 39, pays: true },
+    { when: "at the top, turning down, a message above growing, which shows no space", from: 20, by: 20, tall: 100, pays: false },
+  ])("while the wheel turns, $when, pays a change above at once only when it says so ($pays)", async ({ from, by, tall, pays }) => {
+    // 60px messages, one of which changes size: a row drawn in place of the space kept for it, unlike the estimate.
+    let items = conversation(500).map((item) => ({ ...item, tall: 60 }));
+    const { scroller, root } = await render(<Chat items={items} springy={false} />);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    // Where the wheel's scroll ends: from the bottom, below 0. It starts `by` before that.
+    const start = (from < 0 ? scroller.scrollHeight - scroller.clientHeight + from : from) - by;
+    await scrollTo(scroller, start);
+    vi.spyOn(performance, "now").mockReturnValue(1_000_000);
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    let writes = 0;
+    Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => own.get!.call(scroller), set: (value: number) => (writes++, own.set!.call(scroller, value)) });
+    onTestFinished(() => void delete (scroller as { scrollTop?: number }).scrollTop);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: Math.sign(by) * 20 }));
+    // The wheel's scroll: within a quarter of the view of the end it starts near, where the list pays what it carries toward that end.
+    const scrolled = new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
+    own.set!.call(scroller, start + by);
+    await scrolled;
+    const reading = firstVisible(scroller);
+    const above = Math.max(0, Number(reading.message.id.slice(1)) - 3);
+    items = items.map((item) => (item.id === above ? { ...item, tall } : item));
+    await act(async () => root.render(<Chat items={items} springy={false} />));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    // Paid, by writing the scroll position once; or held, by drawing the content, with no write that would stop the wheel.
+    expect(writes).toBe(pays ? 1 : 0);
+    expect(content.style.translate === "").toBe(pays);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("counts as the wheel's only the first scroll a turn starts, or any while it turns, never the list's own, as WebKit sends no scrollend after either", async () => {
+    // As in WebKit: no scrollend from the browser, so a scroll wrongly counted as the wheel's would hold the reader's place by
+    // drawing the content up, for good.
+    const browsers = (event: Event) => void (event.isTrusted && event.stopImmediatePropagation());
+    window.addEventListener("scrollend", browsers, { capture: true });
+    onTestFinished(() => window.removeEventListener("scrollend", browsers, { capture: true }));
+    // No springs: this clock holds them still, drawn away from where the place is held.
+    let items = conversation(500);
+    const { scroller, root } = await render(<Chat items={items} springy={false} />);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const turn = (deltaY: number) => scroller.dispatchEvent(new WheelEvent("wheel", { deltaY }));
+    const scrolled = () => new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
+    // A message above the reader grows: held by writing the scroll position, the wheel at rest, so nothing is drawn up.
+    const heldByScrolling = async () => {
+      const reading = firstVisible(scroller);
+      const above = Number(reading.message.id.slice(1)) - 1;
+      items = items.map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(40) } : item));
+      await act(async () => root.render(<Chat items={items} springy={false} />));
+      await settle(scroller);
+      expect(content.style.translate).toBe("");
+      expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    };
+    // At the end, a turn down scrolls nothing, and the list follows a new message there: its own scroll, not the wheel's.
+    turn(20);
+    const followed = scrolled();
+    items = [...items, { id: 500, text: "Message 500" }];
+    await act(async () => root.render(<Chat items={items} springy={false} />));
+    await followed;
+    now += 10_000;
+    await scrollTo(scroller, 3000);
+    await heldByScrolling();
+    // A turn's scroll is the wheel's until it ends; a scrollbar's 200ms after that is not.
+    turn(-20);
+    const wheels = scrolled();
+    scroller.scrollTop -= 50;
+    await wheels;
+    scroller.dispatchEvent(new Event("scrollend"));
+    now += 200;
+    await scrollTo(scroller, 2500);
+    await heldByScrolling();
+    // The first scroll a whole second after a turn is not the turn's.
+    now += 10_000;
+    turn(-20);
+    now += 1000;
+    await scrollTo(scroller, 2000);
+    await heldByScrolling();
   });
 
   it("pays what it holds as the reader nears either end, so what went in above is in reach while the wheel still turns", async () => {
@@ -807,7 +946,7 @@ describe("MessageList windowing", () => {
     expect(worst).toBeLessThan(1);
   }, 60_000);
 
-  it("opens a conversation of 300 rows of varied heights at its end, moving the view and the row at its top by no more than a pixel in any frame", async () => {
+  it("opens a conversation of 300 rows of varied heights at its end, moving the row at the view's top by no more than a pixel in any frame", async () => {
     const rows = Array.from({ length: 300 }, (_, id) => (
       <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 60 + ((id * 37) % 81), boxSizing: "border-box" }}>
         {`Message ${id}`}
@@ -819,14 +958,16 @@ describe("MessageList windowing", () => {
     const root = createRoot(host);
     roots.push(root);
     let worst = 0;
-    let last: { top: number; row: number } | null = null;
+    // The scroll position may change as the rows past the view draw after the first paint, their heights replacing the
+    // estimate in the space above: what the reader sees, the row at the view's top, stays.
+    let last: { node: HTMLElement; row: number } | null = null;
     const watch = () => {
       const list = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]");
       const view = list?.getBoundingClientRect();
       const first = list === null ? undefined : messages(list).find((node) => node.getBoundingClientRect().bottom > view!.top);
       if (list !== null && first !== undefined) {
-        const now = { top: list.scrollTop, row: first.getBoundingClientRect().top - view!.top };
-        if (last !== null) worst = Math.max(worst, Math.abs(now.top - last.top), Math.abs(now.row - last.row));
+        const now = { node: first, row: first.getBoundingClientRect().top - view!.top };
+        if (last !== null) worst = Math.max(worst, now.node === last.node ? Math.abs(now.row - last.row) : Infinity);
         last = now;
       }
     };
@@ -844,6 +985,92 @@ describe("MessageList windowing", () => {
     expect(distanceFromBottom(list)).toBeLessThanOrEqual(1);
     expect(last).not.toBeNull();
     expect(worst).toBeLessThanOrEqual(1);
+  });
+
+  it("opens with no more rows than fill the window, and draws the rows past the view's edges only after the first paint", async () => {
+    const { innerWidth: width, innerHeight: height } = window;
+    await page.viewport(800, 600);
+    try {
+      // A list taller than the window measured last: the next one still draws no more than the window holds.
+      await render(<Chat items={conversation(100)} style={{ height: 1000, width: 360 }} />);
+      const renders = new Set<number>();
+      function Counted({ id }: { id: number }) {
+        renders.add(id);
+        return (
+          <Message id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 80, boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        );
+      }
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      roots.push(root);
+      let opened = new Set<number>();
+      await act(async () => {
+        // The commit that opens the list, with the renders its layout effects ask for, before any frame.
+        flushSync(() =>
+          root.render(
+            <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+              {Array.from({ length: 300 }, (_, id) => (
+                <Counted key={id} id={id} />
+              ))}
+            </MessageList>,
+          ),
+        );
+        opened = new Set(renders);
+      });
+      // A row is 80px and the gap 16px: the commit that opens the list draws what fills the window, and no more.
+      expect(opened.size).toBeLessThanOrEqual(Math.ceil(window.innerHeight / 96) + 1);
+      expect(opened.has(299)).toBe(true);
+      const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+      await settle(scroller);
+      // Then the overscan: 800px above the view.
+      expect(messages(scroller).length).toBeGreaterThanOrEqual(Math.floor((400 + 800) / 96));
+      expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    } finally {
+      await page.viewport(width, height);
+    }
+  });
+
+  it("remembers no view from a list given no height, so the next list's first render still fills its view, with no second render to fill it", async () => {
+    await render(<Chat items={conversation(100)} style={{ height: 400, width: 360 }} />);
+    // A list laid out with no height (a pane collapsed to nothing): it windows, and has no view to remember.
+    const { scroller: empty } = await render(<Chat items={conversation(100)} style={{ height: 0, width: 360 }} />);
+    expect(empty.clientHeight).toBe(0);
+    // The messages in the page as the newest one's layout effect runs: the first render's, before the list's own effects.
+    let first = 0;
+    function Newest() {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        first = ref.current!.closest("[data-ouro-message-list-content]")!.querySelectorAll('[data-ouro="message"]').length;
+      }, []);
+      return (
+        <Message id="m299" role="assistant" name="Ouro" style={{ height: 80, boxSizing: "border-box" }}>
+          <div ref={ref}>Message 299</div>
+        </Message>
+      );
+    }
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () =>
+      root.render(
+        <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+          {Array.from({ length: 299 }, (_, id) => (
+            <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 80, boxSizing: "border-box" }}>
+              {`Message ${id}`}
+            </Message>
+          ))}
+          <Newest key={299} />
+        </MessageList>,
+      ),
+    );
+    // A row is 80px and the gap 16px: the 400px view the first list measured, filled.
+    expect(first).toBeGreaterThanOrEqual(Math.floor(400 / 96));
   });
 
   it("keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was", async () => {
@@ -1266,7 +1493,9 @@ describe("MessageList windowing", () => {
       if (!scroller || !Number.isNaN(first) || !document.getElementById("m200")) return;
       first = Math.abs(offCentre(scroller, "m200"));
       // The messages either side are drawn with it, filling the view.
-      around = document.getElementById("m196") !== null && document.getElementById("m204") !== null;
+      const view = scroller.getBoundingClientRect();
+      const drawn = messages(scroller).map((node) => node.getBoundingClientRect());
+      around = drawn[0]!.top <= view.top && drawn.filter((box) => box.top < view.bottom).at(-1)!.bottom >= view.bottom;
     });
     observer.observe(host, { childList: true, subtree: true });
     await act(async () => root.render(<Chat items={conversation(2000, 0, true)} initialAnchor="m200" />));

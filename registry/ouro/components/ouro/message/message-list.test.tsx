@@ -720,11 +720,12 @@ describe("MessageList", () => {
     const items = history(30);
     const { scroller, rerender } = await render(<Found items={items} initialAnchor="found-5" />);
     const first = await nextFrame(scroller);
-    // In the middle of the view, with no transform: it opens there at once, with no movement.
+    // In the middle of the view, with no transform: it opens there at once, with no movement. Its gaps above and below differ by
+    // what WebKit's whole-pixel scroll position and the fraction the list holds back leave, a little over 2px once its window measures.
     expect(inView(scroller, "found-5")).toBe(true);
     const view = scroller.getBoundingClientRect();
     const box = document.getElementById("found-5")!.getBoundingClientRect();
-    expect(Math.abs(box.top - view.top - (view.bottom - box.bottom))).toBeLessThanOrEqual(2);
+    expect(Math.abs(box.top - view.top - (view.bottom - box.bottom))).toBeLessThanOrEqual(3);
     expect(inView(scroller, "found-29")).toBe(false);
     expect([...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].every((message) => message.style.transform === "")).toBe(true);
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
@@ -3645,9 +3646,13 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="theo" keyed={false} named items={conversation("theo", 300)} />);
     watch.disconnect();
     const ids = seen.map((node) => node.id);
-    // Only the newest are mounted, none of the old band's range; the stale band (a mutant that keeps it) draws a narrower first window.
+    // Only the newest are mounted, none of the old band's range, and they fill the view; the stale band (a mutant that keeps it) draws only the newest.
     expect(ids.every((id) => id.startsWith("theo-") && Number(id.slice(5)) >= 250)).toBe(true);
-    expect(ids).toContain("theo-277");
+    const view = list.scroller.getBoundingClientRect();
+    expect(messagesOf(list.scroller)[0]!.getBoundingClientRect().top).toBeLessThanOrEqual(view.top);
+    // Only what the view shows: the rows past its edges draw after the switch's frame is painted.
+    const drawn = seen.filter((node) => node.isConnected).reduce((height, node) => height + node.getBoundingClientRect().height, 0);
+    expect(drawn).toBeLessThan(view.height + 400);
   });
 
   it("confirms what a change under the same name leaves, so a rename that changes nothing waits for the messages to follow", async () => {

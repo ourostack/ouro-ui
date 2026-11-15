@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
@@ -596,6 +596,29 @@ describe("MessageList springs", () => {
     expectAtRest(messages());
     wheel(scroller, scroller.clientHeight, pointer);
     frames.step(16);
+    expectAtRest(messages());
+  });
+
+  it("rests once the reader's scroll has ended, though the list then scrolls itself, after which WebKit sends no scrollend", async () => {
+    const { scroller, messages } = await render(<Chat count={60} />);
+    await scrollInCode(scroller, scroller.scrollHeight - scroller.clientHeight - 60);
+    // Only the scrollend this test sends reaches the list: as in WebKit, none comes after the list's own scroll.
+    const browsers = (event: Event) => void (event.isTrusted && event.stopImmediatePropagation());
+    window.addEventListener("scrollend", browsers, { capture: true });
+    onTestFinished(() => window.removeEventListener("scrollend", browsers, { capture: true }));
+    const frames = holdFrames();
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -30, clientY: scroller.getBoundingClientRect().top, bubbles: true }));
+    const scrolled = nextScroll(scroller);
+    scroller.scrollTop -= 30;
+    await scrolled;
+    frames.step(16);
+    expect(messages().some((message) => shiftOf(message) < 0)).toBe(true);
+    // The reader's scroll ends, and at once the list goes back to its newest message.
+    scroller.dispatchEvent(new Event("scrollend"));
+    const jumped = nextScroll(scroller);
+    await act(async () => [...document.querySelectorAll("button")].find((button) => button.textContent === "Jump to latest")!.click());
+    await jumped;
+    for (let frame = 0; frame < 120; frame++) frames.step(16);
     expectAtRest(messages());
   });
 

@@ -230,7 +230,9 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
     if (via !== "pointer" && via !== "touch") return;
     // A scroll that left the row where it was (the list keeping its place as the content above it changes size) moved
     // nothing under the pointer.
-    if (row!.getBoundingClientRect().top === at) return;
+    // Under a pixel is the list keeping its place to the pixel grid, not a move.
+    // Stryker disable next-line EqualityOperator: a row moved by exactly a pixel stays or goes alike.
+    if (Math.abs(row!.getBoundingClientRect().top - at) < 1) return;
     hide();
     // Shown again where the pointer is once it moves: the rows moved under it, and no pointerover says so.
     root.addEventListener("pointermove", over);
