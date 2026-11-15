@@ -1787,9 +1787,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let keepTo = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at twice the overscan stays or goes, and the next scroll settles it.
       while (starts[keepTo]! >= viewBottom + keep) keepTo--;
-      // The band drawn now, by index: -1 where there is none, or its edge went, which no keep range reaches.
-      const drawnFrom = band === null ? -1 : (indexes.get(band.from) ?? -1);
-      const drawnTo = band === null ? -1 : (indexes.get(band.to) ?? -1);
+      // The band drawn now, by index: NaN, which no keep range holds, where there is none or its edge went.
+      const drawnFrom = band === null ? NaN : (indexes.get(band.from) ?? NaN);
+      const drawnTo = band === null ? NaN : (indexes.get(band.to) ?? NaN);
       if (drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
       if (drawnTo <= keepTo) to = Math.max(to, drawnTo);
       const inBand = keys.slice(from, to + 1);
