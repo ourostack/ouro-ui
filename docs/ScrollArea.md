@@ -2,7 +2,7 @@
 
 # ScrollArea
 
-A scrolling region with a thin scrollbar in the theme's color, inside a height you set. It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and momentum all work; Content wider than the area fades out at the side where it goes on, so at rest it reads as more to scroll to, not as cut off.
+A scrolling region with a thin scrollbar in the theme's color, inside a height you set. It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and momentum all work; Content wider than the area fades out at the side where it goes on, so at rest it reads as more to scroll to, not as cut off. Its focus ring is drawn over the content, so a header that sticks to the top never hides an edge of it.
 
 ```tsx
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";

@@ -122,7 +122,8 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  * It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and
  * momentum all work; Content
  * wider than the area fades out at the side where it goes on, so at rest it reads as more
- * to scroll to, not as cut off.
+ * to scroll to, not as cut off. Its focus ring is drawn over the content, so a header that sticks
+ * to the top never hides an edge of it.
  *
  * Use plain page scrolling instead for a page's main content, and `Dialog` or `Sheet`,
  * which scroll their own bodies, for long content in an overlay.
@@ -138,6 +139,7 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  *   <Row gap="sm">{tags.map((tag) => <Badge key={tag}>{tag}</Badge>)}</Row>
  * </ScrollArea>
  * @claim "Content wider than the area fades out" registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > fades out at the side that hides more, drawing its focus ring over the fade, and keeps keyboard scrolling)
+ * @claim "Its focus ring is drawn over the content" registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > draws its focus ring whole over content that sticks to an edge, and leaves the pointer to the content)
  * @claim "It keeps the browser's own scrolling" registry/ouro/components/ouro/scroll-area/scroll-area.touch.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.touch.test.tsx::leaves touch scrolling to the browser: the viewport is a native scroll container)
  * @claim "It keeps the browser's own scrolling" registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > draws a thin native scrollbar in the theme's muted color, and scrolls only the way it is asked to)
  */
@@ -173,8 +175,6 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
       data-ouro="scroll-area"
       className={cn(
         "group/scroll-area relative flex min-h-0 min-w-0 flex-col overflow-hidden",
-        // The focus ring is the root's, drawn over the viewport, so the viewport's edge fade never hides it.
-        "outline-ring -outline-offset-2 has-[>[data-scroll-viewport]:focus-visible]:outline-2 has-[>[data-scroll-viewport]:focus-visible]:outline-solid",
         className,
       )}
     >
@@ -187,10 +187,17 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         data-ouro-part="viewport"
         role={label ? "region" : undefined}
         aria-label={label}
-        className={cn("min-h-0 flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, scrollFadeClass, contain && "overscroll-contain")}
+        // isolate keeps the content's own stacking (a sticky header's z-index) inside the viewport, under the focus ring.
+        className={cn("peer isolate min-h-0 flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, scrollFadeClass, contain && "overscroll-contain")}
       >
         <div className={orientation === "vertical" ? "min-w-0" : "min-w-fit"}>{children}</div>
       </div>
+      {/* The viewport's focus ring, drawn over it, so neither the edge fade nor content that sticks to an edge covers it. */}
+      <span
+        aria-hidden="true"
+        data-scroll-focus-ring=""
+        className="pointer-events-none absolute inset-0 rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
+      />
     </div>
   );
 }
