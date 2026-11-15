@@ -140,6 +140,21 @@ Prior art:
 - [GOV.UK's error message component](https://design-system.service.gov.uk/components/error-message/ "verify:urlOk(https://design-system.service.gov.uk/components/error-message/)"): borrow. Its wording rules are for form fields, but its stance carries over: say what happened and how to fix it, in place of "an error occurred".
 - [Apple's Human Interface Guidelines on alerts](https://developer.apple.com/design/human-interface-guidelines/alerts "verify:urlOk(https://developer.apple.com/design/human-interface-guidelines/alerts)"): watch. It governs when an alert appears and how its buttons read, more than what a failure says.
 
+## When a page asks to open an app
+
+A surface that drives a browser for an agent meets pages that try to open a desktop app. Zoom, Teams, Slack, Figma and Spotify point the page at an app address such as `zoomus:` and offer a web option for when that fails. The app is the person's to open, so refuse the launch the same way on any site, and keep the agent moving:
+
+- Let the refusal fail the way an app that is not installed fails. Pages with a timer fallback then take their web path on their own.
+- If the page only offers a button, follow the page's own web option, found by its role and name ("Join from browser", "Continue in browser"), once. Never take a download, a desktop-app or a "switch browsers" control.
+- Say it in the reply, in the same shape as an outcome: which app was refused, what the surface did instead (`page`, `followed` or `none`), and the next command when it did nothing. Name the route that opens the app itself when it does not exist yet, so the agent stops looking for it.
+
+```json
+{ "appLaunch": { "refused": ["zoomus"], "by": "zoom.us", "how": "followed", "followed": { "role": "button", "name": "Join from browser" },
+  "note": "desk-web refused zoom.us's attempt to open an app (zoomus:); desk-web never opens desktop apps. It then followed the page's own web option, the button \"Join from browser\". Opening the app itself needs its own explicit route, which desk-web does not offer yet." } }
+```
+
+A read, such as a snapshot, follows nothing: it reports the launch and the option's ref, and leaves the click to the agent.
+
 ## Check the words of a tool without the kit
 
 A repository that has not adopted the kit can still hold its agent-facing words to Ouro AX. `ax-surfaces` reads a manifest of them, `{ "ax": "surfaces/1", "tool": "notes", "errors": [...], "tools": [...], "replies": [...], "texts": [...] }`, and finds an error that does not open with what to do, an error with no stable `code`, a tool description that does not say when to use the tool or runs past 600 characters, an action reply with no field that says what happened, and any message that sends the agent to run a script.[^surfaces-checks] `node lib/ouro/ax/surfaces.ts extract src --tool notes --out surfaces.json` writes a first manifest from JavaScript or TypeScript source, as a start to edit.
