@@ -64,9 +64,10 @@ const variants: { variant: string; message: ReactElement; inList?: true; element
 function componentsUnder(host: HTMLElement): number {
   const key = Object.keys(host).find((name) => name.startsWith("__reactContainer$"))!;
   // React's fibers: 3 is the root, 5 an element, 6 a text node; everything else is a component, provider or fragment.
-  type Fiber = { tag: number; child: Fiber | null; sibling: Fiber | null };
+  type Fiber = { tag: number; child: Fiber | null; sibling: Fiber | null; stateNode: { current: Fiber } };
   const count = (fiber: Fiber | null): number => (fiber === null ? 0 : (fiber.tag === 5 || fiber.tag === 6 ? 0 : 1) + count(fiber.child) + count(fiber.sibling));
-  return count((host as unknown as Record<string, Fiber>)[key]!.child);
+  // The container keeps the root's first fiber; the tree on screen hangs from the root's current one.
+  return count((host as unknown as Record<string, Fiber>)[key]!.stateNode.current.child);
 }
 
 describe("Message's weight", () => {
