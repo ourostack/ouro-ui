@@ -492,6 +492,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-color-scheme`,
 `lib-color-scheme-script`,
 `lib-control-ref`,
+`lib-css-panel`,
 `lib-current-path`,
 `lib-dev`,
 `lib-env`,
@@ -538,7 +539,8 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-person`,
 `lib-use-reduced-motion`,
 `lib-use-sheet-presentation`,
-`lib-use-timer`.
+`lib-use-timer`,
+`lib-use-until-found`.
 No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
 <!-- items:end -->
 
