@@ -646,16 +646,18 @@ export function Message(props: MessageProps): JSX.Element {
   );
   // Tapped on a touch screen: the action bar shows until a press lands outside the message.
   const [active, setActive] = useState(false);
-  const [element, setElement] = useState<HTMLElement | null>(null);
+  // The message's element, kept in a ref rather than state: setting state as the element mounts would draw every
+  // message of a list again, in a second commit, as the list opens.
+  const element = useRef<HTMLElement | null>(null);
   useEffect(() => {
     // Stryker disable next-line ConditionalExpression: listening while inactive would only set it inactive again.
     if (!active) return;
     const away = (event: Event) => {
-      if (!element!.contains(event.target as Node)) setActive(false);
+      if (!element.current!.contains(event.target as Node)) setActive(false);
     };
     document.addEventListener("pointerdown", away);
     return () => document.removeEventListener("pointerdown", away);
-  }, [active, element]);
+  }, [active]);
   const hasBar =
     (actions !== undefined && actions.length > 0) || (menu !== undefined && menu.length > 0) || (quickReactions !== undefined && quickReactions.length > 0);
   // In a MessageList, the list draws one bar for all its messages: this message gives it what to show, and where.
@@ -668,7 +670,7 @@ export function Message(props: MessageProps): JSX.Element {
     if (hasBar && !layered && event.pointerType === "touch" && (control === null || control === event.currentTarget)) setActive(true);
   };
   const ref = (node: HTMLElement | null) => {
-    setElement(node);
+    element.current = node;
     const forwarded = props.ref;
     if (typeof forwarded === "function") forwarded(node);
     else if (forwarded) forwarded.current = node;
@@ -685,12 +687,12 @@ export function Message(props: MessageProps): JSX.Element {
   useLayoutEffect(() => {
     if (isFailed || !retried.current) return;
     retried.current = false;
-    // Stryker disable next-line ConditionalExpression: Retry was pressed in this message, so it has its element by now.
-    if (element === null || document.activeElement !== document.body) return;
-    if (!element.hasAttribute("tabindex")) element.setAttribute("tabindex", "-1");
+    const article = element.current!;
+    if (document.activeElement !== document.body) return;
+    if (!article.hasAttribute("tabindex")) article.setAttribute("tabindex", "-1");
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: it keeps the page where the reader pressed Retry; whether a browser scrolls a partly shown message into view on focus differs by engine, so no test can tell.
-    element.focus({ preventScroll: true });
-  }, [isFailed, element]);
+    article.focus({ preventScroll: true });
+  }, [isFailed]);
   const notSent = failed !== false && (
     <div data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
       <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
@@ -746,8 +748,13 @@ export function Message(props: MessageProps): JSX.Element {
   // Room for a bar around the bubble: the message's own bar, or the list's, which goes in while it is on this message.
   const room = layered || bar !== null;
   // What the list's bar and menu show for this message, given again on every render, so they show what it shows now.
+  // The element the list knows this message by, so the cleanup below takes out the one it set. A mounted message keeps
+  // one element: both of its branches draw an article in the same place, so React keeps the node when it switches.
+  const registered = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
-    if (!layered || element === null) return;
+    if (!layered) return;
+    const article = element.current!;
+    registered.current = article;
     const data: MessageBarData = {
       actions: actions ?? [],
       menu,
@@ -761,14 +768,15 @@ export function Message(props: MessageProps): JSX.Element {
       beside,
       slot: () => slot.current,
     };
-    layer.set(element, data);
+    layer.set(article, data);
   });
   useLayoutEffect(() => {
     if (!layered) return;
-    // Stryker disable next-line ConditionalExpression: `element` is null only on this effect's first commit, before the ref's own setElement lands; forcing this guard false there only registers a no-op `layer.delete(null)`, which the very next commit's run (element now set) replaces with the real cleanup, so the layer ends up the same either way.
-    if (element === null) return;
-    return () => layer.delete(element);
-  }, [layer, layered, element]);
+    return () => {
+      layer.delete(registered.current!);
+      registered.current = null;
+    };
+  }, [layer, layered]);
 
   if (variant === "default" || role === "system") {
     const continued = continuedProp && role !== "system";
