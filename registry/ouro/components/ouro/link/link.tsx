@@ -204,12 +204,12 @@ export function Link(props: LinkProps): JSX.Element {
   const current: AnchorHTMLAttributes<HTMLAnchorElement>["aria-current"] =
     currentProp === undefined || currentProp === false
       ? undefined
-      : currentProp === true || !ariaCurrents.includes(currentProp)
-        ? "page"
-        : (currentProp as (typeof ariaCurrents)[number] & AnchorHTMLAttributes<HTMLAnchorElement>["aria-current"]);
+      : ariaCurrents.includes(currentProp as string)
+        ? (currentProp as AnchorHTMLAttributes<HTMLAnchorElement>["aria-current"])
+        : "page";
   // An `aria-current` passed straight through (a NavLink habit) gets the same look.
   const passed = rest["aria-current"];
-  const marked = current !== undefined || (currentProp === undefined && passed !== undefined && passed !== false && passed !== "false");
+  const marked = current !== undefined || (passed !== undefined && passed !== false && passed !== "false");
   // A tone that is not one of Ouro UI's (a type error) warns and renders the default.
   const tone = Object.hasOwn(tones, toneProp) ? (toneProp as keyof typeof tones) : "primary";
   useAppearanceClassNameCheck(

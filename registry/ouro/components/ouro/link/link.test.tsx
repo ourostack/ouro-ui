@@ -310,21 +310,24 @@ describe("Link current", () => {
     expect(other!.textDecorationThickness).not.toBe("2px");
   });
 
-  it("gives an aria-current passed straight through the same look, and none for \"false\"", async () => {
-    const { host } = await render(
-      <>
-        <Link href="/a" aria-current="page">
-          A
-        </Link>
-        <Link href="/b" aria-current="false">
-          B
-        </Link>
-      </>,
+  it.each([
+    ["page", true],
+    [true, true],
+    ["false", false],
+    [false, false],
+  ] as const)("gives aria-current=%s passed straight through the current look: %s", async (value, look) => {
+    const { link } = await render(
+      <Link href="/a" aria-current={value}>
+        A
+      </Link>,
     );
-    const [a, b] = [...host.querySelectorAll("a")];
-    expect(a!.getAttribute("aria-current")).toBe("page");
-    expect(a!.hasAttribute("data-current")).toBe(true);
-    expect(b!.hasAttribute("data-current")).toBe(false);
+    expect(link.hasAttribute("data-current")).toBe(look);
+  });
+
+  it("marks the page for a current that is not an aria-current value", async () => {
+    const props = { href: "/a", current: "yes", children: "A" } as unknown as Parameters<typeof Link>[0];
+    const { link } = await render(<Link {...props} />);
+    expect(link.getAttribute("aria-current")).toBe("page");
   });
 });
 
