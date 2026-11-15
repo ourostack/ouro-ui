@@ -1,0 +1,1 @@
+- Changed: the Platforms pages, the parity matrix, the README and llms.txt name Android's first kit, ouro-ui-android, which is checked on emulators only.

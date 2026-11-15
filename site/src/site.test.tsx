@@ -146,7 +146,7 @@ describe("home page", () => {
     expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Agent benchmark", "/docs/agent-interfaces/"],
       ["Model reviews", "/docs/model-reviews/"],
-      ["No Android kit yet", "/docs/platforms/"],
+      ["Android: emulators only", "/docs/platforms/"],
     ]);
     // On a phone, a lede no taller than the old one, so the porthole still starts on the first screen, with the same two links.
     const phone = document.querySelector("[data-site-hero-phone]")!;
@@ -776,7 +776,7 @@ describe("platforms", () => {
     expect(rows).toEqual([
       ["For web", parity.webTag, `core ${provenance.coreTag}, for its tokens`],
       ["For Apple", versions.apple.tag, versions.apple.treeCoreTag === versions.apple.coreTag ? `core ${versions.apple.coreTag}` : `core ${versions.apple.coreTag}, and ${versions.apple.treeCoreTag} for its A2UI conformance cases`],
-      ["For Android", "none yet", "none yet"],
+      ["For Android", versions.android.tag, versions.android.treeCoreTag === versions.android.coreTag ? `core ${versions.android.coreTag}` : `core ${versions.android.coreTag}, and ${versions.android.treeCoreTag} for its A2UI conformance cases`],
       ["For Windows", versions.windows.tag, versions.windows.treeCoreTag === versions.windows.coreTag ? `core ${versions.windows.coreTag}` : `core ${versions.windows.coreTag}, and ${versions.windows.treeCoreTag} for its A2UI conformance cases`],
     ]);
   });
@@ -789,7 +789,6 @@ describe("platforms", () => {
   });
 
   it.each([
-    ["android", "AppFunctions", "docs/platforms/android.md", "ouro-ui-android"],
     ["your-platform", "MCP server", "docs/platforms/<platform>.md", "ouro-ui-<platform>"],
   ])("gives the %s page its agent door, the contract and the way to propose it", async (name, door, file, repository) => {
     await renderPage(`/docs/platforms/${name}/`);
@@ -818,7 +817,15 @@ describe("platforms", () => {
     expect(text).toContain("ourostack/ouro-ui-windows");
   });
 
-  it.each(["/docs/platforms/android/", "/docs/platforms/your-platform/", "/docs/platforms/contributing/", "/docs/ax-eval/", "/docs/testing/"])(
+  it("shows what the Android kit ships, what it still lacks, and that it is checked on emulators only", async () => {
+    await renderPage("/docs/platforms/android/");
+    const text = document.body.innerText;
+    for (const name of ["OuroButton", "OuroBadge", "OuroCard", "OuroItem", "ouro-actions", "AppFunctions", "emulators"]) expect(text).toContain(name);
+    for (const name of ["What ships today", "What is still missing", "Contribute next"]) await expect.element(page.getByRole("heading", { level: 2, name })).toBeVisible();
+    expect(text).toContain("ourostack/ouro-ui-android");
+  });
+
+  it.each(["/docs/platforms/your-platform/", "/docs/platforms/contributing/", "/docs/ax-eval/", "/docs/testing/"])(
     "renders %s's numbered steps as list items, with no step run into a paragraph",
     async (path) => {
       await renderPage(path);
