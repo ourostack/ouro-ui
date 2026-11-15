@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { drift, factsOf, gatherApple, gatherCore, pinnedProblems, render, renderApple, renderPlatforms, renderWindows } from "./platform-versions.mjs";
+import { drift, factsOf, gatherApple, gatherCore, pinnedProblems, render, renderAndroid, renderApple, renderPlatforms, renderWindows } from "./platform-versions.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const real = (path) => readFileSync(join(root, path), "utf8");
@@ -13,12 +13,14 @@ const PARITY = "scripts/parity-data/parity.json";
 const PLATFORMS = "docs/platforms/README.md";
 const APPLE_PAGE = "docs/platforms/apple.md";
 const WINDOWS_PAGE = "docs/platforms/windows.md";
+const ANDROID_PAGE = "docs/platforms/android.md";
 
 const facts = {
   core: { tag: "v0.10.0", commit: "c".repeat(40) },
   web: { tag: "v1.3.24" },
   apple: { tag: "v0.5.1", commit: "a".repeat(40), coreTag: "v0.8.0", treeCoreTag: "v0.9.0" },
   windows: { tag: "v0.2.0", commit: "b".repeat(40), coreTag: "v0.10.0", treeCoreTag: "v0.10.0" },
+  android: { tag: "v0.3.0", commit: "f".repeat(40), coreTag: "v0.15.0", treeCoreTag: "v0.15.0" },
 };
 
 /** A stand-in for GitHub's API and raw files, answering only what gather asks. */
@@ -61,6 +63,20 @@ test("the Windows row names its release and the core it meets, with checked sour
   assert.match(page, /^\| For Windows \| \[v0\.2\.0\]\(https:\/\/github\.com\/ourostack\/ouro-ui-windows\/releases\/tag\/v0\.2\.0\)\[\^windows-release\] \| core v0\.10\.0\[\^windows-core\] \|/m);
   assert.match(page, /^\[\^windows-core\]: https:\/\/github\.com\/ourostack\/ouro-ui-windows\/blob\/b{40}\/core-provenance\.json;.*verify:equals\(scripts\/parity-data\/versions\.json#windows\.coreTag\)=v0\.10\.0$/m);
   assert.match(page, /^\[\^windows-release\]: .*verify:equals\(scripts\/parity-data\/versions\.json#windows\.tag\)=v0\.2\.0$/m);
+});
+
+test("the Android row names its release and the core it meets, with checked sources", () => {
+  const page = renderPlatforms(real(PLATFORMS), facts);
+  assert.match(page, /^\| For Android \| \[v0\.3\.0\]\(https:\/\/github\.com\/ourostack\/ouro-ui-android\/releases\/tag\/v0\.3\.0\)\[\^android-release\] \| core v0\.15\.0\[\^android-core\] \|/m);
+  assert.match(page, /^\[\^android-core\]: https:\/\/github\.com\/ourostack\/ouro-ui-android\/blob\/f{40}\/core-provenance\.json;.*verify:equals\(scripts\/parity-data\/versions\.json#android\.coreTag\)=v0\.15\.0$/m);
+  assert.match(page, /^\[\^android-release\]: .*verify:equals\(scripts\/parity-data\/versions\.json#android\.tag\)=v0\.3\.0$/m);
+});
+
+test("the Android page's release line names the core its release meets", () => {
+  const page = renderAndroid(real(ANDROID_PAGE), facts);
+  assert.match(page, /^Release \[v0\.3\.0\]\(https:\/\/github\.com\/ourostack\/ouro-ui-android\/releases\/tag\/v0\.3\.0\) meets core v0\.15\.0:/m);
+  assert.match(page, /^\[\^core\]: https:\/\/github\.com\/ourostack\/ouro-ui-android\/releases\/tag\/v0\.3\.0; https:\/\/github\.com\/ourostack\/ouro-ui-android\/blob\/f{40}\/core-provenance\.json;.*verify:equals\(scripts\/parity-data\/versions\.json#android\.coreTag\)=v0\.15\.0$/m);
+  assert.equal(renderAndroid(page, facts), page);
 });
 
 test("an Apple release that takes all of core from one tag names that tag alone", () => {
@@ -131,14 +147,15 @@ test("the pinned Apple release is read from GitHub: its tag's commit and the cor
 
 test("a pinned kit release is drift when GitHub names another commit or core for its tag, with the command that pins it again", async () => {
   const versions = JSON.parse(real(VERSIONS));
-  const repos = { apple: "ourostack/ouro-ui-apple", windows: "ourostack/ouro-ui-windows" };
+  const repos = { apple: "ourostack/ouro-ui-apple", windows: "ourostack/ouro-ui-windows", android: "ourostack/ouro-ui-android" };
   const kitAnswers = (kit, commit, coreTag) => ({
     [`https://api.github.com/repos/${repos[kit]}/commits/${versions[kit].tag}`]: { sha: commit },
     [`https://raw.githubusercontent.com/${repos[kit]}/${commit}/core-provenance.json`]: { coreTag, tree: { coreTag: versions[kit].treeCoreTag } },
   });
-  const github = ({ apple, windows }) => fakeGitHub({
+  const github = ({ apple, windows, android }) => fakeGitHub({
     ...kitAnswers("apple", apple?.commit ?? versions.apple.commit, apple?.coreTag ?? versions.apple.coreTag),
     ...kitAnswers("windows", windows?.commit ?? versions.windows.commit, windows?.coreTag ?? versions.windows.coreTag),
+    ...kitAnswers("android", android?.commit ?? versions.android.commit, android?.coreTag ?? versions.android.coreTag),
   });
   assert.deepEqual(await pinnedProblems(versions, { fetch: github({}), delayMs: 0 }), []);
   const appleMoved = await pinnedProblems(versions, { fetch: github({ apple: { commit: "d".repeat(40), coreTag: "v9.0.0" } }), delayMs: 0 });
@@ -147,6 +164,9 @@ test("a pinned kit release is drift when GitHub names another commit or core for
   const windowsMoved = await pinnedProblems(versions, { fetch: github({ windows: { commit: "e".repeat(40), coreTag: "v0.12.1" } }), delayMs: 0 });
   assert.equal(windowsMoved.length, 1);
   assert.match(windowsMoved[0], new RegExp(`--windows ${versions.windows.tag.replace(/\./g, "\\.")} and commit`));
+  const androidMoved = await pinnedProblems(versions, { fetch: github({ android: { commit: "9".repeat(40), coreTag: "v0.14.0" } }), delayMs: 0 });
+  assert.equal(androidMoved.length, 1);
+  assert.match(androidMoved[0], new RegExp(`--android ${versions.android.tag.replace(/\./g, "\\.")} and commit`));
 });
 
 test("GitHub failing to answer is an error to retry, not drift", async () => {
@@ -154,11 +174,12 @@ test("GitHub failing to answer is an error to retry, not drift", async () => {
   await assert.rejects(gatherApple("v0.5.1", { fetch: fakeGitHub({}), attempts: 1, delayMs: 0 }), { name: "VersionsUnreadable" });
 });
 
-test("render writes versions.json with both kit pins, and every page from the same facts", () => {
+test("render writes versions.json with every kit's pin, and every page from the same facts", () => {
   const files = render(facts, real);
-  assert.deepEqual(Object.keys(files).sort(), [APPLE_PAGE, PLATFORMS, VERSIONS, WINDOWS_PAGE].sort());
+  assert.deepEqual(Object.keys(files).sort(), [ANDROID_PAGE, APPLE_PAGE, PLATFORMS, VERSIONS, WINDOWS_PAGE].sort());
   const written = JSON.parse(files[VERSIONS]);
-  assert.deepEqual(Object.keys(written), ["$comment", "apple", "windows"]);
+  assert.deepEqual(Object.keys(written), ["$comment", "apple", "windows", "android"]);
   assert.deepEqual(written.apple, facts.apple);
   assert.deepEqual(written.windows, facts.windows);
+  assert.deepEqual(written.android, facts.android);
 });

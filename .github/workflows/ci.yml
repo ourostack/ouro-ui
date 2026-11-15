@@ -487,6 +487,25 @@ jobs:
           else
             node scripts/test-impact.mjs coverage "$RUNNER_TEMP/coverage" "$COMPONENTS" --shards "$BROWSER_SHARDS"
           fi
+      # Unless the full suite decides in the fallback shards (the motion-coverage job then reads theirs),
+      # the motion maps are held here, beside the merged coverage, so no job waits after this one for them.
+      - if: env.BROWSER_RUN == 'true' && steps.tests.outputs.fallback != 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: motion-browser-*
+          path: ${{ runner.temp }}/motion
+      - if: env.BROWSER_RUN == 'true' && steps.tests.outputs.fallback != 'true'
+        name: Motion coverage
+        env:
+          MOTION_PARTITIONS: ouro-chromium:10,ouro-webkit:10,ouro-touch:10,site:10
+          REDUCED: ${{ steps.tests.outputs.reduced }}
+          STEMS: ${{ steps.tests.outputs.stems }}
+        run: |
+          if [ "$REDUCED" = true ]; then
+            pnpm motion:coverage --dir "$RUNNER_TEMP/motion" --expect "$MOTION_PARTITIONS" --stems "$STEMS"
+          else
+            pnpm motion:coverage --dir "$RUNNER_TEMP/motion" --expect "$MOTION_PARTITIONS"
+          fi
   browser-fallback:
     # The full browser suite, when a reduced pull request's coverage fell short (the coverage job's
     # `fallback`), run as a full run's browser shards run it, in more shards, since it starts only
@@ -600,7 +619,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, fallback]
     name: design (${{ matrix.shard }}/8)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -638,7 +657,7 @@ jobs:
         run: pnpm i --frozen-lockfile
       - if: steps.relevance.outputs.run != 'false'
         run: pnpm site:build
-      - if: steps.relevance.outputs.run != 'false'
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard != 'fallback'
         uses: ./.github/actions/check
         with:
           targets: site/dist
@@ -649,9 +668,9 @@ jobs:
           artifact: design-check
           install-browser: "false"
       # Safari and macOS WebView have no corner-shape, and Playwright's WebKit and Chromium do, so the
-      # fallback (the clip-path surfaces) never shows in the shards above. Shard 1 runs the check again on
+      # fallback (the clip-path surfaces) never shows in the shards above. Its own entry runs the check on
       # the pages of every converted component with the fallback rules switched on in every engine.
-      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 1
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 'fallback'
         name: Prepare the fallback copy of the site
         run: |
           fallback=site/dist-fallback
@@ -660,7 +679,7 @@ jobs:
           find "$fallback/docs" -mindepth 1 -maxdepth 1 ! -name button ! -name card ! -name dialog ! -name text-field ! -name avatar ! -name badge ! -name toggle -exec rm -rf {} +
           find "$fallback" -name '*.css' -exec sed -i.bak -E 's/@supports not \(corner-shape: ?squircle\)/@media all/g' {} +
           grep -rlE '@media all' "$fallback" --include='*.css' | head -1 | grep -q .
-      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 1
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 'fallback'
         uses: ./.github/actions/check
         with:
           targets: site/dist-fallback
@@ -761,10 +780,10 @@ jobs:
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
       FALLBACK: ${{ needs.ci.outputs.fallback }}
-      BROWSER_RUN: ${{ needs.ci.outputs.browser != 'false' }}
+      BROWSER_RUN: ${{ needs.ci.outputs.browser != 'false' && needs.ci.outputs.fallback == 'true' }}
     steps:
       - if: env.BROWSER_RUN == 'false'
-        run: echo "Nothing the browser tests read changed, so they did not run and there is no motion evidence to hold."
+        run: echo "Nothing to read here, since the browser shards did not run, or the coverage job held their motion evidence itself."
       - if: env.BROWSER_RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1349,8 +1368,13 @@ jobs:
           SHARDS: ${{ needs.e2e-shard.result }}
           SWEEPS: ${{ needs.sweep-shard.result }}
         run: |
-          if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ]; then
+          if [ "$SHARDS" != success ]; then
             echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/4) jobs."
+          fi
+          if [ "$SWEEPS" != success ]; then
+            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/6) jobs."
+          fi
+          if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ]; then
             exit 1
           fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

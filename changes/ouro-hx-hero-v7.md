@@ -1,0 +1,1 @@
+- Changed: the Ouro UI home hero is redrawn at its final wide shape, with Ouro in the brand O and Loop handing over the checklist.

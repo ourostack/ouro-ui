@@ -185,8 +185,10 @@ jobs:
             # UPGRADING.md is the note (README.md and the site copy it); its {{latestRelease}}
             # placeholder gets this tag (scripts/latest-release.mjs), and the line that explains
             # the placeholder to readers of the raw file goes (scripts/upgrade-note.mjs rawHint), as does
-            # the footnote mark that sources the title.
-            sed -e '1s/^# \(.*\)\[\^[^]]*\]$/### \1/' -e '1s/^# /### /' -e '/^> \*\*Reading this file on GitHub?\*\*/,/^$/d' -e "s/{{latestRelease}}/$TAG/g" UPGRADING.md
+            # the footnote mark that sources the title. Its footnotes go too, marks and definitions: they hold
+            # the claims' checks (verify:...), which mean nothing to a reader, and they were a sixth of the
+            # notes, which GitHub caps (ouro-ui#1329 tipped them over this repository's 100,000 guard).
+            sed -e '1s/^# \(.*\)\[\^[^]]*\]$/### \1/' -e '1s/^# /### /' -e '/^> \*\*Reading this file on GitHub?\*\*/,/^$/d' -e '/^\[\^[^]]*\]:/d' -e 's/\[\^[^]]*\]//g' -e "s/{{latestRelease}}/$TAG/g" UPGRADING.md
             echo
             echo 'Or through the `@ouro` namespace, which serves the newest release: this one once Pages deploys. Add it to `components.json` once:'
             echo

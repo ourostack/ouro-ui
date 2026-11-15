@@ -1,7 +1,7 @@
-// The Platforms pages (docs/platforms/README.md, apple.md and windows.md) state three versions: the core release their parity
+// The Platforms pages (docs/platforms/README.md, apple.md, windows.md and android.md) state three versions: the core release their parity
 // tables are built from and web's release that core's parity check compares against, both from the copies in
 // scripts/parity-data (parity.json's webTag, provenance.json's coreTag and coreCommit), and the release of each native kit
-// (ouro-ui-apple and ouro-ui-windows) the pages document, pinned in scripts/parity-data/versions.json. The pinned kit releases
+// (ouro-ui-apple, ouro-ui-windows and ouro-ui-android) the pages document, pinned in scripts/parity-data/versions.json. The pinned kit releases
 // are held to GitHub by --live (the scheduled Apple check runs it). Core's newest release is not checked against anything,
 // because the Pages build writes it (--write) before the site builds, so it cannot go stale on main.
 //
@@ -11,6 +11,7 @@
 //   node scripts/platform-versions.mjs --write           read core's newest release, then rewrite its copies and the pages (network; the Pages build runs it)
 //   node scripts/platform-versions.mjs --apple <tag>     pin ouro-ui-apple's release <tag>, then rewrite versions.json and the pages (network)
 //   node scripts/platform-versions.mjs --windows <tag>   pin ouro-ui-windows's release <tag>, then rewrite versions.json and the pages (network)
+//   node scripts/platform-versions.mjs --android <tag>   pin ouro-ui-android's release <tag>, then rewrite versions.json and the pages (network)
 //
 //   Exits 1 on drift (and writes behind=true to GITHUB_OUTPUT), 2 when GitHub cannot be read, which is no drift. --write
 //   reports a 2 as a warning and writes nothing, so the build keeps the copies main has.
@@ -25,6 +26,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CORE = "ourostack/ouro-ui-core";
 const APPLE = "ourostack/ouro-ui-apple";
 const WINDOWS = "ourostack/ouro-ui-windows";
+const ANDROID = "ourostack/ouro-ui-android";
 const WEB = "ourostack/ouro-ui";
 const VERSIONS = "scripts/parity-data/versions.json";
 const PARITY = "scripts/parity-data/parity.json";
@@ -32,9 +34,12 @@ const PROVENANCE = "scripts/parity-data/provenance.json";
 const PLATFORMS = "docs/platforms/README.md";
 const APPLE_PAGE = "docs/platforms/apple.md";
 const WINDOWS_PAGE = "docs/platforms/windows.md";
+const ANDROID_PAGE = "docs/platforms/android.md";
 /** Where ouro-ui-apple's CI checks the provenance hashes: a pinned permalink, since the check is unchanged. */
 const APPLE_CI = "https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96";
 const FIX = "Run node scripts/platform-versions.mjs --render and commit what it changes.";
+/** The native kits versions.json pins, by the flag that pins each. */
+const KITS = { apple: APPLE, windows: WINDOWS, android: ANDROID };
 const pinFix = (kit, tag) => `Run node scripts/platform-versions.mjs --${kit} ${tag} and commit what it changes.`;
 const TAG = /^v\d+\.\d+\.\d+$/;
 
@@ -44,28 +49,31 @@ const urlOk = (url) => `verify:urlOk(${url})`;
 const equals = (file, field, value) => `verify:equals(${file}#${field})=${value}`;
 /** Where ouro-ui-windows's `generated` job checks the vendored core files' hashes, at the commit its release names. */
 const windowsCi = (commit) => blobUrl(WINDOWS, commit, ".github/workflows/ci.yml#L37-L48");
+/** Where ouro-ui-android's `generated` job checks the vendored core files' hashes, at the commit its release names. */
+const androidCi = (commit) => blobUrl(ANDROID, commit, ".github/workflows/ci.yml#L37-L48");
 
 /** The core a kit's release meets, in words: one tag, or the tag for its tokens and claims and another for its A2UI cases. */
 function kitCore({ coreTag, treeCoreTag }) {
   return treeCoreTag && treeCoreTag !== coreTag ? `core ${coreTag}, and ${treeCoreTag} for its A2UI conformance cases` : `core ${coreTag}`;
 }
 
-const GENERATED_NOTES = /^\[\^(web-release|web-core|apple-release|apple-core|windows-release|windows-core|core-latest|core-v\d+\.\d+\.\d+)\]: .*\n?/gm;
+const GENERATED_NOTES = /^\[\^(web-release|web-core|apple-release|apple-core|windows-release|windows-core|android-release|android-core|core-latest|core-v\d+\.\d+\.\d+)\]: .*\n?/gm;
 
 /** docs/platforms/README.md with its version table, the newest-core line and their footnotes rendered from `facts`. */
-export function renderPlatforms(page, { core, web, apple, windows }) {
+export function renderPlatforms(page, { core, web, apple, windows, android }) {
   const table = [
     "| Ouro HX & AX | Release checked | The core it meets | How we know |",
     "| --- | --- | --- | --- |",
     `| For web | [${web.tag}](${tagUrl(WEB, web.tag)})[^web-release] | core ${core.tag}, for its tokens[^web-core] | Core's parity check compares its web stylesheets with web's, byte for byte.[^web-core] |`,
     `| For Apple | [${apple.tag}](${tagUrl(APPLE, apple.tag)})[^apple-release] | ${kitCore(apple)}[^apple-core] | The release's \`core-provenance.json\` names the tag and each file's SHA-256, and CI checks the hashes.[^apple-core] |`,
-    "| For Android | none yet | none yet | [Build it](android.md) |",
+    `| For Android | [${android.tag}](${tagUrl(ANDROID, android.tag)})[^android-release] | ${kitCore(android)}[^android-core] | The release's \`core-provenance.json\` names the tag and each file's SHA-256, and CI checks the hashes.[^android-core] |`,
     `| For Windows | [${windows.tag}](${tagUrl(WINDOWS, windows.tag)})[^windows-release] | ${kitCore(windows)}[^windows-core] | The release's \`core-provenance.json\` names the tag and each file's SHA-256, and CI checks the hashes.[^windows-core] |`,
   ].join("\n");
   const newest = `Core's newest release is ${core.tag}.[^core-latest] Web's row names the web release that core's parity check compares against, which can be older than web's [latest release](https://github.com/ourostack/ouro-ui/releases/latest).`;
   const parity = blobUrl(CORE, core.commit, "parity.json");
   const provenance = blobUrl(APPLE, apple.commit, "core-provenance.json");
   const windowsProvenance = blobUrl(WINDOWS, windows.commit, "core-provenance.json");
+  const androidProvenance = blobUrl(ANDROID, android.commit, "core-provenance.json");
   const notes = [
     `[^web-release]: ${tagUrl(WEB, web.tag)} ${urlOk(tagUrl(WEB, web.tag))} ${equals(PARITY, "webTag", web.tag)}`,
     `[^web-core]: ${parity}; ${tagUrl(CORE, core.tag)} ${urlOk(parity)} ${urlOk(tagUrl(CORE, core.tag))} ${equals(PARITY, "webTag", web.tag)} ${equals(PROVENANCE, "coreTag", core.tag)}`,
@@ -73,6 +81,8 @@ export function renderPlatforms(page, { core, web, apple, windows }) {
     `[^apple-core]: ${provenance}; ${APPLE_CI} ${urlOk(provenance)} ${urlOk(APPLE_CI)} ${equals(VERSIONS, "apple.coreTag", apple.coreTag)}`,
     `[^windows-release]: ${tagUrl(WINDOWS, windows.tag)} ${urlOk(tagUrl(WINDOWS, windows.tag))} ${equals(VERSIONS, "windows.tag", windows.tag)}`,
     `[^windows-core]: ${windowsProvenance}; ${windowsCi(windows.commit)} ${urlOk(windowsProvenance)} ${urlOk(windowsCi(windows.commit))} ${equals(VERSIONS, "windows.coreTag", windows.coreTag)}`,
+    `[^android-release]: ${tagUrl(ANDROID, android.tag)} ${urlOk(tagUrl(ANDROID, android.tag))} ${equals(VERSIONS, "android.tag", android.tag)}`,
+    `[^android-core]: ${androidProvenance}; ${androidCi(android.commit)} ${urlOk(androidProvenance)} ${urlOk(androidCi(android.commit))} ${equals(VERSIONS, "android.coreTag", android.coreTag)}`,
     `[^core-latest]: ${tagUrl(CORE, core.tag)} ${urlOk(tagUrl(CORE, core.tag))} ${equals(PROVENANCE, "coreTag", core.tag)}`,
   ].join("\n");
   const body = page
@@ -101,10 +111,19 @@ export function renderWindows(page, { windows }) {
     .replace(/^\[\^core\]: .*$/m, note);
 }
 
+/** docs/platforms/android.md with its release line's core and its [^core] footnote rendered from `facts`. */
+export function renderAndroid(page, { android }) {
+  const provenance = blobUrl(ANDROID, android.commit, "core-provenance.json");
+  const note = `[^core]: ${tagUrl(ANDROID, android.tag)}; ${provenance}; ${androidCi(android.commit)} ${urlOk(tagUrl(ANDROID, android.tag))} ${urlOk(provenance)} ${urlOk(androidCi(android.commit))} ${equals(VERSIONS, "android.coreTag", android.coreTag)}`;
+  return page
+    .replace(/^Release \[v[^\]]*\]\([^)]*\) meets [^:]*:/m, `Release [${android.tag}](${tagUrl(ANDROID, android.tag)}) meets ${kitCore(android)}:`)
+    .replace(/^\[\^core\]: .*$/m, note);
+}
+
 /** versions.json's text for the pinned kit releases. */
-function versionsFile({ apple, windows }) {
-  const comment = "Generated by node scripts/platform-versions.mjs --apple <tag> and --windows <tag> from each kit's release; do not edit. It pins the Apple and Windows releases the Platforms pages document, which the Apple release workflow holds to GitHub. Core's newest release is not recorded here: the Pages build reads it.";
-  return `${JSON.stringify({ $comment: comment, apple, windows }, null, 2)}\n`;
+function versionsFile({ apple, windows, android }) {
+  const comment = "Generated by node scripts/platform-versions.mjs --apple <tag>, --windows <tag> and --android <tag> from each kit's release; do not edit. It pins the Apple, Windows and Android releases the Platforms pages document, which the Apple release workflow holds to GitHub. Core's newest release is not recorded here: the Pages build reads it.";
+  return `${JSON.stringify({ $comment: comment, apple, windows, android }, null, 2)}\n`;
 }
 
 /**
@@ -114,7 +133,7 @@ function versionsFile({ apple, windows }) {
 export function factsOf(versions, read) {
   const provenance = JSON.parse(read(PROVENANCE));
   const parity = JSON.parse(read(PARITY));
-  return { core: { tag: provenance.coreTag, commit: provenance.coreCommit }, web: { tag: parity.webTag }, apple: versions.apple, windows: versions.windows };
+  return { core: { tag: provenance.coreTag, commit: provenance.coreCommit }, web: { tag: parity.webTag }, apple: versions.apple, windows: versions.windows, android: versions.android };
 }
 
 /** Every file the facts render, by path from the repository root. `read` takes such a path. */
@@ -124,6 +143,7 @@ export function render(facts, read) {
     [PLATFORMS]: renderPlatforms(read(PLATFORMS), facts),
     [APPLE_PAGE]: renderApple(read(APPLE_PAGE), facts),
     [WINDOWS_PAGE]: renderWindows(read(WINDOWS_PAGE), facts),
+    [ANDROID_PAGE]: renderAndroid(read(ANDROID_PAGE), facts),
   };
 }
 
@@ -189,11 +209,12 @@ export async function gatherKit(repo, tag, options = {}) {
 }
 export const gatherApple = (tag, options) => gatherKit(APPLE, tag, options);
 export const gatherWindows = (tag, options) => gatherKit(WINDOWS, tag, options);
+export const gatherAndroid = (tag, options) => gatherKit(ANDROID, tag, options);
 
 /** The pinned kit releases against GitHub: drift when the commit a pinned tag names, or the cores its provenance names, differ. */
 export async function pinnedProblems(versions, options = {}) {
   const problems = [];
-  for (const [kit, repo] of [["apple", APPLE], ["windows", WINDOWS]]) {
+  for (const [kit, repo] of Object.entries(KITS)) {
     const pinned = versions[kit];
     const now = await gatherKit(repo, pinned.tag, options);
     const same = ["commit", "coreTag", "treeCoreTag"].every((field) => now[field] === pinned[field]);
@@ -235,7 +256,7 @@ async function main(args) {
 
   if (args.includes("--render")) {
     renderPages();
-    console.log(`Rendered ${PLATFORMS}, ${APPLE_PAGE}, ${WINDOWS_PAGE} and ${VERSIONS} from the committed data.`);
+    console.log(`Rendered ${PLATFORMS}, ${APPLE_PAGE}, ${WINDOWS_PAGE}, ${ANDROID_PAGE} and ${VERSIONS} from the committed data.`);
     return 0;
   }
   if (args.includes("--write")) {
@@ -247,13 +268,13 @@ async function main(args) {
     }
     writeCopies(core);
     renderPages();
-    console.log(`Wrote core ${core.core.tag}'s copies and the Platforms pages that name it. The kit releases stay ${versions().apple.tag} (Apple) and ${versions().windows.tag} (Windows).`);
+    console.log(`Wrote core ${core.core.tag}'s copies and the Platforms pages that name it. The kit releases stay ${versions().apple.tag} (Apple), ${versions().windows.tag} (Windows) and ${versions().android.tag} (Android).`);
     return 0;
   }
-  const pin = ["--apple", "--windows"].find((flag) => args.includes(flag));
+  const pin = Object.keys(KITS).map((kit) => `--${kit}`).find((flag) => args.includes(flag));
   if (pin) {
     const kit = pin.slice(2);
-    const repo = kit === "apple" ? APPLE : WINDOWS;
+    const repo = KITS[kit];
     const tag = args[args.indexOf(pin) + 1] ?? "";
     if (!TAG.test(tag)) {
       console.log(`::error::${pin} takes a release tag such as v0.6.1, not "${tag}".`);
@@ -266,7 +287,7 @@ async function main(args) {
       return unreadable(error, "error");
     }
     const current = versions();
-    writeFileSync(join(root, VERSIONS), versionsFile({ apple: kit === "apple" ? pinned : current.apple, windows: kit === "windows" ? pinned : current.windows }));
+    writeFileSync(join(root, VERSIONS), versionsFile({ ...current, [kit]: pinned }));
     renderPages();
     console.log(`Pinned ${repo} ${tag} (${kitCore(pinned)}) and rewrote the Platforms pages that state it.`);
     return 0;
@@ -279,11 +300,11 @@ async function main(args) {
       return unreadable(error, "error");
     }
     const code = behind([...pinned, ...drift(versions(), read)]);
-    if (code === 0) console.log(`${VERSIONS} pins ${APPLE} ${versions().apple.tag} and ${WINDOWS} ${versions().windows.tag} as GitHub has them, and the Platforms pages state them.`);
+    if (code === 0) console.log(`${VERSIONS} pins ${APPLE} ${versions().apple.tag}, ${WINDOWS} ${versions().windows.tag} and ${ANDROID} ${versions().android.tag} as GitHub has them, and the Platforms pages state them.`);
     return code;
   }
   const code = behind(drift(versions(), read));
-  if (code === 0) console.log(`The Platforms pages state what the committed data records (core ${factsOf(versions(), read).core.tag}, Apple ${versions().apple.tag}, Windows ${versions().windows.tag}).`);
+  if (code === 0) console.log(`The Platforms pages state what the committed data records (core ${factsOf(versions(), read).core.tag}, Apple ${versions().apple.tag}, Windows ${versions().windows.tag}, Android ${versions().android.tag}).`);
   return code;
 }
 

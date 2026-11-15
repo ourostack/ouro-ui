@@ -1,0 +1,1 @@
+- Fixed: squircle edges in Safari and WKWebView are smooth, drawn with more points per corner.

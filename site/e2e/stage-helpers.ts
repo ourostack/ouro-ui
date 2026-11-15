@@ -26,15 +26,22 @@ export async function swimming(page: Page): Promise<void> {
   await expect(scene(page)).toHaveAttribute("data-speed", "half");
 }
 
-/** Holds the page on each frame for `ms` from when its HTML has loaded, as a screen that draws slowly would. */
+/**
+ * Holds the page for `ms` after each frame from when its HTML has loaded, as a screen that draws slowly would. The hold
+ * is a task each frame posts, not part of the frame: Linux WebKit runs a due frame before any task, so a frame held
+ * every time, with the stage's animations asking for the next, left the page's timers no turn while frames went on,
+ * and the stage's beat never came (ourostack/ouro-ui#1370). A real slow screen leaves the page its tasks.
+ */
 export const slowFrames = (page: Page, ms: number) =>
   page.addInitScript((hold) => {
-    const burn = () => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
       const end = performance.now() + hold;
       while (performance.now() < end);
-      requestAnimationFrame(burn);
+      requestAnimationFrame(frame);
     };
-    addEventListener("DOMContentLoaded", () => requestAnimationFrame(burn));
+    const frame = () => channel.port2.postMessage(0);
+    addEventListener("DOMContentLoaded", () => requestAnimationFrame(frame));
   }, ms);
 
 /** Opens the stage on a page that draws slowly, which takes longer to be ready. */

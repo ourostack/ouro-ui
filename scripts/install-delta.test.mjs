@@ -20,6 +20,9 @@ test("the install delta adds only the changed items the shipped tests install", 
   now["button-tests"] = item("bt2", ["button.test.tsx"], ["button"]);
   assert.deepEqual(plan(now, before), { mode: "incremental", items: ["button-tests"] });
   assert.deepEqual(plan(base(), before), { mode: "incremental", items: [] });
+  const outside = base();
+  outside.extra = item("e2", ["extra.tsx"]);
+  assert.deepEqual(plan(outside, before), { mode: "incremental", items: [] });
 });
 
 test("the install delta adds everything when the app cannot be proved to match a full add", () => {
@@ -39,9 +42,6 @@ test("the install delta adds everything when the app cannot be proved to match a
   assertFull(plan(redepended, before));
   const added = { ...base(), fresh: item("f") };
   assertFull(plan(added, before));
-  const outside = base();
-  outside.extra = item("e2", ["extra.tsx"]);
-  assertFull(plan(outside, before));
   const root = base();
   root["ouro-tests"] = item("t2", ["t.ts"], ["button", "button-tests"]);
   assertFull(plan(root, before));

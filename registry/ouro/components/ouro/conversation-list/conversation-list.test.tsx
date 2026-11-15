@@ -519,17 +519,37 @@ describe("ConversationList", () => {
     expect(rows[0]!.parentElement!.parentElement!.querySelectorAll("[data-ouro-conversation-name-tag]")).toHaveLength(2);
   });
 
-  it("gives up the where before the title when the row is narrow", async () => {
+  it("shows the where whole or not at all, never cut, and gives it up before the title", async () => {
     const { rows } = await render(
-      <div style={{ width: 240 }}>
-        <ConversationList label="Conversations" items={[{ id: "design", title: "Design reviews", where: "The launch team for the spring release", time: "9:12" }]} onSelect={() => {}} />
+      <div style={{ width: 300 }}>
+        <ConversationList
+          label="Conversations"
+          items={[
+            { id: "fits", title: "Design", where: "Harbor", time: "9:12" },
+            { id: "tight", title: "Release notes", where: "Harbor Point team", time: "5:54 PM" },
+            { id: "long", title: "Design reviews", where: "The launch team for the spring release", time: "9:12" },
+          ]}
+          onSelect={() => {}}
+        />
       </div>,
     );
-    const title = rows[0]!.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;
-    const where = rows[0]!.querySelector<HTMLElement>("[data-ouro-conversation-where]")!;
-    expect(title.scrollWidth).toBe(title.clientWidth);
-    expect(where.scrollWidth).toBeGreaterThan(where.clientWidth);
-    expect(getComputedStyle(where).textOverflow).toBe("ellipsis");
+    // The parts of the where's text a person sees: whole, or nothing.
+    const seen = (row: HTMLElement) => {
+      const where = row.querySelector<HTMLElement>("[data-ouro-conversation-where]")!;
+      const box = where.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(where);
+      const text = [...range.getClientRects()].filter((rect) => rect.width > 0);
+      const inside = (rect: DOMRect) => rect.left >= box.left - 0.5 && rect.right <= box.right + 0.5 && rect.top >= box.top - 0.5 && rect.bottom <= box.bottom + 0.5;
+      const outside = (rect: DOMRect) => rect.right <= box.left + 0.5 || rect.left >= box.right - 0.5 || rect.bottom <= box.top + 0.5 || rect.top >= box.bottom - 0.5;
+      return text.every(inside) ? "whole" : text.every((rect) => inside(rect) || outside(rect)) ? "hidden" : "cut";
+    };
+    expect(rows.map(seen)).toEqual(["whole", "hidden", "hidden"]);
+    for (const row of rows) {
+      const title = row.querySelector<HTMLElement>("[data-ouro-conversation-title]")!;
+      expect(title.scrollWidth).toBe(title.clientWidth);
+    }
+    await expect.element(page.getByRole("button", { name: /^Release notes Harbor Point team 5:54 PM/ })).toBeVisible();
   });
 
   it("shows an icon before the title in the muted color", async () => {

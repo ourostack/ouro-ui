@@ -243,9 +243,15 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
 
   // cramped-heading: a heading (with the icon on its row) too close to a picture or a filled or framed box beside it,
   // each measured by the part of it that is drawn.
+  // A fixed layer that covers the window (a sheet's scrim, a backdrop) is drawn behind its overlay, not laid out above it.
+  const windowLayer = (el: Element) => {
+    if (getComputedStyle(el).position !== "fixed") return false;
+    const r = el.getBoundingClientRect();
+    return r.width >= innerWidth * 0.9 && r.height >= innerHeight * 0.9;
+  };
   const blocks = visible.filter((el) => {
     const r = drawnRect(el)!;
-    return r.width >= 48 && r.height >= 48 && filled(el);
+    return r.width >= 48 && r.height >= 48 && filled(el) && !windowLayer(el);
   });
   for (const heading of headings) {
     if (optedOut(heading, "cramped-heading")) continue;
@@ -537,12 +543,21 @@ async function readCorners(readings: CornerReading[]): Promise<PageIssue[]> {
       // a curve of 3 px or more, whatever paints it there.
       const tip = radius >= 3 ? at(x, y) : computed;
       let odd: number[] | null = null;
+      let flat = 0;
       for (let c = 1; c <= reach; c++) {
         const [k, a, d] = [at(x + dx * c, y + dy * c), at(x + dx * edge, y + dy * c), at(x + dx * c, y + dy * edge)];
         if (far(a, d) >= 40) continue;
-        if (odd && far(k, a) < 40 && far(k, d) < 40) return odd;
+        if (odd && far(k, a) < 40 && far(k, d) < 40) {
+          if (flat >= 2) return odd;
+          odd = null;
+        }
+        // A baked corner is one flat fill: a colour that wanders along the diagonal, such as a glow in the picture, is content.
+        if (odd) {
+          if (far(k, odd) < 30) flat++;
+          else if (flat < 2) odd = null;
+        }
         // A colour the frame or the media draws itself (its border, its fill) is its own frame, not a corner baked in.
-        if (!odd && offBlend(k, computed, a) > 80 && offBlend(k, tip, a) > 80 && far(k, d) > 80 && !own.some((c) => offBlend(k, computed, c) < 40)) odd = k;
+        if (!odd && offBlend(k, computed, a) > 80 && offBlend(k, tip, a) > 80 && far(k, d) > 80 && !own.some((c) => offBlend(k, computed, c) < 40)) { odd = k; flat = 0; }
       }
       return null;
     };

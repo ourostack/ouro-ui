@@ -98,6 +98,22 @@ describe("Chapter I", () => {
     announced.stop();
   });
 
+  it("keeps one note for repeated signings, each replacing the one still showing", async () => {
+    await renderPage("/nautilus/");
+    const notes = () => document.querySelectorAll('[data-ouro="toast"]');
+    for (const name of ["Ana", "Ben", "Cy"]) {
+      await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), name);
+      await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
+      await userEvent.click(page.getByRole("option", { name: "Cook" }));
+      await userEvent.click(page.getByRole("checkbox", { name: ARTICLES.oath }));
+      await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
+      await expect.element(page.getByRole("button", { name: ARTICLES.leave })).toBeVisible();
+      await userEvent.click(page.getByRole("button", { name: ARTICLES.leave }));
+    }
+    await expect.poll(() => notes()[0]?.querySelector("[data-ouro-toast-title]")?.textContent).toBe(ARTICLES.signed("Cy"));
+    expect(notes()).toHaveLength(1);
+  });
+
   it("has Conseil refuse aloud, politely, while the articles want a trade and the oath", async () => {
     await renderPage("/nautilus/");
     await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ana");

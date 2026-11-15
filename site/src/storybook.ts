@@ -45,14 +45,14 @@ export interface Scene {
 
 export const SCENES: Record<SceneName, Scene> = {
   "ouro-hx": {
-    alt: "A woman and a little white robot build a big green switch panel on a wooden workbench at dawn, while Ouro, a smiling green snake curled into an O, watches from the glowing trail.",
+    alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, stand at an oak-and-brass crate on a dawn hilltop. He hands over a ribboned checklist while Ouro, a smiling emerald glass snake curled into an O, watches from the crate.",
     sky: ["#cfc0d0", "#c4c1da", "#cfcbdb", "#faceb4", "#fbd9b6"],
-    height: 576,
-    phoneHeight: 432,
+    height: 512,
+    phoneHeight: 352,
     band: 27,
     night: {
-      phoneHeight: 432,
-      alt: "A woman and a little white robot build a big green switch panel on a wooden workbench at night, while Ouro, a smiling green snake curled into an O, watches from the glowing trail.",
+      phoneHeight: 352,
+      alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, stand at an oak-and-brass crate on a moonlit hilltop. He hands over a ribboned checklist while Ouro, a smiling emerald glass snake curled into an O, watches from the crate.",
     },
   },
   "ouro-ui-apple": {
@@ -159,6 +159,10 @@ export const CARDS: Record<string, Card> = {
     side: "left",
     width: 860,
     size: 40,
+    // The og crop cuts Ouro's coil at the right edge (render QA, 2026-11-14): the paint pots to Ouro's tail, whole.
+    crop: { from: 40, to: 1456 },
+    address: "band",
+    addressSide: "right",
   },
 };
 

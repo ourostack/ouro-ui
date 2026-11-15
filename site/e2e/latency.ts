@@ -108,10 +108,44 @@ export function splitPress(entry: { startTime: number; processingStart: number; 
  */
 export function splitPaint(entry: { startTime: number; processingEnd: number; duration: number }, frames: ReadonlyArray<{ startTime: number; duration: number }>): { mainThread: number; afterMainThread: number } | null {
   const paint = entry.startTime + entry.duration;
-  const frame = frames.find((candidate) => candidate.startTime + candidate.duration > entry.processingEnd && candidate.startTime <= paint);
+  const frame = holdingFrame(entry, frames);
   if (!frame) return null;
   const frameEnd = frame.startTime + frame.duration;
   return { mainThread: Math.max(0, Math.round(frameEnd - entry.processingEnd)), afterMainThread: Math.max(0, Math.round(paint - frameEnd)) };
+}
+
+/** The long animation frame that holds a press's rendering, as splitPaint takes it, or undefined. */
+export function holdingFrame<F extends { startTime: number; duration: number }>(entry: { startTime: number; processingEnd: number; duration: number }, frames: ReadonlyArray<F>): F | undefined {
+  const paint = entry.startTime + entry.duration;
+  return frames.find((candidate) => candidate.startTime + candidate.duration > entry.processingEnd && candidate.startTime <= paint);
+}
+
+/** A long animation frame as the page records it (Chromium only): when its phases began, and the scripts it ran. */
+export interface FrameDetail {
+  startTime: number;
+  duration: number;
+  /** When the frame's rendering began (its animation frame callbacks), 0 when it rendered nothing. */
+  renderStart: number;
+  /** When its style and layout began, 0 when it rendered nothing. */
+  styleAndLayoutStart: number;
+  scripts: ReadonlyArray<{ duration: number; forcedStyleAndLayoutDuration: number; source: string }>;
+}
+
+/**
+ * What a long animation frame spent its time on: the scripts and tasks before its rendering, its animation frame callbacks
+ * and observers, and its style, layout and paint (ms), then its three heaviest scripts with the forced layout in each. A
+ * slow press's log line carries it, so a press that is slow only now and then says, the one time it is, what ran.
+ */
+export function describeFrame(frame: FrameDetail): string {
+  const end = frame.startTime + frame.duration;
+  const render = frame.renderStart || end;
+  const style = frame.styleAndLayoutStart || end;
+  const phases = `scripts and tasks ${Math.round(render - frame.startTime)} ms, animation frame callbacks and observers ${Math.round(style - render)} ms, style, layout and paint ${Math.round(end - style)} ms`;
+  const heaviest = [...frame.scripts]
+    .sort((a, b) => b.duration - a.duration)
+    .slice(0, 3)
+    .map((script) => `${script.source} ${Math.round(script.duration)} ms (${Math.round(script.forcedStyleAndLayoutDuration)} ms forced layout)`);
+  return heaviest.length > 0 ? `${phases}; heaviest scripts: ${heaviest.join(", ")}` : phases;
 }
 
 /**
@@ -262,11 +296,23 @@ export async function measure(
       for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push([entry.duration, entry.startTime, entry.processingStart, entry.processingEnd, entry.name]);
     }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
     // Long animation frames show whether a slow press's wait for the paint was the main thread's frame (Chromium only).
-    const frames: Array<[number, number, number, number]> = [];
+    type Script = { duration: number; forcedStyleAndLayoutDuration: number; invoker: string; invokerType: string; sourceURL: string; sourceFunctionName: string };
+    const frames: FrameDetail[] = [];
     (window as unknown as { __latencyFrames: typeof frames }).__latencyFrames = frames;
     try {
       new PerformanceObserver((list) => {
-        for (const entry of list.getEntries() as Array<PerformanceEntry & { renderStart: number; styleAndLayoutStart: number }>) frames.push([entry.startTime, entry.duration, entry.renderStart, entry.styleAndLayoutStart]);
+        for (const entry of list.getEntries() as Array<PerformanceEntry & { renderStart: number; styleAndLayoutStart: number; scripts?: Script[] }>)
+          frames.push({
+            startTime: entry.startTime,
+            duration: entry.duration,
+            renderStart: entry.renderStart,
+            styleAndLayoutStart: entry.styleAndLayoutStart,
+            scripts: (entry.scripts ?? []).map((script) => ({
+              duration: script.duration,
+              forcedStyleAndLayoutDuration: script.forcedStyleAndLayoutDuration,
+              source: `${script.invokerType} ${script.invoker} (${script.sourceFunctionName || "anonymous"} in ${script.sourceURL.split("/").pop() || "the page"})`,
+            })),
+          });
       }).observe({ type: "long-animation-frame", buffered: false } as PerformanceObserverInit);
     } catch {
       // A browser without long animation frames records none.
@@ -343,9 +389,11 @@ export async function measure(
       if (slowest && slowest[0] > LATENCY.p95) {
         // Event Timing gives a press's later entries (pointerup, click) its first event's start (pointerdown's), so their input delay runs from pointerdown.
         const { inputDelay, processing, presentation } = splitPress({ duration: slowest[0], startTime: slowest[1], processingStart: slowest[2], processingEnd: slowest[3] });
-        const frames = await page.evaluate(() => (window as unknown as { __latencyFrames: Array<[number, number, number, number]> }).__latencyFrames);
-        const paint = splitPaint({ duration: slowest[0], startTime: slowest[1], processingEnd: slowest[3] }, frames.map(([startTime, duration]) => ({ startTime, duration })));
-        const paintPart = paint ? `; of the wait, ${paint.mainThread} ms in the main thread's frame and ${paint.afterMainThread} ms after it` : "; no long animation frame held it, so the main thread's part was under 50 ms";
+        const frames = await page.evaluate(() => (window as unknown as { __latencyFrames: FrameDetail[] }).__latencyFrames);
+        const press = { duration: slowest[0], startTime: slowest[1], processingEnd: slowest[3] };
+        const paint = splitPaint(press, frames);
+        const holding = holdingFrame(press, frames);
+        const paintPart = paint && holding ? `; of the wait, ${paint.mainThread} ms in the main thread's frame and ${paint.afterMainThread} ms after it; the frame: ${describeFrame(holding)}` : "; no long animation frame held it, so the main thread's part was under 50 ms";
         const split = `${label}, press ${index}: ${slowest[0]} ms = ${inputDelay} ms input delay + ${processing} ms handlers + ${presentation} ms to the next paint (${slowest[4]} entry)${paintPart}`;
         test.info().annotations.push({ type: "latency-slow", description: split });
         console.log(`latency-slow ${split}`);

@@ -11,6 +11,7 @@ export const storyIds = {
   celebrate: "feedback-celebrate--in-context",
   checklist: "lists-checklist--in-context",
   colorSchemeToggle: "actions-colorschemetoggle--segmented",
+  command: "menus-command--playground",
   dialog: "overlays-dialog--playground",
   item: "lists-item--in-context",
   reorderableDisabled: "lists-reorderable--disabled",

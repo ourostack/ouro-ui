@@ -115,6 +115,14 @@ describe("findDesignIssues: cramped-heading", () => {
     expect(of("cramped-heading", { headingRoom: 0.25 }).map((issue) => issue.element)).toEqual(['h2#own "Close under its own box"', 'h3 "With an icon"']);
   });
 
+  it("skips a fixed layer that covers the window, a sheet's scrim, and still finds a heading cramped under a real box", () => {
+    render(`
+      <div style="position:fixed;top:0;left:0;right:0;height:95vh;background:#445"></div>
+      <section style="position:fixed;top:95vh;left:100px;width:300px"><h3 style="margin:0;font-size:16px">Why</h3></section>
+      <section style="position:absolute;top:0;left:500px;width:300px"><div style="height:60px;background:#3a7"></div><h3 style="margin:2px 0 0;font-size:16px">Cramped</h3></section>`);
+    expect(of("cramped-heading").map((issue) => issue.element)).toEqual(['h3 "Cramped"']);
+  });
+
   it("names the closest of the boxes above a heading", () => {
     render(`<section><div style="height:80px;background:#eef"><div id="inner" style="position:relative;top:4px;height:80px;background:#3a7"></div></div><h2 style="margin:8px 0 0;font-size:40px;line-height:48px">Closest wins</h2></section>`);
     expect(of("cramped-heading").map((issue) => issue.detail)).toEqual(["4px below div#inner; a 40px heading needs 10px"]);
@@ -559,6 +567,18 @@ describe("readCorners", () => {
     const striped = shot((x, y) => (outside(x, y, 14) ? WHITE : outside(x, y, 28) ? BLACK : y < 30 ? BLUE : LIGHT));
     expect(await readCorners([reading(plain), reading(one), reading(window_(), ["top left"]), reading(mixed), reading(striped, ["top left", "top right"])])).toEqual([]);
     expect(await readCorners([reading(striped)])).toMatchObject([{ detail: expect.stringMatching(/^the bottom left, bottom right corners/) }]);
+  });
+
+  it("passes a single odd pixel on the diagonal that the next sample leaves", async () => {
+    const speck = shot((x, y) => (x === 5 && y === 5 ? RED : LIGHT));
+    expect(await readCorners([reading(speck, ["top left"])])).toEqual([]);
+  });
+
+  it("passes a picture whose own glow lies near its corners", async () => {
+    // The CI crop of a scene in a 30.6px squircle frame: a blue-violet glow about 30px in, which is the picture, not a bake.
+    const shotUrl = new URL("./fixtures/glowing-scene-corner.png", import.meta.url).href;
+    const scene: CornerReading = { ref: "c1", element: "scenes/built-for-one.avif", shot: shotUrl, radius: 30.6, behind: [5, 16, 36], own: [], corners: ["top left", "top right"] };
+    expect(await readCorners([scene])).toEqual([]);
   });
 
   it("passes a corner that shows the page as drawn at its tip, or a colour the frame draws itself, such as its outline or border", async () => {

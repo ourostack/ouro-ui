@@ -37,6 +37,7 @@ import {
   commandItemClass,
   commandMarkClass,
   commandListClass,
+  commandListboxClass,
   commandLoadingClass,
   commandLoadingRowClass,
   commandSearchClass,
@@ -643,7 +644,11 @@ export function Command(props: CommandProps): JSX.Element {
               {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
             </div>
           </Autocomplete.Empty>
-          <CommandList>
+          <CommandList
+            className={inSheet ? "outline-none" : commandListboxClass}
+            // While results are on their way, rows in their shape hold their place under the ones already shown, scrolling with them.
+            after={loading && <LoadingRows />}
+          >
             {(group: Group, index: number) => (
               <Autocomplete.Group key={group.label ?? `loose-${index}`} items={group.items} data-ouro-command-group="">
                 {group.label !== undefined && (
@@ -703,8 +708,6 @@ export function Command(props: CommandProps): JSX.Element {
               </Autocomplete.Group>
             )}
           </CommandList>
-          {/* While results are on their way, rows in their shape hold their place under the ones already shown. */}
-          {loading && <LoadingRows />}
         </div>
         <KeepHighlight heldRef={held} query={query} />
         <ResultCount query={query} loading={loading} label={resultsLabel} />
@@ -869,11 +872,12 @@ function LoadingRows(): JSX.Element | null {
   );
 }
 
-function CommandList({ children }: { children: Autocomplete.List.Props["children"] }): JSX.Element {
+function CommandList({ children, className, after }: { children: (group: Group, index: number) => ReactNode; className: string; after: ReactNode }): JSX.Element {
   const empty = Autocomplete.useFilteredItems().length === 0;
   return (
-    <Autocomplete.List hidden={empty} className="outline-none">
-      {children}
+    <Autocomplete.List hidden={empty} className={className}>
+      <Autocomplete.Collection>{children}</Autocomplete.Collection>
+      {after}
     </Autocomplete.List>
   );
 }

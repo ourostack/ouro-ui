@@ -102,6 +102,9 @@ interface ConversationListItemFields {
   /**
    * A muted name after the title, on its line, such as the team a channel belongs to: "Design
    * reviews · Launch team". Text, or content such as `<EmojiText>` to draw its emoji as pictures.
+   * It shows whole or not at all: when the row has no room for it, the title keeps the room and the
+   * where is hidden, never cut to a fragment; screen readers still read it. Leave it out where a
+   * section's title already names it.
    */
   where?: ReactNode;
   /** A second line under the title, such as the group a topic belongs to. */
