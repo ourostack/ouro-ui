@@ -8,13 +8,13 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | [ourostack/ouro-ui-android v0.1.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.1.0") | [ourostack/ouro-ui-windows v0.1.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.1.1") |
+| Kit | this repository | [ourostack/ouro-ui-apple v0.7.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.7.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.7.0") | [ourostack/ouro-ui-android v0.1.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.1.0") | [ourostack/ouro-ui-windows v0.1.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.1.1") |
 
-Components: Web has 122 of 122, Apple has 8 of 122, Android has 4 of 122, Windows has 4 of 122.[^matrix]
+Components: Web has 122 of 122, Apple has 20 of 122, Android has 4 of 122, Windows has 4 of 122.[^matrix]
 
 Claims covered: Web 7 of 13, Apple 13 of 13, Android 5 of 13, Windows 5 of 13.[^matrix]
 
-Gap cells: 372.[^matrix]
+Gap cells: 360.[^matrix]
 
 ### Components
 
@@ -29,9 +29,9 @@ Gap cells: 372.[^matrix]
 | [field](https://ui.ouroboros.bot/docs/field/) | `field` | Not yet | Not yet | Not yet |
 | [fieldset](https://ui.ouroboros.bot/docs/fieldset/) | `fieldset` | Not yet | Not yet | Not yet |
 | [link](https://ui.ouroboros.bot/docs/link/) | `link` | Not yet | Not yet | Not yet |
-| [text-field](https://ui.ouroboros.bot/docs/text-field/) | `text-field` | Not yet | Not yet | Not yet |
+| [text-field](https://ui.ouroboros.bot/docs/text-field/) | `text-field` | `OuroTextField` | Not yet | Not yet |
 | [text-area](https://ui.ouroboros.bot/docs/text-area/) | `text-area` | Not yet | Not yet | Not yet |
-| [checkbox](https://ui.ouroboros.bot/docs/checkbox/) | `checkbox` | Not yet | Not yet | Not yet |
+| [checkbox](https://ui.ouroboros.bot/docs/checkbox/) | `checkbox` | `OuroCheckbox` | Not yet | Not yet |
 | [checkbox-group](https://ui.ouroboros.bot/docs/checkbox-group/) | `checkbox-group` | Not yet | Not yet | Not yet |
 | [radio-group](https://ui.ouroboros.bot/docs/radio-group/) | `radio-group` | Not yet | Not yet | Not yet |
 | [switch](https://ui.ouroboros.bot/docs/switch/) | `switch` | Not yet | Not yet | Not yet |
@@ -43,13 +43,13 @@ Gap cells: 372.[^matrix]
 | [slider](https://ui.ouroboros.bot/docs/slider/) | `slider` | Not yet | Not yet | Not yet |
 | [combobox](https://ui.ouroboros.bot/docs/combobox/) | `combobox` | Not yet | Not yet | Not yet |
 | [toaster](https://ui.ouroboros.bot/docs/toaster/) | `toaster` | `OuroToast` | Not yet | Not yet |
-| [spinner](https://ui.ouroboros.bot/docs/spinner/) | `spinner` | Not yet | Not yet | Not yet |
-| [progress](https://ui.ouroboros.bot/docs/progress/) | `progress` | Not yet | Not yet | Not yet |
-| [skeleton](https://ui.ouroboros.bot/docs/skeleton/) | `skeleton` | Not yet | Not yet | Not yet |
-| [avatar](https://ui.ouroboros.bot/docs/avatar/) | `avatar` | Not yet | Not yet | Not yet |
+| [spinner](https://ui.ouroboros.bot/docs/spinner/) | `spinner` | `OuroSpinner` | Not yet | Not yet |
+| [progress](https://ui.ouroboros.bot/docs/progress/) | `progress` | `OuroProgress` | Not yet | Not yet |
+| [skeleton](https://ui.ouroboros.bot/docs/skeleton/) | `skeleton` | `OuroSkeleton` | Not yet | Not yet |
+| [avatar](https://ui.ouroboros.bot/docs/avatar/) | `avatar` | `OuroAvatar` | Not yet | Not yet |
 | [badge](https://ui.ouroboros.bot/docs/badge/) | `badge` | `OuroBadge` | `OuroBadge` | `OuroBadge` |
 | [alert](https://ui.ouroboros.bot/docs/alert/) | `alert` | `OuroBanner` | Not yet | Not yet |
-| [separator](https://ui.ouroboros.bot/docs/separator/) | `separator` | Not yet | Not yet | Not yet |
+| [separator](https://ui.ouroboros.bot/docs/separator/) | `separator` | `OuroSeparator` | Not yet | Not yet |
 | [kbd](https://ui.ouroboros.bot/docs/kbd/) | `kbd` | Not yet | Not yet | Not yet |
 | [popover](https://ui.ouroboros.bot/docs/popover/) | `popover` | Not yet | Not yet | Not yet |
 | [tooltip](https://ui.ouroboros.bot/docs/tooltip/) | `tooltip` | Not yet | Not yet | Not yet |
@@ -57,13 +57,13 @@ Gap cells: 372.[^matrix]
 | [menu](https://ui.ouroboros.bot/docs/menu/) | `menu` | Not yet | Not yet | Not yet |
 | [command](https://ui.ouroboros.bot/docs/command/) | `command` | Not yet | Not yet | Not yet |
 | [tabs](https://ui.ouroboros.bot/docs/tabs/) | `tabs` | Not yet | Not yet | Not yet |
-| [segmented-control](https://ui.ouroboros.bot/docs/segmented-control/) | `segmented-control` | Not yet | Not yet | Not yet |
+| [segmented-control](https://ui.ouroboros.bot/docs/segmented-control/) | `segmented-control` | `OuroSegmentedControl` | Not yet | Not yet |
 | [accordion](https://ui.ouroboros.bot/docs/accordion/) | `accordion` | Not yet | Not yet | Not yet |
 | [collapsible](https://ui.ouroboros.bot/docs/collapsible/) | `collapsible` | Not yet | Not yet | Not yet |
 | [show-more](https://ui.ouroboros.bot/docs/show-more/) | `show-more` | Not yet | Not yet | Not yet |
 | [card](https://ui.ouroboros.bot/docs/card/) | `card` | `OuroCard` | `OuroCard` | `OuroCard` |
 | [item](https://ui.ouroboros.bot/docs/item/) | `item` | `OuroItem` | `OuroItem` | `OuroItem` |
-| [item-group](https://ui.ouroboros.bot/docs/item-group/) | `item-group` | Not yet | Not yet | Not yet |
+| [item-group](https://ui.ouroboros.bot/docs/item-group/) | `item-group` | `OuroItemGroup` | Not yet | Not yet |
 | [empty](https://ui.ouroboros.bot/docs/empty/) | `empty` | `OuroEmptyState` | Not yet | Not yet |
 | [scroll-area](https://ui.ouroboros.bot/docs/scroll-area/) | `scroll-area` | Not yet | Not yet | Not yet |
 | [aspect-ratio](https://ui.ouroboros.bot/docs/aspect-ratio/) | `aspect-ratio` | Not yet | Not yet | Not yet |
@@ -78,7 +78,7 @@ Gap cells: 372.[^matrix]
 | [pagination](https://ui.ouroboros.bot/docs/pagination/) | `pagination` | Not yet | Not yet | Not yet |
 | [navigation-menu](https://ui.ouroboros.bot/docs/navigation-menu/) | `navigation-menu` | Not yet | Not yet | Not yet |
 | [table](https://ui.ouroboros.bot/docs/table/) | `table` | Not yet | Not yet | Not yet |
-| [description-list](https://ui.ouroboros.bot/docs/description-list/) | `description-list` | Not yet | Not yet | Not yet |
+| [description-list](https://ui.ouroboros.bot/docs/description-list/) | `description-list` | `OuroDescriptionList` | Not yet | Not yet |
 | [toggle](https://ui.ouroboros.bot/docs/toggle/) | `toggle` | Not yet | Not yet | Not yet |
 | [toggle-group](https://ui.ouroboros.bot/docs/toggle-group/) | `toggle-group` | Not yet | Not yet | Not yet |
 | [button-group](https://ui.ouroboros.bot/docs/button-group/) | `button-group` | Not yet | Not yet | Not yet |
@@ -102,7 +102,7 @@ Gap cells: 372.[^matrix]
 | [tab-bar](https://ui.ouroboros.bot/docs/tab-bar/) | `tab-bar` | Not yet | Not yet | Not yet |
 | [route-progress](https://ui.ouroboros.bot/docs/route-progress/) | `route-progress` | Not yet | Not yet | Not yet |
 | [color-scheme-toggle](https://ui.ouroboros.bot/docs/color-scheme-toggle/) | `color-scheme-toggle` | Not yet | Not yet | Not yet |
-| [page-header](https://ui.ouroboros.bot/docs/page-header/) | `page-header` | Not yet | Not yet | Not yet |
+| [page-header](https://ui.ouroboros.bot/docs/page-header/) | `page-header` | `OuroPageHeader` | Not yet | Not yet |
 | [copy-button](https://ui.ouroboros.bot/docs/copy-button/) | `copy-button` | Not yet | Not yet | Not yet |
 | [code-block](https://ui.ouroboros.bot/docs/code-block/) | `code-block` | Not yet | Not yet | Not yet |
 | [timer](https://ui.ouroboros.bot/docs/timer/) | `timer` | Not yet | Not yet | Not yet |
@@ -112,7 +112,7 @@ Gap cells: 372.[^matrix]
 | [image-cropper](https://ui.ouroboros.bot/docs/image-cropper/) | `image-cropper` | Not yet | Not yet | Not yet |
 | [image-field](https://ui.ouroboros.bot/docs/image-field/) | `image-field` | Not yet | Not yet | Not yet |
 | [share-button](https://ui.ouroboros.bot/docs/share-button/) | `share-button` | Not yet | Not yet | Not yet |
-| [sync-status](https://ui.ouroboros.bot/docs/sync-status/) | `sync-status` | Not yet | Not yet | Not yet |
+| [sync-status](https://ui.ouroboros.bot/docs/sync-status/) | `sync-status` | `OuroSyncStatus` | Not yet | Not yet |
 | [local-date](https://ui.ouroboros.bot/docs/local-date/) | `local-date` | Not yet | Not yet | Not yet |
 | [relative-time](https://ui.ouroboros.bot/docs/relative-time/) | `relative-time` | Not yet | Not yet | Not yet |
 | [install-prompt](https://ui.ouroboros.bot/docs/install-prompt/) | `install-prompt` | Not yet | Not yet | Not yet |
