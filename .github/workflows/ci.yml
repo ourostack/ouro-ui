@@ -1382,19 +1382,6 @@ jobs:
           if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ]; then
             exit 1
           fi
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: ""
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: timings-sweeps-*
-          path: .tmp/sweep-waivers
-      - name: No sweep waiver is stale
-        run: node scripts/waivers.mjs .tmp/sweep-waivers
   theme-install:
     name: theme-install
     # The copy-theme install proof (site/scripts/theme-install-test.sh): each site preset's "Copy
@@ -1560,9 +1547,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/app.tar.zst
-          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/install-delta.mjs', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
+          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
           restore-keys: |
-            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/install-delta.mjs', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
+            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
       # npm's download cache, seeded from the newest earlier one, so a changed registry file does not
       # download every package again.
       - id: npmcache
@@ -2010,10 +1997,20 @@ jobs:
           sparse-checkout: |
             .github/workflows/ci.yml
             scripts/ci-budget.mjs
+            scripts/waivers.mjs
+            site/e2e/waivers.ts
           sparse-checkout-cone-mode: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - if: ${{ needs.e2e.result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: timings-sweeps-*
+          path: .tmp/sweep-waivers
+      - name: No sweep waiver is stale
+        if: ${{ needs.e2e.result == 'success' }}
+        run: node scripts/waivers.mjs .tmp/sweep-waivers
       - name: Critical path
         env:
           GH_TOKEN: ${{ github.token }}

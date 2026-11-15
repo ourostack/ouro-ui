@@ -1,7 +1,7 @@
 "use client";
 
-import { Toolbar as BaseToolbar } from "@base-ui/react/toolbar";
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type JSX, type KeyboardEvent, type MouseEvent, type Ref, type RefObject, type SVGProps } from "react";
+import { flushSync } from "react-dom";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type FocusEvent as ReactFocusEvent, type JSX, type KeyboardEvent, type MouseEvent, type Ref, type RefObject, type SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Menu, type MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
@@ -319,21 +319,26 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   const delay = Number.isFinite(autoHide) && (autoHide as number) > 0 ? (autoHide as number) : undefined;
   useToolbarChecks(props, sizeProp, size, delay);
   const toggles = useToggles();
-  const { rootRef, setRef, measuring, shown } = useOverflow(ref, items, size);
+  const { rootRef, setRef, probe, shown } = useOverflow(ref, items, size);
   const { hidden, faded } = useAutoHide(rootRef, delay, autoHideArea, hiddenProp, onHiddenChange);
   const { visible, overflow } = splitEntries(items, shown);
-  const context: ControlContext = { size, keepFocus, disabled, toggles };
-  const more = moreButton(moreLabel, size, disabled);
+  const withMore = probe || overflow.length > 0;
+  const stop = useTabStop(visible, withMore);
+  const context: ControlContext = { size, keepFocus, disabled, toggles, stop: stop.key };
+  const more = moreButton(moreLabel, size, disabled, stop.key === MORE);
 
   return (
-    <BaseToolbar.Root
+    <div
       ref={setRef}
+      role="toolbar"
       aria-label={label}
-      disabled={disabled}
+      aria-orientation="horizontal"
       data-ouro="toolbar"
       data-size={size}
+      data-disabled={disabled ? "" : undefined}
       data-hidden={hidden ? "" : undefined}
-      onKeyDown={onHomeEnd}
+      onFocus={stop.follow}
+      onKeyDown={onKeys}
       className={cn(
         "box-border flex min-w-0 flex-nowrap items-center gap-0.5",
         floating && floatingClass,
@@ -344,19 +349,19 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
     >
       <TooltipsHidden value={hidden}>
       {visible.map((entry, index) => {
-        if (entry.type === "separator") return <BaseToolbar.Separator key={index} data-ouro-toolbar-entry={index} className={separatorClass} />;
+        if (entry.type === "separator") return <div key={index} role="separator" aria-orientation="vertical" data-ouro-toolbar-entry={index} className={separatorClass} />;
         if (entry.type === "group") {
           return (
-            <BaseToolbar.Group key={index} aria-label={entry.label} data-ouro-toolbar-entry={index} className="flex items-center gap-0.5">
+            <div key={index} role="group" aria-label={entry.label} data-ouro-toolbar-entry={index} className="flex items-center gap-0.5">
               {entry.items.map((item) => control(item, context, item.label))}
-            </BaseToolbar.Group>
+            </div>
           );
         }
         return control(entry, context, index, index);
       })}
-      {(measuring || overflow.length > 0) && (disabled ? more : <Menu items={overflow.map((entry) => asMenuEntry(entry, toggles))} align="end" trigger={more} />)}
+      {withMore && (disabled ? more : <Menu items={overflow.map((entry) => asMenuEntry(entry, toggles))} align="end" trigger={more} />)}
       </TooltipsHidden>
-    </BaseToolbar.Root>
+    </div>
   );
 }
 
@@ -469,6 +474,17 @@ function countFits(root: HTMLElement, widths: readonly number[], moreWidth: numb
 }
 
 /**
+ * Whether every entry fits in the root with no More.
+ *
+ * @claim "Whether every entry fits in the root with no More." registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > fits a row that narrows, widens and narrows again exactly as one drawn at that width from the start)
+ */
+function rowFits(root: HTMLElement, widths: readonly number[]): boolean {
+  const style = getComputedStyle(root);
+  const width = root.clientWidth - parseFloat(style.paddingInlineStart) - parseFloat(style.paddingInlineEnd);
+  return fitCount(widths, 0, parseFloat(style.columnGap), width) === widths.length;
+}
+
+/**
  * What decides an entry's width: its type, label, whether it shows its label and has an icon, and a group's
  * controls. Handlers, pressed states and shortcuts change none of it, nor does an app rendering the same items anew.
  * @claim "Handlers, pressed states and shortcuts change none" registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > lays nothing out when it renders again with new items that look the same, and measures again when a label changes)
@@ -492,22 +508,60 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
   const inputs = widthInputs(items);
   // Counts the times the entries' text changed under them (a font loading, a zoom), which measures them again.
   const [epoch, setEpoch] = useState(0);
-  const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; epoch: number; shown: number } | null>(null);
+  // `probe` is set while More is drawn only to read its width, once a measure finds the row too narrow.
+  const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; epoch: number; shown: number; probe?: true } | null>(null);
   const measuring = layout?.inputs !== inputs || layout.size !== size || layout.epoch !== epoch;
+  const probe = !measuring && layout.probe === true;
   const entries = useRef<ResizeObserver | null>(null);
   const refocus = useRef(false);
 
+  // A row is measured with every entry and no More, so a row that fits is its final row from the first frame:
+  // More is drawn only once a measure finds the row too narrow. The first measure waits for the observer's
+  // first report, which comes once the page is laid out and before it paints, where the reads are free. Later
+  // measures (new items, a size, a font) run in the commit that asks for them, as the page is laid out by then.
+  // Stryker disable next-line BooleanLiteral: equivalent; the measure's effect sets it before any observer reports.
+  const pending = useRef(true);
+  const measured = useRef(false);
   useLayoutEffect(() => {
     const root = rootRef.current!;
-    widths.current = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].map((element) => element.getBoundingClientRect().width);
-    moreWidth.current = root.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.getBoundingClientRect().width;
-    setLayout({ inputs, size, epoch, shown: countFits(root, widths.current!, moreWidth.current, refocus) });
-  }, [inputs, size, epoch]);
+    const settle = (shown: number) => setLayout({ inputs, size, epoch, shown });
+    const toProbe = () => setLayout({ inputs, size, epoch, shown: widths.current!.length, probe: true });
+    // Whether every entry fits; when not, More is drawn next to read its width.
+    const plan = (): boolean => {
+      pending.current = false;
+      widths.current = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].map((element) => element.getBoundingClientRect().width);
+      return rowFits(root, widths.current);
+    };
+    if (probe) {
+      moreWidth.current = root.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.getBoundingClientRect().width;
+      settle(countFits(root, widths.current!, moreWidth.current, refocus));
+      return;
+    }
+    if (!measuring) return;
+    if (measured.current) {
+      if (plan()) settle(widths.current!.length);
+      else toProbe();
+      return;
+    }
+    // Stryker disable next-line BooleanLiteral: equivalent; only a measure clears pending, and it also sets measured, so pending is still true here.
+    pending.current = true;
+    const measure = new ResizeObserver(() => {
+      measure.disconnect();
+      measured.current = true;
+      const fits = plan();
+      flushSync(() => (fits ? settle(widths.current!.length) : toProbe()));
+    });
+    measure.observe(root);
+    // Stryker disable next-line ArrowFunction: equivalent; an observer left on reports once, and a newer one made after it reports after it in the same delivery and sets the row it measures, while React drops a state set after unmount.
+    return () => measure.disconnect();
+  }, [inputs, size, epoch, probe, measuring]);
 
   // A shown entry that is wider or narrower than measured means its text changed without the root resizing.
   useLayoutEffect(() => {
     const root = rootRef.current!;
     const stale = new ResizeObserver(() => {
+      // The measure about to run reads every entry anew.
+      if (pending.current) return;
       const measured = widths.current!;
       const changed = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].some(
         (element) => !(Math.abs(element.getBoundingClientRect().width - measured[Number(element.getAttribute("data-ouro-toolbar-entry"))]!) <= 0.5),
@@ -544,8 +598,11 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     () => {
       const root = rootRef.current!;
       const observer = new ResizeObserver(() => {
-        const fits = countFits(root, widths.current!, moreWidth.current, refocus);
-        setLayout((current) => ({ ...current!, shown: fits }));
+        // Until the first measure has read the entries there is nothing to fit; it fits them itself.
+        if (pending.current) return;
+        const fits = rowFits(root, widths.current!);
+        // Too narrow: draw More to read its width and fit the row to it, before the frame paints.
+        flushSync(() => setLayout((current) => ({ inputs: current!.inputs, size: current!.size, epoch: current!.epoch, shown: widths.current!.length, ...(fits ? {} : { probe: true as const }) })));
       });
       observer.observe(root);
       // Stryker disable next-line ArrowFunction: React ignores a state set after unmount, so disconnecting only tidies.
@@ -556,7 +613,7 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     [],
   );
 
-  return { rootRef, setRef, measuring, shown };
+  return { rootRef, setRef, probe, shown };
 }
 
 /**
@@ -733,13 +790,47 @@ function useAutoHide(
   return { hidden, faded };
 }
 
-/** Home and End reach the first and the last control, as the WAI-ARIA toolbar pattern allows. */
-function onHomeEnd(event: KeyboardEvent<HTMLDivElement>): void {
-  if (event.key !== "Home" && event.key !== "End") return;
+/** The key that stands for the More button in the row's roving focus. */
+// Stryker disable next-line StringLiteral: equivalent; any string no control's label takes keeps More apart.
+const MORE = "\u0000more";
+
+/**
+ * The row's one tab stop: the control focus was last in, or the first control while that one is in
+ * More. Focus moving to a control makes it the stop, as the WAI-ARIA toolbar pattern's roving
+ * tabindex does. Kept by label, which is unique, so it survives a control moving into More and back.
+ */
+function useTabStop(visible: readonly ToolbarEntry[], withMore: boolean) {
+  const [focused, setFocused] = useState<string | null>(null);
+  const keys = visible.flatMap((entry) => (entry.type === "separator" ? [] : entry.type === "group" ? entry.items.map((item) => item.label) : [entry.label]));
+  if (withMore) keys.push(MORE);
+  // Stryker disable next-line ConditionalExpression: equivalent; the keys never hold null, so the check only narrows the type.
+  const key = focused !== null && keys.includes(focused) ? focused : keys[0];
+  const follow = (event: ReactFocusEvent<HTMLDivElement>) => {
+    const next = (event.target as HTMLElement).getAttribute("data-ouro-toolbar-stop");
+    // Stryker disable next-line ConditionalExpression: equivalent; the only other focus in the row's tree is in the More menu, which gives focus back to More as it closes.
+    if (next !== null) setFocused(next);
+  };
+  return { key, follow };
+}
+
+/**
+ * The toolbar's keys, as the WAI-ARIA toolbar pattern has them: the arrow keys move between its
+ * controls and wrap at either end, the way the text runs (the page's direction, read at the press),
+ * and Home and End reach the first and the last control. Disabled controls stay reachable. Keys
+ * pressed in the More menu, which renders in a portal, are the menu's.
+ */
+function onKeys(event: KeyboardEvent<HTMLDivElement>): void {
   const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('[data-ouro-control="toolbar"]')];
-  if (!controls.includes(event.target as HTMLElement)) return;
+  const at = controls.indexOf(event.target as HTMLElement);
+  if (at === -1) return;
+  let next: number;
+  if (event.key === "Home" || event.key === "End") next = event.key === "Home" ? 0 : controls.length - 1;
+  else if ((event.key === "ArrowRight" || event.key === "ArrowLeft") && !(event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)) {
+    const forward = (event.key === "ArrowRight") !== (getComputedStyle(event.currentTarget).direction === "rtl");
+    next = (at + (forward ? 1 : controls.length - 1)) % controls.length;
+  } else return;
   event.preventDefault();
-  controls[event.key === "Home" ? 0 : controls.length - 1]!.focus();
+  controls[next]!.focus();
 }
 
 /** What the row's controls share. */
@@ -748,15 +839,20 @@ interface ControlContext {
   keepFocus: boolean | undefined;
   disabled: boolean | undefined;
   toggles: Toggles;
+  /** The label of the control that is the row's tab stop. */
+  stop: string | undefined;
 }
 
 /** A control in the row: a Toggle or a Button, with a tooltip when it hides its label or has a shortcut. */
 function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: ControlContext, key: string | number, index?: number): JSX.Element {
-  const { size, keepFocus, disabled, toggles } = context;
+  const { size, keepFocus, disabled, toggles, stop } = context;
   const Icon = entry.icon;
   const iconOnly = Boolean(entry.hideLabel && Icon);
   const shortcut = keysOf(entry);
+  const off = Boolean(disabled || entry.disabled);
   const shared = {
+    ...rowStop(entry.label, stop === entry.label, off),
+    "data-ouro-toolbar-entry": index,
     "aria-keyshortcuts": shortcut && ariaKeyShortcuts(shortcut),
     "data-ax-action": entry.axAction,
     onMouseDown: keepFocus ? keepFocusOnPress : undefined,
@@ -773,7 +869,9 @@ function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: Contro
         hideLabel={entry.hideLabel}
         size={size}
         pressed={toggles.pressedOf(entry)}
-        onPressedChange={(next) => toggles.press(entry, next)}
+        onPressedChange={(next) => {
+          if (!off) toggles.press(entry, next);
+        }}
       />
     ) : (
       <Button
@@ -785,19 +883,32 @@ function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: Contro
         size={size}
         aria-label={iconOnly ? entry.label : undefined}
         startIcon={iconOnly ? undefined : Icon}
-        onClick={entry.onClick}
+        onClick={off ? undefined : entry.onClick}
         className={cn(shared.className, iconOnly && "aspect-square px-0")}
       >
         {iconOnly && Icon ? <Icon aria-hidden="true" className="size-[1.25em] shrink-0" /> : entry.label}
       </Button>
     );
-  const button = <BaseToolbar.Button key={key} data-ouro-toolbar-entry={index} disabled={Boolean(disabled || entry.disabled)} render={element} />;
-  if (!iconOnly && !shortcut) return button;
+  if (!iconOnly && !shortcut) return <Fragment key={key}>{element}</Fragment>;
   return (
     <Tooltip key={key} content={tip(entry.label, shortcut)}>
-      {button}
+      {element}
     </Tooltip>
   );
+}
+
+/**
+ * What puts a control in the row's roving focus: its tab stop (only the stop is in the Tab order),
+ * and, while disabled, `aria-disabled` and `data-disabled` rather than the `disabled` attribute, so
+ * it stays reachable from the arrow keys and is read as unavailable, and its press does nothing.
+ */
+function rowStop(key: string, isStop: boolean, off: boolean) {
+  return {
+    "data-ouro-toolbar-stop": key,
+    tabIndex: isStop ? 0 : -1,
+    "aria-disabled": off || undefined,
+    "data-disabled": off ? "" : undefined,
+  };
 }
 
 // An entry as the More menu shows it. A disabled toolbar has no menu, so only a control's own `disabled` reaches here.
@@ -820,18 +931,22 @@ function asMenuEntry(entry: ToolbarEntry, toggles: Toggles): MenuEntry {
 }
 
 // The button that opens what does not fit. A disabled toolbar has no menu to open.
-function moreButton(moreLabel: string, size: ToolbarSize, disabled: boolean | undefined): JSX.Element {
+function moreButton(moreLabel: string, size: ToolbarSize, disabled: boolean | undefined, isStop: boolean): JSX.Element {
   return (
     <Tooltip content={moreLabel}>
-      <BaseToolbar.Button
+      <Button
+        {...rowStop(MORE, isStop, Boolean(disabled))}
         data-ouro-toolbar-more=""
-        disabled={disabled}
-        render={
-          <Button data-ouro-control="toolbar" data-ouro-part="more" variant="plain" tone="secondary" size={size} aria-label={moreLabel} className="aspect-square px-0">
-            <MoreIcon aria-hidden="true" className="size-[1.25em] shrink-0" />
-          </Button>
-        }
-      />
+        data-ouro-control="toolbar"
+        data-ouro-part="more"
+        variant="plain"
+        tone="secondary"
+        size={size}
+        aria-label={moreLabel}
+        className="aspect-square px-0 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+      >
+        <MoreIcon aria-hidden="true" className="size-[1.25em] shrink-0" />
+      </Button>
     </Tooltip>
   );
 }

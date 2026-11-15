@@ -13,6 +13,9 @@ import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads"
 const roots: Root[] = [];
 let mounted: Element[] = [];
 
+/** Lets a frame pass: the row is measured in the resize observer's first report, once the page is laid out. */
+const frame = () => act(() => new Promise<void>((done) => requestAnimationFrame(() => setTimeout(done))));
+
 async function render(node: ReactNode, width?: number) {
   const host = document.createElement("div");
   host.style.padding = "24px";
@@ -22,8 +25,10 @@ async function render(node: ReactNode, width?: number) {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
+  await frame();
   return {
     host,
+    // Only the first measure waits for a frame: later ones are in the commit that asks for them.
     rerender: (next: ReactNode) => act(async () => root.render(next)),
     // Commits at once and returns before any observer reports, so only the commit's own reads show.
     commit: (next: ReactNode) => flushSync(() => root.render(next)),
@@ -98,6 +103,7 @@ describe("Toolbar", () => {
     expect(twoGroups.toolbar.querySelectorAll('[role="group"]')).toHaveLength(2);
     expect(ref.current).toBe(toolbar);
     expect(toolbar.getAttribute("role")).toBe("toolbar");
+    expect(toolbar.getAttribute("aria-orientation")).toBe("horizontal");
     expect(toolbar.getAttribute("data-size")).toBe("md");
     await expect.element(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
     expect(names(buttons)).toEqual(["Bold", "Italic", "Insert link", "Bulleted list", "Numbered list"]);
@@ -146,6 +152,44 @@ describe("Toolbar", () => {
     expect(document.activeElement).toBe(buttons[4]);
     await pressTab();
     expect(document.activeElement).toBe(page.getByRole("button", { name: "After" }).element());
+  });
+
+  it("brings Tab back to the control focus was last in, and moves the way the text runs in a right-to-left page", async () => {
+    const { buttons, host } = await render(
+      <>
+        <button type="button" data-test-harness="">Before</button>
+        <Toolbar label="Formatting" items={formatting} />
+        <button type="button" data-test-harness="">After</button>
+      </>,
+      900,
+    );
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(document.activeElement).toBe(buttons[2]);
+    expect(buttons.map((button) => button.tabIndex)).toEqual([-1, -1, 0, -1, -1]);
+    await pressTab();
+    await pressTab({ shift: true });
+    expect(document.activeElement).toBe(buttons[2]);
+    host.dir = "rtl";
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(buttons[3]);
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(document.activeElement).toBe(buttons[1]);
+  });
+
+  it("leaves an arrow key pressed with a modifier to the page", async () => {
+    const { buttons } = await render(<Toolbar label="Formatting" items={formatting} />, 900);
+    buttons[1]!.focus();
+    for (const modifier of ["Shift", "Control", "Alt", "Meta"]) {
+      let prevented: boolean | undefined;
+      const watch = (event: KeyboardEvent) => (prevented = event.defaultPrevented);
+      document.addEventListener("keydown", watch);
+      await userEvent.keyboard(`{${modifier}>}{ArrowRight}{/${modifier}}`);
+      document.removeEventListener("keydown", watch);
+      expect(document.activeElement, modifier).toBe(buttons[1]);
+      expect(prevented, modifier).toBe(false);
+    }
   });
 
   it("keeps an uncontrolled toggle's state, and reports each change", async () => {
@@ -268,6 +312,8 @@ describe("Toolbar", () => {
       900,
     );
     expect(buttons[1]!.getAttribute("aria-disabled")).toBe("true");
+    expect(buttons[1]!.getAttribute("data-disabled")).toBe("");
+    expect(buttons[0]!.hasAttribute("data-disabled")).toBe(false);
     expect(getComputedStyle(buttons[1]!).opacity).toBe("0.5");
     await userEvent.click(buttons[1]!, { force: true });
     await userEvent.click(buttons[2]!, { force: true });
@@ -282,7 +328,7 @@ describe("Toolbar", () => {
   it("disables every control with disabled", async () => {
     const onClick = vi.fn();
     const { buttons, toolbar } = await render(<Toolbar label="Formatting" disabled items={[{ label: "Undo", onClick }, { type: "toggle", label: "Bold" }]} />, 900);
-    expect(toolbar.hasAttribute("data-disabled")).toBe(true);
+    expect(toolbar.getAttribute("data-disabled")).toBe("");
     expect(buttons.map((button) => button.getAttribute("aria-disabled"))).toEqual(["true", "true"]);
     await userEvent.click(buttons[0]!, { force: true });
     await userEvent.click(buttons[1]!, { force: true });
@@ -348,6 +394,91 @@ describe("Toolbar", () => {
 });
 
 describe("Toolbar overflow", () => {
+  it("fits a row that narrows, widens and narrows again exactly as one drawn at that width from the start", async () => {
+    const row = (view: { host: HTMLElement }) => ({
+      shown: view.host.querySelectorAll("[data-ouro-toolbar-entry]").length,
+      more: view.host.querySelector("[data-ouro-toolbar-more]") !== null,
+    });
+    const reference = row(await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 130));
+    expect(reference.more).toBe(true);
+    expect(reference.shown).toBeGreaterThan(0);
+    const view = await render(<Toolbar label="Formatting" size="sm" items={formatting.slice(0, 2)} />, 900);
+    // New items that still fit are measured in their commit, and the row they settle on is the one resizes start from.
+    await view.rerender(<Toolbar label="Formatting" size="sm" items={formatting} />);
+    expect(row(view)).toEqual({ shown: formatting.length, more: false });
+    for (const [width, expected] of [
+      [130, reference],
+      [900, { shown: formatting.length, more: false }],
+      [130, reference],
+    ] as const) {
+      view.host.style.width = `${width}px`;
+      await frames();
+      expect(row(view), `${width}px`).toEqual(expected);
+      const toolbar = view.host.querySelector<HTMLElement>('[data-ouro="toolbar"]')!;
+      expect(toolbar.scrollWidth, `${width}px`).toBeLessThanOrEqual(toolbar.clientWidth);
+    }
+    // A resize fits the row to the widths already measured: it reads no entry's width again.
+    view.host.style.width = "900px";
+    await frames();
+    const reads = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    view.host.style.width = "800px";
+    await frames();
+    const entryReads = reads.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-entry")).length;
+    reads.mockRestore();
+    expect(entryReads).toBe(0);
+    expect(row(view)).toEqual({ shown: formatting.length, more: false });
+  });
+
+  it("draws a row that fits as its final row from the first frame, never adding More to take it away", async () => {
+    const host = document.createElement("div");
+    host.style.width = "900px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let added = 0;
+    const watch = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element && node.closest("[data-ouro-toolbar-more]")) added += 1;
+    });
+    watch.observe(host, { childList: true, subtree: true });
+    flushSync(() => root.render(<Toolbar label="Formatting" items={formatting} />));
+    const rows = [host.querySelectorAll('[data-ouro="toolbar"] button').length];
+    // A frame's animation callbacks run before its resize observers, so they see the row as the commit left it.
+    rows.push(await new Promise<number>((done) => requestAnimationFrame(() => done(host.querySelectorAll('[data-ouro="toolbar"] button').length))));
+    await frames();
+    watch.disconnect();
+    rows.push(host.querySelectorAll('[data-ouro="toolbar"] button').length);
+    expect(rows).toEqual([5, 5, 5]);
+    expect(added).toBe(0);
+    expect(host.querySelector("[data-ouro-toolbar-more]")).toBeNull();
+  });
+
+  it("lays nothing out as it mounts, and shows the row it settles on before the first paint", async () => {
+    // Development's once-a-page theme check reads the page's style; let it run first.
+    await render(<Toolbar label="Warm-up" items={formatting} />);
+    const host = document.createElement("div");
+    host.style.width = "130px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const reads = watchLayoutReads();
+    flushSync(() => root.render(<Toolbar label="Formatting" size="sm" items={formatting} />));
+    reads.stop();
+    expect(reads.names()).toEqual([]);
+    // The row's observer reports before the frame paints and settles the row. An observer made after
+    // it reports after it in the same delivery, so it sees the row the first frame paints.
+    const firstFrame = await new Promise<number>((done) => {
+      const after = new ResizeObserver(() => {
+        after.disconnect();
+        done(host.querySelectorAll("[data-ouro-toolbar-entry]").length);
+      });
+      after.observe(host);
+    });
+    expect(firstFrame).toBeLessThan(formatting.length);
+    expect(host.querySelector('[data-ouro-part="more"]')).not.toBeNull();
+  });
+
   it("lays nothing out when it renders again with new items that look the same, and measures again when a label changes", async () => {
     const same = () => formatting.map((entry) => (entry.type === "group" ? { ...entry, items: entry.items.map((item) => ({ ...item })) } : { ...entry }));
     const { rerender, buttons } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
@@ -390,12 +521,13 @@ describe("Toolbar overflow", () => {
     for (const [name, edit] of Object.entries(edits)) {
       const { commit } = await render(<Toolbar label="Formatting" size="sm" items={base()} />, 400);
       await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-      // Only the measuring reads the More button's width inside a commit; entries that mount read for other reasons.
-      const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
+      // A measure reads the row's style to fit its entries; nothing else does while the row keeps its size.
+      const measured = vi.spyOn(window, "getComputedStyle");
       commit(<Toolbar label="Formatting" size="sm" items={edit(base())} />);
-      const more = measured.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
+      await frame();
+      const reads = measured.mock.calls.filter(([element]) => element.getAttribute("data-ouro") === "toolbar").length;
       measured.mockRestore();
-      expect(more, name).toBeGreaterThan(0);
+      expect(reads, name).toBeGreaterThan(0);
     }
   });
 
@@ -451,11 +583,12 @@ describe("Toolbar overflow", () => {
   const frames = () => act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   // Only the measuring reads the More button's width, so these reads count the times the entries were measured.
   const measuredWhile = async (change: () => Promise<void> | void) => {
-    const spy = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    // A measure reads the row's style to fit its entries; nothing else does while the row keeps its size.
+    const spy = vi.spyOn(window, "getComputedStyle");
     try {
       await change();
       await frames();
-      return spy.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
+      return spy.mock.calls.filter(([element]) => element.getAttribute("data-ouro") === "toolbar").length;
     } finally {
       spy.mockRestore();
     }
@@ -470,6 +603,47 @@ describe("Toolbar overflow", () => {
       await document.fonts.ready;
     }));
     expect(measured).toBeGreaterThan(0);
+  });
+
+  it("waits for its first measure when a font starts loading before the first frame", async () => {
+    const host = document.createElement("div");
+    host.style.width = "130px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const errors: unknown[] = [];
+    // The browser's notice that a resize observer changed layout is not an error the row threw.
+    const record = (event: ErrorEvent) => void (/^ResizeObserver loop/.test(event.message) || errors.push(event.error ?? event.message));
+    window.addEventListener("error", record);
+    try {
+      // The font's measure starts again before any observer has reported, so the observers made at mount report first.
+      await act(async () => {
+        flushSync(() => root.render(<Toolbar label="Formatting" size="sm" items={formatting} />));
+        document.fonts.dispatchEvent(new Event("loading"));
+        await document.fonts.ready;
+      });
+      await frames();
+    } finally {
+      window.removeEventListener("error", record);
+    }
+    expect(errors).toEqual([]);
+    expect(host.querySelector('[data-ouro-part="more"]')).not.toBeNull();
+    expect(host.querySelectorAll("[data-ouro-toolbar-entry]").length).toBeLessThan(formatting.length);
+  });
+
+  it("measures again in the commit a font's loading asks for, so no frame shows More over a row that fits", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    expect(view.more).toBeNull();
+    await act(async () => {
+      document.fonts.dispatchEvent(new Event("loading"));
+      await document.fonts.ready;
+    });
+    // The measure's render shows More to read its width, and the same commit takes it away again.
+    expect(view.more).toBeNull();
+    await frames();
+    expect(view.more).toBeNull();
   });
 
   it("measures its entries again when any one of them changes size, not only when all do", async () => {
@@ -679,6 +853,35 @@ describe("Toolbar overflow", () => {
     host.style.width = "900px";
     await expect.poll(() => host.querySelector('[data-ouro-part="more"]')).toBeNull();
     expect(host.querySelectorAll('[data-ouro="toolbar"] button')).toHaveLength(5);
+  });
+
+  it("keeps the row's one tab stop on a control in the row: the one focus was last in, a grouped one or More, or else the first", async () => {
+    const { host, toolbar, buttons } = await render(
+      <>
+        <button type="button" data-test-harness="">Before</button>
+        <Toolbar label="Formatting" size="sm" items={[{ type: "separator" }, ...formatting]} />
+      </>,
+      900,
+    );
+    const stops = () => [...toolbar.querySelectorAll<HTMLElement>('[data-ouro-control="toolbar"]')].filter((control) => control.tabIndex === 0);
+    // A row that starts with a separator still starts its Tab order at its first control.
+    expect(stops()).toEqual([buttons[0]]);
+    // A grouped control keeps the stop.
+    await act(async () => buttons[4]!.focus());
+    expect(stops()).toEqual([buttons[4]]);
+    // A control that moves into More while focus is elsewhere gives the stop back to the first control.
+    await act(async () => (page.getByRole("button", { name: "Before" }).element() as HTMLElement).focus());
+    host.style.width = "160px";
+    await expect.poll(() => host.querySelector('[data-ouro-part="more"]')).not.toBeNull();
+    expect(stops()).toEqual([toolbar.querySelector('[data-ouro-control="toolbar"]')]);
+    // More keeps the stop when focus was last on it.
+    const more = host.querySelector<HTMLElement>('[data-ouro-part="more"]')!;
+    await act(async () => more.focus());
+    expect(stops()).toEqual([more]);
+    // Once everything fits again, More goes and the first control has the stop.
+    host.style.width = "900px";
+    await expect.poll(() => host.querySelector('[data-ouro-part="more"]')).toBeNull();
+    expect(stops()).toEqual([toolbar.querySelector('[data-ouro-control="toolbar"]')]);
   });
 
   it("moves focus to More when the focused control moves into the menu", async () => {
@@ -936,6 +1139,8 @@ describe("Toolbar server rendering", () => {
     roots.push(root);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+    // The row settles in the resize observer's first report, before the first paint.
+    await frame();
     expect(host.querySelectorAll("button")).toHaveLength(5);
   });
 });
