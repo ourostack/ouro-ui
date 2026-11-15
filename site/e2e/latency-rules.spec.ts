@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPaint, splitPress, summarise } from "./latency";
+import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPaint, splitPress, summarise, describeFrame } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -164,6 +164,25 @@ test("a slow press's wait for the paint is split by the long animation frame tha
   // The press's handlers end at 1011 and its paint is at 1112. The frame 1005 to 1085 holds the rendering.
   const press = { startTime: 1000, processingEnd: 1011, duration: 112 };
   expect(splitPaint(press, [{ startTime: 1005, duration: 80 }])).toEqual({ mainThread: 74, afterMainThread: 27 });
+});
+
+test("a slow press's long animation frame says what it spent its time on, and its three heaviest scripts", () => {
+  const frame = {
+    startTime: 1000,
+    duration: 90,
+    renderStart: 1050,
+    styleAndLayoutStart: 1080,
+    scripts: [
+      { duration: 5, forcedStyleAndLayoutDuration: 0, source: "event-listener DIV#root.onclick (a in entry.js)" },
+      { duration: 30, forcedStyleAndLayoutDuration: 12, source: "event-listener DIV#root.onclick (b in entry.js)" },
+      { duration: 9, forcedStyleAndLayoutDuration: 1, source: "user-callback FrameRequestCallback (c in entry.js)" },
+      { duration: 2, forcedStyleAndLayoutDuration: 0, source: "resolve-promise Response.json (d in entry.js)" },
+    ],
+  };
+  expect(describeFrame(frame)).toBe(
+    "scripts and tasks 50 ms, animation frame callbacks and observers 30 ms, style, layout and paint 10 ms; heaviest scripts: event-listener DIV#root.onclick (b in entry.js) 30 ms (12 ms forced layout), user-callback FrameRequestCallback (c in entry.js) 9 ms (1 ms forced layout), event-listener DIV#root.onclick (a in entry.js) 5 ms (0 ms forced layout)",
+  );
+  expect(describeFrame({ ...frame, renderStart: 0, styleAndLayoutStart: 0, scripts: [] })).toBe("scripts and tasks 90 ms, animation frame callbacks and observers 0 ms, style, layout and paint 0 ms");
 });
 
 test("a slow press no long animation frame holds has no split", () => {
