@@ -783,7 +783,7 @@ jobs:
       BROWSER_RUN: ${{ needs.ci.outputs.browser != 'false' && needs.ci.outputs.fallback == 'true' }}
     steps:
       - if: env.BROWSER_RUN == 'false'
-        run: echo "Nothing to read here: the browser shards did not run, or the coverage job held their motion evidence itself."
+        run: echo "Nothing to read here, since the browser shards did not run, or the coverage job held their motion evidence itself."
       - if: env.BROWSER_RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
