@@ -46,7 +46,7 @@
   },
   "windows": {
     "repo": "ourostack/ouro-ui-windows",
-    "tag": null,
+    "tag": "v0.1.0",
     "components": []
   }
 }

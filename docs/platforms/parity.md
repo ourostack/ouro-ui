@@ -8,7 +8,7 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | Not yet: [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows) is waiting for a builder |
+| Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | [ourostack/ouro-ui-windows v0.1.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.1.0") |
 
 Components: Web has 122 of 122, Apple has 8 of 122, Android has 0 of 122, Windows has 0 of 122.[^matrix]
 
