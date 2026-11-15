@@ -905,7 +905,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   };
   // Stryker disable next-line MethodExpression: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
   const withMenus = items.some(hasMenu);
-  // Stryker disable next-line ArrowFunction,BlockStatement,ConditionalExpression,ArrayDeclaration: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
+  // Stryker disable next-line CallExpression,ArrowFunction,BlockStatement,ConditionalExpression,ArrayDeclaration: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
   useLayoutEffect(() => {
     // Stryker disable next-line ConditionalExpression: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
     if (withMenus) void loadMenu();
