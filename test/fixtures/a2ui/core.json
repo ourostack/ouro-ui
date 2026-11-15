@@ -1,6 +1,6 @@
 {
   "repository": "ourostack/ouro-ui-core",
-  "coreTag": "v0.12.1",
+  "coreTag": "v0.13.1",
   "note": "Copied from ouro-ui-core at coreTag, byte for byte. Never edit them: take a new release and update this file.",
   "files": {
     "registry/ouro/lib/ouro/a2ui-core.ts": {
@@ -10,15 +10,15 @@
         "src/mcp-app.mts": "93c9570d032e911c244f401df0a4f7adcb06e6ffeb2d2e970c2f00b8291279dc",
         "src/a2ui.mts": "543135ea00c07cd96be1ad552008101de7f9ac92ea2753414221007868664901"
       },
-      "sha256": "0dc0cff17350656e6cb42afe2ed93b3460d88e4d4012d9e587facb946291a304"
+      "sha256": "c19b80307ca970810de0738101b6e70982cca4fec0b47223f39fd2e270e33ced"
     },
     "test/fixtures/a2ui/catalog.json": {
       "from": "standard/hx/a2ui/catalog.json",
-      "sha256": "04f7f0d5f22d92c8cefde0fc8a1a039abb728234f9a9b758f57d7052cf496cd4"
+      "sha256": "b7c56dcd250c3ae72bbfff0caa4ae454bc02319f4661becad92cb4936525579c"
     },
     "test/fixtures/a2ui/recipe.catalog.json": {
       "from": "standard/hx/a2ui/conformance/recipe.catalog.json",
-      "sha256": "3ad29a2d7825467ff435b3b550a41de05b6eb37b1418c5e2d42d5c81e71d2d75"
+      "sha256": "8a915cdea3584232d173f1558ebebfde6d251d50849aa0c8498f640f070d0037"
     },
     "test/fixtures/a2ui/cases/action-buttons.json": {
       "from": "standard/hx/a2ui/conformance/cases/action-buttons.json",
@@ -34,7 +34,7 @@
     },
     "test/fixtures/a2ui/cases/invalid-agent-presses.json": {
       "from": "standard/hx/a2ui/conformance/cases/invalid-agent-presses.json",
-      "sha256": "40e862b038cbf4c738771cc87fe9b02b5c08a267caca9601d95fced3d90b635d"
+      "sha256": "f50ca5d84fdbb60a383c1eed4f7fff9787e3bf8d40d080de1c2466fb483785fe"
     },
     "test/fixtures/a2ui/cases/invalid-free-button.json": {
       "from": "standard/hx/a2ui/conformance/cases/invalid-free-button.json",
@@ -42,7 +42,7 @@
     },
     "test/fixtures/a2ui/cases/invalid-person-only-input.json": {
       "from": "standard/hx/a2ui/conformance/cases/invalid-person-only-input.json",
-      "sha256": "c029fd37eafc73b7a692d7ec485f6a219dfb8fb0d5abd1af386c346755dc842c"
+      "sha256": "238e3ce6cf63f5dead54f5cb622feecad460e52e29fcf85f87f44f46f7e5af47"
     },
     "test/fixtures/a2ui/cases/invalid-styling.json": {
       "from": "standard/hx/a2ui/conformance/cases/invalid-styling.json",

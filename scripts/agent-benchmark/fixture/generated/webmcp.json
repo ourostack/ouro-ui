@@ -1,5 +1,5 @@
 {
-  "generator": "ouro-actions 0.7.2",
+  "generator": "ouro-actions 0.13.1",
   "set": "pantry",
   "tools": [
     {
@@ -126,7 +126,7 @@
       },
       "target": null,
       "state": "refused",
-      "summary": "list order: You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list.",
+      "summary": "Place order: You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list.",
       "postcondition": {
         "checked": false,
         "holds": null,
@@ -140,7 +140,7 @@
         "thing": "list order",
         "problem": "You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list",
         "fix": null,
-        "message": "list order: You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list."
+        "message": "Place order: You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list."
       }
     }
   }
