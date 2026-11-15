@@ -498,7 +498,7 @@ const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outlin
  * While the name loads (`loading` is its label), the label laid out invisibly gives the line its
  * height and baseline and the placeholder its width, and a Skeleton line shows over it.
  */
-function AuthorName({ name, content, loading }: { name: string; content: ReactNode; loading: string | undefined }): ReactNode {
+function authorName(name: string, content: ReactNode, loading: string | undefined): ReactNode {
   if (loading !== undefined) {
     return (
       <span data-ouro-message-name-loading="" className="relative inline-block max-w-full">
@@ -709,8 +709,8 @@ export function Message(props: MessageProps): JSX.Element {
   );
 
   const empty = children === undefined || children === null || children === false || children === "";
-  const body = streaming && empty ? <Typing label={streamingLabel} /> : children;
-  const quoted = quote && <Quote quote={quote} />;
+  const body = streaming && empty ? typing(streamingLabel) : children;
+  const quoted = quote && quoteBox(quote);
   // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
   const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
   useEffect(() => {
@@ -799,7 +799,7 @@ export function Message(props: MessageProps): JSX.Element {
           className,
         )}
       >
-        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : <AvatarSlot avatar={avatar} name={nameLoading ? null : name} presence={presence} presenceLabel={presenceLabel} size="sm" className="mb-0.5" />)}
+        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : avatarSlot(avatar, nameLoading ? null : name, presence, presenceLabel, "mb-0.5"))}
         <div
           className={cn(
             "flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
@@ -807,22 +807,18 @@ export function Message(props: MessageProps): JSX.Element {
           )}
         >
           <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
-            <AuthorName name={name} content={nameContent} loading={nameLoading ? nameLoadingLabel : undefined} />
+            {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
+            {nameTag && <span className="sr-only">, </span>}
             {nameTag && (
-              <>
-                <span className="sr-only">, </span>
-                <span data-ouro-message-name-tag="" className="ms-1.5 font-normal">
-                  {nameTag}
-                </span>
-              </>
+              <span data-ouro-message-name-tag="" className="ms-1.5 font-normal">
+                {nameTag}
+              </span>
             )}
+            {time !== undefined && <span className="sr-only">, </span>}
             {time !== undefined && (
-              <>
-                <span className="sr-only">, </span>
-                <time dateTime={dateTime} className="ms-1.5 font-normal tabular-nums">
-                  {time}
-                </time>
-              </>
+              <time dateTime={dateTime} className="ms-1.5 font-normal tabular-nums">
+                {time}
+              </time>
             )}
           </span>
           {bar ? (
@@ -839,12 +835,8 @@ export function Message(props: MessageProps): JSX.Element {
             </div>
           )}
           {notSent}
-          <Extra slot="footer" end={role === "user"}>
-            {footer}
-          </Extra>
-          <Extra slot="thread" end={role === "user"}>
-            {thread}
-          </Extra>
+          {extra("footer", role === "user", false, footer)}
+          {extra("thread", role === "user", false, thread)}
         </div>
       </article>
     );
@@ -862,7 +854,7 @@ export function Message(props: MessageProps): JSX.Element {
   const header = (
     <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
       <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
-        <AuthorName name={name} content={nameContent} loading={nameLoading ? nameLoadingLabel : undefined} />
+        {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
       </span>
       {nameTag && (
         <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
@@ -870,13 +862,11 @@ export function Message(props: MessageProps): JSX.Element {
           {nameTag}
         </span>
       )}
+      {time !== undefined && <span className="sr-only">, </span>}
       {time !== undefined && (
-        <>
-          <span className="sr-only">, </span>
-          <time dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
-            {time}
-          </time>
-        </>
+        <time dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
+          {time}
+        </time>
       )}
     </span>
   );
@@ -941,7 +931,7 @@ export function Message(props: MessageProps): JSX.Element {
               </time>
             )
           ) : (
-            <AvatarSlot avatar={avatar} name={nameLoading ? null : name} presence={presence} presenceLabel={presenceLabel} size="sm" />
+            avatarSlot(avatar, nameLoading ? null : name, presence, presenceLabel)
           )}
         </span>
       )}
@@ -971,12 +961,8 @@ export function Message(props: MessageProps): JSX.Element {
           </div>
         )}
         {notSent}
-        <Extra slot="footer" end={end} post={post}>
-          {footer}
-        </Extra>
-        <Extra slot="thread" end={end} post={post}>
-          {thread}
-        </Extra>
+        {extra("footer", end, post, footer)}
+        {extra("thread", end, post, thread)}
         {post && bar}
       </div>
     </article>
@@ -987,24 +973,10 @@ export function Message(props: MessageProps): JSX.Element {
  * The author's avatar: the Avatar element the app passed, or one drawn from the picture URL and
  * name, with the author's presence. A missing label still says the presence, as Avatar would.
  */
-function AvatarSlot({
-  avatar,
-  name,
-  presence,
-  presenceLabel,
-  size,
-  className,
-}: {
-  avatar: string | ReactElement | undefined;
-  name: string | null;
-  presence: string | undefined;
-  presenceLabel: string | undefined;
-  size: "sm" | "md";
-  className?: string;
-}): JSX.Element {
+function avatarSlot(avatar: string | ReactElement | undefined, name: string | null, presence: string | undefined, presenceLabel: string | undefined, className?: string): JSX.Element {
   if (isValidElement(avatar)) return avatar;
   const dot = presence === undefined ? {} : { presence: presence as AvatarPresence, presenceLabel: presenceLabel || presence.replaceAll("-", " ") };
-  return <Avatar name={name} src={avatar} alt="" size={size} className={className} {...dot} />;
+  return <Avatar name={name} src={avatar} alt="" size="sm" className={className} {...dot} />;
 }
 
 // The quote: a box on the muted surface with a hairline, as Composer's quote (composer.tsx).
@@ -1020,7 +992,7 @@ const quoteButtonClass =
  * The message a message replies to: the bar, the avatar, the author and the excerpt. Screen
  * readers hear the label ("Quoting Ana") in place of the author's name, then the excerpt.
  */
-function Quote({ quote }: { quote: MessageQuote }): JSX.Element {
+function quoteBox(quote: MessageQuote): JSX.Element {
   const body = (
     <>
       <span aria-hidden="true" data-ouro-message-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
@@ -1056,7 +1028,7 @@ function wordsFor(presence: string, label: string | undefined): string {
  * A row under the message (its footer or thread), or nothing when the app passed nothing. A post's rows keep a little
  * more room, and a post's thread that is only Reply (nobody has replied) ends the name line instead.
  */
-function Extra({ slot, end, post = false, children }: { slot: "footer" | "thread"; end: boolean; post?: boolean; children: ReactNode }): JSX.Element | null {
+function extra(slot: "footer" | "thread", end: boolean, post: boolean, children: ReactNode): JSX.Element | null {
   if (children === undefined || children === null || children === false) return null;
   return (
     <div
@@ -1083,6 +1055,8 @@ function NotSentIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   );
 }
 
+const typingDot = "size-1.5 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current";
+
 /**
  * Three dots that pulse in turn (opacity only, so reduced motion keeps them), with a spoken label.
  *
@@ -1090,17 +1064,12 @@ function NotSentIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
  * @claim "Three dots that pulse in turn" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^@keyframes\souro-pulse\s\{/)
  * @claim "Three dots that pulse in turn" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message > is busy while streaming, with a typing indicator the app can name)
  */
-function Typing({ label }: { label: string }): JSX.Element {
+function typing(label: string): JSX.Element {
   return (
     <span data-ouro-message-typing="" className="inline-flex h-[1lh] items-center gap-1">
-      {[0, 1, 2].map((dot) => (
-        <span
-          key={dot}
-          aria-hidden="true"
-          className="size-1.5 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current"
-          style={{ animationDelay: `${dot * 0.2}s` }}
-        />
-      ))}
+      <span aria-hidden="true" className={typingDot} />
+      <span aria-hidden="true" className={typingDot} style={{ animationDelay: "0.2s" }} />
+      <span aria-hidden="true" className={typingDot} style={{ animationDelay: "0.4s" }} />
       <span className="sr-only">{label}</span>
     </span>
   );
