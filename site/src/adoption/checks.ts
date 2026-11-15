@@ -48,7 +48,7 @@ function current(surface: Surface): Omit<Check, "key" | "label"> {
   const met = surface.conditions.current.met;
   if (met) return { state: "met", why: null, source: cell.source };
   if (cell.value === null) return { state: unmeasuredOrNa(cell), why: unmeasured(cell), source: cell.source };
-  if (cell.value.length === 0) return { state: "missing", why: "No Ouro UI dependency", source: cell.source };
+  if (cell.value.length === 0) return { state: "missing", why: "Doesn't use Ouro UI yet", source: cell.source };
   const behind = cell.value.filter((pin) => typeof pin.behind === "number" && pin.behind > 0).sort((a, b) => (b.behind ?? 0) - (a.behind ?? 0));
   const furthest = behind[0];
   if (!furthest) {
@@ -67,15 +67,15 @@ function oneAction(surface: Surface): Omit<Check, "key" | "label"> {
   const cell = surface.cells.actions;
   if (surface.conditions.oneAction.met) return { state: "met", why: null, source: cell.source };
   if (cell.value === null) return { state: unmeasuredOrNa(cell), why: reason(cell, "not measured yet"), source: cell.source };
-  return { state: "missing", why: reason(cell, "No actions on the one-action model"), source: cell.source };
+  return { state: "missing", why: reason(cell, "Actions not on the one-action model"), source: cell.source };
 }
 
 function must(surface: Surface): Omit<Check, "key" | "label"> {
   const cell = surface.cells.xray;
   if (surface.conditions.must.met) return { state: "met", why: null, source: cell.value?.run ?? cell.source };
-  if (cell.value === null) return { state: unmeasuredOrNa(cell), why: unmeasured(cell, /x-ray/i.test(cell.note ?? "") ? "No X-ray in CI yet" : undefined), source: cell.source };
+  if (cell.value === null) return { state: unmeasuredOrNa(cell), why: unmeasured(cell, /x-ray/i.test(cell.note ?? "") ? "X-ray doesn't run in CI yet" : undefined), source: cell.source };
   const { must: total, mustHolding, run } = cell.value;
-  if (total === 0) return { state: "missing", why: "No must claims yet", source: run ?? cell.source };
+  if (total === 0) return { state: "missing", why: "Must claims not written yet", source: run ?? cell.source };
   return { state: "missing", why: `${total - mustHolding} of ${plural(total, "must claim")} fail`, source: run ?? cell.source };
 }
 

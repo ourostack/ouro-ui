@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState, type JSX } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Container } from "../voyage/layout";
 import { isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger } from "./ledger";
 import { boardOf, CHECK_KEYS, CHECK_SHORT, STATE_WORD, type Check, type CheckState } from "./checks";
@@ -78,13 +79,7 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
         <section aria-labelledby="adoption-title" className="adoption-hero">
           <p className="site-eyebrow">Adoption</p>
           <h1 id="adoption-title" className="adoption-h1">
-            {closed ? (
-              <>All {board.total} products are on Ouro{" "}UI.</>
-            ) : (
-              <>
-                {board.green} of {board.total} products are fully on Ouro{" "}UI.
-              </>
-            )}
+            {`${board.green} of ${board.total} products on Ouro\u00a0UI.`}
           </h1>
           <div className="adoption-ring">
             <Sky stars={board.sky} active={active} closed={closed} />
@@ -93,7 +88,7 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
                 <>
                   <span className="adoption-readout-name">{focus.surface.name}</span>
                   <span className="adoption-readout-sub">
-                    {focus.surface.met} of 4 checks
+                    {`${focus.surface.met} of ${CHECK_KEYS.length} checks`}
                   </span>
                 </>
               ) : (
@@ -107,7 +102,14 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
               )}
             </div>
           </div>
-          <p className="adoption-lede">{closed ? "Every product passes all four checks. The ring is closed." : "A product turns green when it passes all four checks. Each one lights a ray of its star."}</p>
+          <p className="adoption-lede">
+            {closed
+              ? "The ring is closed."
+              : claim("A product turns green when it passes all four checks, and each passing check lights a ray of its star.", {
+                  source: { test: "site/src/adoption/adoption.test.tsx::the adoption page > gives every counted product a row, furthest from green first, with its four checks as the ledger says them" },
+                  verify: { testExists: "site/src/adoption/adoption.test.tsx::the adoption page > gives every counted product a row, furthest from green first, with its four checks as the ledger says them" },
+                })}
+          </p>
           <p className="adoption-fresh">
             Measured <time dateTime={ledger.generatedAt}>{stamp(ledger.generatedAt)}</time>, hourly. <Link href={METHOD}>How it is measured</Link>
           </p>
@@ -155,7 +157,7 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
                   onBlur={() => setActive((current) => (current === surface.id ? null : current))}
                 >
                   <h3 className="adoption-name">{surface.name}</h3>
-                  <ul className="adoption-marks" aria-label={surface.confirmed ? "Green: all four checks pass" : `${surface.met} of 4 checks pass`}>
+                  <ul className="adoption-marks" aria-label={`${surface.confirmed ? "Green. " : ""}${surface.met} of ${CHECK_KEYS.length} checks pass`}>
                     {checks.map((check) => (
                       <li key={check.key} data-state={check.state}>
                         <Mark state={check.state} />
@@ -181,7 +183,7 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
               {board.shared.map((item, index) => (
                 <Fragment key={item.key}>
                   {index ? " " : null}
-                  <span className="adoption-gap-key">{CHECK_SHORT[item.key]}, for every product:</span> {item.source ? (
+                  <span className="adoption-gap-key">{CHECK_SHORT[item.key]}, shared:</span> {item.source ? (
                     <Link href={item.source} tone="secondary">
                       {item.why}
                     </Link>

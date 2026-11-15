@@ -35,7 +35,7 @@ describe("the adoption page", () => {
   it("has a route and leads with the count of green products out of the total", async () => {
     expect(routes.some((route) => route.path === "/adoption/")).toBe(true);
     await renderPage("/adoption/");
-    await expect.element(page.getByRole("heading", { level: 1, name: new RegExp(`^${SNAPSHOT.summary.confirmed} of ${SNAPSHOT.summary.total} products are fully on Ouro\\sUI\\.$`) })).toBeInTheDocument();
+    await expect.element(page.getByRole("heading", { level: 1, name: new RegExp(`^${SNAPSHOT.summary.confirmed} of ${SNAPSHOT.summary.total} products on Ouro\\sUI\\.$`) })).toBeInTheDocument();
   });
 
   it("gives every counted product a row, furthest from green first, with its four checks as the ledger says them", async () => {
@@ -50,7 +50,7 @@ describe("the adoption page", () => {
       // Green is never drawn where the ledger does not say so.
       marks.forEach((mark, index) => expect(mark.dataset.state === "met").toBe(Object.values(surface.conditions)[index]!.met));
       expect(row.hasAttribute("data-green")).toBe(surface.confirmed);
-      expect(row.querySelector(".adoption-marks")?.getAttribute("aria-label")).toBe(surface.confirmed ? "Green: all four checks pass" : `${surface.met} of 4 checks pass`);
+      expect(row.querySelector(".adoption-marks")?.getAttribute("aria-label")).toBe(`${surface.confirmed ? "Green. " : ""}${surface.met} of 4 checks pass`);
     }
   });
 
@@ -98,12 +98,12 @@ describe("the adoption page", () => {
 
   it("closes the ring and says so when the last product turns green", async () => {
     const host = await renderFixture(<AdoptionPage initial={allGreen()} live={false} />);
-    await expect.element(page.getByRole("heading", { level: 1, name: new RegExp(`^All ${SNAPSHOT.summary.total} products are on Ouro\\sUI\\.$`) })).toBeInTheDocument();
+    await expect.element(page.getByRole("heading", { level: 1, name: new RegExp(`^${SNAPSHOT.summary.total} of ${SNAPSHOT.summary.total} products on Ouro\\sUI\\.$`) })).toBeInTheDocument();
     expect(host.querySelector(".adoption-sky")?.hasAttribute("data-closed")).toBe(true);
     expect(host.querySelectorAll(".adoption-star[data-lit]")).toHaveLength(counted.length);
     expect(host.querySelectorAll(".adoption-arc")).toHaveLength(counted.length);
     expect(host.querySelectorAll(".adoption-gaps")).toHaveLength(0);
-    expect(host.querySelector(".adoption-lede")?.textContent).toBe("Every product passes all four checks. The ring is closed.");
+    expect(host.querySelector(".adoption-lede")?.textContent).toBe("The ring is closed.");
   });
 
   it("names the product a row is on in the middle of the ring, and lifts its star", async () => {
@@ -147,7 +147,7 @@ describe("reading the checks", () => {
   });
 
   it("tells a missing dependency from a pin it could not read", () => {
-    expect(checksOf(withCells({ pins: { value: [], note: null, source: null, measuredAt: at } }))[0]).toMatchObject({ state: "missing", why: "No Ouro UI dependency" });
+    expect(checksOf(withCells({ pins: { value: [], note: null, source: null, measuredAt: at } }))[0]).toMatchObject({ state: "missing", why: "Doesn't use Ouro UI yet" });
     const unread = [{ label: "installed Ouro HX", latestOf: "ourostack/ouro-ui", latestTag: "v1", tag: null, behind: null, note: null }];
     expect(checksOf(withCells({ pins: { value: unread, note: null, source: null, measuredAt: at } }))[0]).toMatchObject({ state: "unmeasured", why: "Could not read the installed Ouro HX pin" });
   });
@@ -155,7 +155,7 @@ describe("reading the checks", () => {
   it("counts failing must claims, and says when there are none to check", () => {
     const xray = (must: number, mustHolding: number) => ({ value: { claims: 10, holding: 5, must, mustHolding, score: null, tool: "x", app: null, reportAt: at, run: "https://example.com/run" }, note: null, source: null, measuredAt: at });
     expect(checksOf(withCells({ xray: xray(4, 1) }))[2]).toMatchObject({ state: "missing", why: "3 of 4 must claims fail", source: "https://example.com/run" });
-    expect(checksOf(withCells({ xray: xray(0, 0) }))[2]).toMatchObject({ state: "missing", why: "No must claims yet" });
+    expect(checksOf(withCells({ xray: xray(0, 0) }))[2]).toMatchObject({ state: "missing", why: "Must claims not written yet" });
     expect(checksOf(withCells({ xray: xray(4, 4) }, { must: true }))[2]).toMatchObject({ state: "met", why: null });
   });
 
