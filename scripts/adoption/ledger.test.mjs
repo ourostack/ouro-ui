@@ -214,3 +214,21 @@ test("code search waits as long as GitHub says on an HTTP 429, within a cap", ()
   assert.equal(context.search("q", "o/r").total, 1);
   assert.deepEqual(waits.filter((ms) => ms !== 6500).slice(-3), [15980, 90000, 1588]);
 });
+
+test("Gatefold's pin is read from the ouro-ui-apple package in its XcodeGen project.yml", async () => {
+  const { readFileSync } = await import("node:fs");
+  const real = JSON.parse(readFileSync(new URL("./ledger.config.json", import.meta.url), "utf8"));
+  const gatefold = real.surfaces.find((surface) => surface.id === "gatefold");
+  const projectYml = "packages:\n  OuroUIApple:\n    url: https://github.com/ourostack/ouro-ui-apple\n    minorVersion: 0.2.1\n  GatefoldCore:\n    path: Packages/GatefoldCore\n";
+  const gh = (args) => {
+    const line = args.join(" ");
+    if (line.includes("contents/project.yml")) return b64(projectYml);
+    const release = /repos\/([^/]+\/[^/]+)\/releases/.exec(line);
+    if (release) return releases[release[1]].map((item) => JSON.stringify({ tag: item.tag_name, at: item.published_at, url: item.html_url })).join("\n");
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+  const cellValue = measurePins(createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 }), gatefold, { apple: { repo: "ourostack/ouro-ui-apple", tag: "v0.4.1" } });
+  assert.equal(cellValue.value[0].tag, "0.2.1");
+  assert.equal(cellValue.value[0].behind, 1);
+  assert.equal(cellValue.source, "https://github.com/ourostack/gatefold/blob/HEAD/project.yml");
+});

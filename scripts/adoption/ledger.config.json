@@ -262,7 +262,15 @@
       "name": "Gatefold",
       "kind": "native app",
       "repo": "ourostack/gatefold",
-      "pins": [],
+      "pins": [
+        {
+          "label": "ouro-ui-apple",
+          "latest": "apple",
+          "from": "regex",
+          "file": "project.yml",
+          "regex": "url:\\s*https://github\\.com/ourostack/ouro-ui-apple(?:\\.git)?\\s*\\n\\s*(?:exactVersion|minorVersion|majorVersion|from|version):\\s*\"?([0-9.]+)"
+        }
+      ],
       "hx": {
         "kind": "apple",
         "components": "OuroButton OR OuroToast OR OuroBanner OR OuroSheet OR OuroEmptyState",
