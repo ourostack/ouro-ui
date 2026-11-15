@@ -892,6 +892,44 @@ describe("Command opened by a key", () => {
     expect(seen.focus).toBe(input().element());
   });
 
+  it.each([
+    ["in the task that opened it", false],
+    ["in the next task", false],
+    ["in the task that opened it", true],
+    ["in the next task", true],
+  ] as const)("leaves focus where Tab moved it %s, before a frame is drawn (keepMounted %s)", async (when, keepMounted) => {
+    function TabbedAtOnce() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button
+            type="button"
+            data-test-harness=""
+            onKeyDown={(event) => {
+              if (event.key !== "k") return;
+              event.preventDefault();
+              flushSync(() => setOpen(true));
+              // Tab from the search goes to the close button; here it lands before the dialog's first frame.
+              const tab = () => document.querySelector<HTMLElement>("[data-ouro-command-close]")!.focus();
+              if (when === "in the next task") setTimeout(tab);
+              else queueMicrotask(() => queueMicrotask(tab));
+            }}
+          >
+            Page
+          </button>
+          <Command title="Command palette" items={entries()} open={open} onOpenChange={setOpen} keepMounted={keepMounted} />
+        </>
+      );
+    }
+    await render(<TabbedAtOnce />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("k");
+    const close = document.querySelector<HTMLElement>("[data-ouro-command-close]")!;
+    await expect.poll(() => document.activeElement).toBe(close);
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(document.activeElement).toBe(close);
+  });
+
   it.each(["touch", "pen"])("puts no focus in the search after a %s tap opens it, so no software keyboard pops up", async (pointerType) => {
     const seen = { focus: null as Element | null };
     await render(<KeyOpened keepMounted seen={seen} />);
@@ -900,6 +938,8 @@ describe("Command opened by a key", () => {
     harness.click();
     await expect.poll(() => seen.focus).not.toBeNull();
     expect(seen.focus).not.toBe(input().element());
+    // A frame later the palette itself has focus.
+    await expect.poll(() => document.activeElement).toBe(popup());
   });
 
   it.each([true, false])("puts no focus in a search the palette closed in the same task as it opened (keepMounted %s)", async (keepMounted) => {
