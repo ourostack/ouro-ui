@@ -1,4 +1,5 @@
-import { createRef, useState, type ReactNode } from "react";
+import { createRef, Profiler, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -223,6 +224,64 @@ describe("Message", () => {
     const dots = [...message.querySelectorAll("[data-ouro-message-typing] > [aria-hidden]")];
     expect(dots.map((dot) => getComputedStyle(dot).animationName)).toEqual(["ouro-pulse", "ouro-pulse", "ouro-pulse"]);
     expect(dots.map((dot) => getComputedStyle(dot).animationDelay)).toEqual(["0s", "0.2s", "0.4s"]);
+  });
+
+  it("mounts in one commit, without drawing itself again once its element is there, in a list's layer too", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const layer = createRowLayer<MessageBarData>();
+    let commits = 0;
+    flushSync(() =>
+      root.render(
+        <Profiler id="messages" onRender={() => (commits += 1)}>
+          <Message role="assistant" name="Ana">
+            Hi
+          </Message>
+          <RowLayerContext.Provider value={layer as RowLayer<unknown>}>
+            <Message variant="chat" role="assistant" name="Ana" actions={actionsFor([])}>
+              Hello
+            </Message>
+          </RowLayerContext.Provider>
+        </Profiler>,
+      ),
+    );
+    expect(commits).toBe(1);
+    expect(layer.get(host.querySelectorAll("article")[1]!)?.slot()).toBe(host.querySelectorAll("article")[1]!.querySelector("[data-ouro-message-content]")!.parentElement);
+    await act(async () => root.unmount());
+    host.remove();
+  });
+
+  it("keeps one element in a list's layer as it draws again and changes variant, and takes it out as it unmounts", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const layer = createRowLayer<MessageBarData>();
+    // Each row the layer tells of, with whether the layer has it at that moment.
+    const told: { row: Element; has: boolean }[] = [];
+    layer.listen((row) => told.push({ row, has: layer.get(row) !== undefined }));
+    const show = (variant: MessageProps["variant"], text: string) =>
+      root.render(
+        <RowLayerContext.Provider value={layer as RowLayer<unknown>}>
+          <Message variant={variant} role="assistant" name="Ana" actions={actionsFor([])}>
+            {text}
+          </Message>
+        </RowLayerContext.Provider>,
+      );
+    await act(async () => show("chat", "Hello"));
+    const article = host.querySelector("article")!;
+    await act(async () => show("chat", "Hello again"));
+    await act(async () => show("default", "Hello again"));
+    // Both variants draw an article in the same place, so React keeps the node and the layer keeps it in throughout.
+    expect(host.querySelector("article")).toBe(article);
+    expect(told.length).toBe(3);
+    expect(told.every(({ row, has }) => row === article && has)).toBe(true);
+    await act(async () => root.unmount());
+    expect(layer.get(article)).toBeUndefined();
+    expect(told.at(-1)).toEqual({ row: article, has: false });
+    host.remove();
   });
 
   it("keeps an aria-busy the app passes while it is not streaming", async () => {
