@@ -287,6 +287,8 @@ export async function picture(page: Page, index: number): Promise<{ data: Buffer
 interface Sample {
   where: string;
   sig: string;
+  /** Which instance on the page: its label, so a log can tell two on one page apart. */
+  label?: string;
   crop?: { id: string; data: Buffer; width: number; height: number };
 }
 
@@ -294,10 +296,10 @@ export class Looks {
   private readonly groups = new Map<string, Sample[]>();
   private readonly pictures = new Map<string, Sample[]>();
 
-  add(where: string, look: Look, crop?: { data: Buffer; width: number; height: number } | null): void {
+  add(where: string, look: Look, crop?: { data: Buffer; width: number; height: number } | null, label?: string): void {
     const list = this.groups.get(look.key) ?? [];
     this.groups.set(look.key, list);
-    list.push({ where, sig: look.sig });
+    list.push({ where, sig: look.sig, ...(label ? { label } : {}) });
     if (crop) {
       const id = `${look.key}|${look.size}|${look.behind}`;
       const pics = this.pictures.get(id) ?? [];
@@ -340,7 +342,7 @@ export class Looks {
       const parts = sigs.map((sig) => sig.split(" ; "));
       const described = sigs.map((sig, n) => {
         const own = parts[n]!.filter((p) => parts.some((other, m) => m !== n && !other.includes(p)));
-        const taken = bySig.get(sig)!.map((i) => `#${i + 1} ${samples[i]!.where}`).join(", ");
+        const taken = bySig.get(sig)!.map((i) => `#${i + 1} ${samples[i]!.where}${samples[i]!.label ? ` "${samples[i]!.label}"` : ""}`).join(", ");
         return `${taken}: ${own.join(" ; ")}`;
       });
       if (shown.some((line) => line.startsWith(`${key} on `))) out.push(`${key} (${samples.length} samples) | ${described.join(" | ")}`);

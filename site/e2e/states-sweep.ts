@@ -101,12 +101,22 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             });
             if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await marks()) !== before) return;
             found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
-            const { looks: now, escapes } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
+            // A state's style can land a frame after the state itself (#1404: a hover read with the resting border while
+            // :hover matched), so the look is read until two reads, a couple of frames apart, agree.
+            const read = () => page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
+            let { looks: now, escapes } = await read();
+            for (let tries = 0; tries < 5; tries++) {
+              await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+              const again = await read();
+              if (again.looks[0]?.sig === now[0]?.sig) break;
+              ({ looks: now, escapes } = again);
+            }
             found.push(...escapes.map((e) => `${path} ${state}: ${e}`));
             const look = now[0];
             if (!look) return;
             const tagged = { ...look, key: `${look.key}|${state}` };
-            looks.add(path, tagged, tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null);
+            const label = await control.evaluate((el) => (el.getAttribute("aria-label") || el.closest("label, [data-ouro]")?.textContent || "").trim().slice(0, 40));
+            looks.add(path, tagged, tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null, label);
           };
           await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
           await record("hover", ":hover");
