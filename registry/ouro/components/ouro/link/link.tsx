@@ -67,7 +67,7 @@ export interface LinkOwnProps {
    * `NavigationMenu` draw their current link: semibold, in the page's text colour, with a 2px
    * underline in the primary colour, so a reader tells it from the others at a glance. `false`
    * or unset marks nothing.
-   * @claim "`true` sets `aria-current="page"`" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link current > marks the current link aria-current="page", or the value passed, and nothing for false)
+   * @claim "Marks this link as the current" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link current > marks the current link aria-current="page", or the value passed, and nothing for false)
    * @claim "The link is then drawn as" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link current > draws the current link as Navbar draws its current link: semibold, the page's text colour, a 2px primary underline)
    */
   current?: boolean | "page" | "step" | "location" | "date" | "time" | "true" | (string & { 'Use current or current="step"': never }) | undefined;
@@ -126,7 +126,7 @@ const tones = {
 
 // The current link, drawn as Navbar and NavigationMenu draw theirs: semibold, the page's text
 // colour, a 2px underline in the primary colour that hover keeps.
-const currentLook =
+const currentClass =
   "data-current:font-semibold data-current:text-foreground data-current:decoration-primary data-current:decoration-2 " +
   "data-current:underline-offset-5 data-current:[text-decoration-skip-ink:none] data-current:pointer-fine:hover:decoration-primary";
 
@@ -248,7 +248,7 @@ export function Link(props: LinkProps): JSX.Element {
       data-inline={inlineProp ? "" : undefined}
       {...(current ? { "aria-current": current } : {})}
       data-current={marked ? "" : undefined}
-      className={cn(base, inlineProp === undefined ? [standalone, inTextFocus] : inlineProp ? inlineFocus : alwaysStandalone, tones[tone], currentLook, className)}
+      className={cn(base, inlineProp === undefined ? [standalone, inTextFocus] : inlineProp ? inlineFocus : alwaysStandalone, tones[tone], currentClass, className)}
     >
       {children}
       {external && (

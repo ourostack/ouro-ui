@@ -264,12 +264,24 @@ describe("Link current", () => {
     );
     const [a, b, c, d] = [...host.querySelectorAll("a")];
     expect(a!.getAttribute("aria-current")).toBe("page");
+    expect(a!.getAttribute("data-current")).toBe("");
     expect(b!.getAttribute("aria-current")).toBe("step");
+    expect(warn).not.toHaveBeenCalled();
     for (const link of [c!, d!]) {
       expect(link.hasAttribute("aria-current")).toBe(false);
       expect(link.hasAttribute("data-current")).toBe(false);
     }
     await expect.element(page.getByRole("link", { name: "A" })).toHaveAccessibleName("A");
+  });
+
+  it.each(["page", "step", "location", "date", "time", "true"] as const)('passes current="%s" through as aria-current', async (value) => {
+    const { link } = await render(
+      <Link href="/a" current={value}>
+        A
+      </Link>,
+    );
+    expect(link.getAttribute("aria-current")).toBe(value);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("draws the current link as Navbar draws its current link: semibold, the page's text colour, a 2px primary underline", async () => {

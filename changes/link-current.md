@@ -1,1 +1,1 @@
-- Link: `current` marks the link you are on (`aria-current="page"`, or the value passed, such as `"step"`) and draws it as Navbar draws its current link: semibold, in the page's text colour, with a 2px primary underline. An `aria-current` passed straight through gets the same look.
+- Link: `current` marks the link you are on (`aria-current="page"`, or the value passed, such as `"step"`) and draws it as Navbar draws its current link: semibold, in the page's text colour, with a thick underline in the primary colour. An `aria-current` passed straight through gets the same look.
