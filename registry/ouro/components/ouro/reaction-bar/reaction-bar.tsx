@@ -4,7 +4,7 @@ import { useId, type HTMLAttributes, type JSX, type MouseEvent, type ReactNode, 
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Emoji, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { catalogueIndex } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
-import { Tooltip, TooltipGroup } from "@/registry/ouro/components/ouro/tooltip/tooltip";
+import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -285,12 +285,7 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
   );
   return (
     <div {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
-      {onReact ? (
-        // One tooltip root for the whole bar, which each pressable reaction (and Add reaction) joins.
-        <TooltipGroup>{buttons}</TooltipGroup>
-      ) : (
-        buttons
-      )}
+      {buttons}
     </div>
   );
 }
