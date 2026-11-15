@@ -40,7 +40,14 @@ async function finish(page: Page): Promise<void> {
     await saloon(page).getByRole("button", { name: SALOON.play }).click();
     await saloon(page).locator("[data-chapter-next]").waitFor();
   }
-  // The organ's toast is raised just after the way on shows, so the toasts are closed until none is left.
+  await closeToasts(page);
+}
+
+/**
+ * Closes the toasts a set-up raised, until none is left, so none arrives or leaves in the press measured next (#1484): the
+ * win's toast comes with the order that wins, and the organ's just after the way on shows.
+ */
+async function closeToasts(page: Page): Promise<void> {
   await expect(async () => {
     await page.evaluate(() => document.querySelectorAll<HTMLElement>('[data-ouro="toaster"] [data-ouro-part="close"]').forEach((close) => close.click()));
     await expect(page.locator('[data-ouro="toast"]')).toHaveCount(0, { timeout: 1000 });
@@ -66,6 +73,7 @@ const steps: Record<(typeof CHAPTER_THREE_CONTROLS)[number], { press: Step; befo
     before: async (page) => {
       await giveOrder(page, ORDERS.surface);
       await giveOrder(page, ORDERS.feathers);
+      await closeToasts(page);
     },
     press: (page) => saloon(page).getByRole("button", { name: SALOON.play }).click(),
     after: (page) => saloon(page).getByRole("button", { name: SALOON.again }).click(),
