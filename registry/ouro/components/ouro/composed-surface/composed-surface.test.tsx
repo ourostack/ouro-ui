@@ -185,6 +185,7 @@ describe("ComposedSurface", () => {
     expect(photo!.querySelector("img")!.getAttribute("alt")).toBe("Square");
     expect(list!.tagName).toBe("UL");
     expect(list!.className).toContain("list-disc");
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("puts a Card's first Image in its media slot, and a Card that opens with anything else, or holds nothing, has no media", async () => {
