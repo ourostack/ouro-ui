@@ -1489,10 +1489,10 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "failure" }).status, 1);
   // The sweeps run in shards of their own, so between the e2e and sweep shards every spec runs once.
   const { sweepFiles } = await import("./shard.mjs");
-  const sweeps = Array.from({ length: 6 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 6 }, readTimings("e2e")));
+  const sweeps = Array.from({ length: 9 }, (_, index) => shardKeys(sweepFiles(), { index: index + 1, count: 9 }, readTimings("e2e")));
   assert.deepEqual(sweeps.flat().sort(), sweepFiles());
   assert.ok(sweeps.every((share) => share.length > 0));
-  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/6$/m);
+  assert.match(jobs["sweep-shard"], /^ {6}SHARD: \$\{\{ matrix\.shard \}\}\/9$/m);
 });
 
 test("an install shard runs its share of the shipped tests by measured time, or a reduced run's, and its variant's check counts every shard's marker", () => {
