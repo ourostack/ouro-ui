@@ -33,8 +33,8 @@ import ts from "typescript";
 //   followed through same-file constants and helpers; and stylesheet rules (or @apply) whose
 //   selector puts that state on a class or a data-* hook (only the app's own hooks, `.<prefix>-`
 //   and `[data-<prefix>-`, when `hookPrefix` is set). Hover-only decoration and page motion are
-//   not control state. ouro-base's own classes for plain markup (.ouro-focus-ring, .ouro-row), which
-//   land in the app's stylesheet, are Ouro's, and the message for a focus or press state written by
+//   not control state. ouro-base's own classes for plain markup (OURO_BASE_CLASSES), which land in
+//   the app's stylesheet, are Ouro's (an app's own .ouro- class is not), and the message for a focus or press state written by
 //   hand names them.
 // - hand-drawn-unread-dot: a plain accent-colored round dot in a row, which is an unread mark; UnreadDot draws it. (A dot on an avatar's corner stays hand-drawn-presence-dot.)
 // - hand-drawn-avatar, hand-drawn-presence-dot: an intrinsic element drawn as what Ouro UI's Avatar
@@ -441,8 +441,9 @@ const STATE_SELECTOR = new RegExp(
 // A stylesheet selector that names something the app styles by hand: any class or data-* hook, or
 // only the app's own (`.app-`, `[data-app-`) with a `hookPrefix`.
 const ANY_HOOK = /\.[\w-]|\[data-/;
-// A class ouro-base defines for markup that is not an Ouro component.
-const OURO_CLASS = /\.ouro-[\w-]+/g;
+/** The classes ouro-base defines for markup that is not an Ouro component; a stylesheet rule on them is Ouro's. Any other `.ouro-` name is the app's own. */
+export const OURO_BASE_CLASSES = ["ouro-focus-ring", "ouro-focus-ring-inset", "ouro-row"];
+const OURO_CLASS = new RegExp(`\\.(?:${OURO_BASE_CLASSES.join("|")})(?![\\w-])`, "g");
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
