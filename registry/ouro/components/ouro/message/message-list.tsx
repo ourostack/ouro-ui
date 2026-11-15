@@ -1093,9 +1093,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     setReach(next);
   });
   if (!windowed && band !== null) setBand(null);
-  useLayoutEffect(() => {
-    if (windowed ? drewWhole && band !== null : !drewWhole) setDrewWhole(!windowed);
-  }, [windowed, drewWhole, band]);
+  if (windowed ? drewWhole && band !== null : !drewWhole) setDrewWhole(!windowed);
   // The newest child's key the announcements last heard of, so the children after it, which just arrived, draw until they are heard.
   const [heard, setHeard] = useState<string | null>(null);
   // The keys of the messages the announcements wait on, kept drawn until a reply that streamed is heard.
