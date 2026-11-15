@@ -45,7 +45,7 @@ async function broken(page: Page, selector: string, index: number): Promise<stri
   );
 }
 
-export const CHUNKS = 4;
+export const CHUNKS = 8;
 
 export function statesSweep(mode: "light" | "dark", chunk: number) {
   test(`states keep their look on every page, ${mode}, part ${chunk + 1} of ${CHUNKS}`, async ({ page, context, browserName }) => {
