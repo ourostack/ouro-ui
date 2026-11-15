@@ -147,7 +147,6 @@ function installedPaths(tarball, installed) {
 }
 
 const list = (paths) => paths.map((path) => `\`${path}\``).join(", ");
-const files = (count) => `${count} file${count === 1 ? "" : "s"}`;
 
 /**
  * Ouro HX installed as source (`.github/ouro-hx-installed.json`: the tag, its commit, and the sha256 of each installed
@@ -199,9 +198,11 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const sorted = Object.fromEntries(Object.keys(hashes).sort().map((path) => [path, hashes[path]]));
   out[pin.file] = `${JSON.stringify({ ...record, tag: release.tag, tagCommit: release.sha, files: sorted }, null, 2)}\n`;
   const notes = [];
-  if (added.length) notes.push(`Adds ${files(added.length)} that installed items now include: ${list(added)}.`);
-  if (edited.length) notes.push(`Leaves ${files(edited.length)} at ${record.tag}, because ${edited.length === 1 ? "it is" : "they are"} not what the CLI wrote for ${record.tag} (edited here, or rewritten in a way Ouro Current does not reproduce): ${list(edited)}. Install ${edited.length === 1 ? "it" : "them"} again with the CLI, or move the change into Ouro UI.`);
-  if (gone.length) notes.push(`${files(gone.length)} ${gone.length === 1 ? "is" : "are"} no longer in the registry and ${gone.length === 1 ? "is" : "are"} kept: ${list(gone)}.`);
+  // No counts or bare versions: a repository that runs Ouro UI's claims check on pull requests reads them as claims.
+  const one = (paths, single, several) => (paths.length === 1 ? single : several);
+  if (added.length) notes.push(`Adds what installed items now include: ${list(added)}.`);
+  if (edited.length) notes.push(`Leaves ${list(edited)} at \`${record.tag}\`, because ${one(edited, "it is", "they are")} not what the CLI wrote for \`${record.tag}\` (edited here, or rewritten in a way Ouro Current does not reproduce). Install ${one(edited, "it", "them")} again with the CLI, or move the change into Ouro UI.`);
+  if (gone.length) notes.push(`Keeps what the registry no longer has: ${list(gone)}.`);
   return { files: out, notes };
 }
 

@@ -39,9 +39,11 @@ export function title(behind, releases) {
 }
 
 export function body(behind, releases, notes) {
-  const rows = behind.map((pin) => `| \`${pin.file}\` | ${NAMES[pin.follows]} | ${pin.current} | [${releases[pin.follows].tag}](${releases[pin.follows].url}) |`);
+  const rows = behind.map((pin) => `| \`${pin.file}\` | ${NAMES[pin.follows]} | \`${pin.current}\` | [\`${releases[pin.follows].tag}\`](${releases[pin.follows].url}) |`);
   return [
-    "Ouro Current moves this repository's Ouro UI pins to the newest release.",
+    // Versions and file names stay in code spans: a repository that runs Ouro UI's claims check on pull requests
+    // reads a bare version as a claim to cite, and would fail every update.
+    "Ouro Current moves the Ouro UI pins of this repository to the releases below.",
     "",
     "| File | Follows | From | To |",
     "|---|---|---|---|",
