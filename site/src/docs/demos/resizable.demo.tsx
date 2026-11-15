@@ -7,7 +7,7 @@ export default function ResizableDemo(): JSX.Element {
   return (
     <div className="h-56 w-full max-w-lg overflow-hidden rounded-lg border border-border">
       <Resizable>
-        <ResizablePanel label="Ingredients" defaultSize={35} minSize={20} className="p-4">
+        <ResizablePanel label="Ingredients" defaultSize={40} minSize={20} className="p-4">
           Ingredients
         </ResizablePanel>
         <ResizablePanel label="Method" className="p-4">

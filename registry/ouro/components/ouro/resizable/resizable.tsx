@@ -326,14 +326,15 @@ export interface ResizablePanelProps {
 
 /**
  * One resizable area of a `Resizable` (or `ResizablePanelGroup`), sized in percent of the
- * group. Its content scrolls when it does not fit.
+ * group. Its content scrolls when it does not fit. Its focus ring is drawn over the content,
+ * so a header that sticks to the top of the panel never hides an edge of it.
  *
  * Use it only as a direct child of `Resizable` or `ResizablePanelGroup`; a fixed layout
  * needs a plain grid instead.
  *
  * @group Layout
  * @see https://ui.ouroboros.bot/docs/resizable
- *
+ * @claim "Its focus ring is drawn over the content" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::ResizablePanel > draws its focus ring whole over content that sticks to an edge, and leaves the pointer to the content)
  * @example
  * <ResizablePanel label="Files" defaultSize={25} minSize={15}>
  *   <FileTree />
@@ -365,18 +366,29 @@ export function ResizablePanel(props: ResizablePanelProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const scrollRef = useKeyboardScrollable<HTMLDivElement>(true);
+  // The panel is the flex item the group sizes; its scroll box fills it and takes the app's className (padding) and ref.
+  // The focus ring is a sibling drawn over the scroll box, so content that sticks to an edge inside it never covers it.
   return (
     <div
-      ref={scrollRef}
       id={group.ids[index]}
       data-ouro="resizable-panel"
-      // A panel whose content overflows is a tab stop (useKeyboardScrollable), so it is a control.
-      data-ouro-control="resizable"
-      data-ouro-part="panel"
       style={{ flexGrow: group.sizes[index], flexShrink: 1, flexBasis: 0 }}
-      className={cn(panelClass, className)}
+      className="relative box-border flex min-h-0 min-w-0 flex-col"
     >
-      {children}
+      <div
+        ref={scrollRef}
+        // A panel whose content overflows is a tab stop (useKeyboardScrollable), so it is a control.
+        data-ouro-control="resizable"
+        data-ouro-part="panel"
+        className={cn(panelClass, className)}
+      >
+        {children}
+      </div>
+      <span
+        aria-hidden="true"
+        data-resizable-focus-ring=""
+        className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
+      />
     </div>
   );
 }

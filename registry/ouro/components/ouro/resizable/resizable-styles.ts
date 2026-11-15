@@ -38,10 +38,9 @@ const groupClass = {
   vertical: "flex h-full w-full min-h-0 min-w-0 flex-col data-ouro-resizing:select-none",
 } as const;
 
-/** A panel: it scrolls its own content when the content is larger than the panel. @internal */
+/** A panel's scroll box: it fills the panel and scrolls its own content when the content is larger. @internal */
 const panelClass =
-  "relative box-border min-h-0 min-w-0 overflow-auto " +
-  "outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid " +
+  "peer relative box-border min-h-0 min-w-0 flex-1 overflow-auto outline-none focus-visible:isolate " +
   "forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1";
 
 /**

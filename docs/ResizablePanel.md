@@ -2,7 +2,7 @@
 
 # ResizablePanel
 
-One resizable area of a `Resizable` (or `ResizablePanelGroup`), sized in percent of the group. Its content scrolls when it does not fit.
+One resizable area of a `Resizable` (or `ResizablePanelGroup`), sized in percent of the group. Its content scrolls when it does not fit. Its focus ring is drawn over the content, so a header that sticks to the top of the panel never hides an edge of it.
 
 ```tsx
 import { ResizablePanel } from "@/registry/ouro/components/ouro/resizable/resizable";
