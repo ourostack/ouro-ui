@@ -13,6 +13,9 @@ import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads"
 const roots: Root[] = [];
 let mounted: Element[] = [];
 
+/** Lets a frame pass: the row is measured in the resize observer's first report, once the page is laid out. */
+const frame = () => act(() => new Promise<void>((done) => requestAnimationFrame(() => setTimeout(done))));
+
 async function render(node: ReactNode, width?: number) {
   const host = document.createElement("div");
   host.style.padding = "24px";
@@ -22,9 +25,13 @@ async function render(node: ReactNode, width?: number) {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
+  await frame();
   return {
     host,
-    rerender: (next: ReactNode) => act(async () => root.render(next)),
+    rerender: async (next: ReactNode) => {
+      await act(async () => root.render(next));
+      await frame();
+    },
     // Commits at once and returns before any observer reports, so only the commit's own reads show.
     commit: (next: ReactNode) => flushSync(() => root.render(next)),
     get toolbar() {
@@ -98,6 +105,7 @@ describe("Toolbar", () => {
     expect(twoGroups.toolbar.querySelectorAll('[role="group"]')).toHaveLength(2);
     expect(ref.current).toBe(toolbar);
     expect(toolbar.getAttribute("role")).toBe("toolbar");
+    expect(toolbar.getAttribute("aria-orientation")).toBe("horizontal");
     expect(toolbar.getAttribute("data-size")).toBe("md");
     await expect.element(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
     expect(names(buttons)).toEqual(["Bold", "Italic", "Insert link", "Bulleted list", "Numbered list"]);
@@ -146,6 +154,44 @@ describe("Toolbar", () => {
     expect(document.activeElement).toBe(buttons[4]);
     await pressTab();
     expect(document.activeElement).toBe(page.getByRole("button", { name: "After" }).element());
+  });
+
+  it("brings Tab back to the control focus was last in, and moves the way the text runs in a right-to-left page", async () => {
+    const { buttons, host } = await render(
+      <>
+        <button type="button" data-test-harness="">Before</button>
+        <Toolbar label="Formatting" items={formatting} />
+        <button type="button" data-test-harness="">After</button>
+      </>,
+      900,
+    );
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(document.activeElement).toBe(buttons[2]);
+    expect(buttons.map((button) => button.tabIndex)).toEqual([-1, -1, 0, -1, -1]);
+    await pressTab();
+    await pressTab({ shift: true });
+    expect(document.activeElement).toBe(buttons[2]);
+    host.dir = "rtl";
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(buttons[3]);
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(document.activeElement).toBe(buttons[1]);
+  });
+
+  it("leaves an arrow key pressed with a modifier to the page", async () => {
+    const { buttons } = await render(<Toolbar label="Formatting" items={formatting} />, 900);
+    buttons[1]!.focus();
+    for (const modifier of ["Shift", "Control", "Alt", "Meta"]) {
+      let prevented: boolean | undefined;
+      const watch = (event: KeyboardEvent) => (prevented = event.defaultPrevented);
+      document.addEventListener("keydown", watch);
+      await userEvent.keyboard(`{${modifier}>}{ArrowRight}{/${modifier}}`);
+      document.removeEventListener("keydown", watch);
+      expect(document.activeElement, modifier).toBe(buttons[1]);
+      expect(prevented, modifier).toBe(false);
+    }
   });
 
   it("keeps an uncontrolled toggle's state, and reports each change", async () => {
@@ -268,6 +314,8 @@ describe("Toolbar", () => {
       900,
     );
     expect(buttons[1]!.getAttribute("aria-disabled")).toBe("true");
+    expect(buttons[1]!.getAttribute("data-disabled")).toBe("");
+    expect(buttons[0]!.hasAttribute("data-disabled")).toBe(false);
     expect(getComputedStyle(buttons[1]!).opacity).toBe("0.5");
     await userEvent.click(buttons[1]!, { force: true });
     await userEvent.click(buttons[2]!, { force: true });
@@ -282,7 +330,7 @@ describe("Toolbar", () => {
   it("disables every control with disabled", async () => {
     const onClick = vi.fn();
     const { buttons, toolbar } = await render(<Toolbar label="Formatting" disabled items={[{ label: "Undo", onClick }, { type: "toggle", label: "Bold" }]} />, 900);
-    expect(toolbar.hasAttribute("data-disabled")).toBe(true);
+    expect(toolbar.getAttribute("data-disabled")).toBe("");
     expect(buttons.map((button) => button.getAttribute("aria-disabled"))).toEqual(["true", "true"]);
     await userEvent.click(buttons[0]!, { force: true });
     await userEvent.click(buttons[1]!, { force: true });
@@ -390,9 +438,10 @@ describe("Toolbar overflow", () => {
     for (const [name, edit] of Object.entries(edits)) {
       const { commit } = await render(<Toolbar label="Formatting" size="sm" items={base()} />, 400);
       await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-      // Only the measuring reads the More button's width inside a commit; entries that mount read for other reasons.
+      // Only the measuring reads the More button's width, in the resize observer's first report after the commit.
       const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
       commit(<Toolbar label="Formatting" size="sm" items={edit(base())} />);
+      await frame();
       const more = measured.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
       measured.mockRestore();
       expect(more, name).toBeGreaterThan(0);
@@ -681,6 +730,35 @@ describe("Toolbar overflow", () => {
     expect(host.querySelectorAll('[data-ouro="toolbar"] button')).toHaveLength(5);
   });
 
+  it("keeps the row's one tab stop on a control in the row: the one focus was last in, a grouped one or More, or else the first", async () => {
+    const { host, toolbar, buttons } = await render(
+      <>
+        <button type="button" data-test-harness="">Before</button>
+        <Toolbar label="Formatting" size="sm" items={[{ type: "separator" }, ...formatting]} />
+      </>,
+      900,
+    );
+    const stops = () => [...toolbar.querySelectorAll<HTMLElement>('[data-ouro-control="toolbar"]')].filter((control) => control.tabIndex === 0);
+    // A row that starts with a separator still starts its Tab order at its first control.
+    expect(stops()).toEqual([buttons[0]]);
+    // A grouped control keeps the stop.
+    await act(async () => buttons[4]!.focus());
+    expect(stops()).toEqual([buttons[4]]);
+    // A control that moves into More while focus is elsewhere gives the stop back to the first control.
+    await act(async () => (page.getByRole("button", { name: "Before" }).element() as HTMLElement).focus());
+    host.style.width = "160px";
+    await expect.poll(() => host.querySelector('[data-ouro-part="more"]')).not.toBeNull();
+    expect(stops()).toEqual([toolbar.querySelector('[data-ouro-control="toolbar"]')]);
+    // More keeps the stop when focus was last on it.
+    const more = host.querySelector<HTMLElement>('[data-ouro-part="more"]')!;
+    await act(async () => more.focus());
+    expect(stops()).toEqual([more]);
+    // Once everything fits again, More goes and the first control has the stop.
+    host.style.width = "900px";
+    await expect.poll(() => host.querySelector('[data-ouro-part="more"]')).toBeNull();
+    expect(stops()).toEqual([toolbar.querySelector('[data-ouro-control="toolbar"]')]);
+  });
+
   it("moves focus to More when the focused control moves into the menu", async () => {
     const { host, buttons } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 900);
     buttons[4]!.focus();
@@ -936,6 +1014,8 @@ describe("Toolbar server rendering", () => {
     roots.push(root);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+    // The row settles in the resize observer's first report, before the first paint.
+    await frame();
     expect(host.querySelectorAll("button")).toHaveLength(5);
   });
 });
