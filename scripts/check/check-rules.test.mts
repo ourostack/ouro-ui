@@ -6,12 +6,45 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 import { chromium } from "playwright";
-import { blank, BUDGETS, check, summary, transportIssues, type Report } from "../../registry/ouro/check/check.ts";
+import { blank, BUDGETS, check, goTo, summary, transportIssues, type Report } from "../../registry/ouro/check/check.ts";
 
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 import { dir, fixtures, page, quiet, site, two } from "./kit.mts";
 
 // Part of Ouro check's Node side tests; scripts/check.test.mjs runs every file here under Node's coverage.
+
+describe("Ouro check going to a page", () => {
+  // A page whose goto loses to an about:blank navigation still landing, for the first `lost` tries.
+  const late = (lost: number, message = 'page.goto: Navigation to "http://127.0.0.1/inp-pass.html" is interrupted by another navigation to "about:blank"') => {
+    const calls: string[] = [];
+    return {
+      calls,
+      page: {
+        goto: async (url: string) => {
+          calls.push(`goto ${url}`);
+          if (calls.filter((call) => call.startsWith("goto")).length <= lost) throw new Error(message);
+          return "answer";
+        },
+        waitForLoadState: async (state?: string) => void calls.push(`wait ${state}`),
+      },
+    };
+  };
+
+  test("lets an about:blank navigation still landing finish, then goes to the page again", async () => {
+    const { page, calls } = late(2);
+    assert.equal(await goTo(page as never, "/inp-pass.html"), "answer");
+    assert.deepEqual(calls, ["goto /inp-pass.html", "wait load", "goto /inp-pass.html", "wait load", "goto /inp-pass.html"]);
+  });
+
+  test("gives up after its last try, and passes any other failure on at once", async () => {
+    const lost = late(3);
+    await assert.rejects(goTo(lost.page as never, "/inp-pass.html"), /is interrupted by another navigation to "about:blank"/);
+    assert.equal(lost.calls.filter((call) => call.startsWith("goto")).length, 3);
+    const other = late(1, 'page.goto: Navigation to "http://127.0.0.1/inp-pass.html" is interrupted by another navigation to "http://127.0.0.1/elsewhere.html"');
+    await assert.rejects(goTo(other.page as never, "/inp-pass.html"), /elsewhere\.html/);
+    assert.deepEqual(other.calls, ["goto /inp-pass.html"]);
+  });
+});
 
 describe("Ouro check's blank page", () => {
   // A page whose goto fails as Playwright's does when a navigation the page started itself wins, for the first `lost` tries.
