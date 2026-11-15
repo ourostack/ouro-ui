@@ -7,6 +7,7 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
 - **Finds the pins by name** in the repository's default branch:[^find] an Ouro HX install record (`.github/ouro-hx-installed.json`), a file vendored from an ouro-ui-core release (`ouro-ui-core/pin.json`), files vendored from a commit (`upstream-sources.lock.json`), SwiftPM (`Package.swift`, `Package.resolved`), XcodeGen (`project.yml`), an Xcode project (`project.pbxproj`), and a workflow's `OURO_UI_TAG`.
 - **Moves each pin to the newest release** and writes what that release would install.[^versions] An Ouro HX file takes the new tag's source, rewritten to the app's aliases as the shadcn CLI rewrites it, and the install record keeps the source's hash.[^hx]
 - **Keeps one pull request per repository** on the branch `ouro-current/update`, and updates it in place when a newer release comes.[^one-pr] It pushes nothing when the update is already there, and closes its pull request when the repository caught up on its own.[^caught-up]
+- **Writes a pull request a claims check accepts**: versions and file names in code spans, no counts, so a repository that runs Ouro UI's claims check on pull requests does not fail the update.[^claims]
 - **Turns on auto-merge**, squash where the repository allows it, else a merge commit.[^auto-merge] The repository's own checks decide whether it merges.
 
 ## What it leaves alone
@@ -36,3 +37,4 @@ GH_TOKEN=$(gh auth token) node scripts/current/current.mjs --dry-run --only owne
 [^jwt]: test:scripts/current/current.test.mjs::the app signs in with a JWT its public key verifies verify:testExists(scripts/current/current.test.mjs::the app signs in with a JWT its public key verifies)
 [^retry]: test:scripts/current/current.test.mjs::requests are retried on a server error or rate limit, and not on a refusal verify:testExists(scripts/current/current.test.mjs::requests are retried on a server error or rate limit, and not on a refusal)
 [^failure]: .github/workflows/ouro-current.yml verify:fileLine(.github/workflows/ouro-current.yml, /Ouro Current could not update a repository/)
+[^claims]: test:scripts/current/current.test.mjs::the pull request's title and body pass Ouro UI's claims check, which a repository may run on pull requests verify:testExists(scripts/current/current.test.mjs::the pull request's title and body pass Ouro UI's claims check, which a repository may run on pull requests)
