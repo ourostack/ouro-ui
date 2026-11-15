@@ -162,6 +162,32 @@ describe("Command", () => {
     await expect.poll(() => list.hasAttribute("hidden")).toBe(false);
   });
 
+  it("scrolls a long list by the arrow keys from the search, which keeps focus and Tab, and passes axe", async () => {
+    const many = Array.from({ length: 40 }, (_, index) => ({ label: `Conversation ${index + 1}`, onSelect: () => {} }));
+    await openPalette({ items: many });
+    await expect.poll(() => document.activeElement).toBe(input().element());
+    const listbox = document.querySelector<HTMLElement>('[role="listbox"]')!;
+    // The list is the combobox's own popup, which scrolls: axe leaves it to the combobox.
+    expect(listbox.scrollHeight).toBeGreaterThan(listbox.clientHeight);
+    expect(input().element().getAttribute("aria-controls")).toBe(listbox.id);
+    expect(describeFindings(await audit({ include: [document.documentElement], exclude: axeExclude.map((selector) => [selector]) }))).toBe("");
+    // The palette's tab stops are the search and its close button: the list is reached by the arrow keys.
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    const stops = [...dialog.querySelectorAll<HTMLElement>("*")].filter((element) => element.tabIndex >= 0 && !element.hasAttribute("data-base-ui-focus-guard"));
+    expect(stops).toEqual([input().element(), dialog.querySelector("[data-ouro-command-close]")]);
+    await pressTab();
+    expect(document.activeElement).toBe(dialog.querySelector("[data-ouro-command-close]"));
+    await pressTab({ shift: true });
+    expect(document.activeElement).toBe(input().element());
+    const last = page.getByRole("option", { name: "Conversation 40" }).element();
+    for (let step = 0; step < 40 && input().element().getAttribute("aria-activedescendant") !== last.id; step++) await userEvent.keyboard("{ArrowDown}");
+    expect(input().element().getAttribute("aria-activedescendant")).toBe(last.id);
+    expect(document.activeElement).toBe(input().element());
+    await expect.poll(() => listbox.scrollTop).toBeGreaterThan(0);
+    const [box, row] = [listbox.getBoundingClientRect(), last.getBoundingClientRect()];
+    expect(row.bottom).toBeLessThanOrEqual(box.bottom + 1);
+  });
+
   it("runs the highlighted command on Enter, closes, and returns focus to the trigger", async () => {
     await openPalette();
     await userEvent.type(input(), "import");

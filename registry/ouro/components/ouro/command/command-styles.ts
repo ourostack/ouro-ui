@@ -5,6 +5,7 @@ export {
   commandInputClass,
   commandItemClass,
   commandListClass,
+  commandListboxClass,
   commandLoadingClass,
   commandLoadingRowClass,
   commandSearchClass,
@@ -59,11 +60,23 @@ const commandLoadingClass = "shrink-0 text-xs leading-4 text-muted-foreground";
 
 /**
  * The results: a fixed height in the dialog, so the dialog keeps its size (and the input its
- * place) while results filter.
+ * place) while results filter. The list inside it scrolls (`commandListboxClass`).
  *
  * @internal
  */
-const commandListClass = "box-border h-[min(22rem,60dvh)] overflow-y-auto overscroll-contain p-1 outline-none";
+const commandListClass = "box-border flex h-[min(22rem,60dvh)] flex-col outline-none";
+
+/**
+ * The list of results in the dialog, which scrolls itself: it is the search's own popup, so the
+ * arrow keys from the search scroll it, and nothing but the search takes Tab, as in any combobox.
+ * A box around the list that scrolled would be a region no keyboard could reach (axe
+ * `scrollable-region-focusable`).
+ *
+ * @internal
+ * @claim "A box around the list that scrolled" https://dequeuniversity.com/rules/axe/4.10/scrollable-region-focusable verify:urlOk(https://dequeuniversity.com/rules/axe/4.10/scrollable-region-focusable)
+ * @claim "it is the search's own popup" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > scrolls a long list by the arrow keys from the search, which keeps focus and Tab, and passes axe)
+ */
+const commandListboxClass = "box-border min-h-0 overflow-y-auto overscroll-contain p-1 scroll-py-1 outline-none";
 
 /**
  * The results in the phone sheet, which scroll with the sheet's body; the sheet keeps its

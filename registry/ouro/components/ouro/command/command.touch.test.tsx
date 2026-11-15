@@ -70,6 +70,10 @@ describe("Command on a phone", () => {
     expect(content.scrollTop).toBeGreaterThan(0);
     expect(input().getBoundingClientRect().top).toBe(top);
     expect(popup()).toBe(element);
+    // The sheet's body scrolls the list; the list itself does not, so it keeps no padding of its own.
+    const listbox = element.querySelector<HTMLElement>('[role="listbox"]')!;
+    expect(getComputedStyle(listbox).overflowY).toBe("visible");
+    expect(getComputedStyle(listbox).paddingTop).toBe("0px");
   });
 });
 
