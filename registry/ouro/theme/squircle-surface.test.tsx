@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commands, server, userEvent } from "vitest/browser";
+import { commands, server } from "vitest/browser";
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -31,6 +31,15 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
+/** The ring is a rounded border inside the fill's squircle clip, with no clip path of its own to draw. */
+function expectBorderRing(surface: HTMLElement) {
+  const ring = getComputedStyle(surface, "::after");
+  expect(ring.clipPath).toBe("none");
+  expect(ring.borderTopWidth).toBe("1px");
+  expect(ring.borderTopStyle).toBe("solid");
+  expect(Number.parseFloat(ring.borderTopLeftRadius)).toBeGreaterThan(1);
+}
+
 /** The fallback rules as an engine without corner-shape applies them: the same block, with its condition taken off. */
 function applyFallback() {
   const css = pageCss();
@@ -54,8 +63,8 @@ describe("squircle surface where the engine has no corner-shape", () => {
     const button = await mount(<Button variant="outline">Save</Button>);
     const surface = button.querySelector<HTMLElement>("[data-ouro-surface]")!;
     expect(getComputedStyle(surface).display).toBe("block");
-    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
-    expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
+    expect(getComputedStyle(surface).clipPath).toMatch(/^shape\(/);
+    expectBorderRing(surface);
     expect(getComputedStyle(button).borderTopColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(button, "::before").display).toBe("none");
   });
@@ -100,7 +109,7 @@ describe("squircle surface where the engine has no corner-shape", () => {
     );
     const [outlined, bare] = [...host.querySelectorAll<HTMLElement>("[data-ouro=card]")];
     const surface = outlined!.querySelector<HTMLElement>(":scope > [data-ouro-surface]")!;
-    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(surface).clipPath).toMatch(/^shape\(/);
     expect(getComputedStyle(surface).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(outlined!).borderTopColor).toBe("rgba(0, 0, 0, 0)");
     expect(bare!.querySelector("[data-ouro-surface]")).toBeNull();
@@ -117,8 +126,8 @@ describe("a Dialog where the engine has no corner-shape", () => {
     );
     const popup = document.querySelector<HTMLElement>("[data-ouro-squircle]")!;
     const surface = popup.querySelector<HTMLElement>("[data-ouro-surface]")!;
-    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
-    expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
+    expect(getComputedStyle(surface).clipPath).toMatch(/^shape\(/);
+    expectBorderRing(surface);
     expect(getComputedStyle(popup).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(popup).getPropertyValue("--tw-ring-color")).toBe("transparent");
   });
@@ -133,10 +142,10 @@ describe("a Dialog where the engine has no corner-shape", () => {
     );
     const [first, second] = [...document.querySelectorAll<HTMLElement>("[data-ouro-input-group]")] as [HTMLElement, HTMLElement];
     const surface = first.querySelector<HTMLElement>("[data-ouro-surface]")!;
-    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
-    expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
+    expect(getComputedStyle(surface).clipPath).toMatch(/^shape\(/);
+    expectBorderRing(surface);
     expect(getComputedStyle(first).borderTopColor).toBe("rgba(0, 0, 0, 0)");
-    const bd = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").backgroundColor;
+    const bd = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").borderTopColor;
     expect(bd(second)).not.toBe(bd(first));
   });
 
@@ -150,10 +159,10 @@ describe("a Dialog where the engine has no corner-shape", () => {
     );
     const [solid, outline] = [...document.querySelectorAll<HTMLElement>('[data-ouro="badge"]')] as [HTMLElement, HTMLElement];
     const surface = solid.querySelector<HTMLElement>("[data-ouro-surface]")!;
-    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(surface).clipPath).toMatch(/^shape\(/);
     expect(getComputedStyle(surface).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(solid).backgroundColor).toBe("rgba(0, 0, 0, 0)");
-    const ring = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").backgroundColor;
+    const ring = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").borderTopColor;
     expect(ring(outline)).not.toBe("rgba(0, 0, 0, 0)");
     expect(ring(solid)).toBe("rgba(0, 0, 0, 0)");
   });
@@ -170,9 +179,9 @@ describe("a Dialog where the engine has no corner-shape", () => {
     const surface = rect.querySelector<HTMLElement>("[data-ouro-surface]")!;
     expect(rect.getAttribute("data-ouro-squircle")).toBe("");
     expect(surface.style.zIndex).toBe("-1");
-    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(surface).clipPath).toMatch(/^shape\(/);
     expect(getComputedStyle(surface).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
-    expect(getComputedStyle(surface, "::after").backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(surface, "::after").borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(rect).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(pill.hasAttribute("data-ouro-squircle")).toBe(false);
     expect(pill.querySelector("[data-ouro-surface]")).toBeNull();
@@ -187,17 +196,17 @@ describe("a Dialog where the engine has no corner-shape", () => {
       </>,
     );
     const [round, square] = [...document.querySelectorAll<HTMLElement>("[data-ouro-avatar-surface]")] as [HTMLElement, HTMLElement];
-    expect(getComputedStyle(round).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(round).clipPath).toMatch(/^shape\(/);
     expect(getComputedStyle(round).getPropertyValue("--ouro-sq-r")).toBe("44%");
-    expect(getComputedStyle(square).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(square).clipPath).toMatch(/^shape\(/);
     expect(getComputedStyle(square).getPropertyValue("--ouro-sq-r")).toBe("24%");
   });
 });
 
-describe("typing beside squircle controls where the engine has no corner-shape", () => {
-  // Safari and WKWebView redraw every clip path a repaint touches, so typing that repainted the controls around a field
-  // cost each key the clip paths' work. Chromium's layers stand in for WebKit's: CDP lists them, and WebKit's do not.
-  it.skipIf(server.browser !== "chromium")("draws each squircle control on a layer of its own, so typing in a field beside it never redraws its edge", async () => {
+describe("scrolling past squircle controls where the engine has no corner-shape", () => {
+  // A layer of its own for every control kept its clip paths drawn, but WKWebView then composited every one on each
+  // scroll frame of a long list. Chromium's layers stand in for WebKit's: CDP lists them, and WebKit's do not.
+  it.skipIf(server.browser !== "chromium")("gives no squircle control a layer of its own, so a list of them scrolls as cheaply as plain ones", async () => {
     await mount(
       <>
         <TextField label="Message" />
@@ -209,19 +218,10 @@ describe("typing beside squircle controls where the engine has no corner-shape",
         <Avatar name="Ana Lind" />
       </>,
     );
-    const names = (layers: { element: string | null }[]) => layers.map((layer) => layer.element);
-    const before = names(await commands.compositedLayers());
+    const before = (await commands.compositedLayers()).length;
     applyFallback();
-    const squircles = document.querySelectorAll("[data-ouro-squircle], [data-ouro-avatar-surface]");
-    expect(squircles).toHaveLength(7);
-    const after = names(await commands.compositedLayers());
-    for (const element of before) after.splice(after.indexOf(element), 1);
-    expect(after.length).toBeGreaterThanOrEqual(squircles.length);
-    const own = ['BUTTON[data-ouro="button"]', 'SPAN[data-ouro="badge"]', 'BUTTON[data-ouro="toggle"]', 'DIV[data-ouro="card"]'];
-    const layered = (elements: (string | null)[]) => own.filter((name) => elements.some((element) => element?.startsWith(name)));
-    expect(layered(after)).toEqual(own);
-    await userEvent.type(document.querySelector("input")!, "see you soon");
-    expect(layered(names(await commands.compositedLayers()))).toEqual(own);
+    expect(document.querySelectorAll("[data-ouro-squircle], [data-ouro-avatar-surface]")).toHaveLength(7);
+    expect(await commands.compositedLayers()).toHaveLength(before);
   });
 });
 
@@ -273,5 +273,69 @@ describe("the squircle edge where the engine has no corner-shape", () => {
       }
     }
     expect(worst).toBeLessThan(0.004);
+  });
+
+  it("draws each corner as Bézier curves within 0.1% of the curve, where the engine draws shape()", async () => {
+    applyFallback();
+    const host = document.createElement("div");
+    host.innerHTML = '<div style="position:relative;width:400px;height:400px"><span data-ouro-surface style="--ouro-sq-r:200px;--ouro-sq-w:1px"></span></div>';
+    document.body.append(host);
+    const surface = host.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    const path = getComputedStyle(surface).getPropertyValue("--ouro-sq-path").trim();
+    expect(getComputedStyle(surface).clipPath).toMatch(/^shape\(/);
+    host.remove();
+    const value = (term: string) => Function(`return ${term.replaceAll("var(--ouro-sq-r)", "200").replaceAll("100%", "400").replaceAll("calc", "").replaceAll("px", "")}`)() as number;
+    /** The top-level terms of a shape() command, split at spaces outside parentheses. */
+    const terms = (command: string) => {
+      const out: string[] = [];
+      let depth = 0;
+      let term = "";
+      for (const ch of command.trim()) {
+        if (ch === "(") depth++;
+        if (ch === ")") depth--;
+        if (ch === " " && depth === 0) {
+          if (term) out.push(term);
+          term = "";
+        } else term += ch;
+      }
+      if (term) out.push(term);
+      return out;
+    };
+    const steps = path.replace(/^shape\(/, "").replace(/\)$/, "").split(/,(?![^(]*\))/);
+    let at = [0, 0];
+    const samples: number[][] = [];
+    let curves = 0;
+    for (const command of steps) {
+      const t = terms(command);
+      if (t[0] === "from") at = [value(t[1]!), value(t[2]!)];
+      else if (t[0] === "line") {
+        const next = [value(t[2]!), value(t[3]!)];
+        for (let s = 0; s <= 8; s++) samples.push([at[0]! + ((next[0]! - at[0]!) * s) / 8, at[1]! + ((next[1]! - at[1]!) * s) / 8]);
+        at = next;
+      } else if (t[0] === "curve") {
+        curves++;
+        const end = [value(t[2]!), value(t[3]!)];
+        const c1 = [value(t[5]!), value(t[6]!)];
+        const c2 = [value(t[8]!), value(t[9]!)];
+        for (let s = 0; s <= 64; s++) {
+          const u = s / 64;
+          const v = 1 - u;
+          samples.push([0, 1].map((k) => v ** 3 * at[k]! + 3 * v * v * u * c1[k]! + 3 * v * u * u * c2[k]! + u ** 3 * end[k]!));
+        }
+        at = end;
+      }
+    }
+    expect(curves).toBe(8);
+    const r = 200;
+    let worst = 0;
+    for (const [x, y] of samples) {
+      const cx = Math.min(x!, 400 - x!);
+      const cy = Math.min(y!, 400 - y!);
+      if (cx >= r || cy >= r) continue;
+      const dx = (r - cx) / r;
+      const dy = (r - cy) / r;
+      worst = Math.max(worst, Math.abs((dx ** 4 + dy ** 4) ** 0.25 - 1));
+    }
+    expect(worst).toBeLessThan(0.001);
   });
 });
