@@ -75,7 +75,9 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
           if (!key || (taken.get(key) ?? 0) >= SAMPLES) continue;
           taken.set(key, (taken.get(key) ?? 0) + 1);
           const control = page.locator(LOOK_SELECTOR).nth(i);
-          await control.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" }));
+          // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the box is
+          // read, and the mouse lands where the control was (#1453): instant, so the hover is on the control.
+          await control.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }));
           const box = await control.boundingBox();
           if (!box) continue;
           const marks = () => control.evaluate((el) => el.getAttributeNames().filter((n) => n.startsWith("data-") || n.startsWith("aria-")).map((n) => `${n}=${el.getAttribute(n)}`).sort().join(" "));

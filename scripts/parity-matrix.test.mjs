@@ -43,6 +43,23 @@ test("Apple's components are the files that declare the component, under web's n
   ]);
 });
 
+test("Apple's file that declares several views counts each, and not its support types", () => {
+  const files = {
+    "Sources/OuroHX/Components/OuroLoading.swift": "public struct OuroLoadingPalette: Sendable {}\npublic struct OuroSkeleton: View {}\npublic struct OuroSpinner: View {}\npublic struct OuroProgress: View {}",
+    "Sources/OuroHX/Components/OuroChoice.swift": "public struct OuroSegment<Value: Hashable>: Identifiable {}\npublic struct OuroSegmentedControl<Value: Hashable>: View {}\npublic struct OuroCheckbox: View {}",
+    "Sources/OuroHX/Components/OuroItem.swift": "public struct OuroItem<Media: View, Actions: View>: View {}\npublic struct OuroItemGroup<Content: View>: View {}",
+  };
+  assert.deepEqual(appleComponents(files), [
+    { name: "OuroCheckbox", web: "checkbox" },
+    { name: "OuroItem", web: "item" },
+    { name: "OuroItemGroup", web: "item-group" },
+    { name: "OuroProgress", web: "progress" },
+    { name: "OuroSegmentedControl", web: "segmented-control" },
+    { name: "OuroSkeleton", web: "skeleton" },
+    { name: "OuroSpinner", web: "spinner" },
+  ]);
+});
+
 test("Windows's components are the Ouro<Name> controls that derive from a XAML control, under web's name", () => {
   const files = {
     "src/Ouro.UI.Windows/OuroButton.cs": "public sealed partial class OuroButton : Button\n{\n}",

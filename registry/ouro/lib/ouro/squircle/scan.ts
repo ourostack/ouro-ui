@@ -113,14 +113,8 @@ const collectRadiusDeclarations = (
  */
 export const scanDocument = (doc: Document): ScanResult => {
   const entries: RuleEntry[] = [];
+  // The engine's own sheets are adopted, so they are not in doc.styleSheets.
   for (const sheet of doc.styleSheets) {
-    const ownerNode = sheet.ownerNode;
-    if (
-      ownerNode instanceof Element &&
-      ownerNode.hasAttribute("data-hyperellipse")
-    ) {
-      continue;
-    }
     const rules = readRules(sheet as CSSStyleSheet);
     if (rules) {
       collectEntries(rules, [], entries);

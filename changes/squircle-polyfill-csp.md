@@ -1,0 +1,1 @@
+- Changed: the squircle polyfill (`lib-squircle-polyfill`) builds its stylesheets as constructed stylesheets adopted by the document instead of `<style>` elements, so it works under a Content Security Policy that refuses inline styles (`style-src 'self'`) and beside `<OuroProvider strictCsp>`.

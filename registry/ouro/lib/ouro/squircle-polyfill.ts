@@ -5,9 +5,9 @@ export { registerSquirclePolyfill };
  * Call it once on the client, for example from your entry file. It is opt-in because the polyfill measures and masks
  * the corners and can slow typing and scrolling; an app that skips it keeps round corners there. The engine is
  * hyperellipse (MIT), vendored beside this file in `squircle/`. It does nothing where `corner-shape` is native.
- * It adds `<style>` elements, which a Content Security Policy without `'unsafe-inline'` refuses: leave it out of an
- * app wrapped in `<OuroProvider strictCsp>`.
- * @claim "It adds `<style>` elements, which" registry/ouro/lib/ouro/squircle/pending.ts verify:fileLine(registry/ouro/lib/ouro/squircle/pending.ts, /createElement\("style"\)/)
+ * It adds no `<style>` element: its stylesheets are constructed and adopted by the document, so it works under a
+ * Content Security Policy that refuses inline styles (`style-src 'self'`) and beside `<OuroProvider strictCsp>`.
+ * @claim "It adds no `<style>` element" registry/ouro/lib/ouro/squircle/csp.test.ts verify:testExists(registry/ouro/lib/ouro/squircle/csp.test.ts::under style-src 'self' > draws the squircle with no <style> element and nothing refused, and takes its stylesheets away when destroyed)
  *
  * @example
  * ```ts

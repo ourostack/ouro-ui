@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { commands, server, userEvent } from "vitest/browser";
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -190,6 +191,37 @@ describe("a Dialog where the engine has no corner-shape", () => {
     expect(getComputedStyle(round).getPropertyValue("--ouro-sq-r")).toBe("44%");
     expect(getComputedStyle(square).clipPath).toMatch(/^polygon\(/);
     expect(getComputedStyle(square).getPropertyValue("--ouro-sq-r")).toBe("24%");
+  });
+});
+
+describe("typing beside squircle controls where the engine has no corner-shape", () => {
+  // Safari and WKWebView redraw every clip path a repaint touches, so typing that repainted the controls around a field
+  // cost each key the clip paths' work. Chromium's layers stand in for WebKit's: CDP lists them, and WebKit's do not.
+  it.skipIf(server.browser !== "chromium")("draws each squircle control on a layer of its own, so typing in a field beside it never redraws its edge", async () => {
+    await mount(
+      <>
+        <TextField label="Message" />
+        <Button>Send</Button>
+        <Button variant="outline">Attach</Button>
+        <Badge>New</Badge>
+        <Toggle label="Bold" variant="outline" />
+        <Card title="Thread">x</Card>
+        <Avatar name="Ana Lind" />
+      </>,
+    );
+    const names = (layers: { element: string | null }[]) => layers.map((layer) => layer.element);
+    const before = names(await commands.compositedLayers());
+    applyFallback();
+    const squircles = document.querySelectorAll("[data-ouro-squircle], [data-ouro-avatar-surface]");
+    expect(squircles).toHaveLength(7);
+    const after = names(await commands.compositedLayers());
+    for (const element of before) after.splice(after.indexOf(element), 1);
+    expect(after.length).toBeGreaterThanOrEqual(squircles.length);
+    const own = ['BUTTON[data-ouro="button"]', 'SPAN[data-ouro="badge"]', 'BUTTON[data-ouro="toggle"]', 'DIV[data-ouro="card"]'];
+    const layered = (elements: (string | null)[]) => own.filter((name) => elements.some((element) => element?.startsWith(name)));
+    expect(layered(after)).toEqual(own);
+    await userEvent.type(document.querySelector("input")!, "see you soon");
+    expect(layered(names(await commands.compositedLayers()))).toEqual(own);
   });
 });
 

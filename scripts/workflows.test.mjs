@@ -1468,15 +1468,15 @@ test("the e2e shards run every spec, or the selected components' and the site's,
   assert.deepEqual(shares.flat().sort(), e2eFiles());
   assert.ok(shares.every((share) => share.length > 0));
   // A reduced run: the same split by measured time, of the selected components' specs and the site's.
-  const reduced = runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/4", SHARD_SPECS: "site/e2e/home.spec.ts" });
+  const reduced = runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/6", SHARD_SPECS: "site/e2e/home.spec.ts" });
   assert.equal(reduced.status, 0);
-  assert.match(reduced.calls, /^CALL node scripts\/test-impact\.mjs e2e checkbox\nCALL node scripts\/shard\.mjs e2e 1\/4 registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/\nCALL pnpm test:e2e site\/e2e\/home\.spec\.ts$/m);
+  assert.match(reduced.calls, /^CALL node scripts\/test-impact\.mjs e2e checkbox\nCALL node scripts\/shard\.mjs e2e 1\/6 registry\/ouro\/e2e\/ouro\/checkbox\.spec\.ts site\/e2e\/\nCALL pnpm test:e2e site\/e2e\/home\.spec\.ts$/m);
   // A reduced shard the split leaves no spec passes without running Playwright, which would run every spec.
   const empty = runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "4/4", SHARD_SPECS: "" });
   assert.equal(empty.status, 0);
   assert.doesNotMatch(empty.calls, /CALL pnpm/);
   // A failing selection or split fails the shard rather than running nothing or everything.
-  assert.notEqual(runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/4" }, { nodeStatus: 1 }).status, 0);
+  assert.notEqual(runStep(script, { FULL: "false", COMPONENTS: "checkbox", SHARD: "1/6" }, { nodeStatus: 1 }).status, 0);
   assert.match(jobs.e2e, /^ {4}needs: \[plan, e2e-shard, sweep-shard\]$/m);
   const gate = stepScript(jobs.e2e, "Every shard passed");
   assert.equal(runStep(gate, { SHARDS: "success", SWEEPS: "success" }).status, 0);
@@ -1919,6 +1919,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "required-checks.yml": "  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "screens.yml": "  group: screens-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "stale-pages.yml": "  group: stale-pages-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "squircle-cost.yml": "  group: squircle-cost-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };
   for (const { file, text } of workflows) {
     const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
@@ -2143,7 +2144,7 @@ const calendarLog = logLines("install (shadcn@latest, nova)", [
   "##[error]Process completed with exit code 1.",
 ]);
 const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
-const diveLog = logLines("browser (5/10)", [
+const diveLog = logLines("browser (5/14)", [
   ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
   " Test Files  1 failed | 75 passed (76)",
   "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
@@ -2176,10 +2177,10 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
   const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
   const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
-  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/10)", "success"), job(5, "motion-coverage", "success")];
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/14)", "success"), job(5, "motion-coverage", "success")];
   const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
   const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
-  const dive = [job(4, "browser (5/10)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
+  const dive = [job(4, "browser (5/14)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
 
   // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
   const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
@@ -2213,9 +2214,9 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
   assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
   // A gate that read a skipped job failed on that, which no test explains.
-  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/10)", "skipped")]), contexts, entries: [diveEntry] });
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/14)", "skipped")]), contexts, entries: [diveEntry] });
   assert.equal(skippedShard.retry, false);
-  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/10\), which was skipped/);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/14\), which was skipped/);
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });

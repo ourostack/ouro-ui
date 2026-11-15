@@ -8,7 +8,7 @@ In an app with Tailwind CSS v4 and an `@/*` path alias, run shadcn's `init` once
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.116
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.158
 ```
 
 `ouro-base` is the only Ouro UI item that writes to your stylesheet (the file `components.json` names in `tailwind.css`), apart from the optional `ouro-theme`. It adds what a shadcn theme lacks and the components need:
@@ -39,19 +39,19 @@ To change a token afterwards, edit it where the CLI wrote it, or set it in a `:r
 
 When your pages are served with a policy that refuses inline styles (`style-src 'self'`, with no `'unsafe-inline'` or nonce), wrap the app in `<OuroProvider strictCsp>` in place of Base UI's `CSPProvider`. Under it no Ouro UI part adds a `<style>` element, and the page breaks no rule of that policy, in Chromium and WebKit.[^strict-csp] Styles set from script still apply. The Ouro source rule counts a bare `CSPProvider` and names this fix.[^csp-rule]
 
-The squircle polyfill (`registerSquirclePolyfill`) adds `<style>` elements of its own, so leave it out under such a policy.[^polyfill-style]
+The squircle polyfill (`registerSquirclePolyfill`) works under such a policy too: its stylesheets are constructed and adopted by the document, not `<style>` elements, in Chromium, WebKit and Firefox.[^polyfill-style]
 
 ## Adding components
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.116
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.158
 ```
 
 A component installs its own files in `components/ouro/<component>/`, the components it renders, and only the helpers it imports, one file each in `lib/ouro/`.[^lands] Its install message names what came with it. It adds the npm packages it imports (`@base-ui/react`, `clsx`, `tailwind-merge`) and nothing for tests.
 
 A component that finds no `ouro-base` tokens still installs, type checks and builds, but renders without them: a `Sheet` with no backdrop, layer or spring, a field with no border.[^theme-check] In development, the first Ouro UI component to mount checks the page once and logs `[ouro-ui] theme: ouro-base is not in this page's CSS …` with the command to run. Production builds contain no such check.[^dev-strip]
 
-`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.3.116` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
+`OuroProvider` comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] An app with none of those adds it by name, `ourostack/ouro-ui/lib-ouro-provider#v1.3.158` ([OuroProvider](../OuroProvider.md); v0.7.0 has no such item, because there it comes with every component).[^v0.7.0]
 
 ## What an add changes in package.json
 
@@ -65,7 +65,7 @@ Each component has a `<name>-tests` item with its Vitest browser tests, type tes
 
 ## Updating
 
-List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.116 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
+List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.158 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]
 
 ## Vite and React Router apps: the "use client" notice
 
@@ -109,4 +109,4 @@ build: {
 [^use-client-notices]: https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22; https://github.com/vitejs/vite/issues/15012 verify:urlOk(https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22) verify:urlOk(https://github.com/vitejs/vite/issues/15012) verify:fileLine(package.json, /"@vitejs.plugin-react": "\^6\.1\.1"/)
 [^strict-csp]: test:test/strict-csp.test.tsx::under style-src 'self' > OuroProvider strictCsp adds no <style> element, and the page breaks no rule of its policy, in every part that would add one verify:testExists(test/strict-csp.test.tsx::under style-src 'self' > OuroProvider strictCsp adds no <style> element, and the page breaks no rule of its policy, in every part that would add one)
 [^csp-rule]: test:scripts/kits/source-rules.test.mjs::third-party-control > points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count verify:testExists(scripts/kits/source-rules.test.mjs::third-party-control > points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count)
-[^polyfill-style]: registry/ouro/lib/ouro/squircle/pending.ts verify:fileLine(registry/ouro/lib/ouro/squircle/pending.ts, /createElement\("style"\)/)
+[^polyfill-style]: test:registry/ouro/lib/ouro/squircle/csp.test.ts::under style-src 'self' > draws the squircle with no <style> element and nothing refused, and takes its stylesheets away when destroyed verify:testExists(registry/ouro/lib/ouro/squircle/csp.test.ts::under style-src 'self' > draws the squircle with no <style> element and nothing refused, and takes its stylesheets away when destroyed)

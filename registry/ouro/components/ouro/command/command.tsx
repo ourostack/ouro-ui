@@ -246,6 +246,17 @@ export interface CommandBaseProps {
   resultsLabel?: ((count: number) => string) | undefined;
   /** What screen readers hear after an `unread` command's label, for other languages. @default "Unread" */
   unreadLabel?: string | undefined;
+  /**
+   * Keeps the dialog and its rows mounted while closed, hidden (no `dialog` role, nothing
+   * focusable), so opening only shows them: for a palette with many rows that a shortcut opens
+   * often. The search is emptied once the dialog has closed (with `onQueryChange("")`), so the next
+   * opening shows the empty search's rows already drawn. The phone sheet mounts as it opens.
+   * @default false
+   * @claim "Keeps the dialog and its rows mounted while closed" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command kept mounted > lets go of the width it held and holds the width it draws at each opening)
+   * @claim "Keeps the dialog and its rows mounted while closed" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command kept mounted > keeps its rows mounted and hidden while closed, with no dialog role, and opens them at once)
+   * @claim "The search is emptied once the dialog has closed" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command kept mounted > empties the search once it has closed, asking the app for the empty search's results, only when kept mounted (%s))
+   */
+  keepMounted?: boolean | undefined;
 
   /** Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Command open={open} onOpenChange={setOpen}>`. */
   isOpen?: { "Use <Command open={open} onOpenChange={setOpen}>": never };
@@ -436,6 +447,7 @@ export function Command(props: CommandProps): JSX.Element {
     loadingLabel = "Searching…",
     resultsLabel = countResults,
     unreadLabel = "Unread",
+    keepMounted = false,
     trigger,
     open,
     onOpenChange,
@@ -580,6 +592,34 @@ export function Command(props: CommandProps): JSX.Element {
   if (loading && isOpenNow && announcement === "idle") setAnnouncement("on");
   if (!loading && announcement === "on") setAnnouncement("done");
   if (!isOpenNow && announcement !== "idle") setAnnouncement("idle");
+
+  // Kept mounted, the hidden palette has no width to hold: each opening lets go of the last one and holds the width it
+  // draws at. The search is emptied once the palette has closed (emptyOnceClosed), off the opening's path.
+  useLayoutEffect(() => {
+    const popup = popupRef.current;
+    // Stryker disable next-line LogicalOperator,ConditionalExpression: a palette mounted as it opens already holds this width, and a closed one has none to hold, so these two run the same
+    if (!keepMounted || !isOpenNow || !popup) return;
+    popup.style.width = "";
+    const frame = requestAnimationFrame(() => holdWidth(popup));
+    // Stryker disable next-line ArrowFunction: a frame left to run after a close holds the width of a palette that is hidden, which the next opening lets go of
+    return () => cancelAnimationFrame(frame);
+  }, [keepMounted, isOpenNow]);
+  // Every key typed straight after the palette opens goes in its search: the search takes focus as the dialog shows, in
+  // the same task as the key or click that opened it. Base UI focuses it a frame later, and a busy computer draws that
+  // frame late, so the first keys went to whatever had focus behind the dialog.
+  // Never after a touch or pen tap, which opens the palette focused on itself, so no software keyboard pops up.
+  useLayoutEffect(() => {
+    if (!isOpenNow || sheet || lastInput() === "touch" || lastInput() === "pen") return;
+    // Base UI shows the dialog in the commit just after this one, which a microtask comes after: still in the task of
+    // the key that opened it, before any later key. A palette shut again by then has no search to focus, or a hidden one.
+    // Stryker disable next-line OptionalChaining: Base UI mounts the dialog in the commit before this microtask; the check only keeps a dialog it mounts later from throwing
+    queueMicrotask(() => popupRef.current?.querySelector("input")!.focus());
+  }, [isOpenNow, sheet]);
+  const emptyOnceClosed = (next: boolean) => {
+    if (next || !keepMounted) return;
+    setQuery("");
+    if (onQueryChange) search("");
+  };
 
   // The command the person has highlighted, by its value, and what was typed when it was. Base UI
   // keeps the highlight's position when the results change; KeepHighlight puts it back on this one.
@@ -737,8 +777,8 @@ export function Command(props: CommandProps): JSX.Element {
           {palette(true)}
         </SheetFrame>
       ) : (
-        <DialogRoot open={isOpenNow} onOpenChange={(next) => setOpen(next)}>
-          <DialogPortal>
+        <DialogRoot open={isOpenNow} onOpenChange={(next) => setOpen(next)} onOpenChangeComplete={emptyOnceClosed}>
+          <DialogPortal keepMounted={keepMounted}>
             <DialogBackdrop data-ouro-instant="" />
             <DialogViewport>
               <DialogPopupUnchecked
@@ -749,6 +789,9 @@ export function Command(props: CommandProps): JSX.Element {
                 // The input after a key press or click; the palette itself after a touch or pen
                 // tap, so no software keyboard pops up.
                 initialFocus={() => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true)}
+                // Kept mounted and closed, it is no dialog: nothing that looks for an open one finds it.
+                // Stryker disable next-line StringLiteral: an empty role takes the dialog role away as well
+                {...(keepMounted && !isOpenNow ? { role: "presentation" } : {})}
                 {...finalFocus}
               >
                 <DialogTitle visuallyHidden>{title}</DialogTitle>
