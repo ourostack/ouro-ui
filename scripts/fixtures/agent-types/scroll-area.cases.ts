@@ -5,7 +5,7 @@ export const agentCases: AgentCase[] = [
   {
     id: "scrollArea01",
     habit: "Radix's type prop on ScrollArea",
-    tsc: [notAssignable("string", `{ "Use <ScrollArea>; the scrollbar shows on hover and scroll": never; }`)],
+    tsc: [notAssignable("string", `{ "Use <ScrollArea>; the scrollbar is the browser's own": never; }`)],
     dev: "<ScrollArea>",
     names: ["tsc", "dev"],
   },

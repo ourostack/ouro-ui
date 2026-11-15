@@ -2,7 +2,7 @@
 
 # ScrollArea
 
-A scrolling region with a slim scrollbar that matches the theme, inside a height you set. It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and momentum all work; the custom scrollbar is for a mouse and never takes a touch. Content wider than the area fades out at the side where it goes on, so at rest it reads as more to scroll to, not as cut off.
+A scrolling region with a thin scrollbar in the theme's color, inside a height you set. It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and momentum all work; Content wider than the area fades out at the side where it goes on, so at rest it reads as more to scroll to, not as cut off.
 
 ```tsx
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
@@ -46,7 +46,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `height`: Not a prop. Set the height with a class: `<ScrollArea className="h-72">`.
 - `maxHeight`: Not a prop. Set the height with a class: `<ScrollArea className="max-h-80">`.
-- `type`: Not a prop. The scrollbar shows while the pointer is over the area or it scrolls, on every device.
+- `type`: Not a prop. The scrollbar is the browser's own, thin and in the theme's color, with a mouse or a finger.
 
 ## `className` is for layout only
 
