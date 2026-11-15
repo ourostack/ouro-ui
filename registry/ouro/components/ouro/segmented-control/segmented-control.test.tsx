@@ -182,6 +182,74 @@ describe("SegmentedControl", () => {
     expect(onValueChange.mock.calls).toEqual([["grid"]]);
   });
 
+  it("goes to the ends with Home and End, and wraps with the arrow keys", async () => {
+    const onValueChange = vi.fn();
+    const { segments } = await render(<SegmentedControl label="View" items={items} onValueChange={onValueChange} />);
+    await pressTab();
+    await userEvent.keyboard("{End}");
+    expect(document.activeElement).toBe(segments[2]);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[0]);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(segments[2]);
+    await userEvent.keyboard("{Home}");
+    expect(document.activeElement).toBe(segments[0]);
+    expect(onValueChange.mock.calls).toEqual([["map"], ["list"], ["map"], ["list"]]);
+  });
+
+  it("keeps the page from scrolling on the keys it moves with, and leaves every other key to the page", async () => {
+    const { segments } = await render(
+      <>
+        <SegmentedControl label="View" items={items} />
+        <button>After</button>
+      </>,
+    );
+    await pressTab();
+    const prevented: Record<string, boolean> = {};
+    const record = (event: KeyboardEvent) => void (prevented[event.key] = event.defaultPrevented);
+    document.addEventListener("keydown", record);
+    try {
+      await userEvent.keyboard("{ArrowRight}{ArrowLeft}{End}{Home}{Enter}{a}");
+      expect(prevented).toEqual({ ArrowRight: true, ArrowLeft: true, End: true, Home: true, Enter: false, a: false });
+      expect(document.activeElement).toBe(segments[0]);
+      await pressTab();
+      expect(prevented.Tab).toBe(false);
+      expect(document.activeElement).toBe(page.getByRole("button", { name: "After" }).element());
+    } finally {
+      document.removeEventListener("keydown", record);
+    }
+  });
+
+  it("moves the way the text runs in a right-to-left page", async () => {
+    const { segments } = await render(
+      <div dir="rtl">
+        <SegmentedControl label="View" items={items} />
+      </div>,
+    );
+    await pressTab();
+    // The first segment is on the right, so the left arrow goes on to the second.
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(segments[1]);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[0]);
+  });
+
+  it("leaves an arrow key pressed with a modifier to the page", async () => {
+    const onValueChange = vi.fn();
+    const { segments } = await render(<SegmentedControl label="View" items={items} onValueChange={onValueChange} />);
+    await pressTab();
+    for (const modifier of ["Alt", "Control", "Meta", "Shift"]) {
+      let prevented = true;
+      const record = (event: KeyboardEvent) => void (prevented = event.defaultPrevented);
+      document.addEventListener("keydown", record);
+      await userEvent.keyboard(`{${modifier}>}{ArrowRight}{/${modifier}}`);
+      document.removeEventListener("keydown", record);
+      expect(prevented).toBe(false);
+      expect(document.activeElement).toBe(segments[0]);
+    }
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("skips a disabled segment with the arrow keys", async () => {
     const { segments } = await render(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />);
     await pressTab();
@@ -494,8 +562,10 @@ describe("SegmentedControl", () => {
       <SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />,
     );
     expect(segments[1]!.disabled).toBe(true);
+    expect(segments[1]!.parentElement!.hasAttribute("data-disabled")).toBe(false);
     await rerender(<SegmentedControl label="View" items={items} disabled />);
     expect(segments.every((segment) => segment.disabled)).toBe(true);
+    expect(segments[0]!.parentElement!.getAttribute("data-disabled")).toBe("");
   });
 
   it("lets app layout classes win", async () => {

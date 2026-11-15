@@ -1,8 +1,7 @@
 "use client";
 
 import { Toggle } from "@base-ui/react/toggle";
-import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type KeyboardEvent, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -212,6 +211,23 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
       return () => observer.disconnect();
     }
   }, [labelId, items]);
+  // Roving focus is the control's own, not Base UI's composite, whose mount reads computed style.
+  // The arrow keys wrap and follow the way the text runs; Home and End go to the ends.
+  const move = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const segments = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("[data-ouro-segment]:not(:disabled)"));
+    const at = segments.indexOf(event.target as HTMLElement);
+    // Stryker disable next-line ConditionalExpression: only a segment can hold focus inside the group, so a key always comes from one
+    if (at === -1) return;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const rtl = (event.currentTarget.closest("[dir]")?.getAttribute("dir") ?? document.documentElement.dir) === "rtl";
+    const step = event.key === "ArrowRight" ? (rtl ? -1 : 1) : event.key === "ArrowLeft" ? (rtl ? 1 : -1) : 0;
+    const target =
+      event.key === "Home" ? 0 : event.key === "End" ? segments.length - 1 : step ? (at + step + segments.length) % segments.length : -1;
+    if (target === -1) return;
+    event.preventDefault();
+    // Stryker disable next-line OptionalChaining: target is always inside segments
+    segments[target]?.focus();
+  };
   const thumbStyle = {
     opacity: index === -1 ? 0 : undefined,
   } as CSSProperties;
@@ -220,16 +236,13 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
       <span id={labelId} className={cn(labelClass, hideLabel && "sr-only")}>
         {label}
       </span>
-      <ToggleGroup
+      <div
         ref={ref}
         role="radiogroup"
         aria-labelledby={labelId}
-        value={selected === undefined ? [] : [selected]}
-        onValueChange={(next) => {
-          // Pressing the checked segment would leave none checked. Keep it.
-          const [pressed] = next;
-          if (pressed !== undefined) choose(pressed);
-        }}
+        data-orientation="horizontal"
+        data-disabled={disabled ? "" : undefined}
+        onKeyDown={move}
         onKeyDownCapture={(event) => {
           arrowed.current = /^(Arrow|Home$|End$)/.test(event.key);
           // A key moves the thumb at once; only a pointer slides it.
@@ -246,15 +259,19 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
           // It also ends what the person asked for here: a check the app makes after this is its own.
           if (!event.currentTarget.contains(event.relatedTarget)) asked.current.clear();
         }}
-        disabled={disabled}
         className={cn(groupClass, fullWidth && "grid w-full")}
       >
         <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
         {items.map((item) => (
           <Toggle
             key={item.value}
-            value={item.value}
-            disabled={item.disabled}
+            pressed={item.value === selected}
+            // Pressing the checked segment would leave none checked. Keep it.
+            onPressedChange={(next) => {
+              // Stryker disable next-line ConditionalExpression: only the checked segment reports false, and choose ignores the checked value
+              if (next) choose(item.value);
+            }}
+            disabled={disabled || item.disabled}
             data-ouro-segment=""
             data-ouro-control="segmented-control"
             data-ouro-part="segment"
@@ -273,7 +290,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
             <span className="relative min-w-0 truncate">{item.label}</span>
           </Toggle>
         ))}
-      </ToggleGroup>
+      </div>
       {name !== undefined && <input type="hidden" name={name} value={selected ?? ""} disabled={disabled} />}
     </div>
   );
