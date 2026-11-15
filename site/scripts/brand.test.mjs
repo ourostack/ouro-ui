@@ -26,8 +26,8 @@ test("every brand file is byte-identical to the approved artwork it was copied f
     assert.match(entry.sha256, /^[0-9a-f]{64}$/, entry.file);
     assert.equal(sha256(readFileSync(join(dir, entry.file))), entry.sha256, `${entry.file} changed since it was copied`);
   }
-  assert.equal(provenance.approvedSource.sha256, "7fdaabb2cc0717eccc9bca967891dcaef206ef4963109205b0e7e60675ce1f25");
-  assert.match(provenance.origin, /^arimendelow\/desk@[0-9a-f]{40}:ouro-public-web\/public-pages-holistic-plan\/icons\/final\/$/);
+  assert.equal(provenance.approvedSource.sha256, "c531aaa8161af20ddbed85684ccc8fcef3b4284a69fdf2d731df5581f712214a");
+  assert.match(provenance.origin, /^ourostack\/\.github@[0-9a-f]{40}:brand\/$/);
 });
 
 test("the rich render is square at each size and keeps its transparency", () => {
