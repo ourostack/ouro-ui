@@ -385,6 +385,33 @@ describe("MessageList windowing", () => {
     }
   });
 
+  it("holds growth above the reader while the scroll a wheel started goes on after its last event, as WebKit animates it, and pays it once that scroll rests", async () => {
+    const { scroller, rerender } = await render(<Chat items={conversation(500)} />);
+    await scrollTo(scroller, 3000);
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    const above = Number(reading.message.id.slice(1)) - 1;
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const before = scroller.scrollTop;
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    // The browser's own scroll after the wheel's one event, a frame or so apart.
+    for (let step = 0; step < 2; step++) {
+      now += 60;
+      scroller.dispatchEvent(new Event("scroll"));
+    }
+    // Past the wheel's rest, but not the scroll's: still held by drawing the content up.
+    await rerender(<Chat items={conversation(500).map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(40) } : item))} />);
+    expect(scroller.scrollTop).toBe(before);
+    expect(content.style.translate).not.toBe("");
+    // Once the scroll has rested, written to the scroll position.
+    now += 100;
+    await expect.poll(() => content.style.translate).toBe("");
+    await settle(scroller);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  });
+
   it("pays what it holds as the reader nears either end, so what went in above is in reach while the wheel still turns", async () => {
     const actions = createRef<MessageListActions>();
     let from = 100;
