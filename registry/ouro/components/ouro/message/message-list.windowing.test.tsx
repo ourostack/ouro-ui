@@ -1325,6 +1325,34 @@ describe("MessageList windowing", () => {
     expect(scroller.scrollTop).toBeGreaterThan(10_000);
   });
 
+  it("draws only the window of a page of older messages that goes in after a first child that is no message, above a reader at the top", async () => {
+    const renders = new Set<number>();
+    function Counted({ id }: { id: number }) {
+      renders.add(id);
+      return (
+        <Message id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"}>
+          {`Message ${id}`}
+        </Message>
+      );
+    }
+    const list = (from: number, count: number) => (
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+        <p key="start">The start of the conversation</p>
+        {Array.from({ length: count }, (_, offset) => (
+          <Counted key={from + offset} id={from + offset} />
+        ))}
+      </MessageList>
+    );
+    const { scroller, rerender } = await render(list(0, 100));
+    await scrollTo(scroller, 0);
+    const reading = firstVisible(scroller);
+    renders.clear();
+    await rerender(list(-60, 160));
+    // The page goes in as space: of its 60 rows, only those the view and its overscan reach draw.
+    expect([...renders].filter((id) => id < 0).length).toBeLessThan(30);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  });
+
   it("announces a reply that finishes streaming out of view, though a newer message came after it", async () => {
     let items = [...conversation(300, 0, true), { id: 301, text: "Thinking", streaming: true }];
     const { scroller, rerender, live } = await render(<Chat items={items} />);

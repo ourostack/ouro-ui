@@ -16,7 +16,6 @@ const modules = import.meta.glob<{ default: () => JSX.Element }>("../site/src/do
 /** Demos whose mount reads layout, by item name, each with what it reads and why it stays. Each is a read to move past the first paint; a waiver that stops reading fails, so it goes with the fix. */
 const waivers: Record<string, string> = {
   "chart": "reads bounding boxes and text styles at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "code-block": "reads scroll and client sizes at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "color-scheme-toggle": "reads getComputedStyle on a button at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "composer": "reads getComputedStyle and offsetHeight at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "family-bar": "reads getComputedStyle and getBoundingClientRect at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",

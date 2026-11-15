@@ -626,11 +626,16 @@ describe("Hero", () => {
     expect(part("image")!.getAttribute("draggable")).toBe("false");
   });
 
-  it("frames the picture with 24px squircle corners", async () => {
+  it("frames the picture with the theme's xl squircle corners", async () => {
     const { part } = await render(<Hero title="Corners" picture={pair(wide)} />);
     const frame = getComputedStyle(part("media")!);
-    expect(frame.borderTopLeftRadius).toBe("24px");
-    expect(frame.borderBottomRightRadius).toBe("24px");
+    const probe = document.createElement("div");
+    probe.className = "rounded-xl";
+    document.body.append(probe);
+    const xl = parseFloat(getComputedStyle(probe).borderTopLeftRadius);
+    probe.remove();
+    expect(parseFloat(frame.borderTopLeftRadius)).toBeCloseTo(xl, 1);
+    expect(parseFloat(frame.borderBottomRightRadius)).toBeCloseTo(xl, 1);
     expect(frame.getPropertyValue("corner-shape")).toBe("superellipse(2)");
   });
 
