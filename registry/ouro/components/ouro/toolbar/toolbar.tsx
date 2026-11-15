@@ -319,10 +319,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   const delay = Number.isFinite(autoHide) && (autoHide as number) > 0 ? (autoHide as number) : undefined;
   useToolbarChecks(props, sizeProp, size, delay);
   const toggles = useToggles();
-  const { rootRef, setRef, measuring, shown } = useOverflow(ref, items, size);
+  const { rootRef, setRef, probe, shown } = useOverflow(ref, items, size);
   const { hidden, faded } = useAutoHide(rootRef, delay, autoHideArea, hiddenProp, onHiddenChange);
   const { visible, overflow } = splitEntries(items, shown);
-  const withMore = measuring || overflow.length > 0;
+  const withMore = probe || overflow.length > 0;
   const stop = useTabStop(visible, withMore);
   const context: ControlContext = { size, keepFocus, disabled, toggles, stop: stop.key };
   const more = moreButton(moreLabel, size, disabled, stop.key === MORE);
@@ -473,6 +473,13 @@ function countFits(root: HTMLElement, widths: readonly number[], moreWidth: numb
   return fits;
 }
 
+/** Whether every entry fits in the root with no More. */
+function rowFits(root: HTMLElement, widths: readonly number[]): boolean {
+  const style = getComputedStyle(root);
+  const width = root.clientWidth - parseFloat(style.paddingInlineStart) - parseFloat(style.paddingInlineEnd);
+  return fitCount(widths, 0, parseFloat(style.columnGap), width) === widths.length;
+}
+
 /**
  * What decides an entry's width: its type, label, whether it shows its label and has an icon, and a group's
  * controls. Handlers, pressed states and shortcuts change none of it, nor does an app rendering the same items anew.
@@ -497,28 +504,39 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
   const inputs = widthInputs(items);
   // Counts the times the entries' text changed under them (a font loading, a zoom), which measures them again.
   const [epoch, setEpoch] = useState(0);
-  const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; epoch: number; shown: number } | null>(null);
+  // `probe` is set while More is drawn only to read its width, once a measure finds the row too narrow.
+  const [layout, setLayout] = useState<{ inputs: string; size: ToolbarSize; epoch: number; shown: number; probe?: true } | null>(null);
   const measuring = layout?.inputs !== inputs || layout.size !== size || layout.epoch !== epoch;
+  const probe = !measuring && layout.probe === true;
   const entries = useRef<ResizeObserver | null>(null);
   const refocus = useRef(false);
 
-  // The first measure waits for the observer's first report, which comes once the page is laid out
-  // and before it paints: the reads are free there, and the row it settles on is in the first frame.
-  // Later measures (new items, a size, a font) run in the commit that asks for them, as the page is
-  // laid out by then, so no frame shows the row while it measures.
+  // A row is measured with every entry and no More, so a row that fits is its final row from the first frame:
+  // More is drawn only once a measure finds the row too narrow. The first measure waits for the observer's
+  // first report, which comes once the page is laid out and before it paints, where the reads are free. Later
+  // measures (new items, a size, a font) run in the commit that asks for them, as the page is laid out by then.
   // Stryker disable next-line BooleanLiteral: equivalent; the measure's effect sets it before any observer reports.
   const pending = useRef(true);
   const measured = useRef(false);
   useLayoutEffect(() => {
     const root = rootRef.current!;
-    const read = () => {
+    const settle = (shown: number) => setLayout({ inputs, size, epoch, shown });
+    const toProbe = () => setLayout({ inputs, size, epoch, shown: widths.current!.length, probe: true });
+    // Whether every entry fits; when not, More is drawn next to read its width.
+    const plan = (): boolean => {
       pending.current = false;
       widths.current = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].map((element) => element.getBoundingClientRect().width);
-      moreWidth.current = root.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.getBoundingClientRect().width;
-      return { inputs, size, epoch, shown: countFits(root, widths.current, moreWidth.current, refocus) };
+      return rowFits(root, widths.current);
     };
+    if (probe) {
+      moreWidth.current = root.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.getBoundingClientRect().width;
+      settle(countFits(root, widths.current!, moreWidth.current, refocus));
+      return;
+    }
+    if (!measuring) return;
     if (measured.current) {
-      setLayout(read());
+      if (plan()) settle(widths.current!.length);
+      else toProbe();
       return;
     }
     // Stryker disable next-line BooleanLiteral: equivalent; only a measure clears pending, and it also sets measured, so pending is still true here.
@@ -526,13 +544,13 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     const measure = new ResizeObserver(() => {
       measure.disconnect();
       measured.current = true;
-      const next = read();
-      flushSync(() => setLayout(next));
+      const fits = plan();
+      flushSync(() => (fits ? settle(widths.current!.length) : toProbe()));
     });
     measure.observe(root);
     // Stryker disable next-line ArrowFunction: equivalent; an observer left on reports once, and a newer one made after it reports after it in the same delivery and sets the row it measures, while React drops a state set after unmount.
     return () => measure.disconnect();
-  }, [inputs, size, epoch]);
+  }, [inputs, size, epoch, probe, measuring]);
 
   // A shown entry that is wider or narrower than measured means its text changed without the root resizing.
   useLayoutEffect(() => {
@@ -578,8 +596,9 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
       const observer = new ResizeObserver(() => {
         // Until the first measure has read the entries there is nothing to fit; it fits them itself.
         if (pending.current) return;
-        const fits = countFits(root, widths.current!, moreWidth.current, refocus);
-        setLayout((current) => ({ ...current!, shown: fits }));
+        const fits = rowFits(root, widths.current!);
+        // Too narrow: draw More to read its width and fit the row to it, before the frame paints.
+        flushSync(() => setLayout((current) => ({ inputs: current!.inputs, size: current!.size, epoch: current!.epoch, shown: widths.current!.length, ...(fits ? {} : { probe: true as const }) })));
       });
       observer.observe(root);
       // Stryker disable next-line ArrowFunction: React ignores a state set after unmount, so disconnecting only tidies.
@@ -590,7 +609,7 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     [],
   );
 
-  return { rootRef, setRef, measuring, shown };
+  return { rootRef, setRef, probe, shown };
 }
 
 /**
