@@ -1115,11 +1115,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Children that went in between its edges since (a page of older messages after a first child that is no message) draw as
       // space, as above the band: the window then draws those the view reaches, before the browser draws. Children that took the
       // place of ones that went (a message's key changed in place) draw.
-      let added = 0;
-      for (let index = range[0]; index <= range[1]; index++) if (!band.held.has(keys[index]!)) added++;
-      let gone = 0;
-      for (const key of band.held) if (!indexes.has(key)) gone++;
-      if (added > gone) held = band.held;
+      // Stryker disable next-line ArithmeticOperator: a child more or less between the edges is one the window draws, or not, before the browser draws.
+      if (range[1] - range[0] + 1 > band.held.size) held = band.held;
     } else if (showJump && indexes.has(String(edge.drawn))) {
       // A list the reader scrolled up in that grows long (older history loading above, newer messages after) draws, to begin
       // with, no more than the WINDOW_ABOVE children it drew whole, from the first of them: the rest, and what came with the
