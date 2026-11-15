@@ -14,7 +14,7 @@ const tree = recipeTree({ image: "/a2ui/v1/examples/charred-lemon-orzo.png", lab
 export default function ComposedSurfaceDemo(): JSX.Element {
   const [last, setLast] = useState("Press a button.");
   return (
-    <div className="grid max-w-md gap-3">
+    <div className="grid max-w-sm gap-3">
       <ComposedSurface tree={tree} onPress={({ action, input }) => setLast(`Runs ${action} with ${JSON.stringify(input)}.`)} onHandoff={({ how }) => setLast(`Opens the app, to do it ${how}.`)} />
       <Text tone="muted" aria-live="polite">
         {last}
