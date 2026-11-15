@@ -1,0 +1,1 @@
+- Fixed: a modal Dialog (and everything built on it) and a modal Sheet mark their popup `aria-modal="true"`, so assistive technology and checks such as Ouro check's `clipped-text` treat the page behind as inert.
