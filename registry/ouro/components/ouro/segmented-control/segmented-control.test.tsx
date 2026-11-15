@@ -231,6 +231,20 @@ describe("SegmentedControl", () => {
     expect(onValueChange).not.toHaveBeenCalled();
   });
 
+  it("leaves a key alone when it comes from a disabled segment", async () => {
+    // The test above depends on when the browser drops focus from the newly disabled segment,
+    // so its key may come from the page instead. Here the key always comes from the disabled segment.
+    const onValueChange = vi.fn();
+    const { segments } = await render(
+      <SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} defaultValue="grid" onValueChange={onValueChange} />,
+    );
+    const key = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    segments[1]!.dispatchEvent(key);
+    expect(key.defaultPrevented).toBe(false);
+    expect(document.activeElement === segments[0] || document.activeElement === segments[2]).toBe(false);
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("moves the way the text runs in a right-to-left page", async () => {
     const { segments } = await render(
       <div dir="rtl">
