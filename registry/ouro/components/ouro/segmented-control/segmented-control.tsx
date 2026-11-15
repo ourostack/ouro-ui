@@ -182,7 +182,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
   useEffect(() => {
     // The app checked another segment (a setting changed elsewhere) while a segment has focus:
     // focus follows the check, so the ring is never on a segment beside the thumb's.
-    const group = document.activeElement?.closest(`[aria-labelledby="${labelId}"]`);
+    const group = document.activeElement!.closest(`[aria-labelledby="${labelId}"]`);
     if (!group || asked.current.has(selected)) return;
     const checked = group.querySelector<HTMLElement>('[data-ouro-segment][aria-checked="true"]');
     if (checked) checked.focus();
@@ -219,10 +219,9 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         }}
         onBlurCapture={(event) => {
           // Focus leaving the group (by pointer, say) ends the arrow key's move.
-          if (!event.currentTarget.contains(event.relatedTarget)) {
-            arrowed.current = false;
-            asked.current.clear();
-          }
+          if (!event.currentTarget.contains(event.relatedTarget)) arrowed.current = false;
+          // It also ends what the person asked for here: a check the app makes after this is its own.
+          if (!event.currentTarget.contains(event.relatedTarget)) asked.current.clear();
         }}
         disabled={disabled}
         className={cn(groupClass, fullWidth && "grid w-full")}
