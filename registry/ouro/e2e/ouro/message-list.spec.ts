@@ -122,9 +122,32 @@ test("with reduced motion, the wheel scrolls the messages and moves none of them
       record.sprang ||= records.some((change) => change.attributeName === "data-ouro-settling" || (change.target as Element).matches('[data-ouro="message"]'));
     }).observe(el, { attributes: true, subtree: true, attributeFilter: ["style", "data-ouro-settling"] });
   });
+  // Each frame around the wheel, [scrollTop, scrollHeight, messages drawn, content's carried translate, scroll events, scrollend
+  // events], to read a failure by.
+  await scroller.evaluate((el) => {
+    const content = el.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const w = window as unknown as { __frames: (string | number)[][]; __stop: boolean };
+    Object.assign(w, { __frames: [], __stop: false });
+    let scrolls = 0;
+    let ends = 0;
+    el.addEventListener("scroll", () => scrolls++);
+    el.addEventListener("scrollend", () => ends++);
+    const tick = () => {
+      w.__frames.push([Math.round(el.scrollTop), el.scrollHeight, el.querySelectorAll('[data-ouro="message"]').length, content.style.translate || "-", scrolls, ends]);
+      scrolls = 0;
+      ends = 0;
+      if (!w.__stop) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   await wheelOver(page, scroller, -400);
-  expect(await scroller.evaluate((el) => (el as HTMLElement & { sprang?: boolean }).sprang === true)).toBe(false);
-  expect(await distanceFromBottom(scroller)).toBeGreaterThan(100);
+  const frames = await page.evaluate(() => {
+    const w = window as unknown as { __frames: (string | number)[][]; __stop: boolean };
+    w.__stop = true;
+    return JSON.stringify(w.__frames.filter((frame, at, all) => at === 0 || JSON.stringify(frame) !== JSON.stringify(all[at - 1])).slice(0, 30));
+  });
+  expect(await scroller.evaluate((el) => (el as HTMLElement & { sprang?: boolean }).sprang === true), frames).toBe(false);
+  expect(await distanceFromBottom(scroller), frames).toBeGreaterThan(100);
 });
 
 const posted = (page: Page, index: number) => page.locator(`#post-${index} [data-ouro-message-content]`);

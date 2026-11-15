@@ -1677,6 +1677,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // Whether the rows past the view's edges draw: from the frame after the list opens, or another conversation opens in it.
   const wide = useRef(false);
   // Whether the rows past the view were first drawn while a scroll of the reader's was going on.
+  // Stryker disable next-line BooleanLiteral: the first widening sets it before anything reads it.
   const widenedMidScroll = useRef(false);
   // Whether the estimate is fixed: once the rows past the view's edges are first measured.
   // Stryker disable next-line BooleanLiteral: not equivalent; "takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not" (message-list.test.tsx) fails on it, but per-test coverage attributes the first measurement to another test, so the shard never runs it.
