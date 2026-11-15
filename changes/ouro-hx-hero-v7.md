@@ -1,1 +1,1 @@
-- Changed: the Ouro UI home hero is redrawn at its final three-to-one shape, with Ouro in the brand O, Loop handing over the checklist and no lid or rocket.
+- Changed: the Ouro UI home hero is redrawn at its final wide shape, with Ouro in the brand O, Loop handing over the checklist and no lid or rocket.
