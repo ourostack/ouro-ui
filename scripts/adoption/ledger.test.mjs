@@ -226,7 +226,7 @@ test("actions count what ouro-actions generated, once each, and leave out fixtur
   assert.ok(!calls.some((call) => call.includes("fixture")), "a fixture's or benchmark's actions.json is never read");
 });
 
-test("a product with no declaration has no actions on the model; one whose file list was cut short is not measured", () => {
+test("a product with no declaration has no actions on the model, and one whose file list was cut short is not measured", () => {
   const tree = (truncated, paths) => (args) => {
     const line = args.join(" ");
     if (line.includes("git/trees")) return JSON.stringify({ truncated, tree: paths.map((path) => ({ type: "blob", path })) });
