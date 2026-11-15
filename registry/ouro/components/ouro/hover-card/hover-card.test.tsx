@@ -258,6 +258,39 @@ describe("HoverCard", () => {
     await expect.poll(() => card()).toBeNull();
   });
 
+  it("takes the first Escape itself, so what holds the link sees only the next", async () => {
+    const seen: string[] = [];
+    await render(
+      <div onKeyDown={(event) => seen.push(event.key)}>
+        <button type="button">Before</button>
+        <HoverCard trigger={<a href="#cooks/ari" onKeyDown={(event) => seen.push(`link ${event.key}`)}>Ari Mendelow</a>}>Preview</HoverCard>
+      </div>,
+    );
+    await act(async () => (page.getByRole("button", { name: "Before" }).element() as HTMLElement).focus());
+    await pressTab();
+    seen.length = 0;
+    await shown();
+    // Any other key goes on to what holds the link, and leaves the card open.
+    await userEvent.keyboard("{Shift}");
+    expect(seen).toEqual(["link Shift", "Shift"]);
+    expect(card()).not.toBeNull();
+    seen.length = 0;
+    // The Escape the card takes is marked handled, as Base UI marks it, so a listener that checks for that skips it.
+    const keys: KeyboardEvent[] = [];
+    const record = (event: KeyboardEvent) => keys.push(event);
+    document.addEventListener("keydown", record, true);
+    try {
+      await userEvent.keyboard("{Escape}");
+    } finally {
+      document.removeEventListener("keydown", record, true);
+    }
+    await expect.poll(() => card()).toBeNull();
+    expect(seen).toEqual(["link Escape"]);
+    expect(keys.map((event) => event.defaultPrevented)).toEqual([true]);
+    await userEvent.keyboard("{Escape}");
+    expect(seen).toEqual(["link Escape", "link Escape", "Escape"]);
+  });
+
   it("opens no card when the pointer leaves the link before it rests there, and passes the link's own handlers on", async () => {
     const seen: string[] = [];
     await render(

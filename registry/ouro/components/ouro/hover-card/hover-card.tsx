@@ -1,7 +1,7 @@
 "use client";
 
 import { PreviewCard } from "@base-ui/react/preview-card";
-import { cloneElement, useEffect, useRef, useState, type FocusEvent, type JSX, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
+import { cloneElement, useEffect, useRef, useState, type FocusEvent, type JSX, type KeyboardEvent, type PointerEvent, type ReactElement, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
@@ -172,6 +172,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
     onPointerLeave?: (event: PointerEvent<HTMLAnchorElement>) => void;
     onFocus?: (event: FocusEvent<HTMLAnchorElement>) => void;
     onBlur?: (event: FocusEvent<HTMLAnchorElement>) => void;
+    onKeyDown?: (event: KeyboardEvent<HTMLAnchorElement>) => void;
   };
   const ref = useMergedRef(own.ref, triggerRef);
   // The link takes the merged ref, which nothing reads during render.
@@ -197,6 +198,16 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
     onBlur: (event: FocusEvent<HTMLAnchorElement>) => {
       own.onBlur?.(event);
       after(0, false);
+    },
+    // Escape on the link closes an open card and goes no further, so a dialog or panel around it stays: the card takes
+    // the first Escape, as Base UI's trigger does.
+    onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => {
+      own.onKeyDown?.(event);
+      if (event.key !== "Escape" || !open) return;
+      // Stryker disable next-line CallExpression: equivalent; Base UI's own Escape listener on the document, in the capture phase, closes the card too.
+      after(0, false);
+      event.preventDefault();
+      event.stopPropagation();
     },
   });
   if (!armed) return link;
