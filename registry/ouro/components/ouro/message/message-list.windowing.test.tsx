@@ -1215,6 +1215,32 @@ describe("MessageList windowing", () => {
     expect(document.activeElement).toBe(document.getElementById("m0"));
   });
 
+  it("diagnosis: Springs at rest changes no rows over 60 frames (not for merging)", async () => {
+    const { renderStory, settle: settleStory, cleanupStories, stories } = await import("@/test/stories");
+    const entry = stories.find((story) => story.id === "MessageList/Springs")!;
+    const seen: string[] = [];
+    for (const width of [390, 1280]) {
+      await page.viewport(width, 844);
+      for (let run = 0; run < 4; run++) {
+        await renderStory(entry.Story);
+        await settleStory();
+        const list = document.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+        let changes = 0;
+        let scrolls = 0;
+        const observer = new MutationObserver((records) => {
+          for (const record of records) changes += record.addedNodes.length + record.removedNodes.length;
+        });
+        observer.observe(list, { childList: true, subtree: true });
+        list.addEventListener("scroll", () => scrolls++);
+        for (let f = 0; f < 60; f++) await new Promise((resolve) => requestAnimationFrame(resolve));
+        observer.disconnect();
+        seen.push(`${width}: changes=${changes} scrolls=${scrolls}`);
+        await cleanupStories();
+      }
+    }
+    expect(seen).toEqual([]);
+  });
+
   it("walks up past the messages first drawn with the Up arrow, each one drawn and shown as focus reaches it", async () => {
     const { scroller } = await render(<Chat items={conversation(400, 0, true)} />);
     await act(async () => document.getElementById("m399")!.focus());
