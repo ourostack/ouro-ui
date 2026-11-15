@@ -1581,7 +1581,7 @@ describe("TimeGrid mount reads", () => {
       host.remove();
     });
     const watch = watchLayoutReads();
-    flushSync(() => root.render(<TimeGrid view="work-week" events={[]} />));
+    flushSync(() => root.render(<TimeGrid label="Team calendar" date="2026-03-12" view="work-week" events={[]} />));
     watch.stop();
     // the development theme check reads the root once per page; it is not the grid's
     expect(watch.reads.filter((read) => read.target !== document.documentElement)).toEqual([]);
