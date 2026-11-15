@@ -1062,7 +1062,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [drewWhole, setDrewWhole] = useState(!windowed);
   useLayoutEffect(() => {
     if (windowed ? drewWhole && band !== null : !drewWhole) setDrewWhole(!windowed);
-  });
+  }, [windowed, drewWhole, band]);
   // A windowed list puts a page of older messages in at once, as space above the messages drawn, so it waits for none and
   // spares the render this would cost. Should it become whole again, what it drew first stays the edge.
   if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
