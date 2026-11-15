@@ -218,6 +218,13 @@ describe("Message", () => {
     expect(bubbleOf(message).textContent).toBe("Done");
   });
 
+  it("pulses the typing indicator's three dots in turn, each 0.2s after the one before", async () => {
+    const { message } = await render(<Message role="assistant" name="Ouro" streaming />);
+    const dots = [...message.querySelectorAll("[data-ouro-message-typing] > [aria-hidden]")];
+    expect(dots.map((dot) => getComputedStyle(dot).animationName)).toEqual(["ouro-pulse", "ouro-pulse", "ouro-pulse"]);
+    expect(dots.map((dot) => getComputedStyle(dot).animationDelay)).toEqual(["0s", "0.2s", "0.4s"]);
+  });
+
   it("keeps an aria-busy the app passes while it is not streaming", async () => {
     const { message } = await render(
       <Message role="assistant" name="Ouro" aria-busy>
