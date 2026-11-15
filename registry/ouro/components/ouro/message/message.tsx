@@ -717,7 +717,8 @@ export function Message(props: MessageProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression,LogicalOperator: `Bar` only reaches the render when `!layered` (the ternary a few lines down shows it only there), so loading it when `layered` instead (as `||` would, and as a forced-true condition does) can never be seen in what the message draws; the bar's code for a message without one renders nothing either way; site/e2e/catalog.spec.ts holds a page without bars to never loading it.
     if (hasBar && !layered) void loadBar().then((Loaded) => setBar(() => Loaded));
   }, [hasBar, layered]);
-  const slot = useRef<HTMLSpanElement | null>(null);
+  // The box the bar sits in: the bubble's own, or a post's body. In a MessageList, the list puts its one bar there.
+  const slot = useRef<HTMLDivElement | null>(null);
   // Beside the bubble: a chat or reply message's own layout, with the room before the bubble that the
   // avatar's column takes when it is at the start (w-8, and the row's gap-2 in a chat or gap-3 in a reply).
   const beside =
@@ -729,10 +730,7 @@ export function Message(props: MessageProps): JSX.Element {
           : "2.5rem"
       : undefined;
   const start = shape === "chat" && role === "user";
-  const bar = layered ? (
-    // The list's one bar goes here while it is on this message.
-    <span ref={slot} data-ouro-message-bar-slot="" className="contents" />
-  ) : hasBar && Bar ? (
+  const bar = layered ? null : hasBar && Bar ? (
     <Bar
       actions={actions ?? []}
       menu={menu}
@@ -745,6 +743,8 @@ export function Message(props: MessageProps): JSX.Element {
       beside={beside}
     />
   ) : null;
+  // Room for a bar around the bubble: the message's own bar, or the list's, which goes in while it is on this message.
+  const room = layered || bar !== null;
   // What the list's bar and menu show for this message, given again on every render, so they show what it shows now.
   useLayoutEffect(() => {
     if (!layered || element === null) return;
@@ -821,8 +821,8 @@ export function Message(props: MessageProps): JSX.Element {
               </time>
             )}
           </span>
-          {bar ? (
-            <div className="relative flex max-w-full flex-col">
+          {room ? (
+            <div ref={slot} className="relative flex max-w-full flex-col">
               {bubble}
               {bar}
             </div>
@@ -936,6 +936,7 @@ export function Message(props: MessageProps): JSX.Element {
         </span>
       )}
       <div
+        ref={post ? slot : undefined}
         data-ouro-message-body=""
         className={cn(
           "relative flex min-w-0 gap-1",
@@ -947,10 +948,10 @@ export function Message(props: MessageProps): JSX.Element {
         )}
       >
         {header}
-        {!post && bar === null && worded ? (
+        {!post && !room && worded ? (
           contentBox
         ) : (
-          <div className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
+          <div ref={post ? undefined : slot} className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
             {contentBox}
             {!post && bar}
           </div>
