@@ -848,6 +848,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       if (target.closest('[data-ouro="menu-positioner"]') === null) movedAway.current = target;
     };
     document.addEventListener("focusin", away);
+    // Stryker disable next-line ArrowFunction,StringLiteral: a listener left from an earlier opening records only what the next opening clears as it starts; removing it frees memory only.
     return () => document.removeEventListener("focusin", away);
   }, [menuOpen]);
   const closeMenu = () => {
