@@ -503,9 +503,9 @@ describe("MessageList windowing", () => {
     expect(await read(47, 80)).toBeCloseTo(47, 0);
   });
 
-  it("keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is", async () => {
-    const { scroller, rerender } = await render(<Chat items={conversation(60, 40, true)} />);
-    expect(messages(scroller)).toHaveLength(60);
+  it("keeps a conversation of 20 messages whole, and windows it once it grows past 20, leaving the view where it is", async () => {
+    const { scroller, rerender } = await render(<Chat items={conversation(20, 80, true)} />);
+    expect(messages(scroller)).toHaveLength(20);
     expect(scroller.querySelector("[data-ouro-message-list-space]")).toBeNull();
     await scrollTo(scroller, 600);
     const reading = firstVisible(scroller);
@@ -515,6 +515,9 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
     expect(messages(scroller).length).toBeLessThan(100);
     expect(scroller.querySelector("[data-ouro-message-list-space]")).not.toBeNull();
+    // A conversation of 60 that comes at once, as an app's cached newest page does, draws only what is near the view.
+    const page = await render(<Chat items={conversation(60, 0, true)} />);
+    expect(messages(page.scroller).length).toBeLessThan(40);
   });
 
   it("keeps every message in the page with windowing={false}", async () => {
