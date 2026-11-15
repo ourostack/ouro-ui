@@ -274,7 +274,6 @@ Delete a helper and its own tests only after verifying that no remaining app fil
 
 Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with these commands read from this file (`scripts/install-test.sh upgrade`).[^upgrade-test]
 
-[^ouro-current]: test:scripts/current/current.test.mjs::one pull request per repository: opened once, left alone when nothing changed, and updated in place verify:testExists(scripts/current/current.test.mjs::one pull request per repository: opened once, left alone when nothing changed, and updated in place)
 [^upgrade-test]: scripts/install-test.sh; scripts/upgrade-note.mjs verify:testExists(scripts/upgrade-note.test.mjs::the upgrade install test runs the note's commands and copies none) verify:ciJob(install-upgrade)
 [^upgrade-releases]: https://github.com/ourostack/ouro-ui/releases; .github/workflows/release.yml; scripts/release-commit.sh verify:urlOk(https://github.com/ourostack/ouro-ui/releases) verify:fileLine(.github/workflows/release.yml, /scripts\/release-commit\.sh "\$VERSION"/) verify:fileLine(scripts/release-commit.sh, /changes\.mjs assemble/)
 [^upgrade-v0.1.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0)
@@ -882,3 +881,4 @@ MIT
 [^android-first]: https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0 verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0) verify:equals(scripts/parity-data/versions.json#android.tag)=v0.1.0
 [^windows-first]: https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1 verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1) verify:equals(scripts/parity-data/versions.json#windows.tag)=v0.1.1
 [^apple-pre-1]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.9.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.9.0) verify:equals(site/src/apple/kit.json#release)=0.9.0
+[^ouro-current]: test:scripts/current/current.test.mjs::one pull request per repository: opened once, left alone when nothing changed, and updated in place verify:testExists(scripts/current/current.test.mjs::one pull request per repository: opened once, left alone when nothing changed, and updated in place)
