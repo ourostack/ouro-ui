@@ -16,6 +16,7 @@ on:
       - site/src/apple/kit.json
       - docs/platforms/README.md
       - docs/platforms/apple.md
+      - docs/platforms/windows.md
       - scripts/apple-release.mjs
       - scripts/platform-parity.mjs
       - scripts/platform-versions.mjs
@@ -30,6 +31,7 @@ on:
       - site/src/apple/kit.json
       - docs/platforms/README.md
       - docs/platforms/apple.md
+      - docs/platforms/windows.md
       - scripts/apple-release.mjs
       - scripts/platform-parity.mjs
       - scripts/platform-versions.mjs
@@ -62,6 +64,7 @@ jobs:
             site/src/apple/kit.json
             docs/platforms/README.md
             docs/platforms/apple.md
+            docs/platforms/windows.md
             scripts/apple-release.mjs
             scripts/platform-parity.mjs
             scripts/platform-versions.mjs
