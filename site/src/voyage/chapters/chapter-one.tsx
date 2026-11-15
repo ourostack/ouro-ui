@@ -298,6 +298,12 @@ const JobList = memo(function JobList({ order, built, onTick }: { order: readonl
 
 const tradeLabel = (value: string) => TRADES.find((trade) => trade.value === value)?.label ?? value;
 
+/**
+ * One id for every signing's note: a new one replaces the note showing, or waiting, instead of queuing
+ * behind it. Without it the queue grows by a note per signing, faster than notes leave (five seconds each).
+ */
+const SIGNED_NOTE = "chapter-one-signed";
+
 /** Whether a name is someone aboard already: their whole name, or the last word of it ("Nemo"). */
 function aboard(name: string): CrewName | undefined {
   const asked = name.trim().toLowerCase();
@@ -380,7 +386,7 @@ function Articles(): JSX.Element {
     const key = signings + 1;
     emptyForm.current = { key, cancel: afterPaint(() => startTransition(() => setSignings(key))) };
     afterPaint(() => {
-      toast(ARTICLES.signed(name), { tone: "success", description: ARTICLES.onList });
+      toast(ARTICLES.signed(name), { id: SIGNED_NOTE, tone: "success", description: ARTICLES.onList });
       keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
     });
   };
