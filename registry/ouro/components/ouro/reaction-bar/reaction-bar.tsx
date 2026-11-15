@@ -229,19 +229,9 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
         const described = reaction.tooltip ? `${id}-${index}` : undefined;
         const counted = reaction.count !== undefined;
         const look = reaction.mine ? ({ tone: "primary", variant: "soft" } as const) : counted ? ({ tone: "secondary", variant: "outline" } as const) : ({ tone: "secondary", variant: "soft" } as const);
-        const face = (
-          <>
-            <span aria-hidden="true">{reaction.emoji}</span>
-            {counted ? (
-              <>
-                <span className="sr-only">{reaction.label}, </span>
-                {reaction.count}
-              </>
-            ) : (
-              <span className="sr-only">{reaction.label}</span>
-            )}
-          </>
-        );
+        // The emoji, then its name and count for screen readers, as siblings rather than fragments, so each draws no component of its own.
+        const emoji = <span aria-hidden="true">{reaction.emoji}</span>;
+        const name = <span className="sr-only">{counted ? `${reaction.label}, ` : reaction.label}</span>;
         // Every pressable reaction has a tooltip, its name or who reacted, so a reaction keeps its button as one comes.
         return onReact ? (
           <Tooltip key={reaction.key} content={reaction.tooltip ?? reaction.label}>
@@ -254,7 +244,9 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
               disabled={disabled}
               onClick={(event) => onReact(reaction.key, event)}
             >
-              {face}
+              {emoji}
+              {name}
+              {counted && reaction.count}
               {described && (
                 <span id={described} hidden>
                   {reaction.tooltip}
@@ -264,7 +256,9 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
           </Tooltip>
         ) : (
           <Badge key={reaction.key} {...look}>
-            {face}
+            {emoji}
+            {name}
+            {counted && reaction.count}
             {reaction.mine && <span className="sr-only">, {mineLabel}</span>}
             {reaction.tooltip && <span className="sr-only">, {reaction.tooltip}</span>}
           </Badge>

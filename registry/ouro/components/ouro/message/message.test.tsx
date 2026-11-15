@@ -218,6 +218,13 @@ describe("Message", () => {
     expect(bubbleOf(message).textContent).toBe("Done");
   });
 
+  it("pulses the typing indicator's three dots in turn, each 0.2s after the one before", async () => {
+    const { message } = await render(<Message role="assistant" name="Ouro" streaming />);
+    const dots = [...message.querySelectorAll("[data-ouro-message-typing] > [aria-hidden]")];
+    expect(dots.map((dot) => getComputedStyle(dot).animationName)).toEqual(["ouro-pulse", "ouro-pulse", "ouro-pulse"]);
+    expect(dots.map((dot) => getComputedStyle(dot).animationDelay)).toEqual(["0s", "0.2s", "0.4s"]);
+  });
+
   it("keeps an aria-busy the app passes while it is not streaming", async () => {
     const { message } = await render(
       <Message role="assistant" name="Ouro" aria-busy>
@@ -1000,6 +1007,18 @@ describe("Message rows", () => {
       const footer = message.querySelector("[data-ouro-message-footer]")!;
       expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(4, 0);
     }
+  });
+
+  it("keeps 4px between a message and its thread in the default layout, and lifts the avatar 2px off the row's foot", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Ouro" thread={chips("t")}>
+        Hi
+      </Message>,
+    );
+    const thread = message.querySelector("[data-ouro-message-thread]")!;
+    expect(thread.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+    const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
+    expect(message.getBoundingClientRect().bottom - avatar.getBoundingClientRect().bottom).toBeCloseTo(2, 0);
   });
 
   it("leaves out the attachments row when there are none", async () => {

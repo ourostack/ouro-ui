@@ -4,7 +4,7 @@ import WebKit
 // The squircle cost probe's browser: a WKWebView in a window of its own, as an app embeds it. It opens the probe page
 // (page.tsx) at the address given, and prints one JSON object:
 //   bench: how long each frame's rendering takes while the area around 270 squircle controls repaints, with the
-//          surfaces drawn (on) and hidden (off), alternated over the rounds;
+//          surfaces drawn (on), hidden (off) and drawn as before #1385 (ref), alternated over the rounds;
 //   typing: each key's time from keydown to painted, typing into the chat's composer at 120 words a minute (fast) and
 //           a key every 90 ms (slow) while a message arrives every 400 ms.
 // Usage: harness <base URL> <rounds>
@@ -63,7 +63,7 @@ web.navigationDelegate = loads
 
 // A frame's rendering: from its requestAnimationFrame callbacks to the first task after it, which runs once style,
 // layout and paint are done. The bench changes the background around the controls each frame, so each frame repaints them.
-let bench = """
+let benchScript = """
 const field = document.getElementById("bench"), out = [];
 for (let i = 0; i < 200; i++) {
   field.style.backgroundColor = i % 2 ? "rgb(250, 250, 250)" : "rgb(251, 251, 251)";
@@ -86,12 +86,13 @@ Task { @MainActor in
   var report: [String: Any] = [:]
   await open("bench")
   report["engine"] = await run("return { userAgent: navigator.userAgent, cornerShape: CSS.supports('corner-shape', 'squircle'), surfaces: document.querySelectorAll('[data-ouro-surface]').length }")
-  var on: [Double] = [], off: [Double] = [], fast: [Double] = [], slow: [Double] = []
+  var bench: [String: [Double]] = ["on": [], "off": [], "ref": []]
+  var fast: [Double] = [], slow: [Double] = []
   for round in 0..<rounds {
-    for drawn in round % 2 == 0 ? [true, false] : [false, true] {
-      await open(drawn ? "bench" : "bench&off")
-      let frames = (await run(bench) as? [Double]) ?? []
-      if drawn { on += frames } else { off += frames }
+    let modes = ["on", "off", "ref"]
+    for mode in round % 2 == 0 ? modes : modes.reversed() {
+      await open(mode == "on" ? "bench" : "bench&" + mode)
+      bench[mode]! += (await run(benchScript) as? [Double]) ?? []
     }
     for quick in round % 2 == 0 ? [true, false] : [false, true] {
       await open("chat")
@@ -111,7 +112,7 @@ Task { @MainActor in
       if quick { fast += keys } else { slow += keys }
     }
   }
-  report["bench"] = ["on": on, "off": off]
+  report["bench"] = bench
   report["typing"] = ["fast": fast, "slow": slow]
   print(String(data: try! JSONSerialization.data(withJSONObject: report), encoding: .utf8)!)
   exit(0)

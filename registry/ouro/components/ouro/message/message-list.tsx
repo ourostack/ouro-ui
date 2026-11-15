@@ -339,6 +339,11 @@ const KEEP_SPOKEN = 5;
 const WINDOW_ABOVE = 20;
 /** How far past the view's edges, in pixels, messages still draw: a page key, or a short scroll, finds them drawn. At least the view's height. */
 const OVERSCAN = 800;
+/**
+ * How soon after the reader's own input (a wheel, a finger, a key) a scroll is theirs, in milliseconds. It stays theirs until
+ * the browser says it ended (`scrollend`), a fling's momentum included, and a press on the scrollbar keeps it theirs while held.
+ */
+const READER_GAP = 150;
 /** How much of the conversation the server HTML draws, in pixels: from its end, or around `initialAnchor`. */
 const FIRST_VIEW = 1600;
 /**
@@ -1353,6 +1358,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     }
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
+    ownTop.current = scroller.scrollTop;
     springsRef.current?.moved(scroller.scrollTop - before);
   }, []);
 
@@ -1495,6 +1501,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const box = boxOf(target);
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
       scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+      ownTop.current = scroller.scrollTop;
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
@@ -1542,6 +1549,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       content.style.removeProperty("translate");
       const before = scroller.scrollTop;
       scroller.scrollTop += by;
+      ownTop.current = scroller.scrollTop;
       const applied = scroller.scrollTop - before;
       springsRef.current?.moved(applied);
       // The anchors sit where they did in the content, which a scroll does not move: only the list's own scroll since they were
@@ -1614,6 +1622,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
+          ownTop.current = scroller.scrollTop;
           const applied = scroller.scrollTop - before;
           springsRef.current?.moved(applied);
           // What rounding left over, carried: under a pixel. A move the browser did not apply in full (the list's end or start stopped it, smooth scrolling or snapping took it) is not a debt a later write can pay.
@@ -1685,6 +1694,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
       });
     });
   };
+  // The reader's own scrolling: when they last gave input, whether a scroll of theirs is going on, and whether they hold the
+  // scrollbar. A scroll made by code (find in page, a screen reader, a test tool, the app) is none of these.
+  // `code` is whether the last scroll was neither theirs nor the list's own (`ownTop`, where it last put the scroll position).
+  // Stryker disable next-line ObjectLiteral: an empty start reads as no input, no scroll going and nothing held, as these do.
+  const reader = useRef({
+    // Stryker disable next-line UnaryOperator: at most the first scroll after the list mounts is taken for the reader's, and its scrollend hands the next to code.
+    at: -Infinity,
+    // Stryker disable next-line BooleanLiteral: at most the first scroll after the list mounts is taken for the reader's, and its scrollend hands the next to code.
+    going: false,
+    held: false,
+    code: false,
+  });
+  const ownTop = useRef<number | null>(null);
   // Where each slot drawn sits in the content, and its size, as last measured.
   const tops = useRef(new Map<string, { top: number; size: number }>());
   // How many messages each child drawn holds: a child that starts the conversation holds none.
@@ -1824,20 +1846,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let to = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
       while (starts[to]! >= viewBottom + over) to--;
-      // Children already drawn stay drawn until they are twice the overscan from the view: a scroll back and forth, or code that
-      // brings one message after another into view (a contrast check measuring each), finds them still in the page.
-      const keep = 2 * over;
-      let keepFrom = 0;
-      // Stryker disable next-line EqualityOperator: a child that ends exactly at twice the overscan stays or goes, and the next scroll settles it.
-      while (starts[keepFrom]! + extent(keepFrom) <= viewTop - keep) keepFrom++;
-      let keepTo = keys.length - 1;
-      // Stryker disable next-line EqualityOperator: a child that starts exactly at twice the overscan stays or goes, and the next scroll settles it.
-      while (starts[keepTo]! >= viewBottom + keep) keepTo--;
-      // The band drawn now, by index: NaN, which no keep range holds, where there is none or its edge went.
+      // The band drawn now, by index: NaN, which no keep range holds and no band meets, where there is none or its edge went.
       const drawnFrom = band === null ? NaN : (indexes.get(band.from) ?? NaN);
       const drawnTo = band === null ? NaN : (indexes.get(band.to) ?? NaN);
-      if (drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
-      if (drawnTo <= keepTo) to = Math.max(to, drawnTo);
+      const code = reader.current.code;
+      // Children already drawn stay drawn until they are twice the overscan from the view: a scroll back and forth finds them
+      // still in the page. After a scroll made by code, eight times, while the band they are in meets the new one: code that
+      // brings one message after another into view (a contrast check measuring each) finds them all still there, and a jump
+      // past them lets them go.
+      const keep = (code ? 8 : 2) * over;
+      let keepFrom = 0;
+      // Stryker disable next-line EqualityOperator: a child that ends exactly at the keep distance stays or goes, and the next scroll settles it.
+      while (starts[keepFrom]! + extent(keepFrom) <= viewTop - keep) keepFrom++;
+      let keepTo = keys.length - 1;
+      // Stryker disable next-line EqualityOperator: a child that starts exactly at the keep distance stays or goes, and the next scroll settles it.
+      while (starts[keepTo]! >= viewBottom + keep) keepTo--;
+      // Stryker disable next-line EqualityOperator,ArithmeticOperator: a band that meets the new one only within a child draws that child or not, and the next scroll settles it.
+      const meets = !code || (drawnFrom <= to + 1 && drawnTo >= from - 1);
+      if (meets && drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
+      if (meets && drawnTo <= keepTo) to = Math.max(to, drawnTo);
       const inBand = keys.slice(from, to + 1);
       // Stryker disable next-line StringLiteral: keys joined with no separator tell two bands apart too, but for keys that run into each other.
       const id = inBand.join("\n");
@@ -1854,15 +1881,38 @@ export function MessageList(props: MessageListProps): JSX.Element {
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
-    // Stryker disable next-line BooleanLiteral: a scroll moves nothing the window measures, so measuring again on it only costs the time.
-    const onScroll = () => windowSync.current!(true);
+    const state = reader.current;
+    const byReader = () => void (state.at = performance.now());
+    const press = () => ((state.held = true), byReader());
+    const release = () => void (state.held = false);
+    const onScroll = () => {
+      // Stryker disable next-line EqualityOperator: a scroll exactly at the gap is the reader's or code's alike.
+      if (performance.now() - state.at <= READER_GAP) state.going = true;
+      // The list's own move (following the end, keeping the reader's place) leaves the last scroll's say.
+      if (scroller.scrollTop !== ownTop.current) state.code = !state.going && !state.held;
+      ownTop.current = null;
+      // Stryker disable next-line BooleanLiteral: a scroll moves nothing the window measures, so measuring again on it only costs the time.
+      windowSync.current!(true);
+    };
+    // The reader's scroll is over: a scroll after this is code's, unless they act again.
+    const onScrollEnd = () => void (state.going = false);
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
     scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("scrollend", onScrollEnd);
+    const reading = ["wheel", "touchstart", "touchmove", "keydown"] as const;
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
+    for (const type of reading) scroller.addEventListener(type, byReader, { passive: true });
+    scroller.addEventListener("pointerdown", press);
+    const doc = scroller.ownerDocument;
+    // Stryker disable next-line BooleanLiteral: captured, so a release an app stops on its way still lets go; bubbling, it lets go alike where none does.
+    doc.addEventListener("pointerup", release, true);
+    // Stryker disable next-line BooleanLiteral: captured, so a release an app stops on its way still lets go; bubbling, it lets go alike where none does.
+    doc.addEventListener("pointercancel", release, true);
     const resized = new ResizeObserver(() => windowSync.current!(false));
     resized.observe(scroller);
     resized.observe(content);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer));
+    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);

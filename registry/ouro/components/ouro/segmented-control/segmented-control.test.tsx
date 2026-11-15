@@ -182,6 +182,85 @@ describe("SegmentedControl", () => {
     expect(onValueChange.mock.calls).toEqual([["grid"]]);
   });
 
+  it("goes to the ends with Home and End, and wraps with the arrow keys", async () => {
+    const onValueChange = vi.fn();
+    const { segments } = await render(<SegmentedControl label="View" items={items} onValueChange={onValueChange} />);
+    await pressTab();
+    await userEvent.keyboard("{End}");
+    expect(document.activeElement).toBe(segments[2]);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[0]);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(segments[2]);
+    await userEvent.keyboard("{Home}");
+    expect(document.activeElement).toBe(segments[0]);
+    expect(onValueChange.mock.calls).toEqual([["map"], ["list"], ["map"], ["list"]]);
+  });
+
+  it("keeps the page from scrolling on the keys it moves with, and leaves every other key to the page", async () => {
+    const { segments } = await render(
+      <>
+        <SegmentedControl label="View" items={items} />
+        <button>After</button>
+      </>,
+    );
+    await pressTab();
+    const prevented: Record<string, boolean> = {};
+    const record = (event: KeyboardEvent) => void (prevented[event.key] = event.defaultPrevented);
+    document.addEventListener("keydown", record);
+    try {
+      await userEvent.keyboard("{ArrowRight}{ArrowLeft}{End}{Home}{Enter}{a}");
+      expect(prevented).toEqual({ ArrowRight: true, ArrowLeft: true, End: true, Home: true, Enter: false, a: false });
+      expect(document.activeElement).toBe(segments[0]);
+      await pressTab();
+      expect(prevented.Tab).toBe(false);
+      expect(document.activeElement).toBe(page.getByRole("button", { name: "After" }).element());
+    } finally {
+      document.removeEventListener("keydown", record);
+    }
+  });
+
+  it("moves nothing on a key from a segment disabled while it had focus", async () => {
+    const onValueChange = vi.fn();
+    const { segments, rerender } = await render(<SegmentedControl label="View" items={items} defaultValue="grid" onValueChange={onValueChange} />);
+    await pressTab();
+    expect(document.activeElement).toBe(segments[1]);
+    await rerender(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} defaultValue="grid" onValueChange={onValueChange} />);
+    await userEvent.keyboard("{ArrowRight}{ArrowLeft}{Home}");
+    expect(document.activeElement === segments[0] || document.activeElement === segments[2]).toBe(false);
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("moves the way the text runs in a right-to-left page", async () => {
+    const { segments } = await render(
+      <div dir="rtl">
+        <SegmentedControl label="View" items={items} />
+      </div>,
+    );
+    await pressTab();
+    // The first segment is on the right, so the left arrow goes on to the second.
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(segments[1]);
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(segments[0]);
+  });
+
+  it("leaves an arrow key pressed with a modifier to the page", async () => {
+    const onValueChange = vi.fn();
+    const { segments } = await render(<SegmentedControl label="View" items={items} onValueChange={onValueChange} />);
+    await pressTab();
+    for (const modifier of ["Alt", "Control", "Meta", "Shift"]) {
+      let prevented = true;
+      const record = (event: KeyboardEvent) => void (prevented = event.defaultPrevented);
+      document.addEventListener("keydown", record);
+      await userEvent.keyboard(`{${modifier}>}{ArrowRight}{/${modifier}}`);
+      document.removeEventListener("keydown", record);
+      expect(prevented).toBe(false);
+      expect(document.activeElement).toBe(segments[0]);
+    }
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("skips a disabled segment with the arrow keys", async () => {
     const { segments } = await render(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />);
     await pressTab();
@@ -331,21 +410,74 @@ describe("SegmentedControl", () => {
     expect(Math.round(group.getBoundingClientRect().width)).toBe(Math.round(host.getBoundingClientRect().width - 48));
   });
 
+  it("shows every label whole: equal segments when they fit, and a long label keeps its width when they don't", async () => {
+    const theme = [
+      { value: "system", label: "Match my computer" },
+      { value: "light", label: "Light" },
+      { value: "dark", label: "Dark" },
+    ];
+    const whole = (segments: HTMLElement[]) => segments.every((segment) => {
+      const label = segment.querySelector<HTMLElement>("span:not([data-ouro-touch-target])")!;
+      return label.scrollWidth <= label.clientWidth;
+    });
+    const widths = (segments: HTMLElement[]) => segments.map((segment) => Math.round(segment.getBoundingClientRect().width));
+    const spills = () => warn.mock.calls.filter((call: unknown[]) => String(call[0]).includes("spill"));
+    // The docs example at its default width: three short labels across 320px.
+    const docs = await render(
+      <div style={{ width: 320 }}>
+        <SegmentedControl label="View" hideLabel fullWidth items={[{ value: "list", label: "List" }, { value: "grid", label: "Grid" }, { value: "calendar", label: "Calendar" }]} />
+      </div>,
+    );
+    expect(whole(docs.segments)).toBe(true);
+    expect(Math.max(...widths(docs.segments)) - Math.min(...widths(docs.segments))).toBeLessThanOrEqual(1);
+    // At its own width, with room, every segment is as wide as the longest label.
+    const own = await render(
+      <div style={{ width: 640 }}>
+        <SegmentedControl label="Theme" items={theme} defaultValue="light" />
+      </div>,
+    );
+    expect(whole(own.segments)).toBe(true);
+    expect(Math.max(...widths(own.segments)) - Math.min(...widths(own.segments))).toBeLessThanOrEqual(1);
+    // Too narrow for three equal segments: the long label keeps its width, and the others share the rest equally.
+    const tight = await render(
+      <div style={{ width: 340 }}>
+        <SegmentedControl label="Theme" hideLabel fullWidth items={theme} defaultValue="light" />
+      </div>,
+    );
+    expect(whole(tight.segments)).toBe(true);
+    const [long, light, dark] = widths(tight.segments);
+    expect(long).toBeGreaterThan(light!);
+    expect(Math.abs(light! - dark!)).toBeLessThanOrEqual(1);
+    // The thumb sits under the pressed segment, whatever its width.
+    await settled(tight.thumb);
+    const [thumb, pressed] = [tight.thumb.getBoundingClientRect(), tight.segments[1]!.getBoundingClientRect()];
+    expect(Math.abs(thumb.left - pressed.left)).toBeLessThanOrEqual(1);
+    expect(Math.abs(thumb.width - pressed.width)).toBeLessThanOrEqual(1);
+    await userEvent.click(tight.segments[0]!);
+    await settled(tight.thumb);
+    const [moved, first] = [tight.thumb.getBoundingClientRect(), tight.segments[0]!.getBoundingClientRect()];
+    expect(Math.abs(moved.left - first.left)).toBeLessThanOrEqual(1);
+    expect(Math.abs(moved.width - first.width)).toBeLessThanOrEqual(1);
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(spills()).toEqual([]);
+  });
+
   it("slides the thumb under the pressed segment with a transition", async () => {
     const r = await render(<SegmentedControl label="View" items={items} />);
     const thumb = r.thumb;
     const offset = (segment: HTMLElement) => Math.round(thumb.getBoundingClientRect().left - segment.getBoundingClientRect().left) + 0;
     // Within a pixel: the thumb's width is a fraction of the track, and WebKit rounds it.
     expect(Math.abs(offset(r.segments[0]!))).toBeLessThanOrEqual(1);
-    let translateStarted = false;
+    // The thumb's edges follow the pressed segment (CSS anchor positioning), so its sides slide.
+    let slideStarted = false;
     const record = (event: TransitionEvent) => {
-      if (event.target === thumb && event.propertyName === "translate") translateStarted = true;
+      if (event.target === thumb && /^(left|right)$/.test(event.propertyName)) slideStarted = true;
     };
     thumb.addEventListener("transitionrun", record);
     try {
       await userEvent.click(r.segments[2]!);
       await settled(thumb);
-      await expect.poll(() => translateStarted).toBe(true);
+      await expect.poll(() => slideStarted).toBe(true);
     } finally {
       thumb.removeEventListener("transitionrun", record);
     }
@@ -412,22 +544,22 @@ describe("SegmentedControl", () => {
   it("slides the thumb on the ease-in-out token, and moves it at once on an arrow key", async () => {
     const r = await render(<SegmentedControl label="View" items={items} />);
     const style = () => getComputedStyle(r.thumb);
-    expect(style().transitionProperty).toBe("translate, opacity");
-    expect(style().transitionDuration).toBe("0.2s, 0.15s");
-    expect(style().transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1), ease");
+    expect(style().transitionProperty).toBe("inset-inline-start, inset-inline-end, opacity");
+    expect(style().transitionDuration).toBe("0.2s, 0.2s, 0.15s");
+    expect(style().transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1), cubic-bezier(0.77, 0, 0.175, 1), ease");
     r.segments[0]!.focus();
     await userEvent.keyboard("{ArrowRight}");
     expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(true);
     expect(style().transitionProperty).toBe("none");
     await userEvent.click(r.segments[2]!);
     expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(false);
-    expect(style().transitionProperty).toBe("translate, opacity");
+    expect(style().transitionProperty).toBe("inset-inline-start, inset-inline-end, opacity");
   });
 
   it("moves the thumb without a transition under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     const { thumb } = await render(<SegmentedControl label="View" items={items} />);
-    expect(getComputedStyle(thumb).transitionProperty).not.toMatch(/translate|transform/);
+    expect(getComputedStyle(thumb).transitionProperty).not.toMatch(/translate|transform|inset|left|right/);
   });
 
   it("hides the thumb when no item has the value", async () => {
@@ -441,8 +573,10 @@ describe("SegmentedControl", () => {
       <SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} />,
     );
     expect(segments[1]!.disabled).toBe(true);
+    expect(segments[1]!.parentElement!.hasAttribute("data-disabled")).toBe(false);
     await rerender(<SegmentedControl label="View" items={items} disabled />);
     expect(segments.every((segment) => segment.disabled)).toBe(true);
+    expect(segments[0]!.parentElement!.getAttribute("data-disabled")).toBe("");
   });
 
   it("lets app layout classes win", async () => {
@@ -482,6 +616,33 @@ describe("SegmentedControl", () => {
 });
 
 describe("SegmentedControl development messages", () => {
+  it("checks again when its labels change, naming the new longest label", async () => {
+    const ui = (items: SegmentedControlProps["items"]) => (
+      <div style={{ width: 200 }}>
+        <SegmentedControl label="Theme" hideLabel fullWidth items={items} />
+      </div>
+    );
+    const r = await render(ui([{ value: "light", label: "Light" }, { value: "dark", label: "Dark" }]));
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(warn).not.toHaveBeenCalled();
+    await r.rerender(ui([{ value: "light", label: "Light" }, { value: "system", label: "Follow the computer's own setting" }]));
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(warn.mock.calls[0]![0]).toMatch(/Fix: \{ value: "system", label: "Follow" \}\.$/);
+  });
+
+  it("says when its labels need more room than it has, and names a shorter label for the longest", async () => {
+    const r = await render(
+      <div style={{ width: 150 }}>
+        <SegmentedControl label="Theme" hideLabel fullWidth items={[{ value: "light", label: "Light" }, { value: "system", label: "Match my computer" }, { value: "dark", label: "Dark" }]} />
+      </div>,
+    );
+    const group = r.root.querySelector<HTMLElement>('[role="radiogroup"]')!;
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(warn.mock.calls[0]![0]).toBe(
+      `[ouro-ui] SegmentedControl: its labels need ${group.offsetWidth}px and it has ${r.root.clientWidth}px, so they spill out of it. Fix: { value: "system", label: "Match" }.`,
+    );
+  });
+
   it.each([
     ["options", { options: items }, "options is not a prop", "<SegmentedControl items={[{ value, label }]}>"],
     ["onChange", { onChange: () => {} }, "onChange is not a prop", "<SegmentedControl onValueChange={(value) => …}>"],

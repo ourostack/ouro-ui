@@ -239,6 +239,34 @@
     "status": 200,
     "checked": "2026-11-15"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/a341db3280d48f6c7e44db6c4f7f8a73323f174e/Package.swift#L1-L9": {
+    "status": 200,
+    "checked": "2026-11-15"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/a341db3280d48f6c7e44db6c4f7f8a73323f174e/Package.swift#L19-L38": {
+    "status": 200,
+    "checked": "2026-11-15"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/a341db3280d48f6c7e44db6c4f7f8a73323f174e/README.md#agent-composed-ui-a2ui": {
+    "status": 200,
+    "checked": "2026-11-15"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/a341db3280d48f6c7e44db6c4f7f8a73323f174e/README.md#siri-ai": {
+    "status": 200,
+    "checked": "2026-11-15"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/a341db3280d48f6c7e44db6c4f7f8a73323f174e/README.md#whats-in-the-box": {
+    "status": 200,
+    "checked": "2026-11-15"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/a341db3280d48f6c7e44db6c4f7f8a73323f174e/README.md#x-ray-your-apps-app-intents": {
+    "status": 200,
+    "checked": "2026-11-15"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/a341db3280d48f6c7e44db6c4f7f8a73323f174e/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-15"
+  },
   "https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box": {
     "status": 200,
     "checked": "2026-11-15"
@@ -263,39 +291,11 @@
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/Package.swift#L1-L9": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/Package.swift#L19-L38": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/README.md#agent-composed-ui-a2ui": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/README.md#siri-ai": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/README.md#whats-in-the-box": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/README.md#x-ray-your-apps-app-intents": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/feee75fb9265b55e547d303f4cd5a214a6e792ea/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
   "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0": {
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.7.0": {
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.8.0": {
     "status": 200,
     "checked": "2026-11-15"
   },

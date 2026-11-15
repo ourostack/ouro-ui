@@ -7,10 +7,11 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
+import fivePoint from "./five-point.css?raw";
 
 // The page the squircle cost probe (run.mjs, harness.swift) measures: a chat, typed into while messages arrive
-// (`?chat`), and a field of squircle controls whose surroundings repaint every frame (`?bench`). `&off` hides the
-// squircle surfaces and their layers, for the same page drawn without them.
+// (`?chat`), and a field of squircle controls whose surroundings repaint every frame (`?bench`). `&off` hides the squircle surfaces, for the same page drawn without them, and `&ref` draws them
+// as Ouro did before #1385 (five-point.css).
 const query = new URLSearchParams(location.search);
 const names = [
   "Ana Lind",
@@ -154,10 +155,14 @@ function Bench() {
   );
 }
 
-if (query.has("off")) {
+const probeStyle = query.has("off")
+  ? "[data-ouro-surface]{display:none!important}[data-ouro-squircle],[data-ouro-avatar-surface]{will-change:auto!important;clip-path:none!important}"
+  : query.has("ref")
+    ? fivePoint
+    : "";
+if (probeStyle) {
   const style = document.createElement("style");
-  style.textContent =
-    "[data-ouro-surface]{display:none!important}[data-ouro-squircle],[data-ouro-avatar-surface]{will-change:auto!important;clip-path:none!important}";
+  style.textContent = probeStyle;
   document.head.append(style);
 }
 createRoot(document.getElementById("root")!).render(

@@ -1,4 +1,4 @@
-export { buttonsClass, fillTemplate, nearestSlide, rootClass, slideClass, slidesPerViewClass, viewportClass };
+export { buttonsClass, fillTemplate, nearestSlide, pageClass, pagerClass, rootClass, slideClass, slidesPerViewClass, viewportClass };
 
 // Class strings and helpers for Carousel, apart from the component so its file exports
 // only components (React Fast Refresh). Class strings are literal so the app's Tailwind
@@ -42,7 +42,17 @@ const slidesPerViewClass = {
 } as const;
 
 /** @internal */
-const buttonsClass = "flex justify-end gap-2";
+const buttonsClass = "flex items-center justify-end gap-2";
+
+// The pager sits at the start of the buttons' row. Each page is a 24px link around its dot, 44px
+// on a coarse pointer so neighbouring targets never overlap; the current one is a longer dot in the primary colour,
+// so it differs by shape as well as colour, and takes the selection's colours under forced colours.
+const pagerClass = "me-auto flex flex-wrap items-center";
+const pageClass =
+  "relative grid size-6 pointer-coarse:size-11 place-items-center rounded-full outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
+  "after:block after:h-2 after:w-2 after:rounded-full after:bg-muted-foreground after:content-[''] " +
+  "aria-[current=true]:after:w-4 aria-[current=true]:after:bg-primary " +
+  "forced-colors:after:bg-[CanvasText] forced-colors:aria-[current=true]:after:bg-[Highlight]";
 
 /**
  * Fills a label template: `{n}` is the 1-based slide number and `{total}` the slide count.

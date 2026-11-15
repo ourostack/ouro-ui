@@ -1,0 +1,1 @@
+- Carousel: `index` lets the app drive the slide in view, for example from the address, so a slide has a link and Back and Forward step through the slides. `pagerHref` shows a pager of links to the slides, with `aria-current="true"` on the one in view. A move to the app's own `index` is announced and not reported back through `onIndexChange`.

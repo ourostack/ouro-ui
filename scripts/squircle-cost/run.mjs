@@ -13,14 +13,17 @@ import { fileURLToPath, URL } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { build } from "vite";
+import { compareRounds } from "./compare.mjs";
 
 // The squircle cost probe: where the engine has no corner-shape (Safari and WKWebView 26), Ouro draws each squircle
 // through clip paths, which WebKit redraws whenever a repaint touches them. It measures that cost in a real WKWebView
 // (harness.swift), on macOS only: the frame time while the area around 270 squircle controls repaints, against the
-// same page with the surfaces hidden, and each key's time to paint while typing beside squircle controls.
-// Fails when the repaint costs more than MAX_RATIO times the page without surfaces.
+// same page drawn as before #1385 (five points a corner, five-point.css) and with the surfaces hidden, and each key's
+// time to paint while typing beside squircle controls. Fails when the repaint costs more than the five-point drawing,
+// judged round by round (compare.mjs), so one slow stretch of the runner cannot decide it.
+// What a squircle control costs a scrolling list (a layer of its own each, which WKWebView composites every frame) is
+// held by squircle-surface.test.tsx, which allows no such layer: a wheel count here did not show it.
 // Usage: node scripts/squircle-cost/run.mjs [rounds]   (writes .tmp/squircle-cost/report.json)
-const MAX_RATIO = 1.5;
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "../..");
 const rounds = Number(process.argv[2] ?? 10);
@@ -96,17 +99,22 @@ const typing = (keys) => ({
   p95: round(quantile(keys, 0.95)),
   max: round(Math.max(...keys)),
 });
+const compared = compareRounds(raw.bench.on, raw.bench.ref, rounds);
 const on = mean(raw.bench.on);
 const off = mean(raw.bench.off);
+const ref = mean(raw.bench.ref);
 const report = {
   engine: raw.engine,
   rounds,
   repaint: {
     frames: raw.bench.on.length,
     meanMs: round(on),
+    fivePointMeanMs: round(ref),
     withoutSurfacesMeanMs: round(off),
-    ratio: round(on / off),
-    maxRatio: MAX_RATIO,
+    rounds: compared.pairs.map((pair) => ({ medianMs: round(pair.on), fivePointMedianMs: round(pair.ref) })),
+    slowerRounds: compared.slower,
+    fasterRounds: compared.faster,
+    slowerRoundsNeeded: compared.needed,
   },
   typing: {
     "120wpm": typing(raw.typing.fast),
@@ -121,7 +129,8 @@ writeFileSync(
 console.log(JSON.stringify(report, null, 2));
 const summary = [
   `Squircle cost in ${raw.engine.userAgent}, corner-shape ${raw.engine.cornerShape ? "native" : "missing (the fallback runs)"}, ${rounds} rounds:`,
-  `- Repainting around ${raw.engine.surfaces} squircle surfaces: ${round(on)} ms a frame, ${round(off)} ms without them (${round(on / off)}×, at most ${MAX_RATIO}×).`,
+  `- Repainting around ${raw.engine.surfaces} squircle surfaces: ${round(on)} ms a frame; drawn as before #1385, ${round(ref)} ms; without them, ${round(off)} ms.`,
+  `- By round, the median frame was slower than the five-point drawing's in ${compared.slower} rounds and faster in ${compared.faster}; ${compared.needed} slower rounds would fail.`,
   `- Typing at 120 wpm beside them, key to paint: p50 ${report.typing["120wpm"].p50} ms, p95 ${report.typing["120wpm"].p95} ms.`,
   `- Typing a key every 90 ms: p50 ${report.typing["90ms"].p50} ms, p95 ${report.typing["90ms"].p95} ms.`,
 ].join("\n");
@@ -133,9 +142,9 @@ if (raw.engine.cornerShape) {
   );
   process.exit(1);
 }
-if (on / off > MAX_RATIO) {
-  console.error(
-    `Repainting around squircle controls costs ${round(on / off)}× the page without them, over ${MAX_RATIO}×: each control's clip paths are drawn again on every repaint.`,
-  );
-  process.exit(1);
-}
+const problems = [
+  compared.costsMore &&
+    `Repainting around squircle controls costs more than the five-point drawing before #1385: its median frame was slower in ${compared.slower} of ${rounds} rounds (${compared.needed} fail), ${round(on)} ms a frame on average against ${round(ref)} ms.`,
+].filter(Boolean);
+for (const problem of problems) console.error(problem);
+if (problems.length) process.exit(1);
