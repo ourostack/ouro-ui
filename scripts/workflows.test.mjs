@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
 import { runInNewContext } from "node:vm";
-import { assemble } from "./changes.mjs";
+import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
@@ -749,7 +749,12 @@ gh() {
 
 test("Release's notes list the items by name and stay well under GitHub's 125,000-character limit for this registry", () => {
   // v1.3.0's release (run 41279874378) failed at `gh release create`: with every item's description, the notes were over the limit.
-  const changes = assemble(join(root, "changes"));
+  // A release lists only the fragment lines its predecessor's tag did not hold (scripts/changes.mjs), so the notes
+  // are measured the same way: every fragment on main less those at the newest release tag here (#1485). CI
+  // fetches that tag before the script tests.
+  const newest = execFileSync("git", ["tag", "--list", "v*", "--sort=-v:refname"], { cwd: root, encoding: "utf8" }).split("\n")[0];
+  assert.ok(newest, "no release tag in this checkout: fetch the newest, git fetch --no-tags --depth=1 origin refs/tags/<tag>:refs/tags/<tag>");
+  const changes = assemble(join(root, "changes"), releasedAt(newest, "changes", root).join("\n"));
   const { status, stdout, stderr, calls, notes, temp } = publishRelease(changes);
   assert.equal(status, 0, stdout + stderr);
   assert.ok([...notes].length < 100_000, `the notes are ${[...notes].length} characters; keep them under 100,000 so growth fails here before GitHub refuses them`);
@@ -2087,7 +2092,7 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   assert.match(pushStep, /^ {10}scripts\/release-commit\.sh "\$VERSION"$/m);
   assert.doesNotMatch(pushStep, /^ +node scripts\/(registry\.mts --release|latest-release\.mjs set)/m);
   const script = readFileSync(join(root, "scripts/release-commit.sh"), "utf8");
-  for (const line of ['node scripts/latest-release.mjs set "v$version"', "pnpm run docs", 'node scripts/registry.mts --release "$version"', "node scripts/changes.mjs assemble changes \"$notes\" > CHANGES.md"]) assert.ok(script.includes(`\n${line}\n`), line);
+  for (const line of ['node scripts/latest-release.mjs set "v$version"', "pnpm run docs", 'node scripts/registry.mts --release "$version"', '  node scripts/changes.mjs assemble changes --since "$last" > CHANGES.md']) assert.ok(script.includes(`\n${line}\n`), line);
   // The rehearsal, in the checks job (part of the required ci check), after everything else there.
   const block = ciJobs().checks;
   const step = stepScript(block, "Release rehearsal");
@@ -2315,30 +2320,33 @@ test("Release auto releases a commit once main's push CI and lane have ended, na
 test("Release auto starts nothing for a commit that only points the docs at a release, and releases any other", () => {
   const step = stepScript(workflow("release-auto.yml"), "Release the newest commit whose runs passed");
   const pkg = (tag) => `${JSON.stringify({ description: `Install #${tag}`, ouro: { latestRelease: tag } }, null, 2)}\n`;
-  const releaseFor = (changes) => {
+  const releaseFor = (changes, fragment = "- New: a change\n") => {
     const dir = scratchDir("ouro-release-auto-");
     const git = (args) => execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();
     git(["init", "-q"]);
     git(["config", "user.email", "maintainer@example.com"]);
     git(["config", "user.name", "Maintainer"]);
     mkdirSync(join(dir, "scripts"));
+    mkdirSync(join(dir, "changes"));
     copyFileSync(join(root, "scripts/pin-only.mjs"), join(dir, "scripts/pin-only.mjs"));
+    copyFileSync(join(root, "scripts/changes.mjs"), join(dir, "scripts/changes.mjs"));
     const commit = (files) => {
       for (const [path, text] of Object.entries(files)) writeFileSync(join(dir, path), text);
       git(["add", "-A"]);
       git(["commit", "-q", "--allow-empty", "-m", "change"]);
       return git(["rev-parse", "HEAD"]);
     };
-    commit({ "package.json": pkg("v1.3.17"), "README.md": "Install #v1.3.17.\n" });
+    // The newest release, v1.3.56, published one change; a later commit adds `fragment`, then the commit released.
+    commit({ "package.json": pkg("v1.3.17"), "README.md": "Install #v1.3.17.\n", "changes/released.md": "- Released: an earlier change\n" });
+    git(["tag", "v1.3.56"]);
+    commit({ "changes/fragment.md": fragment });
     const sha = commit(changes);
     const log = join(dir, "gh.log");
-    // Stands in for gh: one unreleased fragment, the newest release v1.3.56, and no run in progress.
+    // Stands in for gh: the newest release v1.3.56, and no run in progress.
     const stub = `gh() {
   printf 'gh %s\\n' "$*" >> "$LOG"
   case "$*" in
-    "release view"*) ;;
-    "api repos/"*"/contents/changes?"*) echo fragment.md ;;
-    "api -H"*) echo "- New: a change" ;;
+    "release view"*) echo v1.3.56 ;;
     "run list --workflow release.yml --status"*) echo 0 ;;
     "run list"*) echo 1 ;;
     "api repos/"*"/releases/latest"*) echo v1.3.56 ;;
@@ -2360,6 +2368,12 @@ test("Release auto starts nothing for a commit that only points the docs at a re
   assert.equal(other.status, 0, other.output);
   assert.match(other.output, /app\.ts is not a file the docs pin changes/);
   assert.match(other.calls, /workflow run release\.yml --ref main -f version=1\.3\.57 -f sha=/);
+  // A line the newest release's tag already held is not new, though that release's notes lack it: counting against the
+  // notes alone released v1.3.160 with nothing in it but v1.3.158's changes (#1485).
+  const stale = releaseFor({ "app.ts": "export const x = 3;\n" }, "- Released: an earlier change\n");
+  assert.equal(stale.status, 0, stale.output);
+  assert.match(stale.output, /::notice::changes\/ lists no change the newest release lacks, so there is nothing to release\./);
+  assert.doesNotMatch(stale.calls, /workflow run release\.yml/);
 });
 
 test("Docs pin points main's docs at the newest release through one pull request, and turns auto-merge on", () => {

@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -420,6 +420,99 @@ describe("Carousel navigation", () => {
   });
 });
 
+describe("Carousel driven by the app", () => {
+  it("starts at index, moves when index changes and announces it, and reports the user's own moves", async () => {
+    const onIndexChange = vi.fn();
+    const onTargetChange = vi.fn();
+    const record = recordAnnouncements("Drive");
+    const at = (index: number) => (
+      <Carousel label="Overview" index={index} onIndexChange={onIndexChange} onTargetChange={onTargetChange} slideLabel="Drive {n} of {total}">
+        {photos()}
+      </Carousel>
+    );
+    const screen = await render(at(2));
+    expect(slideAtStart(screen.viewport, screen.slides)).toBe(2);
+    await screen.rerender(at(4));
+    await expect.poll(() => slideAtStart(screen.viewport, screen.slides)).toBe(4);
+    await expect.poll(() => record.texts).toEqual(["Drive 5 of 5"]);
+    expect(screen.slides[4]!.inert).toBe(false);
+    expect(onIndexChange).not.toHaveBeenCalled();
+    await userEvent.click(screen.button("Previous slide"));
+    await expect.poll(() => onIndexChange.mock.calls).toEqual([[3]]);
+    // The app follows the user's move; the carousel is already there, so nothing moves or waits.
+    await screen.rerender(at(3));
+    await expect.poll(() => onTargetChange.mock.calls.at(-1)).toEqual([null]);
+    expect(slideAtStart(screen.viewport, screen.slides)).toBe(3);
+    expect(warn).not.toHaveBeenCalled();
+    record.stop();
+  });
+
+  it("moves to the app's index smoothly when motion is allowed", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const at = (index: number) => (
+      <Carousel label="Overview" index={index}>
+        {photos()}
+      </Carousel>
+    );
+    const screen = await render(at(0));
+    const scrollTo = vi.spyOn(screen.viewport, "scrollTo");
+    await screen.rerender(at(2));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }));
+  });
+
+  it("shows a pager of links, one per position, with the one in view marked current", async () => {
+    const at = (index: number) => (
+      <Carousel label="Overview" index={index} slidesPerView={2} pagerHref={(position) => `#slide-${position + 1}`}>
+        {photos()}
+      </Carousel>
+    );
+    const screen = await render(at(1));
+    const pager = screen.host.querySelector("nav")!;
+    expect(pager.getAttribute("aria-label")).toBe("Slides");
+    const pages = () => [...pager.querySelectorAll("a")];
+    expect(pages().map((page) => page.getAttribute("href"))).toEqual(["#slide-1", "#slide-2", "#slide-3", "#slide-4"]);
+    expect(pages().map((page) => page.textContent)).toEqual(["Slide 1 of 5", "Slide 2 of 5", "Slide 3 of 5", "Slide 4 of 5"]);
+    expect(pages().map((page) => page.getAttribute("aria-current"))).toEqual([null, "true", null, null]);
+    const dot = (page: Element) => getComputedStyle(page, "::after");
+    expect(dot(pages()[1]!).width).not.toBe(dot(pages()[0]!).width);
+    expect(dot(pages()[1]!).backgroundColor).not.toBe(dot(pages()[0]!).backgroundColor);
+    await screen.rerender(at(3));
+    expect(pages().map((page) => page.getAttribute("aria-current"))).toEqual([null, null, null, "true"]);
+  });
+
+  it("follows the address when a pager link is followed, and when the address goes back", async () => {
+    const subscribe = (change: () => void) => {
+      window.addEventListener("hashchange", change);
+      return () => window.removeEventListener("hashchange", change);
+    };
+    function Deck() {
+      const hash = useSyncExternalStore(subscribe, () => location.hash);
+      const index = Math.max(0, Number(hash.replace("#slide-", "")) - 1 || 0);
+      return (
+        <Carousel label="Overview" index={index} pagerHref={(position) => `#slide-${position + 1}`}>
+          {photos()}
+        </Carousel>
+      );
+    }
+    const start = location.href;
+    try {
+      const screen = await render(<Deck />);
+      screen.host.querySelector<HTMLAnchorElement>('a[href="#slide-3"]')!.click();
+      await expect.poll(() => slideAtStart(screen.viewport, screen.slides)).toBe(2);
+      expect(screen.host.querySelector('a[href="#slide-3"]')!.getAttribute("aria-current")).toBe("true");
+      history.back();
+      await expect.poll(() => slideAtStart(screen.viewport, screen.slides)).toBe(0);
+    } finally {
+      history.replaceState(null, "", start);
+    }
+  });
+
+  it("renders no pager without pagerHref", async () => {
+    const screen = await render(<Carousel label="Overview">{photos()}</Carousel>);
+    expect(screen.host.querySelector("nav")).toBeNull();
+  });
+});
+
 describe("Carousel inside a scaled element", () => {
   it("starts on defaultIndex when it mounts under a transform, as a Lightbox viewer does while it opens", async () => {
     const { viewport, slides } = await render(
@@ -796,6 +889,7 @@ describe("Carousel development messages", () => {
     ["label", { label: "" }, "label is required; it names the carousel for screen readers", '<Carousel label="Recipe photos">'],
     ["slidesPerView", { slidesPerView: 4 }, "slidesPerView={4} is not supported; use 1, 2, 3", "<Carousel slidesPerView={3}>"],
     ["defaultIndex", { defaultIndex: 9 }, "defaultIndex={9} is past the last slide (4)", "<Carousel defaultIndex={4}>"],
+    ["index", { index: 7 }, "index={7} is past the last slide (4)", "<Carousel index={4}>"],
     ["opts", { opts: { loop: true } }, "opts is not a prop", "<Carousel loop>"],
     ["setApi", { setApi: () => {} }, "setApi is not a prop", "<Carousel onIndexChange={setIndex}>"],
     ["plugins", { plugins: [] }, "plugins is not a prop; Carousel never moves on its own", '<Carousel label="Recipe photos">'],
