@@ -68,7 +68,7 @@ test("CI's browser test shards share the sets out: each set in exactly one shard
 
 test("every set has a recorded time, and the browser shards stay within their share with the sets in the split", () => {
   assert.deepEqual(Object.keys(readTimings("subset")).sort(), sets.map(setKey).sort());
-  for (const count of [6, 10]) {
+  for (const count of [6, 10, 14]) {
     const shards = browserBalance(count);
     const mean = shards.reduce((sum, shard) => sum + shard.weight, 0) / count;
     for (const shard of shards) assert.ok(shard.weight <= mean * 1.25, `a shard of ${count} weighs ${Math.round(shard.weight / 1000)} s, over its share of ${Math.round(mean / 1000)} s: refresh scripts/shard-timings.json`);

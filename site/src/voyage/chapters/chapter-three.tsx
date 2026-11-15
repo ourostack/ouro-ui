@@ -459,8 +459,11 @@ function Saloon(): JSX.Element {
     toast(TOASTS.organ, { tone: "success", description: TOASTS.organNote });
     next.current?.querySelector<HTMLElement>("a")?.focus();
   }, [shown]);
+  // Focus goes back once the press has painted: React runs this effect in the press's own frame, and the focus
+  // scrolls the page up to the alarm, so the press waited on a layout and on painting the whole new view (#1393).
   useEffect(() => {
-    if (rounds) document.querySelector<HTMLElement>("#chapter-three [data-chapter-control='alarm'] button")?.focus();
+    if (!rounds) return;
+    return afterPaint(() => document.querySelector<HTMLElement>("#chapter-three [data-chapter-control='alarm'] button")?.focus());
   }, [rounds]);
   const again = () => {
     store.set({ ...START, line: FIGHT.again });

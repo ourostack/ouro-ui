@@ -276,12 +276,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    name: browser (${{ matrix.shard }}/10)
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    name: browser (${{ matrix.shard }}/14)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/10
+      SHARD: ${{ matrix.shard }}/14
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -436,7 +436,7 @@ jobs:
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      BROWSER_SHARDS: 10
+      BROWSER_SHARDS: 14
       BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' }}
     steps:
       # A failed shard decides the ci check whatever the full suite would do, so it runs only after every shard passed.
@@ -447,7 +447,7 @@ jobs:
         run: |
           if [ "$BROWSER_RUN" = false ]; then
             if [ "$BROWSER" != skipped ]; then
-              echo "::error::The plan skipped the browser shards, but they report $BROWSER: see the browser (n/10) jobs."
+              echo "::error::The plan skipped the browser shards, but they report $BROWSER: see the browser (n/14) jobs."
               exit 1
             fi
             echo "Nothing the browser tests read changed, so the browser shards did not run and there is no coverage to measure."
@@ -455,7 +455,7 @@ jobs:
             exit 0
           fi
           if [ "$BROWSER" != success ]; then
-            echo "::error::The browser jobs did not pass ($BROWSER): see the browser (n/10) jobs."
+            echo "::error::The browser jobs did not pass ($BROWSER): see the browser (n/14) jobs."
             exit 1
           fi
           echo "ran=true" >> "$GITHUB_OUTPUT"
@@ -497,7 +497,7 @@ jobs:
       - if: env.BROWSER_RUN == 'true' && steps.tests.outputs.fallback != 'true'
         name: Motion coverage
         env:
-          MOTION_PARTITIONS: ouro-chromium:10,ouro-webkit:10,ouro-touch:10,site:10
+          MOTION_PARTITIONS: ouro-chromium:14,ouro-webkit:14,ouro-touch:14,site:14
           REDUCED: ${{ steps.tests.outputs.reduced }}
           STEMS: ${{ steps.tests.outputs.stems }}
         run: |
@@ -775,7 +775,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      MOTION_PARTITIONS: ouro-chromium:10,ouro-webkit:10,ouro-touch:10,site:10
+      MOTION_PARTITIONS: ouro-chromium:14,ouro-webkit:14,ouro-touch:14,site:14
       FULL_SUITE_PARTITIONS: ouro-chromium:16,ouro-webkit:16,ouro-touch:16,site:16
       REDUCED: ${{ needs.ci.outputs.reduced }}
       STEMS: ${{ needs.ci.outputs.stems }}
