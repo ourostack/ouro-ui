@@ -17,7 +17,6 @@ const modules = import.meta.glob<{ default: () => JSX.Element }>("../site/src/do
 const waivers: Record<string, string> = {
   "autocomplete": "reads getComputedStyle on its text box at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "chart": "reads bounding boxes and text styles at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "code-block": "reads scroll and client sizes at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "color-scheme-toggle": "reads getComputedStyle on a button at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "composer": "reads getComputedStyle and offsetHeight at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "family-bar": "reads getComputedStyle and getBoundingClientRect at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
