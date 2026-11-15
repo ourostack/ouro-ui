@@ -648,6 +648,28 @@ jobs:
           config: .github/ouro-check.json
           artifact: design-check
           install-browser: "false"
+      # Safari and macOS WebView have no corner-shape, and Playwright's WebKit and Chromium do, so the
+      # fallback (the clip-path surfaces) never shows in the shards above. Shard 1 runs the check again on
+      # the pages of every converted component with the fallback rules switched on in every engine.
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 1
+        name: Prepare the fallback copy of the site
+        run: |
+          fallback=site/dist-fallback
+          mkdir -p "$fallback/docs"
+          cp -R site/dist/. "$fallback/"
+          find "$fallback/docs" -mindepth 1 -maxdepth 1 ! -name button ! -name card ! -name dialog ! -name text-field ! -name avatar ! -name badge ! -name toggle -exec rm -rf {} +
+          find "$fallback" -name '*.css' -exec sed -i.bak -E 's/@supports not \(corner-shape: ?squircle\)/@media all/g' {} +
+          grep -rlE '@media all' "$fallback" --include='*.css' | head -1 | grep -q .
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 1
+        uses: ./.github/actions/check
+        with:
+          targets: site/dist-fallback
+          sizes: 390x844,1440x900
+          themes: dark,light
+          script: registry/ouro/check/check.ts
+          config: .github/ouro-check.json
+          artifact: design-check-fallback
+          install-browser: "false"
   ci:
     # Passes when every part of it passed (checks, attribution, every design shard, every browser shard, the coverage
     # job and every script test job) and the browser shards' merged coverage reached 100%; or, on a
