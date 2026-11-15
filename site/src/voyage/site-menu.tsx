@@ -1,5 +1,4 @@
 import { useEffectEvent, useId, useLayoutEffect, useRef, type JSX, type ReactNode, type RefObject } from "react";
-import { SheetClose } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { FAMILY, FAMILY_CURRENT } from "../family";
 import { APPLE_PAGES, GITHUB, href, normalizePath } from "../paths";
@@ -315,25 +314,8 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
   });
   return (
     <>
-      <SheetClose
-        render={
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-hidden="true"
-            data-site-menu-close=""
-            // Out of the way while the sheet's own Close shows, under keyboard focus, in the same corner. Asked of the
-            // sheet, not of any element: a bare :has() makes Chrome restyle the whole page on each focus and insertion.
-            className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-3 top-0.5 z-3 inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-(--ouro-duration-fast) ease-[ease] [-webkit-tap-highlight-color:transparent] touch-manipulation pointer-fine:hover:bg-accent active:bg-accent"
-          />
-        }
-      >
-        <svg viewBox="0 0 16 16" fill="none" className="size-4">
-          <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      </SheetClose>
       <div ref={edge} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-2 border-0 border-b border-solid border-border bg-popover" />
-      {tools && <div className="[[data-ouro=sheet]:has([data-ouro-sheet-close]:focus-visible)_&]:invisible absolute end-15 top-0.5 z-3 flex gap-1 sm:hidden">{tools}</div>}
+      {tools && <div className="absolute end-15 top-1.5 z-3 flex gap-1 sm:hidden">{tools}</div>}
       {children}
     </>
   );

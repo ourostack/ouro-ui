@@ -466,12 +466,13 @@ describe("centered dialog", () => {
     await expect.element(page.getByRole("dialog").getByRole("button", { name: "Close" })).toBeVisible();
   });
 
-  it("keeps the sheet's hidden-until-focused close control in sheet presentation", async () => {
+  it("shows the sheet's close icon button in the top corner in sheet presentation too", async () => {
     await page.viewport(390, 844);
     await openUncontrolled({ closeLabel: "Dismiss" });
     const close = page.getByRole("dialog").getByRole("button", { name: "Dismiss" }).element();
     expect(close.hasAttribute("data-ouro-sheet-close")).toBe(true);
-    expect(close.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    expect(close.getBoundingClientRect().width).toBeGreaterThanOrEqual(32);
+    expect(close.querySelector("svg")).not.toBeNull();
   });
 
   it.each([
