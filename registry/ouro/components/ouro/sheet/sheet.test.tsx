@@ -1,6 +1,7 @@
 import { createRef, useState, type ReactNode, type Ref } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
+import { composeStories } from "@storybook/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -19,6 +20,7 @@ import {
 } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { registerSheetProperties } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
 import { Sheet, SheetFrame, type SheetProps } from "@/registry/ouro/components/ouro/sheet/sheet";
+import * as stories from "@/registry/ouro/components/ouro/sheet/sheet.stories";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -701,6 +703,26 @@ describe("sides", () => {
       }
     });
   }
+});
+
+describe("the cookbook example", () => {
+  it("lists its cookbooks from the leading edge, with the saved one marked", async () => {
+    const { WithDescription } = composeStories(stories);
+    await render(<WithDescription />);
+    await userEvent.click(trigger());
+    await settled();
+    const rows = [...popup()!.querySelectorAll<HTMLElement>("[aria-pressed]")];
+    expect(rows.length).toBeGreaterThan(1);
+    for (const row of rows) {
+      const box = row.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(row);
+      const text = range.getBoundingClientRect();
+      // The label starts at the row's padding, not in its middle.
+      expect(text.left - box.left).toBeLessThanOrEqual(24);
+    }
+    expect(rows.filter((row) => row.getAttribute("aria-pressed") === "true").map((row) => row.textContent)).toEqual(["Baking (saved)"]);
+  });
 });
 
 describe("close control", () => {
