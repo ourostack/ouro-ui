@@ -169,9 +169,18 @@ async function scan(subject: Subject, path: number[] = [], depth = maxDepth, opt
     let scope: ParentNode[] = [host];
     let where = subject.id;
     for (const [level, index] of path.entries()) {
-      const opener = overlayOpeners(subject.id, scope, subject.parameters, level === 0)[index]!;
-      scope = await openVia(opener, where, options.openTimeout ?? openTimeout);
-      where += ` with "${opener.name}" open`;
+      // A subject can draw more after its first paint (a windowed list draws the rows past its view in the next task), so wait
+      // for the opener this path counted on the earlier render instead of reading a list that has not caught up yet.
+      let opener: Opener | undefined;
+      await vi.waitFor(
+        () => {
+          opener = overlayOpeners(subject.id, scope, subject.parameters, level === 0)[index];
+          if (!opener) throw new Error(`${where}: overlay opener ${index} did not render again`);
+        },
+        { timeout: openTimeout, interval: 20 },
+      );
+      scope = await openVia(opener!, where, options.openTimeout ?? openTimeout);
+      where += ` with "${opener!.name}" open`;
     }
     const found = smallControls(where, path.length === 0 ? [document] : scope);
     const children = overlayOpeners(subject.id, scope, subject.parameters, path.length === 0);
