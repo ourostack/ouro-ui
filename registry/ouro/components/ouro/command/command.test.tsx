@@ -983,7 +983,7 @@ describe("Command kept mounted", () => {
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
     // A width held from an earlier opening, when the commands were fewer or the screen narrower.
-    element.style.width = "min(100%, 300px)";
+    element.style.width = "min(100%, 600px)";
     await open();
     expect(popup()).toBe(element);
     await expect.poll(() => element.style.width).toBe(drawn);
