@@ -115,6 +115,14 @@ describe("findDesignIssues: cramped-heading", () => {
     expect(of("cramped-heading", { headingRoom: 0.25 }).map((issue) => issue.element)).toEqual(['h2#own "Close under its own box"', 'h3 "With an icon"']);
   });
 
+  it("skips a fixed layer that covers the window, a sheet's scrim, and still finds a heading cramped under a real box", () => {
+    render(`
+      <div style="position:fixed;top:0;left:0;right:0;height:95vh;background:#445"></div>
+      <section style="position:fixed;top:95vh;left:100px;width:300px"><h3 style="margin:0;font-size:16px">Why</h3></section>
+      <section style="position:absolute;top:0;left:500px;width:300px"><div style="height:60px;background:#3a7"></div><h3 style="margin:2px 0 0;font-size:16px">Cramped</h3></section>`);
+    expect(of("cramped-heading").map((issue) => issue.element)).toEqual(['h3 "Cramped"']);
+  });
+
   it("names the closest of the boxes above a heading", () => {
     render(`<section><div style="height:80px;background:#eef"><div id="inner" style="position:relative;top:4px;height:80px;background:#3a7"></div></div><h2 style="margin:8px 0 0;font-size:40px;line-height:48px">Closest wins</h2></section>`);
     expect(of("cramped-heading").map((issue) => issue.detail)).toEqual(["4px below div#inner; a 40px heading needs 10px"]);

@@ -243,9 +243,15 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
 
   // cramped-heading: a heading (with the icon on its row) too close to a picture or a filled or framed box beside it,
   // each measured by the part of it that is drawn.
+  // A fixed layer that covers the window (a sheet's scrim, a backdrop) is drawn behind its overlay, not laid out above it.
+  const windowLayer = (el: Element) => {
+    if (getComputedStyle(el).position !== "fixed") return false;
+    const r = el.getBoundingClientRect();
+    return r.width >= innerWidth * 0.9 && r.height >= innerHeight * 0.9;
+  };
   const blocks = visible.filter((el) => {
     const r = drawnRect(el)!;
-    return r.width >= 48 && r.height >= 48 && filled(el);
+    return r.width >= 48 && r.height >= 48 && filled(el) && !windowLayer(el);
   });
   for (const heading of headings) {
     if (optedOut(heading, "cramped-heading")) continue;
