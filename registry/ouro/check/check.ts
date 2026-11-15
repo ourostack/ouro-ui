@@ -208,6 +208,7 @@ const LABELS: Record<string, string> = {
   "not-ready": "page not ready",
   "layout-shift": "layout shift while loading",
   "first-content": "slow first content",
+  "first-paint-swap": "swap after first paint",
   inp: "slow press",
   "giant-picture": "giant picture",
   "cramped-heading": "cramped heading",
@@ -264,6 +265,7 @@ const HINTS: Record<string, string> = {
   "off-screen": "keep it inside the screen: let it wrap or shrink, or let its row scroll",
   "duplicate-control": "show one; if both are needed, name each for what it does",
   "stray-scrollbar": "find what spills over by a few pixels (a margin, a border, a rounding) and fit it, or don't let the region scroll",
+  "first-paint-swap": "draw the final controls in the first frame, a list that fits with More already in it, rather than replacing one a frame later",
   "focus-ring": "give it a :focus-visible outline in a colour that stands out from what is behind it",
   "dark-miss": "fill it from a theme token that has a dark value, not a fixed light colour",
   "hero-dark-art": "pass picture={{ light, dark }}, the same scene by day and at night",
@@ -1151,7 +1153,7 @@ interface Args {
 
 const ABOUT = [
   "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; and long lines only where ouro-check.json declares a measure.",
-  "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
+  "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and finds a control the first frames draw that a later frame swaps for another, with no input. It writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
 ];
 
 const REPORT_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({

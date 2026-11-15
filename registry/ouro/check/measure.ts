@@ -1,5 +1,5 @@
 export { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint };
-export type { LoadingBudgets, Measures, Pressable };
+export type { LoadingBudgets, Measures, Painted, Pressable };
 
 import type { PageIssue } from "./size-check.ts";
 
@@ -12,8 +12,18 @@ import type { PageIssue } from "./size-check.ts";
 //                  draws neither, so a page that shows one first is timed to what replaces it
 //   inp            how long a press took to paint: for each control the app lists for pressing, the longest event of
 //                  its press, from the press to the next frame drawn after its handlers ran
+//   first-paint-swap  a control the first frames drew that is gone at rest, with another drawn over its place in a later
+//                  frame, and no input between: the first frame's content swapped for what came after it
 //
 // An element opts out with data-ouro-allow="<rule>" and a reason in data-ouro-allow-why, as the other rules do.
+
+// A control the first frames drew: the first frame that showed it, its box then, and whether it is a skeleton or opted out
+// of first-paint-swap. Read when it is drawn, since a removed element has lost the ancestors that mark it.
+interface Painted {
+  frame: number;
+  box: { left: number; top: number; right: number; bottom: number };
+  skipped: boolean;
+}
 
 interface Measures {
   shift: number;
@@ -21,6 +31,7 @@ interface Measures {
   paint: number;
   paintNode: Element | null;
   events: { start: number; duration: number }[];
+  painted: Map<Element, Painted>;
   /** Adds a layout-shift entry to the score: kept apart so a test can feed it shifts. */
   add: (entry: { value: number; startTime: number; hadRecentInput: boolean; sources: { node: Node | null }[] }) => void;
 }
@@ -49,6 +60,7 @@ function listenForMeasures(): void {
     paint: 0,
     paintNode: null,
     events: [],
+    painted: new Map(),
     add(entry) {
       if (entry.hadRecentInput) return;
       // A burst ends after a second without a shift, or five seconds after it began.
@@ -85,6 +97,48 @@ function listenForMeasures(): void {
     const presses = (list.getEntries() as (PerformanceEntry & { interactionId: number })[]).filter((entry) => entry.interactionId);
     m.events.push(...presses.map((entry) => ({ start: entry.startTime, duration: entry.duration })));
   }).observe({ type: "event", buffered: true, durationThreshold: 16 } as PerformanceObserverInit);
+  // What the first frames draw, before any input: each visible control, once, in the first frame that shows it. A frame is
+  // read from the message its requestAnimationFrame posts, which runs once the frame is painted, so the DOM read is the
+  // one the frame drew. Input (a press, a key, a wheel) ends the reading.
+  const FIRST_FRAMES = 10;
+  let frames = 0;
+  let input = false;
+  for (const type of ["pointerdown", "keydown", "wheel"]) window.addEventListener(type, () => (input = true), { capture: true, passive: true });
+  // A skeleton, or an element allowed first-paint-swap with a reason, around a control: no swap is judged for it.
+  const skipped = (el: Element) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      if (n.matches('[aria-busy="true"], [data-ouro="skeleton"], [data-ouro-skeleton]')) return true;
+      const rules = (n.getAttribute("data-ouro-allow") ?? "").split(/\s+/);
+      if ((rules.includes("first-paint-swap") || rules.includes("all")) && (n.getAttribute("data-ouro-allow-why") ?? "").trim()) return true;
+    }
+    return false;
+  };
+  const readFrame = () => {
+    frames++;
+    for (const el of document.querySelectorAll("button, a[href], input, select, textarea, [role=button], [role=link], [role=tab], [role=menuitem], [data-ouro-control]")) {
+      if (m.painted.has(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1 || r.right <= 0 || r.bottom <= 0 || r.left >= window.innerWidth || r.top >= window.innerHeight) continue;
+      if (!el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+      m.painted.set(el, { frame: frames, box: { left: r.left, top: r.top, right: r.right, bottom: r.bottom }, skipped: skipped(el) });
+    }
+  };
+  const paintFrame = (): void =>
+    void requestAnimationFrame(() => {
+      if (input || frames >= FIRST_FRAMES) return;
+      // Before the body parses there is nothing to read, so the frame does not count.
+      if (!document.body) return paintFrame();
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => {
+        channel.port1.close();
+        // Input that came in while the frame was on its way to this read ends the reading as well.
+        if (input) return;
+        readFrame();
+        paintFrame();
+      };
+      channel.port2.postMessage(null);
+    });
+  paintFrame();
 }
 
 // The loading rules, read once the page is ready and its pictures decoded, and two frames later, when the browser has
@@ -110,7 +164,7 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
     const w = words(el);
     return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""}${w ? ` "${w.slice(0, 40)}${w.length > 40 ? "…" : ""}"` : ""}`;
   };
-  const report = (rule: keyof LoadingBudgets, node: Node | null, value: number, detail: string) => {
+  const report = (rule: keyof LoadingBudgets | "first-paint-swap", node: Node | null, value: number | undefined, detail: string) => {
     const found = node instanceof Element ? node : (node?.parentElement ?? null);
     // Content that has left the page since is named as the page, and pictured as the screen.
     const el = found?.isConnected ? found : document.body;
@@ -118,12 +172,35 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
     counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
     const ref = `m${counter.__ouroCheckRef}`;
     el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${ref}`.trim());
-    issues.push({ ref, rule, element: el === document.body ? "the page" : name(el), detail, value, budget: budgets[rule], unit: rule === "layout-shift" ? "" : "ms" });
+    const element = el === document.body ? "the page" : name(el);
+    // A count, not a budget: a finding with no number, as the size rules report.
+    if (value === undefined) issues.push({ ref, rule, element, detail });
+    else issues.push({ ref, rule, element, detail, value, budget: budgets[rule as keyof LoadingBudgets], unit: rule === "layout-shift" ? "" : "ms" });
   };
   const shift = Math.round(m.shift * 1000) / 1000;
   if (shift > budgets["layout-shift"]) report("layout-shift", m.shiftNode, shift, `shifted ${shift} while loading, over the budget of ${budgets["layout-shift"]}`);
   const paint = Math.round(m.paint);
   if (paint > budgets["first-content"]) report("first-content", m.paintNode, paint, `${paint} ms to its largest content, over the budget of ${budgets["first-content"]} ms`);
+  // A control the first frames drew that is gone at rest, and a control a later frame drew over its place, with no input
+  // between. The one that took the place is reported once. A skeleton or an opt-out on either is no swap; the same control
+  // drawn again (same tag, role and words) is a re-render, not a swap.
+  const shown = (el: Element) => el.isConnected && el.getClientRects().length > 0 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+  const overlaps = (box: Painted["box"], rect: DOMRect) => box.left < rect.right && rect.left < box.right && box.top < rect.bottom && rect.top < box.bottom;
+  // Where each control shown at rest is drawn, read once: a control with no entry here is gone.
+  const at = new Map<Element, DOMRect>();
+  for (const el of m.painted.keys()) if (shown(el)) at.set(el, el.getBoundingClientRect());
+  const taken = new Set<Element>();
+  for (const [gone, was] of m.painted) {
+    if (was.skipped || at.has(gone)) continue;
+    for (const [taker, later] of m.painted) {
+      const rect = at.get(taker);
+      if (!rect || taken.has(taker) || later.skipped || later.frame <= was.frame || !overlaps(was.box, rect)) continue;
+      if (taker.tagName === gone.tagName && taker.getAttribute("role") === gone.getAttribute("role") && words(taker) === words(gone)) continue;
+      taken.add(taker);
+      report("first-paint-swap", taker, undefined, `${name(gone)} drew in the first frame, then ${name(taker)} took its place without input`);
+      break;
+    }
+  }
   return issues;
 }
 

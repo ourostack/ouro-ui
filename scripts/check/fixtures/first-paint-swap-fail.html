@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First-paint swap: fails</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}#rail{display:flex;flex-direction:column;width:200px;height:200px;overflow:hidden}#rail button{flex:none;height:40px;width:100%;font:inherit;text-align:start;padding:0 12px}</style>
+<main data-app-ready="false"><h1>First-paint swap</h1><nav id="rail" aria-label="Sections"></nav><p>The rail draws every section first, and its last one is clipped.</p></main>
+<script>
+const rail = document.getElementById("rail");
+for (const label of ["Home", "Inbox", "Calendar", "Notes", "Tasks", "Reports"]) {
+  const item = document.createElement("button");
+  item.textContent = label;
+  rail.append(item);
+}
+// Two frames later, with no input, the list is refitted: the items that do not fit go, and More takes the last place.
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  rail.querySelectorAll("button").forEach((item) => { if (item.textContent === "Tasks" || item.textContent === "Reports") item.remove(); });
+  const more = document.createElement("button");
+  more.textContent = "More";
+  rail.append(more);
+  document.querySelector("main").setAttribute("data-app-ready", "true");
+}));
+</script>

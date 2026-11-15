@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { server, userEvent } from "vitest/browser";
-import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint, type Measures } from "@/registry/ouro/check/measure";
+import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint, type Measures, type Painted } from "@/registry/ouro/check/measure";
 
 // Ouro check's measured rules, in the page (ouro-check). The check runs in Chromium, the browser that reports layout
 // shifts, the largest content drawn and each event's timing, so these run there. scripts/check.test.mjs runs the whole
@@ -32,7 +32,7 @@ const measures = () => {
 };
 // Measures as a page recorded them, without observers that would add the test page's own.
 const recorded = (values: Partial<Measures>) => {
-  state.__ouroCheckMeasures = { shift: 0, shiftNode: null, paint: 0, paintNode: null, events: [], add: () => undefined, ...values };
+  state.__ouroCheckMeasures = { shift: 0, shiftNode: null, paint: 0, paintNode: null, events: [], painted: new Map(), add: () => undefined, ...values };
 };
 
 describe("listenForMeasures", () => {
@@ -76,6 +76,63 @@ describe("listenForMeasures", () => {
     for (const at of [300, 1200, 2100, 3000, 3900, 4800, 5100]) m.add({ value: 0.02, startTime: at, hadRecentInput: false, sources: [] });
     expect(m.shift).toBeCloseTo(0.14);
   });
+
+  it("records each control the first frame draws, once, and no control drawn after input", async () => {
+    host = render('<button id="first">First</button><a id="link" href="#x">Link</a><button id="zero" style="width:0;padding:0;border:0">Zero</button><button id="tall" style="height:0;padding:0;border:0">Tall</button><button id="hidden" hidden>Hidden</button><button id="left" style="position:absolute;left:-2000px">Left</button><button id="up" style="position:absolute;top:-3000px">Up</button><button id="right" style="position:absolute;left:100000px">Right</button><button id="down" style="position:absolute;top:100000px">Down</button><button id="faded" style="opacity:0">Faded</button><button id="unseen" style="visibility:hidden">Unseen</button>');
+    const m = measures();
+    await frames();
+    const at = (id: string) => document.getElementById(id)!;
+    expect(m.painted.get(at("first"))).toMatchObject({ frame: 1, skipped: false });
+    expect(m.painted.get(at("link"))?.frame).toBe(1);
+    expect(["zero", "tall", "hidden", "left", "up", "right", "down", "faded", "unseen"].map((id) => m.painted.has(at(id)))).toEqual([false, false, false, false, false, false, false, false, false]);
+    // Input ends the reading, even one that lands while a frame is on its way to be read: this runs in the frame after the
+    // recorder's own callback, so the frame it posts is read once the input has come and the control is drawn.
+    await new Promise<void>((done) =>
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+        host.append(Object.assign(document.createElement("button"), { id: "late", textContent: "Late" }));
+        done();
+      }),
+    );
+    await frames();
+    expect(m.painted.has(at("late"))).toBe(false);
+  });
+
+  it("reads at most ten frames", async () => {
+    const m = measures();
+    for (let i = 0; i < 6; i++) await frames();
+    host = render('<button id="late">Late</button>');
+    await frames();
+    expect(m.painted.has(document.getElementById("late")!)).toBe(false);
+  });
+
+  it("reads nothing before the body parses, and the frames after", async () => {
+    const body = document.body;
+    body.remove();
+    const m = measures();
+    await frames();
+    document.documentElement.append(body);
+    host = render('<button id="after">After</button>');
+    await frames();
+    expect(m.painted.get(document.getElementById("after")!)?.frame).toBe(1);
+  });
+
+  it("marks a control a skeleton, or one allowed first-paint-swap with a reason, holds as skipped", async () => {
+    host = render(`
+      <div aria-busy="true"><button id="busy">Busy</button></div>
+      <div data-ouro-skeleton><button id="skeleton">Skeleton</button></div>
+      <div data-ouro="skeleton"><button id="ouro-skeleton">Ouro skeleton</button></div>
+      <div data-ouro-allow="first-paint-swap" data-ouro-allow-why="a swap on purpose"><button id="allowed">Allowed</button></div>
+      <div data-ouro-allow="all" data-ouro-allow-why="a demo"><button id="all">All</button></div>
+      <div data-ouro-allow="first-paint-swap"><button id="no-reason">No reason</button></div>
+      <div data-ouro-allow="inp" data-ouro-allow-why="slow on purpose"><button id="other-rule">Other rule</button></div>
+      <button id="plain">Plain</button>`);
+    const m = measures();
+    await frames();
+    const skipped = (id: string) => m.painted.get(document.getElementById(id)!)?.skipped;
+    expect(["busy", "skeleton", "ouro-skeleton", "allowed", "all"].map(skipped)).toEqual([true, true, true, true, true]);
+    expect(["no-reason", "other-rule", "plain"].map(skipped)).toEqual([false, false, false]);
+  });
 });
 
 describe("findLoadingIssues", () => {
@@ -111,6 +168,80 @@ describe("findLoadingIssues", () => {
     expect(await findLoadingIssues(budgets)).toEqual([]);
     recorded({ shift: 0.5, shiftNode: document.getElementById("ticker"), paint: 4000, paintNode: document.getElementById("demo") });
     expect(await findLoadingIssues(budgets)).toEqual([]);
+  });
+});
+
+// A control's box as it is drawn, and a control the first frame drew: the frame it showed in and where, as it was drawn.
+const rectOf = (el: Element): Painted["box"] => {
+  const { left, top, right, bottom } = el.getBoundingClientRect();
+  return { left, top, right, bottom };
+};
+const control = (text: string, attributes: Record<string, string> = {}) => {
+  const button = document.createElement("button");
+  button.textContent = text;
+  for (const [key, value] of Object.entries(attributes)) button.setAttribute(key, value);
+  return button;
+};
+const drew = (el: Element, frame: number, box: Painted["box"] = rectOf(el), skipped = false): [Element, Painted] => [el, { frame, box, skipped }];
+const swaps = async (painted: Measures["painted"]) => {
+  recorded({ painted });
+  return (await findLoadingIssues(budgets)).filter((issue) => issue.rule === "first-paint-swap");
+};
+
+describe("findLoadingIssues: first-paint-swap", () => {
+  it("reports a control a later frame drew over the place of one the first frame drew, with no input, once", async () => {
+    host = render("");
+    const more = control("More");
+    host.append(more);
+    const settings = control("Settings");
+    const tasks = control("Tasks");
+    expect(await swaps(new Map([drew(settings, 1, rectOf(more)), drew(more, 2), drew(tasks, 1, rectOf(more))]))).toEqual([
+      { ref: "m1", rule: "first-paint-swap", element: 'button "More"', detail: 'button "Settings" drew in the first frame, then button "More" took its place without input' },
+    ]);
+    expect(more.getAttribute("data-ouro-check-ref")).toBe("m1");
+  });
+
+  it("passes what is no swap: a control still shown, one drawn in the same frame, a skeleton on either side, the same control again, a hidden taker, and a place no control took", async () => {
+    host = render("");
+    const shownAt = (text: string, attributes?: Record<string, string>) => {
+      const el = control(text, attributes);
+      host.append(el);
+      return el;
+    };
+    const far = { left: -1000, top: -1000, right: -900, bottom: -900 };
+    const stillTaker = shownAt("Still taker");
+    const sameTaker = shownAt("Same frame taker");
+    const skeletonTaker = shownAt("Skeleton taker");
+    const saved = shownAt("Save");
+    const hiddenTaker = shownAt("Hidden taker", { hidden: "" });
+    const elsewhere = shownAt("Elsewhere");
+    const stillShown = shownAt("Still shown");
+    const farTaker = shownAt("Far taker");
+    expect(await swaps(new Map<Element, Painted>([
+      drew(stillShown, 1, rectOf(stillTaker)), drew(stillTaker, 2),
+      drew(control("Same frame gone"), 1, rectOf(sameTaker)), drew(sameTaker, 1),
+      drew(control("Skeleton gone"), 1, rectOf(skeletonTaker), true), drew(skeletonTaker, 2),
+      drew(control("Gone under a skeleton"), 1, rectOf(elsewhere)), drew(elsewhere, 2, rectOf(elsewhere), true),
+      drew(control("Save"), 1, rectOf(saved)), drew(saved, 2),
+      drew(control("Hidden gone"), 1, rectOf(hiddenTaker)), drew(hiddenTaker, 2),
+      drew(control("Far"), 1, far), drew(farTaker, 2),
+    ]))).toEqual([]);
+  });
+
+  it("reports one taker once, for every control it took the place of", async () => {
+    host = render("");
+    const more = control("More");
+    host.append(more);
+    expect((await swaps(new Map([drew(control("Settings"), 1, rectOf(more)), drew(control("Tasks"), 1, rectOf(more)), drew(more, 2)]))).map((issue) => issue.detail)).toEqual([
+      'button "Settings" drew in the first frame, then button "More" took its place without input',
+    ]);
+  });
+
+  it("passes a control allowed first-paint-swap with a reason", async () => {
+    host = render("");
+    const more = control("More", { "data-ouro-allow": "first-paint-swap", "data-ouro-allow-why": "a menu that moves on purpose" });
+    host.append(more);
+    expect(await swaps(new Map([drew(control("Settings"), 1, rectOf(more)), drew(more, 2)]))).toEqual([]);
   });
 });
 
