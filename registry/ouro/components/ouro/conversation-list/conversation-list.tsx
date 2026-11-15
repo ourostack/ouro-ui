@@ -823,10 +823,11 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
 
   // The row menu that opened, with Menu's code, and the row it belongs to: by its key, as the row may stop being drawn.
   const [menu, setMenu] = useState<{ M: MenuModule; key: string; name: string; entries: readonly MenuEntry[]; anchor: MenuAnchor; open: boolean } | null>(null);
-  const itemOf = (key: string) => items.find((item) => `row:${item.id}` === key);
-  const rowAt = (target: EventTarget | null) => {
-    const row = (target as Element | null)?.closest?.('[data-ouro-part="row"]');
-    for (const [key, control] of controls.current) if (control === row) return key;
+  const itemOf = (key: string | undefined) => items.find((item) => `row:${item.id}` === key);
+  // The key of the row an event came from: the button around it, as the list registered it.
+  const rowAt = (target: EventTarget) => {
+    const button = (target as Element).closest("button");
+    for (const [key, control] of controls.current) if (control === button) return key;
     return undefined;
   };
   const openMenu = (item: ConversationListItem, key: string, anchor: MenuAnchor) => {
@@ -857,7 +858,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     pressed.current = false;
     if (event.pointerType === "mouse") return;
     const key = rowAt(event.target);
-    const item = key === undefined ? undefined : itemOf(key);
+    const item = itemOf(key);
     if (item === undefined || !hasMenu(item)) return;
     const { clientX: x, clientY: y } = event;
     press.current = {
@@ -875,11 +876,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   };
   const onContextMenu = (event: MouseEvent<HTMLUListElement>) => {
     const key = rowAt(event.target);
-    const item = key === undefined ? undefined : itemOf(key);
+    const item = itemOf(key);
     if (item === undefined || !hasMenu(item)) return;
     event.preventDefault();
-    // A long press that already opened the menu: the browser's own context menu event for the same press opens nothing more.
-    if (pressed.current || menu?.open) return;
     openMenu(item, key!, { x: event.clientX, y: event.clientY });
   };
   const onClickCapture = (event: MouseEvent<HTMLUListElement>) => {
@@ -888,8 +887,11 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     event.preventDefault();
     event.stopPropagation();
   };
+  // Stryker disable next-line MethodExpression: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
   const withMenus = items.some(hasMenu);
+  // Stryker disable next-line ArrowFunction,BlockStatement,ConditionalExpression,ArrayDeclaration: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
   useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
     if (withMenus) void loadMenu();
   }, [withMenus]);
 

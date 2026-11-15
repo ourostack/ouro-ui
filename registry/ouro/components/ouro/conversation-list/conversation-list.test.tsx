@@ -922,6 +922,69 @@ describe("ConversationList row menu", () => {
     expect(page.getByRole("menu").query()).toBeNull();
   });
 
+  it("opens a row's menu when a finger rests on it, and not for a mouse, a finger that drifts or lifts, or a row without one; the press's click selects nothing", async () => {
+    const selected: string[] = [];
+    await render(<ConversationList label="Chats" items={withMenu(() => {})} onSelect={(id) => selected.push(id)} />);
+    // Menu's code, loaded: a right-click opens and closes it once.
+    await userEvent.click(row("Ana Lind"), { button: "right" });
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    const pointer = (type: string, target: Element, pointerType: string, dx = 0) => {
+      const box = target.getBoundingClientRect();
+      target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType, clientX: box.left + 40 + dx, clientY: box.top + 10 }));
+    };
+    const rest = (ms: number) => act(async () => void vi.advanceTimersByTime(ms));
+    const menuShown = () => document.querySelector('[role="menu"]') !== null;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // A mouse held down, a row without a menu, a finger that drifts and one that lifts early open nothing.
+      pointer("pointerdown", row("Ana Lind"), "mouse");
+      await rest(600);
+      pointer("pointerup", row("Ana Lind"), "mouse");
+      pointer("pointerdown", row("Trail crew"), "touch");
+      await rest(600);
+      pointer("pointerup", row("Trail crew"), "touch");
+      pointer("pointerdown", row("Ana Lind"), "touch");
+      pointer("pointermove", row("Ana Lind"), "touch", 20);
+      await rest(600);
+      pointer("pointerdown", row("Ana Lind"), "touch");
+      await rest(300);
+      pointer("pointerup", row("Ana Lind"), "touch");
+      await rest(600);
+      expect(menuShown()).toBe(false);
+      // A finger that rests, drifting a little, opens it; the browser's own context menu event for the press leaves one menu.
+      pointer("pointerdown", row("Ana Lind"), "touch");
+      pointer("pointermove", row("Ana Lind"), "touch", 5);
+      await rest(600);
+      expect(menuShown()).toBe(true);
+      row("Ana Lind").dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+      expect(document.querySelectorAll('[role="menu"]')).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+    // The click that ends the press is the menu's.
+    await act(async () => row("Ana Lind").click());
+    expect(selected).toEqual([]);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    // A press whose menu closed with no click after it leaves the next tap to select, as does a tap after the menu's click.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      pointer("pointerdown", row("Ana Lind"), "touch");
+      await rest(600);
+    } finally {
+      vi.useRealTimers();
+    }
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+    pointer("pointerdown", row("Ana Lind"), "touch");
+    pointer("pointerup", row("Ana Lind"), "touch");
+    await act(async () => row("Ana Lind").click());
+    expect(selected).toEqual(["ana"]);
+  });
+
   it.each([
     ["Shift+F10", "{Shift>}{F10}{/Shift}"],
     ["the Menu key", "{ContextMenu}"],
