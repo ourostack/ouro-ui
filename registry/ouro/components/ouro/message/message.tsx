@@ -748,15 +748,13 @@ export function Message(props: MessageProps): JSX.Element {
   // Room for a bar around the bubble: the message's own bar, or the list's, which goes in while it is on this message.
   const room = layered || bar !== null;
   // What the list's bar and menu show for this message, given again on every render, so they show what it shows now.
-  // The element the list knows this message by: a message whose element changes gives the list the new one.
+  // The element the list knows this message by, so the cleanup below takes out the one it set. A mounted message keeps
+  // one element: both of its branches draw an article in the same place, so React keeps the node when it switches.
   const registered = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
     if (!layered) return;
     const article = element.current!;
-    if (registered.current !== article) {
-      if (registered.current !== null) layer.delete(registered.current);
-      registered.current = article;
-    }
+    registered.current = article;
     const data: MessageBarData = {
       actions: actions ?? [],
       menu,

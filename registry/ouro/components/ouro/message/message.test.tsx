@@ -253,6 +253,37 @@ describe("Message", () => {
     host.remove();
   });
 
+  it("keeps one element in a list's layer as it draws again and changes variant, and takes it out as it unmounts", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const layer = createRowLayer<MessageBarData>();
+    // Each row the layer tells of, with whether the layer has it at that moment.
+    const told: { row: Element; has: boolean }[] = [];
+    layer.listen((row) => told.push({ row, has: layer.get(row) !== undefined }));
+    const show = (variant: MessageProps["variant"], text: string) =>
+      root.render(
+        <RowLayerContext.Provider value={layer as RowLayer<unknown>}>
+          <Message variant={variant} role="assistant" name="Ana" actions={actionsFor([])}>
+            {text}
+          </Message>
+        </RowLayerContext.Provider>,
+      );
+    await act(async () => show("chat", "Hello"));
+    const article = host.querySelector("article")!;
+    await act(async () => show("chat", "Hello again"));
+    await act(async () => show("default", "Hello again"));
+    // Both variants draw an article in the same place, so React keeps the node and the layer keeps it in throughout.
+    expect(host.querySelector("article")).toBe(article);
+    expect(told.length).toBe(3);
+    expect(told.every(({ row, has }) => row === article && has)).toBe(true);
+    await act(async () => root.unmount());
+    expect(layer.get(article)).toBeUndefined();
+    expect(told.at(-1)).toEqual({ row: article, has: false });
+    host.remove();
+  });
+
   it("keeps an aria-busy the app passes while it is not streaming", async () => {
     const { message } = await render(
       <Message role="assistant" name="Ouro" aria-busy>
