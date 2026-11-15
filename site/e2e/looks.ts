@@ -97,6 +97,8 @@ export function describe(arg: { selector: string; only?: number }): Described {
       // A token radius larger than half the box (a checkbox's rounded-sm, a skeleton line's rounded-md) is a squircle by design,
       // not a pill: only an exact half or an unclamped rounded-full counts as a round part.
       if (radius > short / 2 + 0.5 && radius < 1000) continue;
+      // A token radius that happens to equal half the box (a 28px plate's rounded-md) is still a squircle by design.
+      if (/(^|\s)rounded-(sm|md|lg|xl|2xl|3xl)(\s|$)/.test(String(el.getAttribute("class") ?? "")) && !/rounded-full/.test(String(el.getAttribute("class") ?? ""))) continue;
       const long = Math.max(rect.width, rect.height);
       const circle = long - short <= 1;
       const thin = short <= 12;
