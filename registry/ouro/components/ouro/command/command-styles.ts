@@ -30,12 +30,13 @@ const commandSearchClass =
   "box-border flex shrink-0 items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring px-4 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
 
 /**
- * The search row in the phone sheet: pinned to the top of the sheet's scrolling body.
+ * The search row in the phone sheet: pinned to the top of the sheet's scrolling body, its field
+ * ending clear of the sheet's close button in the top corner.
  *
  * @internal
  */
 const commandSheetSearchClass =
-  "sticky top-0 z-1 -mx-5 -mt-2 mb-1 box-border flex items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring bg-popover px-5 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
+  "sticky top-0 z-1 -mx-5 -mt-2 mb-1 box-border flex items-center gap-2 border-0 border-b border-solid border-border has-[input:focus-visible]:border-ring bg-popover ps-5 pe-14 text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0";
 
 /**
  * The search input: borderless, 48px tall, 16px text on a coarse pointer (so iOS does not

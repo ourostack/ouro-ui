@@ -385,7 +385,7 @@ test("on a wide screen the theme picker leaves the page as it is: a click on a l
 test("on a phone the menu's close button closes it", async ({ page }) => {
   await open(page, "ax/");
   await openMenu(page);
-  await sheet(page).locator("[data-site-menu-close]").click();
+  await sheet(page).locator("[data-ouro-sheet-close]").click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(menuButton(page)).toBeFocused();
 });
@@ -634,7 +634,7 @@ test("on a phone the menu, kept between opens, opens afresh each time: the searc
   const at = await body.evaluate((element) => element.scrollTop);
   await sheet(page).getByRole("searchbox", { name: "Find a page or component" }).fill("but");
   await body.evaluate((element) => element.scrollTo(0, element.scrollHeight));
-  await page.locator("[data-site-menu-close]").click();
+  await page.locator("[data-ouro-sheet-close]").click();
   // real clock: the sheet's slide out is a CSS transition, which the page's clock does not drive.
   await expect(sheet(page)).toHaveCount(0);
   await expect(page.locator('[data-ouro="sheet"][hidden]')).toBeAttached();
@@ -657,7 +657,7 @@ test("on a phone the menu, scrolled past the page you are on and a list unfolded
   await expect(sheet(page).locator("[data-site-menu-group] [aria-expanded]").filter({ hasText: name })).toHaveAttribute("aria-expanded", "true");
   await body.evaluate((element) => element.scrollTo(0, element.scrollHeight));
   await expect(sheet(page).locator('[aria-current="page"]')).not.toBeInViewport();
-  await page.locator("[data-site-menu-close]").click();
+  await page.locator("[data-ouro-sheet-close]").click();
   // real clock: the sheet's slide out is a CSS transition, which the page's clock does not drive.
   await expect(sheet(page)).toHaveCount(0);
   await openMenu(page);
@@ -787,18 +787,6 @@ test("on a phone the docs menu's search starts each search at the top of what it
     await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(at);
     await expect(sheet(page).locator('[aria-current="page"]')).toBeInViewport();
   }
-});
-
-test("on a phone the keyboard's Close takes the corner from the pointer's, never both at once", async ({ page }) => {
-  await open(page, "ax/");
-  await openMenu(page);
-  const twin = sheet(page).locator("[data-site-menu-close]");
-  await expect(twin).toBeVisible();
-  await sheet(page).locator("[data-ouro-sheet-close]").focus();
-  await page.keyboard.press("Shift");
-  // A focus() from script is not focus-visible everywhere: Tab to it as a keyboard would, from the end of the sheet.
-  for (let step = 0; step < 60 && !(await sheet(page).locator("[data-ouro-sheet-close]").evaluate((element) => element.matches(":focus-visible"))); step += 1) await pressTab(page);
-  await expect(twin).toBeHidden();
 });
 
 test("on a phone a heading you jump to on a docs page lands below the sticky header", async ({ page }) => {

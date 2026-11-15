@@ -54,7 +54,7 @@ The props the modes share. Type: `CommandProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only, applied to the dialog panel: margins (`mt-8`). Appearance classes warn in development. |
-| `closeLabel` | `string` | `"Close"` | The label of the close button, hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the palette. |
+| `closeLabel` | `string` | `"Close"` | The label of the close button, so screen-reader users on phones (who have no Escape key) can always close the palette. In the dialog it is hidden until it has keyboard focus, as a palette closes on Escape or a press outside; on a phone it is the sheet's icon button in the top corner. |
 | `empty` | `ReactNode` |  | Content for the empty state in place of `emptyLabel`, such as a picture with words: `empty={<Empty icon={<SearchIcon />} title="Nothing matches" />}`. While `loading`, the loading line still shows under it. |
 | `emptyLabel` | `string` | `"No results"` | What shows when nothing matches the search. |
 | `highlightMatches` | `boolean` |  | Marks the words of the search in each command's label and description, with the theme's colours (the system's mark colours under forced colours). The commands' names stay their plain text. |
