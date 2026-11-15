@@ -4,6 +4,7 @@ import { Children, useEffect, useLayoutEffect, useRef, useState, type JSX, type 
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -11,6 +12,8 @@ import {
   buttonsClass,
   fillTemplate,
   nearestSlide,
+  pageClass,
+  pagerClass,
   rootClass,
   slideClass,
   slidesPerViewClass,
@@ -41,8 +44,29 @@ export interface CarouselProps {
    * @claim "The slide to start on, counting" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel navigation > starts at defaultIndex without announcing it)
    */
   defaultIndex?: number | undefined;
+  /**
+   * The slide in view, counting from the first as `0`, for a carousel your app drives: from the
+   * address (`#slide-3`, so a slide has a link and Back and Forward step through the slides), a
+   * router's state, or another control. When it changes the carousel moves there, smoothly or at once
+   * with reduced motion, and announces the position, without calling `onIndexChange`. Set it
+   * from `onIndexChange` too, so a swipe or a button press moves it. Unset, the carousel keeps its own position, from `defaultIndex`.
+   *
+   * @claim "When it changes the carousel moves" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel driven by the app > starts at index, moves when index changes and announces it, and reports the user's own moves)
+   */
+  index?: number | undefined;
   /** Called with the index of the first visible slide when the user moves to another slide, once per change. */
   onIndexChange?: ((index: number) => void) | undefined;
+  /**
+   * Shows a pager beside the buttons: a dot for each position, a link to the address this returns
+   * (`(index) => "#slide-" + (index + 1)`), named by `slideLabel`, with `aria-current="true"` and a
+   * longer dot on the position in view. Following one changes the address, so drive the carousel
+   * with `index` from the address and it moves there.
+   *
+   * @claim "a dot for each position, a link" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel driven by the app > shows a pager of links, one per position, with the one in view marked current)
+   */
+  pagerHref?: ((index: number) => string) | undefined;
+  /** With `pagerHref`, the pager's accessible name. @default "Slides" */
+  pagerLabel?: string | undefined;
   /**
    * Called at once with the slide a Previous or Next press is moving to, before the scroll gets
    * there, and with null when the scroll settles: show that position straight away, so a counter
@@ -114,6 +138,9 @@ function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
  * reduced motion the buttons jump instead of scrolling smoothly. With every slide in view
  * (one slide, or no more than `slidesPerView`) the buttons hide.
  *
+ * An app that keeps the slide in the address passes `index` and `pagerHref`: a slide then has a
+ * link, the pager's dots link to the slides, and Back and Forward step through them.
+ *
  * Use a grid instead when every item should be visible at once, and `Tabs` when the
  * panels have names the user picks from.
  *
@@ -127,6 +154,18 @@ function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
  * <Carousel label="Featured recipes" slidesPerView={2} loop onIndexChange={setIndex}>
  *   {recipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
  * </Carousel>
+ * // The slide lives in the address: #slide-3.
+ * const hash = useSyncExternalStore(onHashChange, () => location.hash, () => "");
+ * const slide = Math.max(0, Number(hash.replace("#slide-", "")) - 1 || 0);
+ * <Carousel
+ *   label="Overview"
+ *   index={slide}
+ *   onIndexChange={(index) => history.replaceState(null, "", `#slide-${index + 1}`)}
+ *   pagerHref={(index) => `#slide-${index + 1}`}
+ * >
+ *   {slides}
+ * </Carousel>
+ * @claim "An app that keeps the slide" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel driven by the app > follows the address when a pager link is followed, and when the address goes back)
  * @claim "It is the browser's own scrolling" registry/ouro/components/ouro/carousel/carousel.touch.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.touch.test.tsx::lets a vertical swipe that starts on the slides scroll the page)
  * @claim "It is the browser's own scrolling" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > snaps each slide to the start of a horizontal scroller that a keyboard can reach)
  * @claim "Each child is a slide named" registry/ouro/components/ouro/carousel/carousel.test.tsx verify:testExists(registry/ouro/components/ouro/carousel/carousel.test.tsx::Carousel structure > snaps each slide to the start of a horizontal scroller that a keyboard can reach)
@@ -142,7 +181,10 @@ export function Carousel(props: CarouselProps): JSX.Element {
     loop = false,
     slidesPerView: perViewProp = 1,
     defaultIndex = 0,
+    index: indexProp,
     onIndexChange,
+    pagerHref,
+    pagerLabel = "Slides",
     onTargetChange,
     previousLabel = "Previous slide",
     nextLabel = "Next slide",
@@ -182,6 +224,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
           ],
           perView !== perViewProp && [`slidesPerView={${String(perViewProp)}} is not supported; use 1, 2, 3`, "<Carousel slidesPerView={3}>"],
           total > 0 && defaultIndex > lastIndex && [`defaultIndex={${defaultIndex}} is past the last slide (${lastIndex})`, `<Carousel defaultIndex={${lastIndex}}>`],
+          (indexProp ?? 0) > lastIndex && [`index={${String(indexProp)}} is past the last slide (${lastIndex})`, `<Carousel index={${lastIndex}}>`],
           opts !== undefined && ["opts is not a prop", "<Carousel loop>"],
           setApi !== undefined && ["setApi is not a prop", "<Carousel onIndexChange={setIndex}>"],
           plugins !== undefined && ["plugins is not a prop; Carousel never moves on its own", '<Carousel label="Recipe photos">'],
@@ -191,7 +234,9 @@ export function Carousel(props: CarouselProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  const startIndex = Math.min(Math.max(0, defaultIndex), lastIndex);
+  // The app's index, when it drives the carousel, within the slides.
+  const controlled = indexProp === undefined ? undefined : Math.min(Math.max(0, indexProp), lastIndex);
+  const startIndex = controlled ?? Math.min(Math.max(0, defaultIndex), lastIndex);
   const [index, setIndex] = useState(startIndex);
   const current = Math.min(index, lastIndex);
   // The settled index, and the slide a button press is heading to before the scroll settles.
@@ -205,9 +250,9 @@ export function Carousel(props: CarouselProps): JSX.Element {
   const focused = useRef<Element | null>(null);
   // The latest props for the scroll listener, which is attached once.
   // Stryker disable next-line ObjectLiteral: the layout effect below sets it before anything reads it.
-  const latest = useRef({ onIndexChange, onTargetChange, slideLabel, total, lastIndex, loop });
+  const latest = useRef({ onIndexChange, onTargetChange, slideLabel, total, lastIndex, loop, controlled });
   useLayoutEffect(() => {
-    latest.current = { onIndexChange, onTargetChange, slideLabel, total, lastIndex, loop };
+    latest.current = { onIndexChange, onTargetChange, slideLabel, total, lastIndex, loop, controlled };
   });
 
   const scrollToSlide = (target: number, behavior: ScrollBehavior) => {
@@ -250,14 +295,15 @@ export function Carousel(props: CarouselProps): JSX.Element {
     const settle = () => {
       stopWaiting();
       heading.current = undefined;
-      const { onIndexChange, onTargetChange, slideLabel, total, lastIndex } = latest.current;
+      const { onIndexChange, onTargetChange, slideLabel, total, lastIndex, controlled } = latest.current;
       onTargetChange?.(null);
       const next = Math.min(nearestSlide(viewport), lastIndex);
       if (next === settled.current) return;
       focused.current = document.activeElement;
       settled.current = next;
       setIndex(next);
-      onIndexChange?.(next);
+      // A move to the app's own index is the app's, so it is not reported back.
+      if (next !== controlled) onIndexChange?.(next);
       announce(fillTemplate(slideLabel, next + 1, total));
     };
     // After a pause: settle if the position holds for two frames, else keep waiting. A press's
@@ -321,6 +367,19 @@ export function Carousel(props: CarouselProps): JSX.Element {
   });
 
   const reduced = useReducedMotion();
+  // The app moved its index (the address changed, Back or Forward): go there. A move the
+  // carousel reported itself is already where the scroll is, or heading there.
+  useEffect(() => {
+    if (controlled === undefined || controlled === (heading.current ?? settled.current)) return;
+    heading.current = controlled;
+    latest.current.onTargetChange?.(controlled);
+    scrollToSlide(controlled, reduced ? "instant" : "smooth");
+    // Only when the app's index changes: a new motion setting moves nothing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controlled]);
+  // The pager marks where the app says the carousel is, so a followed link is marked at once.
+  const shown = controlled ?? current;
+
   const go = (step: 1 | -1) => {
     // scrollend updates the ref before React commits the rendered index.
     const from = heading.current ?? Math.min(settled.current, lastIndex);
@@ -361,6 +420,22 @@ export function Carousel(props: CarouselProps): JSX.Element {
       {/* With every slide in view there is nowhere to step. The buttons stay in the page, so a
           keyboard handler that presses them still finds them. */}
       <div data-ouro-carousel-buttons="" className={cn(buttonsClass, lastIndex === 0 && "hidden")}>
+        {pagerHref && (
+          <nav aria-label={pagerLabel} className={pagerClass}>
+            {Array.from({ length: lastIndex + 1 }, (_, position) => (
+              <RouterLink
+                key={position}
+                href={pagerHref(position)}
+                aria-current={position === shown ? "true" : undefined}
+                data-ouro-control="carousel"
+                data-ouro-part="page"
+                className={pageClass}
+              >
+                <span className="sr-only">{fillTemplate(slideLabel, position + 1, total)}</span>
+              </RouterLink>
+            ))}
+          </nav>
+        )}
         <Button
           ref={previousRef}
           variant="outline"
