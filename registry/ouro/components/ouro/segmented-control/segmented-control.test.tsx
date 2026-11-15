@@ -220,6 +220,17 @@ describe("SegmentedControl", () => {
     }
   });
 
+  it("moves nothing on a key from a segment disabled while it had focus", async () => {
+    const onValueChange = vi.fn();
+    const { segments, rerender } = await render(<SegmentedControl label="View" items={items} defaultValue="grid" onValueChange={onValueChange} />);
+    await pressTab();
+    expect(document.activeElement).toBe(segments[1]);
+    await rerender(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} defaultValue="grid" onValueChange={onValueChange} />);
+    await userEvent.keyboard("{ArrowRight}{ArrowLeft}{Home}");
+    expect(document.activeElement === segments[0] || document.activeElement === segments[2]).toBe(false);
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("moves the way the text runs in a right-to-left page", async () => {
     const { segments } = await render(
       <div dir="rtl">

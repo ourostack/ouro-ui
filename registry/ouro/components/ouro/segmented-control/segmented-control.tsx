@@ -216,7 +216,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
   const move = (event: KeyboardEvent<HTMLDivElement>): void => {
     const segments = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("[data-ouro-segment]:not(:disabled)"));
     const at = segments.indexOf(event.target as HTMLElement);
-    // Stryker disable next-line ConditionalExpression: only a segment can hold focus inside the group, so a key always comes from one
+    // A key from a segment disabled while it had focus moves nothing.
     if (at === -1) return;
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const rtl = (event.currentTarget.closest("[dir]")?.getAttribute("dir") ?? document.documentElement.dir) === "rtl";
