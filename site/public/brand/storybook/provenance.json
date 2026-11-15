@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@07676390271c15c7bcd0b00ad698519ab3670c85:brand/",
+  "origin": "ourostack/.github@0f997ed2ed1e50e275f9015bfeae091ed5b04fe4:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -53,19 +53,19 @@
     },
     {
       "file": "icons/ouro-hx-180.png",
-      "sha256": "a00978c36a94f8f8ed73ae1d743225e8f1ccb44b27e629bbb8d6e582e20d0d4d"
+      "sha256": "539c05ffc81233169ceba9baff41d68037b1619d1802cf7dd5cb896185a8e6e0"
     },
     {
       "file": "icons/ouro-hx-192.png",
-      "sha256": "7cfb98863b7eb73d5d245e017548126938b7ea2a198bb78a37ed11c90ee534ff"
+      "sha256": "2014652dac30ac11857ebfda89175a970d148b58261ec6c4d94f75148cafe8f4"
     },
     {
       "file": "icons/ouro-hx-512.png",
-      "sha256": "f62c74a085ca6cbc9ab5fb91adc64e9086cbbf158589ee33abfdab132df8b3c7"
+      "sha256": "ad2d5d471437e4a5ee25117c47bd3131b196b73acbf8267851f07c23ad23309a"
     },
     {
       "file": "icons/ouro-hx.svg",
-      "sha256": "35a5ad301e3391088a90633091882911599c1482a9772bc0d47ae88d7f48961e"
+      "sha256": "bee6f97cf7370682fbcda69a0e874acf24eb1bf7f2eb82856ce38790fed2b7ec"
     },
     {
       "file": "og/ouro-hx.jpg",
