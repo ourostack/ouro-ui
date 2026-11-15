@@ -857,7 +857,21 @@
     "site/e2e/voyage-live.spec.ts": 153415,
     "site/e2e/voyage-presets-nautilus.spec.ts": 123102,
     "site/e2e/voyage-presets.spec.ts": 194636,
-    "site/e2e/voyage.spec.ts": 246490
+    "site/e2e/voyage.spec.ts": 246490,
+    "site/e2e/sameness-dark-chromium.spec.ts": 164002,
+    "site/e2e/sameness-dark-webkit-1.spec.ts": 304336,
+    "site/e2e/sameness-dark-webkit-2.spec.ts": 327779,
+    "site/e2e/sameness-light-chromium.spec.ts": 146037,
+    "site/e2e/sameness-light-webkit-1.spec.ts": 329935,
+    "site/e2e/sameness-light-webkit-2.spec.ts": 329538,
+    "site/e2e/states-dark-1.spec.ts": 292763,
+    "site/e2e/states-dark-2.spec.ts": 315832,
+    "site/e2e/states-dark-3.spec.ts": 341778,
+    "site/e2e/states-dark-4.spec.ts": 187464,
+    "site/e2e/states-light-1.spec.ts": 359566,
+    "site/e2e/states-light-2.spec.ts": 341476,
+    "site/e2e/states-light-3.spec.ts": 229333,
+    "site/e2e/states-light-4.spec.ts": 232994
   },
   "subset": {
     "button": 51782,
