@@ -226,7 +226,12 @@ describe("SegmentedControl", () => {
     await pressTab();
     expect(document.activeElement).toBe(segments[1]);
     await rerender(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} defaultValue="grid" onValueChange={onValueChange} />);
-    await userEvent.keyboard("{ArrowRight}{ArrowLeft}{Home}");
+    // Whether the engine keeps focus on a button it disables varies, so the keys come from the segment itself.
+    for (const key of ["ArrowRight", "ArrowLeft", "Home"]) {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      await act(async () => void segments[1]!.dispatchEvent(event));
+      expect(event.defaultPrevented, key).toBe(false);
+    }
     expect(document.activeElement === segments[0] || document.activeElement === segments[2]).toBe(false);
     expect(onValueChange).not.toHaveBeenCalled();
   });
