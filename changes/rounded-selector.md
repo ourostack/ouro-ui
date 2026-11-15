@@ -1,0 +1,1 @@
+- Changed: the round corner of `rounded-full` now comes with Tailwind's `rounded-full` utility (from `ouro-base`), and the squircle rule matches only inside Ouro components, so a style recalculation no longer searches every element's class twice; a `rounded-full` behind a variant (`sm:rounded-full`) is round only where the variant applies.
