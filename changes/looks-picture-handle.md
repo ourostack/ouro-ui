@@ -1,0 +1,1 @@
+- Fixed: the looks sweeps take a handle to an element before picturing it, so a page that changes mid-sweep skips that picture instead of timing out
