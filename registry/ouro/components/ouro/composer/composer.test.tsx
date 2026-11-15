@@ -267,6 +267,7 @@ describe("Composer presses around the text", () => {
 
   it("puts the caret at the end of the text on a press in the box's bottom left corner, under the text", async () => {
     const { frame, textarea } = await render(<Composer label="Reply" defaultValue={text} onSend={() => {}} />);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     await press(frame, 6, frame.getBoundingClientRect().height - 6);
     expect(document.activeElement).toBe(textarea);
     expect(textarea.selectionStart).toBe(text.length);
@@ -1024,10 +1025,12 @@ describe("Composer expanded", () => {
     const expandedHeight = body.getBoundingClientRect().height;
     // Typing grows the box at once, as before.
     await userEvent.keyboard("a{Enter}b{Enter}c{Enter}d{Enter}e{Enter}f");
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     const sixLines = body.getBoundingClientRect().height;
     // The seventh line grows the box past its six rows, at once; a long duration would hold a change still running.
     body.style.setProperty("--ouro-duration-base", "10s");
     await userEvent.keyboard("{Enter}");
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     expect(heights(body)).toEqual([]);
     expect(body.getBoundingClientRect().height).toBeGreaterThan(sixLines);
     body.style.removeProperty("--ouro-duration-base");

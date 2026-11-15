@@ -1,0 +1,1 @@
+- TextArea with autoGrow waits for the frame after first paint to measure its padding where the browser sizes by content, so mounting it costs a layout read only in WebKit.

@@ -15,7 +15,6 @@ const modules = import.meta.glob<{ default: () => JSX.Element }>("../site/src/do
 
 /** Demos whose mount reads layout, by item name, each with what it reads and why it stays. Each is a read to move past the first paint; a waiver that stops reading fails, so it goes with the fix. */
 const waivers: Record<string, string> = {
-  "autocomplete": "reads getComputedStyle on its text box at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "chart": "reads bounding boxes and text styles at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "color-scheme-toggle": "reads getComputedStyle on a button at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "composer": "reads getComputedStyle and offsetHeight at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
@@ -35,10 +34,15 @@ const waivers: Record<string, string> = {
   "stacked-layout": "reads getComputedStyle on the document at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "tab-bar": "reads the window's inner size at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "tabs": "reads scroll and client sizes and getComputedStyle on a tab at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "text-area": "reads getComputedStyle on its text box at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "thread-rail": "reads scroll and client sizes at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "time-grid": "reads offsetHeight, scrollTop and clientHeight at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
   "toolbar": "reads getComputedStyle, bounding boxes and clientWidth at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
+};
+
+/** Demos that read at mount in WebKit alone, each with the reason; a demo here must read in WebKit and read nothing in Chromium. */
+const webkitWaivers: Record<string, string> = {
+  "autocomplete": "WebKit cannot size a text box by its content, so the text box measures its scroll height before the first paint, or the first frame would show one line and then jump",
+  "text-area": "WebKit cannot size a text box by its content, so it measures its scroll height before the first paint, or the first frame would show one line and then jump",
 };
 
 const names = Object.keys(modules)
@@ -78,7 +82,11 @@ describe("mounting a docs demo", () => {
     await unmount?.();
     const found = watch.names();
     const detail = [...new Set(watch.reads.map((read) => `${read.name} on ${read.target}`))].join("; ");
-    if (waivers[name]) expect(found.length, `${name} is waived (${waivers[name]}) but reads nothing: remove the waiver`).toBeGreaterThan(0);
+    const webkit = !/Chrome/.test(navigator.userAgent);
+    if (webkitWaivers[name]) {
+      if (webkit) expect(found.length, `${name} is waived in WebKit (${webkitWaivers[name]}) but reads nothing: remove the waiver`).toBeGreaterThan(0);
+      else expect(found, `${name} reads layout in Chromium (${detail}): read it after paint`).toEqual([]);
+    } else if (waivers[name]) expect(found.length, `${name} is waived (${waivers[name]}) but reads nothing: remove the waiver`).toBeGreaterThan(0);
     else expect(found, `${name}'s mount reads layout (${detail}): read it on first use or after paint, or waive it with a reason in test/mount-reads.test.tsx`).toEqual([]);
   });
 });
