@@ -783,8 +783,11 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       if ((opening.current || keepInView.current) && clips.current) selectionFrame.current = requestAnimationFrame(() => sync.current!());
       return;
     }
-    // Until the observer's first callback has found the boxes around the list, nothing is read.
-    if (clips.current) sync.current();
+    // Until the observer's first callback has found the boxes around the list, nothing is read. Nor is it while the window's
+    // slots sit in normal flow, where no row's place waits on a measurement: the rows that rendered are observed, and their
+    // first sizes come to the observer once the page is laid out, as a mounting list's do. A row the keyboard reached still
+    // takes focus in the commit.
+    if (clips.current && (!flow || focusNext.current)) sync.current();
   });
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
