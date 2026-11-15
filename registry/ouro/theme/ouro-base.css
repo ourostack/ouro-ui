@@ -22,6 +22,8 @@
  *   scroll fade drawn with no script.
  * - The shadow under each side of a sheet, --ouro-shadow-sheet-<side>, which shadcn's
  *   --shadow-* scale has no upward or sideways step for.
+ * - Ouro's focus ring and row states as classes, for markup that is not an Ouro component (a
+ *   row or a cell built as a string): .ouro-focus-ring, .ouro-focus-ring-inset and .ouro-row.
  *
  * Every other shadow and font is shadcn's standard token, read at runtime, so a theme that sets
  * them restyles the components: --shadow-lg (popovers, menus, selects, comboboxes, navigation
@@ -135,6 +137,32 @@
   }
   [data-ouro-surface] {
     display: none;
+  }
+  /* Ouro's focus ring for markup that is not an Ouro component: the ring colour, a 2px solid outline on keyboard focus, 2px outside the box (inside it with -inset, for a row or a cell that a scroller would clip). */
+  .ouro-focus-ring {
+    outline-color: var(--ring);
+    outline-offset: 2px;
+  }
+  .ouro-focus-ring-inset {
+    outline-color: var(--ring);
+    outline-offset: -2px;
+  }
+  .ouro-focus-ring:focus-visible, .ouro-focus-ring-inset:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+  }
+  /* A row that opens something when pressed, as a linked Item or Table row: tinted toward the text colour while a mouse rests on it, and more while it is pressed. */
+  .ouro-row {
+    cursor: pointer;
+    transition: background-color var(--ouro-duration-fast) ease;
+  }
+  .ouro-row:active {
+    background-color: color-mix(in oklab, var(--foreground) 6%, transparent);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .ouro-row:hover:not(:active) {
+      background-color: color-mix(in oklab, var(--foreground) 3%, transparent);
+    }
   }
 }
 

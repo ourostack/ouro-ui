@@ -8,6 +8,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import postcss from "postcss";
 import { type Block, declarations, fontFace, type Font, parseBlocks, type Preset, presets, readFonts, SITE, stack, themesDir } from "./themes.mts";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -46,9 +47,33 @@ export function plainBlocks(blocks: readonly Block[]): string {
     .join("\n\n");
 }
 
+/**
+ * The rules of ouro-base.css's @layer base that are plain CSS for any markup (Ouro's classes,
+ * .ouro-focus-ring and the rest), and the file without that layer, whose other rules need Tailwind.
+ */
+export function plainClasses(css: string): { classes: string[]; rest: string } {
+  const root = postcss.parse(css);
+  const classes: string[] = [];
+  const lines = (node: postcss.Rule) => node.nodes.flatMap((decl) => (decl.type === "decl" ? [`${decl.prop}: ${decl.value}`] : []));
+  const ours = (node: postcss.Rule) => node.selectors.every((selector) => selector.trim().startsWith(".ouro-"));
+  root.walkAtRules("layer", (layer) => {
+    if (layer.params !== "base") return;
+    layer.each((node) => {
+      if (node.type === "rule" && ours(node)) classes.push(rule(node.selectors.map((selector) => selector.trim()).join(", "), lines(node)));
+      if (node.type === "atrule" && node.name === "media") {
+        const inner = node.nodes?.flatMap((child) => (child.type === "rule" && ours(child) ? [rule(child.selector, lines(child), "  ")] : [])) ?? [];
+        if (inner.length > 0) classes.push(`@media ${node.params} {\n${inner.join("\n")}\n}`);
+      }
+    });
+    layer.remove();
+  });
+  return { classes, rest: root.toString() };
+}
+
 /** The top-level at-rules of ouro-base.css, by name, and the rest of the file without them. */
-export function splitBase(css: string): { inline: string; utilities: string[]; keyframes: string[]; supports: string[]; blocks: Block[] } {
-  const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
+export function splitBase(css: string): { inline: string; utilities: string[]; keyframes: string[]; supports: string[]; classes: string[]; blocks: Block[] } {
+  const { classes, rest: unlayered } = plainClasses(css.replace(/\/\*[\s\S]*?\*\//g, ""));
+  const source = unlayered;
   const inline = /@theme inline\s*\{([^{}]*)\}/.exec(source);
   if (!inline) throw new Error("ouro-base.css has no @theme inline block");
   const utilities = [...source.matchAll(/@utility\s+([\w-]+)\s*\{[^{}]*\}/g)].map((match) => match[1]!);
@@ -63,10 +88,9 @@ export function splitBase(css: string): { inline: string; utilities: string[]; k
   const rest = source
     .replace(inline[0], "")
     .replace(supportsPattern, "")
-    .replace(/@layer\s+base\s*\{(?:\s*[^{}]*\{[^{}]*\})*\s*\}/g, "")
     .replace(/@utility\s+[\w-]+\s*\{[^{}]*\}/g, "")
     .replace(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
-  return { inline: inline[1]!, utilities, keyframes, supports, blocks: parseBlocks(rest) };
+  return { inline: inline[1]!, utilities, keyframes, supports, classes, blocks: parseBlocks(rest) };
 }
 
 /** A keyframes rule, indented two spaces a level. */
@@ -89,7 +113,7 @@ const MODES = [
 
 /** ouro-base.css as plain CSS: its @theme inline aliases become :root properties, and its Tailwind utilities are left out. */
 export function baseCss(css: string): string {
-  const { inline, utilities, keyframes, supports, blocks } = splitBase(css);
+  const { inline, utilities, keyframes, supports, classes, blocks } = splitBase(css);
   const root = blocks.find((block) => block.selector === ":root");
   if (!root) throw new Error("ouro-base.css has no :root block");
   const merged = blocks.map((block) => (block === root ? { selector: ":root", body: `${inline};${block.body}` } : block));
@@ -97,13 +121,15 @@ export function baseCss(css: string): string {
     header([
       "Ouro HX base tokens as plain CSS, for a page without Tailwind: radii, status colors,",
       "motion durations and easings, the overlay layer, and the ouro-* keyframes. Load it with a",
-      "theme (ouro-theme.css or themes/<name>.css).",
+      "theme (ouro-theme.css or themes/<name>.css). Its classes give plain markup Ouro's focus ring",
+      "and row states: .ouro-focus-ring, .ouro-focus-ring-inset and .ouro-row.",
       `Tailwind utilities left out: ${utilities.join(", ")}.`,
       ...MODES,
       `From registry/ouro/theme/ouro-base.css. ${GENERATED}`,
       LICENSE,
     ]),
     plainBlocks(merged),
+    ...classes,
     ...supports,
     ...keyframes.map(formatKeyframes),
   ].join("\n\n") + "\n";

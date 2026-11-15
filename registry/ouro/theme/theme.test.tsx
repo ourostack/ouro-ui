@@ -1,6 +1,7 @@
 import { spring } from "motion";
 import { afterEach, describe, expect, it } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // The Ouro look (ouro-theme.css) over ouro-base.css, both loaded through app.css, which vitest.config.ts loads before every test.
 // Colors are read through getComputedStyle, so the browser really evaluates the
@@ -213,5 +214,52 @@ describe("press utility", () => {
     expect(getComputedStyle(picked).backgroundColor).toBe(selected);
     expect(getComputedStyle(left).backgroundColor).toBe(plain);
     expect([...left.getAnimations(), ...picked.getAnimations()]).toHaveLength(0);
+  });
+});
+
+describe("focus and row classes for plain markup", () => {
+  const outline = (element: Element) => {
+    const style = getComputedStyle(element);
+    return [style.outlineStyle, style.outlineWidth, style.outlineColor, style.outlineOffset].join(" ");
+  };
+
+  it("draws the ring Ouro's controls draw on keyboard focus: ouro-focus-ring outside the box, ouro-focus-ring-inset inside it", async () => {
+    const host = mount(
+      '<button id="start">Start</button>' +
+        '<button class="outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid">Control</button>' +
+        '<li class="ouro-focus-ring" tabindex="0">Row</li>' +
+        '<li class="ouro-focus-ring-inset" tabindex="0">Cell</li>',
+    );
+    const [, control, ring, inset] = [...host.children] as HTMLElement[];
+    expect(getComputedStyle(ring!).outlineStyle).toBe("none");
+    host.querySelector<HTMLElement>("#start")!.focus();
+    await pressTab();
+    const controlRing = outline(control!);
+    await pressTab();
+    expect(document.activeElement).toBe(ring);
+    expect(outline(ring!)).toBe(controlRing);
+    await pressTab();
+    expect(document.activeElement).toBe(inset);
+    expect(outline(inset!)).toBe(controlRing.replace(/ 2px$/, " -2px"));
+  });
+
+  it("tints a row while a mouse rests on it, and more while it is pressed", async () => {
+    await commands.parkPointer();
+    const row = mount('<div class="ouro-row" style="padding: 12px">Open the customer</div>').firstElementChild as HTMLElement;
+    const settled = () => expect.poll(() => row.getAnimations().length).toBe(0);
+    expect(getComputedStyle(row).cursor).toBe("pointer");
+    const rest = getComputedStyle(row).backgroundColor;
+    await userEvent.hover(row);
+    await settled();
+    expect(toRgb(getComputedStyle(row).backgroundColor, toRgb(color("background")))).toEqual(toRgb(paint("color-mix(in oklab, var(--foreground) 3%, transparent)"), toRgb(color("background"))));
+    expect(getComputedStyle(row).backgroundColor).not.toBe(rest);
+    row.id = "pressed-row";
+    await commands.pointerPress({ selector: "#pressed-row", action: "down" });
+    try {
+      await settled();
+      expect(getComputedStyle(row).backgroundColor).toBe(paint("color-mix(in oklab, var(--foreground) 6%, transparent)"));
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
   });
 });

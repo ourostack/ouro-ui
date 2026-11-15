@@ -1,0 +1,1 @@
+- ouro-base: `ouro-focus-ring`, `ouro-focus-ring-inset` and `ouro-row` give markup that is not an Ouro component, such as rows built as strings, the components' focus ring and a linked row's hover and press tint, and the Ouro source rule counts them as Ouro's. Add `ouro-base` again to get them; the plain stylesheet `site/public/css/ouro-base.css` has them too.

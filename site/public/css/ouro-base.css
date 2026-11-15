@@ -1,7 +1,8 @@
 /*
  * Ouro HX base tokens as plain CSS, for a page without Tailwind: radii, status colors,
  * motion durations and easings, the overlay layer, and the ouro-* keyframes. Load it with a
- * theme (ouro-theme.css or themes/<name>.css).
+ * theme (ouro-theme.css or themes/<name>.css). Its classes give plain markup Ouro's focus ring
+ * and row states: .ouro-focus-ring, .ouro-focus-ring-inset and .ouro-row.
  * Tailwind utilities left out: rounded-full, press.
  * Dark mode: a .dark class on <html> as in shadcn, or, with neither .light nor .dark there,
  * the system's setting (prefers-color-scheme).
@@ -111,6 +112,36 @@
     --ouro-glass-rim: rgb(255 255 255 / 0.3);
     --ouro-glass-edge: rgb(8 6 4 / 0.35);
     --ouro-glass-solid: #e9e6e1;
+  }
+}
+
+.ouro-focus-ring {
+  outline-color: var(--ring);
+  outline-offset: 2px;
+}
+
+.ouro-focus-ring-inset {
+  outline-color: var(--ring);
+  outline-offset: -2px;
+}
+
+.ouro-focus-ring:focus-visible, .ouro-focus-ring-inset:focus-visible {
+  outline-style: solid;
+  outline-width: 2px;
+}
+
+.ouro-row {
+  cursor: pointer;
+  transition: background-color var(--ouro-duration-fast) ease;
+}
+
+.ouro-row:active {
+  background-color: color-mix(in oklab, var(--foreground) 6%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ouro-row:hover:not(:active) {
+    background-color: color-mix(in oklab, var(--foreground) 3%, transparent);
   }
 }
 
