@@ -1058,6 +1058,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The key of the first child, and of the first one drawn: a page of older ones above it waits.
   // Stryker disable next-line ObjectLiteral: an empty start takes the first child's key in the first render instead; this only spares that render.
   const [edge, setEdge] = useState(() => ({ first: top, drawn: top }));
+  // Whether the list drew every child until it grew long and found its window: until then it keeps those children where they are.
+  const [drewWhole, setDrewWhole] = useState(!windowed);
+  useLayoutEffect(() => {
+    if (windowed ? drewWhole && band !== null : !drewWhole) setDrewWhole(!windowed);
+  });
   // A windowed list puts a page of older messages in at once, as space above the messages drawn, so it waits for none and
   // spares the render this would cost. Should it become whole again, what it drew first stays the edge.
   if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
@@ -1117,11 +1122,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // place of ones that went (a message's key changed in place) draw.
       // Stryker disable next-line ArithmeticOperator: a child more or less between the edges is one the window draws, or not, before the browser draws.
       if (range[1] - range[0] + 1 > band.held.size) held = band.held;
-    } else if (showJump && indexes.has(String(edge.drawn))) {
-      // A list the reader scrolled up in that grows long (older history loading above, newer messages after) draws, to begin
-      // with, no more than the WINDOW_ABOVE children it drew whole, from the first of them: the rest, and what came with the
-      // page, is space. The window then finds itself from where those children are, before the browser draws, so the view
-      // stays where it is. One at its end opens at its end.
+    } else if ((showJump || drewWhole) && indexes.has(String(edge.drawn))) {
+      // A list the reader scrolled up in that grows long (older history loading above, newer messages after), or any list that
+      // drew whole until now, draws, to begin with, no more than the WINDOW_ABOVE children it drew whole, from the first of them:
+      // the rest, and what came with the page, is space. The window then finds itself from where those children are, before the
+      // browser draws, so the view stays where it is, though code moved it before the browser reported the scroll.
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
     } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
@@ -1225,6 +1230,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The other conversation draws from its newest, whatever of the one before was drawn.
       // Stryker disable next-line ObjectLiteral: an empty edge has no drawn key, so the slice starts at the first child, as drawn: top does; the next frame's step sets it to the first child's key. The same rows draw either way; on a non-windowed list the empty edge makes the render near line 1020 call setEdge again, one extra render before the commit and no extra commit.
       setEdge({ first: top, drawn: top });
+      // Another conversation opens at its newest, not where the one before was drawn.
+      setDrewWhole(false);
       setBand(null);
       // The next opens at its newest, with no jump to offer and no focus kept on a message of the one before.
       setFocusKey(null);

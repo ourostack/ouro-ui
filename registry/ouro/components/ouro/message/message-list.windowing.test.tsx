@@ -1,4 +1,5 @@
 import { Fragment, createRef, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -518,6 +519,21 @@ describe("MessageList windowing", () => {
     // A conversation of 60 that comes at once, as an app's cached newest page does, draws only what is near the view.
     const page = await render(<Chat items={conversation(60, 0, true)} />);
     expect(messages(page.scroller).length).toBeLessThan(40);
+  });
+
+  it("keeps the reader's place far up a list that grows long, though code scrolled it there before the browser reported the scroll", async () => {
+    const items = Array.from({ length: 20 }, (_, id) => ({ id, text: `Message ${id}`, tall: 200 }));
+    const { scroller, root } = await render(<Chat items={items} />);
+    let reading = firstVisible(scroller);
+    await act(async () => {
+      // Far above what a first draw from the end reaches, and a message arrives before the scroll event.
+      scroller.scrollTop -= 3000;
+      reading = firstVisible(scroller);
+      flushSync(() => root.render(<Chat items={[...items, { id: 20, text: "A new reply." }]} />));
+    });
+    await settle(scroller);
+    expect(reading.message.isConnected).toBe(true);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
   });
 
   it("keeps every message in the page with windowing={false}", async () => {
