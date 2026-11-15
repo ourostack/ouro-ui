@@ -615,8 +615,12 @@ describe("MessageList springs", () => {
     expect(messages().some((message) => shiftOf(message) < 0)).toBe(true);
     // The reader's scroll ends, and at once the list goes back to its newest message.
     scroller.dispatchEvent(new Event("scrollend"));
+    // The button comes from the scroll's update, which React commits in a task of its own after the scroll event, later
+    // on a busy runner than the click below would otherwise be (#1599).
+    const jump = () => [...document.querySelectorAll("button")].find((button) => button.textContent === "Jump to latest");
+    await expect.poll(jump).toBeDefined();
     const jumped = nextScroll(scroller);
-    await act(async () => [...document.querySelectorAll("button")].find((button) => button.textContent === "Jump to latest")!.click());
+    await act(async () => jump()!.click());
     await jumped;
     for (let frame = 0; frame < 120; frame++) frames.step(16);
     expectAtRest(messages());
