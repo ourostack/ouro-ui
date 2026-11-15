@@ -45,14 +45,14 @@ export interface Scene {
 
 export const SCENES: Record<SceneName, Scene> = {
   "ouro-hx": {
-    alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, work an oak-and-brass console on a dawn hilltop, while Ouro, a smiling emerald glass snake curled into an O, watches beside them.",
+    alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, stand at an oak-and-brass crate on a dawn hilltop. He hands over a ribboned checklist while Ouro, a smiling emerald glass snake curled into an O, watches from the crate.",
     sky: ["#cfc0d0", "#c4c1da", "#cfcbdb", "#faceb4", "#fbd9b6"],
-    height: 576,
+    height: 512,
     phoneHeight: 352,
     band: 27,
     night: {
       phoneHeight: 352,
-      alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, work an oak-and-brass console on a moonlit hilltop, while Ouro, a smiling emerald glass snake curled into an O, watches beside them.",
+      alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, stand at an oak crate on a moonlit hilltop. He hands over a ribboned checklist while Ouro, a smiling emerald glass snake curled into an O, watches from the crate.",
     },
   },
   "ouro-ui-apple": {
