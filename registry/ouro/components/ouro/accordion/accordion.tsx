@@ -145,6 +145,7 @@ function Row({ item, Heading, open }: { item: AccordionItem; Heading: `h${Accord
         role="region"
         aria-labelledby={triggerId}
         open={open}
+        // Stryker disable next-line OptionalChaining: the trigger is mounted whenever its panel can be found.
         onFound={() => triggerRef.current?.click()}
         contentClassName={panelContentClass}
       >

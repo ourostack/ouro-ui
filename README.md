@@ -538,7 +538,8 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-person`,
 `lib-use-reduced-motion`,
 `lib-use-sheet-presentation`,
-`lib-use-timer`.
+`lib-use-timer`,
+`lib-use-until-found`.
 No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
 <!-- items:end -->
 
