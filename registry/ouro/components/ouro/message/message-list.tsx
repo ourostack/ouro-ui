@@ -376,7 +376,7 @@ const CACHED_WIDTH = "\0width";
  * The width, in CSS pixels, rounded to a multiple of this, that a height is cached for.
  */
 const BUCKET = 8;
-/** The children drawn around the view: the first and last, by key, and every key between them when it was set (`id` joins them). */
+/** The children drawn around the view, by key: its first, its last and those it held when it was set (`id` joins them). */
 interface Band {
   id: string;
   from: string;
