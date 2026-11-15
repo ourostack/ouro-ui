@@ -530,6 +530,7 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
       flushSync(() => setLayout(next));
     });
     measure.observe(root);
+    // Stryker disable next-line ArrowFunction: equivalent; an observer left on reports once, and a newer one made after it reports after it in the same delivery and sets the row it measures, while React drops a state set after unmount.
     return () => measure.disconnect();
   }, [inputs, size, epoch]);
 
