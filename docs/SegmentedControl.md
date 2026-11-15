@@ -2,7 +2,7 @@
 
 # SegmentedControl
 
-An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. Exactly one segment is checked. Screen readers hear a radio group, and the arrow keys check the next segment as they do for radio buttons. Segments are 44px tall on touch screens, and `name` submits the value with a form.
+An iOS-style segmented control: a row of equal segments with a raised thumb that slides to the checked one, for switching how one view shows its content in place, such as list or grid. Exactly one segment is checked. Screen readers hear a radio group, and the arrow keys check the next segment as they do for radio buttons. Segments are 44px tall on touch screens, and `name` submits the value with a form. Keyboard focus stays on the checked segment: when the app checks another one while a segment has focus, focus moves to it, so the ring and the thumb never mark two segments.
 
 ```tsx
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
