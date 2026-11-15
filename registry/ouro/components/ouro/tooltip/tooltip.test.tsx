@@ -262,7 +262,7 @@ describe("TooltipGroup", () => {
     await expect.poll(() => tooltip()).toBeNull();
   });
 
-  it("closes as the container it is in hides", async () => {
+  it("closes as the container it is in hides, and stays open when it shows again", async () => {
     await render(group());
     const root = roots.at(-1)!;
     await act(async () => button("First").focus({ focusVisible: true } as FocusOptions));
@@ -270,6 +270,24 @@ describe("TooltipGroup", () => {
     await act(async () => root.render(group(true)));
     await expect.poll(() => tooltip()).toBeNull();
     expect(document.activeElement).toBe(button("First"));
+    // Focus that comes back opens it, and the container showing again leaves it open.
+    button("First").blur();
+    await act(async () => button("First").focus({ focusVisible: true } as FocusOptions));
+    await shown();
+    await act(async () => root.render(group(false)));
+    await act(async () => {});
+    expect(tooltip()).not.toBeNull();
+  });
+
+  it("names Tooltip when the open tooltip renders outside every landmark of a page that has a main", async () => {
+    const main = document.body.appendChild(document.createElement("main"));
+    mounted.push(main);
+    await render(group());
+    await userEvent.hover(button("First"));
+    await shown();
+    expect(warnings()).toEqual([
+      "[ouro-ui] Tooltip: the open popup renders outside every landmark, so screen reader users who move by landmark miss it. Fix: <OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>.",
+    ]);
   });
 
   it("never opens after a touch on a trigger", async () => {
