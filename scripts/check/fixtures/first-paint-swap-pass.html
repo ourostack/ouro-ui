@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First-paint swap: passes</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}main{max-width:36rem;margin:0 auto}#rail{display:flex;flex-direction:column;width:200px;height:240px;overflow:hidden}#rail button{flex:none;height:40px;width:100%;font:inherit;text-align:start;padding:0 12px}</style>
+<main data-app-ready="true"><h1>First-paint swap</h1><nav id="rail" aria-label="Sections"><button>Home</button><button>Inbox</button><button>Calendar</button><button>Notes</button><button>More</button></nav><p>The rail draws its final list in the first frame, with More in place of the sections that do not fit.</p></main>
+<script>
+// A frame later the page draws Calendar again as a new node: the same control, so no swap.
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  const calendar = [...document.querySelectorAll("#rail button")].find((item) => item.textContent === "Calendar");
+  calendar.replaceWith(Object.assign(document.createElement("button"), { textContent: "Calendar" }));
+}));
+</script>
