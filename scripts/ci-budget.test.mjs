@@ -323,11 +323,11 @@ test("work more than 3 minutes over main's fails when the earlier attempt or the
   // A pull request pushed once is not let through: it fails until a second run of all its jobs says the same.
   assert.deepEqual(verdict({ work: 10.5 }), { fail: true, reason: "confirm", warning: null });
   // With no work baseline from main, only the ceiling holds.
-  assert.deepEqual(verdict({ work: 14, main: null }), { fail: false, warning: "no-baseline" });
+  assert.deepEqual(verdict({ work: 9, main: null }), { fail: false, warning: "no-baseline" });
 });
 
-test("the ceiling is on work time too, 15 minutes or half again main's work, whichever is more, and a single slow run past it only asks for a re-run", () => {
-  assert.equal(budget.ceilingMinutes, 15);
+test("the ceiling is on work time too, 10 minutes or half again main's work, whichever is more, and a single slow run past it only asks for a re-run", () => {
+  assert.equal(budget.ceilingMinutes, 10);
   assert.equal(budget.ceilingFactor, 1.5);
   // Run 39713764485: 38.8 minutes on a slow network; most of it setup, so its work is near main's.
   assert.deepEqual(verdict({ critical: 38.8, work: 9 }), { fail: false, warning: "over" });
