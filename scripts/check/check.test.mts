@@ -46,10 +46,12 @@ describe("Ouro check", () => {
   test("a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again", async () => {
     const sizes: [number, number][] = [[320, 640], [390, 844], [1440, 900]];
     const options = { targets: [fixtures], pages: "*-fail.html", sizes, themes: ["light", "dark"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet };
-    const whole = await check({ ...options, out: dir("whole") });
     const shards = [dir("shard"), dir("shard"), dir("shard")];
-    const parts = [];
-    for (const [i, out] of shards.entries()) parts.push(await check({ ...options, out, shard: [i + 1, 3] }));
+    // The whole run and the three shards are independent, so they run side by side.
+    const [whole, ...parts] = await Promise.all([
+      check({ ...options, out: dir("whole") }),
+      ...shards.map((out, i) => check({ ...options, out, shard: [i + 1, 3] })),
+    ]);
     assert.ok(parts.every((part) => part.shard && part.findings.length < whole.findings.length));
     assert.match(readFileSync(join(shards[0]!, "summary.md"), "utf8"), /, shard 1\/3$/m);
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });

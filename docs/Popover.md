@@ -36,7 +36,7 @@ The props the modes share. Type: `PopoverProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end"` | `"center"` | How the popover lines up with the trigger along that side. |
-| `children` (required) | `ReactNode` |  | The body. It scrolls when the popover is taller than the space beside the trigger. |
+| `children` (required) | `ReactNode` |  | The body. It scrolls when the popover is taller than the space beside the trigger. Its focus ring is drawn over the content, so a header that sticks to the top never hides an edge of it. |
 | `className` | `string` |  | Layout only, applied to the popover panel: width (18rem, `w-72`, by default) and margins. Your classes win over Ouro UI's. The sheet keeps its full width. Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of the close button, the last control in the popover. It is hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the popover. |
 | `description` | `ReactNode` |  | A short line under the title, read out when the popover opens. |

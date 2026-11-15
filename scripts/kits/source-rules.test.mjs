@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -932,6 +932,22 @@ describe("third-party-control", () => {
         "~/components/ouro/button/button",
     ])("does not treat %s as a UI-control library", (specifier) => {
         expect(isThirdPartyControlModule(specifier)).toBe(false);
+    });
+    it("points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count", () => {
+        const source = `
+      import { CSPProvider } from "@base-ui/react/csp-provider";
+      import { OuroProvider } from "~/lib/ouro/ouro-provider";
+      export function Old() { return <CSPProvider disableStyleElements><Page /></CSPProvider>; }
+      export function New() { return <OuroProvider strictCsp><Page /></OuroProvider>; }`;
+        const offenders = scan(source);
+        expect(offenders.map((offender) => offender.fingerprint)).toEqual(["app/routes/fixture.tsx::Old::third-party-control::@base-ui/react/csp-provider.CSPProvider::"]);
+        const comparison = compareWithBaseline(offenders, {});
+        expect(formatComparison(comparison)).toEqual([
+            `New Base UI CSPProvider: app/routes/fixture.tsx::Old::third-party-control::@base-ui/react/csp-provider.CSPProvider:: (+1) at app/routes/fixture.tsx:4. ${CSP_PROVIDER_FIX}`,
+        ]);
+        expect(CSP_PROVIDER_FIX).toContain("<OuroProvider strictCsp>");
+        const other = compareWithBaseline([{ fingerprint: "app/x.tsx::A::third-party-control::@headlessui/react.Dialog::", file: "app/x.tsx", line: 2 }], {});
+        expect(formatComparison(other)[0]).toMatch(/^New hand-rolled control: /);
     });
     it("finds a named import, tagged with its package and imported name", () => {
         const source = `

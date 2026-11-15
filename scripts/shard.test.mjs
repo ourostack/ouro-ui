@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
@@ -70,17 +70,17 @@ test("with groups, each group's files spread as evenly as the shards allow, then
   assert.deepEqual([1, 2].flatMap((index) => shardKeys(keys, { index, count: 2 }, timings, (key) => key.split(" ")[0])).sort(), keys.sort());
 });
 
-test("CI's browser shards each take an even share of every Vitest project, which run side by side", () => {
+test("CI's browser shards: every file runs exactly once, and no shard's total time is over its share by more than 30 s", () => {
   assert.equal(projectOf("ouro-touch (chromium) registry/ouro/components/ouro/sheet/sheet.touch.test.tsx"), "ouro-touch (chromium)");
-  const timings = readTimings("vitest");
+  const timings = { ...readTimings("vitest"), ...readTimings("subset") };
+  const count = 10;
+  const shards = browserBalance(count);
   const keys = Object.keys(timings).filter((key) => !slicedSuites.some((suite) => key.endsWith(` ${suite}`)));
-  const shards = balance(keys, 4, timings, projectOf);
-  for (const project of new Set(keys.map(projectOf))) {
-    const files = keys.filter((key) => projectOf(key) === project);
-    const shares = shards.map((shard) => shard.keys.filter((key) => projectOf(key) === project).reduce((sum, key) => sum + timings[key], 0));
-    // No shard has more of a project than another by more than that project's longest file.
-    assert.ok(Math.max(...shares) - Math.min(...shares) <= Math.max(...files.map((key) => timings[key])), `${project}: ${shares.join(", ")}ms`);
-  }
+  assert.deepEqual(shards.flatMap((shard) => shard.keys).sort(), keys.sort());
+  const total = keys.reduce((sum, key) => sum + timings[key], 0);
+  // Each shard's tests run one after another, so its total is what it takes; a new or slower file that pushes a shard over its share fails here.
+  const tolerance = 30_000;
+  for (const [index, shard] of shards.entries()) assert.ok(shard.weight <= total / count + tolerance, `shard ${index + 1}: ${shard.weight}ms of a ${Math.round(total / count)}ms share`);
 });
 
 test("a shard is <index>/<count>, as Vitest and Playwright take it", () => {

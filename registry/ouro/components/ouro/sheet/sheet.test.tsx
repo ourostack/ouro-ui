@@ -685,7 +685,7 @@ describe("sides", () => {
 });
 
 describe("close control", () => {
-  it("renders a Close button last in the sheet, hidden until keyboard focus, that closes it", async () => {
+  it("shows a Close icon button in the top corner without focus, last in the sheet, that closes it", async () => {
     await render(
       <Sheet title="Save to cookbook" trigger={<Button>Save</Button>}>
         <Button>Weeknight dinners</Button>
@@ -697,14 +697,34 @@ describe("close control", () => {
     const element = close.element() as HTMLElement;
     const focusable = popup()!.querySelectorAll("button, [href], input, [tabindex]:not([tabindex='-1'])");
     expect(focusable[focusable.length - 1]).toBe(element);
-    expect(element.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    // In view with no focus on it: a mouse user sees how to close the sheet.
+    expect(element.matches(":focus")).toBe(false);
+    expect(element.checkVisibility({ opacityProperty: true, visibilityProperty: true })).toBe(true);
+    const [box, sheet] = [element.getBoundingClientRect(), popup()!.getBoundingClientRect()];
+    expect(box.width).toBeGreaterThanOrEqual(32);
+    expect(box.height).toBeGreaterThanOrEqual(32);
+    expect(Math.round(sheet.right - box.right)).toBe(12);
+    expect(element.querySelector("svg")).not.toBeNull();
+    // The title keeps clear of it.
+    const title = popup()!.querySelector("h2")!.getBoundingClientRect();
+    expect(title.right).toBeLessThanOrEqual(box.left);
     await userEvent.keyboard("{Tab}");
     expect(document.activeElement!.textContent).toBe("Weeknight dinners");
     await userEvent.keyboard("{Tab}");
     expect(document.activeElement).toBe(element);
-    expect(element.getBoundingClientRect().width).toBeGreaterThan(20);
     await userEvent.click(close);
     await expect.poll(() => popup()).toBeNull();
+  });
+
+  it.each(["bottom", "right"] as const)("puts the Close button level with the title from the %s, and at the top corner with the title hidden", async (side) => {
+    const { rerender } = await render(<Sheet title="Filters" side={side} open onOpenChange={() => {}}>Body</Sheet>);
+    await settled();
+    const middle = (box: DOMRect) => box.top + box.height / 2;
+    const close = () => popup()!.querySelector<HTMLElement>("[data-ouro-sheet-close]")!.getBoundingClientRect();
+    const title = popup()!.querySelector("h2")!.getBoundingClientRect();
+    expect(Math.abs(middle(close()) - middle(title))).toBeLessThanOrEqual(4);
+    await rerender(<Sheet title="Filters" hideTitle side={side} open onOpenChange={() => {}}>Body</Sheet>);
+    expect(Math.round(close().top - popup()!.getBoundingClientRect().top)).toBe(12);
   });
 
   it("takes its label from closeLabel and closes a controlled sheet through onOpenChange", async () => {
