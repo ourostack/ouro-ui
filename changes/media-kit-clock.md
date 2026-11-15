@@ -1,0 +1,1 @@
+- Fixed: emulateMedia's wait for the test frame to match leaves out stalls in Node's event loop, so a loaded test run reads the frame again after one.

@@ -47,8 +47,10 @@ export interface DragOptions {
  * utility's) then eases to its new value, so this also returns once those transitions have finished:
  * a test reads where each colour lands, not a colour between the two. The kit keeps the value it
  * set, so `mediaState` and `restoreMedia` can put them back.
+ * The 10 s wait for the frame to match leaves out Node's own stalls, up to 20 s in real time.
  *
  * @claim "This returns once the test frame's `matchMedia` matches every preference passed" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::emulateMedia returns once the frame matches the preference, so the next line reads its styles)
+ * @claim "The 10 s wait for the frame to match leaves out Node's own stalls, up to 20 s in real time" scripts/media-kit-clock.test.mjs verify:testExists(scripts/media-kit-clock.test.mjs::emulateMedia waits out Node's own stalls, which do not count against its 10 s wait) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const MEDIA_WAIT_MS = 10_000;/) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const CEILING_FACTOR = 2;/)
  * @claim "this also returns once those transitions have finished" registry/ouro/lib/ouro/testing/commands.test.ts verify:fileLine(registry/ouro/lib/ouro/testing/commands.test.ts, /emulateMedia returns once forced colours have settled, past any transition the switch started/)
  */
 export const emulateMedia: BrowserCommand<[EmulateMediaOptions]> = async (ctx, options) => {
@@ -110,32 +112,42 @@ const MEDIA_ANSWER_MS = 3000;
 /**
  * Polls the frame's `matchMedia` from Node until the queries match. The poll runs here, not in the
  * frame, because a test's fake timers in the frame would stall a wait that the frame's own timers drive.
+ * The 10 s wait is counted on the kit's clock (`kitNow`), which leaves out Node's own stalls, up to 20 s in real time: a stall of this process holds the poll, not the frame, so it must not use up the wait.
  * @claim "Polls the frame's `matchMedia` from Node until the queries match" registry/ouro/lib/ouro/testing/commands.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.test.ts::emulateMedia returns while the test's fake timers are on)
+ * @claim "The 10 s wait is counted on the kit's clock (`kitNow`), which leaves out Node's own stalls, up to 20 s in real time" scripts/media-kit-clock.test.mjs verify:testExists(scripts/media-kit-clock.test.mjs::emulateMedia waits out Node's own stalls, which do not count against its 10 s wait) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const MEDIA_WAIT_MS = 10_000;/) verify:fileLine(registry/ouro/lib/ouro/testing/commands.ts, /const CEILING_FACTOR = 2;/)
  */
 async function awaitMedia(frame: Frame, queries: string[]): Promise<void> {
-  // As long as a poll waits (the projects' 10 s), since a loaded runner can be slow to answer.
-  const deadline = performance.now() + MEDIA_WAIT_MS;
-  const unmatched = `${JSON.stringify(queries)}.find((query) => !matchMedia(query).matches)`;
-  // The query the frame last said it does not match.
-  let unmatchedBefore: string | undefined;
-  for (;;) {
-    // Each read gets at least MEDIA_ANSWER_MS, so a read begun just before the deadline can still answer
-    // and the failure names the query that does not match, not a frame that did not answer.
-    const limit = Math.max(deadline - performance.now(), MEDIA_ANSWER_MS);
-    let missing: string | undefined;
-    try {
-      missing = await within(frame.evaluate<string | undefined>(unmatched), limit, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(limit)}ms`);
-    } catch (problem) {
-      // A frame that said what it does not match, then stalled on the last read (a loaded runner), still does not match it.
-      if (unmatchedBefore !== undefined && performance.now() > deadline) {
-        throw new Error(`the test frame does not match ${unmatchedBefore} within ${MEDIA_WAIT_MS / 1000}s (and its last read did not answer within ${Math.round(limit)}ms)`, { cause: problem });
+  const stopCounting = countStalls();
+  try {
+    // As long as a poll waits (the projects' 10 s), since a loaded runner can be slow to answer.
+    const wait = limitOf(MEDIA_WAIT_MS);
+    const waitOver = () => kitNow() > wait.kit || performance.now() > wait.real;
+    const unmatched = `${JSON.stringify(queries)}.find((query) => !matchMedia(query).matches)`;
+    // The query the frame last said it does not match.
+    let unmatchedBefore: string | undefined;
+    for (;;) {
+      // Each read gets at least MEDIA_ANSWER_MS on the kit's clock, so a read begun just before the deadline can
+      // still answer and the failure names the query that does not match, not a frame that did not answer. No
+      // read outlasts the wait's ceiling in real time.
+      const ms = Math.max(wait.kit - kitNow(), MEDIA_ANSWER_MS);
+      const read: Limit = { kit: kitNow() + ms, real: wait.real };
+      let missing: string | undefined;
+      try {
+        missing = await within(frame.evaluate<string | undefined>(unmatched), read, `the test frame did not answer for ${queries.join(" and ")} within ${Math.round(ms)}ms`);
+      } catch (problem) {
+        // A frame that said what it does not match, then stalled on the last read (a loaded runner), still does not match it.
+        if (unmatchedBefore !== undefined && waitOver()) {
+          throw new Error(`the test frame does not match ${unmatchedBefore} within ${MEDIA_WAIT_MS / 1000}s (and its last read did not answer within ${Math.round(ms)}ms)`, { cause: problem });
+        }
+        throw problem;
       }
-      throw problem;
+      if (missing === undefined) return;
+      unmatchedBefore = missing;
+      if (waitOver()) throw new Error(`the test frame does not match ${missing} within ${MEDIA_WAIT_MS / 1000}s`);
+      await sleep(10);
     }
-    if (missing === undefined) return;
-    unmatchedBefore = missing;
-    if (performance.now() > deadline) throw new Error(`the test frame does not match ${missing} within ${MEDIA_WAIT_MS / 1000}s`);
-    await sleep(10);
+  } finally {
+    stopCounting();
   }
 }
 
