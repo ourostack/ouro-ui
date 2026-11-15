@@ -83,7 +83,7 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Le
           </h1>
           <div className="adoption-ring">
             <Sky stars={board.sky} active={active} closed={closed} />
-            <div className="adoption-readout" aria-hidden="true">
+            <div className="adoption-readout" aria-hidden="true" data-ouro-allow="overlap" data-ouro-allow-why="The count sits in the middle of the ring on purpose; no star or dust is drawn there.">
               {focus ? (
                 <>
                   <span className="adoption-readout-name">{focus.surface.name}</span>
