@@ -5,7 +5,8 @@
     "carousel": [
       {"part": "viewport", "role": "generic", "portal": false},
       {"part": "previous", "role": "button", "portal": false},
-      {"part": "next", "role": "button", "portal": false}
+      {"part": "next", "role": "button", "portal": false},
+      {"part": "page", "role": "link", "portal": false}
     ]
   }
 }

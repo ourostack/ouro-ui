@@ -24,6 +24,9 @@ expectTypeOf<ComponentProps<typeof Carousel>>().toEqualTypeOf<CarouselProps>();
 expectTypeOf<{ children: "Slides" }>().not.toExtend<CarouselProps>();
 // slidesPerView is 1, 2 or 3.
 expectTypeOf<{ label: "Photos"; children: "Slides"; slidesPerView: 4 }>().not.toExtend<CarouselProps>();
+// The app can drive the slide, and give the pager its links.
+expectTypeOf<{ label: "Photos"; children: "Slides"; index: 2; onIndexChange: (index: number) => void; pagerHref: (index: number) => string }>().toExtend<CarouselProps>();
+expectTypeOf<{ label: "Photos"; children: "Slides"; pagerHref: "#slide" }>().not.toExtend<CarouselProps>();
 // shadcn's and Embla's props are hint types.
 expectTypeOf<{ label: "Photos"; children: "Slides"; opts: { loop: true } }>().not.toExtend<CarouselProps>();
 expectTypeOf<{ label: "Photos"; children: "Slides"; setApi: () => void }>().not.toExtend<CarouselProps>();

@@ -564,9 +564,11 @@ describe("dragging (Chromium)", () => {
     expect(popup()).toBe(sheet);
   });
 
-  chromiumOnly("never moves the sheet further than the finger when pulled past the edge", async () => {
-    const sheet = await openUncontrolled();
-    for (const pull of [1, 2, 5, 12, 40, 80]) {
+  // One test per pull: each is a real mouse drag, and Vitest's Node process can stall for seconds while it
+  // transforms a large module graph for another file (#1481). Six drags in one test's time limit left no room for that.
+  for (const pull of [1, 2, 5, 12, 40, 80]) {
+    chromiumOnly(`never moves the sheet further than the finger when pulled ${pull}px past the edge`, async () => {
+      const sheet = await openUncontrolled();
       let lift = 0;
       // The sheet is taken where it stands, which may be a fraction of a pixel short of rest.
       const from = translation(sheet).y;
@@ -577,8 +579,8 @@ describe("dragging (Chromium)", () => {
       });
       expect(lift, `lift for a ${pull}px pull`).toBeLessThanOrEqual(pull + 0.01);
       expect(duration, `release after a ${pull}px pull`).toBeLessThanOrEqual(springDuration());
-    }
-  });
+    });
+  }
 
   chromiumOnly("fades the backdrop out quickly when a flick dismisses the sheet", async () => {
     const sheet = await openUncontrolled();

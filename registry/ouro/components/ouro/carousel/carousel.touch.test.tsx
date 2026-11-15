@@ -278,3 +278,24 @@ it.each([
   expect(hits(next, cx, cy - 21) && hits(next, cx, cy + 21)).toBe(true);
   expect(hits(next, cx - 21, cy) && hits(next, cx + 21, cy)).toBe(true);
 });
+
+it("gives each pager link a 44px target on a touch screen, so neighbours never overlap", async () => {
+  const host = document.body.appendChild(document.createElement("div"));
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <Carousel label="Overview" pagerHref={(position) => `#slide-${position + 1}`}>
+        {[1, 2, 3].map((n) => (
+          <div key={n} style={{ height: 80 }}>
+            Slide {n}
+          </div>
+        ))}
+      </Carousel>,
+    ),
+  );
+  const pages = [...host.querySelectorAll("nav a")].map((page) => page.getBoundingClientRect());
+  expect(pages).toHaveLength(3);
+  for (const page of pages) expect([page.width, page.height]).toEqual([44, 44]);
+  expect(pages[1]!.left).toBeGreaterThanOrEqual(pages[0]!.right);
+});
