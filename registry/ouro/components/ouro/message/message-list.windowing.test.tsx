@@ -605,16 +605,33 @@ describe("MessageList windowing", () => {
   it("keeps a message drawn while code brings the messages after it into view, until it is twice the overscan from the view", async () => {
     const { scroller } = await render(<Chat items={conversation(1000, 0, true)} />);
     await scrollTo(scroller, scroller.scrollHeight / 2);
-    const top = messages(scroller)[0]!;
-    const view = scroller.getBoundingClientRect();
-    expect(top.getBoundingClientRect().bottom).toBeGreaterThan(view.top - 800);
-    // A scan that measures each message brings the next ones into view: the first drawn stays in the page while it is near.
-    for (let step = 0; step < 4; step++) await scrollTo(scroller, scroller.scrollTop + 150);
-    expect(top.getBoundingClientRect().bottom).toBeLessThan(view.top - 800);
-    expect(top.isConnected).toBe(true);
-    // Far past it, it goes.
-    await scrollTo(scroller, scroller.scrollTop + 1600);
-    expect(top.isConnected).toBe(false);
+    const keep = 2 * Math.max(800, scroller.clientHeight);
+    // The list places messages by their slots, each with the gap before it: the edge is good to a gap.
+    const slack = 16;
+    // The first message drawn while the reader goes down, then the last while they go up (not the newest, which always draws).
+    const newest = messages(scroller).at(-1)!;
+    for (const down of [true, false]) {
+      const edge = down ? messages(scroller)[0]! : messages(scroller).filter((message) => message !== newest).at(-1)!;
+      // How far the message is past the view's edge on its side.
+      const past = () => {
+        const view = scroller.getBoundingClientRect();
+        const box = edge.getBoundingClientRect();
+        return down ? view.top - box.bottom : box.top - view.bottom;
+      };
+      // Most of the way in one move the band still overlaps, then a step at a time, as a scan measuring each message does.
+      await scrollTo(scroller, scroller.scrollTop + (down ? 1 : -1) * (keep - past() - 120));
+      let distance = past();
+      expect(distance).toBeGreaterThan(keep / 2);
+      for (let step = 0; edge.isConnected; step++) {
+        expect(step).toBeLessThan(40);
+        expect(distance).toBeLessThan(keep + slack);
+        const before = scroller.scrollTop;
+        await scrollTo(scroller, before + (down ? 10 : -10));
+        distance = edge.isConnected ? past() : distance + Math.abs(scroller.scrollTop - before);
+      }
+      // It goes once it is twice the overscan away, not before.
+      expect(distance).toBeGreaterThan(keep - slack);
+    }
   });
 
   it("keeps the reader's place while messages above are measured, scrolling up through them", async () => {
