@@ -132,6 +132,44 @@ describe("ThreadLayout", () => {
     expect(host.querySelector("textarea")).toBe(before);
   });
 
+  it("gives focus back to the conversation's control that opened the thread, once a narrow box shows it again", async () => {
+    function Opened({ open }: { open: boolean }) {
+      return (
+        <ThreadLayout
+          conversation={<button type="button">Show thread</button>}
+          thread={open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null}
+        />
+      );
+    }
+    const { host, rail, rerender } = await render(<Opened open={false} />, 360);
+    expect(rail).toBeNull();
+    const opener = host.querySelector("button")!;
+    opener.focus();
+    await rerender(<Opened open />);
+    expect(host.querySelector('[data-ouro="thread-rail"]')!.contains(document.activeElement)).toBe(true);
+    await rerender(<Opened open={false} />);
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("leaves focus on the page when a thread closes and nothing in the conversation had focus", async () => {
+    const rail = (open: boolean) => (open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null);
+    const { host, rerender } = await render(<ThreadLayout conversation={<button type="button">Show thread</button>} thread={rail(true)} />, 360);
+    expect(host.querySelector('[data-ouro="thread-rail"]')!.contains(document.activeElement)).toBe(true);
+    await rerender(<ThreadLayout conversation={<button type="button">Show thread</button>} thread={rail(false)} />);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("leaves focus where it is when a thread closes and focus is not lost", async () => {
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    mounted.push(outside);
+    const { host, rerender } = await render(<ThreadLayout conversation={<button type="button">Show thread</button>} thread={<Thread />} />, 360);
+    host.querySelector("button")!.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    outside.focus();
+    await rerender(<ThreadLayout conversation={<button type="button">Show thread</button>} thread={null} />);
+    expect(document.activeElement).toBe(outside);
+  });
+
   it("takes the app's className last, so its height wins", async () => {
     const { layout } = await render(<ThreadLayout conversation={<Conversation />} thread={<Thread />} className="h-[200px]" />);
     expect(layout.getBoundingClientRect().height).toBeCloseTo(200, 0);
