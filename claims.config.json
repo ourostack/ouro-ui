@@ -242,27 +242,32 @@
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.",
+      "sentence": "A little glass robot paints six colours onto a palette at an easel while a faceless glass person with a mug looks on.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      "sentence": "On the bench beside them a phone, a laptop and a tablet already show the same six colours, and Ouro lies at their feet.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      "sentence": "One morning in the meadow: a faceless glass person works on a laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "One night in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      "sentence": "Ouro's whole world at dawn: Ouro curled by the footpath that links every place, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two faceless glass friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "One night in the meadow: a faceless glass person works on a laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
       "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "Ouro's whole world at night: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      "sentence": "Ouro's whole world at night: Ouro curled by the footpath that links every place, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two faceless glass friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
       "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
     }
   ],
