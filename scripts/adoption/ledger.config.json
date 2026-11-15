@@ -180,7 +180,13 @@
         "spoonjoy/spoonjoy-v2",
         "Spoonjoy web"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "spoonjoy/spoonjoy-v2",
+          "workflow": "mcp-xray.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "spoonjoy-apple",
