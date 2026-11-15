@@ -1,5 +1,6 @@
 import axe from "axe-core";
 import { createRef, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
@@ -822,8 +823,11 @@ describe("TimeGrid", () => {
     const { grid, rerender } = await render({ view: "day", onSlotSelect: slot });
     const slots = grid.querySelector<HTMLElement>("[data-ouro-time-grid-slots]")!;
     expect(slots.getAttribute("aria-hidden")).toBe("true");
-    const box = slots.getBoundingClientRect();
-    const y = (minutes: number) => box.top + (box.height * minutes) / 1440;
+    // the grid scrolls to now once its first resize is observed, so read the box at each use
+    const y = (minutes: number) => {
+      const box = slots.getBoundingClientRect();
+      return box.top + (box.height * minutes) / 1440;
+    };
     slots.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: y(605), pointerType: "mouse" }));
     await act(async () => {});
     expect(plain(grid.querySelector("[data-ouro-time-grid-slot]")!.textContent)).toBe("10:00 AM");
@@ -921,14 +925,14 @@ describe("TimeGrid", () => {
     const { rerender } = await render();
     const hour = () => document.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
     // Browsers round scrollTop to whole pixels, or not.
-    const near = (expected: number) => expect(Math.abs(viewport().scrollTop - expected)).toBeLessThan(1);
-    near((hour() * (641 - 90)) / 60);
+    const near = async (expected: number) => expect.poll(() => Math.abs(viewport().scrollTop - expected)).toBeLessThan(1);
+    await near((hour() * (641 - 90)) / 60);
     await rerender({ date: "2026-03-20" });
-    near(hour() * 7.5);
+    await near(hour() * 7.5);
     await rerender({ date: "2026-03-20", workingHours: { start: 0, end: 8 } });
-    near(hour() * 7.5);
+    await near(hour() * 7.5);
     await rerender({ date: "2026-03-27", workingHours: { start: 0, end: 8 } });
-    expect(viewport().scrollTop).toBe(0);
+    await near(0);
   });
 
   it("opens at today's first event when now is before it, rather than at empty hours before now", async () => {
@@ -936,7 +940,9 @@ describe("TimeGrid", () => {
     const opensAt = async (props: Partial<TimeGridProps>) => {
       const { grid } = await render(props);
       const hour = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
-      return grid.querySelector<HTMLElement>("[data-scroll-viewport]")!.scrollTop / hour;
+      const scroller = grid.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+      await expect.poll(() => scroller.scrollTop).toBeGreaterThan(0);
+      return scroller.scrollTop / hour;
     };
     const nine: TimeGridEvent = { id: "nine", title: "Nine o'clock", start: at(12, "09:00"), end: at(12, "09:30") };
     // 3:30 in the morning, with the day's first event at 9: half an hour before it, as for the working day.
@@ -954,12 +960,15 @@ describe("TimeGrid", () => {
     const { grid, rerender } = await render({ now: at(12, "03:30"), events: [] });
     const scroller = grid.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const hour = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!.offsetHeight / 24;
-    expect(scroller.scrollTop / hour).toBeCloseTo(2, 1);
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(2, 1);
     await rerender({ now: at(12, "03:30"), events: [nine] });
-    expect(scroller.scrollTop / hour).toBeCloseTo(8.5, 1);
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(8.5, 1);
     await rerender({ now: at(12, "03:30"), events: [] });
+    await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(2, 1);
     scroller.scrollTop = hour * 12;
     await rerender({ now: at(12, "03:30"), events: [nine] });
+    // The observer's first callback follows the frame's animation callbacks, so wait out two frames.
+    for (let frame = 0; frame < 2; frame++) await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     expect(scroller.scrollTop / hour).toBeCloseTo(12, 1);
   });
 
@@ -1109,7 +1118,7 @@ describe("TimeGrid", () => {
     expect(host.querySelector('[data-ouro-time-grid-now="today"]')).not.toBeNull();
     const scroller = host.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     // As far down as the area scrolls, short of 22:11.
-    expect(Math.abs(scroller.scrollTop - Math.min(((23 * 60 + 41 - 90) / 60) * 48, scroller.scrollHeight - scroller.clientHeight))).toBeLessThan(1);
+    await expect.poll(() => Math.abs(scroller.scrollTop - Math.min(((23 * 60 + 41 - 90) / 60) * 48, scroller.scrollHeight - scroller.clientHeight))).toBeLessThan(1);
     expect(scroller.scrollTop).toBeGreaterThan(8 * 48);
   });
 
@@ -1538,7 +1547,7 @@ describe("TimeGrid background events", () => {
       heads.map((head) => [Math.round(head.getBoundingClientRect().left), true]),
     );
     const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
+    await expect.poll(() => grid.style.getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
     const tall = head.offsetHeight;
     await rerender({ view: "work-week", events: [forum] });
     expect(grid.querySelector("[data-ouro-time-grid-summary]")).toBeNull();
@@ -1562,12 +1571,32 @@ describe("TimeGrid day summaries", () => {
   });
 });
 
+describe("TimeGrid mount reads", () => {
+  it("forces no layout while it mounts, then scrolls to now and fills its room", async () => {
+    const host = document.createElement("div");
+    host.style.cssText = "height: 400px; display: flex; flex-direction: column";
+    document.body.append(host);
+    const root = createRoot(host);
+    onTestFinished(() => {
+      root.unmount();
+      host.remove();
+    });
+    const watch = watchLayoutReads();
+    flushSync(() => root.render(<TimeGrid label="Team calendar" date="2026-03-12" view="work-week" events={[]} />));
+    watch.stop();
+    // the development theme check reads the root once per page; it is not the grid's
+    expect(watch.reads.filter((read) => read.target !== document.documentElement)).toEqual([]);
+    const grid = host.querySelector<HTMLElement>("[data-ouro='time-grid']")!;
+    await expect.poll(() => grid.style.getPropertyValue("--ouro-time-grid-fill")).not.toBe("");
+  });
+});
+
 describe("TimeGrid day summaries added later", () => {
   it("measures the header once summaries appear on a grid that opened without them", async () => {
     const { grid, rerender } = await render({ view: "work-week", events: [forum] });
     await rerender({ view: "work-week", events: [forum], renderDaySummary: () => <span style={{ display: "block", height: 40 }}>Free</span> });
     const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
+    await expect.poll(() => grid.style.getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
   });
 });
 
@@ -1598,6 +1627,7 @@ describe("TimeGrid label in name", () => {
 
   it("the same event with its lines run together fails the rule, so the check can fail", async () => {
     await render({ view: "day", events: day });
+    await expect.poll(() => viewport().scrollTop).toBeGreaterThan(0);
     const event = titled("Launch rehearsal");
     for (const node of [...event.querySelectorAll("span")].flatMap((span) => [...span.childNodes])) if (node.nodeType === Node.TEXT_NODE && !node.textContent!.trim()) node.remove();
     expect(plain(event.textContent)).toBe("Launch rehearsal3:00 – 4:30 PMRoom 4");
