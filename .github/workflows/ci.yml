@@ -1255,13 +1255,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: e2e (${{ matrix.shard }}/4)
+        shard: [1, 2, 3, 4, 5, 6]
+    name: e2e (${{ matrix.shard }}/6)
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
-      SHARD: ${{ matrix.shard }}/4
-      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of4.json
+      SHARD: ${{ matrix.shard }}/6
+      OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of6.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1369,7 +1369,7 @@ jobs:
           SWEEPS: ${{ needs.sweep-shard.result }}
         run: |
           if [ "$SHARDS" != success ]; then
-            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/4) jobs."
+            echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/6) jobs."
           fi
           if [ "$SWEEPS" != success ]; then
             echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/6) jobs."
