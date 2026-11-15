@@ -117,8 +117,9 @@ test("with reduced motion, the wheel scrolls the messages and moves none of them
   await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
   await scroller.evaluate((el) => {
     const record = el as HTMLElement & { sprang?: boolean };
-    new MutationObserver(() => {
-      record.sprang = true;
+    // A message's own style is where a spring draws it; the list's space and content change style as it windows, and move nothing.
+    new MutationObserver((records) => {
+      record.sprang ||= records.some((change) => change.attributeName === "data-ouro-settling" || (change.target as Element).matches('[data-ouro="message"]'));
     }).observe(el, { attributes: true, subtree: true, attributeFilter: ["style", "data-ouro-settling"] });
   });
   await wheelOver(page, scroller, -400);

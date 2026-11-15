@@ -226,7 +226,13 @@ describe("SegmentedControl", () => {
     await pressTab();
     expect(document.activeElement).toBe(segments[1]);
     await rerender(<SegmentedControl label="View" items={[items[0]!, { ...items[1]!, disabled: true }, items[2]!]} defaultValue="grid" onValueChange={onValueChange} />);
-    await userEvent.keyboard("{ArrowRight}{ArrowLeft}{Home}");
+    // Dispatched from the disabled segment itself, so the guard runs whether or not the engine moved focus off it.
+    segments[1]!.focus();
+    for (const key of ["ArrowRight", "ArrowLeft", "Home"]) {
+      await act(() => {
+        segments[1]!.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+      });
+    }
     expect(document.activeElement === segments[0] || document.activeElement === segments[2]).toBe(false);
     expect(onValueChange).not.toHaveBeenCalled();
   });

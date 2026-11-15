@@ -57,7 +57,7 @@ They live in [`site/public/css/`](../../site/public/css/):
 | `ouro-theme.css`      | Ouro HX's default theme: shadcn/ui's color tokens in light and dark.[^tokens]                                                               |
 | `themes/<preset>.css` | One of the site's theme presets, with its fonts: `pearl`, `abyss`, `brass`, `chart`, `coral` or `cookbook`.[^fonts] |
 
-`ouro-base.css` leaves out the `press` utility, which needs Tailwind; its header names what it leaves out.[^base] A preset's fonts load from `../../fonts/`, so keep `css/` and `fonts/` side by side when you copy them.[^fonts]
+`ouro-base.css` leaves out the `press` and `rounded-full` utilities, which need Tailwind; its header names what it leaves out.[^base] A preset's fonts load from `../../fonts/`, so keep `css/` and `fonts/` side by side when you copy them.[^fonts]
 
 ## Dark mode
 
@@ -77,7 +77,7 @@ Don't edit the files. Edit `registry/ouro/theme/ouro-base.css`, `registry/ouro/t
 
 [^files]: test:site/scripts/static-css.test.mjs::the files are plain CSS: no Tailwind at-rules, imports or nested rules verify:testExists(site/scripts/static-css.test.mjs::the files are plain CSS: no Tailwind at-rules, imports or nested rules)
 
-[^base]: test:site/scripts/static-css.test.mjs::ouro-base keeps every value of ouro-base.css, turns @theme inline into :root and leaves out the press utility verify:testExists(site/scripts/static-css.test.mjs::ouro-base keeps every value of ouro-base.css, turns @theme inline into :root and leaves out the press utility)
+[^base]: test:site/scripts/static-css.test.mjs::ouro-base keeps every value of ouro-base.css, turns @theme inline into :root and leaves out its Tailwind utilities verify:testExists(site/scripts/static-css.test.mjs::ouro-base keeps every value of ouro-base.css, turns @theme inline into :root and leaves out its Tailwind utilities)
 
 [^tokens]: test:site/scripts/static-css.test.mjs::every token of each theme reaches its file, in light and dark verify:testExists(site/scripts/static-css.test.mjs::every token of each theme reaches its file, in light and dark)
 
