@@ -30,7 +30,7 @@ const REPLIES = [
 ];
 
 /** The duo drawing again, cropped to the desk, for the end of the three asks (the same module the page's band uses). */
-const DESK_ART = artMarkup(morningSource).replace(/viewBox="[^"]*"/, 'viewBox="285 80 640 360"');
+const DESK_ART = artMarkup(morningSource).replace(/viewBox="[^"]*"/, 'viewBox="285 70 640 360"');
 
 /** The agent's mark in the chat's header: here the visitor is the agent. */
 const YOU_MARK = artMarkup(agentSource);
