@@ -930,6 +930,26 @@ describe("Command opened by a key", () => {
     expect(document.activeElement).toBe(close);
   });
 
+  it("puts focus in the search of a palette that mounts already open, as one loaded on demand does", async () => {
+    function OnDemand() {
+      const [shown, setShown] = useState(false);
+      return (
+        <>
+          {/* The palette's code arrives later, so it mounts open in an update outside the press's own task. */}
+          <button type="button" data-test-harness="" onClick={() => setTimeout(() => setShown(true))}>
+            Search
+          </button>
+          {shown && <Command title="Command palette" items={entries()} open onOpenChange={setShown} />}
+        </>
+      );
+    }
+    await render(<OnDemand />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(input()).toBeInTheDocument();
+    await expect.poll(() => document.activeElement).toBe(input().element());
+  });
+
   it.each(["touch", "pen"])("puts no focus in the search after a %s tap opens it, so no software keyboard pops up", async (pointerType) => {
     const seen = { focus: null as Element | null };
     await render(<KeyOpened keepMounted seen={seen} />);

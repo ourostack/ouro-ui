@@ -786,10 +786,12 @@ export function Command(props: CommandProps): JSX.Element {
                 ref={holdOnOpen}
                 size="auto"
                 className={cn("max-w-[min(100%,40rem)]", className)}
-                // The palette itself after a touch or pen tap, so no software keyboard pops up. After a key
-                // press or click the search already has focus (above), so Base UI focuses nothing: its focus
-                // comes a frame later and would pull back a Tab pressed before that frame.
-                initialFocus={() => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : false)}
+                // The palette itself after a touch or pen tap, so no software keyboard pops up. Once the search
+                // has focus (above), Base UI focuses nothing: its focus comes a frame later and would pull back a
+                // Tab pressed before that frame. When the dialog mounted too late for that, Base UI focuses the search.
+                initialFocus={() =>
+                  lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : document.activeElement !== popupRef.current!.querySelector("input")
+                }
                 // Kept mounted and closed, it is no dialog: nothing that looks for an open one finds it.
                 // Stryker disable next-line StringLiteral: an empty role takes the dialog role away as well
                 {...(keepMounted && !isOpenNow ? { role: "presentation" } : {})}
