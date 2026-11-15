@@ -1,4 +1,4 @@
-import { Fragment, createRef, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
+import { Fragment, createRef, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -51,6 +51,7 @@ function Chat({
   windowing?: boolean;
   /** What to put before the message with this id, such as a day's heading. */
   before?: (id: number) => ReactNode;
+  style?: CSSProperties;
 }) {
   return (
     <MessageList label="Conversation" style={{ height: 400, width: 360 }} actionsRef={actionsRef} {...rest}>
@@ -684,6 +685,8 @@ describe("MessageList windowing", () => {
     const { innerWidth: width, innerHeight: height } = window;
     await page.viewport(800, 600);
     try {
+      // A list taller than the window measured last: the next one still draws no more than the window holds.
+      await render(<Chat items={conversation(100)} style={{ height: 1000, width: 360 }} />);
       const renders = new Set<number>();
       function Counted({ id }: { id: number }) {
         renders.add(id);

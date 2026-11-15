@@ -342,8 +342,8 @@ const OVERSCAN = 800;
 /** How much of the conversation the server HTML draws, in pixels: from its end, or around `initialAnchor`. */
 const FIRST_VIEW = 1600;
 /**
- * The height of the last view a list measured, which a list that opens in the browser takes for its own: the conversations
- * an app opens one after another sit in the same pane. Before any, the window's.
+ * The height of the last view a list measured, which a list that opens in the browser takes for its own (no more than the
+ * window's): the conversations an app opens one after another sit in the same pane. Before any, the window's.
  */
 let lastView: number | null = null;
 // Stryker disable next-line ArrowFunction: the store never changes, so nothing calls this.
@@ -1105,7 +1105,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // How much the first draw takes before the view is measured: in server HTML and as it hydrates, FIRST_VIEW, so the two
   // match; in a list that opens in the browser, a view's height, so opening costs what the view shows.
   const hydrating = useSyncExternalStore(noChange, () => false, () => true);
-  const firstView = hydrating ? FIRST_VIEW : (lastView ?? window.innerHeight);
+  const firstView = hydrating ? FIRST_VIEW : Math.min(lastView ?? Infinity, window.innerHeight);
   let draws: (index: number) => boolean = () => true;
   if (windowed) {
     const last = keys.length - 1;
