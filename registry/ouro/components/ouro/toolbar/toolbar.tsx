@@ -502,20 +502,32 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
   const entries = useRef<ResizeObserver | null>(null);
   const refocus = useRef(false);
 
-  // The measure waits for the observer's first report, which comes once the page is laid out and
-  // before it paints: the reads are free there, and the row it settles on is in the first frame.
+  // The first measure waits for the observer's first report, which comes once the page is laid out
+  // and before it paints: the reads are free there, and the row it settles on is in the first frame.
+  // Later measures (new items, a size, a font) run in the commit that asks for them, as the page is
+  // laid out by then, so no frame shows the row while it measures.
   // Stryker disable next-line BooleanLiteral: equivalent; the measure's effect sets it before any observer reports.
   const pending = useRef(true);
+  const measured = useRef(false);
   useLayoutEffect(() => {
     const root = rootRef.current!;
-    pending.current = true;
-    const measure = new ResizeObserver(() => {
-      measure.disconnect();
+    const read = () => {
       pending.current = false;
       widths.current = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].map((element) => element.getBoundingClientRect().width);
       moreWidth.current = root.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.getBoundingClientRect().width;
-      const shown = countFits(root, widths.current, moreWidth.current, refocus);
-      flushSync(() => setLayout({ inputs, size, epoch, shown }));
+      return { inputs, size, epoch, shown: countFits(root, widths.current, moreWidth.current, refocus) };
+    };
+    if (measured.current) {
+      setLayout(read());
+      return;
+    }
+    // Stryker disable next-line BooleanLiteral: equivalent; only a measure clears pending, and it also sets measured, so pending is still true here.
+    pending.current = true;
+    const measure = new ResizeObserver(() => {
+      measure.disconnect();
+      measured.current = true;
+      const next = read();
+      flushSync(() => setLayout(next));
     });
     measure.observe(root);
     return () => measure.disconnect();
@@ -526,6 +538,7 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     const root = rootRef.current!;
     const stale = new ResizeObserver(() => {
       // The measure about to run reads every entry anew.
+      // Stryker disable next-line ConditionalExpression: equivalent in a browser; observers report in the order they were made, so the measure's report has cleared pending before this one's first.
       if (pending.current) return;
       const measured = widths.current!;
       const changed = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].some(

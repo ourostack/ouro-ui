@@ -28,10 +28,8 @@ async function render(node: ReactNode, width?: number) {
   await frame();
   return {
     host,
-    rerender: async (next: ReactNode) => {
-      await act(async () => root.render(next));
-      await frame();
-    },
+    // Only the first measure waits for a frame: later ones are in the commit that asks for them.
+    rerender: (next: ReactNode) => act(async () => root.render(next)),
     // Commits at once and returns before any observer reports, so only the commit's own reads show.
     commit: (next: ReactNode) => flushSync(() => root.render(next)),
     get toolbar() {
@@ -396,6 +394,32 @@ describe("Toolbar", () => {
 });
 
 describe("Toolbar overflow", () => {
+  it("lays nothing out as it mounts, and shows the row it settles on before the first paint", async () => {
+    // Development's once-a-page theme check reads the page's style; let it run first.
+    await render(<Toolbar label="Warm-up" items={formatting} />);
+    const host = document.createElement("div");
+    host.style.width = "130px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const reads = watchLayoutReads();
+    flushSync(() => root.render(<Toolbar label="Formatting" size="sm" items={formatting} />));
+    reads.stop();
+    expect(reads.names()).toEqual([]);
+    // The row's observer reports before the frame paints and settles the row. An observer made after
+    // it reports after it in the same delivery, so it sees the row the first frame paints.
+    const firstFrame = await new Promise<number>((done) => {
+      const after = new ResizeObserver(() => {
+        after.disconnect();
+        done(host.querySelectorAll("[data-ouro-toolbar-entry]").length);
+      });
+      after.observe(host);
+    });
+    expect(firstFrame).toBeLessThan(formatting.length);
+    expect(host.querySelector('[data-ouro-part="more"]')).not.toBeNull();
+  });
+
   it("lays nothing out when it renders again with new items that look the same, and measures again when a label changes", async () => {
     const same = () => formatting.map((entry) => (entry.type === "group" ? { ...entry, items: entry.items.map((item) => ({ ...item })) } : { ...entry }));
     const { rerender, buttons } = await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 200);
@@ -519,6 +543,20 @@ describe("Toolbar overflow", () => {
       await document.fonts.ready;
     }));
     expect(measured).toBeGreaterThan(0);
+  });
+
+  it("measures again in the commit a font's loading asks for, so no frame shows More over a row that fits", async () => {
+    const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
+    const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);
+    expect(view.more).toBeNull();
+    await act(async () => {
+      document.fonts.dispatchEvent(new Event("loading"));
+      await document.fonts.ready;
+    });
+    // The measure's render shows More to read its width, and the same commit takes it away again.
+    expect(view.more).toBeNull();
+    await frames();
+    expect(view.more).toBeNull();
   });
 
   it("measures its entries again when any one of them changes size, not only when all do", async () => {
