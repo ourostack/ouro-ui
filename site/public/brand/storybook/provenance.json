@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@4775243ee02559cda7e2ec005d36282681c1d9fa:brand/",
+  "origin": "ourostack/.github@277b0f5bafd0f7b7f39608cd9eaac3dcc1d6a426:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -77,7 +77,7 @@
     },
     {
       "file": "og/ouro-ui-core.jpg",
-      "sha256": "6a2f18811025ea079e1ed8f8a6d74533e5ebc8da01fa3e33440c288514f1f8cb"
+      "sha256": "c1e03733d7474d82e5f0c41fa50c8d8508c9541d0775a7117ef48af81eede323"
     },
     {
       "file": "og/ouroboros-skills.jpg",
@@ -85,7 +85,7 @@
     },
     {
       "file": "og/playwright-focus-proof.jpg",
-      "sha256": "548ba0199b81f9c8aa188b9e2ec5ab7d3e0fa37f841bf8bfd0a29bf316477cf6"
+      "sha256": "5ab324e5a0abdd1452721f6fb96a1eb8528c0c80e7598c830fb1e5d521afd99b"
     },
     {
       "file": "phone/ouro-hx-1152.avif",
