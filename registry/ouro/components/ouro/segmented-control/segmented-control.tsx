@@ -11,6 +11,7 @@ import {
   groupClass,
   labelClass,
   ownLook,
+  revealClass,
   rootClass,
   segmentClass,
   thumbClass,
@@ -54,6 +55,16 @@ export interface SegmentedControlProps {
   disabled?: boolean | undefined;
   /** Stretches the control to the width of its container, with the segments sharing it equally. */
   fullWidth?: boolean | undefined;
+  /**
+   * For a secondary control laid over content, such as a switch on a slide: on a screen with a
+   * mouse the control stays transparent, keeping its room, until the pointer rests on it or focus
+   * is in it, then fades in. On a touch screen it shows from the start. Screen readers reach it
+   * while it is transparent too, and keyboard focus shows it. Pass `false` to show it again, as
+   * when the page's controls are turned on.
+   * @claim "on a screen with a mouse the" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl revealOnHover > stays transparent, keeping its room, until the pointer rests on it or focus is in it)
+   * @claim "On a touch screen it shows" registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx::shows a revealOnHover control from the start on a touch screen)
+   */
+  revealOnHover?: boolean | undefined;
   /** Submits the checked segment's value under this name with the form it sits in, unless the control is `disabled`. */
   name?: string | undefined;
   /** Layout only: margins, grid placement (`mt-4`). Appearance classes warn in development. */
@@ -85,6 +96,9 @@ function duplicateValue(items: readonly SegmentedControlItem[]): string | undefi
  * screens, and `name` submits the value with a form. Keyboard focus stays on the checked
  * segment: when the app checks another one while a segment has focus, focus moves to it, so
  * the ring and the thumb never mark two segments.
+ *
+ * A switch laid over content can keep out of the way with `revealOnHover`: with a mouse it shows
+ * only while the pointer rests on it or focus is in it.
  *
  * Use `Tabs` instead when each choice shows different content with its own panel. Use links
  * in a `<nav>` instead when each choice is its own page. Use a `RadioGroup` instead for a
@@ -118,6 +132,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     onValueChange,
     disabled,
     fullWidth,
+    revealOnHover,
     name,
     className,
     ref,
@@ -232,7 +247,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     opacity: index === -1 ? 0 : undefined,
   } as CSSProperties;
   return (
-    <div data-ouro="segmented-control" className={cn(rootClass, fullWidth && "justify-items-stretch", className)}>
+    <div data-ouro="segmented-control" className={cn(rootClass, fullWidth && "justify-items-stretch", revealOnHover && revealClass, className)}>
       <span id={labelId} className={cn(labelClass, hideLabel && "sr-only")}>
         {label}
       </span>

@@ -1,0 +1,1 @@
+- SegmentedControl: `revealOnHover` keeps a control laid over content transparent, keeping its room, until the pointer rests on it or focus is in it, on a screen with a mouse; on a touch screen it shows from the start.

@@ -416,6 +416,14 @@ describe("SegmentedControl", () => {
     expect(Math.round(group.getBoundingClientRect().width)).toBe(Math.round(host.getBoundingClientRect().width - 48));
   });
 
+  it("stretches its label across with fullWidth, and keeps it to its text without", async () => {
+    const wide = await render(<SegmentedControl label="View" items={items} fullWidth />);
+    const narrow = await render(<SegmentedControl label="View" items={items} />);
+    const labelWidth = (root: HTMLElement) => root.firstElementChild!.getBoundingClientRect().width;
+    expect(labelWidth(wide.root)).toBe(wide.root.getBoundingClientRect().width);
+    expect(labelWidth(narrow.root)).toBeLessThan(narrow.root.getBoundingClientRect().width);
+  });
+
   it("shows every label whole: equal segments when they fit, and a long label keeps its width when they don't", async () => {
     const theme = [
       { value: "system", label: "Match my computer" },
@@ -697,5 +705,49 @@ describe("SegmentedControl development messages", () => {
     expect(html).toContain('data-ouro="segmented-control"');
     expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("SegmentedControl revealOnHover", () => {
+  function opacity(element: Element) {
+    let last = "";
+    return expect.poll(() => {
+      const value = getComputedStyle(element).opacity;
+      const still = value === last && element.getAnimations().length === 0;
+      last = value;
+      return still ? value : undefined;
+    }, { interval: 50 });
+  }
+
+  it("stays transparent, keeping its room, until the pointer rests on it or focus is in it", async () => {
+    await commands.parkPointer();
+    const screen = await render(<SegmentedControl label="Show as" hideLabel items={items} revealOnHover />);
+    const box = screen.root.getBoundingClientRect();
+    await opacity(screen.root).toBe("0");
+    expect(box.height).toBeGreaterThan(0);
+    await expect.element(page.getByRole("radiogroup", { name: "Show as" })).toBeInTheDocument();
+    await userEvent.hover(screen.segments[1]!);
+    await opacity(screen.root).toBe("1");
+    await commands.parkPointer();
+    await opacity(screen.root).toBe("0");
+    const start = document.createElement("button");
+    screen.host.prepend(start);
+    start.focus();
+    await pressTab();
+    expect(screen.root.contains(document.activeElement)).toBe(true);
+    await opacity(screen.root).toBe("1");
+    expect(screen.root.getBoundingClientRect().height).toBe(box.height);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("shows at once with revealOnHover={false} or unset", async () => {
+    await commands.parkPointer();
+    const screen = await render(
+      <>
+        <SegmentedControl label="One" items={items} revealOnHover={false} />
+        <SegmentedControl label="Two" items={items} />
+      </>,
+    );
+    for (const root of screen.host.querySelectorAll('[data-ouro="segmented-control"]')) expect(getComputedStyle(root).opacity).toBe("1");
   });
 });
