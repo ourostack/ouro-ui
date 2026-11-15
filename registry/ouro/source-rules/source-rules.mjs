@@ -1859,6 +1859,15 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
   };
 
   const root = postcss.parse(source, { from: file });
+  const ALLOW = /ouro-allow hand-drawn-corner:\s*\S/;
+  const allowComment = (node) => node && node.type === "comment" && ALLOW.test(node.text);
+  // A deliberate corner: a rule that sets corner-shape: round, or one a comment with a reason precedes (or the stylesheet's first comment).
+  const cornerAllowed = (decl) => {
+    const rule = decl.parent;
+    if (rule.nodes.some((sibling) => sibling.type === "decl" && sibling.prop.toLowerCase() === "corner-shape" && /^round\b/i.test(sibling.value))) return true;
+    for (let block = rule; block && block.type !== "root"; block = block.parent) if (allowComment(block.prev())) return true;
+    return allowComment(root.first);
+  };
   root.walk((node) => {
     const { rules, atRules } = ancestors(node);
     if (node.type === "rule") {
@@ -1875,7 +1884,7 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
         if (found) addLayout(node, scope, `@apply ${token}`);
       }
     }
-    if (node.type === "decl" && RADIUS_DECLARATION.test(node.prop) && !themedRadius(node.value) && !ROUND_PART_MARKER.test(rules.join(" "))) {
+    if (node.type === "decl" && RADIUS_DECLARATION.test(node.prop) && !themedRadius(node.value) && !ROUND_PART_MARKER.test(rules.join(" ")) && !cornerAllowed(node)) {
       const scope = rules.join(" ");
       offenders.push({
         category: "hand-drawn-corner",
