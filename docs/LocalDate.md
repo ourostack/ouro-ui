@@ -25,7 +25,7 @@ Type: `LocalDateProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only. Appearance classes warn in development. |
-| `format` | `"date" \| "month" \| "datetime" \| "time"` | `"date"` | `date` "Jun 1, 2026", `month` "Jun 2026", `datetime` "Jun 1, 2026, 9:30 AM", `time` "9:30 AM". |
+| `format` | `"date" \| "time" \| "month" \| "datetime"` | `"date"` | `date` "Jun 1, 2026", `month` "Jun 2026", `datetime` "Jun 1, 2026, 9:30 AM", `time` "9:30 AM". |
 | `locale` | `Intl.LocalesArgument` | the reader's (en-US in the server's text, until the browser takes over) | The language and region to write it in. |
 | `ref` | `Ref<HTMLTimeElement>` |  | Reaches the rendered element. |
 | `value` (required) | `Date \| string \| number` |  | The instant: a `Date`, an ISO string or a timestamp in milliseconds. A calendar date with no time (`"2026-06-01"`, or `"2026-06"` with `format="month"`) is that day for every reader and is never moved into a time zone. |

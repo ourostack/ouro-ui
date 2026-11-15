@@ -30,7 +30,8 @@ async function render(node: ReactNode) {
 }
 
 const chat = (count: number) => (
-  <MessageList label="Conversation" style={{ height: 600 }}>
+  // Whole: the springs move what is drawn, and this conversation is short.
+  <MessageList label="Conversation" style={{ height: 600 }} windowing={false}>
     {Array.from({ length: count }, (_, index) => (
       <Message key={index} role={index % 2 ? "assistant" : "user"} name={index % 2 ? "Ouro" : "Ana"}>
         {`Message ${index}: ${"knead ".repeat(14)}`}

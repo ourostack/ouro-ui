@@ -1,0 +1,1 @@
+- OuroProvider: `strictCsp` is for a page whose Content Security Policy refuses inline styles (`style-src 'self'`). It sets Base UI's `disableStyleElements` for you, and `motion="reduced"` then stills the page with a constructed stylesheet in place of a `<style>` element. Use it in place of Base UI's `CSPProvider`, which the Ouro source rule now counts with that fix.

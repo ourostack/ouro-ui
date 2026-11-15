@@ -1,0 +1,1 @@
+- TimeGrid now waits for its first resize observation to scroll to now, fill the room and size its lanes, so mounting it forces nothing.
