@@ -253,6 +253,7 @@ export function DialogPopupUnchecked({
       {...props}
       ref={holdRef}
       className={cn(popupClass, popupSizes[size], className)}
+      aria-modal="true"
       data-ouro="dialog"
       data-ouro-presentation="dialog"
       data-ouro-squircle=""

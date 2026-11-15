@@ -392,6 +392,7 @@ export function SheetPopupUnchecked({ className, ...props }: SheetPopupProps): J
         !modal && "pointer-events-auto",
         className,
       )}
+      aria-modal={modal ? "true" : undefined}
       data-ouro="sheet"
       data-side={side}
       data-snap-points={snap ? "" : undefined}

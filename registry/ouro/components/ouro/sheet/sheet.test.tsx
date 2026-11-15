@@ -175,6 +175,25 @@ describe("opening and closing", () => {
     expect(popup()!.getAttribute("role")).toBe("dialog");
   });
 
+  it("is modal to assistive technology: aria-modal, with the page behind hidden", async () => {
+    const outside = document.createElement("button");
+    outside.textContent = "Behind";
+    document.body.append(outside);
+    try {
+      await render(
+        <Sheet title="Save to cookbook" trigger={<Button>Save</Button>}>
+          <Body />
+        </Sheet>,
+      );
+      await userEvent.click(trigger());
+      await expect.element(page.getByRole("dialog", { name: "Save to cookbook" })).toBeVisible();
+      expect(popup()!.getAttribute("aria-modal")).toBe("true");
+      expect(outside.closest('[aria-hidden="true"]')).not.toBeNull();
+    } finally {
+      outside.remove();
+    }
+  });
+
   it("closes on Escape and returns focus to the trigger", async () => {
     await openUncontrolled();
     await userEvent.keyboard("{Escape}");

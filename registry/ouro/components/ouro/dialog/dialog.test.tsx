@@ -114,6 +114,25 @@ describe("automatic presentation", () => {
     expect(Math.abs(rect.top + rect.height / 2 - innerHeight / 2)).toBeLessThanOrEqual(1);
   });
 
+  it("is modal to assistive technology, centered and as a sheet: aria-modal, with the page behind hidden", async () => {
+    const outside = document.createElement("button");
+    outside.textContent = "Behind";
+    document.body.append(outside);
+    try {
+      for (const width of [1280, 390]) {
+        await page.viewport(width, 844);
+        const element = await openUncontrolled();
+        expect(element.getAttribute("aria-modal")).toBe("true");
+        expect(outside.closest('[aria-hidden="true"]')).not.toBeNull();
+        await userEvent.keyboard("{Escape}");
+        await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+        await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+      }
+    } finally {
+      outside.remove();
+    }
+  });
+
   it("renders the bottom sheet at 390px", async () => {
     await page.viewport(390, 844);
     const element = await openUncontrolled();
