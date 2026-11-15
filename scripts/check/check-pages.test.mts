@@ -175,6 +175,25 @@ describe("Ouro check", () => {
     assert.deepEqual(result.findings.map((f) => [f.rule, f.element]), [["overlap", 'p "Words under a label" × p "A label"']]);
   });
 
+  test("leaves the page behind an open modal to the page's own run, and checks the modal", async () => {
+    // Tandem's two cases (teams-microsoft/tandem#3259, #3260): a conversation's preview cut off by its box behind an open
+    // sheet, and a heading close under a picture behind an open dialog. A line cut off inside the modal is still found.
+    const behind =
+      '<h1>Behind</h1><p style="width:60px;overflow:hidden;white-space:nowrap">A preview cut off by its box, behind the sheet</p>' +
+      '<section><img src="picture-960.png" width="960" height="540" alt="" style="display:block;width:100%;height:200px;object-fit:cover"><h2 style="font-size:40px;line-height:1.1;margin:6px 0 0">Settings</h2><p>Under the dialog.</p></section>';
+    const modal =
+      '<div role="dialog" aria-modal="true" aria-label="Why" style="position:fixed;inset:auto 0 0 0;padding:16px;background:#fff">' +
+      '<h2 style="margin:0 0 12px">Why</h2><p id="in" style="width:60px;overflow:hidden;white-space:nowrap">A line cut off inside the sheet</p></div>';
+    const app = site("modal", { "page.html": page(behind + modal), "plain.html": page(behind) });
+    copyFileSync(join(fixtures, "picture-960.png"), join(app, "picture-960.png"));
+    const result = await check({ targets: [app], out: dir("modal"), sizes: [[390, 844]], themes: ["light"], config: { walk: false }, chromium, log: quiet });
+    const of = (path: string) => result.findings.filter((f) => f.page === path && ["clipped-text", "cramped-heading"].includes(f.rule)).map((f) => [f.rule, f.element]);
+    // Without the modal, both of the page's own findings.
+    assert.deepEqual(of("/plain.html").map(([rule]) => rule).sort(), ["clipped-text", "cramped-heading"]);
+    // With it open, only the modal's.
+    assert.deepEqual(of("/page.html"), [["clipped-text", 'p#in "A line cut off inside the sheet"']]);
+  });
+
   test("checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing", async () => {
     // A view with no address: the cut-off text is there only once Open is pressed.
     const app = site("states", {

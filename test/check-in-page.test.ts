@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
+import { ALIASES, behindModal, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
 import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
@@ -50,6 +50,28 @@ async function picture(width: number, height: number): Promise<string> {
 
 const rules = (issues: { rule: string }[]) => issues.map((issue) => issue.rule);
 const LONG = "Prose that runs the whole width of a wide screen is hard to read, because the eye loses its place on the way back to the start of the next line.";
+
+describe("behindModal", () => {
+  it("names no ref while no modal is open, or only a hidden one", () => {
+    render('<p data-ouro-check-ref="1">Page</p><div role="dialog" aria-modal="true" hidden><p data-ouro-check-ref="2">Closed</p></div>');
+    expect(behindModal(["1", "2"])).toEqual([]);
+  });
+
+  it("names the refs whose every element sits outside an open aria-modal popup", () => {
+    render(
+      '<p data-ouro-check-ref="1">Page</p><p data-ouro-check-ref="3">Split</p>' +
+        '<div role="dialog" aria-modal="true"><p data-ouro-check-ref="2">In the modal</p><span data-ouro-check-ref="3">Split</span></div>',
+    );
+    expect(behindModal(["1", "2", "3", "4"])).toEqual(["1"]);
+  });
+
+  it("counts a modal <dialog> and an element that holds the modal as the modal's", () => {
+    const page = render('<section data-ouro-check-ref="1"><dialog><p data-ouro-check-ref="2">Asked</p></dialog></section><p data-ouro-check-ref="3">Page</p>');
+    page.querySelector("dialog")!.showModal();
+    expect(behindModal(["1", "2", "3"])).toEqual(["3"]);
+    page.querySelector("dialog")!.close();
+  });
+});
 
 describe("findSizeIssues: sideways-scroll", () => {
   it("names the outermost elements that stick out past the screen, and how far", async () => {
