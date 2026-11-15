@@ -122,9 +122,29 @@ test("with reduced motion, the wheel scrolls the messages and moves none of them
       record.sprang ||= records.some((change) => change.attributeName === "data-ouro-settling" || (change.target as Element).matches('[data-ouro="message"]'));
     }).observe(el, { attributes: true, subtree: true, attributeFilter: ["style", "data-ouro-settling"] });
   });
+  // Diagnosis for #1389 in Linux WebKit, not for merging: each frame from before the wheel to after it settles.
+  await scroller.evaluate((el) => {
+    const s = el as HTMLElement;
+    const c = s.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const w = window as unknown as { __log: string[]; __stop: boolean };
+    w.__log = [];
+    w.__stop = false;
+    let wheel = 0;
+    addEventListener("wheel", (e) => (wheel += e.deltaY), { capture: true, passive: true });
+    const tick = () => {
+      w.__log.push(`top=${Math.round(s.scrollTop)} h=${s.scrollHeight} c=${s.clientHeight} tr=${c.style.translate || "-"} wheel=${wheel} settling=${s.querySelectorAll("[data-ouro-settling]").length} msgs=${s.querySelectorAll('[data-ouro="message"]').length} ih=${innerHeight}`);
+      wheel = 0;
+      if (!w.__stop) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   await wheelOver(page, scroller, -400);
-  expect(await scroller.evaluate((el) => (el as HTMLElement & { sprang?: boolean }).sprang === true)).toBe(false);
-  expect(await distanceFromBottom(scroller)).toBeGreaterThan(100);
+  const log = await page.evaluate(() => {
+    const w = window as unknown as { __log: string[]; __stop: boolean };
+    w.__stop = true;
+    return w.__log.filter((line, at, all) => at === 0 || line !== all[at - 1]).slice(0, 40);
+  });
+  expect(log).toEqual([]);
 });
 
 const posted = (page: Page, index: number) => page.locator(`#post-${index} [data-ouro-message-content]`);
