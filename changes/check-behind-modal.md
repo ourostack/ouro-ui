@@ -1,0 +1,1 @@
+- Changed: while a modal is open, Ouro check's layout, text and design rules check only the modal, leaving the page behind it to the page's own run ([test](scripts/check/check-pages.test.mts "verify:testExists(scripts/check/check-pages.test.mts::Ouro check > leaves the page behind an open modal to the page's own run, and checks the modal)")).
