@@ -314,6 +314,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // which can wait for the frame after the first paint. Measuring does not fit before the paint.
   // Stryker disable next-line BooleanLiteral: the first fit's timing shows only in test/mount-reads.test.tsx.
   const placed = useRef(false);
+  /* eslint-disable react-hooks/exhaustive-deps -- fit is rebuilt each render; the lists name what it reads that should trigger a fit */
   useLayoutEffect(() => {
     // Stryker disable next-line ConditionalExpression,LogicalOperator: as above; a later fit follows in the frame.
     if (!native || placed.current) fit();
@@ -329,6 +330,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     return () => cancelAnimationFrame(frame);
     // Stryker disable next-line ArrayDeclaration: the frame refits with the same inputs the layout effect did.
   }, [autoGrow, native, rows, maxRows, size, variant]);
+  /* eslint-enable react-hooks/exhaustive-deps */
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     // A controlled field fits once its value arrives, in the effect above.
     if (autoGrow && !native && !controlled) fitHeight(event.currentTarget, rows, maxRows);
