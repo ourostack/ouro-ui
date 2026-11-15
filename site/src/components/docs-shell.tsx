@@ -63,7 +63,7 @@ export function docsPictures(scene: SceneName, tall = false): HeroPictures {
         { type: "image/avif", srcSet: wide("avif"), sizes: COLUMN_SIZES },
         { type: "image/webp", srcSet: wide("webp"), sizes: COLUMN_SIZES },
       ],
-      ...(tall ? {} : { crop: "4 / 1", focus: `50% ${band}%` }),
+      ...(tall ? {} : { crop: "3 / 1", focus: `50% ${band}%` }),
     };
   };
   return { light: { ...picture(false), priority: true }, dark: picture(true) };

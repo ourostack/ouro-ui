@@ -26,8 +26,9 @@ export interface Scene {
    */
   phoneHeight: number;
   /**
-   * Where a short band of the wide scene sits, in percent down (CSS object-position): a docs page opens on about
-   * three fifths of the scene's height, framed so its friends' heads are whole, Ouro's included.
+   * Where a short band of the wide scene sits, in percent down (CSS object-position): a docs page opens on a 3:1 band,
+   * eight ninths of a 576px scene's height (a 512px panorama shows whole), framed so its friends' heads are whole and
+   * Ouro's ring too, his head to the bottom of his coil, by day and at night.
    */
   band: number;
   /**
@@ -60,7 +61,7 @@ export const SCENES: Record<SceneName, Scene> = {
     sky: ["#fcb8a7", "#fab8a2", "#f9b19b", "#fdc08f", "#fde290"],
     height: 576,
     phoneHeight: 432,
-    band: 8,
+    band: 16,
     shortY: 20,
     night: { phoneHeight: 432 },
   },
@@ -69,7 +70,7 @@ export const SCENES: Record<SceneName, Scene> = {
     sky: ["#edb6b1", "#f7c7b1", "#fac0a5", "#fcd693", "#fdec95"],
     height: 576,
     phoneHeight: 576,
-    band: 24,
+    band: 50,
     night: { phoneHeight: 576 },
   },
   "playwright-focus-proof": {
@@ -77,7 +78,7 @@ export const SCENES: Record<SceneName, Scene> = {
     sky: ["#dac0c6", "#d1c5cf", "#d3ceda", "#f9cfb6", "#fbd6a7"],
     height: 576,
     phoneHeight: 320,
-    band: 61,
+    band: 100,
     night: {
       phoneHeight: 300,
       alt: "One night in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
@@ -88,7 +89,7 @@ export const SCENES: Record<SceneName, Scene> = {
     sky: ["#ebb7ae", "#f1c3a0", "#fcc4a8", "#fcda9d", "#fdeca2"],
     height: 576,
     phoneHeight: 320,
-    band: 12,
+    band: 25,
     shortY: 8,
     night: { phoneHeight: 320 },
   },

@@ -324,7 +324,7 @@ describe("docs", () => {
     const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!;
     const { width, height } = media.getBoundingClientRect();
     expect(width).toBeLessThanOrEqual(1280);
-    expect(width / height).toBeCloseTo(4, 1);
+    expect(width / height).toBeCloseTo(3, 1);
     const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="image"]')];
     expect(night!.getAttribute("src")).not.toBe(day!.getAttribute("src"));
     setScheme("dark");
