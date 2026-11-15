@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import {
   floatingAlign,
@@ -58,21 +58,6 @@ export interface TooltipProps {
 
 /** Content longer than this is more than a label. */
 const LABEL_LENGTH = 80;
-
-const popupClass =
-  floatingMotionClass +
-  " box-border max-w-xs rounded-md bg-foreground px-2 py-1 text-xs leading-4 text-balance text-background [--ouro-floating-duration:var(--ouro-duration-fast)] data-instant:duration-0";
-
-// Never after a touch: a tap that focuses the trigger would otherwise show it, and a phone has no way to hover it away.
-const neverAfterTouch = (next: boolean, details: BaseTooltip.Root.ChangeEventDetails) => {
-  if (next && lastInput() === "touch") details.cancel();
-};
-
-/** What a trigger in a TooltipGroup hands the group's one tooltip as it opens: its content and where it sits. */
-type SharedPayload = { content: ReactNode; side: FloatingSide; align: FloatingAlign; check: (element: HTMLElement | null) => void };
-
-// The tooltip a TooltipGroup draws for all its triggers, which each Tooltip inside it attaches to.
-const SharedTooltip = createContext<BaseTooltip.Handle<SharedPayload> | null>(null);
 
 /**
  * A link or control inside the content, which no one can reach: the tooltip closes when the pointer leaves the trigger for it.
@@ -218,18 +203,19 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   // the close is asked in the same commit that hides the container, not a frame later.
   const hidden = useContext(TooltipsHidden);
   const actions = useRef<BaseTooltip.Root.Actions>(null);
-  const shared = useContext(SharedTooltip);
   useLayoutEffect(() => {
-    if (hidden && !shared) actions.current!.close();
-  }, [hidden, shared]);
+    if (hidden) actions.current!.close();
+  }, [hidden]);
 
   const portal = usePortalContainer("Tooltip");
-  // In a TooltipGroup, the trigger alone: the group draws one tooltip for all its triggers.
-  if (shared) return <BaseTooltip.Trigger {...forwarded} handle={shared} payload={{ content, side, align, check: checkContent }} render={children} ref={mergedRef} />;
   return (
     <BaseTooltip.Root
       actionsRef={actions}
-      onOpenChange={neverAfterTouch}
+      onOpenChange={(next, details) => {
+        // Never after a touch: a tap that focuses the trigger would otherwise show it,
+        // and a phone has no way to hover it away.
+        if (next && lastInput() === "touch") details.cancel();
+      }}
     >
       <BaseTooltip.Trigger {...forwarded} render={children} ref={mergedRef} />
       <BaseTooltip.Portal {...portal} data-ouro="tooltip-portal" className={floatingPortalClass}>
@@ -238,7 +224,10 @@ export function Tooltip(props: TooltipProps): JSX.Element {
             <BaseTooltip.Popup
               ref={checkContent}
               data-ouro="tooltip"
-              className={popupClass}
+              className={
+                floatingMotionClass +
+                " box-border max-w-xs rounded-md bg-foreground px-2 py-1 text-xs leading-4 text-balance text-background [--ouro-floating-duration:var(--ouro-duration-fast)] data-instant:duration-0"
+              }
             >
               {content}
             </BaseTooltip.Popup>
@@ -246,44 +235,5 @@ export function Tooltip(props: TooltipProps): JSX.Element {
         </PortalScope>
       </BaseTooltip.Portal>
     </BaseTooltip.Root>
-  );
-}
-
-/**
- * One tooltip for every Tooltip inside it: each trigger hands it its content as it opens, so a row
- * of many triggers, such as a message's reactions, mounts one tooltip rather than one each. It
- * closes as its container hides and never opens after a touch, as a Tooltip does.
- *
- * @claim "One tooltip for every Tooltip" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > shows each trigger's own content, on its own side, from one tooltip for them all)
- * @claim "It closes as its container hides" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > closes as the container it is in hides) verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > never opens after a touch on a trigger)
- * @internal
- * @example
- * <TooltipGroup>{reactions.map((r) => <Tooltip key={r.key} content={r.label}><Badge>{r.emoji}</Badge></Tooltip>)}</TooltipGroup>
- */
-export function TooltipGroup({ children }: { children: ReactNode }): JSX.Element {
-  const [handle] = useState(() => BaseTooltip.createHandle<SharedPayload>());
-  const hidden = useContext(TooltipsHidden);
-  const actions = useRef<BaseTooltip.Root.Actions>(null);
-  useLayoutEffect(() => {
-    if (hidden) actions.current!.close();
-  }, [hidden]);
-  const portal = usePortalContainer("Tooltip");
-  return (
-    <SharedTooltip value={handle}>
-      {children}
-      <BaseTooltip.Root handle={handle} actionsRef={actions} onOpenChange={neverAfterTouch}>
-        {({ payload }) => (
-          <BaseTooltip.Portal {...portal} data-ouro="tooltip-portal" className={floatingPortalClass}>
-            <PortalScope>
-              <BaseTooltip.Positioner side={payload?.side} align={payload?.align} sideOffset={6} collisionPadding={8} data-ouro="tooltip-positioner">
-                <BaseTooltip.Popup ref={payload?.check} data-ouro="tooltip" className={popupClass}>
-                  {payload?.content}
-                </BaseTooltip.Popup>
-              </BaseTooltip.Positioner>
-            </PortalScope>
-          </BaseTooltip.Portal>
-        )}
-      </BaseTooltip.Root>
-    </SharedTooltip>
   );
 }
