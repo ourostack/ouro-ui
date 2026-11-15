@@ -240,8 +240,10 @@ test("the Playwright timings reporter adds up each spec file's tests, in every p
   reporter.onTestEnd(spec("site/e2e/stage.spec.ts"), { duration: 1200 });
   reporter.onTestEnd(spec("site/e2e/stage.spec.ts"), { duration: 800 });
   reporter.onTestEnd(spec("registry/ouro/e2e/ouro/menu.spec.ts"), { duration: 300.4 });
+  const swept = { location: { file: join(process.cwd(), "site/e2e/states-sweep.ts") }, parent: { type: "describe", parent: { type: "file", location: { file: join(process.cwd(), "site/e2e/states-dark-1.spec.ts") } } } };
+  reporter.onTestEnd(swept, { duration: 50 });
   reporter.onEnd();
-  assert.deepEqual(JSON.parse(readFileSync(out, "utf8")), { "registry/ouro/e2e/ouro/menu.spec.ts": 300, "site/e2e/stage.spec.ts": 2000 });
+  assert.deepEqual(JSON.parse(readFileSync(out, "utf8")), { "registry/ouro/e2e/ouro/menu.spec.ts": 300, "site/e2e/stage.spec.ts": 2000, "site/e2e/states-dark-1.spec.ts": 50 });
   assert.equal(reporter.printsToStdio(), false);
 });
 
