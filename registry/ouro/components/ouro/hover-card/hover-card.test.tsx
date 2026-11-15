@@ -147,6 +147,111 @@ describe("HoverCard", () => {
     expect(getComputedStyle(await shown()).transitionProperty).toBe("opacity");
   });
 
+  it("mounts no card until the link is hovered, and keeps the link's own element as it arms", async () => {
+    await renderCard();
+    const before = link();
+    expect(document.querySelector('[data-ouro="hover-card-portal"]')).toBeNull();
+    await userEvent.hover(before);
+    await shown();
+    expect(link()).toBe(before);
+    expect(before.hasAttribute("data-popup-open")).toBe(true);
+  });
+
+  it("keeps focus on the link as keyboard focus arms the card", async () => {
+    await renderCard();
+    await userEvent.keyboard("{Shift}");
+    await act(async () => link().focus());
+    const focused = document.activeElement;
+    await shown();
+    expect(document.activeElement).toBe(focused);
+    expect(focused).toBe(link());
+  });
+
+  it("stays open while the pointer crosses onto the card, and closes once it leaves both", async () => {
+    await renderCard();
+    await userEvent.hover(link());
+    const element = await shown();
+    // The page's clock held, so the card's close delay runs out only when the test says.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.hover(element);
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(card()).not.toBeNull();
+      // And back onto the link, and onto the card again.
+      await userEvent.hover(link());
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(card()).not.toBeNull();
+      await userEvent.hover(element);
+      await userEvent.unhover(element);
+      await act(async () => vi.advanceTimersByTime(1000));
+    } finally {
+      vi.useRealTimers();
+    }
+    await expect.poll(() => card()).toBeNull();
+  });
+
+  it("sits under the line of a wrapped link the pointer came in on", async () => {
+    await render(
+      <p style={{ width: 120, margin: 0 }}>
+        Recipes from{" "}
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow and the whole kitchen crew</a>}>Preview</HoverCard>
+      </p>,
+    );
+    const lines = [...link().getClientRects()];
+    expect(lines.length).toBeGreaterThan(1);
+    const last = lines.at(-1)!;
+    await userEvent.hover(link(), { position: { x: last.left - link().getBoundingClientRect().left + 2, y: last.top - link().getBoundingClientRect().top + last.height / 2 } });
+    const element = await shown();
+    expect(Math.abs(element.getBoundingClientRect().top - last.bottom - 8)).toBeLessThanOrEqual(1);
+  });
+
+  it("closes on Escape and when focus leaves the link", async () => {
+    await renderCard();
+    await userEvent.keyboard("{Shift}");
+    await act(async () => link().focus());
+    await shown();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => card()).toBeNull();
+    link().blur();
+    await act(async () => link().focus());
+    await shown();
+    await act(async () => link().blur());
+    await expect.poll(() => card()).toBeNull();
+  });
+
+  it("opens no card when the pointer leaves the link before it rests there, and passes the link's own handlers on", async () => {
+    const seen: string[] = [];
+    await render(
+      <HoverCard
+        trigger={
+          <a
+            href="#cooks/ari"
+            onPointerEnter={() => seen.push("enter")}
+            onPointerLeave={() => seen.push("leave")}
+            onFocus={() => seen.push("focus")}
+            onBlur={() => seen.push("blur")}
+          >
+            Ari Mendelow
+          </a>
+        }
+      >
+        Preview
+      </HoverCard>,
+    );
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.hover(link());
+      await userEvent.unhover(link());
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(card()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+    await act(async () => link().focus());
+    await act(async () => link().blur());
+    expect(seen).toEqual(["enter", "leave", "focus", "blur"]);
+  });
+
   it("renders only the link on the server", () => {
     const html = renderToString(
       <HoverCard trigger={<a href="/cooks/ari">Ari</a>}>Preview</HoverCard>,
