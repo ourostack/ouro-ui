@@ -646,7 +646,8 @@ describe("MessageList windowing", () => {
 
   it("keeps every message drawn while code brings one after another into view, and lets the far ones go at the reader's next scroll", async () => {
     const { scroller } = await render(<Chat items={conversation(1000, 0, true)} />);
-    await scrollTo(scroller, scroller.scrollHeight / 2);
+    // From the moment the list opens, before the reader has done anything.
+    await codeScrollTo(scroller, scroller.scrollHeight / 2);
     // Code moves the list up a long way, drawing more above, then walks down through the messages drawn, as a contrast
     // check measuring each does (not on to the newest, which always draws, far below them).
     await codeScrollTo(scroller, scroller.scrollTop - 1200);

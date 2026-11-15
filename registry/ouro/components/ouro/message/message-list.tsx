@@ -1660,7 +1660,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The reader's own scrolling: when they last gave input, whether a scroll of theirs is going on, and whether they hold the
   // scrollbar. A scroll made by code (find in page, a screen reader, a test tool, the app) is none of these.
   // `code` is whether the last scroll was neither theirs nor the list's own (`ownTop`, where it last put the scroll position).
-  const reader = useRef({ at: -Infinity, going: false, held: false, code: false });
+  // Stryker disable next-line ObjectLiteral: an empty start reads as no input, no scroll going and nothing held, as these do.
+  const reader = useRef({
+    // Stryker disable next-line UnaryOperator: at most the first scroll after the list mounts is taken for the reader's, and its scrollend hands the next to code.
+    at: -Infinity,
+    // Stryker disable next-line BooleanLiteral: at most the first scroll after the list mounts is taken for the reader's, and its scrollend hands the next to code.
+    going: false,
+    held: false,
+    code: false,
+  });
   const ownTop = useRef<number | null>(null);
   // Where each slot drawn sits in the content, and its size, as last measured.
   const tops = useRef(new Map<string, { top: number; size: number }>());
@@ -1831,6 +1839,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const press = () => ((state.held = true), byReader());
     const release = () => void (state.held = false);
     const onScroll = () => {
+      // Stryker disable next-line EqualityOperator: a scroll exactly at the gap is the reader's or code's alike.
       if (performance.now() - state.at <= READER_GAP) state.going = true;
       // The list's own move (following the end, keeping the reader's place) leaves the last scroll's say.
       if (scroller.scrollTop !== ownTop.current) state.code = !state.going && !state.held;
