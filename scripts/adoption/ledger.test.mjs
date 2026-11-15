@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
-import { build, createContext, gaveBack, isCurrent, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
+import { readFileSync } from "node:fs";
+import { build, configPath, createContext, gaveBack, isCurrent, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
 
 const NOW = new Date("2026-11-13T22:00:00Z");
 const releases = {
@@ -215,9 +216,8 @@ test("code search waits as long as GitHub says on an HTTP 429, within a cap", ()
   assert.deepEqual(waits.filter((ms) => ms !== 6500).slice(-3), [15980, 90000, 1588]);
 });
 
-test("Gatefold's pin is read from the ouro-ui-apple package in its XcodeGen project.yml", async () => {
-  const { readFileSync } = await import("node:fs");
-  const real = JSON.parse(readFileSync(new URL("./ledger.config.json", import.meta.url), "utf8"));
+test("Gatefold's pin is read from the ouro-ui-apple package in its XcodeGen project.yml", () => {
+  const real = JSON.parse(readFileSync(configPath, "utf8"));
   const gatefold = real.surfaces.find((surface) => surface.id === "gatefold");
   const projectYml = "packages:\n  OuroUIApple:\n    url: https://github.com/ourostack/ouro-ui-apple\n    minorVersion: 0.2.1\n  GatefoldCore:\n    path: Packages/GatefoldCore\n";
   const gh = (args) => {
