@@ -1,0 +1,4 @@
+# Changes in this release
+
+- ouro-base: `ouro-focus-ring`, `ouro-focus-ring-inset` and `ouro-row` give markup that is not an Ouro component, such as rows built as strings, the components' focus ring and a linked row's hover and press tint, and the Ouro source rule counts them as Ouro's. Add `ouro-base` again to get them; the plain stylesheet `site/public/css/ouro-base.css` has them too.
+- Changed: a Tooltip mounts its Base UI parts only on its trigger's first hover or keyboard focus, so a closed one draws [its trigger and one component more](registry/ouro/components/ouro/tooltip/tooltip.weight.test.tsx "verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.weight.test.tsx::Tooltip's weight > draws a closed tooltip as its trigger and one component more, with no Base UI part)") and a pressable reaction mounts no tooltip until it is reached; it shows, groups and takes the first Escape as before.
