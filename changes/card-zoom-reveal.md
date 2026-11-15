@@ -1,0 +1,1 @@
+- Card: a linked card takes `zoomMedia`, which grows its pictures 3% inside their frame while the pointer rests on it or keyboard focus is in it (not with reduced motion), and `revealDescription`, which keeps its description back until then on a screen with a mouse (always shown on a touch screen, and named as the link's description).
