@@ -358,6 +358,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm i --frozen-lockfile
+      # The newest release tag, which the release-notes test measures new changes against, as a release does.
+      - name: Fetch the newest release tag
+        run: |
+          last=$(git ls-remote --tags --refs origin 'refs/tags/v*' | sed 's#.*refs/tags/##' | sort -V | tail -1)
+          git fetch --quiet --no-tags --depth=1 origin "refs/tags/$last:refs/tags/$last"
       - name: Script tests
         run: |
           mkdir -p .tmp/timings
