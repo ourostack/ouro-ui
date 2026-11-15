@@ -262,11 +262,16 @@ function useImageStatus(src: string | undefined): "idle" | "loading" | "loaded" 
   useLayoutEffect(() => {
     if (!src) return;
     let current = true;
-    // A status the avatar already has keeps its state, so a cached picture's late load event draws nothing again.
-    const settle = (status: "loading" | "loaded" | "error") => setFetched((last) => (last?.src === src && last.status === status ? last : { src, status }));
+    let shown: "loading" | "loaded" | "error" | undefined;
+    // A status the avatar already shows sets no state, so a cached picture's late load event draws nothing again.
+    const settle = (status: "loading" | "loaded" | "error") => {
+      if (!current || status === shown) return;
+      shown = status;
+      setFetched({ src, status });
+    };
     const image = new window.Image();
-    image.onload = () => current && settle("loaded");
-    image.onerror = () => current && settle("error");
+    image.onload = () => settle("loaded");
+    image.onerror = () => settle("error");
     image.src = src;
     // Before paint, so a picture already in the browser's cache is there on the avatar's first frame.
     settle(image.complete && image.naturalWidth > 0 ? "loaded" : "loading");
