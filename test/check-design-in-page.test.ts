@@ -561,6 +561,13 @@ describe("readCorners", () => {
     expect(await readCorners([reading(striped)])).toMatchObject([{ detail: expect.stringMatching(/^the bottom left, bottom right corners/) }]);
   });
 
+  it("passes a picture whose own glow lies near its corners", async () => {
+    // The CI crop of a scene in a 30.6px squircle frame: a blue-violet glow about 30px in, which is the picture, not a bake.
+    const shotUrl = new URL("./fixtures/glowing-scene-corner.png", import.meta.url).href;
+    const scene: CornerReading = { ref: "c1", element: "scenes/built-for-one.avif", shot: shotUrl, radius: 30.6, behind: [5, 16, 36], own: [], corners: ["top left", "top right"] };
+    expect(await readCorners([scene])).toEqual([]);
+  });
+
   it("passes a corner that shows the page as drawn at its tip, or a colour the frame draws itself, such as its outline or border", async () => {
     // The page behind is green where the styles say white: the gap before an outline, say.
     const GREEN = [30, 160, 90];

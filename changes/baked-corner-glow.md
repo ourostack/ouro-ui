@@ -1,0 +1,1 @@
+- Fixed: the baked-corner check no longer flags a picture whose own glow or shading near its corners wanders in colour; only a flat fill baked into the corners is flagged.
