@@ -31,6 +31,7 @@ const waivers: Record<string, string> = {
   "stacked-layout": "its navbar reads getComputedStyle on the document to size to the safe area in the first frame",
   "tab-bar": "the bar reads the window's inner size and visual viewport, which are cheap and force no layout, to know whether the keyboard is up; the guard counts the viewport reads, and the first frame needs the answer",
   "tabs": "the indicator and the selected tab need their offsets and scroll sizes in the first frame, and Base UI's tabs list reads sizes and calls scrollIntoViewIfNeeded for the selected tab",
+  "thread-layout": "it mounts a message list in its open rail, which pins the first frame to the newest message and needs scroll and client sizes to do so",
   "thread-rail": "it mounts a message list, which pins the first frame to the newest message and needs scroll and client sizes to do so",
 };
 

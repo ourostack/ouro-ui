@@ -449,6 +449,7 @@ Components:
 `text`,
 `text-area`,
 `text-field`,
+`thread-layout`,
 `thread-rail`,
 `thread-summary`,
 `time-grid`,
@@ -727,6 +728,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ScrollArea** — A scrolling region with a thin scrollbar in the theme's color, inside a height you set. [Docs](docs/ScrollArea.md)
 - **SnapPiP** — A floating picture inside a container, such as the person's own camera in a call, that they drag and throw into a corner, where it comes to rest, as a phone's picture in picture does. [Docs](docs/SnapPiP.md)
 - **Stack** — Lays its children out top to bottom with an even gap. [Docs](docs/Stack.md)
+- **ThreadLayout** — A conversation beside its thread. [Docs](docs/ThreadLayout.md)
 
 ### Navigation
 
