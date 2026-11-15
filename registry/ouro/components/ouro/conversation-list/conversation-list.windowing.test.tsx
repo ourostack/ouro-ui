@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { Profiler, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -125,6 +125,43 @@ describe("ConversationList windowing", () => {
     expect(view.rows().length).toBeGreaterThan(0);
     expect(first).toBeGreaterThan(0);
     await expect.poll(() => Math.round(view.rows()[0]!.parentElement!.getBoundingClientRect().top - view.pane.querySelector('[data-ouro="conversation-list"] > ul')!.getBoundingClientRect().top)).toBe(0);
+  });
+
+  it("lays nothing out, and commits once, when a long list's rows land in place of others, and then measures them from the observer", async () => {
+    const pane = document.createElement("div");
+    pane.style.cssText = "width: 360px; height: 400px; overflow-y: auto";
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    let commits = 0;
+    const list = (items: ConversationListItem[]) => (
+      <Profiler id="list" onRender={() => commits++}>
+        <ConversationList label="Chats" items={items} onSelect={() => {}} />
+      </Profiler>
+    );
+    // The cached page an app opens with, then the fresh one, with other conversations and longer previews.
+    await act(async () => root.render(list(many(200))));
+    await frames();
+    await frames();
+    const fresh = many(200, (index) => ({ id: `n${index}`, title: `n${index}`, preview: "A longer latest message, ".repeat(1 + (index % 3)) }));
+    const reads = watchLayoutReads();
+    commits = 0;
+    flushSync(() => root.render(list(fresh)));
+    const landing = reads.names();
+    reads.stop();
+    expect(landing).toEqual([]);
+    expect(commits).toBe(1);
+    // The rows that landed are measured once the page is laid out, and the first stays at the top of the list.
+    const rows = () => [...pane.querySelectorAll<HTMLButtonElement>('[data-ouro-part="row"]')];
+    await frames();
+    await frames();
+    expect(rows()[0]!.querySelector("[data-ouro-conversation-title]")!.textContent).toBe("n0");
+    const ul = pane.querySelector('[data-ouro="conversation-list"] > ul')!;
+    expect(Math.round(rows()[0]!.parentElement!.getBoundingClientRect().top - ul.getBoundingClientRect().top)).toBe(0);
+    await scrollPane(pane, 3000);
+    // The window follows the scroll as before (the first row stays, as the list's Tab stop).
+    expect(rows().some((row) => row.querySelector("[data-ouro-conversation-title]")!.textContent === "n5")).toBe(false);
   });
 
   it("forces no style or layout while a list with many sections mounts", async () => {
