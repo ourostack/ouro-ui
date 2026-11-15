@@ -122,6 +122,21 @@
   .adoption-newer {
     min-height: 1.5rem;
   }
+  /* What changed since a day before: reserved, so it arrives without moving anything. */
+  .adoption-changes {
+    min-height: 1.375rem;
+    margin: calc(var(--spacing) * 3) 0 0;
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+    color: var(--adoption-quiet);
+  }
+  .adoption-change {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 1.5);
+    margin-top: calc(var(--spacing) * 1);
+    color: var(--foreground);
+  }
   .adoption-show {
     min-height: 1.5rem;
     padding: 0 calc(var(--spacing) * 1);
@@ -172,6 +187,9 @@
   }
   .adoption-ray[data-state="met"] {
     stroke: var(--adoption-starlight);
+  }
+  .adoption-ray[data-new] {
+    stroke-width: 2.5;
   }
   .adoption-ray[data-state="unmeasured"] {
     stroke-dasharray: 0.5 3;
@@ -243,7 +261,7 @@
     list-style: none;
   }
   .adoption-row {
-    padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 2);
     margin-inline: calc(var(--spacing) * -2);
     border-top: 1px solid var(--adoption-hairline);
     border-radius: var(--radius-sm, 4px);
@@ -300,12 +318,16 @@
   .adoption-mark[data-state="unmeasured"] circle {
     stroke-dasharray: 1.6 2.3;
   }
-  .adoption-gaps {
+  .adoption-gaps,
+  .adoption-members {
     grid-column: 1 / -1;
     margin-top: calc(var(--spacing) * 0.5);
     font-size: 0.875rem;
     line-height: 1.375rem;
     color: var(--adoption-quiet);
+  }
+  .adoption-members {
+    margin-bottom: 0;
   }
   .adoption-gaps li {
     display: inline;
@@ -328,7 +350,8 @@
     .adoption-name {
       margin-right: calc(var(--spacing) * 3);
     }
-    .adoption-gaps {
+    .adoption-gaps,
+    .adoption-members {
       grid-column: auto;
       margin: 0 0 0 calc(var(--spacing) * 4);
     }
@@ -380,6 +403,9 @@
       stroke-dasharray: 1;
       animation: ouro-adoption-close 1200ms var(--ouro-ease-in-out, ease-in-out) 400ms backwards;
     }
+    .adoption-ray[data-new] {
+      animation: ouro-adoption-new 900ms var(--ouro-ease-out, ease-out) 800ms backwards;
+    }
     .adoption-spark {
       transform-origin: 160px 160px;
       animation: ouro-adoption-spark 700ms var(--ouro-ease-out, ease-out) backwards;
@@ -398,6 +424,15 @@
     }
     to {
       stroke-dashoffset: 0;
+    }
+  }
+  @keyframes ouro-adoption-new {
+    from {
+      opacity: 0;
+    }
+    40% {
+      opacity: 1;
+      stroke-width: 5;
     }
   }
   @keyframes ouro-adoption-spark {

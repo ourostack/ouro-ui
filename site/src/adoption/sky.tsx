@@ -49,7 +49,7 @@ const DUST = (() => {
   return dots;
 })();
 
-export function Sky({ stars, active, closed }: { stars: Surface[]; active: string | null; closed: boolean }): JSX.Element {
+export function Sky({ stars, active, fresh, closed }: { stars: Surface[]; active: string[]; fresh: Set<string>; closed: boolean }): JSX.Element {
   const count = stars.length;
   const points = stars.map((_, index) => at(index, count));
   return (
@@ -82,7 +82,7 @@ export function Sky({ stars, active, closed }: { stars: Surface[]; active: strin
             className="adoption-star"
             data-id={surface.id}
             data-lit={surface.confirmed || undefined}
-            data-active={active === surface.id || undefined}
+            data-active={active.includes(surface.id) || undefined}
             style={{ "--i": index, transformOrigin: `${round(x)}px ${round(y)}px` } as CSSProperties}
           >
             <circle className="adoption-halo" cx={round(x)} cy={round(y)} r={13} />
@@ -90,7 +90,7 @@ export function Sky({ stars, active, closed }: { stars: Surface[]; active: strin
               const state = checks[ray]!.state;
               if (state === "na") return null;
               const [dx, dy] = DIRECTIONS[ray]!;
-              return <line key={key} className="adoption-ray" data-state={state} x1={round(x + dx * 5)} y1={round(y + dy * 5)} x2={round(x + dx * (5 + RAY[state]))} y2={round(y + dy * (5 + RAY[state]))} />;
+              return <line key={key} className="adoption-ray" data-state={state} data-new={fresh.has(`${surface.id}:${key}`) || undefined} x1={round(x + dx * 5)} y1={round(y + dy * 5)} x2={round(x + dx * (5 + RAY[state]))} y2={round(y + dy * (5 + RAY[state]))} />;
             })}
             <circle className="adoption-core" cx={round(x)} cy={round(y)} r={surface.confirmed ? 4.5 : 3} />
           </g>

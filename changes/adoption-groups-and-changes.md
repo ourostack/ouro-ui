@@ -1,0 +1,1 @@
+- Changed: /adoption/ lists products closest to green first, folds products alike in every check into one line, keeps only the text particular to a product, and says what changed since a day before.

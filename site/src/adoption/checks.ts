@@ -26,6 +26,8 @@ export interface Check {
   why: string | null;
   /** Where the line's fact came from. */
   source: string | null;
+  /** Whether the line only restates the mark (the check has not started), so the page can leave it out and say what is particular instead. */
+  generic?: boolean;
 }
 
 const sentence = (text: string): string => (text ? text[0]!.toUpperCase() + text.slice(1) : text);
@@ -48,7 +50,7 @@ function current(surface: Surface): Omit<Check, "key" | "label"> {
   const met = surface.conditions.current.met;
   if (met) return { state: "met", why: null, source: cell.source };
   if (cell.value === null) return { state: unmeasuredOrNa(cell), why: unmeasured(cell), source: cell.source };
-  if (cell.value.length === 0) return { state: "missing", why: "Doesn't use Ouro UI yet", source: cell.source };
+  if (cell.value.length === 0) return { state: "missing", why: "Doesn't use Ouro UI yet", source: cell.source, generic: true };
   const behind = cell.value.filter((pin) => typeof pin.behind === "number" && pin.behind > 0).sort((a, b) => (b.behind ?? 0) - (a.behind ?? 0));
   const furthest = behind[0];
   if (!furthest) {
@@ -68,13 +70,16 @@ function oneAction(surface: Surface): Omit<Check, "key" | "label"> {
   if (surface.conditions.oneAction.met) return { state: "met", why: null, source: cell.source };
   if (cell.value === null) return { state: unmeasuredOrNa(cell), why: reason(cell, "not measured yet"), source: cell.source };
   // The ledger's note says how it looked; the row needs only the gap, and the link carries the detail.
-  return { state: "missing", why: /not released/i.test(cell.note ?? "") ? reason(cell, "") : "Actions not declared yet", source: cell.source };
+  return { state: "missing", why: /not released/i.test(cell.note ?? "") ? reason(cell, "") : "Actions not declared yet", source: cell.source, generic: true };
 }
 
 function must(surface: Surface): Omit<Check, "key" | "label"> {
   const cell = surface.cells.xray;
   if (surface.conditions.must.met) return { state: "met", why: null, source: cell.value?.run ?? cell.source };
-  if (cell.value === null) return { state: unmeasuredOrNa(cell), why: unmeasured(cell, /x-ray/i.test(cell.note ?? "") ? "X-ray doesn't run in CI yet" : undefined), source: cell.source };
+  if (cell.value === null) {
+    const xrayMissing = !PRIVATE.test(cell.note ?? "") && /x-ray/i.test(cell.note ?? "");
+    return { state: unmeasuredOrNa(cell), why: unmeasured(cell, xrayMissing ? "X-ray doesn't run in CI yet" : undefined), source: cell.source, ...(xrayMissing ? { generic: true } : {}) };
+  }
   const { must: total, mustHolding, run } = cell.value;
   if (total === 0) return { state: "missing", why: "Must claims not written yet", source: run ?? cell.source };
   return { state: "missing", why: `${total - mustHolding} of ${plural(total, "must claim")} fail`, source: run ?? cell.source };
@@ -84,7 +89,7 @@ function gaveBack(surface: Surface): Omit<Check, "key" | "label"> {
   const cell = surface.cells.giveBack;
   if (surface.conditions.gaveBack.met) return { state: "met", why: null, source: cell.source };
   if (cell.value === null) return { state: unmeasuredOrNa(cell), why: reason(cell, "not measured yet"), source: cell.source };
-  return { state: "missing", why: "Nothing given back yet", source: cell.source };
+  return { state: "missing", why: "Nothing given back yet", source: cell.source, generic: true };
 }
 
 const READERS: Record<CheckKey, (surface: Surface) => Omit<Check, "key" | "label">> = { current, oneAction, must, gaveBack };
@@ -102,11 +107,23 @@ export interface Shared {
   source: string | null;
 }
 
+export interface Row {
+  surface: Surface;
+  checks: Check[];
+  /** The gap lines particular to this product: the ones that say more than its marks do. */
+  notes: Check[];
+}
+
+/** One line of the list: a product, or products that stand in the same place with nothing particular to say. */
+export type Entry = { kind: "product"; row: Row } | { kind: "group"; rows: Row[]; checks: Check[] };
+
 export interface Board {
   total: number;
   green: number;
   /** The counted products, furthest from green first, as the ledger orders them. */
-  rows: Array<{ surface: Surface; checks: Check[] }>;
+  rows: Row[];
+  /** The list as the page shows it: closest to green first, products alike in every check and with nothing particular to say folded into one line. */
+  entries: Entry[];
   /** The counted products in a fixed order (by id), so a product keeps its place in the sky as the ledger changes. */
   sky: Surface[];
   shared: Shared[];
@@ -117,7 +134,10 @@ export function boardOf(ledger: Ledger): Board {
   const counted = ledger.surfaces.filter((surface) => surface.inScope);
   const byId = new Map(counted.map((surface) => [surface.id, surface]));
   const ordered = [...ledger.summary.order.map((id) => byId.get(id)).filter((surface): surface is Surface => Boolean(surface)), ...counted.filter((surface) => !ledger.summary.order.includes(surface.id))];
-  const rows = ordered.map((surface) => ({ surface, checks: checksOf(surface) }));
+  const rows: Row[] = ordered.map((surface) => {
+    const checks = checksOf(surface);
+    return { surface, checks, notes: checks.filter((check) => check.why && check.state !== "met" && check.state !== "na" && !check.generic) };
+  });
   const shared: Shared[] = [];
   for (const key of CHECK_KEYS) {
     const column = rows.map((row) => row.checks.find((check) => check.key === key)!);
@@ -126,11 +146,57 @@ export function boardOf(ledger: Ledger): Board {
       shared.push({ key, label: first.label, why: first.why, source: first.source });
     }
   }
+  const shown = rows.map((row) => ({ ...row, notes: row.notes.filter((note) => !shared.some((item) => item.key === note.key)) }));
+  const signature = (row: Row): string => row.checks.map((check) => check.state).join(" ");
+  const entries: Entry[] = [];
+  const groups = new Map<string, Extract<Entry, { kind: "group" }>>();
+  const alike = new Map<string, number>();
+  for (const row of shown) if (!row.notes.length) alike.set(signature(row), (alike.get(signature(row)) ?? 0) + 1);
+  for (const row of [...shown].reverse()) {
+    const key = signature(row);
+    if (row.notes.length || row.surface.confirmed || (alike.get(key) ?? 0) < 2) {
+      entries.push({ kind: "product", row });
+      continue;
+    }
+    const group = groups.get(key);
+    if (group) group.rows.push(row);
+    else {
+      const created = { kind: "group" as const, rows: [row], checks: row.checks };
+      groups.set(key, created);
+      entries.push(created);
+    }
+  }
   return {
     total: ledger.summary.total,
     green: ledger.summary.confirmed,
-    rows,
+    rows: shown,
+    entries,
     sky: [...counted].sort((a, b) => a.id.localeCompare(b.id)),
     shared,
   };
+}
+
+/** A check that changed between two ledgers: it passes now and did not, or the other way round. */
+export interface Change {
+  id: string;
+  name: string;
+  key: CheckKey;
+  label: string;
+  passes: boolean;
+}
+
+/** What changed between an earlier ledger and this one, by the ledger's own conditions; products in only one of them are left out. */
+export function changesBetween(before: Ledger, after: Ledger): Change[] {
+  const earlier = new Map(before.surfaces.map((surface) => [surface.id, surface]));
+  const changes: Change[] = [];
+  for (const surface of after.surfaces.filter((item) => item.inScope)) {
+    const old = earlier.get(surface.id);
+    if (!old?.conditions) continue;
+    for (const key of CHECK_KEYS) {
+      const was = old.conditions[key]?.met;
+      const is = surface.conditions[key].met;
+      if (typeof was === "boolean" && was !== is) changes.push({ id: surface.id, name: surface.name, key, label: CHECK_SHORT[key], passes: is });
+    }
+  }
+  return changes;
 }

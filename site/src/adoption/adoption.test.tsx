@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderFixture, renderPage, scan, setScheme, settle } from "../../test/render";
 import { isNewer, SNAPSHOT, stamp, type Ledger, type Surface } from "./ledger";
-import { boardOf, checksOf } from "./checks";
+import { boardOf, changesBetween, checksOf } from "./checks";
 import { AdoptionPage } from "./adoption";
 import { routes } from "../routes";
 
@@ -38,20 +38,65 @@ describe("the adoption page", () => {
     await expect.element(page.getByRole("heading", { level: 1, name: new RegExp(`^${SNAPSHOT.summary.confirmed} of ${SNAPSHOT.summary.total} products on Ouro\\sUI\\.$`) })).toBeInTheDocument();
   });
 
-  it("gives every counted product a row, furthest from green first, with its four checks as the ledger says them", async () => {
+  it("gives every counted product its four checks as the ledger says them, closest to green first", async () => {
     const host = await renderPage("/adoption/");
     const rows = [...host.querySelectorAll<HTMLElement>(".adoption-row")];
-    expect(rows.map((row) => row.id)).toEqual(SNAPSHOT.summary.order);
-    expect(rows).toHaveLength(SNAPSHOT.summary.total);
+    const ids = rows.flatMap((row) => (row.dataset.ids ? row.dataset.ids.split(" ") : [row.id]));
+    expect(ids).toEqual([...SNAPSHOT.summary.order].reverse());
     for (const row of rows) {
-      const surface = counted.find((item) => item.id === row.id)!;
+      const members = row.dataset.ids ? row.dataset.ids.split(" ") : [row.id];
       const marks = [...row.querySelectorAll<HTMLElement>(".adoption-marks > li")];
-      expect(marks.map((mark) => mark.dataset.state)).toEqual(checksOf(surface).map((check) => check.state));
-      // Green is never drawn where the ledger does not say so.
-      marks.forEach((mark, index) => expect(mark.dataset.state === "met").toBe(Object.values(surface.conditions)[index]!.met));
-      expect(row.hasAttribute("data-green")).toBe(surface.confirmed);
-      expect(row.querySelector(".adoption-marks")?.getAttribute("aria-label")).toBe(`${surface.confirmed ? "Green. " : ""}${surface.met} of 4 checks pass`);
+      for (const id of members) {
+        const surface = counted.find((item) => item.id === id)!;
+        expect(marks.map((mark) => mark.dataset.state)).toEqual(checksOf(surface).map((check) => check.state));
+        // Green is never drawn where the ledger does not say so.
+        marks.forEach((mark, index) => expect(mark.dataset.state === "met").toBe(Object.values(surface.conditions)[index]!.met));
+        if (!row.dataset.ids) {
+          expect(row.hasAttribute("data-green")).toBe(surface.confirmed);
+          expect(row.querySelector(".adoption-marks")?.getAttribute("aria-label")).toBe(`${surface.confirmed ? "Green. " : ""}${surface.met} of 4 checks pass`);
+        }
+      }
     }
+  });
+
+  it("folds products alike in every check, with nothing particular to say, into one line that names them", async () => {
+    const host = await renderPage("/adoption/");
+    const board = boardOf(SNAPSHOT);
+    for (const row of host.querySelectorAll<HTMLElement>(".adoption-group")) {
+      const members = row.dataset.ids!.split(" ");
+      expect(members.length).toBeGreaterThan(1);
+      expect(row.querySelector(".adoption-name")?.textContent).toBe(`${members.length} products`);
+      for (const id of members) {
+        const found = board.rows.find((item) => item.surface.id === id)!;
+        expect(found.notes).toEqual([]);
+        expect(found.surface.confirmed).toBe(false);
+        expect(row.querySelector(".adoption-members")?.textContent).toContain(found.surface.name);
+      }
+    }
+  });
+
+  it("leaves out a line that only says what the marks say", async () => {
+    const host = await renderPage("/adoption/");
+    for (const generic of ["Doesn't use Ouro UI yet", "Actions not declared yet", "X-ray doesn't run in CI yet", "Nothing given back yet"]) {
+      for (const gaps of host.querySelectorAll(".adoption-gaps")) expect(gaps.textContent).not.toContain(generic);
+    }
+  });
+
+  it("says what changed since a day before, and lights the new ray", async () => {
+    const target = counted.find((item) => !item.conditions.gaveBack.met)!;
+    const after = ledgerWith((copy) => {
+      surface(copy, target.id).conditions.gaveBack.met = true;
+    });
+    const before = { ...structuredClone(SNAPSHOT), generatedAt: "2026-11-14T10:00:00Z" };
+    const host = await renderFixture(<AdoptionPage initial={after} earlier={before} live={false} />);
+    const strip = host.querySelector(".adoption-changes")?.textContent ?? "";
+    expect(strip).toContain("Since 2026-11-14 10:00 UTC:");
+    expect(strip).toContain(`${target.name}, Gave back passes`);
+    expect(host.querySelector(`.adoption-star[data-id="${target.id}"] .adoption-ray[data-new]`)).not.toBeNull();
+    await cleanupPage();
+    const same = await renderFixture(<AdoptionPage initial={SNAPSHOT} earlier={before} live={false} />);
+    expect(same.querySelector(".adoption-changes")?.textContent).toBe("Since 2026-11-14 10:00 UTC, unchanged.");
+    expect(same.querySelector(".adoption-ray[data-new]")).toBeNull();
   });
 
   it("says a reason every product shares once, under the list, and not on every row", async () => {
@@ -108,8 +153,9 @@ describe("the adoption page", () => {
 
   it("names the product a row is on in the middle of the ring, and lifts its star", async () => {
     const host = await renderFixture(<AdoptionPage initial={SNAPSHOT} live={false} />);
-    const first = counted.find((item) => item.id === SNAPSHOT.summary.order[0])!;
-    host.querySelector<HTMLElement>(`#${first.id} a`)?.focus();
+    const link = host.querySelector<HTMLElement>(".adoption-row:not(.adoption-group) a")!;
+    const first = counted.find((item) => item.id === link.closest("li.adoption-row")!.id)!;
+    link.focus();
     await settle();
     expect(host.querySelector(".adoption-readout-sub")?.textContent).toBe(`${first.met} of 4 checks`);
     expect(host.querySelector(".adoption-readout-name")?.textContent).toBe(first.name);
@@ -170,6 +216,18 @@ describe("reading the checks", () => {
     const actions = (note: string) => ({ value: 0, note, source: "https://example.com/actions", measuredAt: at });
     expect(checksOf(withCells({ actions: actions("No actions declared on the one-action model: no actions.json written by ouro-actions in the repository.") }))[1]).toMatchObject({ state: "missing", why: "Actions not declared yet", source: "https://example.com/actions" });
     expect(checksOf(withCells({ actions: actions("The one-action model is not released yet, so no product has actions on it.") }))[1]).toMatchObject({ why: "The one-action model is not released yet, so no product has actions on it" });
+  });
+
+  it("tells which checks turned, either way, and leaves out products the earlier ledger lacks", () => {
+    const [one, two] = counted;
+    const after = ledgerWith((copy) => {
+      surface(copy, one!.id).conditions.must.met = !one!.conditions.must.met;
+    });
+    const before = ledgerWith((copy) => {
+      copy.surfaces = copy.surfaces.filter((item) => item.id !== two!.id);
+    });
+    expect(changesBetween(before, after)).toEqual([{ id: one!.id, name: one!.name, key: "must", label: "AX must", passes: !one!.conditions.must.met }]);
+    expect(changesBetween(SNAPSHOT, SNAPSHOT)).toEqual([]);
   });
 
   it("orders rows as the ledger does, and keeps each star in a fixed place", () => {
