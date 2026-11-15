@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -140,18 +140,19 @@ export interface MessageListOwnProps {
   /**
    * Whether a long conversation draws only the messages near its view. Above 60 children the list
    * draws those within a screen or 800 pixels of the view, whichever is more, the newest, the one with focus, and any
-   * still streaming, each measured as it draws, with space for the rest kept above and below, so a long
+   * still streaming (as it opens, only those its view shows, and the rest once that frame is painted), each measured as it draws, with space for the rest kept above and below, so a long
    * conversation opens and redraws in about the time a screenful does. The browser's find in page, and
    * code that reads messages from the page, see only the messages drawn: search your own messages and
    * call `actionsRef.current.reveal(id)` to show a match. Set `false` to keep every message in the page.
    * A list the reader scrolled up in that takes older and newer messages in one commit renders no more than 60 of the
    * children it drew before, and the 20 newest, before it finds the view; scrolling up through rows never drawn moves
-   * what the reader looks at by under a pixel in every frame; and a list opens at its end with no frame moving it more
-   * than a pixel.
+   * what the reader looks at by under a pixel in every frame; and a list opens at its end with no frame moving the row at the
+   * view's top by more than a pixel.
    * @default true
    * @claim "renders no more than 60 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
    * @claim "moves what the reader looks at by under a pixel" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px)
-   * @claim "opens at its end with no frame moving it more" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens a conversation of 300 rows of varied heights at its end, moving the view and the row at its top by no more than a pixel in any frame)
+   * @claim "opens at its end with no frame moving the row" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens a conversation of 300 rows of varied heights at its end, moving the row at the view's top by no more than a pixel in any frame)
+   * @claim "as it opens, only those its view shows" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens with no more rows than fill the window, and draws the rows past the view's edges only after the first paint)
    * @claim "Above 60 children the list draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
    * @claim "Above 60 children the list draws" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /const OVERSCAN = 800;/) verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /Math\.max\(OVERSCAN, scroller\.clientHeight\)/)
    * @claim "Set `false` to keep every message" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps every message in the page with windowing={false})
@@ -338,8 +339,15 @@ const KEEP_SPOKEN = 5;
 const WINDOW_ABOVE = 60;
 /** How far past the view's edges, in pixels, messages still draw: a page key, or a short scroll, finds them drawn. At least the view's height. */
 const OVERSCAN = 800;
-/** How much of the conversation draws before the view is known (server HTML, the first draw), in pixels: from its end, or around `initialAnchor`. */
+/** How much of the conversation the server HTML draws, in pixels: from its end, or around `initialAnchor`. */
 const FIRST_VIEW = 1600;
+/**
+ * The height of the last view a list measured, which a list that opens in the browser takes for its own: the conversations
+ * an app opens one after another sit in the same pane. Before any, the window's.
+ */
+let lastView: number | null = null;
+// Stryker disable next-line ArrowFunction: the store never changes, so nothing calls this.
+const noChange = () => () => {};
 /** A message's height, with its margins, before any is measured. */
 const ESTIMATE = 96;
 /**
@@ -410,14 +418,13 @@ function extentOf(slot: Element): { top: number; size: number } {
 }
 
 /**
- * The children to draw before the view is known: those within FIRST_VIEW pixels of the end, or around the child at
- * `anchor`. The same on the server as in the browser, so the HTML hydrates.
+ * The children to draw before the view is known: those within `view` pixels of the end, or around the child at `anchor`.
  */
-function firstRange(count: number, size: (index: number) => number, anchor: number): [number, number] {
+function firstRange(count: number, size: (index: number) => number, anchor: number, view: number): [number, number] {
   if (anchor < 0) {
     let from = count - 1;
-    // Stryker disable next-line ConditionalExpression,EqualityOperator: a windowed list has more than 60 children, more than FIRST_VIEW takes, so this never reaches the first.
-    for (let height = size(from); from > 0 && height < FIRST_VIEW; height += size(--from));
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: a windowed list has more than 60 children, more than a view takes, so this never reaches the first.
+    for (let height = size(from); from > 0 && height < view; height += size(--from));
     // Stryker disable next-line ArithmeticOperator: an end past the last child draws no more.
     return [from, count - 1];
   }
@@ -425,9 +432,9 @@ function firstRange(count: number, size: (index: number) => number, anchor: numb
   let to = anchor;
   // Past either end, a range draws the same children (each size past them is the estimate, so it stops).
   // Stryker disable next-line ConditionalExpression,EqualityOperator: past the first child a range draws the same children, and a child more at exactly half the view is one the window's first look settles.
-  for (let height = 0; from > 0 && height < FIRST_VIEW / 2; height += size(--from));
+  for (let height = 0; from > 0 && height < view / 2; height += size(--from));
   // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: past the last child a range draws the same children, and a child more at exactly half the view is one the window's first look settles.
-  for (let height = 0; to < count - 1 && height < FIRST_VIEW / 2; height += size(++to));
+  for (let height = 0; to < count - 1 && height < view / 2; height += size(++to));
   return [from, to];
 }
 
@@ -1095,6 +1102,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const sizeOf = (index: number) => measured.heights.get(keys[index]!) ?? cache.get(`${keys[index]!}\0${measured.bucket}`) ?? estimate;
   // Each child's index by its key, built when the keys change, not on every render (the keys are text, so they compare by what they say).
   const indexes = useIndexByKey(keys);
+  // How much the first draw takes before the view is measured: in server HTML and as it hydrates, FIRST_VIEW, so the two
+  // match; in a list that opens in the browser, a view's height, so opening costs what the view shows.
+  const hydrating = useSyncExternalStore(noChange, () => false, () => true);
+  const firstView = hydrating ? FIRST_VIEW : (lastView ?? window.innerHeight);
   let draws: (index: number) => boolean = () => true;
   if (windowed) {
     const last = keys.length - 1;
@@ -1112,7 +1123,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // stays where it is. One at its end opens at its end.
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
-    } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
+    } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor), firstView);
     const kept: (number | undefined)[] = [last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)];
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!) ?? last;
@@ -1261,6 +1272,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   useLayoutEffect(() => {
     if (track.switches === 0) return;
     switched.current = true;
+    // The next conversation opens as the list did: what its view shows, then the rest.
+    wide.current = false;
     // A reveal on its way finds nothing in the conversation before.
     settleRef.current(false);
     reopen.current!();
@@ -1639,6 +1652,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // keeps the reader's place as their heights replace the estimates, brings a message asked for into view, and draws the
   // children the view and OVERSCAN reach.
   const windowSync = useRef<(scrolled: boolean) => void>(undefined);
+  // Whether the rows past the view's edges draw: from the frame after the list opens, or another conversation opens in it.
+  const wide = useRef(false);
+  // Whether the estimate is fixed: once the rows past the view's edges are first measured.
+  const estimated = useRef(false);
+  const widening = useRef<{ frame: number; timer?: ReturnType<typeof setTimeout> } | null>(null);
+  const widen = () => {
+    // Stryker disable next-line ConditionalExpression: a second request in the same frame draws the same rows a frame later.
+    if (widening.current !== null) return;
+    // A frame, then a task: the one after the browser paints the frame the list opened in.
+    const pending: { frame: number; timer?: ReturnType<typeof setTimeout> } = { frame: 0 };
+    widening.current = pending;
+    pending.frame = requestAnimationFrame(() => {
+      pending.timer = setTimeout(() => {
+        widening.current = null;
+        wide.current = true;
+        windowSync.current!(true);
+      });
+    });
+  };
   // Where each slot drawn sits in the content, and its size, as last measured.
   const tops = useRef(new Map<string, { top: number; size: number }>());
   // How many messages each child drawn holds: a child that starts the conversation holds none.
@@ -1694,7 +1726,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
           for (const key of heights.keys()) if (!present.has(key)) heights.delete(key);
           // A render follows at once, which comes back here with the space kept at its new size. The gap is 1rem, so it
           // changes only with the font size, which changes the heights too.
-          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate: measured.heights.size === 0 ? averageOf(heights) : measured.estimate, bucket });
+          // The estimate is the average of the rows the list first draws past its view: those it opened with, and those drawn
+          // after, as the view alone may hold a few.
+          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate: estimated.current ? measured.estimate : averageOf(heights), bucket });
+          estimated.current = wide.current;
           return;
         }
         holdRef.current!();
@@ -1739,7 +1774,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The view as it is now, once the reader's place is kept.
       const viewTop = scroller.getBoundingClientRect().top - content.getBoundingClientRect().top;
       const viewBottom = viewTop + scroller.clientHeight;
-      const over = Math.max(OVERSCAN, scroller.clientHeight);
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: a list that measures no height draws nothing to remember.
+      if (scroller.clientHeight > 0) lastView = scroller.clientHeight;
+      // As it opens, only what the view shows draws, so the frame it opens in is short; the rows past its edges draw after
+      // that frame is painted.
+      const over = wide.current ? Math.max(OVERSCAN, scroller.clientHeight) : 0;
+      if (!wide.current) widen();
       const indexes = new Map(keys.map((key, index) => [key, index]));
       const placed = tops.current.entries().next().value;
       // Every child drawn draws nothing (the app hid them all): nothing to place by, until one draws.
@@ -1789,7 +1829,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     resized.observe(scroller);
     resized.observe(content);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll));
+    return () => {
+      resized.disconnect();
+      scroller.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(widening.current?.frame ?? 0);
+      clearTimeout(widening.current?.timer);
+    };
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);

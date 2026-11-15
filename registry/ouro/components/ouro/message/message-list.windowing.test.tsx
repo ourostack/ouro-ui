@@ -639,7 +639,7 @@ describe("MessageList windowing", () => {
     expect(worst).toBeLessThan(1);
   }, 60_000);
 
-  it("opens a conversation of 300 rows of varied heights at its end, moving the view and the row at its top by no more than a pixel in any frame", async () => {
+  it("opens a conversation of 300 rows of varied heights at its end, moving the row at the view's top by no more than a pixel in any frame", async () => {
     const rows = Array.from({ length: 300 }, (_, id) => (
       <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 60 + ((id * 37) % 81), boxSizing: "border-box" }}>
         {`Message ${id}`}
@@ -651,14 +651,16 @@ describe("MessageList windowing", () => {
     const root = createRoot(host);
     roots.push(root);
     let worst = 0;
-    let last: { top: number; row: number } | null = null;
+    // The scroll position may change as the rows past the view draw after the first paint, their heights replacing the
+    // estimate in the space above: what the reader sees, the row at the view's top, stays.
+    let last: { node: HTMLElement; row: number } | null = null;
     const watch = () => {
       const list = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]");
       const view = list?.getBoundingClientRect();
       const first = list === null ? undefined : messages(list).find((node) => node.getBoundingClientRect().bottom > view!.top);
       if (list !== null && first !== undefined) {
-        const now = { top: list.scrollTop, row: first.getBoundingClientRect().top - view!.top };
-        if (last !== null) worst = Math.max(worst, Math.abs(now.top - last.top), Math.abs(now.row - last.row));
+        const now = { node: first, row: first.getBoundingClientRect().top - view!.top };
+        if (last !== null) worst = Math.max(worst, now.node === last.node ? Math.abs(now.row - last.row) : Infinity);
         last = now;
       }
     };
@@ -676,6 +678,46 @@ describe("MessageList windowing", () => {
     expect(distanceFromBottom(list)).toBeLessThanOrEqual(1);
     expect(last).not.toBeNull();
     expect(worst).toBeLessThanOrEqual(1);
+  });
+
+  it("opens with no more rows than fill the window, and draws the rows past the view's edges only after the first paint", async () => {
+    const { innerWidth: width, innerHeight: height } = window;
+    await page.viewport(800, 600);
+    try {
+      const renders = new Set<number>();
+      function Counted({ id }: { id: number }) {
+        renders.add(id);
+        return (
+          <Message id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 80, boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        );
+      }
+      const host = document.createElement("div");
+      document.body.append(host);
+      mounted.push(host);
+      const root = createRoot(host);
+      roots.push(root);
+      await act(async () =>
+        root.render(
+          <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+            {Array.from({ length: 300 }, (_, id) => (
+              <Counted key={id} id={id} />
+            ))}
+          </MessageList>,
+        ),
+      );
+      // A row is 80px and the gap 16px: the commit that opens the list draws what fills a 600px window, and no more.
+      expect(renders.size).toBeLessThanOrEqual(Math.ceil(600 / 96) + 1);
+      expect(renders.has(299)).toBe(true);
+      const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+      await settle(scroller);
+      // Then the overscan: 800px above the view.
+      expect(messages(scroller).length).toBeGreaterThanOrEqual(Math.floor((400 + 800) / 96));
+      expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    } finally {
+      await page.viewport(width, height);
+    }
   });
 
   it("keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was", async () => {
@@ -1098,7 +1140,9 @@ describe("MessageList windowing", () => {
       if (!scroller || !Number.isNaN(first) || !document.getElementById("m200")) return;
       first = Math.abs(offCentre(scroller, "m200"));
       // The messages either side are drawn with it, filling the view.
-      around = document.getElementById("m196") !== null && document.getElementById("m204") !== null;
+      const view = scroller.getBoundingClientRect();
+      const drawn = messages(scroller).map((node) => node.getBoundingClientRect());
+      around = drawn[0]!.top <= view.top && drawn.filter((box) => box.top < view.bottom).at(-1)!.bottom >= view.bottom;
     });
     observer.observe(host, { childList: true, subtree: true });
     await act(async () => root.render(<Chat items={conversation(2000, 0, true)} initialAnchor="m200" />));

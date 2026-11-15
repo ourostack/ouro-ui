@@ -3591,9 +3591,10 @@ describe("MessageList switching conversations", () => {
     await list.commit(<Switcher open="theo" keyed={false} named items={conversation("theo", 300)} />);
     watch.disconnect();
     const ids = seen.map((node) => node.id);
-    // Only the newest are mounted, none of the old band's range; the stale band (a mutant that keeps it) draws a narrower first window.
+    // Only the newest are mounted, none of the old band's range, and they fill the view; the stale band (a mutant that keeps it) draws only the newest.
     expect(ids.every((id) => id.startsWith("theo-") && Number(id.slice(5)) >= 250)).toBe(true);
-    expect(ids).toContain("theo-277");
+    const view = list.scroller.getBoundingClientRect();
+    expect(messagesOf(list.scroller)[0]!.getBoundingClientRect().top).toBeLessThanOrEqual(view.top);
   });
 
   it("confirms what a change under the same name leaves, so a rename that changes nothing waits for the messages to follow", async () => {
