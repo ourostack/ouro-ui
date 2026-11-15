@@ -438,6 +438,7 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     const share = card.querySelector<HTMLElement>("[data-share]")!;
     const frame = picture.parentElement!.parentElement!;
     const before = card.getBoundingClientRect();
+    expect(warn).not.toHaveBeenCalled();
     expect(getComputedStyle(picture).scale).toBe("none");
     await userEvent.hover(card.querySelector("h3")!);
     await settled(picture, () => getComputedStyle(picture).scale).toBe("1.03");
@@ -465,6 +466,7 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     const link = card.querySelector<HTMLAnchorElement>("[data-card-link]")!;
     const height = card.getBoundingClientRect().height;
     expect(reveal.getAttribute("data-card-reveal")).toBe("");
+    expect(warn).not.toHaveBeenCalled();
     expect(link.getAttribute("aria-describedby")).toBe(reveal.id);
     expect(getComputedStyle(reveal).opacity).toBe("0");
     expect(reveal.getBoundingClientRect().height).toBeGreaterThan(0);
@@ -498,7 +500,7 @@ describe("Card with href, zoomMedia and revealDescription", () => {
       revealDescription:
         '[ouro-ui] Card: revealDescription needs href, a title and a description. Fix: <Card href="/path" title="…" description="…" revealDescription>.',
     };
-    expect(warn.mock.calls.map(([message]: unknown[]) => message)).toEqual(warned.map((name) => messages[name]));
+    expect(warn.mock.calls.map((call: unknown[]) => call[0])).toEqual(warned.map((name) => messages[name]));
   });
 });
 
