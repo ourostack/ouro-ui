@@ -25,7 +25,14 @@ export const agentCases: AgentCase[] = [
     dev: "<Card action={<Button>…</Button>}> beside the title, or footer={…} below",
     names: ["tsc", "dev"],
   },
+  {
+    id: "card08",
+    habit: "an interactive flag on Card",
+    tsc: [notAssignable("boolean", `{ "Use <Card href=... zoomMedia revealDescription>": never; }`)],
+    dev: '<Card href="/path" title="…" zoomMedia revealDescription>',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid card snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["card07"];
+export const validSnippets: string[] = ["card07", "card09"];
