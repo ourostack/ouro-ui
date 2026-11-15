@@ -394,6 +394,65 @@ describe("Toolbar", () => {
 });
 
 describe("Toolbar overflow", () => {
+  it("fits a row that narrows, widens and narrows again exactly as one drawn at that width from the start", async () => {
+    const row = (view: { host: HTMLElement }) => ({
+      shown: view.host.querySelectorAll("[data-ouro-toolbar-entry]").length,
+      more: view.host.querySelector("[data-ouro-toolbar-more]") !== null,
+    });
+    const reference = row(await render(<Toolbar label="Formatting" size="sm" items={formatting} />, 130));
+    expect(reference.more).toBe(true);
+    expect(reference.shown).toBeGreaterThan(0);
+    const view = await render(<Toolbar label="Formatting" size="sm" items={formatting.slice(0, 2)} />, 900);
+    // New items that still fit are measured in their commit, and the row they settle on is the one resizes start from.
+    await view.rerender(<Toolbar label="Formatting" size="sm" items={formatting} />);
+    expect(row(view)).toEqual({ shown: formatting.length, more: false });
+    for (const [width, expected] of [
+      [130, reference],
+      [900, { shown: formatting.length, more: false }],
+      [130, reference],
+    ] as const) {
+      view.host.style.width = `${width}px`;
+      await frames();
+      expect(row(view), `${width}px`).toEqual(expected);
+      const toolbar = view.host.querySelector<HTMLElement>('[data-ouro="toolbar"]')!;
+      expect(toolbar.scrollWidth, `${width}px`).toBeLessThanOrEqual(toolbar.clientWidth);
+    }
+    // A resize fits the row to the widths already measured: it reads no entry's width again.
+    view.host.style.width = "900px";
+    await frames();
+    const reads = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    view.host.style.width = "800px";
+    await frames();
+    const entryReads = reads.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-entry")).length;
+    reads.mockRestore();
+    expect(entryReads).toBe(0);
+    expect(row(view)).toEqual({ shown: formatting.length, more: false });
+  });
+
+  it("draws a row that fits as its final row from the first frame, never adding More to take it away", async () => {
+    const host = document.createElement("div");
+    host.style.width = "900px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let added = 0;
+    const watch = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element && node.closest("[data-ouro-toolbar-more]")) added += 1;
+    });
+    watch.observe(host, { childList: true, subtree: true });
+    flushSync(() => root.render(<Toolbar label="Formatting" items={formatting} />));
+    const rows = [host.querySelectorAll('[data-ouro="toolbar"] button').length];
+    // A frame's animation callbacks run before its resize observers, so they see the row as the commit left it.
+    rows.push(await new Promise<number>((done) => requestAnimationFrame(() => done(host.querySelectorAll('[data-ouro="toolbar"] button').length))));
+    await frames();
+    watch.disconnect();
+    rows.push(host.querySelectorAll('[data-ouro="toolbar"] button').length);
+    expect(rows).toEqual([5, 5, 5]);
+    expect(added).toBe(0);
+    expect(host.querySelector("[data-ouro-toolbar-more]")).toBeNull();
+  });
+
   it("lays nothing out as it mounts, and shows the row it settles on before the first paint", async () => {
     // Development's once-a-page theme check reads the page's style; let it run first.
     await render(<Toolbar label="Warm-up" items={formatting} />);
@@ -462,13 +521,13 @@ describe("Toolbar overflow", () => {
     for (const [name, edit] of Object.entries(edits)) {
       const { commit } = await render(<Toolbar label="Formatting" size="sm" items={base()} />, 400);
       await act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-      // Only the measuring reads the More button's width, in the resize observer's first report after the commit.
-      const measured = vi.spyOn(Element.prototype, "getBoundingClientRect");
+      // A measure reads the row's style to fit its entries; nothing else does while the row keeps its size.
+      const measured = vi.spyOn(window, "getComputedStyle");
       commit(<Toolbar label="Formatting" size="sm" items={edit(base())} />);
       await frame();
-      const more = measured.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
+      const reads = measured.mock.calls.filter(([element]) => element.getAttribute("data-ouro") === "toolbar").length;
       measured.mockRestore();
-      expect(more, name).toBeGreaterThan(0);
+      expect(reads, name).toBeGreaterThan(0);
     }
   });
 
@@ -524,11 +583,12 @@ describe("Toolbar overflow", () => {
   const frames = () => act(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   // Only the measuring reads the More button's width, so these reads count the times the entries were measured.
   const measuredWhile = async (change: () => Promise<void> | void) => {
-    const spy = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    // A measure reads the row's style to fit its entries; nothing else does while the row keeps its size.
+    const spy = vi.spyOn(window, "getComputedStyle");
     try {
       await change();
       await frames();
-      return spy.mock.contexts.filter((element) => (element as Element).hasAttribute("data-ouro-toolbar-more")).length;
+      return spy.mock.calls.filter(([element]) => element.getAttribute("data-ouro") === "toolbar").length;
     } finally {
       spy.mockRestore();
     }
