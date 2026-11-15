@@ -117,6 +117,21 @@ describe("Resizable layout", () => {
     expect(screen.group.getBoundingClientRect().height).toBe(96);
     expect(getComputedStyle(screen.panels[0]!.querySelector('[data-ouro-part="panel"]')!).paddingLeft).toBe("8px");
   });
+
+  it("sizes a panel by its share of the group, with the app's padding inside that share", async () => {
+    const screen = await render(
+      <Resizable>
+        <ResizablePanel label="A" defaultSize={25} className="p-4">
+          A
+        </ResizablePanel>
+        <ResizablePanel label="B" defaultSize={75} className="p-4">
+          B
+        </ResizablePanel>
+      </Resizable>,
+    );
+    // 400px less the 1px handle, split 25/75: the padding sits inside each panel's share, never on top of it.
+    expect(widths(screen.panels)).toEqual([100, 299]);
+  });
 });
 
 describe("Resizable handle (window splitter)", () => {
