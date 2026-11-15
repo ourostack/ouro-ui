@@ -65,8 +65,8 @@ export interface LinkOwnProps {
    * sections. `true` sets `aria-current="page"`; pass another value (`"step"`, `"location"`,
    * `"true"`) for a link that is not a page of its own. The link is then drawn as `Navbar` and
    * `NavigationMenu` draw their current link: semibold, in the page's text colour, with a 2px
-   * underline in the primary colour, so a reader tells it from the others at a glance. `false`
-   * or unset marks nothing.
+   * underline in the primary colour, so a reader tells it from the others at a glance. Under
+   * forced colours it takes the selection's colours. `false` or unset marks nothing.
    * @claim "Marks this link as the current" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link current > marks the current link aria-current="page", or the value passed, and nothing for false)
    * @claim "The link is then drawn as" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link current > draws the current link as Navbar draws its current link: semibold, the page's text colour, a 2px primary underline)
    */
@@ -125,10 +125,12 @@ const tones = {
 } as const;
 
 // The current link, drawn as Navbar and NavigationMenu draw theirs: semibold, the page's text
-// colour, a 2px underline in the primary colour that hover keeps.
+// colour, a 2px underline in the primary colour that hover keeps. Forced colours paint every link
+// alike, so there it takes the selection's colours.
 const currentClass =
   "data-current:font-semibold data-current:text-foreground data-current:decoration-primary data-current:decoration-2 " +
-  "data-current:underline-offset-5 data-current:[text-decoration-skip-ink:none] data-current:pointer-fine:hover:decoration-primary";
+  "data-current:underline-offset-5 data-current:[text-decoration-skip-ink:none] data-current:pointer-fine:hover:decoration-primary " +
+  "forced-colors:data-current:bg-[Highlight] forced-colors:data-current:text-[HighlightText]";
 
 const ariaCurrents: readonly string[] = ["page", "step", "location", "date", "time", "true"];
 

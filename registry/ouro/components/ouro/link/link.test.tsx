@@ -324,6 +324,25 @@ describe("Link current", () => {
     expect(link.hasAttribute("data-current")).toBe(look);
   });
 
+  it("takes the selection's colours under forced colours, where every other link looks alike", async () => {
+    const { host } = await render(
+      <>
+        <Link href="/a" current>
+          Chapter 1
+        </Link>
+        <Link href="/b">Chapter 2</Link>
+      </>,
+    );
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const [current, other] = [...host.querySelectorAll("a")].map((a) => getComputedStyle(a));
+      expect(current!.backgroundColor).not.toBe(other!.backgroundColor);
+      expect(current!.color).not.toBe(other!.color);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("marks the page for a current that is not an aria-current value", async () => {
     const props = { href: "/a", current: "yes", children: "A" } as unknown as Parameters<typeof Link>[0];
     const { link } = await render(<Link {...props} />);
