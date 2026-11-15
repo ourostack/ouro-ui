@@ -439,6 +439,31 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top + 300))).toBeLessThanOrEqual(ROUNDING);
   });
 
+  it("near the bottom, holds a change above by drawing the content while the wheel turns up, as the end it turns toward is the top", async () => {
+    // 60px messages, one of which goes 21px shorter: a row drawn in place of the space kept for it, shorter than the estimate.
+    let items = conversation(500).map((item) => ({ ...item, tall: 60 }));
+    const { scroller, root } = await render(<Chat items={items} springy={false} />);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    vi.spyOn(performance, "now").mockReturnValue(1_000_000);
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    let writes = 0;
+    Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => own.get!.call(scroller), set: (value: number) => (writes++, own.set!.call(scroller, value)) });
+    onTestFinished(() => void delete (scroller as { scrollTop?: number }).scrollTop);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    // The wheel's scroll, 50px up from the bottom: within the quarter of the view where a turn down would pay what is carried.
+    const scrolled = new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
+    own.set!.call(scroller, own.get!.call(scroller) - 50);
+    await scrolled;
+    const reading = firstVisible(scroller);
+    const above = Number(reading.message.id.slice(1)) - 3;
+    items = items.map((item) => (item.id === above ? { ...item, tall: 39 } : item));
+    await act(async () => root.render(<Chat items={items} springy={false} />));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(writes).toBe(0);
+    expect(content.style.translate).not.toBe("");
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+  });
+
   it("counts as the wheel's only the first scroll a turn starts, or any while it turns, never the list's own, as WebKit sends no scrollend after either", async () => {
     // As in WebKit: no scrollend from the browser, so a scroll wrongly counted as the wheel's would hold the reader's place by
     // drawing the content up, for good.
