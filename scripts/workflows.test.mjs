@@ -1649,7 +1649,7 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   assert.match(coverage, /^ {4}needs: \[ci\]$/m, "motion-coverage runs after the ci check, which waits on every browser shard");
   assert.match(coverage, /- if: env\.BROWSER_RUN == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: \$\{\{ needs\.ci\.outputs\.fallback == 'true' && 'motion-fallback-\*' \|\| 'motion-browser-\*' \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
   // When the plan skipped the browser shards, no motion was recorded: every step but a notice is skipped.
-  assert.match(coverage, /^ {6}BROWSER_RUN: \$\{\{ needs\.ci\.outputs\.browser != 'false' \}\}$/m);
+  assert.match(coverage, /^ {6}BROWSER_RUN: \$\{\{ needs\.ci\.outputs\.browser != 'false' && needs\.ci\.outputs\.fallback == 'true' \}\}$/m);
   const steps = coverage.slice(coverage.indexOf("    steps:")).split(/\n {6}- /).slice(1);
   assert.match(steps[0], /^if: env\.BROWSER_RUN == 'false'\n {8}run: echo /);
   for (const step of steps.slice(1)) assert.match(step, /^if: env\.BROWSER_RUN == 'true'$/m, step);
@@ -2006,7 +2006,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   for (const [run, result] of [["true", "skipped"], ["false", "success"], ["false", "failure"]]) assert.equal(runStep(passed, { BROWSER_RUN: run, BROWSER: result }).status, 1, `${run} ${result}`);
   // Every other coverage step waits for shards that ran.
   const steps = jobs.coverage.slice(jobs.coverage.indexOf("    steps:")).split(/\n {6}- /).slice(2);
-  for (const step of steps) assert.match(step, /^(id: \w+\n {8})?if: env\.BROWSER_RUN == 'true'$/m, step);
+  for (const step of steps) assert.match(step, /^(id: \w+\n {8})?if: env\.BROWSER_RUN == 'true'( && steps\.tests\.outputs\.fallback != 'true')?$/m, step);
   // The ci check counts a skip as a pass only when the plan asked for it.
   assert.match(jobs.ci, /^ {6}browser: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   assert.match(jobs.ci, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
