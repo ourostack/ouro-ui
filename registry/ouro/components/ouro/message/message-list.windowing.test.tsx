@@ -692,8 +692,12 @@ describe("MessageList windowing", () => {
     await act(async () => void scroller.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "mouse" })));
     // Up in steps, each one ended before the next, as a drag that stops and goes on does.
     for (let step = 0; step < 8; step++) await codeScrollTo(scroller, scroller.scrollTop - 400);
-    await act(async () => void document.dispatchEvent(new PointerEvent("pointerup", { pointerType: "mouse" })));
+    // The drag ends as the browser takes the pointer (a cancel), and code's scrolls after it keep what is drawn again.
+    await act(async () => void document.dispatchEvent(new PointerEvent("pointercancel", { pointerType: "mouse" })));
     expect(start.filter((message) => message.isConnected)).toEqual([]);
+    const drawn = messages(scroller)[0]!;
+    for (let step = 0; step < 4; step++) await codeScrollTo(scroller, scroller.scrollTop + 500);
+    expect(drawn.isConnected).toBe(true);
   });
 
   it("lets the far messages go as the reader turns the wheel up through them", async () => {
@@ -711,10 +715,13 @@ describe("MessageList windowing", () => {
 
   it("draws only the window around a far message that code jumps to, and none of the messages between", async () => {
     const { scroller } = await render(<Chat items={conversation(1000, 0, true)} />);
-    // A jump past the messages drawn, though nearer than code's keep distance, lets them go too.
+    // A jump past the messages drawn, up or back down, though nearer than code's keep distance, lets them go too.
     const near = messages(scroller).map((message) => message.id);
     await codeScrollTo(scroller, scroller.scrollTop - 4000);
     expect(messages(scroller).filter((message) => near.includes(message.id) && message.id !== "m999")).toEqual([]);
+    const above = messages(scroller).filter((message) => message.id !== "m999");
+    await codeScrollTo(scroller, scroller.scrollTop + 3000);
+    expect(above.filter((message) => message.isConnected)).toEqual([]);
     const before = messages(scroller).map((message) => message.id);
     await codeScrollTo(scroller, 0);
     const drawn = messages(scroller).map((message) => Number(message.id.slice(1)));

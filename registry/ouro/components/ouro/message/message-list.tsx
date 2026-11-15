@@ -1815,6 +1815,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let keepTo = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at the keep distance stays or goes, and the next scroll settles it.
       while (starts[keepTo]! >= viewBottom + keep) keepTo--;
+      // Stryker disable next-line EqualityOperator,ArithmeticOperator: a band that meets the new one only within a child draws that child or not, and the next scroll settles it.
       const meets = !code || (drawnFrom <= to + 1 && drawnTo >= from - 1);
       if (meets && drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
       if (meets && drawnTo <= keepTo) to = Math.max(to, drawnTo);
@@ -1857,7 +1858,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     for (const type of reading) scroller.addEventListener(type, byReader, { passive: true });
     scroller.addEventListener("pointerdown", press);
     const doc = scroller.ownerDocument;
+    // Stryker disable next-line BooleanLiteral: captured, so a release an app stops on its way still lets go; bubbling, it lets go alike where none does.
     doc.addEventListener("pointerup", release, true);
+    // Stryker disable next-line BooleanLiteral: captured, so a release an app stops on its way still lets go; bubbling, it lets go alike where none does.
     doc.addEventListener("pointercancel", release, true);
     const resized = new ResizeObserver(() => windowSync.current!(false));
     resized.observe(scroller);
