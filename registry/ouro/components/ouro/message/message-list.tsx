@@ -580,6 +580,8 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   let list = topItems(content);
   // The scroll position the springs last followed, less the list's own scrolling since.
   let top = scroller.scrollTop;
+  // Where the list last put the scroll position itself, until its scroll event, which WebKit sends no scrollend after.
+  let own: number | null = null;
   // How far the reader pushed past an end since the last frame.
   let pushed = 0;
   // Where the reader scrolls from: the pointer or finger, or, null, the focused message, for the keys.
@@ -718,9 +720,12 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   };
 
   const onScroll = () => {
+    const mine = scroller.scrollTop === own;
+    own = null;
     if (scrolling || performance.now() <= armedUntil) {
       going ||= scrolling;
-      scrolling = ends;
+      // Only a scroll of the reader's waits for its scrollend: WebKit sends none after the list's own.
+      if (!mine) scrolling = ends;
       arm();
       run();
     } else top = scroller.scrollTop;
@@ -785,6 +790,8 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   return {
     moved(by) {
       top += by;
+      // A write that moved nothing sends no scroll event to wait for.
+      if (by !== 0) own = scroller.scrollTop;
     },
     stop() {
       // Stryker disable next-line all: a frame left after this finds no message moving, and asks for none.
@@ -1544,8 +1551,22 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let restFrame = 0;
     // How close to an end, in px, the reader comes before the scroll position takes what is carried: a few frames of a fast wheel.
     const edge = () => scroller.clientHeight / 4;
-    // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
-    const nearEnd = () => scroller.scrollTop < edge() || scroller.scrollTop > farthest() - carriedRef.current - edge();
+    // The end the wheel last turned toward: -1 the top, 1 the bottom, 0 either, before it turns.
+    let heading = 0;
+    // Whether what is carried goes into the scroll position now. Near an end where the content, drawn by what is carried, would
+    // leave space with nothing in it, whichever way the wheel turns. Near the end the wheel turns toward, so what is past it is
+    // in reach. Not near the other: a wheel turned up from the bottom is near the bottom for its first frames, and a scroll
+    // position written then stops it.
+    const nearEnd = () => {
+      const top = scroller.scrollTop;
+      const carried = carriedRef.current;
+      // Where the view's bottom meets the bottom of what is drawn, drawn up by what is carried.
+      const last = farthest() - carried;
+      // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
+      const space = (carried > 0 && top > last - edge()) || (carried < 0 && top < edge() - carried);
+      // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
+      return space || (heading <= 0 && top < edge()) || (heading >= 0 && top > last - edge());
+    };
     const pay = () => {
       // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
       clearTimeout(resting);
@@ -1575,7 +1596,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (nearEnd()) pay();
       else rest();
     };
-    const onWheel = () => {
+    const onWheel = (event: WheelEvent) => {
+      heading = Math.sign(event.deltaY) || heading;
       const now = performance.now();
       const gap = now - wheelAt;
       wheelGap = gap < WHEEL_GAP ? gap : 0;
@@ -1664,7 +1686,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const onScroll = (event: Event) => {
       // Only the browser's own scroll, where it says when it ends. Its first frame may come long after the wheel turned, on a
       // machine drawing slowly, so the first scroll that soon after a turn is the wheel's.
-      if (event.isTrusted && "onscrollend" in scroller && (turning() || (wheelStarts && performance.now() - wheelAt < WHEEL_START))) wheelScrolling = true;
+      // The list's own write is none of the wheel's: WebKit sends no scrollend after it.
+      const own = scroller.scrollTop === ownTop.current;
+      if (event.isTrusted && "onscrollend" in scroller && !own && (turning() || (wheelStarts && performance.now() - wheelAt < WHEEL_START))) wheelScrolling = true;
       wheelStarts = false;
       // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
       pinned.current = atBottom();

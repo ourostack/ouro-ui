@@ -386,14 +386,19 @@ describe("MessageList windowing", () => {
   });
 
   it.each([
-    { begins: 0, when: "after its last event, as WebKit animates it" },
-    { begins: 200, when: "after a scroll that began past the wheel's rest, as a loaded machine begins it" },
-  ])("holds growth above the reader while the scroll a wheel started goes on $when, and pays it once that scroll ends", async ({ begins }) => {
-    const { scroller, root } = await render(<Chat items={conversation(500)} />);
-    await scrollTo(scroller, 3000);
+    { begins: 0, from: 3000, grows: true, when: "after its last event, as WebKit animates it" },
+    { begins: 200, from: 3000, grows: true, when: "after a scroll that began past the wheel's rest, as a loaded machine begins it" },
+    // Drawn down, the content leaves no space at the end it starts near, which the wheel turns away from.
+    { begins: 0, from: Infinity, grows: false, when: "upward from the end, near which it starts, as a message above shrinks" },
+  ])("holds a message above the reader that changes size while the scroll a wheel started goes on $when, and pays it once that scroll ends", async ({ begins, from, grows }) => {
+    // Shrinking, 60px messages, one of which goes 21px shorter: as a row drawn in place of the space kept for it, shorter than the estimate.
+    const items = grows ? conversation(500) : conversation(500).map((item) => ({ ...item, tall: 60 }));
+    const { scroller, root } = await render(<Chat items={items} />);
+    await scrollTo(scroller, Math.min(from, scroller.scrollHeight));
     await settle(scroller);
     const reading = firstVisible(scroller);
-    const above = Number(reading.message.id.slice(1)) - 1;
+    // Growing, the message right above; shrinking, one a few above, which the scroll it waits for does not bring into view.
+    const above = Number(reading.message.id.slice(1)) - (grows ? 1 : 3);
     const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
     let now = 1_000_000;
     vi.spyOn(performance, "now").mockImplementation(() => now);
@@ -401,10 +406,13 @@ describe("MessageList windowing", () => {
     let writes = 0;
     const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
     Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => own.get!.call(scroller), set: (value: number) => (writes++, own.set!.call(scroller, value)) });
-    // In the browser's own scroll, past the wheel's rest, before it ends: a message above grows.
+    // In the browser's own scroll, past the wheel's rest, before it ends: a message above grows, or shrinks.
     const grow = () => {
+      // Once the scroll has left the end, which the list follows while it is there, by more than a message shrinks: the browser
+      // itself moves a scroll position past the new end. Still within a quarter of the view of it.
+      if (scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <= (grows ? 2 : 30)) return scroller.addEventListener("scroll", grow, { once: true });
       now += 200;
-      flushSync(() => root.render(<Chat items={conversation(500).map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(40) } : item))} />));
+      flushSync(() => root.render(<Chat items={items.map((item) => (item.id === above ? (grows ? { ...item, text: item.text + " more words".repeat(40) } : { ...item, tall: 39 }) : item))} />));
     };
     scroller.addEventListener("scroll", grow, { once: true });
     const ended = new Promise<{ writes: number; translate: string }>((resolve) =>
