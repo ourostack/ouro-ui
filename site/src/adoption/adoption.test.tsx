@@ -103,6 +103,22 @@ describe("the adoption page", () => {
     expect(same.querySelector(".adoption-ray[data-new]")).toBeNull();
   });
 
+  it("reads the day before from the ledger's own `previous`, with no call to GitHub", async () => {
+    const target = counted.find((item) => !item.conditions.gaveBack.met)!;
+    const before = structuredClone(SNAPSHOT);
+    const after = ledgerWith((copy) => {
+      surface(copy, target.id).conditions.gaveBack.met = true;
+      copy.previous = {
+        generatedAt: "2026-11-14T11:00:00Z",
+        surfaces: before.surfaces.map((item) => ({ id: item.id, conditions: Object.fromEntries(Object.entries(item.conditions ?? {}).map(([key, value]) => [key, { met: value.met }])) })),
+      };
+    });
+    const host = await renderFixture(<AdoptionPage initial={after} live={false} />);
+    const strip = host.querySelector(".adoption-changes")?.textContent ?? "";
+    expect(strip).toContain("Since 2026-11-14 11:00 UTC:");
+    expect(strip).toContain(`${target.name}, Gave back passes`);
+  });
+
   it("says a reason every product shares once, under the list, and not on every row", async () => {
     const host = await renderPage("/adoption/");
     const { shared } = boardOf(SNAPSHOT);

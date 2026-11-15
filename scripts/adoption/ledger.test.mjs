@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, configPath, createContext, gaveBack, isCurrent, measureActions, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, configPath, createContext, gaveBack, isCurrent, measureActions, measurePrevious, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
 
 const NOW = new Date("2026-11-13T22:00:00Z");
 const releases = {
@@ -270,4 +270,29 @@ test("the upstream has nothing to give back to, so that condition holds and its 
   const nulls = Object.entries(surface.cells).filter(([, value]) => value.value === null).map(([key]) => key);
   assert.ok(nulls.includes("giveBack"));
   assert.equal(ledger.summary.unmeasuredCells, nulls.length - 1);
+});
+
+test("the ledger carries the checks of a day before, read from the data branch's history", () => {
+  const earlier = {
+    generatedAt: "2026-11-12T21:00:00Z",
+    surfaces: [
+      { id: "web", cells: { pins: { value: [] } }, conditions: { current: { label: "pins current", met: false }, must: { label: "AX must", met: true } } },
+      { id: "listed-only", cells: {} },
+    ],
+  };
+  const calls = [];
+  const gh = (args) => {
+    const line = args.join(" ");
+    calls.push(line);
+    if (line.includes("commits?sha=adoption-data&path=ledger.json")) return JSON.stringify([{ sha: "abc123" }]);
+    if (line.includes("contents/ledger.json?ref=abc123")) return JSON.stringify(earlier);
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+  const previous = measurePrevious(createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 }), NOW.toISOString());
+  assert.deepEqual(previous, { generatedAt: "2026-11-12T21:00:00Z", surfaces: [{ id: "web", conditions: { current: { met: false }, must: { met: true } } }] });
+  assert.match(calls[0], /until=2026-11-12T22:00:00\.000Z/, "the newest ledger at least a day older than this one");
+  const none = createContext({ gh: () => "[]", now: () => NOW, sleep: () => {}, searchGapMs: 0 });
+  assert.equal(measurePrevious(none, NOW.toISOString()), null, "no history yet");
+  const failing = createContext({ gh: () => { throw new Error("HTTP 502"); }, now: () => NOW, sleep: () => {}, searchGapMs: 0 });
+  assert.equal(measurePrevious(failing, NOW.toISOString()), null, "a failed read leaves it out rather than failing the run");
 });
