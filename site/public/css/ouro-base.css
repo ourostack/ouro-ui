@@ -121,9 +121,13 @@
 }
 
 @supports not (corner-shape: squircle) {
-  [data-ouro-squircle] {
+  [data-ouro-squircle][class*="bg-(--ouro-bg)"] {
     background-color: transparent;
+  }
+  [data-ouro-squircle][class*="border-(--ouro-bd)"] {
     border-color: transparent;
+  }
+  [data-ouro-squircle] {
     --tw-ring-color: transparent;
   }
   [data-ouro-squircle]::before {

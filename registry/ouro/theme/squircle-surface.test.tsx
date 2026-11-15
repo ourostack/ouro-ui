@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -27,6 +27,7 @@ afterEach(async () => {
     host.remove();
   }
   for (const style of styles.splice(0)) style.remove();
+  vi.restoreAllMocks();
 });
 
 /** The fallback rules as an engine without corner-shape applies them: the same block, with its condition taken off. */
@@ -56,6 +57,19 @@ describe("squircle surface where the engine has no corner-shape", () => {
     expect(getComputedStyle(surface, "::after").clipPath).toMatch(/^polygon\(evenodd/);
     expect(getComputedStyle(button).borderTopColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(button, "::before").display).toBe("none");
+  });
+
+  it("lets an app's own fill and border classes on a Button win, with and without corner-shape", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const own = await mount(<Button className="bg-red-500 border-blue-500">Save</Button>);
+    expect(getComputedStyle(own).backgroundColor).toMatch(/^(oklch|rgb|color)/);
+    const native = getComputedStyle(own).backgroundColor;
+    const plain = await mount(<Button>Plain</Button>);
+    expect(native).not.toBe(getComputedStyle(plain).backgroundColor);
+    applyFallback();
+    expect(getComputedStyle(own).backgroundColor).toBe(native);
+    expect(getComputedStyle(own).borderTopColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(plain).backgroundColor).toBe("rgba(0, 0, 0, 0)");
   });
 
   it("stacks the label above the surface, and leaves the box-shadow and outline on the element", async () => {
