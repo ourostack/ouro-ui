@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { HoverCard, type HoverCardProps } from "@/registry/ouro/components/ouro/hover-card/hover-card";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // Runs in Chromium and WebKit, which can both hover.
 
@@ -176,11 +177,11 @@ describe("HoverCard", () => {
     try {
       await userEvent.hover(element);
       await act(async () => vi.advanceTimersByTime(1000));
-      expect(card()).not.toBeNull();
+      expect(link().hasAttribute("data-popup-open")).toBe(true);
       // And back onto the link, and onto the card again.
       await userEvent.hover(link());
       await act(async () => vi.advanceTimersByTime(1000));
-      expect(card()).not.toBeNull();
+      expect(link().hasAttribute("data-popup-open")).toBe(true);
       await userEvent.hover(element);
       await userEvent.unhover(element);
       await act(async () => vi.advanceTimersByTime(1000));
@@ -190,32 +191,64 @@ describe("HoverCard", () => {
     await expect.poll(() => card()).toBeNull();
   });
 
-  it("sits under the line of a wrapped link the pointer came in on", async () => {
+  it("opens on neither a focus the keyboard did not make nor one it left before the delay ran out", async () => {
     await render(
-      <p style={{ width: 120, margin: 0 }}>
-        Recipes from{" "}
-        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow and the whole kitchen crew</a>}>Preview</HoverCard>
-      </p>,
+      <>
+        <button type="button">Before</button>
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow</a>}>Preview</HoverCard>
+      </>,
     );
-    const lines = [...link().getClientRects()];
-    expect(lines.length).toBeGreaterThan(1);
-    const last = lines.at(-1)!;
-    await userEvent.hover(link(), { position: { x: last.left - link().getBoundingClientRect().left + 2, y: last.top - link().getBoundingClientRect().top + last.height / 2 } });
-    const element = await shown();
-    expect(Math.abs(element.getBoundingClientRect().top - last.bottom - 8)).toBeLessThanOrEqual(1);
+    await userEvent.click(page.getByRole("button", { name: "Before" }));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // Focus a click or a script gave, not the keyboard.
+      await act(async () => link().focus());
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(link().hasAttribute("data-popup-open")).toBe(false);
+      await act(async () => link().blur());
+      // Keyboard focus that leaves before the card's delay runs out.
+      await userEvent.keyboard("{Shift}");
+      await act(async () => link().focus());
+      await act(async () => link().blur());
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(link().hasAttribute("data-popup-open")).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never opens after a touch on the link, even when the touch focuses it", async () => {
+    await renderCard();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await act(() => link().dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true })));
+      await act(async () => link().focus({ focusVisible: true } as FocusOptions));
+      await act(async () => vi.advanceTimersByTime(1000));
+      expect(link().hasAttribute("data-popup-open")).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("closes on Escape and when focus leaves the link", async () => {
-    await renderCard();
-    await userEvent.keyboard("{Shift}");
-    await act(async () => link().focus());
+    await render(
+      <>
+        <button type="button">Before</button>
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow</a>}>Preview</HoverCard>
+        <button type="button">After</button>
+      </>,
+    );
+    const before = page.getByRole("button", { name: "Before" }).element() as HTMLElement;
+    await act(async () => before.focus());
+    await pressTab();
+    expect(document.activeElement).toBe(link());
     await shown();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => card()).toBeNull();
-    link().blur();
-    await act(async () => link().focus());
+    await pressTab({ shift: true });
+    await pressTab();
     await shown();
-    await act(async () => link().blur());
+    await pressTab();
     await expect.poll(() => card()).toBeNull();
   });
 

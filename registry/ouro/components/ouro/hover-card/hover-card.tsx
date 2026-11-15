@@ -148,14 +148,13 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
   // wrapped or drawn again as it arms, so focus and the pointer stay on it.
   const [armed, setArmed] = useState(false);
   const [open, setOpen] = useState(false);
-  // The line of the link the pointer came in on, for a link that wraps across lines.
-  const line = useRef<DOMRect | undefined>(undefined);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  // Opens or closes the card after a delay, in place of whatever was waiting.
   const after = (delay: number, next: boolean) => {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       // Never on a device that cannot hover, or after a touch: a phone has no way to hover it away.
+      // Stryker disable next-line ConditionalExpression: a device that cannot hover is the touch project's (hover-card.touch.test.tsx), which mutation testing does not run.
       if (next && (!canHover || lastInput() === "touch")) return;
       setOpen(next);
     }, delay);
@@ -176,33 +175,25 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
   // eslint-disable-next-line react-hooks/refs
   const link = cloneElement(trigger as ReactElement<Record<string, unknown>>, {
     ref,
+    // Stryker disable next-line StringLiteral: found by the attribute alone, never by its value.
     "data-ouro-hover-card-trigger": "",
+    // Stryker disable next-line StringLiteral: read by the attribute alone, as Base UI's open trigger is.
     "data-popup-open": open ? "" : undefined,
     onPointerEnter: (event: PointerEvent<HTMLAnchorElement>) => {
       own.onPointerEnter?.(event);
-      if (event.pointerType === "touch") return;
-      const { clientX: x, clientY: y } = event;
-      line.current = [...event.currentTarget.getClientRects()].find((box) => x >= box.left && x <= box.right && y >= box.top && y <= box.bottom);
-      if (open) clearTimeout(timer.current);
-      else want();
+      want();
     },
     onPointerLeave: (event: PointerEvent<HTMLAnchorElement>) => {
       own.onPointerLeave?.(event);
-      if (event.pointerType === "touch") return;
-      if (open) after(CLOSE_DELAY, false);
-      else clearTimeout(timer.current);
+      after(CLOSE_DELAY, false);
     },
     onFocus: (event: FocusEvent<HTMLAnchorElement>) => {
       own.onFocus?.(event);
-      if (event.currentTarget.matches(":focus-visible")) {
-        line.current = undefined;
-        want();
-      }
+      if (event.currentTarget.matches(":focus-visible")) want();
     },
     onBlur: (event: FocusEvent<HTMLAnchorElement>) => {
       own.onBlur?.(event);
-      clearTimeout(timer.current);
-      setOpen(false);
+      after(0, false);
     },
   });
   if (!armed) return link;
@@ -211,16 +202,13 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
       {link}
       <PreviewCard.Root
         open={open}
-        onOpenChange={(next) => {
-          // Base UI asks only to close a card it holds no trigger for: on Escape or a press outside it.
-          clearTimeout(timer.current);
-          setOpen(next);
-        }}
+        // Base UI asks only to close a card it holds no trigger for: on Escape or a press outside it.
+        onOpenChange={(next) => after(0, next)}
       >
         <PreviewCard.Portal {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
           <PortalScope>
             <PreviewCard.Positioner
-              anchor={() => (line.current && triggerRef.current?.getClientRects().length !== 1 ? { getBoundingClientRect: () => line.current! } : triggerRef.current)}
+              anchor={triggerRef}
               side={side}
               align={align}
               sideOffset={8}
@@ -231,7 +219,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
                 data-ouro="hover-card"
                 // The pointer may cross from the link onto the card and stay: the card is part of what it hovers.
                 onPointerEnter={() => clearTimeout(timer.current)}
-                onPointerLeave={(event) => event.pointerType !== "touch" && after(CLOSE_DELAY, false)}
+                onPointerLeave={() => after(CLOSE_DELAY, false)}
                 className={cn(
                   floatingSurfaceClass,
                   floatingMotionClass,
