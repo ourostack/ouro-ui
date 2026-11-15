@@ -1,10 +1,12 @@
 name: Apple release
 # The Apple version the site and the Platforms pages state, against ouro-ui-apple's newest release
 # (scripts/apple-release.mjs, GET /repos/ourostack/ouro-ui-apple/releases/latest), so the Apple page
-# cannot go on saying 0.2.1 after 0.4.1 is out, and the core versions the Platforms pages state
-# (scripts/platform-versions.mjs, from core's and Apple's newest releases). Hourly, since a release in another repository starts no
-# workflow here, and on a change to the pages that state a version. Behind on main opens, or comments on
-# (at most daily), one "Apple pages are behind" issue; an API error fails the run but is no drift.
+# cannot go on saying 0.2.1 after 0.4.1 is out, and the Apple release the Platforms pages pin, against
+# GitHub (scripts/platform-versions.mjs --live). Core's newest release is not checked here: the Pages
+# build writes it into the Platforms pages (pages.yml), so no release of core can make this run red.
+# Hourly, since a release in another repository starts no workflow here, and on a change to the pages
+# that state a version. Behind on main opens, or comments on (at most daily), one "Apple pages are
+# behind" issue; an API error fails the run but is no drift.
 on:
   schedule:
     - cron: "17 * * * *"
@@ -84,9 +86,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/platform-parity.mjs --pins
-      - name: The Platforms pages' core and release versions are GitHub's
-        # scripts/parity-data/versions.json against core's and Apple's newest releases, and the pages against it.
-        # Exits 1 on drift (behind=true; fix with node scripts/platform-versions.mjs --write), 2 when the API cannot be read.
+      - name: The Platforms pages' pinned Apple release is GitHub's
+        # scripts/parity-data/versions.json pins ouro-ui-apple's release: its tag's commit and the core its provenance names,
+        # against GitHub, and the pages against the copies. Exits 1 on drift (behind=true; fix with node scripts/platform-versions.mjs
+        # --apple <tag>), 2 when the API cannot be read. Core's newest release is not checked: the Pages build writes it.
         id: versions
         if: ${{ !cancelled() }}
         env:
@@ -119,4 +122,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           QUIET_HOURS: 24
-        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple or Platforms pages state a version other than the newest release of ouro-ui-apple or ouro-ui-core, or the parity matrix misses a platform's component or kit"
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple pages state a version other than the newest release of ouro-ui-apple, the Platforms pages pin an Apple release GitHub does not match, or the parity matrix misses a platform's component or kit"

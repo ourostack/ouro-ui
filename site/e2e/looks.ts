@@ -257,8 +257,11 @@ export function routeGuard(context: BrowserContext, first: Page, ms = 60_000) {
 
 export async function picture(page: Page, index: number): Promise<{ data: Buffer; width: number; height: number } | null> {
   const target = page.locator(LOOK_SELECTOR).nth(index);
-  await target.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" }));
-  const clear = await target.evaluate((el) => {
+  // The page can change between counting and picturing; an element that is gone has no picture.
+  const handle = await target.elementHandle({ timeout: 2_000 }).catch(() => null);
+  if (!handle) return null;
+  await handle.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" })).catch(() => {});
+  const clear = await handle.evaluate((el) => {
     const r = el.getBoundingClientRect();
     const points: [number, number][] = [
       [r.left + 2, r.top + 2],
@@ -271,9 +274,9 @@ export async function picture(page: Page, index: number): Promise<{ data: Buffer
       const hit = document.elementFromPoint(x, y);
       return hit !== null && (el.contains(hit) || hit.contains(el));
     });
-  });
+  }).catch(() => false);
   if (!clear) return null;
-  const png = await target.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
+  const png = await handle.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
   if (!png) return null;
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height };

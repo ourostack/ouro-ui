@@ -5,6 +5,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
+import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
@@ -139,5 +140,25 @@ describe("a Dialog where the engine has no corner-shape", () => {
     const ring = (el: HTMLElement) => getComputedStyle(el.querySelector<HTMLElement>("[data-ouro-surface]")!, "::after").backgroundColor;
     expect(ring(outline)).not.toBe("rgba(0, 0, 0, 0)");
     expect(ring(solid)).toBe("rgba(0, 0, 0, 0)");
+  });
+
+  it("paints a rect Toggle through the surface, pressed fill included, and leaves a pill round", async () => {
+    applyFallback();
+    await mount(
+      <>
+        <Toggle label="Rect" variant="outline" defaultPressed />
+        <Toggle label="Pill" shape="pill" />
+      </>,
+    );
+    const [rect, pill] = [...document.querySelectorAll<HTMLElement>('[data-ouro="toggle"]')] as [HTMLElement, HTMLElement];
+    const surface = rect.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    expect(rect.getAttribute("data-ouro-squircle")).toBe("");
+    expect(surface.style.zIndex).toBe("-1");
+    expect(getComputedStyle(surface).clipPath).toMatch(/^polygon\(/);
+    expect(getComputedStyle(surface).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(surface, "::after").backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(rect).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(pill.hasAttribute("data-ouro-squircle")).toBe(false);
+    expect(pill.querySelector("[data-ouro-surface]")).toBeNull();
   });
 });

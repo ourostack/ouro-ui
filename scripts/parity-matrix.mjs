@@ -8,6 +8,7 @@
 // - core's component and action claims (scripts/parity-data/*.claims.json, the copies the Apple page's tables use).
 //
 //   node scripts/parity-matrix.mjs           fail when the page differs from what the data renders (offline)
+//   node scripts/parity-matrix.mjs --render  rewrite the page from the data as it is, with no network (the Pages build runs it after core's copies are written)
 //   node scripts/parity-matrix.mjs --live    also fail when platforms.json differs from GitHub (network)
 //   node scripts/parity-matrix.mjs --write   read GitHub, then rewrite platforms.json and the page (network)
 //
@@ -196,6 +197,11 @@ async function main(args) {
     for (const problem of problems) console.log(`::error::${problem}`);
     return problems.length > 0 ? 1 : 0;
   };
+  if (args.includes("--render")) {
+    writeFileSync(join(root, PAGE), renderPage(read(PAGE), readData(read)));
+    console.log(`Rendered ${PAGE} from its data.`);
+    return 0;
+  }
   if (args.includes("--live") || args.includes("--write")) {
     let facts;
     try {
