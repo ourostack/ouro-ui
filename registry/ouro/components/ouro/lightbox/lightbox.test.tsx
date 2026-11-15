@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -223,6 +224,37 @@ describe("Lightbox opening and closing", () => {
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
     expect(document.activeElement).toBe(thumbnails(host)[2]);
+  });
+
+  it("mounts no viewer until a thumbnail is hovered or focused, and opens with its entrance from a press with neither first", async () => {
+    const { host } = await render(lightbox());
+    expect(document.querySelector('[data-ouro="dialog-portal"], [role="dialog"]')).toBeNull();
+    // The popup as it goes into the page: an opening viewer starts from its entrance's first style.
+    const entering = new Promise<boolean>((resolve) => {
+      const watch = new MutationObserver(() => {
+        const element = popup();
+        if (!element) return;
+        watch.disconnect();
+        resolve(element.hasAttribute("data-starting-style"));
+      });
+      watch.observe(document.body, { childList: true, subtree: true });
+    });
+    // As Safari presses a button: no hover, no focus.
+    await act(async () => thumbnails(host)[1]!.click());
+    expect(await entering).toBe(true);
+    await settled();
+    expect(position()).toBe("2 of 4");
+  });
+
+  it.each(["hover", "focus"] as const)("mounts the viewer closed on a thumbnail's first %s, so a press opens it in the press's own commit", async (way) => {
+    const { host } = await render(lightbox());
+    const thumbnail = thumbnails(host)[0]!;
+    if (way === "hover") await userEvent.hover(thumbnail);
+    else await act(async () => thumbnail.focus());
+    expect(popup()).toBeNull();
+    flushSync(() => thumbnail.click());
+    expect(popup()).not.toBeNull();
+    await settled();
   });
 
   it("closes with the close button, which sits in the viewer's frame beside the position", async () => {
