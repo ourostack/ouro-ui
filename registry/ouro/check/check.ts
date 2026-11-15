@@ -445,15 +445,16 @@ async function blank(page: Pick<Page, "goto" | "waitForLoadState" | "url">): Pro
   }
 }
 
-// Goes to a page from the blank one. An about:blank navigation still landing after blank() returned can win over this
-// one, which Playwright reports as interrupted (#1521): that navigation is let finish, and the page asked for again, a
-// few times at most.
+// Goes to a page from the blank one. An about:blank navigation still landing after blank() returned (#1521), or one to
+// the same page that a press set off before (#1595), can win over this one, which Playwright reports as interrupted:
+// that navigation is let finish, and the page asked for again, a few times at most, so its own answer is the one read.
 async function goTo(page: Pick<Page, "goto" | "waitForLoadState">, url: string): Promise<Awaited<ReturnType<Page["goto"]>>> {
+  const raced = (message: string) => [`another navigation to "about:blank"`, `another navigation to "${url}"`].some((to) => message.includes(`is interrupted by ${to}`));
   for (let attempt = 1; attempt < 3; attempt++) {
     try {
       return await page.goto(url, { waitUntil: "load" });
     } catch (problem) {
-      if (!/is interrupted by another navigation to "about:blank"/.test((problem as Error).message)) throw problem;
+      if (!raced((problem as Error).message)) throw problem;
       await page.waitForLoadState("load");
     }
   }

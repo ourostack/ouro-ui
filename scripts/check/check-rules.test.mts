@@ -36,6 +36,12 @@ describe("Ouro check going to a page", () => {
     assert.deepEqual(calls, ["goto /inp-pass.html", "wait load", "goto /inp-pass.html", "wait load", "goto /inp-pass.html"]);
   });
 
+  test("lets a navigation to the same page that a press set off finish, then asks for the page again (#1595)", async () => {
+    const same = late(1, 'page.goto: Navigation to "/inp-pass.html" is interrupted by another navigation to "/inp-pass.html"');
+    assert.equal(await goTo(same.page as never, "/inp-pass.html"), "answer");
+    assert.deepEqual(same.calls, ["goto /inp-pass.html", "wait load", "goto /inp-pass.html"]);
+  });
+
   test("gives up after its last try, and passes any other failure on at once", async () => {
     const lost = late(3);
     await assert.rejects(goTo(lost.page as never, "/inp-pass.html"), /is interrupted by another navigation to "about:blank"/);
