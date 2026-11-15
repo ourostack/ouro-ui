@@ -1109,6 +1109,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const indexes = useIndexByKey(keys);
   // How much the first draw takes before the view is measured: in server HTML and as it hydrates, FIRST_VIEW, so the two
   // match; in a list that opens in the browser, a view's height, so opening costs what the view shows.
+  // Stryker disable next-line ArrowFunction: a snapshot of undefined reads as false, as the client's does.
   const hydrating = useSyncExternalStore(noChange, () => false, () => true);
   const firstView = hydrating ? FIRST_VIEW : Math.min(lastView ?? Infinity, window.innerHeight);
   let draws: (index: number) => boolean = () => true;
@@ -1784,6 +1785,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // As it opens, only what the view shows draws, so the frame it opens in is short; the rows past its edges draw after
       // that frame is painted.
       const over = wide.current ? Math.max(OVERSCAN, scroller.clientHeight) : 0;
+      // Stryker disable next-line ConditionalExpression: widening a list already wide only draws the same band again, a frame later.
       if (!wide.current) widen();
       const indexes = new Map(keys.map((key, index) => [key, index]));
       const placed = tops.current.entries().next().value;
