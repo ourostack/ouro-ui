@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Tooltip, type TooltipProps } from "@/registry/ouro/components/ouro/tooltip/tooltip";
+import { Tooltip, TooltipGroup, type TooltipProps } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { TooltipsHidden } from "@/registry/ouro/lib/ouro/portal-container";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -231,6 +231,74 @@ describe("Tooltip", () => {
   });
 });
 
+describe("TooltipGroup", () => {
+  const group = (hidden = false) => (
+    <TooltipsHidden value={hidden}>
+      <TooltipGroup>
+        <Tooltip content="Like">
+          <Button>First</Button>
+        </Tooltip>
+        <Tooltip content="Heart" side="bottom" align="start">
+          <Button>Second</Button>
+        </Tooltip>
+      </TooltipGroup>
+    </TooltipsHidden>
+  );
+  const button = (name: string) => page.getByRole("button", { name }).element() as HTMLElement;
+
+  it("shows each trigger's own content, on its own side, from one tooltip for them all", async () => {
+    await render(group());
+    await userEvent.hover(button("First"));
+    let element = await shown();
+    expect(element.textContent).toBe("Like");
+    expect(element.getAttribute("data-side")).toBe("top");
+    await userEvent.hover(button("Second"));
+    await expect.poll(() => tooltip()?.textContent).toBe("Heart");
+    element = await shown();
+    expect(element.getAttribute("data-side")).toBe("bottom");
+    expect(element.getAttribute("data-align")).toBe("start");
+    expect(document.querySelectorAll('[data-ouro="tooltip"]')).toHaveLength(1);
+    await userEvent.unhover(button("Second"));
+    await expect.poll(() => tooltip()).toBeNull();
+  });
+
+  it("closes as the container it is in hides, and stays open when it shows again", async () => {
+    await render(group());
+    const root = roots.at(-1)!;
+    await act(async () => button("First").focus({ focusVisible: true } as FocusOptions));
+    await shown();
+    await act(async () => root.render(group(true)));
+    await expect.poll(() => tooltip()).toBeNull();
+    expect(document.activeElement).toBe(button("First"));
+    // Focus that comes back opens it, and the container showing again leaves it open.
+    button("First").blur();
+    await act(async () => button("First").focus({ focusVisible: true } as FocusOptions));
+    await shown();
+    await act(async () => root.render(group(false)));
+    await act(async () => {});
+    expect(tooltip()).not.toBeNull();
+  });
+
+  it("names Tooltip when the open tooltip renders outside every landmark of a page that has a main", async () => {
+    const main = document.body.appendChild(document.createElement("main"));
+    mounted.push(main);
+    await render(group());
+    await userEvent.hover(button("First"));
+    await shown();
+    expect(warnings()).toEqual([
+      "[ouro-ui] Tooltip: the open popup renders outside every landmark, so screen reader users who move by landmark miss it. Fix: <OuroProvider portalContainer={popups}> around the app, with <div ref={popups} /> inside <main>.",
+    ]);
+  });
+
+  it("never opens after a touch on a trigger", async () => {
+    await render(group());
+    await act(() => button("First").dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true })));
+    await act(async () => button("First").focus({ focusVisible: true } as FocusOptions));
+    await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+    expect(tooltip()).toBeNull();
+  });
+});
+
 describe("Tooltip delay group", () => {
   it("opens a neighbour instantly once one tooltip is showing, inside OuroProvider", async () => {
     await render(
@@ -264,6 +332,20 @@ describe("Tooltip dev messages", () => {
 
   it("warns when the content holds a link or a control, once it shows", async () => {
     await renderTooltip({ content: <a href="/help">Help</a> });
+    expect(warnings()).toEqual([]);
+    await userEvent.hover(trigger());
+    await shown();
+    expect(warnings()).toEqual([essential("content holds a link or control, which no one can reach")]);
+  });
+
+  it("warns when the content of a trigger in a TooltipGroup holds a link or a control, once it shows", async () => {
+    await render(
+      <TooltipGroup>
+        <Tooltip content={<a href="#recipe">Recipe</a>}>
+          <Button>Save</Button>
+        </Tooltip>
+      </TooltipGroup>,
+    );
     expect(warnings()).toEqual([]);
     await userEvent.hover(trigger());
     await shown();

@@ -487,8 +487,8 @@ describe("MessageList actions", () => {
   it("opens the menu within the event once its code has loaded, and draws the bar's host as no box of its own", async () => {
     await render(<Channel count={3} />);
     await ready("m2");
-    const slot = message("m2").querySelector("[data-ouro-message-bar-slot]")!;
-    expect(getComputedStyle(slot.firstElementChild!).display).toBe("contents");
+    const host = message("m2").querySelector("[data-ouro-message-bar-slot]")!;
+    expect(getComputedStyle(host).display).toBe("contents");
 
     const rightClick = (id: string) => {
       const text = message(id).querySelector("[data-ouro-message-content]")!;
@@ -594,7 +594,7 @@ describe("MessageList actions", () => {
   it("takes its bar's host out of the message when the list goes", async () => {
     await render(<Channel count={2} />);
     await ready("m1");
-    const host = message("m1").querySelector("[data-ouro-message-bar-slot]")!.firstElementChild!;
+    const host = message("m1").querySelector("[data-ouro-message-bar-slot]")!;
     expect(host.parentNode).not.toBeNull();
     await act(async () => roots.pop()!.unmount());
     expect(host.parentNode).toBeNull();
