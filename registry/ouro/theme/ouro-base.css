@@ -151,6 +151,63 @@
     outline-style: solid;
     outline-width: 2px;
   }
+  /* The same ring on an element whose control inside has keyboard focus, as TextField rings its box: a label around a visually hidden radio or checkbox, or the box around an input. */
+  .ouro-focus-ring-within {
+    outline-color: var(--ring);
+    outline-offset: 2px;
+  }
+  .ouro-focus-ring-within:has(:focus-visible) {
+    outline-style: solid;
+    outline-width: 2px;
+  }
+  /* An element that takes focus only from a script or a skip link (tabindex="-1"), such as <main>, draws no outline around itself, as Ouro's layouts' main does. */
+  .ouro-focus-target[tabindex="-1"]:focus {
+    outline: none;
+  }
+  /* A link that skips to the main content, drawn as SkipLink draws it: clipped to a 1px box, still read by screen readers, until it has focus. Point it at an element with tabindex="-1" and .ouro-focus-target. */
+  .ouro-skip-link {
+    position: fixed;
+    top: 0.5rem;
+    inset-inline-start: 0.5rem;
+    z-index: var(--ouro-layer);
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    padding-inline: 1rem;
+    border-radius: var(--radius-md);
+    --corner-shape: var(--ouro-corner-shape);
+    corner-shape: var(--ouro-corner-shape);
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    text-decoration-line: underline;
+    text-underline-offset: 4px;
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)), 0 0 0 1px color-mix(in oklab, var(--border) 60%, transparent);
+    outline-color: var(--ring);
+    outline-offset: 2px;
+  }
+  .ouro-skip-link:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+  }
+  .ouro-skip-link:not(:focus) {
+    margin: 0;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    white-space: nowrap;
+    box-shadow: none;
+    clip-path: inset(50%);
+  }
+  /* What a mouse user sees only while the pointer rests on it, or on its .ouro-reveal-host, or while focus is in either, as SegmentedControl's revealOnHover: row actions, or a card beside the one in use. It keeps its room, and shows from the start on a touch screen. */
+  .ouro-reveal {
+    transition: opacity var(--ouro-duration-fast) ease;
+  }
   /* A row that opens something when pressed, as a linked Item or Table row: tinted toward the text colour while a mouse rests on it, and more while it is pressed. */
   .ouro-row {
     cursor: pointer;
@@ -165,6 +222,22 @@
     }
     .ouro-disclosure-summary:hover {
       text-decoration-line: underline;
+    }
+    .ouro-reveal:not(:hover, :focus-within) {
+      opacity: 0;
+    }
+    .ouro-reveal-host:is(:hover, :focus-within) .ouro-reveal {
+      opacity: 1;
+    }
+  }
+  @media (pointer: coarse) {
+    .ouro-skip-link {
+      min-height: 2.75rem;
+    }
+  }
+  @media print {
+    .ouro-skip-link {
+      display: none;
     }
   }
   /* A disclosure with no script, drawn as Collapsible draws its title: <details class="ouro-disclosure"> with <summary class="ouro-disclosure-summary"> and the content in .ouro-disclosure-panel. The chevron is drawn with borders (no image), turns over while open, and snaps under reduced motion. */
@@ -242,6 +315,9 @@
   }
   @media (forced-colors: active) {
     .ouro-disclosure-summary {
+      border: 1px solid;
+    }
+    .ouro-skip-link:focus {
       border: 1px solid;
     }
   }
