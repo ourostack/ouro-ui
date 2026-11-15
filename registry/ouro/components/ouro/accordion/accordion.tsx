@@ -1,7 +1,8 @@
 "use client";
 
 import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
-import { useSyncExternalStore, type JSX, type ReactNode, type Ref } from "react";
+import { useId, useRef, type JSX, type ReactNode, type Ref } from "react";
+import { CssPanel } from "@/registry/ouro/lib/ouro/css-panel";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -12,7 +13,6 @@ import {
   iconClass,
   itemClass,
   ownLook,
-  panelClass,
   panelContentClass,
   rootClass,
   triggerClass,
@@ -120,18 +120,37 @@ function toList(value: string | null | readonly string[] | undefined): string[] 
   return typeof value === "string" ? [value] : [...value];
 }
 
-const noSubscribe = () => () => {};
-
-/**
- * Whether the browser reveals `hidden="until-found"` content for its page search
- * (Chromium does; WebKit does not, and would show the content). False on the server, so
- * hydration matches, and closed content stays in the server HTML either way.
- */
-function useUntilFound(): boolean {
-  return useSyncExternalStore(
-    noSubscribe,
-    () => "onbeforematch" in document.body,
-    () => false,
+/** One item's title and panel. The panel is Ouro's own CSS panel. */
+function Row({ item, Heading, open }: { item: AccordionItem; Heading: `h${AccordionHeadingLevel}`; open: boolean }): JSX.Element {
+  const triggerId = useId();
+  const panelId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <BaseAccordion.Header render={<Heading />} className={headerClass}>
+        <BaseAccordion.Trigger
+          ref={triggerRef}
+          id={triggerId}
+          aria-controls={open ? panelId : undefined}
+          data-ouro-control="accordion"
+          data-ouro-part="trigger"
+          className={triggerClass}
+        >
+          {item.title}
+          <Chevron />
+        </BaseAccordion.Trigger>
+      </BaseAccordion.Header>
+      <CssPanel
+        id={panelId}
+        role="region"
+        aria-labelledby={triggerId}
+        open={open}
+        onFound={() => triggerRef.current?.click()}
+        contentClassName={panelContentClass}
+      >
+        {item.content}
+      </CssPanel>
+    </>
   );
 }
 
@@ -154,7 +173,7 @@ function Chevron(): JSX.Element {
 
 /**
  * A stack of titles that each open their own content, for FAQs and long settings pages. One
- * item opens at a time unless you pass `multiple`. Panels grow to their measured height with
+ * item opens at a time unless you pass `multiple`. Panels grow to their content height with
  * CSS, titles sit inside headings, closed content is in the server HTML and found by the
  * page search of browsers that support `hidden="until-found"`, and rows are 44px tall on touch screens.
  *
@@ -172,10 +191,10 @@ function Chevron(): JSX.Element {
  *   ]}
  * />
  * <Accordion multiple defaultValue={["storage"]} items={items} />
- * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > lets the browser's page search find and open a closed item, and hides it plainly where until-found is unsupported)
- * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > animates the panel to its measured height)
- * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > gives every trigger at least a 44px row on a coarse pointer, or 40px otherwise)
- * @claim "Panels grow to their measured height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > links each trigger and panel in server HTML and hydrates without a mismatch)
+ * @claim "Panels grow to their content height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > lets the browser's page search find and open a closed item, and hides it plainly where until-found is unsupported)
+ * @claim "Panels grow to their content height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > animates the panel to its measured height)
+ * @claim "Panels grow to their content height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > gives every trigger at least a 44px row on a coarse pointer, or 40px otherwise)
+ * @claim "Panels grow to their content height" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > links each trigger and panel in server HTML and hydrates without a mismatch)
  * @claim "A stack of titles that each" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > opens one item at a time by default, and closes the open one when pressed again)
  * @claim "A stack of titles that each" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > keeps several items open with multiple)
  */
@@ -240,7 +259,6 @@ export function Accordion(props: AccordionProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const Heading = `h${level}` as const;
-  const untilFound = useUntilFound();
   return (
     <BaseAccordion.Root
       ref={ref}
@@ -256,23 +274,21 @@ export function Accordion(props: AccordionProps): JSX.Element {
           : undefined
       }
       disabled={disabled}
-      keepMounted
-      hiddenUntilFound={untilFound}
       data-ouro="accordion"
       className={cn(rootClass, className)}
     >
       {items.map((item, index) => (
-        <BaseAccordion.Item key={values[index]} value={values[index]} disabled={item.disabled === true} className={itemClass}>
-          <BaseAccordion.Header render={<Heading />} className={headerClass}>
-            <BaseAccordion.Trigger data-ouro-control="accordion" data-ouro-part="trigger" className={triggerClass}>
-              {item.title}
-              <Chevron />
-            </BaseAccordion.Trigger>
-          </BaseAccordion.Header>
-          <BaseAccordion.Panel className={panelClass}>
-            <div className={panelContentClass}>{item.content}</div>
-          </BaseAccordion.Panel>
-        </BaseAccordion.Item>
+        <BaseAccordion.Item
+          key={values[index]}
+          value={values[index]}
+          disabled={item.disabled === true}
+          className={itemClass}
+          render={(props, state) => (
+            <div {...props}>
+              <Row item={item} Heading={Heading} open={state.open} />
+            </div>
+          )}
+        />
       ))}
     </BaseAccordion.Root>
   );

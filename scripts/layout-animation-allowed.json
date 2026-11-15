@@ -1,6 +1,6 @@
 {
-  "registry/ouro/components/ouro/accordion/accordion-styles.ts": {
-    "transition-[height]": "an in-flow disclosure: the panel's height moves the content below it, which a transform would overlap; it is off with reduced motion"
+  "registry/ouro/lib/ouro/css-panel.tsx": {
+    "transition-[grid-template-rows]": "an in-flow disclosure: the panel's height moves the content below it, which a transform would overlap; it is off with reduced motion"
   },
   "registry/ouro/components/ouro/collapsible/collapsible-styles.ts": {
     "transition-[grid-template-rows]": "an in-flow disclosure: the panel's height moves the content below it, which a transform would overlap; it is off with reduced motion"

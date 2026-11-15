@@ -491,6 +491,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-color-scheme`,
 `lib-color-scheme-script`,
 `lib-control-ref`,
+`lib-css-panel`,
 `lib-current-path`,
 `lib-dev`,
 `lib-env`,
