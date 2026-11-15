@@ -494,6 +494,9 @@ describe("findSizeIssues: broken-image", () => {
       <img src="data:image/png;base64,broken" alt="allowed" data-ouro-allow="broken-image" data-ouro-allow-why="a placeholder the test swaps">
       <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="an svg without a size">
       <img alt="no source yet">`);
+    // decodeImages waits 3 s at most, as the check does; the missing picture's answer comes from the test server, which a
+    // busy runner can hold past that (#1519), so the test waits for every picture to finish first.
+    await expect.poll(() => [...document.images].every((image) => image.complete)).toBe(true);
     await decodeImages();
     expect(await findSizeIssues()).toMatchObject([
       { rule: "broken-image", element: 'img "broken"', detail: "the picture did not load" },
