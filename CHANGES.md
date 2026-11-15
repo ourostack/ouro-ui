@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: Ouro check finds a [control that a later frame swaps for another after first paint](docs/guides/guardrails.md "verify:fileLine(docs/guides/guardrails.md, /first-paint-swap/)"), with no input, the way a rail refitted under More does; [the rule](docs/guides/guardrails.md "verify:fileLine(registry/ouro/check/measure.ts, /first-paint-swap/)") reads the first ten frames a page draws.
