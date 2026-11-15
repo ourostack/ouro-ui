@@ -45,3 +45,5 @@ async function warm(server: Server, entries: string[]): Promise<number> {
   }
   return seen.size;
 }
+
+export default WarmStories;
