@@ -611,7 +611,7 @@ export function Command(props: CommandProps): JSX.Element {
     // Base UI shows the dialog in the commit just after this one, which a microtask comes after: still in the task of
     // the key that opened it, before any later key. A palette shut again by then has no search to focus, or a hidden one.
     // Stryker disable next-line OptionalChaining: Base UI mounts the dialog in the commit before this microtask; the check only keeps a dialog it mounts later from throwing
-    queueMicrotask(() => popupRef.current?.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!.focus());
+    queueMicrotask(() => popupRef.current?.querySelector("input")!.focus());
   }, [isOpenNow, sheet]);
   const emptyOnceClosed = (next: boolean) => {
     if (next || !keepMounted) return;
