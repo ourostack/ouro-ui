@@ -1,4 +1,5 @@
 import { useState, type ReactElement, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -853,6 +854,75 @@ function ServerPalette({ server, onSelect = () => {} }: { server: ReturnType<typ
     </>
   );
 }
+
+/** A palette the app opens from a key, as a shortcut does, recording where focus is before the next frame. */
+function KeyOpened({ keepMounted, onQueryChange, seen }: { keepMounted?: boolean; onQueryChange?: CommandProps["onQueryChange"]; seen: { focus: Element | null } }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        data-test-harness=""
+        onKeyDown={(event) => {
+          if (event.key !== "k") return;
+          event.preventDefault();
+          flushSync(() => setOpen(true));
+          // Two microtasks on, still in the key's task: before any frame is drawn.
+          queueMicrotask(() => queueMicrotask(() => (seen.focus = document.activeElement)));
+        }}
+      >
+        Page
+      </button>
+      <Command title="Command palette" items={entries()} open={open} onOpenChange={setOpen} keepMounted={keepMounted} {...(onQueryChange ? { onQueryChange } : {})} />
+    </>
+  );
+}
+
+describe("Command opened by a key", () => {
+  it.each([false, true])("puts focus in the search in the key's own task, before a frame is drawn (keepMounted %s)", async (keepMounted) => {
+    const seen = { focus: null as Element | null };
+    await render(<KeyOpened keepMounted={keepMounted} seen={seen} />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("k");
+    await expect.poll(() => seen.focus).not.toBeNull();
+    expect(seen.focus).toBe(input().element());
+  });
+});
+
+describe("Command kept mounted", () => {
+  it("keeps its rows mounted and hidden while closed, with no dialog role, and opens them at once", async () => {
+    const seen = { focus: null as Element | null };
+    await render(<KeyOpened keepMounted seen={seen} />);
+    const row = document.querySelector<HTMLElement>('[data-ouro-command-value="New recipe"]');
+    expect(row).not.toBeNull();
+    expect(row!.checkVisibility()).toBe(false);
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-ouro-command-close]')!.checkVisibility()).toBe(false);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("k");
+    await expect.element(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+    // The same row, shown: nothing mounted afresh.
+    expect(document.querySelector('[data-ouro-command-value="New recipe"]')).toBe(row);
+    expect(row!.checkVisibility()).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-ouro-command-value="New recipe"]')).toBe(row);
+  });
+
+  it("empties the search once it has closed, asking the app for the empty search's results", async () => {
+    const queries: string[] = [];
+    const seen = { focus: null as Element | null };
+    await render(<KeyOpened keepMounted seen={seen} onQueryChange={(query) => void queries.push(query)} />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("k");
+    await expect.element(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+    await userEvent.keyboard("ab");
+    await expect.poll(() => (input().element() as HTMLInputElement).value).toBe("ab");
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => (document.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!).value).toBe("");
+    expect(queries.at(-1)).toBe("");
+  });
+});
 
 describe("Command server search", () => {
   const status = () => document.querySelector<HTMLElement>("[data-ouro-command-status]")!;
