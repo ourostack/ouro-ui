@@ -229,7 +229,7 @@
   }
   @media (min-width: 640px) {
     .adoption {
-      --adoption-col: 3.5rem;
+      --adoption-col: 4rem;
     }
   }
   .adoption-head span:first-child {

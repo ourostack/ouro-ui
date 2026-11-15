@@ -166,6 +166,12 @@ describe("reading the checks", () => {
     expect(checksOf(withCells({ giveBack: giveBack(0, "Merged pull requests that mention it.") }))[3]).toMatchObject({ state: "missing", why: "Nothing given back yet" });
   });
 
+  it("says an undeclared action set in a few words, and keeps the ledger's reason while the model is unreleased", () => {
+    const actions = (note: string) => ({ value: 0, note, source: "https://example.com/actions", measuredAt: at });
+    expect(checksOf(withCells({ actions: actions("No actions declared on the one-action model: no actions.json written by ouro-actions in the repository.") }))[1]).toMatchObject({ state: "missing", why: "Actions not declared yet", source: "https://example.com/actions" });
+    expect(checksOf(withCells({ actions: actions("The one-action model is not released yet, so no product has actions on it.") }))[1]).toMatchObject({ why: "The one-action model is not released yet, so no product has actions on it" });
+  });
+
   it("orders rows as the ledger does, and keeps each star in a fixed place", () => {
     const board = boardOf(SNAPSHOT);
     expect(board.rows.map((row) => row.surface.id)).toEqual(SNAPSHOT.summary.order);

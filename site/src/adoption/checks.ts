@@ -67,7 +67,8 @@ function oneAction(surface: Surface): Omit<Check, "key" | "label"> {
   const cell = surface.cells.actions;
   if (surface.conditions.oneAction.met) return { state: "met", why: null, source: cell.source };
   if (cell.value === null) return { state: unmeasuredOrNa(cell), why: reason(cell, "not measured yet"), source: cell.source };
-  return { state: "missing", why: reason(cell, "Actions not on the one-action model"), source: cell.source };
+  // The ledger's note says how it looked; the row needs only the gap, and the link carries the detail.
+  return { state: "missing", why: /not released/i.test(cell.note ?? "") ? reason(cell, "") : "Actions not declared yet", source: cell.source };
 }
 
 function must(surface: Surface): Omit<Check, "key" | "label"> {
