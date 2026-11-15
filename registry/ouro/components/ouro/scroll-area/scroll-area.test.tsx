@@ -173,7 +173,11 @@ describe("ScrollArea", () => {
       </ScrollArea>,
     );
     await expect.poll(() => viewport.tabIndex).toBe(0);
+    // At rest nothing lies over the content, so a contrast check sees the text's own background.
+    const overlay = area.querySelector<HTMLElement>("[data-scroll-focus-ring]")!;
+    expect(getComputedStyle(overlay).display).toBe("none");
     viewport.focus();
+    expect(getComputedStyle(overlay).display).toBe("block");
     await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     // The ring's colour as pixels, and the area's pixels as the screen shows them.
     const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;

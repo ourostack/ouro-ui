@@ -193,11 +193,12 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
       >
         <div className={orientation === "vertical" ? "min-w-0" : "min-w-fit"}>{children}</div>
       </div>
-      {/* The viewport's focus ring, drawn over it, so neither the edge fade nor content that sticks to an edge covers it. */}
+      {/* The viewport's focus ring, drawn over it, so neither the edge fade nor content that sticks to an edge covers it. It is
+          there only while the viewport has focus: at rest nothing lies over the content, so a contrast check sees the text's own background. */}
       <span
         aria-hidden="true"
         data-scroll-focus-ring=""
-        className="pointer-events-none absolute inset-0 rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
+        className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
       />
     </div>
   );
