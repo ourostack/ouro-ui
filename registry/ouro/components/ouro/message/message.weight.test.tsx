@@ -22,42 +22,42 @@ const picture = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
 const layer = createRowLayer<MessageBarData>() as RowLayer<unknown>;
 
 const variants: { variant: string; message: ReactElement; inList?: true; elements: number; components: number }[] = [
-  { variant: "a text message", message: <Message role="assistant" variant="chat" name="Ana">Hello there</Message>, elements: 10, components: 5 },
-  { variant: "a text message with its time", message: <Message role="assistant" variant="chat" name="Ana" time="9:41 AM">Hello there</Message>, elements: 12, components: 5 },
+  { variant: "a text message", message: <Message role="assistant" variant="chat" name="Ana">Hello there</Message>, elements: 9, components: 2 },
+  { variant: "a text message with its time", message: <Message role="assistant" variant="chat" name="Ana" time="9:41 AM">Hello there</Message>, elements: 11, components: 2 },
   { variant: "the user's own message", message: <Message role="user" variant="chat" name="You" time="9:41 AM">Hello there</Message>, elements: 7, components: 1 },
   { variant: "a continued message", message: <Message role="assistant" variant="chat" name="Ana" time="9:41 AM" continued>Hello there</Message>, elements: 9, components: 1 },
   {
     variant: "a message with its author's presence",
     message: <Message role="assistant" variant="chat" name="Ana" presence="available" presenceLabel="Available">Hello there</Message>,
-    elements: 13,
-    components: 7,
+    elements: 12,
+    components: 4,
   },
-  { variant: "a message with a name tag", message: <Message role="assistant" variant="chat" name="Halden" nameTag="AI agent" time="9:41 AM">Hello there</Message>, elements: 14, components: 5 },
+  { variant: "a message with a name tag", message: <Message role="assistant" variant="chat" name="Halden" nameTag="AI agent" time="9:41 AM">Hello there</Message>, elements: 13, components: 2 },
   {
     variant: "a message with reactions",
     message: <Message role="assistant" variant="chat" name="Ana" footer={<ReactionBar reactions={reactions} onReact={() => {}} />}>Hello there</Message>,
-    elements: 22,
-    components: 33,
+    elements: 21,
+    components: 23,
   },
   {
     variant: "a message of a picture",
     message: <Message role="assistant" variant="chat" name="Ana" attachments={<Lightbox label="Photo from Ana" layout="mosaic" images={[{ src: picture, alt: "A lake", width: 1200, height: 800 }]} />} />,
-    elements: 18,
-    components: 12,
+    elements: 17,
+    components: 9,
   },
-  { variant: "a message with a quote", message: <Message role="assistant" variant="chat" name="Ana" quote={{ author: "Theo", excerpt: "I have one." }}>Hello there</Message>, elements: 16, components: 5 },
+  { variant: "a message with a quote", message: <Message role="assistant" variant="chat" name="Ana" quote={{ author: "Theo", excerpt: "I have one." }}>Hello there</Message>, elements: 15, components: 2 },
   {
     variant: "a message with actions, in a list",
     message: <Message role="assistant" variant="chat" name="Ana" actions={actions}>Hello there</Message>,
     inList: true,
-    elements: 12,
-    components: 5,
+    elements: 11,
+    components: 2,
   },
-  { variant: "a message still being written", message: <Message role="assistant" variant="chat" name="Ana" streaming />, elements: 15, components: 5 },
+  { variant: "a message still being written", message: <Message role="assistant" variant="chat" name="Ana" streaming />, elements: 14, components: 2 },
   { variant: "a message that did not send", message: <Message role="user" variant="chat" name="You" failed={{ onRetry: () => {}, onDelete: () => {} }}>Hello there</Message>, elements: 18, components: 8 },
-  { variant: "a post", message: <Message role="assistant" variant="post" name="Ana" time="9:41 AM">Hello there</Message>, elements: 13, components: 5 },
-  { variant: "a reply", message: <Message role="assistant" variant="reply" name="Ana" time="9:41 AM">Hello there</Message>, elements: 12, components: 5 },
-  { variant: "a message in the default layout", message: <Message role="assistant" name="Ana">Hello there</Message>, elements: 8, components: 5 },
+  { variant: "a post", message: <Message role="assistant" variant="post" name="Ana" time="9:41 AM">Hello there</Message>, elements: 12, components: 2 },
+  { variant: "a reply", message: <Message role="assistant" variant="reply" name="Ana" time="9:41 AM">Hello there</Message>, elements: 11, components: 2 },
+  { variant: "a message in the default layout", message: <Message role="assistant" name="Ana">Hello there</Message>, elements: 7, components: 2 },
 ];
 
 /** The components React keeps for what the root draws: every fiber but the root, elements and text, context providers included. */
