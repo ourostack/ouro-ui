@@ -1544,6 +1544,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // its last event, over frames a loaded machine draws slowly, and a scroll position written meanwhile stops it.
     let wheelScrolling = false;
     // Whether the wheel turned since the last scroll event, whose scroll may not have begun yet.
+    // Stryker disable next-line BooleanLiteral: before any turn, the last turn is never under WHEEL_START ago, so no scroll counts as one's either way.
     let wheelStarts = false;
     const turning = () => wheelScrolling || performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
     let resting: ReturnType<typeof setTimeout> | undefined;
