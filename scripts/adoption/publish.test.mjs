@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { execFileSync } from "node:child_process";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { scratchDir } from "../scratch.mjs";
 
 const workflow = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../.github/workflows/adoption-ledger.yml"), "utf8");
 
@@ -24,9 +24,8 @@ function stepScript(name) {
   return body.join("\n");
 }
 
-test("the hourly run publishes a ledger bigger than a command line can hold", (t) => {
-  const dir = mkdtempSync(join(tmpdir(), "adoption-publish-"));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+test("the hourly run publishes a ledger bigger than a command line can hold", () => {
+  const dir = scratchDir("adoption-publish-");
   // A ledger past the 1 MiB that argument lists are commonly limited to (ARG_MAX), as base64 grows it by a third.
   const ledger = { summary: { confirmed: 1, total: 2 }, padding: "x".repeat(1_200_000) };
   writeFileSync(join(dir, "ledger.json"), JSON.stringify(ledger));
