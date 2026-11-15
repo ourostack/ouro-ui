@@ -17,7 +17,22 @@ import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 <Carousel label="Featured recipes" slidesPerView={2} loop onIndexChange={setIndex}>
   {recipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
 </Carousel>
+// The slide lives in the address: #slide-3.
+const hash = useSyncExternalStore(onHashChange, () => location.hash, () => "");
+const slide = Math.max(0, Number(hash.replace("#slide-", "")) - 1 || 0);
+<Carousel
+  label="Overview"
+  index={slide}
+  onIndexChange={(index) => history.replaceState(null, "", `#slide-${index + 1}`)}
+  pagerHref={(index) => `#slide-${index + 1}`}
+>
+  {slides}
+</Carousel>
 ```
+
+## Usage
+
+An app that keeps the slide in the address passes `index` and `pagerHref`: a slide then has a link, the pager's dots link to the slides, and Back and Forward step through them.
 
 ## Use instead when
 
@@ -32,11 +47,14 @@ Type: `CarouselProps`.
 | `children` (required) | `ReactNode` |  | The slides: each child is one slide, so pass the images or cards themselves. |
 | `className` | `string` |  | Layout only: width and margins (`max-w-xl`, `mx-auto`). Appearance classes warn in development. |
 | `defaultIndex` | `number` | `0` | The slide to start on, counting from 0. The starting slide is not announced. |
+| `index` | `number` |  | The slide in view, counting from the first as `0`, for a carousel your app drives: from the address (`#slide-3`, so a slide has a link and Back and Forward step through the slides), a router's state, or another control. When it changes the carousel moves there, smoothly or at once with reduced motion, and announces the position, without calling `onIndexChange`. Set it from `onIndexChange` too, so a swipe or a button press moves it. Unset, the carousel keeps its own position, from `defaultIndex`. |
 | `label` (required) | `string` |  | Names the carousel for screen readers, such as "Recipe photos". It is always required. |
 | `loop` | `boolean` |  | Next on the last slide goes back to the first, and Previous on the first goes to the last. |
 | `nextLabel` | `string` | `"Next slide"` | The Next button's accessible name. |
 | `onIndexChange` | `((index: number) => void)` |  | Called with the index of the first visible slide when the user moves to another slide, once per change. |
 | `onTargetChange` | `((index: number \| null) => void)` |  | Called at once with the slide a Previous or Next press is moving to, before the scroll gets there, and with null when the scroll settles: show that position straight away, so a counter never names the slide being left. `onIndexChange` still reports, and the carousel announces, only where the scroll settles. |
+| `pagerHref` | `((index: number) => string)` |  | Shows a pager beside the buttons: a dot for each position, a link to the address this returns (`(index) => `#slide-${index + 1}``), named by `slideLabel`, with `aria-current="true"` and a longer dot on the position in view. Following one changes the address, so drive the carousel with `index` from the address and it moves there. |
+| `pagerLabel` | `string` | `"Slides"` | With `pagerHref`, the pager's accessible name. |
 | `previousLabel` | `string` | `"Previous slide"` | The Previous button's accessible name. |
 | `roleDescription` | `string` | `"carousel"` | What a screen reader calls the carousel, after its label: "Recipe photos, carousel". |
 | `slideLabel` | `string` | `"Slide {n} of {total}"` | Names each slide and is announced when the position changes: `{n}` is the slide's number and `{total}` the number of slides. |
