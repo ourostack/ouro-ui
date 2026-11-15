@@ -232,20 +232,45 @@ describe("OuroProvider strictCsp", () => {
     return element;
   };
 
-  it("stills the page under reduced with a constructed stylesheet, not a <style>, and takes it away with the provider", async () => {
-    const before = document.adoptedStyleSheets.length;
-    const container = await mount(
-      <OuroProvider strictCsp motion="reduced">
+  it("stills the page under reduced with a constructed stylesheet, not a <style>, and takes only its own away when motion changes or the provider goes", async () => {
+    const theirs = new CSSStyleSheet();
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, theirs];
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    roots.push(root);
+    const at = (motion: "reduced" | "full") => (
+      <OuroProvider strictCsp motion={motion}>
         <Link />
-      </OuroProvider>,
+      </OuroProvider>
     );
+    await act(async () => root.render(at("reduced")));
     const elsewhere = moving();
     expect(container.querySelector("style")).toBeNull();
-    expect(document.adoptedStyleSheets).toHaveLength(before + 1);
+    expect(document.adoptedStyleSheets).toHaveLength(2);
     expect(getComputedStyle(elsewhere).transitionDuration).toBe("0s");
-    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
-    expect(document.adoptedStyleSheets).toHaveLength(before);
+    await act(async () => root.render(at("full")));
+    expect(document.adoptedStyleSheets).toEqual([theirs]);
     expect(getComputedStyle(elsewhere).transitionDuration).toBe("1s");
+    await act(async () => root.render(at("reduced")));
+    expect(document.adoptedStyleSheets).toHaveLength(2);
+    await act(async () => roots.splice(0).forEach((each) => each.unmount()));
+    expect(document.adoptedStyleSheets).toEqual([theirs]);
+    expect(getComputedStyle(elsewhere).transitionDuration).toBe("1s");
+    document.adoptedStyleSheets = [];
+  });
+
+  it("brings a <style> only for reduced motion without strictCsp", async () => {
+    const container = await mount(
+      <>
+        <OuroProvider motion="system">
+          <Link />
+        </OuroProvider>
+        <OuroProvider motion="full">
+          <Link />
+        </OuroProvider>
+      </>,
+    );
+    expect(container.querySelector("style")).toBeNull();
   });
 
   const scrollStyles = () => [...document.querySelectorAll("style")].filter((style) => style.textContent.includes("base-ui-disable-scrollbar")).length;
