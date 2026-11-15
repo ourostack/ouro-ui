@@ -1,4 +1,5 @@
 import { Fragment, createRef, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -509,9 +510,9 @@ describe("MessageList windowing", () => {
     expect(Math.abs(rested.written - 20)).toBeLessThanOrEqual(ROUNDING);
   });
 
-  it("keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is", async () => {
-    const { scroller, rerender } = await render(<Chat items={conversation(60, 40, true)} />);
-    expect(messages(scroller)).toHaveLength(60);
+  it("keeps a conversation of 20 messages whole, and windows it once it grows past 20, leaving the view where it is", async () => {
+    const { scroller, rerender } = await render(<Chat items={conversation(20, 80, true)} />);
+    expect(messages(scroller)).toHaveLength(20);
     expect(scroller.querySelector("[data-ouro-message-list-space]")).toBeNull();
     await scrollTo(scroller, 600);
     const reading = firstVisible(scroller);
@@ -521,6 +522,38 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
     expect(messages(scroller).length).toBeLessThan(100);
     expect(scroller.querySelector("[data-ouro-message-list-space]")).not.toBeNull();
+    // A conversation of 60 that comes at once, as an app's cached newest page does, draws only what is near the view.
+    const page = await render(<Chat items={conversation(60, 0, true)} />);
+    expect(messages(page.scroller).length).toBeLessThan(40);
+  });
+
+  it("keeps the reader's place far up a list that grows long, though code scrolled it there before the browser reported the scroll", async () => {
+    // A short conversation, then a long one, which opens at its newest, not at the rows the short one drew whole; then another,
+    // short one, which draws whole.
+    const { scroller, root, rerender } = await render(<Chat items={conversation(20, 2000)} />);
+    const drawnIds: number[] = [];
+    const watch = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof HTMLElement) for (const message of node.querySelectorAll<HTMLElement>('[data-ouro="message"]')) drawnIds.push(Number(message.id.slice(1)));
+    });
+    watch.observe(scroller, { childList: true, subtree: true });
+    await act(async () => void flushSync(() => root.render(<Chat items={conversation(300, 1000)} />)));
+    watch.disconnect();
+    expect(drawnIds.length).toBeGreaterThan(0);
+    expect(drawnIds.every((id) => id >= 1250)).toBe(true);
+    await settle(scroller);
+    const items = Array.from({ length: 20 }, (_, id) => ({ id, text: `Message ${id}`, tall: 200 }));
+    await rerender(<Chat items={items} />);
+    expect(messages(scroller)).toHaveLength(20);
+    let reading = firstVisible(scroller);
+    await act(async () => {
+      // Far above what a first draw from the end reaches, and a message arrives before the scroll event.
+      scroller.scrollTop -= 3000;
+      reading = firstVisible(scroller);
+      flushSync(() => root.render(<Chat items={[...items, { id: 20, text: "A new reply." }]} />));
+    });
+    await settle(scroller);
+    expect(reading.message.isConnected).toBe(true);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
   });
 
   it("keeps every message in the page with windowing={false}", async () => {
