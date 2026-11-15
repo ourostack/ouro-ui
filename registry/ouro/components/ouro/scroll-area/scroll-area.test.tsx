@@ -1,10 +1,12 @@
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, page, server, userEvent } from "vitest/browser";
+import { page, server, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -66,32 +68,32 @@ describe("ScrollArea", () => {
     expect(short.getBoundingClientRect().height).toBe(40);
   });
 
-  it("hides the native scrollbar and draws a vertical one when the content overflows", async () => {
-    const { area, viewport } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
-    expect(viewport.offsetWidth - viewport.clientWidth).toBe(0);
-    await expect.poll(() => area.querySelector('[data-orientation="vertical"]')).not.toBeNull();
-    expect(area.querySelector('[data-orientation="horizontal"]')).toBeNull();
+  it("draws a thin native scrollbar in the theme's muted color, and scrolls only the way it is asked to", async () => {
+    const { viewport } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
+    expect(getComputedStyle(viewport).overflowY).toBe("auto");
+    expect(getComputedStyle(viewport).overflowX).toBe("hidden");
+    expect(getComputedStyle(viewport).scrollbarWidth).toBe("thin");
+    expect(getComputedStyle(viewport).scrollbarColor).not.toBe("auto");
+    const { viewport: row } = await render(<ScrollArea orientation="horizontal">{wide}</ScrollArea>);
+    expect(getComputedStyle(row).overflowX).toBe("auto");
+    expect(getComputedStyle(row).overflowY).toBe("hidden");
+    const { viewport: both } = await render(<ScrollArea orientation="both">{wide}</ScrollArea>);
+    expect(getComputedStyle(both).overflowX).toBe("auto");
+    expect(getComputedStyle(both).overflowY).toBe("auto");
   });
 
-  it("shows the scrollbar while hovered or scrolled, and keeps it in the corner", async () => {
-    const { area, viewport } = await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
-    await expect.poll(() => area.querySelector('[data-orientation="vertical"]')).not.toBeNull();
-    const scrollbar = area.querySelector<HTMLElement>('[data-orientation="vertical"]')!;
-    // The pointer may still rest where an earlier test's element was, which is where this
-    // area renders, so move it to a spot well away from the area first.
-    const away = document.createElement("div");
-    away.style.cssText = "position:fixed;right:0;bottom:0;width:20px;height:20px";
-    document.body.append(away);
-    mounted.push(away);
-    await userEvent.hover(away);
-    await expect.poll(() => getComputedStyle(scrollbar).opacity).toBe("0");
-    await userEvent.hover(viewport);
-    await expect.poll(() => getComputedStyle(scrollbar).opacity).toBe("1");
-    const bar = scrollbar.getBoundingClientRect();
-    expect(Math.round(bar.right)).toBe(Math.round(area.getBoundingClientRect().right));
-    expect(bar.width).toBe(10);
-    // A fine pointer can drag the thumb.
-    expect(getComputedStyle(scrollbar).pointerEvents).toBe("auto");
+  it("reads no layout while mounting, so the commit forces none", async () => {
+    await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const watch = watchLayoutReads();
+    // Stops as soon as the commit is done: the browser's resize report comes later, after layout, so it forces none.
+    flushSync(() => root.render(<ScrollArea className="h-40" label="Method">{tall}</ScrollArea>));
+    watch.stop();
+    expect(watch.names()).toEqual([]);
   });
 
   it("keeps a vertical area's content to the viewport's width, so a child that cannot wrap does not widen the text beside it", async () => {
@@ -128,17 +130,10 @@ describe("ScrollArea", () => {
     expect((both.firstElementChild as HTMLElement).getBoundingClientRect().width).toBe(900);
   });
 
-  it("scrolls horizontally with orientation=horizontal, and both ways with both", async () => {
-    const { area, viewport } = await render(<ScrollArea orientation="horizontal">{wide}</ScrollArea>);
+  it("scrolls horizontally with orientation=horizontal", async () => {
+    const { viewport } = await render(<ScrollArea orientation="horizontal">{wide}</ScrollArea>);
     expect(viewport.scrollWidth).toBe(900);
-    await expect.poll(() => area.querySelector('[data-orientation="horizontal"]')).not.toBeNull();
-    expect(area.querySelector('[data-orientation="vertical"]')).toBeNull();
-    const { area: both } = await render(
-      <ScrollArea orientation="both" className="h-40">
-        <div style={{ width: 900 }}>{tall}</div>
-      </ScrollArea>,
-    );
-    await expect.poll(() => both.querySelectorAll(":scope > [data-orientation]").length).toBe(2);
+    await expect.poll(() => viewport.tabIndex).toBe(0);
   });
 
   it("fades out at the side that hides more, drawing its focus ring over the fade, and keeps keyboard scrolling", async () => {
@@ -169,22 +164,6 @@ describe("ScrollArea", () => {
     expect(getComputedStyle(fits).maskImage).toBe("none");
   });
 
-  it("draws its scrollbar thumb in CanvasText under forced colors", async () => {
-    try {
-      const { area } = await render(<ScrollArea orientation="horizontal">{wide}</ScrollArea>);
-      await expect.poll(() => area.querySelector('[data-orientation="horizontal"] > *')).not.toBeNull();
-      const thumb = area.querySelector<HTMLElement>('[data-orientation="horizontal"] > *')!;
-      await commands.emulateMedia({ forcedColors: "active" });
-      const probe = document.body.appendChild(document.createElement("span"));
-      probe.style.backgroundColor = "CanvasText";
-      const canvasText = getComputedStyle(probe).backgroundColor;
-      probe.remove();
-      expect(getComputedStyle(thumb).backgroundColor).toBe(canvasText);
-    } finally {
-      await commands.emulateMedia({ forcedColors: "none" });
-    }
-  });
-
   it("is a keyboard-scrollable region named by label", async () => {
     const { area, viewport } = await render(
       <ScrollArea className="h-40" label="Method">
@@ -195,17 +174,8 @@ describe("ScrollArea", () => {
     await expect.element(region).toBeVisible();
     expect(region.element()).toBe(viewport);
     await expect.poll(() => viewport.tabIndex).toBe(0);
-    const scrollbar = area.querySelector<HTMLElement>('[data-orientation="vertical"]')!;
-    const away = document.createElement("div");
-    away.style.cssText = "position:fixed;right:0;bottom:0;width:20px;height:20px";
-    document.body.append(away);
-    mounted.push(away);
-    await userEvent.hover(away);
-    await expect.poll(() => getComputedStyle(scrollbar).opacity).toBe("0");
     viewport.focus();
     expect(getComputedStyle(area).outlineStyle).toBe("solid");
-    // Keyboard focus on the viewport shows the scrollbar, with no pointer over it.
-    await expect.poll(() => getComputedStyle(scrollbar).opacity).toBe("1");
     await userEvent.keyboard("{PageDown}");
     await expect.poll(() => viewport.scrollTop).toBeGreaterThan(0);
   });
@@ -217,6 +187,17 @@ describe("ScrollArea", () => {
       </ScrollArea>,
     );
     await expect.poll(() => viewport.tabIndex).toBe(-1);
+  });
+
+  it("follows the content: a tab stop once it overflows, none again once it fits", async () => {
+    const { host, viewport } = await render(<ScrollArea className="h-40" label="Method"><p>Short</p></ScrollArea>);
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+    const content = viewport.firstElementChild as HTMLElement;
+    content.style.height = "600px";
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    content.style.height = "10px";
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+    expect(host.contains(viewport)).toBe(true);
   });
 
   it("lets the page scroll on once the area reaches its end, unless contain is set", async () => {
@@ -252,7 +233,7 @@ describe("ScrollArea", () => {
 
 describe("ScrollArea development messages", () => {
   it.each([
-    ["type", { type: "always" }, "type is not a prop; the scrollbar shows while you hover or scroll", "<ScrollArea>"],
+    ["type", { type: "always" }, "type is not a prop; the scrollbar is the browser's own", "<ScrollArea>"],
     ["maxHeight", { maxHeight: 320 }, "maxHeight is not a prop", '<ScrollArea className="max-h-80">'],
     ["height", { height: "200px" }, "height is not a prop", '<ScrollArea className="h-72">'],
     ["orientation", { orientation: "x" }, 'orientation="x" is not an orientation; use "vertical", "horizontal", "both"', '<ScrollArea orientation="horizontal">'],
@@ -283,8 +264,8 @@ describe("ScrollArea development messages", () => {
   });
 
   it("scrolls vertically for an unknown orientation", async () => {
-    const { area } = await render(<ScrollArea {...({ children: tall, className: "h-40", orientation: "x" } as unknown as Parameters<typeof ScrollArea>[0])} />);
-    await expect.poll(() => area.querySelector('[data-orientation="vertical"]')).not.toBeNull();
+    const { viewport } = await render(<ScrollArea {...({ children: tall, className: "h-40", orientation: "x" } as unknown as Parameters<typeof ScrollArea>[0])} />);
+    expect(getComputedStyle(viewport).overflowY).toBe("auto");
   });
 
   it("checks the className", async () => {
