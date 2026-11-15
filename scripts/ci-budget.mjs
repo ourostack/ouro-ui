@@ -310,8 +310,8 @@ export function backoffSeconds(tries, retryAfter, { baseSeconds, maxSeconds } = 
  * status, a 4xx, throws at once.
  */
 export async function get(url, token, { raw = false, fetch = globalThis.fetch, sleep = (seconds) => delay(seconds * 1000) } = {}) {
-  let response;
   for (let tries = 1; ; tries += 1) {
+    let response;
     try {
       // An artifact's download answers with a redirect to storage, which takes no GitHub token.
       response = await fetch(url, {
@@ -319,18 +319,18 @@ export async function get(url, token, { raw = false, fetch = globalThis.fetch, s
         redirect: raw ? "manual" : "follow",
       });
       if (raw && response.status >= 300 && response.status < 400) response = await fetch(response.headers.get("location"));
+      // The body is read here too: GitHub can close the connection while it sends it ("terminated", #1356).
+      if (response.ok) return raw ? Buffer.from(await response.arrayBuffer()) : await response.json();
     } catch (error) {
       if (tries === retry.tries) throw new ApiUnavailable(`${url} did not answer: ${error.message}`);
       await sleep(backoffSeconds(tries, null));
       continue;
     }
-    if (response.ok) break;
     const transient = response.status >= 500 || response.status === 429;
     if (!transient) throw new Error(`${url} answered ${response.status}: ${await response.text()}`);
     if (tries === retry.tries) throw new ApiUnavailable(`${url} answered ${response.status} on ${tries} tries: ${await response.text()}`);
     await sleep(backoffSeconds(tries, response.headers.get("retry-after")));
   }
-  return raw ? Buffer.from(await response.arrayBuffer()) : response.json();
 }
 
 const getJson = (url, token) => get(url, token);
