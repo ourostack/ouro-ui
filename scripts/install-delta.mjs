@@ -59,9 +59,11 @@ export function plan(items, manifest, root = "ouro-tests") {
     const before = manifest.items[name];
     const now = items[name];
     // The shape of the install (its files and what it depends on) must be what the app was built from:
-    // a new, removed or moved file, or a new dependency, is the base's job (its runtime checks), not a delta's.
-    if (!before || !same(before.paths, now.paths) || !same(before.dependencies, now.dependencies)) return full(`${name} changed its files or dependencies`);
-    if (before.hash !== now.hash) changed.push(name);
+    // a removed or moved file, or a changed dependency, is the base's job (its runtime checks), not a delta's.
+    // A file only added to an item (a new test beside the old ones) leaves nothing stale behind: adding the item again writes it.
+    const kept = before && before.paths.every((path) => now.paths.includes(path));
+    if (!before || !kept || !same(before.dependencies, now.dependencies)) return full(`${name} changed its files or dependencies`);
+    if (before.hash !== now.hash || before.paths.length !== now.paths.length) changed.push(name);
   }
   // An item the shipped tests do not install is not in the app, so its change leaves the app as a full add makes it.
   if (changed.includes(root)) return full(`${root} changed outside the delta`);

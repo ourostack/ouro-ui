@@ -20,6 +20,9 @@ test("the install delta adds only the changed items the shipped tests install", 
   now["button-tests"] = item("bt2", ["button.test.tsx"], ["button"]);
   assert.deepEqual(plan(now, before), { mode: "incremental", items: ["button-tests"] });
   assert.deepEqual(plan(base(), before), { mode: "incremental", items: [] });
+  const grown = base();
+  grown["button-tests"] = item("bt3", ["button.test.tsx", "button.weight.test.tsx"], ["button"]);
+  assert.deepEqual(plan(grown, before), { mode: "incremental", items: ["button-tests"] });
   const outside = base();
   outside.extra = item("e2", ["extra.tsx"]);
   assert.deepEqual(plan(outside, before), { mode: "incremental", items: [] });
@@ -37,6 +40,9 @@ test("the install delta adds everything when the app cannot be proved to match a
   const moved = base();
   moved.button = item("b1", ["ui/button.tsx"]);
   assertFull(plan(moved, before));
+  const dropped = base();
+  dropped["button-tests"] = item("bt4", [], ["button"]);
+  assertFull(plan(dropped, before));
   const redepended = base();
   redepended["button-tests"] = item("bt1", ["button.test.tsx"], []);
   assertFull(plan(redepended, before));
