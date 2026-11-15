@@ -53,7 +53,7 @@ Type: `CarouselProps`.
 | `nextLabel` | `string` | `"Next slide"` | The Next button's accessible name. |
 | `onIndexChange` | `((index: number) => void)` |  | Called with the index of the first visible slide when the user moves to another slide, once per change. |
 | `onTargetChange` | `((index: number \| null) => void)` |  | Called at once with the slide a Previous or Next press is moving to, before the scroll gets there, and with null when the scroll settles: show that position straight away, so a counter never names the slide being left. `onIndexChange` still reports, and the carousel announces, only where the scroll settles. |
-| `pagerHref` | `((index: number) => string)` |  | Shows a pager beside the buttons: a dot for each position, a link to the address this returns (`(index) => `#slide-${index + 1}``), named by `slideLabel`, with `aria-current="true"` and a longer dot on the position in view. Following one changes the address, so drive the carousel with `index` from the address and it moves there. |
+| `pagerHref` | `((index: number) => string)` |  | Shows a pager beside the buttons: a dot for each position, a link to the address this returns (`(index) => "#slide-" + (index + 1)`), named by `slideLabel`, with `aria-current="true"` and a longer dot on the position in view. Following one changes the address, so drive the carousel with `index` from the address and it moves there. |
 | `pagerLabel` | `string` | `"Slides"` | With `pagerHref`, the pager's accessible name. |
 | `previousLabel` | `string` | `"Previous slide"` | The Previous button's accessible name. |
 | `roleDescription` | `string` | `"carousel"` | What a screen reader calls the carousel, after its label: "Recipe photos, carousel". |

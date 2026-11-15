@@ -58,7 +58,7 @@ export interface CarouselProps {
   onIndexChange?: ((index: number) => void) | undefined;
   /**
    * Shows a pager beside the buttons: a dot for each position, a link to the address this returns
-   * (`(index) => `#slide-${index + 1}``), named by `slideLabel`, with `aria-current="true"` and a
+   * (`(index) => "#slide-" + (index + 1)`), named by `slideLabel`, with `aria-current="true"` and a
    * longer dot on the position in view. Following one changes the address, so drive the carousel
    * with `index` from the address and it moves there.
    *
