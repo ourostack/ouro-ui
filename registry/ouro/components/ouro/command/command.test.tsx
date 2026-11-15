@@ -856,7 +856,7 @@ function ServerPalette({ server, onSelect = () => {} }: { server: ReturnType<typ
 }
 
 /** A palette the app opens from a key, as a shortcut does, recording where focus is before the next frame. */
-function KeyOpened({ keepMounted, onQueryChange, seen }: { keepMounted?: boolean; onQueryChange?: CommandProps["onQueryChange"]; seen: { focus: Element | null } }) {
+function KeyOpened({ keepMounted, onQueryChange, seen, items = entries() }: { keepMounted?: boolean; onQueryChange?: CommandProps["onQueryChange"]; seen: { focus: Element | null }; items?: CommandEntry[] }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -873,7 +873,7 @@ function KeyOpened({ keepMounted, onQueryChange, seen }: { keepMounted?: boolean
       >
         Page
       </button>
-      <Command title="Command palette" items={entries()} open={open} onOpenChange={setOpen} keepMounted={keepMounted} {...(onQueryChange ? { onQueryChange } : {})} />
+      <Command title="Command palette" items={items} open={open} onOpenChange={setOpen} keepMounted={keepMounted} {...(onQueryChange ? { onQueryChange } : {})} />
     </>
   );
 }
@@ -886,6 +886,43 @@ describe("Command opened by a key", () => {
     await userEvent.keyboard("k");
     await expect.poll(() => seen.focus).not.toBeNull();
     expect(seen.focus).toBe(input().element());
+  });
+
+  it.each(["touch", "pen"])("leaves focus on the palette itself after a %s tap opens it, so no software keyboard pops up", async (pointerType) => {
+    await render(<Command title="Command palette" trigger={<Button>Search</Button>} items={entries()} keepMounted />);
+    trigger().dispatchEvent(new PointerEvent("pointerdown", { pointerType, bubbles: true }));
+    trigger().click();
+    const element = await settled();
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(document.activeElement).toBe(element);
+  });
+
+  it("puts no focus in a search the palette closed in the same task as it opened", async () => {
+    function OpenAndShut() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button
+            type="button"
+            data-test-harness=""
+            onKeyDown={(event) => {
+              if (event.key !== "k") return;
+              flushSync(() => setOpen(true));
+              flushSync(() => setOpen(false));
+            }}
+          >
+            Page
+          </button>
+          <Command title="Command palette" items={entries()} open={open} onOpenChange={setOpen} keepMounted />
+        </>
+      );
+    }
+    await render(<OpenAndShut />);
+    const page = document.querySelector<HTMLElement>("[data-test-harness]")!;
+    page.focus();
+    await userEvent.keyboard("k");
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(document.activeElement).toBe(page);
   });
 });
 
@@ -909,18 +946,43 @@ describe("Command kept mounted", () => {
     expect(document.querySelector('[data-ouro-command-value="New recipe"]')).toBe(row);
   });
 
-  it("empties the search once it has closed, asking the app for the empty search's results", async () => {
+  it.each([true, false])("empties the search once it has closed, asking the app for the empty search's results, only when kept mounted (%s)", async (keepMounted) => {
     const queries: string[] = [];
     const seen = { focus: null as Element | null };
-    await render(<KeyOpened keepMounted seen={seen} onQueryChange={(query) => void queries.push(query)} />);
+    await render(<KeyOpened keepMounted={keepMounted} seen={seen} onQueryChange={(query) => void queries.push(query)} />);
     document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
     await userEvent.keyboard("k");
     await expect.element(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
     await userEvent.keyboard("ab");
     await expect.poll(() => (input().element() as HTMLInputElement).value).toBe("ab");
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => (document.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!).value).toBe("");
-    expect(queries.at(-1)).toBe("");
+    await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    // Opening asks once for the empty search, each key asks again, and only a kept palette asks once more as it closes.
+    expect(queries).toEqual(keepMounted ? ["", "a", "ab", ""] : ["", "a", "ab"]);
+    if (keepMounted) expect(document.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!.value).toBe("");
+  });
+
+  it("holds the width it draws at each opening, so a reopening with wider commands is wider", async () => {
+    const seen = { focus: null as Element | null };
+    const narrow: CommandEntry[] = [{ label: "Go", onSelect: () => {} }];
+    const wide: CommandEntry[] = [{ label: "Go to the weekly sync with the design and engineering leads, every Monday", onSelect: () => {} }];
+    const host = await render(<KeyOpened keepMounted seen={seen} items={narrow} />);
+    const open = async () => {
+      document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+      await userEvent.keyboard("k");
+      await expect.element(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+      const element = popup()!;
+      await expect.poll(() => element.style.width).toMatch(/^min\(100%, \d+(\.\d+)?px\)$/);
+      return element.getBoundingClientRect().width;
+    };
+    const first = await open();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+    await act(async () => roots.at(-1)!.render(<KeyOpened keepMounted seen={seen} items={wide} />));
+    void host;
+    const second = await open();
+    expect(second).toBeGreaterThan(first);
   });
 });
 

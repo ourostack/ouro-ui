@@ -590,14 +590,15 @@ export function Command(props: CommandProps): JSX.Element {
   if (!loading && announcement === "on") setAnnouncement("done");
   if (!isOpenNow && announcement !== "idle") setAnnouncement("idle");
 
-  // Kept mounted: the width is taken again at each opening (the hidden dialog has none), and the search is emptied once
-  // the dialog has closed, off the opening's path.
+  // Kept mounted, the hidden palette has no width to hold: each opening lets go of the last one and holds the width it
+  // draws at. The search is emptied once the palette has closed (emptyOnceClosed), off the opening's path.
   useLayoutEffect(() => {
     const popup = popupRef.current;
+    // Stryker disable next-line LogicalOperator: a palette mounted as it opens already holds this width, and a closed one has none to hold, so these two run the same
     if (!keepMounted || !isOpenNow || !popup) return;
     popup.style.width = "";
-    if (!popup.hidden) return void holdWidth(popup);
     const frame = requestAnimationFrame(() => holdWidth(popup));
+    // Stryker disable next-line ArrowFunction: a frame left to run after a close holds the width of a palette that is hidden, which the next opening lets go of
     return () => cancelAnimationFrame(frame);
   }, [keepMounted, isOpenNow]);
   // Every key typed straight after the palette opens goes in its search: the search takes focus as the dialog shows, in
@@ -608,18 +609,15 @@ export function Command(props: CommandProps): JSX.Element {
     if (!isOpenNow || sheet || lastInput() === "touch" || lastInput() === "pen") return;
     let gone = false;
     const take = () => {
-      const input = popupRef.current?.querySelector<HTMLInputElement>('[data-ouro-part="input"]');
-      if (gone || !input || document.activeElement === input || !input.getClientRects().length) return;
-      input.focus({ preventScroll: true });
+      if (!gone) popupRef.current?.querySelector<HTMLInputElement>('[data-ouro-part="input"]')?.focus();
     };
-    take();
-    // A dialog that shows only once Base UI's own state settles, in the commit just after this one, is shown by then:
-    // still before any later key.
+    // Base UI shows the dialog in the commit just after this one, which a microtask comes after: still in the task of
+    // the key that opened it, before any later key.
     queueMicrotask(take);
     return () => void (gone = true);
   }, [isOpenNow, sheet]);
   const emptyOnceClosed = (next: boolean) => {
-    if (next || !keepMounted || isOpenNow) return;
+    if (next || !keepMounted) return;
     setQuery("");
     if (onQueryChange) search("");
   };
@@ -793,6 +791,7 @@ export function Command(props: CommandProps): JSX.Element {
                 // tap, so no software keyboard pops up.
                 initialFocus={() => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true)}
                 // Kept mounted and closed, it is no dialog: nothing that looks for an open one finds it.
+                // Stryker disable next-line StringLiteral: an empty role takes the dialog role away as well
                 {...(keepMounted && !isOpenNow ? { role: "presentation" } : {})}
                 {...finalFocus}
               >
