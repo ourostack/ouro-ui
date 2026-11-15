@@ -294,8 +294,12 @@ for (const { story, label, least } of [
     await expect.poll(() => distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     await page.evaluate(() => {
       const s = document.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
-      const w = window as unknown as { __frames: { dt: number; wheel: number; scrollTop: number; maxTop: number; moved: number | null; above: boolean; carried: string }[]; __wheel: number; __stop: boolean };
+      const w = window as unknown as { __frames: { dt: number; wheel: number; scrollTop: number; maxTop: number; moved: number | null; above: boolean; carried: string; writes: number }[]; __wheel: number; __stop: boolean };
       Object.assign(w, { __frames: [], __wheel: 0, __stop: false });
+      // The list's own writes to the scroll position, counted per frame: a write while the wheel turns can stop the browser's scroll.
+      let writes = 0;
+      const scrollTop = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+      Object.defineProperty(s, "scrollTop", { configurable: true, get: () => scrollTop.get!.call(s), set: (value: number) => (writes++, scrollTop.set!.call(s, value)) });
       addEventListener("wheel", (e) => (w.__wheel += e.deltaY), { capture: true, passive: true });
       const top = (el: Element) => {
         const m = /translateY\((-?[\d.]+)px\)/.exec((el as HTMLElement).style.transform);
@@ -314,7 +318,8 @@ for (const { story, label, least } of [
         const moved = anchor?.isConnected ? anchorTop - top(anchor) : null;
         const first = s.querySelector('[data-ouro="message"]');
         const above = first !== null && first.getBoundingClientRect().bottom < s.getBoundingClientRect().top;
-        w.__frames.push({ dt: now - last, wheel: w.__wheel, scrollTop: s.scrollTop, maxTop: s.scrollHeight - s.clientHeight, moved, above, carried: content.style.translate });
+        w.__frames.push({ dt: now - last, wheel: w.__wheel, scrollTop: s.scrollTop, maxTop: s.scrollHeight - s.clientHeight, moved, above, carried: content.style.translate, writes });
+        writes = 0;
         last = now;
         w.__wheel = 0;
         anchor = pick();
@@ -336,7 +341,7 @@ for (const { story, label, least } of [
     await Promise.all(sent);
     await settle(scroller);
     const frames = await page.evaluate(() => {
-      const w = window as unknown as { __frames: { dt: number; wheel: number; scrollTop: number; maxTop: number; moved: number | null; above: boolean; carried: string }[]; __stop: boolean };
+      const w = window as unknown as { __frames: { dt: number; wheel: number; scrollTop: number; maxTop: number; moved: number | null; above: boolean; carried: string; writes: number }[]; __stop: boolean };
       w.__stop = true;
       return w.__frames;
     });
@@ -346,10 +351,11 @@ for (const { story, label, least } of [
     const wall = frames.filter((f) => f.wheel < 0 && f.scrollTop <= 1 && still(f) && f.above);
     // Pages went in above while the reader scrolled, and the scroll was neither stalled nor stopped short on the way.
     const count = Number(await page.locator("[data-count]").getAttribute("data-count"));
-    // The frames around the first dead ones, each [ms, wheel, scrollTop, centre moved, content's translate], to read a failure by.
+    // The frames around the first dead ones, each [ms, wheel, scrollTop, how far it could scroll, centre moved, content's translate,
+    // the list's own writes to the scroll position], to read a failure by.
     const around = dead.slice(0, 3).map((f) => {
       const at = frames.indexOf(f);
-      return frames.slice(Math.max(0, at - 3), at + 3).map((g) => [Math.round(g.dt), Math.round(g.wheel), Math.round(g.scrollTop), g.moved === null ? null : Math.round(g.moved * 10) / 10, g.carried]);
+      return frames.slice(Math.max(0, at - 3), at + 3).map((g) => [Math.round(g.dt), Math.round(g.wheel), Math.round(g.scrollTop), Math.round(g.maxTop), g.moved === null ? null : Math.round(g.moved * 10) / 10, g.carried, g.writes]);
     });
     const counts = `${dead.length} dead frames, ${wall.length} wall frames, ${count} messages, ${frames.length} frames; around the first dead: ${JSON.stringify(around)}`;
     expect(count, counts).toBeGreaterThanOrEqual(least);
