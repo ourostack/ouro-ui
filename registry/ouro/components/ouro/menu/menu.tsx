@@ -780,8 +780,8 @@ export function Menu(props: MenuProps): JSX.Element {
  */
 function backToTrigger(): boolean {
   if (document.querySelector('[data-ouro="menu"][data-open]') !== null) return false;
-  // The body when nothing has focus: a menu's page always has one.
-  const active = document.activeElement ?? document.body;
+  // The body when nothing has focus: null only in a document with no body, which a menu's page always has.
+  const active = document.activeElement!;
   // Stryker disable next-line ConditionalExpression: React takes the popup out of the page before Base UI asks, so focus that was in it is on the body by then; this keeps a popup still in the page returning focus too.
   return active === document.body || active.closest('[data-ouro="menu"]') !== null;
 }
