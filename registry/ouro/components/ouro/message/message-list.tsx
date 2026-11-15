@@ -1060,9 +1060,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [edge, setEdge] = useState(() => ({ first: top, drawn: top }));
   // Whether the list drew every child until it grew long and found its window: until then it keeps those children where they are.
   const [drewWhole, setDrewWhole] = useState(!windowed);
-  useLayoutEffect(() => {
-    if (windowed ? drewWhole && band !== null : !drewWhole) setDrewWhole(!windowed);
-  }, [windowed, drewWhole, band]);
   // A windowed list puts a page of older messages in at once, as space above the messages drawn, so it waits for none and
   // spares the render this would cost. Should it become whole again, what it drew first stays the edge.
   if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
@@ -1096,6 +1093,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     setReach(next);
   });
   if (!windowed && band !== null) setBand(null);
+  useLayoutEffect(() => {
+    if (windowed ? drewWhole && band !== null : !drewWhole) setDrewWhole(!windowed);
+  }, [windowed, drewWhole, band]);
   // The newest child's key the announcements last heard of, so the children after it, which just arrived, draw until they are heard.
   const [heard, setHeard] = useState<string | null>(null);
   // The keys of the messages the announcements wait on, kept drawn until a reply that streamed is heard.
