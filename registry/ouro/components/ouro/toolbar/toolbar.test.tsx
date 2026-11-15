@@ -545,6 +545,33 @@ describe("Toolbar overflow", () => {
     expect(measured).toBeGreaterThan(0);
   });
 
+  it("waits for its first measure when a font starts loading before the first frame", async () => {
+    const host = document.createElement("div");
+    host.style.width = "130px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const errors: unknown[] = [];
+    // The browser's notice that a resize observer changed layout is not an error the row threw.
+    const record = (event: ErrorEvent) => void (/^ResizeObserver loop/.test(event.message) || errors.push(event.error ?? event.message));
+    window.addEventListener("error", record);
+    try {
+      // The font's measure starts again before any observer has reported, so the observers made at mount report first.
+      await act(async () => {
+        flushSync(() => root.render(<Toolbar label="Formatting" size="sm" items={formatting} />));
+        document.fonts.dispatchEvent(new Event("loading"));
+        await document.fonts.ready;
+      });
+      await frames();
+    } finally {
+      window.removeEventListener("error", record);
+    }
+    expect(errors).toEqual([]);
+    expect(host.querySelector('[data-ouro-part="more"]')).not.toBeNull();
+    expect(host.querySelectorAll("[data-ouro-toolbar-entry]").length).toBeLessThan(formatting.length);
+  });
+
   it("measures again in the commit a font's loading asks for, so no frame shows More over a row that fits", async () => {
     const items: ToolbarEntry[] = ["Bold", "Italic", "Underline", "Strike"].map((label) => ({ label }));
     const view = await render(<Toolbar label="Formatting" size="sm" items={items} />, 560);

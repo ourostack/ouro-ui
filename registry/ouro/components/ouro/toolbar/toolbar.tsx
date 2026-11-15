@@ -539,7 +539,6 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     const root = rootRef.current!;
     const stale = new ResizeObserver(() => {
       // The measure about to run reads every entry anew.
-      // Stryker disable next-line ConditionalExpression: equivalent in a browser; observers report in the order they were made, so the measure's report has cleared pending before this one's first.
       if (pending.current) return;
       const measured = widths.current!;
       const changed = [...root.querySelectorAll<HTMLElement>(":scope > [data-ouro-toolbar-entry]")].some(
@@ -577,6 +576,8 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     () => {
       const root = rootRef.current!;
       const observer = new ResizeObserver(() => {
+        // Until the first measure has read the entries there is nothing to fit; it fits them itself.
+        if (pending.current) return;
         const fits = countFits(root, widths.current!, moreWidth.current, refocus);
         setLayout((current) => ({ ...current!, shown: fits }));
       });
