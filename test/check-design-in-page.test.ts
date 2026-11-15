@@ -561,6 +561,11 @@ describe("readCorners", () => {
     expect(await readCorners([reading(striped)])).toMatchObject([{ detail: expect.stringMatching(/^the bottom left, bottom right corners/) }]);
   });
 
+  it("passes a single odd pixel on the diagonal that the next sample leaves", async () => {
+    const speck = shot((x, y) => (x === 5 && y === 5 ? RED : LIGHT));
+    expect(await readCorners([reading(speck, ["top left"])])).toEqual([]);
+  });
+
   it("passes a picture whose own glow lies near its corners", async () => {
     // The CI crop of a scene in a 30.6px squircle frame: a blue-violet glow about 30px in, which is the picture, not a bake.
     const shotUrl = new URL("./fixtures/glowing-scene-corner.png", import.meta.url).href;
