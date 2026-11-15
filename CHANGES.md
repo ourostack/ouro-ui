@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: [`rounded-full` takes its round corner from Tailwind's `rounded-full` utility](registry/ouro/theme/ouro-base.css "verify:fileLine(registry/ouro/theme/ouro-base.css, /^@utility rounded-full \{/)"), added by `ouro-base`, and the squircle rule matches inside Ouro components alone, which makes a style recalculation cheaper; a `rounded-full` behind a variant (`sm:rounded-full`, `before:rounded-full`) is round where the variant applies, so Sidebar's rows and Menu's items, whose current-page bar says `before:rounded-full`, now take the squircle of their own radius instead of round corners.
