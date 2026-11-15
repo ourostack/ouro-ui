@@ -434,6 +434,7 @@ const hasMenuEntries = (data: MessageBarData) => (data.menu !== undefined && dat
 function barHost(): HTMLSpanElement {
   const host = document.createElement("span");
   host.className = "contents";
+  // Stryker disable next-line StringLiteral: the list finds the host by the attribute alone ([data-ouro-message-bar-slot]), never by its value.
   host.dataset["ouroMessageBarSlot"] = "";
   return host;
 }
