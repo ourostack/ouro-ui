@@ -1781,10 +1781,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Children already drawn stay drawn until they are twice the overscan from the view: a scroll back and forth, or code that
       // brings one message after another into view (a contrast check measuring each), finds them still in the page.
       const keep = 2 * over;
-      let keepFrom = from;
-      while (keepFrom > 0 && starts[keepFrom - 1]! + extent(keepFrom - 1) > viewTop - keep) keepFrom--;
-      let keepTo = to;
-      while (keepTo < keys.length - 1 && starts[keepTo + 1]! < viewBottom + keep) keepTo++;
+      let keepFrom = 0;
+      // Stryker disable next-line EqualityOperator: a child that ends exactly at twice the overscan stays or goes, and the next scroll settles it.
+      while (starts[keepFrom]! + extent(keepFrom) <= viewTop - keep) keepFrom++;
+      let keepTo = keys.length - 1;
+      // Stryker disable next-line EqualityOperator: a child that starts exactly at twice the overscan stays or goes, and the next scroll settles it.
+      while (starts[keepTo]! >= viewBottom + keep) keepTo--;
       const drawnFrom = band === null ? undefined : indexes.get(band.from);
       const drawnTo = band === null ? undefined : indexes.get(band.to);
       if (drawnFrom !== undefined && drawnTo !== undefined && drawnFrom <= to + 1 && drawnTo >= from - 1) {
