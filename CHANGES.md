@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: a HoverCard mounts its card only on the link's first hover or keyboard focus, and the link stays the app's own element throughout, so a page or chat of cards (an author's card on every face) [mounts fewer components](registry/ouro/components/ouro/hover-card/hover-card.weight.test.tsx "verify:testExists(registry/ouro/components/ouro/hover-card/hover-card.weight.test.tsx::HoverCard's weight > draws $variant, unhovered, in no more than $elements elements and $components components)"); it opens, lingers and closes as before.
