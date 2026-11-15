@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fix: a Toolbar whose row fits [draws its final row from the first frame](registry/ouro/components/ouro/toolbar/toolbar.test.tsx "verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > draws a row that fits as its final row from the first frame, never adding More to take it away)"): since v1.3.173 it drew More while it measured, then took it away.
