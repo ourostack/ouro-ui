@@ -428,6 +428,8 @@ const hasMenuEntries = (data: MessageBarData) => (data.menu !== undefined && dat
 /**
  * The element the list's one bar renders into, moved from message to message: it draws no box of its own, and its
  * marker tells the list that a change in it, or its move, is the bar's alone.
+ *
+ * @claim "it draws no box of its own" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > opens the menu within the event once its code has loaded, and draws the bar's host as no box of its own)
  */
 function barHost(): HTMLSpanElement {
   const host = document.createElement("span");
