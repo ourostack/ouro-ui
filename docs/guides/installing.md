@@ -39,7 +39,7 @@ To change a token afterwards, edit it where the CLI wrote it, or set it in a `:r
 
 When your pages are served with a policy that refuses inline styles (`style-src 'self'`, with no `'unsafe-inline'` or nonce), wrap the app in `<OuroProvider strictCsp>` in place of Base UI's `CSPProvider`. Under it no Ouro UI part adds a `<style>` element, and the page breaks no rule of that policy, in Chromium and WebKit.[^strict-csp] Styles set from script still apply. The Ouro source rule counts a bare `CSPProvider` and names this fix.[^csp-rule]
 
-The squircle polyfill (`registerSquirclePolyfill`) adds `<style>` elements of its own, so leave it out under such a policy.[^polyfill-style]
+The squircle polyfill (`registerSquirclePolyfill`) works under such a policy too: its stylesheets are constructed and adopted by the document, not `<style>` elements, in Chromium, WebKit and Firefox.[^polyfill-style]
 
 ## Adding components
 
@@ -109,4 +109,4 @@ build: {
 [^use-client-notices]: https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22; https://github.com/vitejs/vite/issues/15012 verify:urlOk(https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22) verify:urlOk(https://github.com/vitejs/vite/issues/15012) verify:fileLine(package.json, /"@vitejs.plugin-react": "\^6\.1\.1"/)
 [^strict-csp]: test:test/strict-csp.test.tsx::under style-src 'self' > OuroProvider strictCsp adds no <style> element, and the page breaks no rule of its policy, in every part that would add one verify:testExists(test/strict-csp.test.tsx::under style-src 'self' > OuroProvider strictCsp adds no <style> element, and the page breaks no rule of its policy, in every part that would add one)
 [^csp-rule]: test:scripts/kits/source-rules.test.mjs::third-party-control > points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count verify:testExists(scripts/kits/source-rules.test.mjs::third-party-control > points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count)
-[^polyfill-style]: registry/ouro/lib/ouro/squircle/pending.ts verify:fileLine(registry/ouro/lib/ouro/squircle/pending.ts, /createElement\("style"\)/)
+[^polyfill-style]: test:registry/ouro/lib/ouro/squircle/csp.test.ts::under style-src 'self' > draws the squircle with no <style> element and nothing refused, and takes its stylesheets away when destroyed verify:testExists(registry/ouro/lib/ouro/squircle/csp.test.ts::under style-src 'self' > draws the squircle with no <style> element and nothing refused, and takes its stylesheets away when destroyed)

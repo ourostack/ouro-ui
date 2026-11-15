@@ -52,40 +52,43 @@ export const buildPendingCss = (
 };
 
 export interface ManagedSheet {
-  /** Moves the sheet to the end of `<head>` so it wins over later-added styles. */
+  /** Moves the sheet after every other adopted sheet so it wins over later-added styles. */
   bump: () => void;
   remove: () => void;
   setDisabled: (disabled: boolean) => void;
   update: (css: string) => void;
 }
 
-/** Creates an injectable `<style data-hyperellipse="…">` managed by the engine. */
-export const createManagedSheet = (
-  doc: Document,
-  marker: string
-): ManagedSheet => {
-  const style = doc.createElement("style");
-  style.setAttribute("data-hyperellipse", marker);
-  doc.head.appendChild(style);
+/**
+ * Creates a constructed stylesheet managed by the engine, adopted by the
+ * document. A Content Security Policy that refuses inline `<style>`
+ * (`style-src 'self'`) allows it, and adopted sheets come after every sheet in
+ * the document in the cascade. Every engine Tailwind CSS v4 supports has
+ * constructable stylesheets (Safari 16.4).
+ */
+export const createManagedSheet = (doc: Document): ManagedSheet => {
+  const sheet = new (doc.defaultView ?? window).CSSStyleSheet();
+  const others = () => doc.adoptedStyleSheets.filter((adopted) => adopted !== sheet);
+  doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
+  let text = "";
 
   return {
     update: (css: string) => {
-      if (style.textContent !== css) {
-        style.textContent = css;
+      if (text !== css) {
+        text = css;
+        sheet.replaceSync(css);
       }
     },
     bump: () => {
-      if (doc.head.lastElementChild !== style) {
-        doc.head.appendChild(style);
+      if (doc.adoptedStyleSheets.at(-1) !== sheet) {
+        doc.adoptedStyleSheets = [...others(), sheet];
       }
     },
     setDisabled: (disabled: boolean) => {
-      if (style.sheet) {
-        style.sheet.disabled = disabled;
-      }
+      sheet.disabled = disabled;
     },
     remove: () => {
-      style.remove();
+      doc.adoptedStyleSheets = others();
     },
   };
 };
