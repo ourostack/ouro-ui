@@ -419,18 +419,28 @@ async function targetsOf(targets: string[], glob: string | undefined): Promise<{
 
 // Opens about:blank. A navigation the page started itself (a press that left it, its address still the old one until the
 // answer comes) can win over this one, which Playwright reports as interrupted: the page's navigation is let finish, and
-// the blank page opened again, a few times at most.
-async function blank(page: Pick<Page, "goto" | "waitForLoadState">): Promise<void> {
+// the blank page opened again, a few times at most. A navigation to about:blank that wins leaves the page where this
+// wants it, so once it has loaded there that is done (main run 43711248976).
+async function blank(page: Pick<Page, "goto" | "waitForLoadState" | "url">): Promise<void> {
+  // Lets the navigation that won finish, and says whether it left the page on about:blank; any other failure is thrown.
+  const onBlank = async (problem: unknown): Promise<boolean> => {
+    if (!/is interrupted by another navigation/.test((problem as Error).message)) throw problem;
+    await page.waitForLoadState("load");
+    return page.url() === "about:blank";
+  };
   for (let attempt = 1; attempt < 3; attempt++) {
     try {
       await page.goto("about:blank");
       return;
     } catch (problem) {
-      if (!/is interrupted by another navigation/.test((problem as Error).message)) throw problem;
-      await page.waitForLoadState("load");
+      if (await onBlank(problem)) return;
     }
   }
-  await page.goto("about:blank");
+  try {
+    await page.goto("about:blank");
+  } catch (problem) {
+    if (!(await onBlank(problem))) throw problem;
+  }
 }
 
 // Opens a page and waits for it to draw. Returns why it did not load (a status other than 2xx, or no answer at all),
