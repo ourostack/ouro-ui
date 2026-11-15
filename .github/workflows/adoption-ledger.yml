@@ -43,9 +43,11 @@ jobs:
             gh api "repos/$REPO/git/refs" -f ref=refs/heads/adoption-data -f sha="$sha" >/dev/null
           fi
           current=$(gh api "repos/$REPO/contents/ledger.json?ref=adoption-data" --jq .sha 2>/dev/null || true)
-          args=(-X PUT "repos/$REPO/contents/ledger.json" -f message="Ledger $(date -u +%Y-%m-%dT%H:%MZ)" -f branch=adoption-data -f content="$(base64 < "$RUNNER_TEMP/ledger.json" | tr -d '\n')")
-          [ -z "$current" ] || args+=(-f sha="$current")
-          gh api "${args[@]}" >/dev/null
+          # The ledger is too big for a command-line argument (ARG_MAX), so the request body goes in a file.
+          base64 -w0 < "$RUNNER_TEMP/ledger.json" > "$RUNNER_TEMP/ledger.b64"
+          jq -n --rawfile content "$RUNNER_TEMP/ledger.b64" --arg message "Ledger $(date -u +%Y-%m-%dT%H:%MZ)" --arg sha "$current" \
+            '{message: $message, branch: "adoption-data", content: $content} + (if $sha == "" then {} else {sha: $sha} end)' > "$RUNNER_TEMP/publish.json"
+          gh api -X PUT "repos/$REPO/contents/ledger.json" --input "$RUNNER_TEMP/publish.json" >/dev/null
           echo "Published $(node -e 'const l=require(process.argv[1]);console.log(`${l.summary.confirmed} of ${l.summary.total} confirmed`)' "$RUNNER_TEMP/ledger.json")."
       - name: Report products more than a day behind
         # One issue, "Products are more than a day behind Ouro UI", opened or commented on at most daily, while any counted
