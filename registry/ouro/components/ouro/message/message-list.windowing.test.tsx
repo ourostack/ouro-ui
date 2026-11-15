@@ -385,7 +385,10 @@ describe("MessageList windowing", () => {
     }
   });
 
-  it("holds growth above the reader while the scroll a wheel started goes on after its last event, as WebKit animates it, and pays it once that scroll ends", async () => {
+  it.each([
+    { begins: 0, when: "after its last event, as WebKit animates it" },
+    { begins: 200, when: "after a scroll that began past the wheel's rest, as a loaded machine begins it" },
+  ])("holds growth above the reader while the scroll a wheel started goes on $when, and pays it once that scroll ends", async ({ begins }) => {
     const { scroller, root } = await render(<Chat items={conversation(500)} />);
     await scrollTo(scroller, 3000);
     await settle(scroller);
@@ -410,6 +413,7 @@ describe("MessageList windowing", () => {
     let atEnd = { writes: -1, translate: "" };
     await act(async () => {
       scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+      now += begins;
       // A scroll the browser animates over frames, as WebKit does a wheel's.
       scroller.scrollBy({ top: -300, behavior: "smooth" });
       atEnd = await ended;

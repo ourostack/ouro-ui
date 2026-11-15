@@ -485,6 +485,8 @@ const ARMED = 250;
 const WHEEL_REST = 80;
 /** A gap between a wheel's events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
 const WHEEL_GAP = 4 * WHEEL_REST;
+/** How long, in ms, after a wheel turn the browser's first scroll is still the wheel's: a loaded machine begins an animated wheel scroll a frame or more after the turn, past the rest. */
+const WHEEL_START = 1000;
 /** A message this close to its place, in px, and this slow, in px/ms, is at rest, once the reader's scroll has ended. */
 const REST = 0.25;
 const REST_SPEED = 0.01;
@@ -1535,6 +1537,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The scroll a wheel started goes on until the browser says it ended (`scrollend`): WebKit animates a wheel's scroll after
     // its last event, over frames a loaded machine draws slowly, and a scroll position written meanwhile stops it.
     let wheelScrolling = false;
+    // Whether the wheel turned since the last scroll event, whose scroll may not have begun yet.
+    let wheelStarts = false;
     const turning = () => wheelScrolling || performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
     let resting: ReturnType<typeof setTimeout> | undefined;
     let restFrame = 0;
@@ -1577,6 +1581,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       wheelGap = gap < WHEEL_GAP ? gap : 0;
       wheelAt = now;
       wheelFrame = document.timeline.currentTime;
+      wheelStarts = true;
       // A wheel pushing at an end scrolls nothing, so no scroll event says the reader got there.
       // Stryker disable next-line ConditionalExpression,LogicalOperator: with nothing carried, paying pays nothing; the check only spares reading the layout on every turn of the wheel.
       if (carriedRef.current !== 0 && nearEnd()) pay();
@@ -1657,8 +1662,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
-      // Only the browser's own scroll, where it says when it ends.
-      if (event.isTrusted && "onscrollend" in scroller && turning()) wheelScrolling = true;
+      // Only the browser's own scroll, where it says when it ends. Its first frame may come long after the wheel turned, on a
+      // machine drawing slowly, so the first scroll that soon after a turn is the wheel's.
+      if (event.isTrusted && "onscrollend" in scroller && (turning() || (wheelStarts && performance.now() - wheelAt < WHEEL_START))) wheelScrolling = true;
+      wheelStarts = false;
       // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
       pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.
