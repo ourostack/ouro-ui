@@ -163,6 +163,87 @@
     .ouro-row:hover:not(:active) {
       background-color: color-mix(in oklab, var(--foreground) 3%, transparent);
     }
+    .ouro-disclosure-summary:hover {
+      text-decoration-line: underline;
+    }
+  }
+  /* A disclosure with no script, drawn as Collapsible draws its title: <details class="ouro-disclosure"> with <summary class="ouro-disclosure-summary"> and the content in .ouro-disclosure-panel. The chevron is drawn with borders (no image), turns over while open, and snaps under reduced motion. */
+  .ouro-disclosure {
+    box-sizing: border-box;
+    min-width: 0;
+    color: var(--foreground);
+  }
+  .ouro-disclosure-summary {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding-block: 0.5rem;
+    border-radius: var(--radius-md);
+    --corner-shape: var(--ouro-corner-shape);
+    corner-shape: var(--ouro-corner-shape);
+    list-style: none;
+    cursor: pointer;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--foreground);
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    text-underline-offset: 4px;
+    outline-color: var(--ring);
+    outline-offset: 2px;
+    transition: opacity var(--ouro-duration-fast) ease;
+  }
+  .ouro-disclosure-summary::-webkit-details-marker {
+    display: none;
+  }
+  .ouro-disclosure-summary::after {
+    content: "";
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 0.375rem;
+    height: 0.375rem;
+    margin-inline: 0.25rem;
+    border-style: solid;
+    border-color: var(--muted-foreground);
+    border-width: 0 1.5px 1.5px 0;
+    translate: 0 -20%;
+    rotate: 45deg;
+  }
+  .ouro-disclosure[open] > .ouro-disclosure-summary::after {
+    translate: 0 20%;
+    rotate: 225deg;
+  }
+  .ouro-disclosure-summary:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+  }
+  .ouro-disclosure-summary:active {
+    opacity: 0.7;
+  }
+  .ouro-disclosure-panel {
+    box-sizing: border-box;
+    min-width: 0;
+    padding-block: 0.25rem 0.5rem;
+  }
+  @media (min-width: 640px) and (pointer: fine) {
+    .ouro-disclosure-summary {
+      min-height: 2.25rem;
+      font-size: 0.875rem;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ouro-disclosure-summary::after {
+      transition: rotate var(--ouro-duration-base) var(--ouro-ease-out), translate var(--ouro-duration-base) var(--ouro-ease-out);
+    }
+  }
+  @media (forced-colors: active) {
+    .ouro-disclosure-summary {
+      border: 1px solid;
+    }
   }
 }
 
