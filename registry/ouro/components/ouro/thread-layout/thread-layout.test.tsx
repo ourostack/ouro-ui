@@ -159,6 +159,16 @@ describe("ThreadLayout", () => {
     expect(document.activeElement).toBe(document.body);
   });
 
+  it("leaves focus on the page when a thread opens without taking it", async () => {
+    const conversation = <button type="button">Show thread</button>;
+    const { host, rerender } = await render(<ThreadLayout conversation={conversation} thread={null} />, 640);
+    const opener = host.querySelector("button")!;
+    opener.focus();
+    opener.blur();
+    await rerender(<ThreadLayout conversation={conversation} thread={<Thread />} />);
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it("leaves focus where it is when a thread closes and focus is not lost", async () => {
     const outside = document.createElement("button");
     document.body.append(outside);

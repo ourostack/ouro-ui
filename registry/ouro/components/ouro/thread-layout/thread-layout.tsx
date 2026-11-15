@@ -72,12 +72,8 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
   // the control it gives focus to is still hidden and focus falls to the page. Once the conversation shows, the last control
   // focused in it takes focus back, if nothing else has it.
   const lastFocused = useRef<HTMLElement | null>(null);
-  const wasOpen = useRef(open);
   useLayoutEffect(() => {
-    const closed = wasOpen.current && !open;
-    wasOpen.current = open;
-    const lost = document.activeElement === document.body;
-    if (closed && lost && lastFocused.current?.isConnected) lastFocused.current.focus();
+    if (!open && document.activeElement === document.body) lastFocused.current?.focus();
   }, [open]);
   const remember = (event: FocusEvent<HTMLElement>) => void (lastFocused.current = event.target);
 
