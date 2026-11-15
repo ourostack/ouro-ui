@@ -522,8 +522,22 @@ describe("MessageList windowing", () => {
   });
 
   it("keeps the reader's place far up a list that grows long, though code scrolled it there before the browser reported the scroll", async () => {
+    // A short conversation, then a long one, which opens at its newest, not at the rows the short one drew whole; then another,
+    // short one, which draws whole.
+    const { scroller, root, rerender } = await render(<Chat items={conversation(20, 2000)} />);
+    const drawnIds: number[] = [];
+    const watch = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof HTMLElement) for (const message of node.querySelectorAll<HTMLElement>('[data-ouro="message"]')) drawnIds.push(Number(message.id.slice(1)));
+    });
+    watch.observe(scroller, { childList: true, subtree: true });
+    await act(async () => void flushSync(() => root.render(<Chat items={conversation(300, 1000)} />)));
+    watch.disconnect();
+    expect(drawnIds.length).toBeGreaterThan(0);
+    expect(drawnIds.every((id) => id >= 1250)).toBe(true);
+    await settle(scroller);
     const items = Array.from({ length: 20 }, (_, id) => ({ id, text: `Message ${id}`, tall: 200 }));
-    const { scroller, root } = await render(<Chat items={items} />);
+    await rerender(<Chat items={items} />);
+    expect(messages(scroller)).toHaveLength(20);
     let reading = firstVisible(scroller);
     await act(async () => {
       // Far above what a first draw from the end reaches, and a message arrives before the scroll event.

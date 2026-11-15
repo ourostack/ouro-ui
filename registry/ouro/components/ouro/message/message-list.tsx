@@ -1058,7 +1058,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The key of the first child, and of the first one drawn: a page of older ones above it waits.
   // Stryker disable next-line ObjectLiteral: an empty start takes the first child's key in the first render instead; this only spares that render.
   const [edge, setEdge] = useState(() => ({ first: top, drawn: top }));
-  // Whether the list drew every child until it grew long and found its window: until then it keeps those children where they are.
+  // Whether the list drew every child until it grew long: until it finds its window it keeps those children where they are.
   const [drewWhole, setDrewWhole] = useState(!windowed);
   // A windowed list puts a page of older messages in at once, as space above the messages drawn, so it waits for none and
   // spares the render this would cost. Should it become whole again, what it drew first stays the edge.
@@ -1093,7 +1093,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     setReach(next);
   });
   if (!windowed && band !== null) setBand(null);
-  if (windowed ? drewWhole && band !== null : !drewWhole) setDrewWhole(!windowed);
+  // Once long it stays set, as the band decides from then on; another conversation clears it.
+  if (!windowed && !drewWhole) setDrewWhole(true);
   // The newest child's key the announcements last heard of, so the children after it, which just arrived, draw until they are heard.
   const [heard, setHeard] = useState<string | null>(null);
   // The keys of the messages the announcements wait on, kept drawn until a reply that streamed is heard.
