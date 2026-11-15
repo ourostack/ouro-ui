@@ -753,6 +753,7 @@ test("Release's notes list the items by name and stay well under GitHub's 125,00
   const { status, stdout, stderr, calls, notes, temp } = publishRelease(changes);
   assert.equal(status, 0, stdout + stderr);
   assert.ok([...notes].length < 100_000, `the notes are ${[...notes].length} characters; keep them under 100,000 so growth fails here before GitHub refuses them`);
+  assert.ok(!/\[\^[^\]]*\]/.test(notes), "the notes drop UPGRADING.md's footnotes, marks and definitions alike");
   assert.match(notes, /^npx shadcn@latest add ourostack\/ouro-ui\/ouro-base#v9\.9\.9 ourostack\/ouro-ui\/dialog#v9\.9\.9$/m);
   assert.ok(notes.includes(changes.replace(/^# /, "### ")), "the notes hold CHANGES.md");
   assert.match(notes, /^### Upgrading from v0\.1\.0$/m);
