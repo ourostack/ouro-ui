@@ -1,4 +1,4 @@
-export { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe };
+export { ALIASES, behindModal, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe };
 export type { Allowance, AxeIssue, Box };
 
 import type { PageIssue } from "./size-check.ts";
@@ -64,6 +64,18 @@ function isReady(): boolean {
 // Waits for every picture to decode, or 3 s, whichever comes first.
 async function decodeImages(): Promise<void> {
   await Promise.race([Promise.all([...document.images].map((img) => img.decode().catch(() => undefined))), new Promise((done) => setTimeout(done, 3000))]);
+}
+
+// The refs, of those given, whose every marked element sits outside an open modal ([aria-modal="true"] or a modal
+// <dialog>) while one is open: the page behind a modal, which a person can't reach until it closes, and which the
+// page's own run checks as it is then. None while no modal is open, or for a ref that marks nothing.
+function behindModal(refs: string[]): string[] {
+  const modals = [...document.querySelectorAll('[aria-modal="true"], dialog:modal')].filter((m) => m.getClientRects().length);
+  if (!modals.length) return [];
+  return refs.filter((ref) => {
+    const els = [...document.querySelectorAll(`[data-ouro-check-ref~="${ref}"]`)];
+    return els.length > 0 && els.every((el) => !modals.some((m) => m.contains(el) || el.contains(m)));
+  });
 }
 
 // The box, in page coordinates and padded, around the elements a finding marked, scrolled into view; the screen when it
