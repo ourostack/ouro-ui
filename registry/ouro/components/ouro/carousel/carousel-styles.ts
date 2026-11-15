@@ -51,8 +51,7 @@ const pagerClass = "me-auto flex flex-wrap items-center";
 const pageClass =
   "relative grid size-6 pointer-coarse:size-11 place-items-center rounded-full outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "after:block after:h-2 after:w-2 after:rounded-full after:bg-muted-foreground after:content-[''] " +
-  "after:transition-colors after:duration-(--ouro-duration-fast) after:ease-[ease] pointer-fine:hover:after:bg-foreground " +
-  "aria-[current=true]:after:w-4 aria-[current=true]:after:bg-primary pointer-fine:aria-[current=true]:hover:after:bg-primary " +
+  "aria-[current=true]:after:w-4 aria-[current=true]:after:bg-primary " +
   "forced-colors:after:bg-[CanvasText] forced-colors:aria-[current=true]:after:bg-[Highlight]";
 
 /**
