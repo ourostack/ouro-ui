@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { appleComponents, claimMatrix, componentMatrix, gather, pinnedDrift, PAGE, readData, renderMatrix, renderPage, kitClaims, windowsComponents } from "./parity-matrix.mjs";
+import { appleComponents, claimMatrix, componentMatrix, gather, pinnedDrift, PAGE, readData, renderMatrix, renderPage, kitClaims, windowsComponents, androidComponents } from "./parity-matrix.mjs";
 
 const real = (path) => readFileSync(path, "utf8");
 
@@ -60,6 +60,23 @@ test("Windows's components are the Ouro<Name> controls that derive from a XAML c
   ]);
 });
 
+test("Android's components are the Ouro<Name> composables in ouro-hx, under web's name, and not the theme or the helpers", () => {
+  const dir = "ouro-hx/src/main/kotlin/bot/ouro/ui/hx";
+  const files = {
+    [`${dir}/OuroButton.kt`]: "@Composable\nfun OuroButton(\n    label: String,\n) {}\n@Composable\nfun <I : Any, O : Any> OuroButton(action: OuroAction<I, O>) {}",
+    [`${dir}/OuroBadge.kt`]: "@Composable\nfun OuroBadge(label: String) {}",
+    [`${dir}/OuroCard.kt`]: "@Composable\nfun OuroCard(content: @Composable () -> Unit) {}",
+    [`${dir}/OuroTheme.kt`]: "@Composable\nfun OuroTheme(content: @Composable () -> Unit) {}",
+    [`${dir}/OuroSemantics.kt`]: "fun Modifier.ouroAction(id: String, consent: String): Modifier = this",
+    [`${dir}/OuroPaint.kt`]: "enum class OuroTone { Primary }",
+  };
+  assert.deepEqual(androidComponents(files), [
+    { name: "OuroBadge", web: "badge" },
+    { name: "OuroButton", web: "button" },
+    { name: "OuroCard", web: "card" },
+  ]);
+});
+
 test("every platform gets a cell for every component, and a component only one platform has gets a row", () => {
   const web = { names: ["button", "toaster", "dialog"], folders: { button: "button", toast: "toaster", dialog: "dialog" } };
   const platforms = { apple: { components: [{ name: "OuroButton", web: "button" }, { name: "OuroToast", web: "toast" }, { name: "OuroDuoHinge", web: "duo-hinge" }] }, android: { components: [] } };
@@ -83,6 +100,8 @@ test("a claim is covered where core names a platform's check, or where an action
   ]);
   const windowsRows = claimMatrix({ claims: [{ id: "a", tier: "must", checks: {} }] }, { claims: [{ id: "c", tier: "must", appliesTo: ["cli"] }] }, { windows: { claims: ["a", "c"] } });
   assert.deepEqual(windowsRows.map((row) => [row.id, row.windows]), [["a", "checked"], ["c", "none"]]);
+  const androidRows = claimMatrix({ claims: [{ id: "a", tier: "must", checks: {} }] }, { claims: [] }, { android: { claims: ["a"] } });
+  assert.deepEqual(androidRows.map((row) => [row.id, row.android]), [["a", "checked"]]);
   assert.deepEqual(kitClaims({ "a.spec.json": '{"claims":["target.touch","name.spoken"]}', "b.spec.json": '{"claims":["name.spoken"]}', "c.spec.json": "{}" }), ["name.spoken", "target.touch"]);
   const page = renderMatrix({ web: { names: ["button"] }, platforms: { apple: { repo: "o/apple", tag: "v1.0.0", components: [] }, android: { repo: "o/android", tag: null }, windows: { repo: "o/windows", tag: null } }, componentClaims: { claims: [] }, actionClaims: { claims: [] } });
   assert.match(page, /^\| \[button\]\(https:\/\/ui\.ouroboros\.bot\/docs\/button\/\) \| `button` \| Not yet \| Not yet \| Not yet \|$/m);

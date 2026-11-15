@@ -1,30 +1,50 @@
 # Ouro HX & AX for Android
 
-Ouro HX and Ouro AX haven't moved in on Android yet, so the room is ready and waiting: Compose for the people, AppFunctions for the agents, and the lights already on. The furniture is sketched in pencil, and the sign on the door says "you, perhaps?"
+Ouro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).
 
-## What it would be
+Nobody here owns an Android phone or tablet. Everything the kit claims is checked on emulators in GitHub's CI, never on a real device, so if you have one and want to help, you're very welcome.[^devices]
 
-Ouro HX for Android would be Ouro's look and manners in [Jetpack Compose](https://developer.android.com/compose): Pearl and the other themes as a Compose theme, the press, the spring and the calm under reduced motion, components with the same names as web's, and screens that read well to TalkBack and keep up with a person's font size.
+## What ships today
 
-Ouro AX for Android would meet the agent at its Android door, [AppFunctions](https://developer.android.com/ai/appfunctions). Google calls them "the mobile equivalent of tools within the Model Context Protocol (MCP)", and they are experimental, in a preview that may still change.[^appfunctions] An app annotates the functions it offers and describes them in KDoc, and an agent with permission finds and calls them on the device, so the same questions Ouro AX asks a command line apply: is each function named and described well enough to pick, does a failure say what to do next, and does an action other people see ask first?
+Release [v0.1.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0) meets core v0.15.0: its tokens, component specs and action generator are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
 
-Since AppFunctions may change, an Ouro AX for Android would start every claim as `should`, as Ouro AX for Apple did.[^apple-should]
+The kit has four of core's components as composables, where web has [122 components](registry.json "verify:count(registry:ui)=122"): `OuroButton`, `OuroBadge`, `OuroCard` and `OuroItem`, inside `OuroTheme`, which carries core's six themes in light and dark, increased contrast and reduced motion.[^readme]
 
-## The contract
+`ouro-actions` is the runtime behind every action, so a person's press and an agent's AppFunction call take one path. A person-only action gets no AppFunction and refuses agents with core's typed refusal. A consequential one is refused until the app's `confirm` asks the person, because Android has no system prompt for it.[^decision]
 
-To become Ouro HX & AX for Android, an implementation should:
+Declare actions once in TypeScript with core's `defineAction`, then run core's `ouro-actions-android.mts` to write `OuroActions.kt` (one AppFunction per action an agent may call) and `doors.json` (which door carries each action, and why not). The sample, Ouro Shop, does exactly that.[^readme]
 
-1. Take its tokens from a pinned core release. Add a Compose output to core's generators, or generate from core's DTCG files, then record the tag and the file hashes in `core-provenance.json` and check them in CI.
-2. Meet Ouro HX's bar. Test for TalkBack names, comfortable touch targets, font scaling, reduced motion and contrast, so a slip fails a build rather than a person. Give an agent with fresh eyes only the package, and check that it builds a correct screen that TalkBack can read.
-3. Pass Ouro AX's X-ray for AppFunctions. Write the AppFunctions claims into core's standard, as core did for App Intents, and build an X-ray that checks an app's functions against them.
+The Maven files are attached to the release and served from GitHub Pages, which needs no sign-in:[^readme]
 
-Read [the guide for platform builders](contributing.md) for the details.
+```kotlin
+repositories { maven { url = uri("https://ourostack.github.io/ouro-ui-android/maven") } }
+dependencies { implementation("bot.ouro.ui:ouro-hx:0.1.0") }
+```
 
-## Propose it
+AppFunctions need compileSdk 37 and AGP 9.1 or later, and Google still calls them an experimental preview.[^appfunctions]
 
-1. Build it wherever you like, in your own repository.
-2. Open a pull request to [ourostack/ouro-ui](https://github.com/ourostack/ouro-ui) that adds a link to your work in this page's file, `docs/platforms/android.md`, with a line or two on what it does so far.
-3. If Ari likes it, we create `ouro-ui-android`, import your work with its history, and make you a contributor.
+## What is still missing
 
+- **A real device.** Only emulators so far, and the X-ray runs on Google's API 37 test image, because the full Google APIs image crashes its compositor under software rendering.[^ci]
+- **Components.** Web has [122 components](registry.json "verify:count(registry:ui)=122"), and this kit has the first four.[^decision]
+- **Asking the person.** A consequential action is refused for now; a PendingIntent confirmation, as Google's sample agent expects, is next.[^decision]
+- **Maven Central.** It needs a Sonatype account, so the kit uses GitHub Pages for now.[^releasing]
+
+## How it is checked
+
+The `build` job runs core's claims for every component in Robolectric (names and roles in the semantics tree, 48 dp touch targets, reduced motion, text that reflows at 200% and contrast in all six themes, with pixels sampled), and checks the snapshots in light, dark, increased contrast and 200% text. The `emulator` job runs the sample's X-ray on an Android 17 emulator: what AppFunctions Android indexed against the declarations, the buttons on screen, an agent's add through the handler a person presses, and both refusals. The `generated` job checks the vendored core files' hashes and that the sample's generated Kotlin matches its declarations.[^ci]
+
+## Contribute next
+
+- Send changes to [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) as small pull requests, from a fork if you like. Collaborators join as outside collaborators.[^devices]
+- To add a component, vendor its spec from core, write the composable, add it to the sample's gallery and to `ClaimsTest`. CI fails until every claim its spec names passes.[^readme]
+
+A new platform starts from [the guide for platform builders](contributing.md) instead.
+
+[^core]: https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0; https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/core-provenance.json; https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml#L37-L48 verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml#L37-L48) verify:equals(scripts/parity-data/versions.json#android.coreTag)=v0.15.0
+[^devices]: https://github.com/ourostack/ouro-ui-android/issues/3 verify:urlOk(https://github.com/ourostack/ouro-ui-android/issues/3)
+[^readme]: https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/README.md)
+[^ci]: https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml)
+[^releasing]: https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/RELEASING.md verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/RELEASING.md)
+[^decision]: https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md)
 [^appfunctions]: https://developer.android.com/ai/appfunctions verify:urlOk(https://developer.android.com/ai/appfunctions)
-[^apple-should]: https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md)
