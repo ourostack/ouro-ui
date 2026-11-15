@@ -13,30 +13,30 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const modules = import.meta.glob<{ default: () => JSX.Element }>("../site/src/docs/demos/*.demo.tsx");
 
-/** Demos whose mount reads layout, by item name, each with what it reads and why it stays. Each is a read to move past the first paint; a waiver that stops reading fails, so it goes with the fix. */
+/** Demos whose mount reads layout, by item name, each with what it reads and why it stays. A waiver that stops reading fails, so it goes with the fix. */
 const waivers: Record<string, string> = {
-  "chart": "reads bounding boxes and text styles at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "color-scheme-toggle": "reads getComputedStyle on a button at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "composer": "reads getComputedStyle and offsetHeight at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "family-bar": "reads getComputedStyle and getBoundingClientRect at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "hero": "reads getComputedStyle on its picture at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "level-meter": "reads getComputedStyle on its meter at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "live-captions": "reads getComputedStyle on a button at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "media-tile": "reads scrollWidth and clientWidth at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "message-list": "reads scroll and client sizes at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "navbar": "reads getComputedStyle on the document at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "navigation-menu": "reads getComputedStyle on a button at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "pagination": "reads getComputedStyle and clientWidth at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "radio-group": "reads scroll and client sizes on its group at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "segmented-control": "reads getComputedStyle on a button at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "slider": "reads getComputedStyle on its track at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "snap-pip": "reads client, offset and bounding sizes at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "stacked-layout": "reads getComputedStyle on the document at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "tab-bar": "reads the window's inner size at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "tabs": "reads scroll and client sizes and getComputedStyle on a tab at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "thread-rail": "reads scroll and client sizes at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "time-grid": "reads offsetHeight, scrollTop and clientHeight at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
-  "toolbar": "reads getComputedStyle, bounding boxes and clientWidth at mount; not yet traced to its cause, so it stays waived until a fix moves the read past the first paint",
+  "chart": "Recharts measures its container and tick text before it can draw a first frame, and it is third-party code",
+  "color-scheme-toggle": "Base UI's composite root checks each item's visibility with getComputedStyle when its item map changes (mui/base-ui composite isElementVisible); the read is Base UI's, not Ouro's, so only an upstream change can move it",
+  "composer": "the composer measures its action row's offsetHeight before paint so the text box and its buttons are sized in the first frame",
+  "family-bar": "the bar measures which chips fit before paint, or the first frame would show chips that overflow and then drop them",
+  "hero": "the hero checks whether its picture is shown (getComputedStyle) before paint, to choose between the picture and its fallback in the first frame",
+  "level-meter": "Base UI's Slider reads getComputedStyle on its track in a callback it runs at mount (the read is in @base-ui/react, so only an upstream change can move it)",
+  "live-captions": "Base UI's composite root checks each item's visibility with getComputedStyle when its item map changes; the read is Base UI's, so only an upstream change can move it",
+  "media-tile": "the tile compares scrollWidth with clientWidth before paint to decide whether its caption is cut off, so the first frame shows the right tooltip state",
+  "message-list": "the list needs its scroll and client sizes to pin the first frame to the newest message, and to anchor older messages; without them the first frame would paint at the top and jump",
+  "navbar": "the bar reads getComputedStyle on the document to size its padding to the safe area in the first frame",
+  "navigation-menu": "Base UI's composite root checks each item's visibility with getComputedStyle when its item map changes; the read is Base UI's, so only an upstream change can move it",
+  "pagination": "the control measures how many page buttons fit before paint, or the first frame would show a row that overflows and then collapses",
+  "radio-group": "Base UI's radio group calls scrollIntoViewIfNeeded for the checked item at mount, which reads scroll and client sizes; the read is Base UI's, so only an upstream change can move it",
+  "segmented-control": "Base UI's composite root checks each item's visibility with getComputedStyle when its item map changes; the read is Base UI's, so only an upstream change can move it",
+  "slider": "Base UI's Slider reads getComputedStyle on its track in a callback it runs at mount; the read is in @base-ui/react, so only an upstream change can move it",
+  "snap-pip": "the picture-in-picture window reads its own and its container's sizes to place itself at a snap point in the first frame, or it would paint at the corner and jump",
+  "stacked-layout": "its navbar reads getComputedStyle on the document to size to the safe area in the first frame",
+  "tab-bar": "the bar reads the window's inner size and visual viewport, which are cheap and force no layout, to know whether the keyboard is up; the guard counts the viewport reads, and the first frame needs the answer",
+  "tabs": "the indicator and the selected tab need their offsets and scroll sizes in the first frame, and Base UI's tabs list reads sizes and calls scrollIntoViewIfNeeded for the selected tab",
+  "thread-rail": "it mounts a message list, which pins the first frame to the newest message and needs scroll and client sizes to do so",
+  "time-grid": "the grid scrolls to the current time and sizes its hour rows before paint, so the first frame shows the right hours; it needs offsetHeight and the scroll sizes to do that",
+  "toolbar": "the toolbar measures its items before paint so an overflowing row moves its items into the menu in the first frame; reading later would paint the overflow first",
 };
 
 /** Demos that read at mount in WebKit alone, each with the reason; a demo here must read in WebKit and read nothing in Chromium. */
