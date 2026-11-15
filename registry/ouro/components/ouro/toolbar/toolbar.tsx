@@ -473,7 +473,11 @@ function countFits(root: HTMLElement, widths: readonly number[], moreWidth: numb
   return fits;
 }
 
-/** Whether every entry fits in the root with no More. */
+/**
+ * Whether every entry fits in the root with no More.
+ *
+ * @claim "Whether every entry fits in the root with no More." registry/ouro/components/ouro/toolbar/toolbar.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.test.tsx::Toolbar overflow > fits a row that narrows, widens and narrows again exactly as one drawn at that width from the start)
+ */
 function rowFits(root: HTMLElement, widths: readonly number[]): boolean {
   const style = getComputedStyle(root);
   const width = root.clientWidth - parseFloat(style.paddingInlineStart) - parseFloat(style.paddingInlineEnd);
