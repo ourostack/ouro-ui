@@ -604,13 +604,18 @@ mapfile -t test_items < <(node -e 'for (const item of require(process.argv[1]).r
 # npm one at a time; the CLI's file writes stay parallel. An npm that a package's script starts while
 # the lock is held sees OURO_SERIAL_NPM_HELD and runs at once, so it cannot wait on its own parent.
 # An app restored from an earlier run records the built items it holds (.ouro-added.json); then only the
-# items whose built content changed are added again, and anything the plan cannot prove safe adds them all.
+# items whose built content changed are added again, files of removed or moved items are deleted, and anything the plan cannot prove safe adds them all.
 delta_mode=full
 if [ -n "${OURO_DELTA:-}" ] && [ -f "$app/.ouro-added.json" ]; then
   delta_plan=$(node "$root/scripts/install-delta.mjs" plan "$registry/r" "$app/.ouro-added.json")
   delta_mode=$(node -e 'console.log(JSON.parse(process.argv[1]).mode)' "$delta_plan")
   if [ "$delta_mode" = incremental ]; then
     mapfile -t test_items < <(node -e 'for (const item of JSON.parse(process.argv[1]).items) console.log(process.argv[2] + "/" + item + ".json")' "$delta_plan" "$registry/r")
+    # Files an item stopped writing (a removed or moved item) go before the add, as a full add would not have them.
+    if ! node -e 'console.log(JSON.stringify(JSON.parse(process.argv[1]).remove))' "$delta_plan" | node "$root/scripts/install-delta.mjs" remove "$registry/r" "$app"; then
+      echo "Install delta: a removed file does not map to the app; adding everything"
+      delta_mode=full
+    fi
   fi
   echo "Install delta: $delta_mode (${#test_items[@]} items to add) $(node -e 'console.log(JSON.parse(process.argv[1]).reason ?? "")' "$delta_plan")"
   if [ "$delta_mode" = full ]; then

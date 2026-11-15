@@ -1,27 +1,126 @@
 /*
- * The adoption ledger page (/adoption/). It loads with its island and the page links it in its HTML (site/scripts/prerender.mts),
+ * The adoption page (/adoption/). It loads with its island and the page links it in its HTML (site/scripts/prerender.mts),
  * so it paints styled. Layout classes stand in for Tailwind utilities no other voyage page uses. Every colour is a theme
- * variable or mixed from one, so light, dark and the six presets all repaint it. Nothing here moves.
+ * variable or mixed from one, so light, dark and the presets all repaint it. The ring's stars arrive once, in order, and
+ * the closing ring draws once; with reduced motion nothing moves and only opacity and colour change.
  */
 @layer components {
-  .adoption-cell strong,
-  .adoption-lede strong,
-  .adoption-number strong,
-  .adoption-fresh strong,
-  .adoption-behind strong {
-    font-weight: 600;
-  }
   .adoption {
     --adoption-hairline: color-mix(in oklab, var(--border) 70%, transparent);
     --adoption-quiet: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));
-    padding-bottom: calc(var(--spacing) * 16);
+    --adoption-dim: color-mix(in oklab, var(--foreground) 55%, var(--background));
+    --adoption-green: var(--success);
+    --adoption-col: 3rem;
+    /* The porthole is night in both schemes: a deep blue mixed from the theme's primary, with starlight on it. */
+    --adoption-night: color-mix(in oklab, var(--primary) 24%, #050814);
+    --adoption-night-deep: color-mix(in oklab, var(--primary) 8%, #03050c);
+    --adoption-starlight: #eef1fb;
+    --adoption-starlight-dim: color-mix(in oklab, #eef1fb 52%, var(--adoption-night));
+    --adoption-glow: color-mix(in oklab, var(--success) 55%, #d9ffe6);
   }
-  .adoption-lede p {
-    max-width: 62ch;
+  .adoption-layout {
+    display: grid;
+    gap: calc(var(--spacing) * 8);
+    padding-block: calc(var(--spacing) * 8) calc(var(--spacing) * 16);
+  }
+  @media (min-width: 1024px) {
+    .adoption-layout {
+      grid-template-columns: minmax(18rem, 21rem) minmax(0, 1fr);
+      gap: calc(var(--spacing) * 12);
+      align-items: start;
+    }
+    .adoption-hero {
+      position: sticky;
+      top: calc(var(--spacing) * 20);
+    }
+  }
+
+  /* The count, the ring and the freshness line. */
+  .adoption-h1 {
+    margin: calc(var(--spacing) * 3) 0 0;
+    font-family: var(--font-heading);
+    font-weight: var(--site-heading-weight, 600);
+    font-size: clamp(1.875rem, 2.6vw, 2.5rem);
+    line-height: 1.1;
+    letter-spacing: var(--site-h1-tracking, -0.03em);
+    text-wrap: balance;
+  }
+  .adoption-ring {
+    position: relative;
+    width: min(100%, 22rem);
+    aspect-ratio: 1;
+    margin: calc(var(--spacing) * 6) auto calc(var(--spacing) * 5);
+    border: 1px solid var(--adoption-hairline);
+    border-radius: 50%;
+    color: var(--adoption-starlight);
+    /* One solid colour, so the count's contrast can be measured. */
+    background-color: var(--adoption-night);
+    box-shadow: inset 0 0 0 6px color-mix(in oklab, var(--adoption-night-deep) 60%, transparent);
+  }
+  @media (min-width: 1024px) {
+    .adoption-ring {
+      margin-inline: 0;
+    }
+  }
+  .adoption-sky {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .adoption-readout {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24%;
+    text-align: center;
+    pointer-events: none;
+  }
+  .adoption-readout-count {
+    font-family: var(--font-heading);
+    font-weight: var(--site-heading-weight, 600);
+    font-size: 3.5rem;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .adoption-readout-count span {
+    font-size: 1.5rem;
+    color: var(--adoption-starlight-dim);
+    letter-spacing: 0;
+  }
+  .adoption-readout-name {
+    font-weight: 600;
+    font-size: 1.125rem;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  .adoption-readout-sub {
+    margin-top: calc(var(--spacing) * 1.5);
+    font-size: 0.875rem;
+    color: color-mix(in oklab, var(--adoption-starlight) 78%, var(--adoption-night));
+  }
+  .adoption[data-closed] .adoption-readout-count,
+  .adoption[data-closed] .adoption-readout-sub {
+    color: var(--adoption-glow);
+  }
+  .adoption-lede {
+    max-width: 40ch;
+    margin: 0;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+  .adoption-fresh,
+  .adoption-newer {
+    margin: calc(var(--spacing) * 2) 0 0;
+    font-size: 0.875rem;
+    color: var(--adoption-quiet);
   }
   .adoption-newer {
-    min-height: 2.5rem;
-    margin: calc(var(--spacing) * 2) 0 0;
+    min-height: 1.5rem;
   }
   .adoption-show {
     min-height: 1.5rem;
@@ -42,166 +141,275 @@
       min-height: 2.75rem;
     }
   }
-  .adoption-fresh,
-  .adoption-newer,
-  .adoption-detail,
-  .adoption-when,
-  .adoption-kind,
-  .adoption-aside {
-    color: var(--adoption-quiet);
-    font-size: 0.875rem;
+
+  /* The ring's drawing. */
+  .adoption-dust {
+    fill: var(--adoption-starlight);
   }
-  .adoption-section {
-    padding-block: calc(var(--spacing) * 8);
-    border-top: 1px solid var(--adoption-hairline);
+  .adoption-orbit {
+    fill: none;
+    stroke: color-mix(in oklab, var(--adoption-starlight) 30%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 1.5 5;
+    stroke-linecap: round;
   }
+  .adoption-arc,
+  .adoption-closed {
+    fill: none;
+    stroke: var(--adoption-glow);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+  .adoption-spark {
+    stroke: var(--adoption-glow);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .adoption-ray {
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke: var(--adoption-starlight-dim);
+  }
+  .adoption-ray[data-state="met"] {
+    stroke: var(--adoption-starlight);
+  }
+  .adoption-ray[data-state="unmeasured"] {
+    stroke-dasharray: 0.5 3;
+  }
+  .adoption-core {
+    fill: color-mix(in oklab, var(--adoption-starlight) 80%, var(--adoption-night));
+  }
+  .adoption-halo {
+    fill: var(--adoption-starlight);
+    opacity: 0;
+    transition: opacity var(--ouro-duration-fast, 150ms) ease;
+  }
+  .adoption-star[data-lit] .adoption-core,
+  .adoption-star[data-lit] .adoption-ray {
+    fill: var(--adoption-glow);
+    stroke: var(--adoption-glow);
+  }
+  .adoption-star[data-lit] .adoption-halo {
+    fill: var(--adoption-glow);
+    opacity: 0.28;
+  }
+  .adoption-star[data-active] .adoption-halo {
+    opacity: 0.22;
+  }
+  .adoption-star[data-active] .adoption-core {
+    fill: var(--adoption-starlight);
+  }
+
+  /* The list: a product per row, its four marks under the column headings, and a line per gap. */
   .adoption-h2 {
-    margin: 0 0 calc(var(--spacing) * 5);
-    font-size: 1.5rem;
-    line-height: 1.2;
-  }
-  .adoption-h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    line-height: 1.3;
-  }
-  .adoption-lede-small {
-    max-width: 62ch;
-    margin: 0 0 calc(var(--spacing) * 5);
-  }
-  .adoption-tally {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-    gap: calc(var(--spacing) * 5);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .adoption-tally li {
-    display: grid;
-    gap: calc(var(--spacing) * 1);
-  }
-  .adoption-count {
-    font-size: 2.25rem;
-    font-weight: 600;
-    line-height: 1;
-  }
-  .adoption-count span {
+    margin: 0 0 calc(var(--spacing) * 4);
     font-size: 1rem;
-    font-weight: 400;
-    color: var(--adoption-quiet);
+    font-weight: 600;
+    line-height: 1.4;
   }
-  .adoption-rows,
-  .adoption-steps,
-  .adoption-cards,
-  .adoption-plain,
-  .adoption-conditions {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .adoption-rows {
-    display: grid;
-    gap: calc(var(--spacing) * 6);
-  }
+  .adoption-head,
   .adoption-row {
     display: grid;
-    gap: calc(var(--spacing) * 4);
-    padding-top: calc(var(--spacing) * 5);
-    border-top: 1px solid var(--adoption-hairline);
+    grid-template-columns: minmax(0, 1fr) calc(var(--adoption-col) * 4);
+    column-gap: calc(var(--spacing) * 3);
+    align-items: start;
   }
-  .adoption-row-head {
-    display: grid;
-    align-content: start;
-    gap: calc(var(--spacing) * 2);
+  .adoption-head {
+    grid-template-columns: minmax(0, 1fr) repeat(4, var(--adoption-col));
+    column-gap: 0;
+    padding-bottom: calc(var(--spacing) * 2);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--adoption-quiet);
+    text-align: center;
   }
-  .adoption-kind {
+  .adoption-head {
+    align-items: end;
+    text-wrap: balance;
+  }
+  @media (min-width: 640px) {
+    .adoption {
+      --adoption-col: 4rem;
+    }
+  }
+  .adoption-head span:first-child {
+    margin-right: calc(var(--spacing) * 3);
+  }
+  .adoption-rows,
+  .adoption-marks,
+  .adoption-gaps {
     margin: 0;
+    padding: 0;
+    list-style: none;
   }
-  .adoption-conditions {
+  .adoption-row {
+    padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 2);
+    margin-inline: calc(var(--spacing) * -2);
+    border-top: 1px solid var(--adoption-hairline);
+    border-radius: var(--radius-sm, 4px);
+    transition: background-color var(--ouro-duration-fast, 150ms) ease;
+  }
+  .adoption-row:focus-within {
+    background-color: color-mix(in oklab, var(--primary) 6%, var(--background));
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .adoption-row:hover {
+      background-color: color-mix(in oklab, var(--primary) 6%, var(--background));
+    }
+  }
+  .adoption-name {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.5rem;
+  }
+  .adoption-row[data-green] .adoption-name::after {
+    content: "";
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-left: calc(var(--spacing) * 2);
+    vertical-align: 0.1em;
+    border-radius: 50%;
+    background: var(--adoption-green);
+  }
+  .adoption-marks {
+    display: grid;
+    grid-template-columns: repeat(4, var(--adoption-col));
+    justify-items: center;
+    padding-top: 0.1875rem;
+  }
+  .adoption-mark {
+    display: block;
+    width: 1.125rem;
+    height: 1.125rem;
+    fill: none;
+    stroke: var(--adoption-dim);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .adoption-mark[data-state="met"] circle {
+    fill: var(--adoption-green);
+    stroke: none;
+  }
+  .adoption-mark[data-state="met"] path {
+    stroke: var(--success-foreground);
+    stroke-width: 1.75;
+  }
+  .adoption-mark[data-state="unmeasured"] circle {
+    stroke-dasharray: 1.6 2.3;
+  }
+  .adoption-gaps {
+    grid-column: 1 / -1;
+    margin-top: calc(var(--spacing) * 0.5);
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+    color: var(--adoption-quiet);
+  }
+  .adoption-gaps li {
+    display: inline;
+  }
+  .adoption-gaps li + li::before {
+    content: " · ";
+    color: var(--adoption-quiet);
+  }
+  .adoption-gap-key {
+    color: var(--adoption-quiet);
+  }
+  @media (min-width: 1280px) {
+    .adoption-head {
+      grid-template-columns: 11rem repeat(4, var(--adoption-col)) minmax(0, 1fr);
+    }
+    .adoption-row {
+      grid-template-columns: 11rem calc(var(--adoption-col) * 4) minmax(0, 1fr);
+      column-gap: 0;
+    }
+    .adoption-name {
+      margin-right: calc(var(--spacing) * 3);
+    }
+    .adoption-gaps {
+      grid-column: auto;
+      margin: 0 0 0 calc(var(--spacing) * 4);
+    }
+  }
+  .adoption-shared,
+  .adoption-key {
+    margin: calc(var(--spacing) * 4) 0 0;
+    padding-top: calc(var(--spacing) * 4);
+    border-top: 1px solid var(--adoption-hairline);
+    font-size: 0.875rem;
+    color: var(--adoption-quiet);
+  }
+  .adoption-key {
     display: flex;
     flex-wrap: wrap;
     gap: calc(var(--spacing) * 2) calc(var(--spacing) * 5);
+    padding-top: 0;
+    border-top: 0;
   }
-  .adoption-conditions li {
+  .adoption-key span {
     display: inline-flex;
     align-items: center;
-    gap: calc(var(--spacing) * 2);
-    font-size: 0.875rem;
+    gap: calc(var(--spacing) * 1.5);
+    white-space: nowrap;
   }
-  .adoption-cells {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-    gap: calc(var(--spacing) * 4) calc(var(--spacing) * 5);
-    margin: 0;
+  .adoption-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
-  .adoption-cell dt,
-  .adoption-number dt {
-    margin-bottom: calc(var(--spacing) * 1);
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+
+  /* Arrival, once: the stars come up around the ring in turn; a closed ring draws itself and throws its sparks. */
+  @media (prefers-reduced-motion: no-preference) {
+    .adoption-star {
+      transition: transform var(--ouro-duration-fast, 150ms) var(--ouro-ease-out, ease-out);
+      animation: ouro-adoption-star-in 600ms var(--ouro-ease-out, ease-out) backwards;
+      animation-delay: calc(var(--i) * 40ms);
+    }
+    .adoption-star[data-active] {
+      transform: scale(1.6);
+    }
+    .adoption-closed {
+      stroke-dasharray: 1;
+      animation: ouro-adoption-close 1200ms var(--ouro-ease-in-out, ease-in-out) 400ms backwards;
+    }
+    .adoption-spark {
+      transform-origin: 160px 160px;
+      animation: ouro-adoption-spark 700ms var(--ouro-ease-out, ease-out) backwards;
+      animation-delay: calc(1400ms + var(--i) * 30ms);
+    }
   }
-  .adoption-cell dd,
-  .adoption-number dd {
-    display: grid;
-    gap: calc(var(--spacing) * 1);
-    margin: 0;
-    overflow-wrap: anywhere;
+  @keyframes ouro-adoption-star-in {
+    from {
+      opacity: 0;
+      transform: scale(0.2);
+    }
   }
-  .adoption-null {
-    font-style: italic;
-    color: var(--adoption-quiet);
+  @keyframes ouro-adoption-close {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
   }
-  .adoption-pr {
-    display: block;
+  @keyframes ouro-adoption-spark {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
   }
-  .adoption-steps,
-  .adoption-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
-    gap: calc(var(--spacing) * 6) calc(var(--spacing) * 8);
-  }
-  .adoption-step,
-  .adoption-card {
-    display: grid;
-    align-content: start;
-    gap: calc(var(--spacing) * 2);
-    padding-top: calc(var(--spacing) * 4);
-    border-top: 1px solid var(--adoption-hairline);
-    overflow-wrap: anywhere;
-  }
-  .adoption-step p,
-  .adoption-card p {
-    margin: 0;
-  }
-  .adoption-step-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: calc(var(--spacing) * 3);
-  }
-  .adoption-numbers-title {
-    margin-top: calc(var(--spacing) * 10);
-    margin-bottom: calc(var(--spacing) * 4);
-  }
-  .adoption-numbers {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
-    gap: calc(var(--spacing) * 5);
-    margin: 0;
-  }
-  .adoption-number strong {
-    font-size: 1.5rem;
-  }
-  .adoption-aside {
-    margin-top: calc(var(--spacing) * 6);
-  }
-  @media (width >= 64rem) {
-    .adoption-row {
-      grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
-      column-gap: calc(var(--spacing) * 8);
+  @media (prefers-contrast: more) {
+    .adoption-ring {
+      background: var(--adoption-night-deep);
+      border-color: var(--foreground);
     }
   }
 }

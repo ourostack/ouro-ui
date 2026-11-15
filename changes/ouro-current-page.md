@@ -1,0 +1,1 @@
+- New: /current/, the front door of Ouro Current, our own Dependabot for Ouro UI: one Install button, what it does and leaves alone, and the repositories it keeps current.

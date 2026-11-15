@@ -3,7 +3,8 @@ import { Buffer } from "node:buffer";
 import { createHash, createVerify, generateKeyPairSync } from "node:crypto";
 import { test } from "node:test";
 import { gzipSync } from "node:zlib";
-import { BRANCH, keepCurrent, keepRepo, publicView, title } from "./current.mjs";
+import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-check.mjs";
+import { BRANCH, body, keepCurrent, keepRepo, publicView, title } from "./current.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
 import { UPDATERS, findPins, isBehind, isCandidate } from "./pins.mjs";
 import { readTarball } from "./tar.mjs";
@@ -338,4 +339,18 @@ test("every installation runs, a failing repository is reported while the rest g
   const view = publicView({ ...report, repos: [...report.repos, { repo: "o/secret2", private: true, state: "pr", pins: [] }] });
   assert.equal(view.privateRepos, 2);
   assert.ok(!JSON.stringify(view).includes("secret"));
+});
+
+test("the pull request's title and body pass Ouro UI's claims check, which a repository may run on pull requests", () => {
+  const releases = {
+    web: { tag: "v1.3.187", url: "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.187" },
+    apple: { tag: "v0.9.0", url: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.9.0" },
+  };
+  const behind = [
+    { file: ".github/ouro-hx-installed.json", follows: "web", current: "v1.3.117" },
+    { file: "Package.swift", follows: "apple", current: "0.6.0" },
+  ];
+  const notes = ["Leaves `app/lib/x.ts` at `v1.3.117`, because it is not what the CLI wrote for `v1.3.117` (edited here, or rewritten in a way Ouro Current does not reproduce). Install it again with the CLI, or move the change into Ouro UI.", "Adds what installed items now include: `app/lib/y.ts`.", "Keeps what the registry no longer has: `app/lib/z.ts`."];
+  assert.deepEqual(lintPlain(title(behind, releases), { file: "pull request title" }), []);
+  assert.deepEqual(lintMarkdown(body(behind, releases, notes), { file: "pull request body" }), []);
 });

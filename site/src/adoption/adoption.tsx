@@ -1,364 +1,215 @@
-import { useEffect, useState, type JSX, type ReactNode } from "react";
-import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
-import { claim } from "@/registry/ouro/lib/ouro/claims";
+import { Fragment, useEffect, useState, type JSX } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
+import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Container } from "../voyage/layout";
-import { isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger, type LedgerCell, type Surface } from "./ledger";
+import { isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger } from "./ledger";
+import { boardOf, CHECK_KEYS, CHECK_SHORT, STATE_WORD, type Check, type CheckState } from "./checks";
+import { Sky } from "./sky";
 import "./adoption.css";
 
 /*
- * /adoption/: the ledger of who uses Ouro UI. It leads with what is broken (how many products are confirmed, which of
- * the four conditions fail most), then the products furthest from confirmed, then the program's steps and its work
- * items. Every measurement says where it came from and when it was measured. The data is ledger.json, written by
- * scripts/adoption/ledger.mjs and refreshed hourly (.github/workflows/adoption-ledger.yml).
+ * /adoption/: is every product on Ouro UI, and if not, which and why? The count of green products leads, the ring
+ * pictures it, and the list beside it gives each product its four checks and one short line per gap, linked to where
+ * the fact came from. The data is ledger.json, written by scripts/adoption/ledger.mjs and refreshed hourly
+ * (.github/workflows/adoption-ledger.yml); how it is measured is in scripts/adoption/README.md.
  */
 
-const URL_PATTERN = /(https?:\/\/[^\s)]+)/g;
+const METHOD = "https://github.com/ourostack/ouro-ui/blob/main/scripts/adoption/README.md";
 
-/** Evidence text with each address a link. */
-function Linked({ text }: { text: string }): JSX.Element {
+/** One check's mark: a filled tick for a pass, an empty ring for a gap, a dotted ring for "not measured yet", a dash for "does not apply". */
+function Mark({ state }: { state: CheckState }): JSX.Element {
   return (
-    <>
-      {text.split(URL_PATTERN).map((part, index) =>
-        index % 2 === 1 ? (
-          <Link key={index} href={part}>
-            {part.replace(/^https:\/\/(github\.com\/)?/, "")}
-          </Link>
-        ) : (
-          part
-        ),
+    <svg className="adoption-mark" data-state={state} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      {state === "met" ? (
+        <>
+          <circle cx="8" cy="8" r="7" />
+          <path d="M4.75 8.25 7 10.5l4.25-4.75" />
+        </>
+      ) : state === "na" ? (
+        <path d="M4.5 8h7" />
+      ) : (
+        <circle cx="8" cy="8" r="6.25" />
       )}
-    </>
+    </svg>
   );
 }
 
-const NOT_YET = "not measured yet";
-
-/** What a cell says when it has no value: the reason, in the measurement's own words. */
-function Unmeasured({ cell }: { cell: LedgerCell<unknown> }): JSX.Element {
+function Gap({ check }: { check: Check }): JSX.Element {
+  const text = check.why ?? "";
   return (
-    <>
-      <span className="adoption-null">{NOT_YET}</span>
-      {cell.note ? <span className="adoption-detail">{cell.note.replace(/^not measured: /, "")}</span> : null}
-    </>
-  );
-}
-
-/** One measurement: its name (a link to its source), its value, its detail and when it was measured. */
-function Cell({ name, cell, children }: { name: string; cell: LedgerCell<unknown>; children?: ReactNode }): JSX.Element {
-  return (
-    <div className="adoption-cell">
-      <dt>{cell.source ? <Link href={cell.source}>{name}</Link> : name}</dt>
-      <dd>
-        {cell.value === null ? <Unmeasured cell={cell} /> : children}
-        <time className="adoption-when" dateTime={cell.measuredAt}>
-          measured {stamp(cell.measuredAt)}
-        </time>
-      </dd>
-    </div>
-  );
-}
-
-const LEVEL_TONE: Record<string, "success" | "warning" | "destructive" | "secondary"> = { full: "success", yes: "success", partial: "warning", none: "destructive", no: "destructive", "n/a": "secondary" };
-const Level = ({ value }: { value: string }): JSX.Element => (
-  <Badge tone={LEVEL_TONE[value] ?? "secondary"} variant="soft">
-    {value}
-  </Badge>
-);
-
-const behindText = (behind: number | null): string => (behind === null ? "unknown" : behind === 0 ? "current" : `${behind} release${behind === 1 ? "" : "s"} behind`);
-
-function Row({ surface }: { surface: Surface }): JSX.Element {
-  const { pins, hx, ax, actions, xray, giveBack, tracking } = surface.cells;
-  const xrayValue = xray.value;
-  return (
-    <li className="adoption-row" data-confirmed={surface.confirmed} id={surface.id}>
-      <div className="adoption-row-head">
-        <h3 className="adoption-h3">{surface.url ? <Link href={surface.url}>{surface.name}</Link> : surface.name}</h3>
-        <p className="adoption-kind">
-          {surface.kind}
-          {surface.url ? "" : ", private repository"}
-        </p>
-        <ul className="adoption-conditions" aria-label={`${surface.met} of 4 conditions met`}>
-          {Object.values(surface.conditions).map((condition) => (
-            <li key={condition.label}>
-              <Badge tone={condition.met ? "success" : "secondary"} variant={condition.met ? "soft" : "outline"}>
-                {condition.met ? "met" : "not yet"}
-              </Badge>
-              <span>{condition.label}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <dl className="adoption-cells">
-        <Cell name="Ouro UI pin" cell={pins}>
-          {pins.value?.length ? (
-            <ul className="adoption-plain">
-              {pins.value.map((pin) => (
-                <li key={pin.label}>
-                  <strong>{pin.tag ?? "not read"}</strong>{" "}
-                  <span className="adoption-detail">
-                    {pin.label}: {behindText(pin.behind)}
-                    {pin.late ? `, ${pin.late} of them out more than a day` : ""}
-                    {pin.latestTag ? `, latest ${pin.latestTag}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <span className="adoption-detail">not detected</span>
-          )}
-        </Cell>
-        <Cell name="HX use" cell={hx}>
-          <Level value={hx.value ?? ""} />
-          <span className="adoption-detail">{hx.note}</span>
-        </Cell>
-        <Cell name="AX kit" cell={ax}>
-          <Level value={ax.value ?? ""} />
-          <span className="adoption-detail">{ax.note}</span>
-        </Cell>
-        <Cell name="Actions on the one-action model" cell={actions}>
-          <strong>{actions.value}</strong>
-          <span className="adoption-detail">{actions.note}</span>
-        </Cell>
-        <Cell name="X-ray" cell={xray}>
-          {xrayValue ? (
-            <>
-              <strong>
-                {xrayValue.holding} of {xrayValue.claims}
-              </strong>{" "}
-              claims hold, <strong>must {xrayValue.mustHolding} of {xrayValue.must}</strong>
-              <span className="adoption-detail">
-                {xray.note ? `${xray.note} ` : ""}
-                <Link href={xrayValue.run}>CI run</Link>, report made {stamp(xrayValue.reportAt)}
-              </span>
-            </>
-          ) : null}
-        </Cell>
-        <Cell name="Give-back" cell={giveBack}>
-          <strong>{giveBack.value}</strong> merged
-          <span className="adoption-detail">
-            {giveBack.prs.slice(0, 2).map((pr) => (
-              <span key={pr.url} className="adoption-pr">
-                <Link href={pr.url}>
-                  {pr.repo.replace("ourostack/", "")}#{pr.number}
-                </Link>{" "}
-                {pr.title}
-              </span>
-            ))}
-          </span>
-        </Cell>
-        <Cell name="Tracking issue" cell={tracking}>
-          {tracking.value?.length ? (
-            <ul className="adoption-plain">
-              {tracking.value.map((issue) => (
-                <li key={issue.title}>
-                  {issue.url ? <Link href={issue.url}>#{issue.number}</Link> : <span className="adoption-null">issue pending</span>} <span className="adoption-detail">{issue.state}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <span className="adoption-null">issue pending</span>
-          )}
-          {tracking.note ? <span className="adoption-detail">{tracking.note}</span> : null}
-        </Cell>
-      </dl>
+    <li data-state={check.state}>
+      <span className="adoption-gap-key">{CHECK_SHORT[check.key]}:</span> {check.source ? (
+        <Link href={check.source} tone="secondary">
+          {text}
+        </Link>
+      ) : (
+        text
+      )}
     </li>
   );
 }
 
-const STATE_TONE: Record<string, "success" | "warning" | "secondary"> = { done: "success", "in progress": "warning", pending: "secondary" };
-
 /** The ledger and the page's own text: used by the route (pages/voyage.tsx) and its test. */
 export function AdoptionPage({ initial = SNAPSHOT, live = true }: { initial?: Ledger; live?: boolean }): JSX.Element {
   const [ledger, setLedger] = useState(initial);
-  const [refreshed, setRefreshed] = useState(false);
   const [waiting, setWaiting] = useState<Ledger | null>(null);
+  const [active, setActive] = useState<string | null>(null);
   // The page paints from the ledger built into the site. A newer one from the hourly run waits behind a button, so nothing
-  // moves under the reader's eyes while the page loads: swapping it in on its own shifted most of the page.
+  // moves under the reader's eyes while the page loads.
   useEffect(() => {
     if (!live) return;
     const controller = new AbortController();
     fetch(LIVE_URL, { signal: controller.signal, cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((next: unknown) => {
-        if (isNewer(next, initial)) {
-          setWaiting(next);
-        }
+        if (isNewer(next, initial)) setWaiting(next);
       })
       .catch(() => undefined);
     return () => controller.abort();
   }, [initial, live]);
 
-  const { summary, surfaces, program, cards } = ledger;
-  const inScope = surfaces.filter((surface) => surface.inScope);
-  const listedOnly = surfaces.filter((surface) => !surface.inScope);
-  const byId = new Map(surfaces.map((surface) => [surface.id, surface]));
-  const ordered = summary.order.map((id) => byId.get(id)).filter((surface): surface is Surface => Boolean(surface));
-  const conditionKeys = ["current", "oneAction", "must", "gaveBack"] as const;
-  const tally = conditionKeys.map((key) => ({ key, label: inScope[0]?.conditions[key].label ?? key, met: inScope.filter((surface) => surface.conditions[key].met).length }));
+  const board = boardOf(ledger);
+  const closed = board.total > 0 && board.green === board.total;
+  const sharedKeys = new Set(board.shared.map((item) => item.key));
+  const focus = board.rows.find((row) => row.surface.id === active);
 
   return (
-    <div id="adoption" className="adoption">
-      <section aria-labelledby="adoption-title" className="site-hero adoption-hero">
-        <Container>
-          <p className="site-eyebrow">Adoption ledger</p>
-          <h1 id="adoption-title" className="site-h1">
-            {/* "products confirmed." holds together, so a phone breaks the line after the count, not before its last word. */}
-            {summary.confirmed} of {summary.total} products{"\u00a0"}confirmed.
+    <div id="adoption" className="adoption" data-closed={closed || undefined}>
+      <Container className="adoption-layout">
+        <section aria-labelledby="adoption-title" className="adoption-hero">
+          <p className="site-eyebrow">Adoption</p>
+          <h1 id="adoption-title" className="adoption-h1">
+            {`${board.green} of ${board.total} products on Ouro\u00a0UI.`}
           </h1>
-          <div className="site-lede adoption-lede">
-            <p>
-              Our maintained products should use Ouro UI and give back to it. A product is <strong>confirmed</strong> when its pins are current, its actions are on the one-action model, its AX <code>must</code> claims pass in CI, and it has given back. This page is the one place that tracks it, in public, measured from GitHub and CI.
-            </p>
-            <p className="adoption-fresh">
-              Measured <time dateTime={ledger.generatedAt}>{stamp(ledger.generatedAt)}</time>
-              {refreshed ? " (newer than this page's build)" : ""}, and hourly after that. {summary.unmeasuredCells} cells are{" "}
-              {NOT_YET}, with a reason beside it. <Link href="https://github.com/ourostack/ouro-ui/tree/main/scripts/adoption#readme">How it is measured</Link>,{" "}
-              <Link href="https://github.com/ourostack/ouro-ui/issues?q=is%3Aissue+label%3Aadoption">the tracking issues</Link>,{" "}
-              <Link href={LIVE_URL}>ledger.json</Link>.
-            </p>
-            {summary.releasesBehind === undefined ? null : (
-              <p className="adoption-behind">
-                {claim("The target: no product goes more than a day without an Ouro UI release it lacks.", {
-                  source: { test: "scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more" },
-                  verify: { testExists: "scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more" },
-                })}{" "}
-                Past it now:{" "}
-                <strong>{summary.late?.length ?? 0} products</strong>
-                {summary.late?.length ? ` (${summary.late.map((item) => `${item.name}, ${item.late} releases`).join("; ")})` : ""}. For context, counted products
-                are {summary.releasesBehind} releases behind in total; Ouro UI releases several times a day, so that count is not the target.
-              </p>
-            )}
-            <p className="adoption-newer" aria-live="polite">
-              {waiting ? (
+          <div className="adoption-ring">
+            <Sky stars={board.sky} active={active} closed={closed} />
+            <div className="adoption-readout" aria-hidden="true" data-ouro-allow="overlap" data-ouro-allow-why="The count sits in the middle of the ring on purpose; no star or dust is drawn there.">
+              {focus ? (
                 <>
-                  A newer measurement is ready, from <time dateTime={waiting.generatedAt}>{stamp(waiting.generatedAt)}</time>.{" "}
-                  <button
-                    type="button"
-                    className="adoption-show"
-                    onClick={() => {
-                      setLedger(waiting);
-                      setRefreshed(true);
-                      setWaiting(null);
-                    }}
-                  >
-                    Show it
-                  </button>
+                  <span className="adoption-readout-name">{focus.surface.name}</span>
+                  <span className="adoption-readout-sub">
+                    {`${focus.surface.met} of ${CHECK_KEYS.length} checks`}
+                  </span>
                 </>
-              ) : null}
-            </p>
+              ) : (
+                <>
+                  <span className="adoption-readout-count">
+                    {board.green}
+                    <span>/{board.total}</span>
+                  </span>
+                  <span className="adoption-readout-sub">{closed ? "the ring is closed" : "green"}</span>
+                </>
+              )}
+            </div>
           </div>
-        </Container>
-      </section>
+          <p className="adoption-lede">
+            {closed
+              ? "The ring is closed."
+              : claim("A product turns green when it passes all four checks, and each passing check lights a ray of its star.", {
+                  source: { test: "site/src/adoption/adoption.test.tsx::the adoption page > gives every counted product a row, furthest from green first, with its four checks as the ledger says them" },
+                  verify: { testExists: "site/src/adoption/adoption.test.tsx::the adoption page > gives every counted product a row, furthest from green first, with its four checks as the ledger says them" },
+                })}
+          </p>
+          <p className="adoption-fresh">
+            Measured <time dateTime={ledger.generatedAt}>{stamp(ledger.generatedAt)}</time>, hourly. <Link href={METHOD}>How it is measured</Link>
+          </p>
+          <p className="adoption-newer" aria-live="polite">
+            {waiting ? (
+              <>
+                Newer: <time dateTime={waiting.generatedAt}>{stamp(waiting.generatedAt)}</time>.{" "}
+                <button
+                  type="button"
+                  className="adoption-show"
+                  onClick={() => {
+                    setLedger(waiting);
+                    setWaiting(null);
+                  }}
+                >
+                  Show it
+                </button>
+              </>
+            ) : null}
+          </p>
+        </section>
 
-      <section aria-labelledby="adoption-broken" className="adoption-section">
-        <Container>
-          <h2 id="adoption-broken" className="adoption-h2">
-            What is not true yet
-          </h2>
-          <ul className="adoption-tally">
-            {tally.map((item) => (
-              <li key={item.key}>
-                <span className="adoption-count">
-                  {item.met} <span>of {summary.total}</span>
-                </span>
-                <span>{item.label}</span>
-              </li>
-            ))}
-          </ul>
-        </Container>
-      </section>
-
-      <section aria-labelledby="adoption-products" className="adoption-section">
-        <Container>
+        <section aria-labelledby="adoption-products" className="adoption-board">
           <h2 id="adoption-products" className="adoption-h2">
-            Products, furthest from confirmed first
+            Products, furthest from green first
           </h2>
-          <ol className="adoption-rows">
-            {ordered.map((surface) => (
-              <Row key={surface.id} surface={surface} />
+          <div className="adoption-head" aria-hidden="true">
+            <span />
+            {CHECK_KEYS.map((key) => (
+              <span key={key}>{CHECK_SHORT[key]}</span>
             ))}
+          </div>
+          <ol className="adoption-rows">
+            {board.rows.map(({ surface, checks }) => {
+              const gaps = checks.filter((check) => check.state !== "met" && check.state !== "na" && !sharedKeys.has(check.key));
+              return (
+                <li
+                  key={surface.id}
+                  id={surface.id}
+                  className="adoption-row"
+                  data-green={surface.confirmed || undefined}
+                  onPointerEnter={() => setActive(surface.id)}
+                  onPointerLeave={() => setActive((current) => (current === surface.id ? null : current))}
+                  onFocus={() => setActive(surface.id)}
+                  onBlur={() => setActive((current) => (current === surface.id ? null : current))}
+                >
+                  <h3 className="adoption-name">{surface.name}</h3>
+                  <ul className="adoption-marks" aria-label={`${surface.confirmed ? "Green. " : ""}${surface.met} of ${CHECK_KEYS.length} checks pass`}>
+                    {checks.map((check) => (
+                      <li key={check.key} data-state={check.state}>
+                        <Mark state={check.state} />
+                        <span className="adoption-hidden">
+                          {check.label}: {STATE_WORD[check.state]}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {gaps.length ? (
+                    <ul className="adoption-gaps">
+                      {gaps.map((check) => (
+                        <Gap key={check.key} check={check} />
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              );
+            })}
           </ol>
-          {listedOnly.length ? (
-            <p className="adoption-detail adoption-aside">
-              Listed, not counted: {listedOnly.map((surface) => `${surface.name} (${surface.scopeNote})`).join("; ")}
+          {board.shared.length ? (
+            <p className="adoption-shared">
+              {board.shared.map((item, index) => (
+                <Fragment key={item.key}>
+                  {index ? " " : null}
+                  <span className="adoption-gap-key">{CHECK_SHORT[item.key]}, shared:</span> {item.source ? (
+                    <Link href={item.source} tone="secondary">
+                      {item.why}
+                    </Link>
+                  ) : (
+                    item.why
+                  )}.
+                </Fragment>
+              ))}
             </p>
           ) : null}
-        </Container>
-      </section>
-
-      <section aria-labelledby="adoption-program" className="adoption-section">
-        <Container>
-          <h2 id="adoption-program" className="adoption-h2">
-            The program
-          </h2>
-          <p className="adoption-lede-small">
-            Ouro UI is done when frontier models pick it in the model-reviews run and the benchmark proves it. The steps and their evidence live in{" "}
-            {program.issue ? <Link href={program.issue.url ?? program.source}>the program issue #{program.issue.number}</Link> : "the program issue"}, which this page reads.
+          <p className="adoption-key" aria-hidden="true">
+            <span>
+              <Mark state="met" /> passes
+            </span>
+            <span>
+              <Mark state="missing" /> missing
+            </span>
+            <span>
+              <Mark state="unmeasured" /> not measured yet
+            </span>
+            <span>
+              <Mark state="na" /> does not apply
+            </span>
           </p>
-          <ol className="adoption-steps">
-            {program.steps.map((step) => (
-              <li key={step.id} className="adoption-step">
-                <div className="adoption-step-head">
-                  <h3 className="adoption-h3">{step.id}</h3>
-                  <Badge tone={STATE_TONE[step.state] ?? "secondary"} variant="soft">
-                    {step.state}
-                  </Badge>
-                </div>
-                <p className="adoption-detail">
-                  {step.repo ? `${step.repo}. ` : ""}
-                  {step.dependsOn.length ? `After ${step.dependsOn.join(", ")}.` : "Starts now."}
-                </p>
-                <p>
-                  <Linked text={step.evidence} />
-                </p>
-              </li>
-            ))}
-          </ol>
-          <h3 className="adoption-h3 adoption-numbers-title">Ouro UI's own numbers</h3>
-          <dl className="adoption-numbers">
-            {program.headline.map((item) => (
-              <div key={item.key} className="adoption-number">
-                <dt>{item.source ? <Link href={item.source}>{item.label}</Link> : item.label}</dt>
-                <dd>
-                  {item.value === null ? <Unmeasured cell={item} /> : <strong>{item.value}</strong>}
-                  {item.value !== null && item.note ? <span className="adoption-detail">{item.note}</span> : null}
-                  <time className="adoption-when" dateTime={item.measuredAt}>
-                    measured {stamp(item.measuredAt)}
-                  </time>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </Container>
-      </section>
-
-      <section aria-labelledby="adoption-work" className="adoption-section">
-        <Container>
-          <h2 id="adoption-work" className="adoption-h2">
-            Work items
-          </h2>
-          <ul className="adoption-cards">
-            {cards.map((card) => (
-              <li key={card.id} className="adoption-card">
-                <h3 className="adoption-h3">{card.title}</h3>
-                <p>{card.outcome}</p>
-                <p className="adoption-detail">
-                  {card.issue ? (
-                    <>
-                      <Link href={card.issue.url ?? program.source}>Issue #{card.issue.number}</Link>, {card.issue.state}
-                    </>
-                  ) : (
-                    <span className="adoption-null">issue pending</span>
-                  )}
-                  {card.surfaces.length ? ` · ${card.surfaces.map((id) => byId.get(id)?.name ?? id).join(", ")}` : " · cross-cutting"}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Container>
-      </section>
+        </section>
+      </Container>
     </div>
   );
 }
