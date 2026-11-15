@@ -35,6 +35,12 @@ This one add also reformats the file, as shadcn@4.21.1 does for any item that ca
 
 To change a token afterwards, edit it where the CLI wrote it, or set it in a `:root` rule of your own. Add `ouro-base` again only when a release's notes say it has new tokens.
 
+## A strict Content Security Policy
+
+When your pages are served with a policy that refuses inline styles (`style-src 'self'`, with no `'unsafe-inline'` or nonce), wrap the app in `<OuroProvider strictCsp>` in place of Base UI's `CSPProvider`. Under it no Ouro UI part adds a `<style>` element, and the page breaks no rule of that policy, in Chromium and WebKit.[^strict-csp] Styles set from script still apply. The Ouro source rule counts a bare `CSPProvider` and names this fix.[^csp-rule]
+
+The squircle polyfill (`registerSquirclePolyfill`) adds `<style>` elements of its own, so leave it out under such a policy.[^polyfill-style]
+
 ## Adding components
 
 ```sh
@@ -101,3 +107,6 @@ build: {
 [^dev-strip]: test:scripts/dev-strip.test.mjs::a Vite production bundle removes every dev message string verify:testExists(scripts/dev-strip.test.mjs::a Vite production bundle removes every dev message string)
 [^not-shipped]: test:scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them; test:scripts/registry.test.mjs::runtime items ship no tests, stories, specs or test tooling, and never pull in the test kit; test:scripts/registry.test.mjs::every registry file ships in exactly one item, except the repository's own theme test verify:testExists(scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them) verify:testExists(scripts/registry.test.mjs::runtime items ship no tests, stories, specs or test tooling, and never pull in the test kit) verify:testExists(scripts/registry.test.mjs::every registry file ships in exactly one item, except the repository's own theme test)
 [^use-client-notices]: https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22; https://github.com/vitejs/vite/issues/15012 verify:urlOk(https://github.com/vitejs/vite-plugin-react/blob/04cac5020e349f452d76c5a4f6d788ad4b38930a/packages/common/warning.ts#L8-L22) verify:urlOk(https://github.com/vitejs/vite/issues/15012) verify:fileLine(package.json, /"@vitejs.plugin-react": "\^6\.1\.1"/)
+[^strict-csp]: test:test/strict-csp.test.tsx::under style-src 'self' > OuroProvider strictCsp adds no <style> element, and the page breaks no rule of its policy, in every part that would add one verify:testExists(test/strict-csp.test.tsx::under style-src 'self' > OuroProvider strictCsp adds no <style> element, and the page breaks no rule of its policy, in every part that would add one)
+[^csp-rule]: test:scripts/kits/source-rules.test.mjs::third-party-control > points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count verify:testExists(scripts/kits/source-rules.test.mjs::third-party-control > points Base UI's CSPProvider to OuroProvider strictCsp, which it does not count)
+[^polyfill-style]: registry/ouro/lib/ouro/squircle/pending.ts verify:fileLine(registry/ouro/lib/ouro/squircle/pending.ts, /createElement\("style"\)/)
