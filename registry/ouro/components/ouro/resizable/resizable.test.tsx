@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Resizable, ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/registry/ouro/components/ouro/resizable/resizable";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -115,7 +115,7 @@ describe("Resizable layout", () => {
     expect(screen.handles[0]!.getAttribute("aria-valuenow")).toBe("25");
     expect(warn).not.toHaveBeenCalled();
     expect(screen.group.getBoundingClientRect().height).toBe(96);
-    expect(getComputedStyle(screen.panels[0]!).paddingLeft).toBe("8px");
+    expect(getComputedStyle(screen.panels[0]!.querySelector('[data-ouro-part="panel"]')!).paddingLeft).toBe("8px");
   });
 });
 
@@ -752,5 +752,63 @@ describe("Resizable context value", () => {
     expect(before).toBeGreaterThan(0);
     await act(async () => bump.current());
     expect(handleCommits).toBe(before);
+  });
+});
+
+describe("ResizablePanel", () => {
+  it("draws its focus ring whole over content that sticks to an edge, and leaves the pointer to the content", async () => {
+    const screen = await render(
+      <Resizable>
+        <ResizablePanel label="Files" defaultSize={50}>
+          <div style={{ position: "sticky", top: 0, zIndex: 10, height: 40, background: "var(--background)" }}>Chats</div>
+          <div style={{ height: 600 }} />
+        </ResizablePanel>
+        <ResizablePanel label="Editor" defaultSize={50}>
+          Editor
+        </ResizablePanel>
+      </Resizable>,
+      // 401px less the 1px handle is two whole 200px panels, so the panel's right edge is on a whole pixel.
+      { width: 401 },
+    );
+    const body = screen.panels[0]!.querySelector<HTMLElement>('[data-ouro-part="panel"]')!;
+    const overlay = screen.panels[0]!.querySelector<HTMLElement>("[data-resizable-focus-ring]")!;
+    await expect.poll(() => body.tabIndex).toBe(0);
+    // Scrolled, the header sticks to the panel's top edge, over the ring's place.
+    body.scrollTop = 200;
+    const header = body.querySelector<HTMLElement>("[style*='sticky']")!;
+    await expect.poll(() => header.getBoundingClientRect().top).toBe(body.getBoundingClientRect().top);
+    // At rest nothing lies over the content, so a contrast check sees the text's own background.
+    expect(getComputedStyle(overlay).display).toBe("none");
+    body.focus();
+    expect(getComputedStyle(overlay).display).toBe("block");
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    // The ring's colour as pixels, and the panel's pixels as the screen shows them.
+    const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+    probe.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ring");
+    probe.fillRect(0, 0, 1, 1);
+    const ring = [...probe.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+    const image = new Image();
+    image.src = `data:image/png;base64,${await page.screenshot({ save: false, element: body, animations: "disabled" })}`;
+    await image.decode();
+    const shot = document.createElement("canvas");
+    shot.width = image.naturalWidth;
+    shot.height = image.naturalHeight;
+    const context = shot.getContext("2d", { willReadFrequently: true })!;
+    context.drawImage(image, 0, 0);
+    const scale = image.naturalWidth / body.getBoundingClientRect().width;
+    const { width, height } = body.getBoundingClientRect();
+    // One pixel in from the middle of each edge, inside the 2px ring. The handle's grip sits over the middle of the end edge,
+    // so that probe is a quarter of the way down.
+    const edges = { top: [width / 2, 1], bottom: [width / 2, height - 1], start: [1, height / 2], end: [width - 1, height / 4] };
+    const shown = Object.fromEntries(
+      Object.entries(edges).map(([edge, [x, y]]) => {
+        const pixel = [...context.getImageData(Math.floor(x! * scale), Math.floor(y! * scale), 1, 1).data.slice(0, 3)];
+        return [edge, pixel.every((value, index) => Math.abs(value - ring[index]!) <= 24)];
+      }),
+    );
+    expect(shown).toEqual({ top: true, bottom: true, start: true, end: true });
+    // The ring takes no pointer: a press on the sticky header lands on the header.
+    const box = header.getBoundingClientRect();
+    expect(document.elementFromPoint(box.left + box.width / 2, box.top + 1)).toBe(header);
   });
 });
