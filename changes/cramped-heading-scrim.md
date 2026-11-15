@@ -1,0 +1,1 @@
+- Fixed: Ouro check's cramped-heading no longer measures a heading's room against a fixed layer that covers the window, such as a sheet's scrim.
