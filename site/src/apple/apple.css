@@ -491,6 +491,8 @@
 
   /* The Ouro AX hero's anglerfish, lamp up to the manual Siri reads. */
   .apple-angler {
+    /* The stage's unlayered creature rules (stage.css) stroke with --ink, which this page doesn't set otherwise. */
+    --ink: var(--foreground);
     justify-self: center;
     width: 100%;
     max-width: 26rem;

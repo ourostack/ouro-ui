@@ -60,7 +60,9 @@ export function webComponents(dir = join(root, COMPONENTS_DIR)) {
 /**
  * Apple's components from the files of Sources/OuroHX/Components: each Ouro<Name>.swift that declares the component itself,
  * a public struct Ouro<Name> (a view such as OuroButton, or a value a modifier shows, such as OuroToast) or a public
- * ouro<Name>( modifier (OuroSheet), under web's name. Files of support types (OuroTone's enum) are not components.
+ * ouro<Name>( modifier (OuroSheet), and every other public struct Ouro<Other> that is a View, since one file can hold a
+ * family (OuroLoading.swift: OuroSkeleton, OuroSpinner and OuroProgress), under web's name. Support types (OuroTone's
+ * enum, a palette, OuroSegment) are not components.
  * WebNames.swift's renamed aliases (`typealias OuroEmpty… = OuroEmptyState…`) say where the names differ.
  */
 export function appleComponents(files) {
@@ -73,6 +75,7 @@ export function appleComponents(files) {
     const name = /(?:^|\/)Ouro(\w+)\.swift$/.exec(path)?.[1];
     if (!name) continue;
     if (new RegExp(`public struct Ouro${name}\\b`).test(text) || new RegExp(`public func ouro${name}\\b`).test(text)) views.add(name);
+    for (const match of text.matchAll(/public struct Ouro(\w+)(?:<[^{]*?>)?\s*:[^{]*\bView\b/g)) views.add(match[1]);
   }
   return [...views].sort().map((name) => ({ name: `Ouro${name}`, web: webName.get(name) ?? kebab(name) }));
 }
