@@ -251,6 +251,8 @@ describe("Lightbox opening and closing", () => {
     const thumbnail = thumbnails(host)[0]!;
     if (way === "hover") await userEvent.hover(thumbnail);
     else await act(async () => thumbnail.focus());
+    // The viewer mounts closed in the commit the hover or focus makes, and is ready to open once its effects have run.
+    await act(async () => {});
     expect(popup()).toBeNull();
     flushSync(() => thumbnail.click());
     expect(popup()).not.toBeNull();
