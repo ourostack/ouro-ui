@@ -1,0 +1,1 @@
+- Changed: in a MessageList, a message with actions no longer draws an empty slot for the list's action bar: the bar goes straight into the bubble's box, so such a message draws [one element fewer](registry/ouro/components/ouro/message/message.weight.test.tsx "verify:fileLine(registry/ouro/components/ouro/message/message.weight.test.tsx, /elements: 10,/)").

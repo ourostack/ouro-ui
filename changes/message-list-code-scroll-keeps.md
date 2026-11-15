@@ -1,0 +1,1 @@
+- Changed: MessageList keeps the messages it drew while code scrolls it, until the reader scrolls.

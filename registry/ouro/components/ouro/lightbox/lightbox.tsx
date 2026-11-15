@@ -863,6 +863,16 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   );
 
   const [ownOpen, setOwnOpen] = useState(false);
+  // The viewer's dialog mounts once someone may open it, on a thumbnail's first hover or focus, or as one is pressed,
+  // so a page of pictures mounts none until then. It opens only once it has mounted closed, so a thumbnail pressed with
+  // neither first (a click from a script) still runs the viewer's opening.
+  const [armed, setArmed] = useState(false);
+  const [ready, setReady] = useState(false);
+  const arm = () => setArmed(true);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (armed) setReady(true);
+  }, [armed]);
   const [start, setStart] = useState(0);
   const open = controlled ? openProp : ownOpen;
   const setOpen = controlled ? (onOpenChange ?? (() => {})) : setOwnOpen;
@@ -886,7 +896,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   const choose = useRef<((index: number) => void) | null>(null);
 
   const viewer = (
-    <DialogRoot open={open} onOpenChange={(next) => setOpen(next)}>
+    <DialogRoot open={open && (controlled || ready)} onOpenChange={(next) => setOpen(next)}>
       <DialogPortal>
         <DialogBackdrop />
         <DialogViewport>
@@ -944,6 +954,8 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       data-ouro-control="lightbox"
       data-ouro-part="thumbnail"
       {...holdPageAtPress.dialog}
+      onPointerEnter={arm}
+      onFocus={arm}
       onPointerDown={(event) => {
         // A mouse's press starts the image's fetch, ahead of the click that opens the viewer. A
         // finger or a pen may be starting a scroll, so it waits for a release that has not moved.
@@ -963,6 +975,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       className={mosaic ? mosaicThumbnailClass : thumbnailClass}
       onClick={() => {
         setStart(position);
+        arm();
         setOwnOpen(true);
       }}
     >
@@ -994,7 +1007,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
             </li>
           ))}
         </ul>
-        {viewer}
+        {armed && viewer}
       </div>
     );
   }
@@ -1008,7 +1021,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
           </li>
         ))}
       </ul>
-      {viewer}
+      {armed && viewer}
     </div>
   );
 }

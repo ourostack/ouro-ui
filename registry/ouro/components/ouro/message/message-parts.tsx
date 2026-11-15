@@ -338,7 +338,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     const data = layer.get(row)!;
     if (!hasMenuEntries(data)) return false;
     // From the keyboard, at the message's end: where its bar's menu button would be. A message with menu entries has a bar, so its slot is there in the message.
-    const box = data.slot()!.parentElement!;
+    const box = data.slot()!;
     show(row, data, at ?? frozen(box));
     return true;
   };
@@ -353,7 +353,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     // Stryker disable next-line ConditionalExpression,StringLiteral: no browser has an undefined document, so the test browsers cannot reach the server-render branch (null); the host's className is on the next line, where its mutants are tested.
     typeof document === "undefined"
       ? /* istanbul ignore next @preserve -- server only */ null
-      : Object.assign(document.createElement("span"), { className: "contents" }),
+      : barHost(),
   );
   const [shown, setShown] = useState<{ row: HTMLElement; data: MessageBarData } | null>(null);
   // Stryker disable next-line ConditionalExpression,LogicalOperator: the slot is found only through the row's data, and the data only through the row, so a slot holds the other two.
@@ -424,6 +424,20 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
 }
 
 const hasMenuEntries = (data: MessageBarData) => (data.menu !== undefined && data.menu.length > 0) || (data.reactions !== undefined && data.reactions.length > 0);
+
+/**
+ * The element the list's one bar renders into, moved from message to message: it draws no box of its own, and its
+ * marker tells the list that a change in it, or its move, is the bar's alone.
+ *
+ * @claim "it draws no box of its own" registry/ouro/components/ouro/message/message-list.actions.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.actions.test.tsx::MessageList actions > opens the menu within the event once its code has loaded, and draws the bar's host as no box of its own)
+ */
+function barHost(): HTMLSpanElement {
+  const host = document.createElement("span");
+  host.className = "contents";
+  // Stryker disable next-line StringLiteral: the list finds the host by the attribute alone ([data-ouro-message-bar-slot]), never by its value.
+  host.dataset["ouroMessageBarSlot"] = "";
+  return host;
+}
 
 /** An element's box as it is now, for a menu that stays where it opened after the element goes. */
 function frozen(element: Element): MenuAnchor {
