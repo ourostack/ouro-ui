@@ -653,11 +653,25 @@ test("Pages writes core's newest release into the Platforms pages before it buil
   assert.match(pages, /if \[ "\$code" = 2 \]; then\n\s+echo "Core's newest release could not be read[^\n]*>> "\$GITHUB_STEP_SUMMARY"\n\s+elif \[ "\$code" != 0 \]; then\n\s+exit "\$code"\n\s+fi\n/);
 });
 
-test("the scheduled Apple check holds only what is pinned, through --live, and only Pages writes core's release", () => {
+test("the scheduled Apple check holds only what is pinned, through --live, and only Pages writes core's release and the kits' newest releases", () => {
   const apple = workflow("apple-release.yml");
   assert.match(apple, /run: node scripts\/platform-versions\.mjs --live$/m);
+  assert.match(apple, /run: node scripts\/parity-matrix\.mjs --live$/m);
   assert.doesNotMatch(apple, /platform-versions\.mjs --(write|render|apple)/);
+  assert.doesNotMatch(apple, /run: node scripts\/parity-matrix\.mjs --(write|render)/);
   assert.match(workflow("pages.yml"), /node scripts\/platform-versions\.mjs --write/);
+  assert.match(workflow("pages.yml"), /node scripts\/parity-matrix\.mjs --write/);
+});
+
+test("Pages writes the other kits' newest releases into the parity matrix before it builds, and keeps main's copy when GitHub cannot be read", () => {
+  const pages = workflow("pages.yml");
+  const core = pages.indexOf("node scripts/platform-versions.mjs --write || code=$?");
+  const write = pages.indexOf("node scripts/parity-matrix.mjs --write || code=$?");
+  const render = pages.indexOf("node scripts/parity-matrix.mjs --render");
+  assert.ok(write > core, "pages.yml writes the matrix's kits after core's copies");
+  assert.ok(render > write, "then renders the matrix from the data it wrote");
+  assert.ok(pages.indexOf("pnpm site:build") > render, "before the site builds");
+  assert.match(pages, /if \[ "\$code" = 2 \]; then\n\s+echo "The other kits' newest releases could not be read[^\n]*>> "\$GITHUB_STEP_SUMMARY"\n\s+elif \[ "\$code" != 0 \]; then\n\s+exit "\$code"\n\s+fi\n/);
 });
 
 test("CI cancels only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
