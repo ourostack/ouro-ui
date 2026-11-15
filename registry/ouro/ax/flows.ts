@@ -5,9 +5,13 @@ export type { Driver, Expect, Finding, Flow, FlowReport, FlowSuite, Harness, Har
 // first statement, which would take the JSDoc below with it.
 
 import { spawn } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { quietPipes, runCli, type CliIo } from "./cli.ts";
+import { defineCli, defineCommand, type Cli, type CommandDef, type FlagSpec, type Input } from "./command.ts";
+import { outcome, type Outcome } from "./outcome.ts";
+import { AxError, commandLine } from "./problem.ts";
 
 /**
  * An adopter's agent flows as data, run in CI without a model: a flow is the calls a good agent makes for one task, and
@@ -464,17 +468,91 @@ async function runSuite(suite: FlowSuite, options: { out: string; only?: readonl
   }
 }
 
-const USAGE = `ax-flows: runs an adopter's agent flows against its mock and writes the flow-review/0 findings and report.
+const ABOUT = [
+  "ax-flows runs an adopter's agent flows against its mock and writes the flow-review/0 findings and report.",
+  "The suite module default-exports defineSuite({ tool, flows, cli, start, guard, state?, brandNames? }).",
+];
 
-  node flows.ts run <suite module> [--out <dir>] [--flows a,b] [--slack <n>] [--xray <report.json>]
+const FLOW_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
+  out: { type: "string", placeholder: "<dir>", description: "Where findings.jsonl and report.json go (default: report)." },
+  flows: { type: "list", placeholder: "<a,b>", description: "Run only these flows." },
+  slack: { type: "string", placeholder: "<n>", description: "Multiply every time budget by this number above 0, for a loaded machine." },
+  xray: { type: "string", placeholder: "<report.json>", description: "Attach an ax-xray report (--json) to report.json." },
+});
 
-The suite module default-exports defineSuite({ tool, flows, cli, start, guard, state?, brandNames? }).
-  --out <dir>      where findings.jsonl and report.json go (default: report)
-  --flows a,b      only these flows
-  --slack <n>      multiply every time budget (a loaded machine)
-  --xray <file>    attach an ax-xray report (--json) to report.json
-Exit codes: 0 every check passes or fails only as known, 1 an unknown failure or a known defect that now passes, 2 usage.
-`;
+type Io = Pick<CliIo, "stdout" | "stderr">;
+
+/** Why a file cannot be an X-ray report, or null when it can. */
+function xrayProblem(file: string): string | null {
+  if (!existsSync(file)) return "does not exist";
+  try {
+    JSON.parse(readFileSync(file, "utf8"));
+    return null;
+  } catch {
+    return "is not JSON";
+  }
+}
+
+// The run: its arguments are checked first, then the suite is loaded and run. The lines for each flow go to stderr under
+// --json, so stdout holds the outcome alone. A failure, or a known defect that now passes, is the failed outcome, exit 1.
+async function runSuiteCommand(cli: Cli, input: Input, json: boolean, io: Io): Promise<Outcome> {
+  const suiteArg = input["suite"] as string;
+  const out = (input["out"] as string | undefined) ?? "report";
+  const only = input["flows"] as readonly string[] | undefined;
+  const slackText = input["slack"] as string | undefined;
+  const xrayArg = input["xray"] as string | undefined;
+  const fix = (...flags: string[]) => commandLine([cli.name, "run", suiteArg, ...flags]);
+  const slack = slackText === undefined ? undefined : Number(slackText);
+  if (slack !== undefined && !(slack > 0)) throw new AxError({ code: "bad-value", exit: cli.exits.code("usage"), thing: "run --slack", problem: `takes a number above 0, not "${slackText}"`, fix: fix("--slack", "2") });
+  const xray = xrayArg === undefined ? undefined : resolve(xrayArg);
+  const xrayWrong = xray === undefined ? null : xrayProblem(xray);
+  if (xrayWrong !== null) throw new AxError({ code: "bad-value", exit: cli.exits.code("usage"), thing: "run --xray", problem: `takes an ax-xray report (--json), and ${xrayArg} ${xrayWrong}`, fix: fix("--xray", "report.json") });
+  const modulePath = resolve(suiteArg);
+  if (!existsSync(modulePath)) throw new AxError({ code: "no-suite", exit: cli.exits.code("usage"), thing: suiteArg, problem: "there is no suite module there", fix: "name the suite module's path, such as flows/suite.ts" });
+  const loaded = (await import(pathToFileURL(modulePath).href)) as { default?: FlowSuite };
+  const suite = loaded.default;
+  if (!suite || !Array.isArray(suite.flows) || typeof suite.cli !== "function" || typeof suite.guard !== "function")
+    throw new AxError({ code: "bad-suite", exit: cli.exits.code("usage"), thing: suiteArg, problem: "does not default-export defineSuite({ tool, flows, cli, start, guard })", fix: "export default defineSuite({ tool, flows, cli, start, guard })" });
+  mkdirSync(out, { recursive: true });
+  let r: FlowReport;
+  try {
+    r = await runSuite(suite, { out, ...(only === undefined ? {} : { only: [...only] }), ...(slack === undefined ? {} : { slack }), ...(xray === undefined ? {} : { xray }) });
+  } catch (problem) {
+    throw new AxError({ code: "run-stopped", exit: cli.exits.code("error"), thing: "run", problem: `stopped before it finished: ${(problem as Error).message}`, fix: null });
+  }
+  const log = json ? io.stderr : io.stdout;
+  for (const f of r.summary.flows) log.write(`${f.pass ? "pass" : "FAIL"}  ${f.flow.padEnd(4)} ${f.checks} checks, ${f.failed} failed${f.known ? ` (${f.known} known)` : ""}\n`);
+  for (const f of r.findings.filter((x) => !x.pass)) log.write(`  ${f.known ? "known" : "FAIL "} ${f.flow} ${f.step} ${f.check}${f.selector ? ` ${f.selector}` : ""}: ${JSON.stringify(f.measured ?? f.evidence ?? "")}${f.fix ? ` -> ${f.fix}` : ""}\n`);
+  for (const k of r.summary.knownPassing) log.write(`  FIXED ${k.flow} ${k.step} passes now: remove known ${k.known}\n`);
+  const { pass, checks, unknownFail } = r.summary;
+  const fixed = r.summary.knownPassing.length;
+  const found = join(out, "findings.jsonl");
+  const totals = `${pass}/${checks} checks pass; ${unknownFail} unknown failure${unknownFail === 1 ? "" : "s"}; ${fixed} known defect${fixed === 1 ? " passes" : "s pass"} now`;
+  if (!unknownFail && !fixed) return outcome({ action: "run", state: "done", summary: `${totals}. ${found}` });
+  const todo = [unknownFail ? "fix the FAIL lines above" : "", fixed ? "remove the known mark on each FIXED line above" : ""].filter(Boolean).join(", and ");
+  return outcome({
+    action: "run",
+    state: "failed",
+    summary: `${totals}. ${found}`,
+    error: { code: "checks-failed", exit: cli.exits.code("error"), thing: "run", problem: totals, fix: `${todo}; findings are in ${found}` },
+  });
+}
+
+// The tool: one command, `run`, named by its word, so `--help`, `--json` and every refusal come from the Ouro AX kit.
+function flowsTool(io: Io): Cli {
+  const runCommand: CommandDef<Outcome> = defineCommand<Outcome>({
+    name: "run",
+    summary: "Runs an adopter's agent flows against its mock, prints a line per flow and per failure, and writes the findings and report.",
+    effect: "private",
+    examples: ["ax-flows run flows/suite.ts --out report --xray xray.json"],
+    args: [{ name: "suite", description: "The suite module, which default-exports defineSuite({ tool, flows, cli, start, guard }).", required: true, missing: "Name the suite module to run, such as flows/suite.ts." }],
+    flags: FLOW_FLAGS,
+    output: "an outcome: state done when every check passes or fails only as known; failed (exit 1) on an unknown failure or a known defect that now passes",
+    run: (input, ctx) => runSuiteCommand(cli, input, ctx.json, io),
+  });
+  const cli: Cli = defineCli({ name: "ax-flows", about: ABOUT, commands: [runCommand] });
+  return cli;
+}
 
 /**
  * The command: run a suite module, print one line per flow and per failure, write the files. Exits 1 on a failure no
@@ -483,41 +561,14 @@ Exit codes: 0 every check passes or fails only as known, 1 an unknown failure or
  * @claim "Exits 1 on a failure no" registry/ouro/ax/flows.test.mts verify:testExists(registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage)
  */
 async function main(argv: readonly string[], io: { stdout: { write(s: string): unknown }; stderr: { write(s: string): unknown } } = { stdout: process.stdout, stderr: process.stderr }): Promise<number> {
-  const usage = (problem: string) => {
-    io.stderr.write(`ax-flows: ${problem}. Fix: node flows.ts run <suite module> [--out <dir>].\n`);
-    return 2;
-  };
-  if (argv[0] === "--help" || argv[0] === "help") {
-    io.stdout.write(USAGE);
-    return 0;
-  }
-  if (argv[0] !== "run" || !argv[1] || argv[1].startsWith("--")) return usage("it runs a suite: run <suite module>");
-  const opts: { out: string; only?: string[]; slack?: number; xray?: string } = { out: "report" };
-  for (let i = 2; i < argv.length; i += 2) {
-    const [flag, value] = [argv[i]!, argv[i + 1]];
-    if (value === undefined) return usage(`${flag} needs a value`);
-    if (flag === "--out") opts.out = value;
-    else if (flag === "--flows") opts.only = value.split(",").filter(Boolean);
-    else if (flag === "--xray") opts.xray = resolve(value);
-    else if (flag === "--slack" && Number(value) > 0) opts.slack = Number(value);
-    else return usage(flag === "--slack" ? `--slack takes a number above 0, not "${value}"` : `there is no ${flag}; it takes --out, --flows, --slack, --xray`);
-  }
-  const loaded = (await import(pathToFileURL(resolve(argv[1])).href)) as { default?: FlowSuite };
-  const suite = loaded.default;
-  if (!suite || !Array.isArray(suite.flows) || typeof suite.cli !== "function" || typeof suite.guard !== "function") return usage(`${argv[1]} does not default-export defineSuite({ tool, flows, cli, start, guard })`);
-  mkdirSync(opts.out, { recursive: true });
-  const r = await runSuite(suite, opts);
-  for (const f of r.summary.flows) io.stdout.write(`${f.pass ? "pass" : "FAIL"}  ${f.flow.padEnd(4)} ${f.checks} checks, ${f.failed} failed${f.known ? ` (${f.known} known)` : ""}\n`);
-  for (const f of r.findings.filter((x) => !x.pass)) io.stdout.write(`  ${f.known ? "known" : "FAIL "} ${f.flow} ${f.step} ${f.check}${f.selector ? ` ${f.selector}` : ""}: ${JSON.stringify(f.measured ?? f.evidence ?? "")}${f.fix ? ` -> ${f.fix}` : ""}\n`);
-  for (const k of r.summary.knownPassing) io.stdout.write(`  FIXED ${k.flow} ${k.step} passes now: remove known ${k.known}\n`);
-  io.stdout.write(`${r.summary.pass}/${r.summary.checks} checks pass; ${r.summary.unknownFail} unknown failure${r.summary.unknownFail === 1 ? "" : "s"}; ${r.summary.knownPassing.length} known defect${r.summary.knownPassing.length === 1 ? " passes" : "s pass"} now. ${join(opts.out, "findings.jsonl")}\n`);
-  return r.summary.unknownFail || r.summary.knownPassing.length ? 1 : 0;
+  return runCli(flowsTool(io), argv, io);
 }
 
 // Run as a program (`node flows.ts run ...`); the tests import it instead. No top-level await: the suite module imports
 // this file, which must finish loading first.
 /* node:coverage disable */
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  quietPipes(process);
   void main(process.argv.slice(2)).then((code) => (process.exitCode = code));
 }
 /* node:coverage enable */

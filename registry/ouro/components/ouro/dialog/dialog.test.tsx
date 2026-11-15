@@ -316,6 +316,34 @@ describe("trigger", () => {
   });
 });
 
+describe("Dialog below an app's own bar", () => {
+  const viewport = () => document.querySelector<HTMLElement>('[data-ouro="dialog-viewport"]')!;
+  const setInset = () => document.documentElement.style.setProperty("--ouro-inset-top", "40px");
+
+  afterEach(() => {
+    document.documentElement.style.removeProperty("--ouro-inset-top");
+  });
+
+  it("starts the backdrop and the centered viewport below --ouro-inset-top, and centres in the space under it", async () => {
+    setInset();
+    const element = await openUncontrolled();
+    const layer = backdrop()!.getBoundingClientRect();
+    const frame = viewport().getBoundingClientRect();
+    expect(layer.top).toBe(40);
+    expect(Math.round(layer.bottom)).toBeGreaterThanOrEqual(innerHeight);
+    expect(frame.top).toBe(40);
+    expect(Math.round(frame.bottom)).toBe(innerHeight);
+    const rect = element.getBoundingClientRect();
+    expect(Math.abs(rect.top + rect.height / 2 - (40 + innerHeight) / 2)).toBeLessThanOrEqual(1);
+  });
+
+  it("starts the backdrop and the viewport at the window's top when the app sets no inset", async () => {
+    await openUncontrolled();
+    expect(backdrop()!.getBoundingClientRect().top).toBe(0);
+    expect(viewport().getBoundingClientRect().top).toBe(0);
+  });
+});
+
 describe("Dialog stacking above the app's fixed bars", () => {
   /** The app's `--ouro-layer`: 50 from ouro-base, unless the app raised it. */
   const layer = () => Number(getComputedStyle(document.documentElement).getPropertyValue("--ouro-layer"));
@@ -381,6 +409,15 @@ describe("Dialog stacking above the app's fixed bars", () => {
 });
 
 describe("centered dialog", () => {
+  it("renders a hidden surface layer first in the popup, under the content", async () => {
+    const dialog = await openUncontrolled();
+    const surface = dialog.firstElementChild as HTMLElement;
+    expect(surface.hasAttribute("data-ouro-surface")).toBe(true);
+    expect(surface.getAttribute("aria-hidden")).toBe("true");
+    expect(surface.style.zIndex).toBe("-1");
+    expect(dialog.hasAttribute("data-ouro-squircle")).toBe(true);
+  });
+
   it("keeps the title clear of the close button in a right-to-left page", async () => {
     document.documentElement.dir = "rtl";
     try {
@@ -947,6 +984,29 @@ describe("Dialog iOS backdrop rule", () => {
       .toBe(true);
     expect(window.scrollY).toBe(2000);
     window.scrollTo(0, 0);
+  });
+
+  it("clips the backdrop below --ouro-inset-top, since its top is anchored to the screen", async () => {
+    const ios = document.createElement("style");
+    ios.textContent = withIosRules(pageCss());
+    document.head.append(ios);
+    mounted.push(ios);
+    document.documentElement.style.setProperty("--ouro-inset-top", "40px");
+    try {
+      await render(
+        <Dialog title="Inset" open onOpenChange={() => {}}>
+          Body
+        </Dialog>,
+      );
+      await settled();
+      const layer = backdrop()!;
+      expect(getComputedStyle(layer).position).toBe("absolute");
+      expect(getComputedStyle(layer).clipPath).toBe("inset(40px 0px 0px)");
+      const bar = document.elementFromPoint(100, 20);
+      expect(layer.contains(bar)).toBe(false);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-inset-top");
+    }
   });
 });
 
@@ -1539,6 +1599,48 @@ describe("first focus with a scrolling body", () => {
       </>,
     );
     await expect.poll(() => document.activeElement?.textContent).toBe("Edit name");
+  });
+});
+
+describe("first focus with a field in the footer", () => {
+  const empty = <p style={{ margin: 0 }}>No cookbooks yet.</p>;
+  const newName = () => document.querySelector<HTMLElement>('input[aria-label="New cookbook"]');
+  async function openByKeyboard(children: ReactNode, footer: ReactNode) {
+    await render(
+      <Dialog title="Save to cookbook" trigger={<Button>Save</Button>} footer={footer}>
+        {children}
+      </Dialog>,
+    );
+    trigger().focus();
+    await userEvent.keyboard("{Enter}");
+    await settled();
+  }
+
+  it("puts first focus on a footer field, not on Close, when the body has no control", async () => {
+    await openByKeyboard(
+      empty,
+      <>
+        <input aria-label="New cookbook" />
+        <Button>Create</Button>
+      </>,
+    );
+    await expect.poll(() => document.activeElement).toBe(newName());
+  });
+
+  it("leaves the footer's buttons and checkboxes to Tab, and puts first focus on Close", async () => {
+    await openByKeyboard(
+      empty,
+      <>
+        <input type="checkbox" aria-label="Pin it" />
+        <Button>Create</Button>
+      </>,
+    );
+    await expect.poll(() => document.activeElement).toBe(document.querySelector("[data-ouro-dialog-close]"));
+  });
+
+  it("still puts first focus on the body's control before a footer field", async () => {
+    await openByKeyboard(<button>Pick a cookbook</button>, <input aria-label="New cookbook" />);
+    await expect.poll(() => document.activeElement?.textContent).toBe("Pick a cookbook");
   });
 });
 

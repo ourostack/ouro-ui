@@ -172,32 +172,83 @@ test("the command runs a suite module: exit 0, 1 on an unknown failure or a know
   assert.equal(JSON.parse(readFileSync(join(out, "report.json"), "utf8")).attachments[0].claimSetHash, "abc");
   const fixed = io();
   assert.equal(await main(["run", module, "--out", out, "--flows", "K2"], fixed.io), 1);
-  assert.match(fixed.o.out, /FIXED K2 rooms passes now: remove known https:\/\/example\.com\/issues\/2\n.*0 unknown failures; 1 known defect passes now\./);
+  assert.match(fixed.o.out, /FIXED K2 rooms passes now: remove known https:\/\/example\.com\/issues\/2\n$/);
+  assert.match(fixed.o.err, /^ax-flows: run: 4\/4 checks pass; 0 unknown failures; 1 known defect passes now\. Fix: remove the known mark on each FIXED line above; findings are in .*findings\.jsonl\.\n$/);
   const failing = io();
   assert.equal(await main(["run", module, "--out", out, "--flows", "U1"], failing.io), 1);
-  assert.match(failing.o.out, / {2}FAIL {2}U1 rooms exit: 0 -> nothing: this flow fails on purpose\n {2}FAIL {2}U1 fields fields \[0\]\.owner: ""\n {2}FAIL {2}U1 \* reads-stay-reads: "state changed across a flow that only reads"\n.*3 unknown failures; 0 known defects pass now\./s);
+  assert.match(failing.o.out, / {2}FAIL {2}U1 rooms exit: 0 -> nothing: this flow fails on purpose\n {2}FAIL {2}U1 fields fields \[0\]\.owner: ""\n {2}FAIL {2}U1 \* reads-stay-reads: "state changed across a flow that only reads"\n$/);
+  assert.match(failing.o.err, /^ax-flows: run: \d+\/12 checks pass; 3 unknown failures; 0 known defects pass now\. Fix: fix the FAIL lines above; findings are in .*findings\.jsonl\.\n$/);
   const one = io();
   assert.equal(await main(["run", module, "--out", out, "--flows", "U2"], one.io), 1);
-  assert.match(one.o.out, /; 1 unknown failure; 0 known defects pass now\./);
+  assert.match(one.o.err, /; 1 unknown failure; 0 known defects pass now\. Fix: /);
   const all = io();
   assert.equal(await main(["run", module, "--out", out], all.io), 1);
   assert.equal(all.o.out.match(/^(pass|FAIL) /gm)?.length, 8);
   const help = io();
   assert.equal(await main(["--help"], help.io), 0);
-  assert.match(help.o.out, /^ax-flows: runs an adopter's agent flows/);
+  assert.match(help.o.out, /^ax-flows runs an adopter's agent flows/);
+  assert.match(help.o.out, /^ {2}run {3}Runs an adopter's agent flows/m);
   assert.equal(await main(["help"], io().io), 0);
+  const badXray = join(scratch, "bad-xray.json");
+  writeFileSync(badXray, "{");
   for (const [argv, problem] of [
-    [[], "it runs a suite: run <suite module>"],
-    [["run", "--out", "x"], "it runs a suite: run <suite module>"],
-    [["run", module, "--out"], "--out needs a value"],
-    [["run", module, "--slack", "fast"], '--slack takes a number above 0, not "fast"'],
-    [["run", module, "--retries", "2"], "there is no --retries; it takes --out, --flows, --slack, --xray"],
-    [["run", join(here, "output.ts")], `${join(here, "output.ts")} does not default-export defineSuite({ tool, flows, cli, start, guard })`],
+    [[], "no command given. Fix: ax-flows --help."],
+    [["run"], "run: Name the suite module to run, such as flows/suite.ts. Fix: ax-flows run <suite>."],
+    [["run", module, "--out"], "run: --out needs a value. Fix: "],
+    [["run", module, "--slack", "fast"], 'run --slack: takes a number above 0, not "fast". Fix: '],
+    [["run", module, "--slack", "0"], 'run --slack: takes a number above 0, not "0". Fix: '],
+    [["run", module, "--retries", "2"], "run: there is no --retries; its flags are --out, --flows, --slack, --xray. Fix: "],
+    [["run", module, "--xray", join(scratch, "missing.json")], `run --xray: takes an ax-xray report (--json), and ${join(scratch, "missing.json")} does not exist. Fix: `],
+    [["run", module, "--xray", badXray], `run --xray: takes an ax-xray report (--json), and ${badXray} is not JSON. Fix: `],
+    [["run", join(here, "nope.mts")], `${join(here, "nope.mts")}: there is no suite module there. Fix: name the suite module's path, such as flows/suite.ts.`],
+    [["run", join(here, "output.ts")], `${join(here, "output.ts")}: does not default-export defineSuite({ tool, flows, cli, start, guard }). Fix: export default defineSuite({ tool, flows, cli, start, guard }).`],
   ] as const) {
     const u = io();
     assert.equal(await main(argv, u.io), 2, argv.join(" "));
-    assert.equal(u.o.err, `ax-flows: ${problem}. Fix: node flows.ts run <suite module> [--out <dir>].\n`);
+    assert.equal(u.o.out, "", argv.join(" "));
+    assert.equal(u.o.err.split("\n").length, 2, argv.join(" "));
+    assert.ok(u.o.err.includes(problem), `${argv.join(" ")}: ${u.o.err}`);
   }
+});
+
+test("the command's --help is the Ouro AX kit's, and an unknown flag is one line that names the fix, exit 2", async () => {
+  const run = io();
+  assert.equal(await main(["run", "--help"], run.io), 0);
+  assert.match(run.o.out, /^ax-flows run: Runs an adopter's agent flows/);
+  assert.match(run.o.out, /--xray <report\.json>/);
+  assert.match(run.o.out, /Exit codes: 0 ok, 1 error, 2 usage\./);
+  const wrong = io();
+  const module = join(here, "fixtures", "flows-suite.mts");
+  assert.equal(await main(["run", module, "--wat"], wrong.io), 2);
+  assert.equal(wrong.o.out, "");
+  assert.match(wrong.o.err, /^ax-flows: run: there is no --wat; its flags are --out, --flows, --slack, --xray\. Fix: ax-flows run .* --out\.\n$/);
+});
+
+test("--json prints the outcome alone on stdout, and each flow's line on stderr", async () => {
+  const module = join(here, "fixtures", "flows-suite.mts");
+  const out = join(scratch, "json");
+  const passing = io();
+  assert.equal(await main(["run", module, "--out", out, "--flows", "H1", "--json"], passing.io), 0);
+  const outcomeDoc = JSON.parse(passing.o.out) as { action: string; state: string; summary: string };
+  assert.equal(outcomeDoc.action, "run");
+  assert.equal(outcomeDoc.state, "done");
+  assert.match(outcomeDoc.summary, /^\d+\/\d+ checks pass; 0 unknown failures; 0 known defects pass now\./);
+  assert.match(passing.o.err, /^pass {2}H1 {3}\d+ checks, 0 failed\n$/);
+  const failing = io();
+  assert.equal(await main(["run", module, "--out", out, "--flows", "U2", "--json"], failing.io), 1);
+  const failedDoc = JSON.parse(failing.o.out) as { state: string; error: { code: string; exit: number } };
+  assert.equal(failedDoc.state, "failed");
+  assert.deepEqual([failedDoc.error.code, failedDoc.error.exit], ["checks-failed", 1]);
+  assert.match(failing.o.err, /^FAIL {2}U2 /m);
+});
+
+test("a suite that stops before it finishes exits 1 with one line that says why", async () => {
+  const module = join(scratch, "stopped-suite.mts");
+  writeFileSync(module, `import suite from ${JSON.stringify(join(here, "fixtures", "flows-suite.mts"))};\nexport default { ...suite, guard: () => { throw new Error("not a mock"); } };\n`);
+  const u = io();
+  assert.equal(await main(["run", module, "--out", join(scratch, "stopped")], u.io), 1);
+  assert.equal(u.o.out, "");
+  assert.equal(u.o.err, "ax-flows: run: stopped before it finished: not a mock.\n");
 });
 
 test("drivers: the tool in this process, and a built CLI as its own process with a time limit", async () => {

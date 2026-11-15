@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, GATED_LOAD_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -29,7 +29,13 @@ describe("findOffendersInSource: each category", () => {
             "content-spinner",
             "render-index",
             "gated-load",
+            "hand-drawn-hero",
+            "hand-drawn-corner",
+            "hand-drawn-switch",
             "vague-failure-copy",
+            "hand-drawn-avatar",
+            "hand-drawn-presence-dot",
+            "hand-drawn-unread-dot",
             "uses-hand-rolled-control",
         ]);
     });
@@ -231,6 +237,47 @@ describe("findOffendersInSource: each category", () => {
         }`;
             expect(scan(source)).toEqual([]);
         });
+    });
+});
+describe("hand-drawn avatar and presence dot", () => {
+    it("finds a round picture drawn by hand, and names Avatar", () => {
+        expect(categories(`export function A() { return <img className="size-8 rounded-full object-cover" src="a.jpg" alt="Ana" />; }`)).toEqual(["hand-drawn-avatar"]);
+        expect(categories(`export function A() { return <div className="h-10 w-10 overflow-hidden rounded-full">AL</div>; }`)).toEqual(["hand-drawn-avatar"]);
+    });
+    it("finds a round picture that takes its size from elsewhere", () => {
+        expect(categories(`export function A({ url }) { return <img src={url} alt="" className="rounded-full" />; }`)).toEqual(["hand-drawn-avatar"]);
+    });
+    it("leaves pills, icon badges and square pictures alone", () => {
+        expect(scan(`export function A() { return <img src="a.png" alt="" className="block rounded-sm" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span className="rounded-full bg-card px-3 py-1 text-xs">Today</span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span role="img" aria-label="Muted" className="flex size-7 items-center justify-center rounded-full bg-white"><svg /></span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span aria-hidden="true" className="h-5 w-1 shrink-0 rounded-full" />; }`)).toEqual([]);
+    });
+    it("finds an empty round dot, a presence dot by hand", () => {
+        expect(categories(`export function A() { return <span className="size-2.5 rounded-full bg-green-500" />; }`)).toEqual(["hand-drawn-presence-dot"]);
+    });
+    it("tells a presence dot on an avatar from an unread mark in a row, and names each part", () => {
+        const presence = `export function A() { return <span className="absolute bottom-0 end-0 size-2.5 rounded-full bg-primary" />; }`;
+        const unread = `export function A() { return <span className="size-2 rounded-full bg-primary" />; }`;
+        expect(categories(presence)).toEqual(["hand-drawn-presence-dot"]);
+        expect(categories(unread)).toEqual(["hand-drawn-unread-dot"]);
+        expect(HAND_DRAWN_PRESENCE_DOT_FIX).toContain("<Avatar presence=");
+        expect(HAND_DRAWN_UNREAD_DOT_FIX).toContain("<UnreadDot");
+    });
+    it("leaves a small round element with no fill, or with content, and a square picture box alone", () => {
+        expect(scan(`export function A() { return <span className="size-2 rounded-full" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <span className="size-2 rounded-full bg-red-500">x</span>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <div className="size-8 overflow-hidden rounded-md">x</div>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <img className="size-8 rounded" alt="" src="a.png" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <img className="size-8 object-cover" alt="" src="a.png" />; }`)).toEqual([]);
+        expect(categories(`export function A() { return <img className="size-8 rounded-lg" alt="" src="a.png" />; }`)).toEqual(["hand-drawn-avatar"]);
+        expect(scan(`export function A() { return <img className="size-8 rounded-sm" alt="" src="a.png" />; }`)).toEqual([]);
+    });
+    it("leaves Ouro's Avatar, ordinary layout and other rounding alone", () => {
+        expect(scan(`import { Avatar } from "~/components/ouro/avatar/avatar"; export function A() { return <Avatar name="Ana" className="size-8 rounded-full" />; }`)).toEqual([]);
+        expect(scan(`export function A() { return <div className="rounded-lg p-4 h-4 w-full">x</div>; }`)).toEqual([]);
+        expect(scan(`export function A() { return <div className="size-8 rounded-lg bg-muted">x</div>; }`)).toEqual([]);
+        expect(categories(`export function A() { return <span className="size-4 rounded-full border-2 animate-spin" />; }`)).toEqual(["content-spinner"]);
     });
 });
 describe("content-spinner", () => {
@@ -548,7 +595,6 @@ describe("vague-failure-copy", () => {
             "A error occurred": "an error occurred",
             "Sorry, an unknown error": "an error occurred",
             "Error": "bare error",
-            "Errors": "bare error",
             "  Error!  ": "bare error",
             "Error:": "bare error",
             "Upload failed": "bare failed",
@@ -557,8 +603,6 @@ describe("vague-failure-copy", () => {
             "Couldn't send.": "couldn't",
             "Couldn't send:": "couldn't",
             "Error: something went wrong": "something went wrong",
-            "Sync errors": "bare error",
-            // A cause in the same sentence, of two words or a substitution, that is not a next step or a vague word.
             "Couldn't send: try again.": "couldn't",
             "Something went wrong: please try again later.": "something went wrong",
             "Something went wrong. Error code: E42": "something went wrong",
@@ -655,6 +699,53 @@ describe("vague-failure-copy", () => {
         return <div className={status ? "Error" : "x"} itemClassName="Failed" data-state="Upload failed" id="Error" key="Failed" type="Error"
           href="/could not" src="unable to" to="Error" name="Error" role="Error" htmlFor="Error" as="Error" />;
       }`)).toEqual([]);
+    });
+    it("skips the first argument of a membership test: includes, startsWith, endsWith, has and test", () => {
+        expect(vague(`export function A(error, ok, pattern) {
+          if (error.message.includes("UNIQUE constraint failed")) return 1;
+          if (error.message.startsWith("OAuth request error:") || error.message.endsWith(\`Load failed\`)) return 2;
+          if (pattern.test("could not")) return 3;
+          return show(ok.includes("Could not save"), "Could not save") || alert("Load failed") || error.message.includes(message);
+        }`)).toEqual(["could not::Could not save", "bare failed::Load failed"]);
+    });
+    it("skips a string in a Set that is only used for membership: inline, or a const Set used for nothing but .has", () => {
+        expect(vague(`const RETRY = new Set(["Could not", "Load failed"]);
+          const ELSEWHERE = new Set(["Could not save"]);
+          export const EXPORTED = new Set(["Something went wrong"]);
+          const LOGGED = new Set(["Couldn't send"]);
+          export function A(code) {
+            return new Set(["Unable to save"]).has(code) || RETRY.has(code) || ELSEWHERE.size;
+          }
+          export function B(code) { return LOGGED.has(code) && console.log(LOGGED) && EXPORTED.has(code); }`)).toEqual(["could not::Could not save", "something went wrong::Something went wrong", "couldn't::Couldn't send"]);
+    });
+    it("skips the class name in a name fallback, and nothing else after error.name", () => {
+        expect(vague(`export function A(error) {
+          return <p>{error.name || "Error"} {error?.name ?? "TypeError"} {error.name || "AggregateError"}</p>;
+        }`)).toEqual([]);
+        expect(vague(`export function A(error) {
+          return [error.code || "Error", error.name || "Failed", error.name || "Something went wrong", "Error" || error.name, error.name || "Could not save"];
+        }`)).toEqual(["bare error::Error", "bare failed::Failed", "something went wrong::Something went wrong", "bare error::Error", "could not::Could not save"]);
+    });
+    it("skips a heading or label that only names the topic: a plural errors or failures, no action before it", () => {
+        expect(vague(`export function Table() { return <>
+          <h2>Errors</h2>
+          <th>Machine errors</th>
+          <h3>Common failures</h3>
+          <p>Sync errors.</p>
+          <th>{"Payment failures"}</th>
+        </>; }`)).toEqual([]);
+        expect(vague(`export function Table() { return <>
+          <h2>Error</h2>
+          <th>Machine error</th>
+          <button>Fix errors</button>
+          <p>We had errors</p>
+          <th>Failed</th>
+        </>; }`)).toEqual(["bare error::Error", "bare error::Machine error", "bare error::Fix errors", "bare error::We had errors", "bare failed::Failed"]);
+    });
+    it("still flags a protocol's own wording, which failureCopyAllow lets through with its reason", () => {
+        const source = `export const parseError = { code: -32700, message: "Parse error" };`;
+        expect(vague(source)).toEqual(["bare error::Parse error"]);
+        expect(vague(source, { failureCopyAllow: [{ match: "Parse error", reason: "JSON-RPC 2.0 mandates this message" }] })).toEqual([]);
     });
     it("counts copy in a handler, under an element, at the top level and in a computed property's value", () => {
         expect(vague(`
@@ -2429,5 +2520,111 @@ describe("CLI entry guard", () => {
         defaultCliErrorHandler(new Error("boom-default"));
         expect(process.exitCode).toBe(1);
         process.exitCode = 0;
+    });
+});
+
+describe("hand-drawn hero", () => {
+    it("flags a section or header classed as a hero, naming the registry Hero", () => {
+        const found = scan('export const A = () => <section className="hero relative px-6">x</section>;\nexport const B = () => <header className="page-hero">x</header>;');
+        expect(found.filter((offender) => offender.category === "hand-drawn-hero")).toHaveLength(2);
+    });
+    it("passes a registry Hero, other sections and a component given a hero class", () => {
+        const source = [
+            'export const A = () => <Hero title="Welcome" picture={pic} />;',
+            'export const B = () => <section className="grid gap-4 heroic">x</section>;',
+            'export const C = () => <Card className="hero">x</Card>;',
+            'export const D = () => <div className="hero">x</div>;',
+        ].join("\n");
+        expect(categories(source)).not.toContain("hand-drawn-hero");
+    });
+});
+
+describe("hand-drawn corner radius", () => {
+    it("flags a fixed radius written in a class on an intrinsic element, naming the theme's scale", () => {
+        const found = scan('export const A = () => <div className="rounded-[12px] p-4">x</div>;\nexport const B = () => <div className="sm:rounded-t-[0.5rem]">x</div>;');
+        expect(found.map((offender) => offender.category)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes the scale's classes, theme variables, circles, zero and registry components", () => {
+        const source = [
+            'export const A = () => <div className="rounded-lg">x</div>;',
+            'export const B = () => <div className="rounded-[var(--radius)]">x</div>;',
+            'export const C = () => <div className="rounded-[50%] rounded-[9999px] rounded-[0]">x</div>;',
+            'export const D = () => <Card className="rounded-[12px]">x</Card>;',
+            'export const E = () => <div className="rounded-[calc(var(--radius)-2px)]">x</div>;',
+        ].join("\n");
+        expect(categories(source)).toEqual([]);
+    });
+});
+
+describe("hand-drawn corner radius, widened", () => {
+    it("flags a radius set in an inline style on an intrinsic element", () => {
+        const source = [
+            'export const A = () => <div style={{ borderRadius: 12 }}>x</div>;',
+            'export const B = () => <div style={{ borderTopLeftRadius: "0.5rem" }}>x</div>;',
+        ].join("\n");
+        expect(categories(source)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes an inline radius that is a theme variable, a circle or zero, and a registry component", () => {
+        const source = [
+            'export const A = () => <div style={{ borderRadius: "var(--radius)" }}>x</div>;',
+            'export const B = () => <div style={{ borderRadius: "50%" }}>x</div>;',
+            'export const C = () => <div style={{ borderRadius: 0 }}>x</div>;',
+            'export const D = () => <Card style={{ borderRadius: 12 }}>x</Card>;',
+            'export const E = (radius) => <div style={{ borderRadius: radius }}>x</div>;',
+        ].join("\n");
+        expect(categories(source)).toEqual([]);
+    });
+    it("flags a border-radius in a stylesheet, outside round parts", () => {
+        const found = scan(".card { border-radius: 12px; }\n.row { border-top-left-radius: 0.5rem; }", "app/app.css");
+        expect(found.map((offender) => offender.category)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes stylesheet radii that are theme variables, circles, zero or on a dot, thumb or ring", () => {
+        const css = [
+            ".a { border-radius: var(--radius); }",
+            ".b { border-radius: 50%; }",
+            ".c { border-radius: 0; }",
+            ".unread-dot { border-radius: 4px; }",
+            ".slider-thumb { border-radius: 9px; }",
+            ".d { --radius: 12px; }",
+        ].join("\n");
+        expect(categories(css, "app/app.css")).toEqual([]);
+    });
+    it("passes a stylesheet radius with corner-shape: round, or under an ouro-allow comment that gives a reason, and flags one without a reason", () => {
+        expect(categories(".a { border-radius: 12px; corner-shape: round; }", "app/app.css")).toEqual([]);
+        expect(categories("/* ouro-allow hand-drawn-corner: speech bubble */\n.a { border-radius: 12px; }\n.b { border-radius: 8px; }", "app/app.css")).toEqual([]);
+        expect(categories(".chrome { border-radius: 4px; }\n/* ouro-allow hand-drawn-corner: panel */\n.bubble { border-radius: 12px; }", "app/app.css")).toEqual(["hand-drawn-corner"]);
+        expect(categories("/* ouro-allow hand-drawn-corner: */\n.a { border-radius: 12px; }", "app/app.css")).toEqual(["hand-drawn-corner"]);
+    });
+    it("flags rounded-full on a large oblong box or a structural element", () => {
+        const source = [
+            'export const A = () => <div className="h-40 w-96 rounded-full">x</div>;',
+            'export const B = () => <section className="rounded-full p-8">x</section>;',
+        ].join("\n");
+        expect(categories(source)).toEqual(["hand-drawn-corner", "hand-drawn-corner"]);
+    });
+    it("passes rounded-full on dots, pills, thumbs, rings, squares and pictures", () => {
+        const source = [
+            'export const A = () => <span className="size-2 rounded-full bg-primary" />;',
+            'export const B = () => <button className="h-8 w-24 rounded-full px-4">x</button>;',
+            'export const C = () => <span className="slider-thumb h-40 w-96 rounded-full" />;',
+            'export const D = () => <div className="size-40 rounded-full ring-2">x</div>;',
+            'export const E = () => <img className="h-10 w-64 rounded-full" alt="" />;',
+        ].join("\n");
+        expect(categories(source)).not.toContain("hand-drawn-corner");
+    });
+});
+
+describe("hand-drawn switch", () => {
+    it("flags an intrinsic element with role switch, naming the registry Switch", () => {
+        const found = scan('export const A = () => <button role="switch" aria-checked={on} onClick={flip} />;\nexport const B = () => <span role="switch" />;');
+        expect(found.filter((offender) => offender.category === "hand-drawn-switch")).toHaveLength(2);
+    });
+    it("passes a registry Switch, other roles and a component given a role", () => {
+        const source = [
+            'export const A = () => <Switch label="Mute" checked={on} onCheckedChange={setOn} />;',
+            'export const B = () => <div role="status">x</div>;',
+            'export const C = () => <Card role="switch">x</Card>;',
+        ].join("\n");
+        expect(categories(source)).not.toContain("hand-drawn-switch");
     });
 });

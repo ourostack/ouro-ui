@@ -1,0 +1,1 @@
+- New: the source rules find a corner radius fixed by hand in a class, so an app can move it onto the theme's radius scale.

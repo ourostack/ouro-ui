@@ -1,0 +1,68 @@
+{
+  "model": "minimax-m3",
+  "modelId": "MiniMax-M3",
+  "transport": "direct-api",
+  "arm": "action-model",
+  "task": "recipe-to-list",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "search_recipes",
+    "add_recipe_to_shopping_list",
+    "get_shopping_list"
+  ],
+  "textReadChars": 950,
+  "wallMs": 4435,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 4790,
+    "output": 157,
+    "cacheRead": 3520,
+    "cacheWrite": 0,
+    "reasoning": 0,
+    "total": 4947
+  },
+  "costAiu": null,
+  "costSource": "none",
+  "finalMessage": "I added all the Charred Lemon Orzo ingredients to your shopping list — lemons, garlic, orzo, parmesan, and basil (5 items). Note you already had lemons and parmesan on the list, so those now appear as duplicate entries; let me know if you'd like me to consolidate them.",
+  "transcript": {
+    "messages": [
+      "I'll find that recipe first.",
+      "I added all the Charred Lemon Orzo ingredients to your shopping list — lemons, garlic, orzo, parmesan, and basil (5 items). Note you already had lemons and parmesan on the list, so those now appear as duplicate entries; let me know if you'd like me to consolidate them."
+    ],
+    "toolCalls": [
+      {
+        "name": "search_recipes",
+        "args": {
+          "query": "Charred Lemon Orzo"
+        },
+        "ms": 1,
+        "resultChars": 64,
+        "result": "{\"recipes\":\"[{\\\"id\\\":\\\"r1\\\",\\\"title\\\":\\\"Charred Lemon Orzo\\\"}]\"}"
+      },
+      {
+        "name": "add_recipe_to_shopping_list",
+        "args": {
+          "recipeId": "r1"
+        },
+        "ms": 5,
+        "resultChars": 11,
+        "result": "{\"added\":5}"
+      },
+      {
+        "name": "get_shopping_list",
+        "args": {},
+        "ms": 0,
+        "resultChars": 875,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true},{\\\"id\\\":\\\"i6\\\",\\\"name\\\":\\\"orzo\\\",\\\"quantity\\\":250,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i7\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":2,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i8\\\",\\\"name\\\":\\\"garlic\\\",\\\"quantity\\\":3,\\\"unit\\\":\\\"cloves\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i9\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":50,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i10\\\",\\\"name\\\":\\\"basil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bunch\\\",\\\"checked\\\":false}]\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

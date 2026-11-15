@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
@@ -10,7 +10,7 @@ import { scratchDir } from "./scratch.mjs";
 // changes/*.md hold one release's behaviour changes, one fragment per change, so parallel
 // pull requests never edit the same file. release.yml assembles them into the notes' "Changes
 // in this release" section, refuses to release when there are none, or when one is still in
-// the last release's notes, and after a release opens a PR that deletes the fragments it used.
+// the last release's notes; fragments stay on main and each release skips the lines its predecessor printed.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const release = readFileSync(join(root, ".github/workflows/release.yml"), "utf8");
@@ -50,11 +50,10 @@ test("a file that lists no change is a problem, whether it is empty or only the 
   }
 });
 
-test("a change the last release already listed is a problem that names it", () => {
-  const problem = changesProblem(changes, lastNotes);
-  assert.match(problem, /still lists the last release's changes/);
-  assert.match(problem, /- Sheets stack at --ouro-layer\./);
-  assert.match(problem, /Prepare main for the next release/);
+test("fragments the last release already listed are not this release's: with none new, that is a problem", () => {
+  assert.match(changesProblem(changes, lastNotes + "- ConfirmDialog resets on reopen.\n"), /lists no change that the last release's notes do not already hold/);
+  assert.equal(changesProblem(changes, lastNotes), null);
+  assert.equal(assemble(fragments({ "a.md": "- Sheets stack at --ouro-layer.\n", "b.md": "- New.\n" }), lastNotes), `${HEADING}\n\n- New.\n`);
 });
 
 test("new changes pass, with or without a last release", () => {
@@ -72,9 +71,9 @@ test("`check` exits 1 with a GitHub error for a problem, and 0 otherwise", () =>
   assert.equal(result.status, 1);
   assert.match(result.stdout, /^::error::changes\/ lists no change/);
 
-  result = run("check", fragments({ "layer.md": "- Sheets stack at --ouro-layer.\n", "new.md": "- Something new.\n" }), notes);
+  result = run("check", fragments({ "layer.md": "- Sheets stack at --ouro-layer.\n" }), notes);
   assert.equal(result.status, 1);
-  assert.match(result.stdout, /^::error::changes\/ still lists/);
+  assert.match(result.stdout, /^::error::changes\/ lists no change that/);
 
   result = run("check", fragments({ "new.md": "- Something new.\n" }), notes);
   assert.equal(result.status, 0, result.stdout + result.stderr);
@@ -107,10 +106,10 @@ test("release.yml checks the changes against the last release before it pushes a
   // The release commit, and so the tag, holds the assembled CHANGES.md; the notes print it.
   // (scripts/release-commit.sh writes the release commit's files.)
   assert.match(step("Push the release branch").body, /scripts\/release-commit\.sh "\$VERSION"\n\s*git add CHANGES\.md\n\s*git commit -am "Release \$TAG"/);
-  assert.match(readFileSync(new URL("./release-commit.sh", import.meta.url), "utf8"), /\nnode scripts\/changes\.mjs assemble changes > CHANGES\.md\n/);
+  assert.match(readFileSync(new URL("./release-commit.sh", import.meta.url), "utf8"), /\nnode scripts\/changes\.mjs assemble changes "\$notes" > CHANGES\.md\n/);
   assert.match(step("Tag and publish the release").body, /sed -e '1s\/\^# \/### \/' CHANGES\.md/);
   // Main keeps fragments only: no other step writes CHANGES.md.
-  for (const name of ["Check the changes", "Prepare main for the next release"]) assert.doesNotMatch(step(name).body, /CHANGES\.md/, name);
+  for (const name of ["Check the changes"]) assert.doesNotMatch(step(name).body, /CHANGES\.md/, name);
 });
 
 test("`check` fails on a fragment line that is not a top-level change, naming the file and line", () => {
@@ -124,25 +123,6 @@ test("`check` fails on a fragment line that is not a top-level change, naming th
   assert.deepEqual(fragmentProblems(fragments({ "ok.md": "- Fine.\n" })), []);
 });
 
-test("release.yml opens the PR that prepares main after the release is published, and approves its held CI", () => {
-  const reset = step("Prepare main for the next release");
-  assert.ok(reset.start > step("Tag and publish the release").start);
-  assert.match(reset.body, /git switch -c "\$NEXT_BRANCH" "\$MAIN_SHA"/);
-  // The fragments this release used, and only those: the branch starts at the released main commit.
-  assert.match(reset.body, /git rm --quiet -- 'changes\/\*\.md'/);
-  // The same PR makes the tag the newest release, and regenerates the docs that name it.
-  assert.match(reset.body, /node scripts\/latest-release\.mjs set "\$TAG"\n\s*pnpm run docs\n\s*git commit -am "Prepare main for the next release"/);
-  assert.match(reset.body, /gh pr create --base main --head "\$NEXT_BRANCH" --title "Prepare main for the next release"/);
-  // The held pull_request CI run is approved so the ruleset's required checks report; when that fails,
-  // CI is dispatched and the exact approve command goes to the job summary and the PR body.
-  assert.match(reset.body, /--event pull_request/);
-  assert.match(reset.body, /gh api -X POST "repos\/\$GITHUB_REPOSITORY\/actions\/runs\/\$run\/approve"/);
-  assert.match(reset.body, /else\n[\s\S]*GITHUB_STEP_SUMMARY[\s\S]*gh pr edit "\$NEXT_BRANCH" --body[\s\S]*for workflow in \$PRODUCERS; do gh workflow run "\$workflow" --ref "\$NEXT_BRANCH" \|\| echo "::warning::/);
-  // Each workflow that reports a required check has its held run approved, and the required checks decide.
-  assert.match(reset.body, /for workflow in \$PRODUCERS; do\n[\s\S]*--workflow "\$workflow"[\s\S]*scripts\/required-ci\.sh \$runs \|\| \{/);
-  assert.match(release, /pull-requests: write/);
-});
-
 test("release.yml advises deleting a tag only when GitHub says its release was not found", () => {
   const check = step("Check the version, the tag and main's CI");
   const cleanup = step("Clean up after a failure");
@@ -152,182 +132,4 @@ test("release.yml advises deleting a tag only when GitHub says its release was n
     assert.match(body, /else\n\s*echo "::error::Could not check the release for \$TAG: \$out"/);
     assert.doesNotMatch(body, />\/dev\/null 2>&1; then\n\s*echo "::error::Tag/);
   }
-});
-
-// Runs the approval part of "Prepare main for the next release" against a stand-in gh and git.
-// MODE: ok (approve works, and the pull request is queued), refuse (approve fails), flaky (the
-// first `run list` fails, then works), nodispatch (approve fails and so does the dispatch), redci
-// (approve works, a required check fails), budget (approve works, only a check main's rules do not
-// require fails), noqueue (approve works, the run passes, the queue refuses the
-// pull request), cleanup (gh pr merge merges it but exits non-zero, as when only its local branch
-// cleanup fails).
-const runApproval = (mode) => {
-  const body = step("Prepare main for the next release").body;
-  const from = body.indexOf("          sha=$(git rev-parse HEAD)");
-  assert.notEqual(from, -1);
-  const script = body.slice(from).replace(/^ {10}/gm, "");
-  const dir = scratchDir("ouro-approve-");
-  const log = join(dir, "calls.log");
-  const summary = join(dir, "summary.md");
-  const output = join(dir, "output.txt");
-  writeFileSync(
-    join(dir, "gh"),
-    `#!/usr/bin/env bash
-all="$*"; printf '%s\\n' "\${all//$'\\n'/ }" >> "${log}"
-case "$1 $2" in
-  "run list") if [ "$MODE" = flaky ] && [ ! -e "${dir}/once" ]; then : > "${dir}/once"; exit 1; fi; case "$all" in *conformance-exemptions*) echo 78 ;; *) echo 77 ;; esac ;;
-  "api -X") [ "$MODE" = ok ] || [ "$MODE" = redci ] || [ "$MODE" = budget ] || [ "$MODE" = noqueue ] || [ "$MODE" = cleanup ] || exit 1 ;;
-  "run watch") [ "$MODE" = redci ] || [ "$MODE" = budget ] && exit 1 ;;
-  "run view") echo completed ;;
-  "api repos/o/r/rules/branches/main") printf '%s\\n' ci "conformance exemptions" ;;
-  "api repos/o/r/actions/runs/77/jobs?per_page=100") printf 'ci\\t%s\\nci-budget\\t%s\\n' "$([ "$MODE" = redci ] && echo failure || echo success)" "$([ "$MODE" = budget ] && echo failure || echo success)" ;;
-  "api repos/o/r/actions/runs/78/jobs?per_page=100") printf 'conformance exemptions\\tsuccess\\n' ;;
-  "pr merge") [ "$MODE" = cleanup ] && { : > "${dir}/merged"; exit 1; }; exit 1 ;;
-  "pr view") case "$all" in *"--json number"*) echo 9 ;; *"--json id"*) echo PR_id ;; *) echo "old body" ;; esac ;;
-  "api graphql")
-    case "$all" in
-      *enqueuePullRequest*) [ "$MODE" = noqueue ] && exit 1; : > "${dir}/queued" ;;
-      *) if [ -e "${dir}/merged" ]; then echo "MERGED false"; elif [ -e "${dir}/queued" ]; then echo "OPEN true"; else echo "OPEN false"; fi ;;
-    esac ;;
-  "workflow run") [ "$MODE" = nodispatch ] && exit 1 ;;
-esac
-exit 0
-`,
-  );
-  writeFileSync(join(dir, "git"), "#!/usr/bin/env bash\necho abc123\n");
-  chmodSync(join(dir, "gh"), 0o755);
-  chmodSync(join(dir, "git"), 0o755);
-  writeFileSync(summary, "");
-  writeFileSync(output, "");
-  const result = spawnSync("bash", ["-eo", "pipefail", "-c", script], {
-    encoding: "utf8",
-    cwd: root,
-    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, MODE: mode, POLL_SECONDS: "0", PRODUCERS: "ci.yml conformance-exemptions.yml", TAG: "v1.2.3", NEXT_BRANCH: "prepare/after-v1.2.3", GITHUB_REPOSITORY: "o/r", GITHUB_STEP_SUMMARY: summary, GITHUB_OUTPUT: output },
-  });
-  return { result, calls: readFileSync(log, "utf8").trim().split("\n"), summary: readFileSync(summary, "utf8"), output: readFileSync(output, "utf8") };
-};
-
-test("the approval step approves the held run and, once it passes, queues the pull request at the commit CI passed on", () => {
-  const { result, calls, summary, output } = runApproval("ok");
-  assert.equal(result.status, 0, result.stderr);
-  // The queue job takes the pull request's number; main's CI is its to run, not this step's.
-  assert.equal(output, "number=9\n", "The fixture must own and return its GITHUB_OUTPUT.");
-  const at = (start) => calls.findIndex((c) => c.startsWith(start));
-  assert.ok(at("api -X POST repos/o/r/actions/runs/77/approve") !== -1);
-  assert.ok(at("api -X POST repos/o/r/actions/runs/78/approve") > at("api -X POST repos/o/r/actions/runs/77/approve"));
-  assert.ok(at("run view 77") > at("api -X POST repos/o/r/actions/runs/78/approve"));
-  assert.ok(at("api repos/o/r/actions/runs/78/jobs") > at("run view 78"));
-  // gh pr merge cannot queue a pull request without auto-merge, so the step queues it itself.
-  assert.ok(at("pr merge prepare/after-v1.2.3 --squash") > at("api repos/o/r/actions/runs/78/jobs"));
-  const enqueue = at("api graphql -f query=mutation { enqueuePullRequest");
-  assert.ok(enqueue > at("pr merge"));
-  assert.match(calls[enqueue], /pullRequestId: "PR_id", expectedHeadOid: "abc123"/);
-  assert.equal(calls.filter((c) => c.includes("enqueuePullRequest")).length, 1);
-  assert.ok(!calls.some((c) => c.startsWith("workflow run") || c.startsWith("pr edit")));
-  assert.match(summary, /Approved the runs 77 78/);
-  assert.match(summary, /Queued "Prepare main for the next release" \(#9\)/);
-});
-
-test("the approval step trusts the pull request's state, not gh's exit code, after a merge", () => {
-  const { result, calls, summary } = runApproval("cleanup");
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(summary, /Merged "Prepare main for the next release" \(#9\)/);
-  assert.ok(!calls.some((c) => c.includes("enqueuePullRequest")), "a merged pull request is not queued again");
-});
-
-test("the approval step never queues a pull request whose CI failed, and says what a refused queue entry leaves", () => {
-  const red = runApproval("redci");
-  assert.equal(red.result.status, 1, red.result.stderr);
-  assert.ok(!red.calls.some((c) => c.startsWith("pr merge") || c.includes("enqueuePullRequest") || c.startsWith("workflow run")));
-  assert.match(red.result.stdout, /::error::Runs 77 78 did not pass the checks main's rules require: ci: failure\./);
-  assert.match(red.result.stdout, /::error::CI on "Prepare main for the next release" did not pass the checks main's rules require; Pages will not deploy\. Fix it, merge it, then pass main CI before deploying/);
-  const refused = runApproval("noqueue");
-  assert.equal(refused.result.status, 1, refused.result.stderr);
-  // It tries a few times, then fails with what a person has to do.
-  assert.equal(refused.calls.filter((c) => c.includes("enqueuePullRequest")).length, 5);
-  assert.match(refused.result.stdout, /::warning::Could not add #9 to the merge queue \(attempt 5\)/);
-  assert.match(refused.result.stdout, /::error::Could not queue "Prepare main for the next release" \(#9 is OPEN false\); Pages will not deploy\. Queue it by hand, then pass main CI before deploying/);
-  assert.ok(!refused.calls.some((c) => c.startsWith("workflow run")));
-});
-
-test("the approval step queues a pull request whose only failing check is one main's rules do not require (ci-budget on #169)", () => {
-  const { result, calls, summary } = runApproval("budget");
-  assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.match(result.stdout, /Runs 77 78 passed the checks main's rules require/);
-  assert.equal(calls.filter((c) => c.includes("enqueuePullRequest")).length, 1);
-  assert.match(summary, /Queued "Prepare main for the next release" \(#9\)/);
-});
-
-test("the approval step, when the approval is refused, preserves recovery instructions and branch dispatch but fails closed", () => {
-  const { result, calls, summary, output } = runApproval("refuse");
-  assert.equal(result.status, 1, result.stderr);
-  assert.match(result.stdout, /::warning::Could not approve the held CI run/);
-  assert.match(result.stdout, /::error::Main has not passed CI for v1\.2\.3; Pages will not deploy/);
-  assert.match(summary, /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
-  const edit = calls.findIndex((c) => c.startsWith("pr edit prepare/after-v1.2.3 --body old body"));
-  assert.notEqual(edit, -1);
-  assert.match(calls[edit], /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
-  assert.ok(calls.findIndex((c) => c.startsWith("workflow run ci.yml --ref prepare/after-v1.2.3")) > edit);
-  assert.ok(calls.findIndex((c) => c.startsWith("workflow run conformance-exemptions.yml --ref prepare/after-v1.2.3")) > edit);
-  assert.ok(!calls.some((c) => c.startsWith("pr merge") || c.includes("enqueuePullRequest") || c === "workflow run ci.yml --ref main"));
-  assert.equal(output, "", "Refused approval must not name a pull request for the queue job.");
-});
-
-test("the approval step fails closed after a failed branch dispatch or refused approval following a failed first poll", () => {
-  const failed = runApproval("nodispatch");
-  assert.equal(failed.result.status, 1, failed.result.stderr);
-  assert.match(failed.result.stdout, /::warning::Could not dispatch ci\.yml on prepare\/after-v1\.2\.3 either/);
-  assert.match(failed.result.stdout, /::error::Main has not passed CI for v1\.2\.3; Pages will not deploy/);
-  assert.match(failed.summary, /approve/);
-  assert.ok(failed.calls.some((c) => c.startsWith("pr edit") && c.includes("gh api -X POST repos/o/r/actions/runs/77/approve")));
-  const flaky = runApproval("flaky");
-  assert.equal(flaky.result.status, 1, flaky.result.stderr);
-  assert.equal(flaky.calls.filter((c) => c.startsWith("run list")).length, 2);
-  assert.match(flaky.calls.join("\n"), /runs\/77\/approve/);
-  assert.match(flaky.result.stdout, /::error::Main has not passed CI for v1\.2\.3; Pages will not deploy/);
-  assert.match(flaky.summary, /gh api -X POST repos\/o\/r\/actions\/runs\/77\/approve/);
-  for (const { calls, output } of [failed, flaky]) {
-    assert.ok(!calls.some((c) => c.startsWith("pr merge") || c.includes("enqueuePullRequest") || c === "workflow run ci.yml --ref main"));
-    assert.equal(output, "", "Failed approval must not name a pull request for the queue job.");
-  }
-});
-
-test("preparing main deletes the fragments the release used and keeps one added to main during the release", () => {
-  // The step's own lines, from switching to the branch through `git rm`, run in a scratch repository.
-  const body = step("Prepare main for the next release").body;
-  const from = body.indexOf('          git switch -c "$NEXT_BRANCH" "$MAIN_SHA"');
-  const to = body.indexOf("\n", body.indexOf("git rm "));
-  assert.ok(from !== -1 && to > from);
-  const lines = body.slice(from, to).replace(/^ {10}/gm, "");
-  const repo = scratchDir("ouro-race-");
-  const git = (...args) => {
-    const result = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
-    assert.equal(result.status, 0, `git ${args.join(" ")}: ${result.stderr}`);
-    return result.stdout.trim();
-  };
-  git("init", "-q", "-b", "main");
-  git("config", "user.email", "test@example.com");
-  git("config", "user.name", "Test");
-  mkdirSync(join(repo, "changes"));
-  writeFileSync(join(repo, "changes/a.md"), "- A.\n");
-  writeFileSync(join(repo, "changes/b.md"), "- B.\n");
-  writeFileSync(join(repo, "changes/.keep"), "");
-  git("add", "-A");
-  git("commit", "-qm", "released");
-  const mainSha = git("rev-parse", "HEAD");
-  // Main moves on during the release.
-  writeFileSync(join(repo, "changes/late.md"), "- Late.\n");
-  git("add", "-A");
-  git("commit", "-qm", "late change");
-  const result = spawnSync("bash", ["-eo", "pipefail", "-c", lines], {
-    cwd: repo,
-    encoding: "utf8",
-    env: { ...process.env, NEXT_BRANCH: "prepare/after-v1.2.3", MAIN_SHA: mainSha },
-  });
-  assert.equal(result.status, 0, result.stderr);
-  git("commit", "-qm", "Prepare main for the next release");
-  git("switch", "-q", "main");
-  git("merge", "-q", "--no-edit", "prepare/after-v1.2.3");
-  assert.deepEqual(git("ls-files", "changes").split("\n"), ["changes/.keep", "changes/late.md"]);
-  assert.equal(assemble(join(repo, "changes")), `${HEADING}\n\n- Late.\n`);
 });

@@ -1,0 +1,108 @@
+{
+  "model": "gemini-4-carbon",
+  "modelId": "gemini-4-carbon",
+  "transport": "copilot",
+  "arm": "bridge",
+  "task": "recipe-to-list",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 5,
+  "toolsUsed": [
+    "snapshot",
+    "act",
+    "act",
+    "act",
+    "act"
+  ],
+  "textReadChars": 5350,
+  "wallMs": 28562,
+  "modelCalls": 6,
+  "tokens": {
+    "input": 7196,
+    "output": 385,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 200,
+    "total": 7581
+  },
+  "costAiu": 1.8242,
+  "costSource": "runtime",
+  "finalMessage": "I added the ingredients for Charred Lemon Orzo—orzo (250 g), lemons (2), garlic (3 cloves), parmesan (50 g), and basil (1 bunch)—to your shopping list.",
+  "transcript": {
+    "messages": [
+      "I added the ingredients for Charred Lemon Orzo—orzo (250 g), lemons (2), garlic (3 cloves), parmesan (50 g), and basil (1 bunch)—to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "snapshot",
+        "args": {},
+        "ms": 70,
+        "resultChars": 1460,
+        "result": "{\"page\":\"/\",\"text\":{\"title\":\"Shopping list\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"checkbox\",\"label\":\"Bought eggs\",\"row\":\"eggs (12)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c4\",\"component\":\"checkbox\",\"label\":\"Bought spinach\",\"row\":\"spinach (1 bag)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c5\",\"component\":\"checkbox\",\"label\":\"Bought lemons\",\"row\":\"lemons (3)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c6\",\"component\":\"checkbox\",\"label\":\"Bought parmesan\",\"row\":\"parmesan (100 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c7\",\"component\":\"checkbox\",\"label\":\"Bought olive oil\",\"row\":\"olive oil (1 bottle)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Item\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"number\",\"label\":\"Quantity\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c10\",\"component\":\"textbox\",\"label\":\"Unit\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c11\",\"component\":\"button\",\"label\":\"Add to list\",\"actions\":[\"press\"]},{\"ref\":\"c12\",\"component\":\"select\",\"label\":\"Store\",\"value\":\"corner\",\"items\":[{\"value\":\"corner\",\"label\":\"Corner store\"},{\"value\":\"market\",\"label\":\"Market\"}],\"actions\":[\"select\"]},{\"ref\":\"c13\",\"component\":\"button\",\"label\":\"Place order\",\"confirm\":\"Place this order and pay for it\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "press",
+              "target": "c2"
+            }
+          ]
+        },
+        "ms": 174,
+        "resultChars": 767,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c2\",\"result\":\"done\"}],\"page\":\"/recipes\",\"text\":{\"title\":\"Recipes\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c14\",\"component\":\"textbox\",\"label\":\"Search recipes\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c15\",\"component\":\"button\",\"label\":\"Search\",\"actions\":[\"press\"]},{\"ref\":\"c16\",\"component\":\"link\",\"label\":\"Charred Lemon Orzo\",\"actions\":[\"press\"]},{\"ref\":\"c17\",\"component\":\"link\",\"label\":\"Charred Corn Salad\",\"actions\":[\"press\"]},{\"ref\":\"c18\",\"component\":\"link\",\"label\":\"Miso Mushroom Toast\",\"actions\":[\"press\"]},{\"ref\":\"c19\",\"component\":\"link\",\"label\":\"Weeknight Chickpea Curry\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "press",
+              "target": "c16"
+            }
+          ]
+        },
+        "ms": 59,
+        "resultChars": 462,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c16\",\"result\":\"done\"}],\"page\":\"/recipes/r1\",\"text\":{\"title\":\"Charred Lemon Orzo\",\"rows\":[\"orzo (250 g)\",\"lemons (2)\",\"garlic (3 cloves)\",\"parmesan (50 g)\",\"basil (1 bunch)\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c20\",\"component\":\"button\",\"label\":\"Add ingredients to list\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "press",
+              "target": "c20"
+            }
+          ]
+        },
+        "ms": 112,
+        "resultChars": 520,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c20\",\"result\":\"done\"}],\"page\":\"/recipes/r1\",\"text\":{\"title\":\"Charred Lemon Orzo\",\"messages\":[\"Added 5 ingredients to your shopping list.\"],\"rows\":[\"orzo (250 g)\",\"lemons (2)\",\"garlic (3 cloves)\",\"parmesan (50 g)\",\"basil (1 bunch)\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c20\",\"component\":\"button\",\"label\":\"Add ingredients to list\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "press",
+              "target": "c1"
+            }
+          ]
+        },
+        "ms": 135,
+        "resultChars": 2141,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c1\",\"result\":\"done\"}],\"page\":\"/\",\"text\":{\"title\":\"Shopping list\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"checkbox\",\"label\":\"Bought eggs\",\"row\":\"eggs (12)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c4\",\"component\":\"checkbox\",\"label\":\"Bought spinach\",\"row\":\"spinach (1 bag)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c5\",\"component\":\"checkbox\",\"label\":\"Bought lemons\",\"row\":\"lemons (3)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c6\",\"component\":\"checkbox\",\"label\":\"Bought parmesan\",\"row\":\"parmesan (100 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c7\",\"component\":\"checkbox\",\"label\":\"Bought olive oil\",\"row\":\"olive oil (1 bottle)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c21\",\"component\":\"checkbox\",\"label\":\"Bought orzo\",\"row\":\"orzo (250 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c22\",\"component\":\"checkbox\",\"label\":\"Bought lemons\",\"row\":\"lemons (2)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c23\",\"component\":\"checkbox\",\"label\":\"Bought garlic\",\"row\":\"garlic (3 cloves)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c24\",\"component\":\"checkbox\",\"label\":\"Bought parmesan\",\"row\":\"parmesan (50 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c25\",\"component\":\"checkbox\",\"label\":\"Bought basil\",\"row\":\"basil (1 bunch)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Item\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"number\",\"label\":\"Quantity\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c10\",\"component\":\"textbox\",\"label\":\"Unit\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c11\",\"component\":\"button\",\"label\":\"Add to list\",\"actions\":[\"press\"]},{\"ref\":\"c12\",\"component\":\"select\",\"label\":\"Store\",\"value\":\"corner\",\"items\":[{\"value\":\"corner\",\"label\":\"Corner store\"},{\"value\":\"market\",\"label\":\"Market\"}],\"actions\":[\"select\"]},{\"ref\":\"c13\",\"component\":\"button\",\"label\":\"Place order\",\"confirm\":\"Place this order and pay for it\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  },
+  "redacted": false
+}

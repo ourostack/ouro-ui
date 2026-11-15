@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { findThemeIssues } from "@/registry/ouro/check/theme-check";
 
-// Ouro check's theme rules, focus-ring and dark-miss, in a real browser: for each a page that fails it and the near
+// Ouro check's theme rules, focus-ring, dark-miss and hero-dark-art, in a real browser: for each a page that fails it and the near
 // misses that pass, and the opt-outs. scripts/check/check.test.mts runs the whole check on their fixture pages.
 
 const state = window as unknown as { __ouroCheckRef?: number };
@@ -172,5 +172,36 @@ describe("findThemeIssues: dark-miss", () => {
     expect(of("dark-miss")).toEqual([]);
     document.body.style.background = "#fafafa";
     expect(of("dark-miss")).toEqual([]);
+  });
+});
+
+describe("findThemeIssues: hero-dark-art", () => {
+  const hero = (media: string, attrs = "") =>
+    `<header data-ouro="hero"${attrs}><div><h1>Dinner, sorted</h1></div><div data-ouro-part="media">${media}</div></header>`;
+  const day = '<picture><img alt="A table set for four" width="40" height="20"></picture>';
+
+  it("finds a hero whose picture has no night art, in light mode too, named by its words", () => {
+    render(`${hero(day)}${hero('<picture data-scheme="light"><img alt="" width="40" height="20"></picture>')}`);
+    const issues = of("hero-dark-art");
+    expect(issues.map(({ element, detail }) => [element, detail])).toEqual([
+      ['header "Dinner, sorted"', "shows its day picture in dark mode too; give it night art with picture={{ light, dark }}"],
+      ['header "Dinner, sorted"', "shows its day picture in dark mode too; give it night art with picture={{ light, dark }}"],
+    ]);
+    expect(host.querySelector("header")!.getAttribute("data-ouro-check-ref")).toBe(issues[0]!.ref);
+  });
+
+  it("passes a hero with night art, live media, words only and a picture outside the hero's frame", () => {
+    render(`
+      ${hero(`<picture data-scheme="light"><img alt="" width="40" height="20"></picture><picture data-scheme="dark" class="hidden"><img alt="" width="40" height="20"></picture>`)}
+      ${hero('<video muted width="40" height="20"></video>')}
+      ${hero('<div><picture><img alt="" width="40" height="20"></picture></div>')}
+      <header data-ouro="hero"><div><h1>Words only</h1></div></header>
+      <section><div data-ouro-part="media">${day}</div></section>`);
+    expect(of("hero-dark-art")).toEqual([]);
+  });
+
+  it("takes no allow, even with a reason", () => {
+    render(hero(day, ' data-ouro-allow="hero-dark-art" data-ouro-allow-why="a night photo already"'));
+    expect(of("hero-dark-art").map((issue) => issue.element)).toEqual(['header "Dinner, sorted"']);
   });
 });

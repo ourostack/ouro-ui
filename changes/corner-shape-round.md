@@ -1,0 +1,1 @@
+- Fixed: a Switch, radio, slider thumb or avatar ring that should stay round turned into a rounded block wherever the squircle polyfill's stylesheet was loaded, and a Button, Toggle or Badge hover wash drew round corners inside a squircle outline.

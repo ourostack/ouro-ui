@@ -15,6 +15,18 @@ import { createRowLayer, RowLayerContext, type RowLayer } from "@/registry/ouro/
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
+/** Tab from the top of the page, as from a fresh load: blur() alone leaves Chromium 158 tabbing on from the blurred element. */
+async function tabFromTop() {
+  const start = document.createElement("button");
+  start.type = "button";
+  start.textContent = "Start";
+  start.dataset["testHarness"] = "";
+  document.body.prepend(start);
+  start.focus();
+  await pressTab();
+  start.remove();
+}
+
 const roots: Root[] = [];
 
 /** Lets a message's action bar, whose code Message loads in the browser, arrive. */
@@ -511,8 +523,7 @@ describe("Message quote", () => {
     expect(element.getAttribute("data-ouro-part")).toBe("quote");
     expect(element.hasAttribute("data-ouro-message-quote")).toBe(true);
     expect(bubbleOf(message).firstElementChild).toBe(element);
-    element.blur();
-    await pressTab();
+    await tabFromTop();
     expect(document.activeElement).toBe(element);
     await userEvent.keyboard("{Enter}");
     expect(onActivate).toHaveBeenCalledTimes(2);

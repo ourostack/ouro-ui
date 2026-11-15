@@ -432,6 +432,17 @@ test("a GitHub that never answers throws ApiUnavailable, for a 5xx and for a fai
   assert.equal(gone.calls.length, retry.tries);
 });
 
+test("a connection GitHub closes while it sends the body is retried, as a failed connection is", async () => {
+  const cut = { ...answer(200), json: async () => { throw new TypeError("terminated", { cause: new Error("other side closed") }); } };
+  const api = fake([cut, answer(200, '{"ok":1}')]);
+  assert.deepEqual(await get("https://api.example/x", "t", api), { ok: 1 });
+  assert.equal(api.calls.length, 2);
+  assert.deepEqual(api.waits, [10]);
+  const never = fake([cut]);
+  await assert.rejects(get("https://api.example/x", "t", never), (error) => error instanceof ApiUnavailable && /did not answer: terminated/.test(error.message));
+  assert.equal(never.calls.length, retry.tries);
+});
+
 test("a 4xx other than 429 throws at once, as an ordinary error", async () => {
   for (const status of [401, 403, 404, 422]) {
     const api = fake([answer(status, "no")]);

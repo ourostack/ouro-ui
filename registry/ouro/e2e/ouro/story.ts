@@ -181,7 +181,7 @@ export async function pressTab(page: Page, { shift = false }: { shift?: boolean 
 /**
  * Whether a tap still raises a click on an element that cancels pointerdown, as a phone's browser
  * does (Base UI's list items cancel it to keep focus in their input). The WebKit that
- * Playwright 1.63 drives drops that click: https://github.com/microsoft/playwright/issues/43569,
+ * Playwright drives before 1.65 drops that click: https://github.com/microsoft/playwright/issues/43569,
  * fixed from WebKit r2386 (Playwright 1.65 has r2388). This taps a probe that cancels
  * pointerdown, then a plain one: the plain tap's click comes after any click of the first, so once
  * it lands the answer is known, without waiting a set time for a click that may never come. Call

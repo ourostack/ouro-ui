@@ -7,15 +7,15 @@ A factual sentence in this repository is a claim: it carries the primary source 
 ```sh
 pnpm claims:check                  # lint every surface, then run every claim's checks
 pnpm claims:check --network        # the same, fetching every urlOk address again into scripts/claims-urls.json
-pnpm claims:lint <file>…           # the same for some files; --pr for a pull request, --stdin for a draft
+pnpm claims:lint <file>…           # the same for some files; --pr for a pull request (--title, --body-file, and its branch's change fragments), --stdin for a draft
 pnpm claims:show <file>…           # each claim in a file, its sources, and whether each check holds
 node scripts/claims.mjs ratchet    # claims.config.json's exemptions against CLAIMS_BASE_REF, named in PR_BODY
 ```
 
 Where they run:
 
-- The `ci` check runs `pnpm claims:check`, in its `checks` job. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] After editing the description to name an exemption, push again: a re-run of the job reads the description its run started with.
-- The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow]
+- The `ci` check runs `pnpm claims:check`, in its `checks` job. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] The job reads the description as it is when it runs, so after editing the description to name an exemption, re-run the job.[^live-body]
+- The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow] Before you open one, `pnpm claims:lint --pr --title "<title>" --body-file <file>` runs the same title and body check locally and lints the change fragments (`changes/*.md`) the branch adds or changes, which the full check reads only along with the other surfaces.
 - The Claim addresses workflow runs `pnpm claims:check --network` every week.[^addresses-workflow]
 
 ## What needs a source
@@ -135,7 +135,8 @@ The ratchet compares these lists, and the list of required checks, with the base
 `lib-claims` ships the checker as `lib/ouro/claims-check.mjs` beside `claim()`. Without a `claims.config.json`, it reads the app's Markdown and its copy under `src/`, and a test counts once it exists and is not skipped. Run it with `node src/lib/ouro/claims-check.mjs check` (your lib folder in place of `src/lib`), for example as a package script.[^app]
 
 [^repo-passes]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::checkClaims over the repository: every surface passes)
-[^ci]: .github/workflows/ci.yml verify:fileLine(.github/workflows/ci.yml, /CLAIMS_BASE_REF="origin\/\$BASE_REF" pnpm claims:check --network=changed/) verify:testExists(scripts/workflows.test.mjs::the required ci job runs the claims ratchet on a pull request, against its base, with its description) verify:testExists(scripts/claims.test.mjs::ciJob reads the required checks at the base ref, so a pull request cannot add its own)
+[^ci]: .github/workflows/ci.yml verify:fileLine(.github/workflows/ci.yml, /CLAIMS_BASE_REF="HEAD\^1" pnpm claims:check --network=changed/) verify:testExists(scripts/workflows.test.mjs::the required ci job runs the claims ratchet on a pull request, against its base, with its description) verify:testExists(scripts/claims.test.mjs::ciJob reads the required checks at the base ref, so a pull request cannot add its own)
+[^live-body]: scripts/workflows.test.mjs verify:testExists(scripts/workflows.test.mjs::the claims steps read a pull request's description as it is now, and the event's copy when GitHub does not answer)
 [^claims-workflow]: .github/workflows/claims.yml verify:fileLine(.github/workflows/claims.yml, /types: \[opened, edited, synchronize, reopened\]/) verify:fileLine(.github/workflows/claims.yml, /node scripts\/claims.mjs ratchet/) verify:testExists(scripts/claims.test.mjs::the lint command reads a pull request's title and body from the environment)
 [^addresses-workflow]: .github/workflows/claims-urls.yml verify:fileLine(.github/workflows/claims-urls.yml, /pnpm claims:check --network$/) verify:fileLine(.github/workflows/claims-urls.yml, /cron: "23 5 \* \* 1"/)
 [^triggers]: scripts/claims.test.mjs verify:testExists(scripts/claims.test.mjs::triggers: numbers, versions, dates and the words that make a sentence a factual claim) verify:testExists(scripts/claims.test.mjs::triggers: spelled-out numbers, each, no and zero, always and never, and fully) verify:testExists(scripts/claims.test.mjs::Markdown: code is not read; generated regions, headings and tables are)

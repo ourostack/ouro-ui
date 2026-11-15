@@ -1,0 +1,1 @@
+- Changed: the squircle polyfill (`lib-squircle-polyfill`) ships its engine as source in `lib/ouro/squircle/` and does not depend on the `hyperellipse` package; its tests also run in Firefox and in WebKit and Chromium with native corner-shape hidden.

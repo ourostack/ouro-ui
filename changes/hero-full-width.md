@@ -1,0 +1,1 @@
+- New: Hero's `fullWidth` [stretches it to the width of its container](registry/ouro/components/ouro/hero/hero.test.tsx "verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > takes its container's width with fullWidth, with no gutter or cap of its own)"), with no gutter or cap of its own, for a hero inside a page column that already sets the width.

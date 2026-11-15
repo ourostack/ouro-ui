@@ -33,6 +33,18 @@ import ts from "typescript";
 //   selector puts that state on a class or a data-* hook (only the app's own hooks, `.<prefix>-`
 //   and `[data-<prefix>-`, when `hookPrefix` is set). Hover-only decoration and page motion are
 //   not control state.
+// - hand-drawn-unread-dot: a plain accent-colored round dot in a row, which is an unread mark; UnreadDot draws it. (A dot on an avatar's corner stays hand-drawn-presence-dot.)
+// - hand-drawn-avatar, hand-drawn-presence-dot: an intrinsic element drawn as what Ouro UI's Avatar
+//   draws: a round picture (`img`, or `overflow-hidden`/`object-cover`, `rounded-full`, at least
+//   24px square), or an empty round dot (at most 12px, `bg-*`). Counted where written; use
+//   <Avatar shape presence>.
+// - hand-drawn-hero: an intrinsic `section` or `header` whose class names a hero (`hero`, `hero-banner`, `page-hero`),
+//   which is a hero frame drawn by hand. Ouro UI's `Hero` is the one hero; a registry component passes.
+// - hand-drawn-corner: a fixed corner radius written by hand in a class (`rounded-[12px]`, `rounded-t-[0.5rem]`) on an intrinsic element. A fixed radius
+//   ignores the theme's `--radius` scale, so it misses a change to every corner (squircles included).
+//   The scale's own classes (`rounded-lg`), `var(...)` values, circles (`rounded-full`, 50%, 9999px) and 0 pass.
+// - hand-drawn-switch: an intrinsic element given `role="switch"`, which is an on/off switch drawn by hand. Ouro UI's
+//   `Switch` is the one switch; a registry component, or any element without that role, passes.
 // - content-spinner: a spinner standing where content would: Ouro UI's `<Spinner>` (imported from a
 //   spinner/spinner module) or any element with an `animate-spin` class, returned or assigned on its
 //   own or the only thing in its element. Inline progress passes: in a prop, in an object's icon, or
@@ -91,9 +103,15 @@ import ts from "typescript";
 //   of ==, !=, === and !== and `case` labels, the value of an attribute or object property named
 //   in NOT_COPY_ATTRIBUTE (className and the like, data-*, id, key, type, href, src, to, name, role,
 //   htmlFor, as), and a string that is one lowercase token ("error", "load-failed": a status, not
-//   copy). A template with a substitution, or JSX text beside other children (`{count} failed`), is
-//   never bare. `failureCopyAllow` lets a precise text through, each entry with its reason. It
-//   counts where the text is written and never makes the component around it a hand-rolled control.
+//   copy). Also not copy: the first argument of includes, startsWith, endsWith, has and test (a
+//   string matched against, not shown), a string in a `new Set([...])` that is only used for
+//   `.has(…)` membership, and the class name in `x.name || "Error"`. A heading or label that names
+//   the topic ("Errors", "Machine errors", "Common failures": at most two words before a plural,
+//   none an action) is not a bare failure either. A template with a substitution, or JSX text
+//   beside other children (`{count} failed`), is never bare. `failureCopyAllow` lets a precise text
+//   through, each entry with its reason, and is where a protocol's own wording ("Parse error")
+//   goes. It counts where the text is written and never makes the component around it a
+//   hand-rolled control.
 // - uses-hand-rolled-control: a JSX use of an imported app component that is offending, counted at
 //   the call site. A component is offending when an offender sits inside it, or it renders an
 //   offending component (same file or imported), to a fixed point across modules: a wrapper
@@ -158,7 +176,13 @@ export const CATEGORIES = [
   "content-spinner",
   "render-index",
   "gated-load",
+  "hand-drawn-hero",
+  "hand-drawn-corner",
+  "hand-drawn-switch",
   "vague-failure-copy",
+  "hand-drawn-avatar",
+  "hand-drawn-presence-dot",
+  "hand-drawn-unread-dot",
   "uses-hand-rolled-control",
 ];
 
@@ -211,6 +235,11 @@ export const LEAD_FAILURE = /^[^\p{L}\p{N}]*(?:\p{L}[\p{L}'’-]*\s+){0,2}(?:err
 // Words before "error" or "failed" that make the text other than a failure: a negation ("No errors",
 // "Nothing failed") or an action ("Show errors", "Retry failed").
 export const NOT_BARE_LEADS = ["no", "nothing", "zero", "none", "show", "hide", "retry", "clear"];
+// A heading or label that names a topic: a plural "errors" or "failures" with at most two words
+// before it, none of them an action (TOPIC_VERBS), so "Errors" and "Machine errors" pass and
+// "Fix errors" does not.
+const TOPIC_LABEL = /^[^\p{L}\p{N}]*((?:\p{L}[\p{L}'’-]*\s+){0,2})(?:errors|failures)[^\p{L}\p{N}]*$/iu;
+const TOPIC_VERBS = ["fix", "view", "see", "check", "handle", "resolve", "dismiss", "ignore", "skip", "report", "review", "reset", "copy", "send", "catch", "log", "get", "got", "had", "has", "have", "is", "are", "was", "were", "be", "found", "make", "made"];
 const SENTENCE_END = /[.!?](?=\s|$)/u;
 const WORD = /\p{L}[\p{L}\p{N}'’-]*/gu;
 
@@ -229,6 +258,12 @@ export function statesCause(rest) {
 }
 
 const leadWords = (text) => [...text.toLowerCase().matchAll(WORD)].map((match) => match[0]);
+
+// Whether a whole text is a heading or label that names a topic ("Machine errors"), not a failure.
+const isTopicLabel = (text) => {
+  const match = TOPIC_LABEL.exec(text.trim());
+  return match !== null && !leadWords(match[1]).some((word) => TOPIC_VERBS.includes(word));
+};
 
 /**
  * The vague failure phrase in `text`, by its canonical name, or undefined. Every occurrence of a
@@ -249,7 +284,7 @@ export function vagueFailurePhrase(text, { whole = true } = {}) {
   const word = (failure) => (/\berrors?\b/i.test(failure) ? "bare error" : "bare failed");
   const lead = LEAD_FAILURE.exec(trimmed);
   if (lead && !leadWords(lead[0]).some((w) => NOT_BARE_LEADS.includes(w))) return statesCause(trimmed.slice(lead[0].length - lead[1].length)) ? undefined : word(lead[0]);
-  if (!whole || !BARE_FAILURE.test(trimmed)) return undefined;
+  if (!whole || !BARE_FAILURE.test(trimmed) || isTopicLabel(trimmed)) return undefined;
   if (leadWords(trimmed).slice(0, -1).some((w) => NOT_BARE_LEADS.includes(w))) return undefined;
   return word(trimmed);
 }
@@ -277,11 +312,37 @@ export const GATED_LOAD_FIX =
   "so nobody waits for what could already be there. Spend the work on what the person is likely to look at next, newest first, within the performance budgets. " +
   "Rendering-only gates pass: pausing an animation or a caret, windowing what is drawn while the data stays loaded, a media stream, and saving on hide (sendBeacon, or fetch with keepalive or a method other than GET).";
 
+/** What the hand-drawn-avatar rule tells an app to do. */
+export const HAND_DRAWN_AVATAR_FIX =
+  'Draw it with Ouro UI\'s <Avatar name="Ana Lind" src={url} shape="circle">: shape is "circle" for a person, "square" for a team, channel or app, and "agent" for an AI agent, and the picture, initials, size and loading shimmer come with it, so a design change to avatars reaches every one.';
+
+/** What the hand-drawn-presence-dot rule tells an app to do. */
+export const HAND_DRAWN_PRESENCE_DOT_FIX =
+  'Show presence as <Avatar presence="available" presenceLabel="Ana Lind, Available" ...>, which draws each state in its own shape and tone on the avatar\'s corner and says it aloud. For an unread or status marker that is not presence, use <Badge>.';
+/** What the hand-drawn-unread-dot rule tells an app to do. */
+export const HAND_DRAWN_UNREAD_DOT_FIX =
+  'Draw an unread mark with Ouro UI\'s <UnreadDot label="Unread" />, the dot ConversationList and Command draw, so it has the same size, tone and spoken label everywhere. For a count or a word use <Badge>, and for whether a person is online use <Avatar presence="available" ...>.';
+/** What the hand-drawn-hero rule tells an app to do. */
+export const HAND_DRAWN_HERO_FIX =
+  "Use Hero from the registry (`<Hero title=\"...\" picture={{ light, dark }} />`), so its light and dark art, squircle frame and layout, and any change to heroes, reach this one too.";
+/** What the hand-drawn-corner rule tells an app to do. */
+export const HAND_DRAWN_CORNER_FIX =
+  "Take the radius from the theme: a scale class (rounded-md, rounded-lg, rounded-xl) or var(--radius), in a class, an inline style or a stylesheet, so it takes the squircle corner shape (--ouro-corner-shape) and the raised radius with every other corner. A circle, dot, thumb, ring or pill stays rounded-full; rounded-full on a large box that is not one takes the scale instead. A deliberate round corner is [corner-shape:round].";
+/** What the hand-drawn-switch rule tells an app to do. */
+export const HAND_DRAWN_SWITCH_FIX =
+  "Use Switch from the registry (`<Switch label=\"...\" checked={on} onCheckedChange={setOn} />`), so it gets the Quiet glass look (the --ouro-glass tokens), focus, touch target and any change to switches.";
+
 // What each category's message says, for the categories whose fix is not an Ouro component.
 const CATEGORY_MESSAGES = {
+  "hand-drawn-avatar": { headline: "New hand-drawn avatar", fix: HAND_DRAWN_AVATAR_FIX },
+  "hand-drawn-presence-dot": { headline: "New hand-drawn presence dot", fix: HAND_DRAWN_PRESENCE_DOT_FIX },
+  "hand-drawn-unread-dot": { headline: "New hand-drawn unread dot", fix: HAND_DRAWN_UNREAD_DOT_FIX },
   "content-spinner": { headline: "New spinner standing in for content", fix: CONTENT_SPINNER_FIX },
   "render-index": { headline: "New index built in render", fix: RENDER_INDEX_FIX },
   "layout-animation": { headline: "New animation of a layout property", fix: LAYOUT_ANIMATION_FIX },
+  "hand-drawn-hero": { headline: "New hero drawn by hand", fix: HAND_DRAWN_HERO_FIX },
+  "hand-drawn-corner": { headline: "New fixed corner radius", fix: HAND_DRAWN_CORNER_FIX },
+  "hand-drawn-switch": { headline: "New switch drawn by hand", fix: HAND_DRAWN_SWITCH_FIX },
   "gated-load": { headline: "New load that waits for focus, visibility, idle or scrolling", fix: GATED_LOAD_FIX },
   // Names the phrase it found, the fingerprint's tag.
   "vague-failure-copy": (phrase) => ({
@@ -931,6 +992,86 @@ function ownersOf(node) {
 // a hand-made spinner turns with.
 const SPINNER_MODULE = /(?:^|\/)spinner\/spinner(?:\.[cm]?[jt]sx?)?$/;
 const SPIN_CLASS = /^!?animate-(?:spin|\[(?:ouro-)?spin(?:_|\]))/;
+// The Tailwind scale a hand-drawn avatar or dot is sized on: `size-N`, or `h-N` and `w-N` together,
+// in 4px steps (`size-8` is 32px); a dot is at most 12px, an avatar at least 24px.
+const SIZE_STEP = /^(?:size|h|w)-(\d+(?:\.\d+)?)$/;
+const ROUND_CLASS = /^rounded(?:-(?:full|sm|md|lg|xl|2xl|3xl))?$/;
+const AVATAR_PICTURE_CLASS = /^(?:overflow-hidden|object-cover)$/;
+
+// The class tokens of an element, variants removed and a leading `!` dropped.
+const baseTokens = (classStrings) =>
+  classStrings.flatMap((text) => text.split(/\s+/)).filter(Boolean).map((token) => splitVariants(token).at(-1).replace(/^!/, ""));
+
+// What a hand-drawn avatar or dot is: a round (or rounded) box with a set size. Undefined for
+// anything else, so ordinary layout (`rounded-lg p-4`, `h-4 w-full`) never counts.
+function drawnShape(tokens, tag, empty) {
+  const sizes = new Map();
+  for (const token of tokens) {
+    const match = SIZE_STEP.exec(token);
+    if (match) sizes.set(token.split("-")[0], Number(match[1]));
+  }
+  const side = sizes.get("size") ?? (sizes.has("h") && sizes.get("h") === sizes.get("w") ? sizes.get("h") : undefined);
+  if (tokens.some((token) => SPIN_CLASS.test(token))) return undefined;
+  // A round picture is an avatar whatever size it is given (a card's person picture sizes itself by style or its parent).
+  if (side === undefined) return tag === "img" && tokens.includes("rounded-full") ? "hand-drawn-avatar" : undefined;
+  const round = tokens.filter((token) => ROUND_CLASS.test(token));
+  if (round.length === 0) return undefined;
+  if (side <= 3 && round.includes("rounded-full") && empty && tokens.some((token) => /^bg-/.test(token))) {
+    // A dot placed on a corner, or in a status color, is presence; a plain dot in the accent color in a row is an unread mark.
+    const placed = tokens.some((token) => token === "absolute" || /^(?:top|bottom|start|end|left|right)-/.test(token));
+    const accent = tokens.some((token) => /^bg-(?:primary|accent|blue-|sky-|indigo-)/.test(token));
+    return accent && !placed ? "hand-drawn-unread-dot" : "hand-drawn-presence-dot";
+  }
+  const picture = tag === "img" || tokens.some((token) => AVATAR_PICTURE_CLASS.test(token));
+  const rounded = round.includes("rounded-full") || (tag === "img" && round.some((token) => token !== "rounded" && token !== "rounded-sm"));
+  return side >= 6 && picture && rounded ? "hand-drawn-avatar" : undefined;
+}
+const FIXED_CLASS_RADIUS = /^rounded(?:-(?:[stbelrx]|ss|se|ee|es|tl|tr|bl|br))?-\[(?!var\(|calc\(var\()([^\]]*)\]$/;
+const CIRCLE_RADIUS = /^(?:0(?:px|rem)?|50%|9999px|999px|100%|9999rem|[\d.]+%)$/;
+
+// Whether a class token fixes a corner radius by hand. Circles and zero pass.
+const fixedRadiusIn = (classStrings) =>
+  classStrings.some((text) => text.split(/\s+/).some((token) => fixedRadius(splitVariants(token).at(-1).replace(/^!|!$/g, ""))));
+const fixedRadius = (token) => {
+  const value = FIXED_CLASS_RADIUS.exec(token)?.[1];
+  return value !== undefined && !CIRCLE_RADIUS.test(value.replace(/_/g, " "));
+};
+
+const RADIUS_PROPERTY = /^border(?:(?:Top|Bottom)(?:Left|Right)|(?:Start|End)(?:Start|End))?Radius$/;
+const RADIUS_DECLARATION = /^border(?:-(?:top|bottom)-(?:left|right)|-(?:start|end)-(?:start|end))?-radius$/i;
+// A radius value that follows the theme, is a circle or is zero; anything else is a hand-set corner.
+const themedRadius = (value) => {
+  const text = value.trim().replace(/\s+/g, " ");
+  return /^(?:inherit|initial|unset|revert)$/i.test(text) || /var\(|^calc\(var/.test(text) || text.split(/[\s/]+/).every((part) => CIRCLE_RADIUS.test(part));
+};
+// Whether an inline style object sets a corner radius by hand (`style={{ borderRadius: 12 }}`).
+function inlineRadius(initializer) {
+  const expression = initializer && ts.isJsxExpression(initializer) ? initializer.expression : initializer;
+  return [...objectAttributes(expression && ts.isObjectLiteralExpression(expression) ? expression : undefined)].some(([name, value]) => {
+    if (!RADIUS_PROPERTY.test(name)) return false;
+    if (ts.isNumericLiteral(value)) return Number(value.text) !== 0;
+    if (ts.isStringLiteralLike(value)) return !themedRadius(value.text);
+    return false;
+  });
+}
+// `rounded-full` on a box that is not a dot, pill, thumb or ring: a block that is wide and tall (both
+// sides over 48px, and not alike), or a structural element. Squares, small pills and pictures are round parts.
+const ROUND_PART_MARKER = /(?:^|[-_:\s])(?:dot|thumb|ring|pill|badge|avatar|spinner|circle|chip|tag|knob|handle|track|bar)(?:$|[-_\s])/i;
+const STRUCTURAL_TAG = /^(?:section|article|main|aside|header|footer|nav|form|table|ul|ol|li|p|h[1-6])$/;
+function roundedBlock(tokens, tag, classStrings) {
+  if (!tokens.includes("rounded-full") || tokens.some((token) => SPIN_CLASS.test(token))) return false;
+  if (tag === "img" || tokens.some((token) => ROUND_PART_MARKER.test(token)) || classStrings.some((text) => ROUND_PART_MARKER.test(text))) return false;
+  if (STRUCTURAL_TAG.test(tag) && tokens.some((token) => /^(?:p|px|py|min-h|min-w|w|h)-/.test(token))) return true;
+  const sizes = new Map();
+  for (const token of tokens) {
+    const match = SIZE_STEP.exec(token);
+    if (match) sizes.set(token.split("-")[0], Number(match[1]));
+  }
+  const h = sizes.get("size") ?? sizes.get("h");
+  const w = sizes.get("size") ?? sizes.get("w");
+  return h !== undefined && w !== undefined && h !== w && Math.min(h, w) > 12;
+}
+
 const BUTTON_MODULE = /(?:^|\/)button\/button(?:\.[cm]?[jt]sx?)?$/;
 
 // Failure copy: the attributes and object properties whose values are not copy, a string that is
@@ -946,6 +1087,61 @@ const EQUALITY = new Set([
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
 ]);
 const copySpace = (text) => text.replace(APOSTROPHE_ENTITY, "'").replace(/\s+/g, " ").trim();
+// A string that is the first argument of a membership test is matched against, not shown.
+const MEMBERSHIP_METHODS = new Set(["includes", "startsWith", "endsWith", "has", "test"]);
+const isMembershipArgument = (call, node) =>
+  call.arguments[0] === node && ts.isPropertyAccessExpression(call.expression) && MEMBERSHIP_METHODS.has(call.expression.name.text);
+// `error.name || "Error"`: a class name for a missing name, not a message.
+const ERROR_CLASS_NAME = /^(?:[A-Z][a-z]*)*(?:Error|Exception)$/;
+const isNameFallback = (binary, node) =>
+  (binary.operatorToken.kind === ts.SyntaxKind.BarBarToken || binary.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) &&
+  binary.right === node &&
+  ts.isPropertyAccessExpression(binary.left) &&
+  binary.left.name.text === "name" &&
+  ts.isStringLiteral(node) &&
+  ERROR_CLASS_NAME.test(node.text);
+
+const membershipArraysByFile = new WeakMap();
+const isSetOf = (node) =>
+  ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "Set" && node.arguments?.length === 1 && ts.isArrayLiteralExpression(node.arguments[0]);
+// The `.has(…)` receiver: `x.has(…)` with x the node.
+const isMembershipReceiver = (node) =>
+  ts.isPropertyAccessExpression(node.parent) &&
+  node.parent.expression === node &&
+  node.parent.name.text === "has" &&
+  ts.isCallExpression(node.parent.parent) &&
+  node.parent.parent.expression === node.parent;
+
+// The array literals of the Sets a file only tests membership in: `new Set([...]).has(x)` inline, and a
+// `const` Set that is not exported and whose every use in the file is `Name.has(…)`. The walk is by name,
+// not by scope, so another binding of the same name that is used some other way keeps the Set read.
+function membershipArraysOf(sourceFile) {
+  if (membershipArraysByFile.has(sourceFile)) return membershipArraysByFile.get(sourceFile);
+  const arrays = new Set();
+  const candidates = [];
+  const used = new Set();
+  const visit = (node) => {
+    if (isSetOf(node) && isMembershipReceiver(node)) arrays.add(node.arguments[0]);
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      isSetOf(node.initializer) &&
+      node.parent.flags & ts.NodeFlags.Const &&
+      !(ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export)
+    ) {
+      candidates.push({ name: node.name.text, array: node.initializer.arguments[0] });
+    }
+    if (ts.isIdentifier(node) && !(ts.isVariableDeclaration(node.parent) && node.parent.name === node) && !isMembershipReceiver(node)) {
+      used.add(node.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  for (const { name, array } of candidates) if (!used.has(name)) arrays.add(array);
+  membershipArraysByFile.set(sourceFile, arrays);
+  return arrays;
+}
 
 // Whether a string or template stands where copy would: not a module specifier, a type, a key, a
 // tagged template, a compared value, or the value of an attribute or property in NOT_COPY_ATTRIBUTE.
@@ -962,7 +1158,9 @@ function isCopyPosition(node) {
     parent.name === node ||
     (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) ||
     (ts.isCallExpression(parent) && (parent.expression.kind === ts.SyntaxKind.ImportKeyword || parent.expression.getText() === "require")) ||
-    (ts.isBinaryExpression(parent) && EQUALITY.has(parent.operatorToken.kind))
+    (ts.isCallExpression(parent) && isMembershipArgument(parent, node)) ||
+    (ts.isBinaryExpression(parent) && (EQUALITY.has(parent.operatorToken.kind) || isNameFallback(parent, node))) ||
+    (ts.isArrayLiteralExpression(parent) && membershipArraysOf(node.getSourceFile()).has(parent))
   ) {
     return false;
   }
@@ -1480,14 +1678,42 @@ function scanScript(module, resolver, failureCopyAllow) {
       ) {
         add("interactive-role", node, control.display, props);
       }
+      if (
+        name === "role" &&
+        control.tags.length === 1 &&
+        initializer &&
+        collectStrings(initializer).some((text) => text.split(/\s+/).includes("switch"))
+      ) {
+        offenders.push({ category: "hand-drawn-switch", fingerprint: [file, componentName(node), "hand-drawn-switch", control.display, props].join("::"), file, line: lineOf(node) });
+      }
       if (name.startsWith("data-ouro")) add("data-ouro-attr", node, `${control.display}[${name}]`, props);
     }
     const classStrings = [...attributes]
       .filter(([name, initializer]) => CLASS_ATTRIBUTE.test(name) && initializer)
       .flatMap(([, initializer]) => collectStrings(initializer, declarations));
+    if (
+      control.tags.length === 1 &&
+      (control.tags[0] === "section" || control.tags[0] === "header") &&
+      classStrings.some((text) => /(^|[\s:-])hero($|[\s_-])/.test(text))
+    ) {
+      offenders.push({ category: "hand-drawn-hero", fingerprint: [file, componentName(node), "hand-drawn-hero", control.display, props].join("::"), file, line: lineOf(node) });
+    }
     if (hasControlStateClass(classStrings)) add("control-state-style", node, control.display, props);
     const spins = classStrings.some((text) => text.split(/\s+/).some((token) => SPIN_CLASS.test(splitVariants(token).at(-1))));
     if ((ouroExport(control, "Spinner", SPINNER_MODULE) || spins) && !inButton(node, control) && standsAlone(node)) addSpinner(node, control.display, props);
+    // Counted where it is written, like a spinner: a drawn avatar is not a control. Only an intrinsic element counts, so Ouro's Avatar and its className never do.
+    if (control.tags.length === 1 && classStrings.length > 0) {
+      const empty = !ts.isJsxElement(node.parent) || node.parent.children.every((child) => ts.isJsxText(child) && child.containsOnlyTriviaWhiteSpaces);
+      const drawn = drawnShape(baseTokens(classStrings), control.tags[0], empty);
+      if (drawn) offenders.push({ category: drawn, fingerprint: [file, componentName(node), drawn, control.display, props].join("::"), file, line: lineOf(node) });
+    }
+    // Counted where it is written, like a spinner. Only an intrinsic element counts, so a registry component and its className never do.
+    if (
+      control.tags.length === 1 &&
+      (fixedRadiusIn(classStrings) || inlineRadius(attributes.get("style")) || roundedBlock(baseTokens(classStrings), control.tags[0], classStrings))
+    ) {
+      offenders.push({ category: "hand-drawn-corner", fingerprint: [file, componentName(node), "hand-drawn-corner", control.display, props].join("::"), file, line: lineOf(node) });
+    }
   };
 
   const visit = (node) => {
@@ -1633,6 +1859,15 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
   };
 
   const root = postcss.parse(source, { from: file });
+  const ALLOW = /ouro-allow hand-drawn-corner:\s*\S/;
+  const allowComment = (node) => node && node.type === "comment" && ALLOW.test(node.text);
+  // A deliberate corner: a rule that sets corner-shape: round, or one a comment with a reason precedes (or the stylesheet's first comment).
+  const cornerAllowed = (decl) => {
+    const rule = decl.parent;
+    if (rule.nodes.some((sibling) => sibling.type === "decl" && sibling.prop.toLowerCase() === "corner-shape" && /^round\b/i.test(sibling.value))) return true;
+    for (let block = rule; block && block.type !== "root"; block = block.parent) if (allowComment(block.prev())) return true;
+    return allowComment(root.first);
+  };
   root.walk((node) => {
     const { rules, atRules } = ancestors(node);
     if (node.type === "rule") {
@@ -1648,6 +1883,15 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
         const found = token && layoutAnimationClass(token);
         if (found) addLayout(node, scope, `@apply ${token}`);
       }
+    }
+    if (node.type === "decl" && RADIUS_DECLARATION.test(node.prop) && !themedRadius(node.value) && !ROUND_PART_MARKER.test(rules.join(" ")) && !cornerAllowed(node)) {
+      const scope = rules.join(" ");
+      offenders.push({
+        category: "hand-drawn-corner",
+        fingerprint: [file, "(stylesheet)", "hand-drawn-corner", scope, node.prop].join("::"),
+        file,
+        line: node.source.start.line,
+      });
     }
     if (node.type === "decl" && /^(?:-webkit-)?transition(?:-property)?$/i.test(node.prop)) {
       const found = layoutTransitionProperty(node.value, { list: /property$/i.test(node.prop) });

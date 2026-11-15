@@ -22,8 +22,13 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
   /**
    * Visual size, independent of the level. `display` is the hero headline of a
    * landing page, tightly set and larger from the `sm` breakpoint: `<Heading level={1} size="display">`.
+   * Each size above `sm` is set tighter than the last. A theme whose `--font-heading` is a serif sets
+   * `--ouro-heading-tracking` below its default of `1`, such as `0.5`, to tighten by that share and
+   * keep more of the font's own spacing; `0` sets every size at the font's own spacing.
    * @default derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`)
    * @claim "derived from `level`" registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading > derives a smaller default size for deeper levels)
+   * @claim "Each size above `sm` is set tighter than the last" registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading tracking > tightens as the text grows: none at body size, more at each larger size)
+   * @claim "to tighten by that share" registry/ouro/components/ouro/text/heading.test.tsx verify:testExists(registry/ouro/components/ouro/text/heading.test.tsx::Heading tracking > scales the tightening by the theme's --ouro-heading-tracking, so a serif heading font can keep its own spacing)
    */
   size?: HeadingSize | (string & { 'Use "sm", "md", "lg", "xl", "2xl" or, larger, "display"': never }) | undefined;
   /**
@@ -49,13 +54,15 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, "
   color?: { 'Use <Text tone="primary">': never };
 }
 
+// Each size tightens by its own step times the theme's --ouro-heading-tracking (1 unless set), so a
+// serif heading font, whose letters already sit close, can keep more of its own spacing.
 const sizes = {
   sm: "text-base",
-  md: "text-lg tracking-[-0.01em]",
-  lg: "text-xl tracking-[-0.015em]",
-  xl: "text-2xl tracking-[-0.02em]",
-  "2xl": "text-3xl tracking-[-0.025em]",
-  display: "text-[2.5rem] leading-[1.05] tracking-[-0.035em] sm:text-6xl sm:leading-[1.02]",
+  md: "text-lg tracking-[calc(-0.01em*var(--ouro-heading-tracking,1))]",
+  lg: "text-xl tracking-[calc(-0.015em*var(--ouro-heading-tracking,1))]",
+  xl: "text-2xl tracking-[calc(-0.02em*var(--ouro-heading-tracking,1))]",
+  "2xl": "text-3xl tracking-[calc(-0.025em*var(--ouro-heading-tracking,1))]",
+  display: "text-[2.5rem] leading-[1.05] tracking-[calc(-0.035em*var(--ouro-heading-tracking,1))] sm:text-6xl sm:leading-[1.02]",
 } as const;
 
 const sizeByLevel = { 1: "2xl", 2: "xl", 3: "lg", 4: "md", 5: "sm", 6: "sm" } as const;

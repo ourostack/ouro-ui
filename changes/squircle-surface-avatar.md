@@ -1,0 +1,1 @@
+- Avatar: an avatar is a true squircle where the engine lacks corner-shape, as Button, Card, Dialog and TextField are.

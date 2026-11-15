@@ -1,0 +1,51 @@
+{
+  "model": "gemini-4-carbon",
+  "modelId": "gemini-4-carbon",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "add-item",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 1,
+  "toolsUsed": [
+    "add_shopping_list_item"
+  ],
+  "textReadChars": 29,
+  "wallMs": 14532,
+  "modelCalls": 2,
+  "tokens": {
+    "input": 1387,
+    "output": 122,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 65,
+    "total": 1509
+  },
+  "costAiu": 0.3994,
+  "costSource": "runtime",
+  "finalMessage": "I've added 2 cartons of oat milk to your shopping list.",
+  "transcript": {
+    "messages": [
+      "I've added 2 cartons of oat milk to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "add_shopping_list_item",
+        "args": {
+          "name": "oat milk",
+          "quantity": 2,
+          "unit": "cartons"
+        },
+        "ms": 0,
+        "resultChars": 29,
+        "result": "{\"id\":\"i6\",\"name\":\"oat milk\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

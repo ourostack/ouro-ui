@@ -1,0 +1,1 @@
+- Docs: Hero's light and dark pictures [link the theming guide's dark mode recipe](registry/ouro/components/ouro/hero/hero.tsx "verify:fileLine(registry/ouro/components/ouro/hero/hero.tsx, /guides\/theming\.md#dark-mode/)"), now under its own heading, for a site that marks dark mode with `data-theme` or the system setting rather than the `.dark` class.

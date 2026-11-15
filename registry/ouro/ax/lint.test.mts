@@ -44,3 +44,31 @@ test("against the tool's own inventory: a registered command with no declaration
   assert.deepEqual(s.stale, ["watch"]);
   assert.equal(s.ok, false);
 });
+
+test("a tool with one command: its problems name the tool, and its example fix names no command word", () => {
+  const bare = defineCli({ name: "ouro-x", about: ["x"], command: defineCommand({ name: "x", summary: "", effect: "others", args: [{ name: "a", description: "" }], run: () => 1 }) });
+  assert.deepEqual(lintCli(bare).problems, [
+    'ouro-x: has no summary. Fix: summary: "<what it does, in one line>".',
+    'ouro-x: has no example. Fix: examples: ["ouro-x ..."].',
+    "ouro-x: reaches other people with no preview for --dry-run. Fix: plan: (input) => outcome({ state: \"planned\", ... }).",
+    'ouro-x: <a> has no description. Fix: { name: "a", description: "<what it is>" }.',
+  ]);
+  const ok = defineCli({ name: "ouro-x", about: ["x"], command: defineCommand({ name: "x", summary: "Does it.", effect: "private", examples: ["ouro-x a"], args: [{ name: "a", description: "A." }], run: () => 1 }) });
+  assert.deepEqual(lintCli(ok, { inventory: ["x"] }), { typed: ["x"], loose: [], bypassed: [], undeclared: [], stale: [], problems: [], ok: true });
+});
+
+test("a default command has no word to name: its problems are the tool's, and the inventory checks only the words", () => {
+  const check = defineCommand({ name: "check", summary: "", effect: "private", run: () => null });
+  const merge = defineCommand({ name: "merge", summary: "Merges.", effect: "private", examples: ["t merge"], run: () => null });
+  const cli = defineCli({ name: "t", about: [], command: check, commands: [merge] });
+  const report = lintCli(cli, { inventory: ["merge"] });
+  assert.deepEqual(report.problems, ['t: has no summary. Fix: summary: "<what it does, in one line>".', 't: has no example. Fix: examples: ["t ..."].']);
+  assert.deepEqual([report.stale, report.undeclared], [[], []]);
+  assert.deepEqual(lintCli(cli, { inventory: [] }).stale, ["merge"]);
+});
+
+test("a tool with one command keeps that command in the inventory check", () => {
+  const one = defineCli({ name: "t", about: [], command: defineCommand({ name: "images", summary: "Images.", effect: "private", examples: ["t"], run: () => null }) });
+  assert.deepEqual(lintCli(one, { inventory: [] }).stale, ["images"]);
+  assert.deepEqual(lintCli(one, { inventory: ["images"] }).stale, []);
+});

@@ -114,9 +114,16 @@ export interface ComposerOwnProps {
   /**
    * Sending is off, and why: "Sending is off while you review the draft". The person can still
    * write; the send button is disabled, the reason shows under the box and is read with it,
-   * and pressing Enter says it again.
+   * and pressing Enter says it again. `hideSendDisabledReason` leaves the line out.
    */
   sendDisabledReason?: string | undefined;
+  /**
+   * Keeps the `sendDisabledReason` line from being drawn under the box. Sending stays off, the
+   * reason is still the box's description for screen readers, and Enter still says it. For two
+   * composers side by side, so the reason shows under the one being written in only.
+   * @claim "For two composers side by side" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer states > with hideSendDisabledReason, keeps the reason as the box's description and says it on Enter, but draws no line for it)
+   */
+  hideSendDisabledReason?: boolean | undefined;
   /** Disables the whole composer: the box and the send button. */
   disabled?: boolean | undefined;
   /**
@@ -418,6 +425,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     sending = false,
     sendingLabel = "Sending",
     sendDisabledReason,
+    hideSendDisabledReason = false,
     disabled = false,
     attachments,
     attachmentsLabel = "Attachments",
@@ -636,6 +644,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   const quoteIds = quote ? [`${id}-quote`, `${id}-excerpt`] : [];
   const removeLabel = quote && (quote.removeLabel ?? `Remove quote from ${quote.author}`);
   const describedBy = [describedByProp, ...quoteIds, ...notes].filter(Boolean).join(" ") || undefined;
+  const reasonDrawn = notes[0] !== undefined && !hideSendDisabledReason;
+  const reasonHidden = notes[0] !== undefined && hideSendDisabledReason;
 
   return (
     <div data-ouro="composer" data-expanded={expanded ? "" : undefined} data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-1.5", className)}>
@@ -742,9 +752,9 @@ export function Composer(props: ComposerProps): JSX.Element {
           </div>
         )}
       </div>
-      {(notes[0] || description) && (
+      {(reasonDrawn || description) && (
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-muted-foreground">
-          {notes[0] && (
+          {reasonDrawn && (
             <span id={notes[0]} data-ouro-composer-reason="" className="font-medium text-[color-mix(in_oklab,var(--muted-foreground)_70%,var(--foreground))]">
               {sendDisabledReason}
             </span>
@@ -755,6 +765,11 @@ export function Composer(props: ComposerProps): JSX.Element {
             </span>
           )}
         </div>
+      )}
+      {reasonHidden && (
+        <span id={notes[0]} data-ouro-composer-reason="" className="sr-only">
+          {sendDisabledReason}
+        </span>
       )}
     </div>
   );

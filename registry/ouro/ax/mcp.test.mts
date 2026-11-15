@@ -142,3 +142,42 @@ test("a self-scoped tool refuses another agent's item as a tool error, before ru
   assert.deepEqual(mcpTools({ cli: t })[0]!.inputSchema.required, ["listener", "agent"]);
   assert.deepEqual(ran, ["inbox-agent", "inbox-agent"]);
 });
+
+test("a tool with one command offers one MCP tool, named after the tool, with the command's input schema", async () => {
+  const images = defineCli({
+    name: "ouro-images",
+    about: ["Writes the sizes of a folder of pictures."],
+    command: defineCommand({
+      name: "images",
+      summary: "Write each picture at the sizes the site uses.",
+      effect: "private",
+      args: [{ name: "folder", description: "The folder of pictures.", required: true }],
+      flags: { out: { type: "string", description: "Where the sizes go." } },
+      run: (i) => ({ folder: i["folder"], out: i["out"] ?? "." }),
+    }),
+  });
+  const single = createMcpHandler({ cli: images });
+  const listed = (await single({ jsonrpc: "2.0", id: 1, method: "tools/list" })) as { result: { tools: { name: string; title: string; inputSchema: { required: string[] } }[] } };
+  assert.deepEqual(listed.result.tools.map((t) => [t.name, t.title]), [["ouro-images", "ouro-images"]]);
+  assert.deepEqual(listed.result.tools[0]!.inputSchema.required, ["folder"]);
+  const ran = (await single({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "ouro-images", arguments: { folder: "site/showcase" } } })) as { result: { isError: boolean; structuredContent: unknown } };
+  assert.deepEqual([ran.result.isError, ran.result.structuredContent], [false, { folder: "site/showcase", out: "." }]);
+  const wrong = (await single({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "images", arguments: {} } })) as { result: { isError: boolean; structuredContent: { error: { fix: string } } } };
+  assert.deepEqual([wrong.result.isError, wrong.result.structuredContent.error.fix], [true, "ouro-images"]);
+});
+
+test("a default command is the tool itself, named after it, beside the tools its commands name", () => {
+  const tool = defineCli({
+    name: "ouro-check",
+    about: [],
+    command: defineCommand({ name: "check", summary: "Checks.", effect: "private", args: [{ name: "target", description: "T.", rest: "list", required: true }], run: () => null }),
+    commands: [defineCommand({ name: "draft set", summary: "Sets.", effect: "private", run: () => null })],
+  });
+  assert.deepEqual(
+    mcpTools({ cli: tool }).map((t) => [t.name, t.title]),
+    [
+      ["ouro-check", "ouro-check"],
+      ["draft_set", "ouro-check draft set"],
+    ],
+  );
+});

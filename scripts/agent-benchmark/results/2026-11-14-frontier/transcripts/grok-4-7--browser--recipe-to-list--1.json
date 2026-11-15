@@ -1,0 +1,71 @@
+{
+  "model": "grok-4-7",
+  "modelId": "grok-4.7",
+  "transport": "copilot",
+  "arm": "browser",
+  "task": "recipe-to-list",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "browser_navigate",
+    "browser_click",
+    "browser_click"
+  ],
+  "textReadChars": 2633,
+  "wallMs": 11624,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 10906,
+    "output": 199,
+    "cacheRead": 9472,
+    "cacheWrite": 0,
+    "reasoning": 109,
+    "total": 11105
+  },
+  "costAiu": 0.8798,
+  "costSource": "runtime",
+  "finalMessage": "I added the five ingredients for Charred Lemon Orzo—orzo, lemons, garlic, parmesan, and basil—to your shopping list.",
+  "transcript": {
+    "messages": [
+      "I added the five ingredients for Charred Lemon Orzo—orzo, lemons, garlic, parmesan, and basil—to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "browser_navigate",
+        "args": {
+          "url": "/recipes"
+        },
+        "ms": 141,
+        "resultChars": 1050,
+        "result": "- Page URL: /recipes\n- Page Title: Recipes · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f1e1]:\n  - navigation \"Pantry\" [ref=f1e2]:\n    - link \"Shopping list\" [ref=f1e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f1e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f1e5]:\n    - heading \"Recipes\" [level=1] [ref=f1e6]\n    - search [ref=f1e7]:\n      - text: Search recipes\n      - textbox \"Search recipes\" [ref=f1e8]\n      - button \"Search\" [ref=f1e9]\n    - list \"Recipes\" [ref=f1e10]:\n      - listitem [ref=f1e11]:\n        - link \"Charred Lemon Orzo\" [ref=f1e12] [cursor=pointer]:\n          - /url: /recipes/r1\n      - listitem [ref=f1e13]:\n        - link \"Charred Corn Salad\" [ref=f1e14] [cursor=pointer]:\n          - /url: /recipes/r2\n      - listitem [ref=f1e15]:\n        - link \"Miso Mushroom Toast\" [ref=f1e16] [cursor=pointer]:\n          - /url: /recipes/r3\n      - listitem [ref=f1e17]:\n        - link \"Weeknight Chickpea Curry\" [ref=f1e18] [cursor=pointer]:\n          - /url: /recipes/r4\n```"
+      },
+      {
+        "name": "browser_click",
+        "args": {
+          "element": "Charred Lemon Orzo recipe link",
+          "ref": "f1e12"
+        },
+        "ms": 224,
+        "resultChars": 757,
+        "result": "- Page URL: /recipes/r1\n- Page Title: Charred Lemon Orzo · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f2e1]:\n  - navigation \"Pantry\" [ref=f2e2]:\n    - link \"Shopping list\" [ref=f2e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f2e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f2e5]:\n    - heading \"Charred Lemon Orzo\" [level=1] [ref=f2e6]\n    - heading \"Ingredients\" [level=2] [ref=f2e7]\n    - list \"Ingredients\" [ref=f2e8]:\n      - listitem [ref=f2e9]: orzo (250 g)\n      - listitem [ref=f2e10]: lemons (2)\n      - listitem [ref=f2e11]: garlic (3 cloves)\n      - listitem [ref=f2e12]: parmesan (50 g)\n      - listitem [ref=f2e13]: basil (1 bunch)\n    - button \"Add ingredients to list\" [ref=f2e15]\n```"
+      },
+      {
+        "name": "browser_click",
+        "args": {
+          "element": "Add ingredients to list button",
+          "ref": "f2e15"
+        },
+        "ms": 269,
+        "resultChars": 826,
+        "result": "- Page URL: /recipes/r1\n- Page Title: Charred Lemon Orzo · Pantry\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f3e1]:\n  - navigation \"Pantry\" [ref=f3e2]:\n    - link \"Shopping list\" [ref=f3e3] [cursor=pointer]:\n      - /url: /\n    - text: ·\n    - link \"Recipes\" [ref=f3e4] [cursor=pointer]:\n      - /url: /recipes\n  - main [ref=f3e5]:\n    - heading \"Charred Lemon Orzo\" [level=1] [ref=f3e6]\n    - status [ref=f3e7]: Added 5 ingredients to your shopping list.\n    - heading \"Ingredients\" [level=2] [ref=f3e8]\n    - list \"Ingredients\" [ref=f3e9]:\n      - listitem [ref=f3e10]: orzo (250 g)\n      - listitem [ref=f3e11]: lemons (2)\n      - listitem [ref=f3e12]: garlic (3 cloves)\n      - listitem [ref=f3e13]: parmesan (50 g)\n      - listitem [ref=f3e14]: basil (1 bunch)\n    - button \"Add ingredients to list\" [ref=f3e16]\n```"
+      }
+    ]
+  },
+  "redacted": false
+}

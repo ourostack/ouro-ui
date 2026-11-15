@@ -3,7 +3,7 @@
 // to the shard with the least so far. The times are scripts/shard-timings.json, written from a CI
 // run's timing reports (`refresh`); a file it does not know yet weighs the median of every time it holds.
 //
-//   node scripts/shard.mjs scripts <index>/<count>   the test:scripts files of one shard, one per line
+//   node scripts/shard.mjs scripts <index>/<count>   the script test files of one shard, one per line
 //   node scripts/shard.mjs e2e <index>/<count> [<path>...]
 //                                                    the end-to-end spec files of one shard, of those
 //                                                    that are a <path> or under one when any is given
@@ -19,6 +19,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -59,13 +60,16 @@ const median = (values) => {
   return sorted.length === 0 ? 1 : sorted[Math.floor(sorted.length / 2)];
 };
 
+/** How far (ms) above the lightest shard a shard may be and still take a key for its group's sake: spreading groups never costs more total weight than this. */
+const groupSlack = 30_000;
+
 /**
  * Splits `keys` into `count` shards whose weights add up as evenly as the longest-first greedy split
  * gets them: heaviest first (ties by key), each to the lightest shard so far (ties to the lowest
  * index). The same keys and times give the same shards on every machine.
  *
  * With `groupOf`, each group's keys are spread as evenly as the shards allow too: a key goes to the
- * shard with the least of its group so far, then the least in all (ties to the lowest index). Vitest
+ * shard with the least of its group so far among those within `groupSlack` of the lightest, then the least in all (ties to the lowest index). Vitest
  * runs its projects side by side, each in its own browser, so a shard takes about as long as its
  * heaviest project, not the sum of them: a shard with twice another's WebKit files ran longest (run
  * 39773408723), and one with the heaviest touch files ran them slowest (run 39776130394).
@@ -78,7 +82,9 @@ export function balance(keys, count, timings, groupOf) {
   for (const key of ordered) {
     const group = groupOf?.(key);
     const of = (shard) => shard.groups.get(group) ?? 0;
-    const lightest = shards.reduce((best, shard) => (of(shard) < of(best) || (of(shard) === of(best) && shard.weight < best.weight) ? shard : best), shards[0]);
+    const floor = Math.min(...shards.map((shard) => shard.weight));
+    const near = groupOf ? shards.filter((shard) => shard.weight <= floor + groupSlack) : shards;
+    const lightest = near.reduce((best, shard) => (of(shard) < of(best) || (of(shard) === of(best) && shard.weight < best.weight) ? shard : best), near[0]);
     lightest.keys.push(key);
     lightest.weight += weightOf(key);
     lightest.groups.set(group, of(lightest) + weightOf(key));
@@ -91,14 +97,30 @@ export function balance(keys, count, timings, groupOf) {
 /** The keys shard `index` (from 1) of `count` runs, each group spread across the shards with `groupOf` (balance). */
 export const shardKeys = (keys, { index, count }, timings, groupOf) => balance(keys, count, timings, groupOf)[index - 1].keys;
 
+/**
+ * The browser shards: the test files (but not the sliced suites, which every shard runs) and the
+ * installed-subset checks (scripts/subset-coverage.mjs), weighed by their recorded times, in one
+ * longest-first split, so each shard's tests and subset checks add up evenly. `extra` are files
+ * with no recorded time, each added to the lightest shard at the median. The subset checks come
+ * from the recorded times alone, so the browser job and the subset step agree whatever files a
+ * run selects.
+ */
+export function browserBalance(count, extra = [], file = timingsFile) {
+  const vitest = readTimings("vitest", file);
+  const subset = readTimings("subset", file);
+  const timings = { ...vitest, ...subset };
+  const shards = balance([...Object.keys(vitest).filter((key) => !isSliced(key)), ...Object.keys(subset)], count, timings, projectOf);
+  const fallback = median(Object.values(timings).filter((value) => typeof value === "number"));
+  for (const key of [...new Set(extra)].filter((key) => !(key in timings)).sort()) {
+    const lightest = shards.reduce((best, shard) => (shard.weight < best.weight ? shard : best), shards[0]);
+    lightest.keys.push(key);
+    lightest.weight += fallback;
+  }
+  return shards;
+}
+
 /** A Vitest timing key's project, as Vitest names it: `ouro-touch (chromium)` of `ouro-touch (chromium) <path>`. */
 export const projectOf = (key) => key.slice(0, key.indexOf(") ") + 1);
-
-/** The files `pnpm test:scripts` runs, from package.json. */
-export function scriptTestFiles(rootDir = root) {
-  const script = JSON.parse(readFileSync(join(rootDir, "package.json"), "utf8")).scripts["test:scripts"];
-  return script.split(/\s+/).filter((word) => /\.test\.m?[jt]s$/.test(word));
-}
 
 /** The modules `file` (relative to `rootDir`) imports for their runtime, not for types only: the specifiers. */
 const runtimeImports = (file, rootDir) => [...readFileSync(join(rootDir, file), "utf8").matchAll(/^import (?!type )[^;]*?from "([^"]+)";/gms)].map((match) => match[1]);
@@ -128,9 +150,9 @@ const filesUnder = (dir) => readdirSync(dir, { recursive: true }).map(String).ma
  * the longer time.
  */
 export function collectTimings(dir) {
-  const timings = { vitest: {}, scripts: {}, e2e: {} };
+  const timings = { vitest: {}, scripts: {}, e2e: {}, subset: {} };
   for (const file of filesUnder(dir).sort()) {
-    const kind = /(?:^|\/)(vitest|scripts|e2e)-[^/]*\.json$/.exec(file)?.[1];
+    const kind = /(?:^|\/)(vitest|scripts|e2e|subset)-[^/]*\.json$/.exec(file)?.[1];
     if (!kind) continue;
     for (const [key, ms] of Object.entries(JSON.parse(readFileSync(file, "utf8")))) timings[kind][key] = Math.max(timings[kind][key] ?? 0, Math.round(ms));
   }
@@ -140,11 +162,19 @@ export function collectTimings(dir) {
 /**
  * The end-to-end spec files `pnpm test:e2e` runs (playwright.config.ts): the shipped specs under
  * registry/ouro/e2e and the site's under site/e2e, without the screen-reader and latency specs,
- * which run on their own.
+ * which run on their own, and the probes (registry/ouro/e2e/probes, playwright.probes.config.ts).
  */
 export function e2eFiles(rootDir = root) {
   const specs = (dir) => (existsSync(join(rootDir, dir)) ? treeFiles(join(rootDir, dir)).map((file) => `${dir}/${file}`) : []);
-  return [...specs("registry/ouro/e2e"), ...specs("site/e2e")].filter((file) => file.endsWith(".spec.ts") && !/\.(sr|latency)\.spec\.ts$/.test(file)).sort();
+  return [...specs("registry/ouro/e2e"), ...specs("site/e2e")].filter((file) => file.endsWith(".spec.ts") && !/\.(sr|latency)\.spec\.ts$/.test(file) && !/\/probes\//.test(file) && !SWEEP.test(file)).sort();
+}
+
+const SWEEP = /^site\/e2e\/(sameness|states)-[\w-]+\.spec\.ts$/;
+
+/** The sweep specs (cross-page sameness and state sweeps), which run in their own shards beside the e2e ones. */
+export function sweepFiles(rootDir = root) {
+  const dir = join(rootDir, "site/e2e");
+  return existsSync(dir) ? treeFiles(dir).map((file) => `site/e2e/${file}`).filter((file) => SWEEP.test(file)).sort() : [];
 }
 
 /**
@@ -209,7 +239,8 @@ const sortedObject = (object) => Object.fromEntries(Object.entries(object).sort(
 
 function main([command, ...args]) {
   if (command === "scripts-browser") {
-    console.log(scriptTestFiles().filter((file) => drivesBrowser(file)).join("\n"));
+    const files = scriptTestFiles().filter((file) => drivesBrowser(file));
+    console.log((args[0] ? shardKeys(files, parseShard(args[0]), readTimings("scripts")) : files).join("\n"));
     return 0;
   }
   if (command === "scripts") {
@@ -220,6 +251,10 @@ function main([command, ...args]) {
   if (command === "e2e") {
     const files = args.length > 1 ? filesWithin(e2eFiles(), args.slice(1)) : e2eFiles();
     console.log(shardKeys(files, parseShard(args[0]), readTimings("e2e")).join("\n"));
+    return 0;
+  }
+  if (command === "sweeps") {
+    console.log(shardKeys(sweepFiles(), parseShard(args[0]), readTimings("e2e")).join("\n"));
     return 0;
   }
   if (command === "install-e2e") {
@@ -233,7 +268,7 @@ function main([command, ...args]) {
   if (command === "plan") {
     const [kind, count] = args;
     const timings = readTimings(kind);
-    const keys = kind === "scripts" ? scriptTestFiles() : kind === "e2e" ? e2eFiles() : Object.keys(timings).filter((key) => !isSliced(key));
+    const keys = kind === "scripts" ? scriptTestFiles() : kind === "e2e" ? [...e2eFiles(), ...sweepFiles()] : Object.keys(timings).filter((key) => !isSliced(key));
     // Every browser shard also runs its slice of each sliced suite; a shard's report holds its slice's time.
     const sliced = kind === "vitest" ? Object.keys(timings).filter(isSliced).reduce((sum, key) => sum + timings[key], 0) : 0;
     for (const [position, shard] of balance(keys, Number(count), timings).entries()) console.log(`${position + 1}/${count}: ${((shard.weight + sliced) / 1000).toFixed(0)} s of test files, ${shard.keys.length} files${sliced ? " and a slice of each sliced suite" : ""}`);
@@ -247,12 +282,12 @@ function main([command, ...args]) {
       return 1;
     }
     const previous = existsSync(timingsFile) ? JSON.parse(readFileSync(timingsFile, "utf8")) : {};
-    const next = Object.fromEntries(["vitest", "scripts", "e2e"].map((kind) => [kind, sortedObject(Object.keys(found[kind]).length > 0 ? found[kind] : (previous[kind] ?? {}))]));
+    const next = Object.fromEntries(["vitest", "scripts", "e2e", "subset"].map((kind) => [kind, sortedObject(Object.keys(found[kind]).length > 0 ? found[kind] : (previous[kind] ?? {}))]));
     writeFileSync(timingsFile, `${JSON.stringify(next, null, 2)}\n`);
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;
   }
-  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser | e2e <index>/<count> [<path>...] | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
+  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser [<index>/<count>] | e2e <index>/<count> [<path>...] | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
   return 2;
 }
 

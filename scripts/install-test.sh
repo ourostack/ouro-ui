@@ -61,6 +61,18 @@
 #   OURO_PREPARE_ONLY           stops after the install, type check, build and every later add, with
 #                               the shipped tests installed: CI's prepare job runs this once for a
 #                               variant and preset.
+#   OURO_BASE_ONLY              stops after the later adds, before the shipped tests are added: the
+#                               base CI caches under a key of the runtime files.
+#   OURO_DELTA                  continues from a restored base in <app-dir> and adds the shipped
+#                               tests (overwriting what the base holds), then stops as
+#                               OURO_PREPARE_ONLY does. An app restored from an earlier run holds
+#                               .ouro-added.json; then only the items whose built content changed are
+#                               added again (scripts/install-delta.mjs), or exit 75 asks for a full add.
+#   OURO_SKIP_CHECKS            with OURO_DELTA: stops after the add and its stylesheet and tool
+#                               checks, before the type check, the build and the install check,
+#                               which CI runs in parallel with the shards (OURO_CHECK_ONLY).
+#   OURO_CHECK_ONLY             runs only the type check, the build and the install check of the
+#                               shipped tests in <app-dir>, a tree OURO_SKIP_CHECKS left.
 #   OURO_REUSE_APP              skips all of that and runs the shipped tests in <app-dir>, which
 #                               must be the tree a prepare run left, restored at the same path.
 #
@@ -139,6 +151,12 @@ if [ "$variant" = next ]; then
   items_json=()
   for item in "${items[@]}"; do items_json+=("$registry/r/$item.json"); done
   "${shadcn[@]}" add --yes "${items_json[@]}"
+  # Core's A2UI module arrives as one file with no relative imports (scripts/core-bundle.mts), so the
+  # type check and build below prove a default create-next-app, without allowImportingTsExtensions, takes it.
+  node -e 'if (require("./tsconfig.json").compilerOptions.allowImportingTsExtensions) throw new Error("create-next-app now sets allowImportingTsExtensions, so this app no longer proves the default needs none")'
+  a2ui_core=$(find src -name a2ui-core.ts)
+  [ -n "$a2ui_core" ] || { echo "a2ui-surface did not install a2ui-core.ts"; exit 1; }
+  if grep -nE 'from "\./[^"]*\.m?tsx?"' "$a2ui_core"; then echo "$a2ui_core imports a relative .ts or .mts path"; exit 1; fi
   echo "::endgroup::"
 
   echo "::group::Every component from Server Components"
@@ -180,13 +198,16 @@ if [ "$variant" = next ]; then
   exit 0
 fi
 
-# shadcn add fetches each file from raw.githubusercontent.com, and a fetch drops now and then (a rerun
-# passes). Retry the same add only for that failure, with a warning each time; any other failure stays red.
+# shadcn add fetches each file from raw.githubusercontent.com, and a fetch drops now and then. Two layers
+# retry it. The preload (scripts/raw-fetch-retry-preload.mjs) retries each such request inside the
+# shadcn process, so one dropped file costs one request. This function then reruns the whole add for a
+# failure the preload did not absorb, with a warning each time; any other failure stays red.
 # Usage: add_retrying_raw_fetch <shadcn package spec> <address>...
 add_retrying_raw_fetch() {
   local pin=$1 log="$registry/add.log" attempt=0 delays=(5 15) file
+  local preload="$root/scripts/raw-fetch-retry-preload.mjs"
   shift
-  while ! npx --yes "$pin" add --yes "$@" 2>&1 | tee "$log"; do
+  while ! NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--import=$preload" npx --yes "$pin" add --yes "$@" 2>&1 | tee "$log"; do
     grep -q 'RegistrySourceFileError' "$log" && grep -q 'could not fetch from raw.githubusercontent.com' "$log" || return 1
     [ "$attempt" -lt "${#delays[@]}" ] || return 1
     file=$(sed -n 's/.*Failed to read GitHub source file "\([^"]*\)".*/\1/p' "$log" | head -n 1)
@@ -239,9 +260,17 @@ if [ "$variant" = github ]; then
   exit 0
 fi
 
-if [ -n "${OURO_REUSE_APP:-}" ]; then
+if [ -n "${OURO_REUSE_APP:-}" ] || [ -n "${OURO_CHECK_ONLY:-}" ]; then
   # The app a prepare job installed and checked (OURO_PREPARE_ONLY), restored at this same path.
   cd "$app"
+elif [ -n "${OURO_DELTA:-}" ]; then
+  # A base (OURO_BASE_ONLY) restored at this same path: its stylesheet and package.json are what
+  # the later-adds check proved unchanged, so they are the "before" copies the tests' add is held to.
+  cd "$app"
+  cp src/index.css "$registry/index.before.css"
+  cp package.json "$registry/package.before.json"
+  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
+  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
 else
 echo "::group::Fixture app"
 cp -R "$root/test/install-fixture/." "$app/"
@@ -559,17 +588,36 @@ node "$root/scripts/install-check.mjs" --layer-override src/index.css 60
 npx vite build
 grep -q -- "--ouro-layer:60" dist/assets/*.css || { echo "the built CSS lost the --ouro-layer override"; exit 1; }
 echo "::endgroup::"
+fi
 
+[ -z "${OURO_BASE_ONLY:-}" ] || { echo "Prepared the base of the $variant app."; exit 0; }
+
+if [ -z "${OURO_REUSE_APP:-}" ] && [ -z "${OURO_CHECK_ONLY:-}" ]; then
 echo "::group::The testing setup and ouro-tests"
 cp -R "$root/test/install-fixture-tests/." "$app/"
 # The CLI writes the ~640 files one at a time in one process, about three minutes on a runner, so the
-# items ouro-tests lists are added by four processes at once; the checks below judge the whole result,
+# items ouro-tests lists are added by eight processes at once; the checks below judge the whole result,
 # package.json's tools included.
 mapfile -t test_items < <(node -e 'for (const item of require(process.argv[1]).registryDependencies) console.log(item)' "$registry/r/ouro-tests.json")
 # Each add installs its devDependencies with npm, and npm installs running at once in one app race on
 # package.json (#964: one read it empty and failed with EJSONPARSE; others can drop each other's additions). The stand-in npm first on PATH runs the real
 # npm one at a time; the CLI's file writes stay parallel. An npm that a package's script starts while
 # the lock is held sees OURO_SERIAL_NPM_HELD and runs at once, so it cannot wait on its own parent.
+# An app restored from an earlier run records the built items it holds (.ouro-added.json); then only the
+# items whose built content changed are added again, and anything the plan cannot prove safe adds them all.
+delta_mode=full
+if [ -n "${OURO_DELTA:-}" ] && [ -f "$app/.ouro-added.json" ]; then
+  delta_plan=$(node "$root/scripts/install-delta.mjs" plan "$registry/r" "$app/.ouro-added.json")
+  delta_mode=$(node -e 'console.log(JSON.parse(process.argv[1]).mode)' "$delta_plan")
+  if [ "$delta_mode" = incremental ]; then
+    mapfile -t test_items < <(node -e 'for (const item of JSON.parse(process.argv[1]).items) console.log(process.argv[2] + "/" + item + ".json")' "$delta_plan" "$registry/r")
+  fi
+  echo "Install delta: $delta_mode (${#test_items[@]} items to add) $(node -e 'console.log(JSON.parse(process.argv[1]).reason ?? "")' "$delta_plan")"
+  if [ "$delta_mode" = full ]; then
+    echo "the restored app does not match the built registry; start from the base"
+    exit 75
+  fi
+fi
 real_npm=$(command -v npm)
 mkdir -p "$registry/serial-npm"
 cat > "$registry/serial-npm/npm" <<EOF
@@ -587,21 +635,21 @@ OURO_SERIAL_NPM_HELD=1 "\$real_npm" "\$@" || status=\$?
 exit "\$status"
 EOF
 chmod +x "$registry/serial-npm/npm"
+add_parts=8
+[ "${#test_items[@]}" -ge "$add_parts" ] || add_parts=${#test_items[@]}
 add_pids=()
-for part in 0 1 2 3; do
-  part_items=()
-  for i in "${!test_items[@]}"; do
-    [ $((i % 4)) -ne "$part" ] || part_items+=("${test_items[$i]}")
-  done
-  PATH="$registry/serial-npm:$PATH" "${shadcn[@]}" add --yes "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
+for part in $(seq 0 $((add_parts - 1))); do
+  mapfile -t part_items < <(printf '%s\n' "${test_items[@]}" | node "$root/scripts/split-items.mjs" "$registry/r" "$add_parts" "$part")
+  PATH="$registry/serial-npm:$PATH" "${shadcn[@]}" add --yes ${OURO_DELTA:+--overwrite} "${part_items[@]}" > "$registry/add-$part.log" 2>&1 &
   add_pids+=($!)
 done
 add_failed=0
-for part in 0 1 2 3; do
+for part in $(seq 0 $((add_parts - 1))); do
   wait "${add_pids[$part]}" || add_failed=1
   cat "$registry/add-$part.log"
 done
 [ "$add_failed" -eq 0 ] || { echo "adding the ouro-tests items failed"; exit 1; }
+[ -z "${OURO_DELTA:-}" ] || node "$root/scripts/install-delta.mjs" write "$registry/r" "$app/.ouro-added.json"
 cmp src/index.css "$registry/index.before.css" || { echo "ouro-tests changed src/index.css"; diff "$registry/index.before.css" src/index.css || true; exit 1; }
 # The pinned tools keep their versions; ouro-tests may add only tools the app lacked.
 node -e '
@@ -610,12 +658,23 @@ node -e '
   const changed = Object.keys(before).filter((name) => after[name] !== before[name]);
   if (changed.length > 0) throw new Error("ouro-tests changed the version of " + changed.map((name) => name + " (" + before[name] + " to " + after[name] + ")").join(", "));
 ' "$registry/package.before.json"
-npx tsc -b
-npx vite build
+echo "::endgroup::"
+fi
+
+if [ -z "${OURO_REUSE_APP:-}" ] && [ -z "${OURO_SKIP_CHECKS:-}" ]; then
+echo "::group::Check the app with the shipped tests"
+# The type check and the build read the same files and write nothing the other reads, so they run at once.
+npx tsc -b &
+tsc_pid=$!
+build_status=0
+npx vite build || build_status=$?
+wait "$tsc_pid" || { echo "the type check of the app with the shipped tests failed"; exit 1; }
+[ "$build_status" -eq 0 ] || { echo "the build of the app with the shipped tests failed"; exit "$build_status"; }
 node "$root/scripts/install-check.mjs" "$app" "$variant" tests
 echo "::endgroup::"
 fi
 
+[ -z "${OURO_CHECK_ONLY:-}" ] || { echo "Checked the $variant app with the shipped tests."; exit 0; }
 [ -z "${OURO_PREPARE_ONLY:-}" ] || { echo "Prepared the $variant app; the shards run the shipped tests."; exit 0; }
 
 # The shipped tests to run: every one, or a reduced run's (OURO_COMPONENTS), in one shard (OURO_SHARD).
@@ -697,7 +756,10 @@ echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"
 if [ "${#spec_filters[@]}" -gt 0 ]; then
-  npx playwright test --fully-parallel ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${spec_shard[@]+"${spec_shard[@]}"} "${spec_filters[@]}"
+  # A sharded run lists each test with its time, so the log shows which specs the installed app runs slowly.
+  reporter=()
+  [ -z "${OURO_SHARD:-}" ] || reporter=(--reporter=list)
+  npx playwright test --fully-parallel ${reporter[@]+"${reporter[@]}"} ${lenient_playwright[@]+"${lenient_playwright[@]}"} ${spec_shard[@]+"${spec_shard[@]}"} "${spec_filters[@]}"
 else
   echo "No selected component has a spec."
 fi

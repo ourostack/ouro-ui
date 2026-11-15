@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 import { commands } from "vitest/browser";
+import { loadFonts } from "./fonts.ts";
 
 // Vitest setup for Ouro UI's browser tests: test output stays clean, so anything a test
 // writes to the console fails that test: a React act() warning, a development message from
@@ -20,8 +21,11 @@ import { commands } from "vitest/browser";
 const realSetTimeout = globalThis.setTimeout;
 const leaveEvent = () => new Promise<void>((resolve) => realSetTimeout(resolve, 0));
 
+// A face that finishes loading mid-test moves text, so every face the stylesheets declare loads before
+// the file's first test.
 beforeAll(async () => {
   await commands.resetMedia();
+  await loadFonts();
   await leaveEvent();
 });
 

@@ -1,0 +1,1 @@
+- New: source rules flag an avatar or presence dot drawn by hand (`hand-drawn-avatar`, `hand-drawn-presence-dot`) and name `Avatar` to use instead.

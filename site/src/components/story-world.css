@@ -1,17 +1,16 @@
 /*
- * The storybook world (story-world.tsx): a dawn sky that carries on from the top of a scene, then the
- * scene below it, full width and ending on its own hard edges, with no frame or card around it. The
- * sky's colours are the scene's own (storybook.ts), the same in every theme, so the sky meets the
- * picture's top edge in the picture's own colours. In dark mode the sky is the page's own dark, only
- * tinted by the scene's colours, and the scene dims a touch, so a dawn picture never glares out of a
- * dark page.
+ * The storybook world (story-world.tsx): the page's first words on the page's own plain background, then the
+ * scene below them, full width and ending on its own hard edges, with no frame or card around it. Nothing is painted
+ * behind the words: no gradient and no glow, so they keep the theme's own contrast in light and dark. In dark mode the
+ * scene is the same place at night, its own file.
+ * The layers are named in Tailwind's order first, as in voyage/voyage.css: the bundler can place this file ahead of the
+ * page's Tailwind build, and a first @layer components would otherwise rank below Tailwind's base.
  */
+@layer properties, theme, base, components, utilities;
+
 @layer components {
   .story-world {
-    --story-ink: #2a1d38;
-    --story-ink-soft: #4b3a59;
     --story-max-h: none;
-    --story-sky-top: color-mix(in oklab, var(--background) 62%, transparent);
     position: relative;
     isolation: isolate;
   }
@@ -28,38 +27,18 @@
       overflow: clip;
     }
   }
-  .dark .story-world {
-    --story-ink: var(--foreground);
-    --story-ink-soft: color-mix(in oklab, var(--foreground) 86%, var(--background));
-    --story-sky-top: var(--background);
-  }
-
   .story-world-sky {
     position: relative;
     z-index: 0;
     padding-block: clamp(1.25rem, 3.6vw, 3rem) clamp(1rem, 2.4vw, 2rem);
-    background:
-      linear-gradient(to bottom, var(--story-sky-top), transparent 92%),
-      linear-gradient(to right, var(--story-sky-1), var(--story-sky-2) 25%, var(--story-sky-3) 50%, var(--story-sky-4) 75%, var(--story-sky-5));
-    color: var(--story-ink);
-  }
-  .dark .story-world-sky {
-    background:
-      linear-gradient(to bottom, var(--story-sky-top), color-mix(in oklab, var(--background) 84%, transparent)),
-      linear-gradient(to right, var(--story-sky-1), var(--story-sky-2) 25%, var(--story-sky-3) 50%, var(--story-sky-4) 75%, var(--story-sky-5));
-  }
-  /* Words in the sky are inked for it, whatever the theme's own text colour. */
-  .story-world-sky :where(.site-h1, .site-h2, .site-eyebrow, p) {
-    color: var(--story-ink);
-  }
-  .story-world-sky .site-hero-line-second {
-    color: var(--story-ink-soft);
+    background: var(--background);
+    color: var(--foreground);
   }
   .story-world-link {
     display: inline-flex;
     align-items: center;
     min-height: 2.25rem;
-    color: var(--story-ink);
+    color: var(--foreground);
     border-radius: 0.25rem;
     text-decoration-line: underline;
     text-decoration-thickness: 1px;
@@ -79,10 +58,7 @@
       text-decoration-thickness: 2px;
     }
   }
-  :root:not(.dark) .story-world-sky :where(.site-h1, .story-world-line, .story-world-title) {
-    text-shadow: 0 1px 24px color-mix(in oklab, white 55%, transparent);
-  }
-  /* One line in the sky: what is going on in the scene below, told as a story. */
+  /* One line above the scene: what is going on in the scene below, told as a story. */
   .story-world-line {
     margin: 0;
     font-family: var(--font-heading);
@@ -109,7 +85,15 @@
     z-index: 1;
     overflow: clip;
   }
+  /* Day or night, by the site's theme (the stored toggle's `.dark`): the other picture is not drawn, so a screen reader hears only the shown one, and the night picture loads lazily, so a page by day skips it. */
   .story-world-picture {
+    display: block;
+  }
+  .story-world-night,
+  .dark .story-world-day {
+    display: none;
+  }
+  .dark .story-world-night {
     display: block;
   }
   .story-world-img {
@@ -121,39 +105,6 @@
     object-position: 50% var(--story-short-y, 42%);
     user-select: none;
   }
-  .dark .story-world-img {
-    filter: brightness(0.86) saturate(0.95);
-  }
-  /*
-   * A docs page's scene at night is dusk (`.story-world-still`, components/docs-shell.tsx): dimmer and cooler, its sun
-   * low, so it sits behind a dark page's words instead of glowing out of it. The home page keeps its brighter dawn: it
-   * is the arrival, read once, not a page read every day.
-   */
-  .dark .story-world-still .story-world-img {
-    filter: brightness(0.78) saturate(0.84);
-  }
-  .dark .story-world-still .story-world-sun {
-    opacity: 0.12;
-  }
-  /* The dusk itself: a blue-violet evening laid over the dawn, over exactly the picture's box (the view clips it). */
-  .dark .story-world-still .story-world-view::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(to bottom, rgb(58 62 128), rgb(40 44 96));
-    mix-blend-mode: multiply;
-    opacity: 0.5;
-  }
-  /* The sunrise, glowing where the scene's sun is, over exactly the picture's box (the view clips it). */
-  .story-world-sun {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.55;
-    background: radial-gradient(circle at var(--story-sun-x) var(--story-sun-y), rgb(255 238 196 / 0.75), rgb(255 214 150 / 0.25) 9vw, transparent 18vw);
-    mix-blend-mode: soft-light;
-  }
 
   /*
    * A page's section scene opens a page that has its own hero below: a little shorter. On a very wide screen the
@@ -162,60 +113,17 @@
   .story-world-short {
     --story-max-h: min(max(min(48vh, 34rem), 26vw), 62vh, 576px);
   }
-  /*
-   * A docs page's arrival (components/docs-shell.tsx): its title in a shorter sky, over the column it names, then a
-   * band of about half the scene, framed on the friends' faces (storybook.ts, `band`), so the page's own words and
-   * demo come within the first screen. Every docs scene holds still (`.story-world-still`): a reference page is read, not watched.
-   */
-  .story-world-docs {
-    --story-max-h: max(10rem, min(23.5vw, 38vh, 361px));
-  }
-  .story-world-docs .story-world-sky {
-    padding-top: clamp(1rem, 2.4vw, 2rem);
-  }
-  .story-world-docs .story-world-img {
-    object-position: 50% var(--story-band-y);
-  }
-  .story-world-still :is(.story-world-img, .story-world-sun) {
-    animation: none;
-  }
-  .story-world-eyebrow {
-    margin: 0 0 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--story-ink-soft);
-  }
-  .story-world-title {
-    margin: 0;
-    font-family: var(--font-heading);
-    font-size: clamp(1.875rem, 1.2rem + 2.4vw, 3.5rem);
-    font-weight: var(--site-heading-weight, 600);
-    line-height: 1.04;
-    letter-spacing: -0.035em;
-    color: var(--story-ink);
-    text-wrap: balance;
-    overflow-wrap: break-word;
-  }
-
   @media (max-width: 40rem) {
-    .story-world-short,
-    .story-world-docs {
+    .story-world-short {
       --story-max-h: none;
-    }
-    /* The phone's crop is cut around Ouro and the product; the sun is out of it. */
-    .story-world-sun {
-      display: none;
     }
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    /* The sun comes up and the meadow leans in once, as the page arrives, then both hold: nothing keeps moving beside the words. */
+    /* The meadow leans in once, as the page arrives, then holds: nothing keeps moving beside the words. */
     .story-world-img {
       transform-origin: 50% 62%;
       animation: ouro-story-drift 3.6s cubic-bezier(0.2, 0, 0, 1) both;
-    }
-    .story-world-sun {
-      animation: ouro-story-sunrise 3s ease-out both;
     }
   }
   @keyframes ouro-story-drift {
@@ -224,99 +132,6 @@
     }
     to {
       transform: scale(1);
-    }
-  }
-  @keyframes ouro-story-sunrise {
-    from {
-      opacity: 0.3;
-    }
-    to {
-      opacity: 0.7;
-    }
-  }
-
-  /*
-   * The home page's arrival (voyage/hero.tsx), centred: the storybook is the full-width sky, the eyebrow, headline
-   * and lede sit centred in a 42rem column, and the scene centres below them at the fold cap. --hero-width is as wide
-   * as the scene can be while its foot still clears the first screen (the 36rem is the sky above it); the view also
-   * stops at --hero-art-max, the scene file's own width, so at 1x the picture is never upscaled.
-   */
-  .site-hero.site-hero-storybook {
-    --hero-gap: 3rem;
-    --hero-measure: 42rem;
-    --hero-art-max: 1536px;
-    --hero-width: min(80rem, 100% - 4rem, max(48rem, (100svh - 36rem) * 8 / 3));
-    padding-top: 0;
-  }
-  .site-hero.site-hero-storybook .story-world {
-    max-width: none;
-    margin: 0;
-    border-radius: 0;
-    overflow: visible;
-  }
-  .site-hero.site-hero-storybook .story-world-sky {
-    padding-block: 3rem 0;
-    background: none;
-    text-align: center;
-  }
-  .site-hero.site-hero-storybook .site-hero-eyebrow {
-    justify-content: center;
-  }
-  .site-hero.site-hero-storybook .site-hero-title {
-    max-width: var(--hero-measure);
-    margin: 1rem auto 0;
-    font-size: 3rem;
-    line-height: 1.1;
-    letter-spacing: -0.025em;
-    text-wrap: balance;
-  }
-  .site-hero.site-hero-storybook .site-hero-sky-lede {
-    max-width: var(--hero-measure);
-    margin: 1.5rem auto 0;
-    font-size: 1.125rem;
-    line-height: 2rem;
-    text-wrap: pretty;
-    color: var(--story-ink-soft);
-  }
-  .site-hero.site-hero-storybook .story-world-view {
-    width: var(--hero-width);
-    max-width: var(--hero-art-max);
-    margin: var(--hero-gap) auto 0;
-    border-radius: 4px;
-  }
-  .site-hero.site-hero-storybook .story-world-img {
-    max-height: none;
-  }
-  /* Above a phone the scene is the 8:3 window; on a phone the 16:9 crop keeps its own shape, uncropped. */
-  @media (width > 40rem) {
-    .site-hero.site-hero-storybook .story-world-img {
-      aspect-ratio: 8 / 3;
-    }
-  }
-  .site-hero.site-hero-storybook > .site-hero-grid {
-    margin-top: var(--hero-gap);
-  }
-  .site-hero.site-hero-storybook .site-hero-copy {
-    padding-top: 0;
-  }
-  /*
-   * At 390x844 the headline, the lede, the scene, the install command and both buttons sit above the fold. The
-   * porthole stage starts at the fold and is not wholly on the first screen. The title and lede are set to fit,
-   * the sky's top is set close, and the art is its 16:9 crop at the width of the column.
-   */
-  @media (max-width: 40rem) {
-    .site-hero.site-hero-storybook {
-      --hero-gap: 2rem;
-    }
-    .site-hero.site-hero-storybook .story-world-sky {
-      padding-top: 1.5rem;
-    }
-    .site-hero.site-hero-storybook .site-hero-title {
-      font-size: clamp(2rem, 8vw, 3rem);
-    }
-    .site-hero.site-hero-storybook .site-hero-sky-lede {
-      font-size: 1rem;
-      line-height: 1.5;
     }
   }
 }

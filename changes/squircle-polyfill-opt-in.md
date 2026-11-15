@@ -1,0 +1,1 @@
+- Changed: `OuroProvider` stops registering the `hyperellipse` squircle polyfill, which slowed typing and scrolling where `corner-shape` is not native and added a runtime dependency; those engines show round corners unless an app installs `lib-squircle-polyfill` and calls `registerSquirclePolyfill()` once.

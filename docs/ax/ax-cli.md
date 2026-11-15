@@ -5,7 +5,7 @@
 The whole front door for a tool built on the kit: parse, help, run (or, on `--dry-run`, plan), print the result as text or `--json`, and turn every failure into the one error line and its exit code. An outcome or a wait sets the exit code from its state.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-cli#v1.3.14
+npx shadcn@latest add ourostack/ouro-ui/ax-cli#v1.3.116
 ```
 
 It installs `lib/ouro/ax/cli.ts` and `lib/ouro/ax/help.ts`, with `ax-checks`, `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-terminal`, `ax-voice`, `ax-wait`. Its tests are `ax-cli-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -42,7 +42,7 @@ function isEmptyResult(result: unknown): boolean
 
 ### `printResult`
 
-Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text styled for stdout and every check under `--verbose`, anything else as its text or `--json`. A report whose checks all ran and passed may get the voice's `healthy` line. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
+Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text styled for stdout and every check under `--verbose`, anything else as its text or `--json`, with the exit code its command's `exit` names (0 when it names none). A report whose checks all ran and passed may get the voice's `healthy` line. Given the process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an empty list, or the summary command.
 
 ```ts
 function printResult(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext>, input: Readonly<Record<string, InputValue>>, result: unknown, json: boolean, io: Pick<CliIo, "stdout" | "stderr">, voice?: Voice | undefined, env?: Readonly<Record<string, string | undefined>>): number
@@ -102,6 +102,7 @@ interface CommandManifest {
   examples: readonly string[];
   hidden: boolean;
   scope?: "self";
+  single?: true;
 }
 ```
 
@@ -157,7 +158,7 @@ function renderCommand(cli: Cli<RunContext>, cmd: CommandDef<unknown, RunContext
 
 ### `renderOverview`
 
-The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only the person acts on, the footer.
+The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only the person acts on, the footer. A tool defined with `command` shows its one command's usage and summary in place of the command list; a tool with a default command lists the default's usage, arguments and flags under its heading.
 
 ```ts
 function renderOverview(cli: Cli<RunContext>, options?: OverviewOptions): string

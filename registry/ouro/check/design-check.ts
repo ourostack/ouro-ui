@@ -21,7 +21,7 @@ import type { PageIssue } from "./size-check.ts";
 //                      corners don't nest
 //   baked-corner       (readCorners) a picture or video whose own pixels draw a corner of another colour, such as a
 //                      screen recording of a window with its dark corner, inside the page's frame
-//   type-scale         more text sizes, or more font weights, than a type scale holds
+//   type-scale         more text sizes, or more font weights in running text or in headings, than a type scale holds
 //   shadow-scale       more distinct shadows than an elevation scale holds
 //   grey-on-colour     grey text on a coloured background, which reads washed out: use a shade of the background's hue
 //   heading-hierarchy  a heading drawn larger than the heading it sits under, each at the largest size its text is drawn
@@ -279,14 +279,16 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // nested-frame: a frame hugging a frame, or corners that don't nest.
+  // nested-frame: a frame hugging a frame, or corners that don't nest. An Ouro surface layer is its parent's own paint
+  // (where the engine has no corner-shape it draws the parent's fill and border), never a frame inside it.
+  const isLayer = (el: Element) => el.hasAttribute("data-ouro-surface") || el.hasAttribute("data-ouro-avatar-surface");
   const framed = visible.filter((el) => frameOf(el) !== null);
   const reported = new Set<Element>();
   for (const outer of framed) {
     if (optedOut(outer, "nested-frame")) continue;
     const o = outer.getBoundingClientRect();
     for (const inner of framed) {
-      if (inner === outer || !outer.contains(inner) || reported.has(inner)) continue;
+      if (inner === outer || !outer.contains(inner) || reported.has(inner) || isLayer(inner)) continue;
       const i = inner.getBoundingClientRect();
       const insets = [i.top - o.top, o.right - i.right, o.bottom - i.bottom, i.left - o.left];
       if (i.width >= 48 && i.height >= 32 && insets.every((d) => d >= -1 && d <= hugPx)) {
@@ -308,7 +310,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     if (radius < 6 || /hidden|clip/.test(os.overflow) || !filled(outer) || optedOut(outer, "nested-frame")) continue;
     const o = outer.getBoundingClientRect();
     for (const inner of outer.children) {
-      if (reported.has(inner) || !shown(inner) || !edged(inner)) continue;
+      if (reported.has(inner) || isLayer(inner) || !shown(inner) || !edged(inner)) continue;
       const i = inner.getBoundingClientRect();
       const inset = Math.max(0, Math.min(i.top - o.top, i.left - o.left));
       if (inset >= radius / 2) continue;
@@ -326,23 +328,31 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // type-scale and shadow-scale: what the page draws, counted once.
-  const texts = visible.filter(hasText);
+  // type-scale and shadow-scale: what the page draws, counted once. Text an element opts out of with a reason (hand
+  // lettering, say) is art, so it is left out of the size and weight counts; the rest of the page is still counted.
+  const texts = visible.filter((el) => hasText(el) && !optedOut(el, "type-scale"));
   const count = <T,>(values: T[]) => {
     const seen = new Map<T, number>();
     for (const v of values) seen.set(v, (seen.get(v) ?? 0) + 1);
     return seen;
   };
   const sizes = count(texts.map((el) => Math.round(px(getComputedStyle(el).fontSize) * 2) / 2));
-  const weights = count(texts.map((el) => Number(getComputedStyle(el).fontWeight)));
+  // Weights are counted within a text role: headings keep their own weight, so a semibold heading leaves the running
+  // text its regular, medium and bold, as Refactoring UI's two or three weights for UI text intend.
+  const isHeading = (el: Element) => el.closest("h1, h2, h3, h4, h5, h6, [role='heading']") !== null;
+  const weightsOf = (heading: boolean) => count(texts.filter((el) => isHeading(el) === heading).map((el) => Number(getComputedStyle(el).fontWeight)));
   const rarest = <T,>(seen: Map<T, number>, of: (el: Element) => T) => texts.find((el) => of(el) === [...seen].sort((a, b) => a[1] - b[1])[0]![0])!;
-  if (sizes.size > maxSizes && !optedOut(document.body, "type-scale")) {
+  if (sizes.size > maxSizes) {
     const list = [...sizes.keys()].sort((a, b) => a - b);
     issues.push({ ref: ref(rarest(sizes, (el) => Math.round(px(getComputedStyle(el).fontSize) * 2) / 2)), rule: "type-scale", element: "the page's text sizes", detail: `${list.length} sizes (${list.join(", ")} px); a type scale holds ${maxSizes} or fewer` });
   }
-  if (weights.size > maxWeights && !optedOut(document.body, "type-scale")) {
+  for (const heading of [false, true]) {
+    const weights = weightsOf(heading);
+    if (weights.size <= maxWeights) continue;
     const list = [...weights.keys()].sort((a, b) => a - b);
-    issues.push({ ref: ref(rarest(weights, (el) => Number(getComputedStyle(el).fontWeight))), rule: "type-scale", element: "the page's font weights", detail: `${list.length} weights (${list.join(", ")}); keep to ${maxWeights}` });
+    const role = (el: Element) => isHeading(el) === heading;
+    const rarestWeight = [...weights].sort((a, b) => a[1] - b[1])[0]![0];
+    issues.push({ ref: ref(texts.find((el) => role(el) && Number(getComputedStyle(el).fontWeight) === rarestWeight)!), rule: "type-scale", element: heading ? "the page's heading weights" : "the page's font weights", detail: `${list.length} weights (${list.join(", ")}); keep to ${maxWeights}` });
   }
   const shadowed = visible.filter((el) => getComputedStyle(el).boxShadow !== "none" && frameOf(el) === null);
   const shadows = count(shadowed.map((el) => getComputedStyle(el).boxShadow));
@@ -451,15 +461,21 @@ async function mediaDrawn(ref: string): Promise<void> {
   const el = document.querySelector(`[data-ouro-check-ref~="${ref}"]`)!;
   const wait = (event: string) => Promise.race([new Promise((done) => el.addEventListener(event, done, { once: true })), new Promise((done) => setTimeout(done, 3000))]);
   if (el instanceof HTMLVideoElement) {
-    el.pause();
+    if (!el.paused) {
+      const paused = wait("pause");
+      el.pause();
+      await paused;
+    }
     if (el.readyState < 2) {
       el.preload = "auto";
       el.load();
       await wait("loadeddata");
     }
-    if (el.currentTime !== 0) {
+    // WebKit can report where playback stopped after a seek has landed, so look again and seek again until it holds.
+    for (let tries = 0; el.currentTime !== 0 && tries < 3; tries++) {
       el.currentTime = 0;
       await wait("seeked");
+      await new Promise((done) => requestAnimationFrame(done));
     }
   } else if (el instanceof HTMLImageElement) await el.decode().catch(() => undefined);
   await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));

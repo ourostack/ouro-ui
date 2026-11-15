@@ -1,6 +1,6 @@
 /**
  * The storybook world (ourostack/.github, brand/): Ouro's meadow at dawn, each product's friends in a
- * scene of their own. site/public/brand/storybook/ holds byte-for-byte copies of the scenes this site
+ * scene of their own, and the same scene at night for dark mode. site/public/brand/storybook/ holds byte-for-byte copies of the scenes this site
  * shows, listed with their checksums in its provenance.json (site/scripts/brand.test.mjs holds them
  * to it). Which page opens on which scene, and which card its link preview shows, is decided here.
  */
@@ -14,8 +14,8 @@ export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
   alt: string;
   /**
-   * The colour along the scene's top edge, left to right in fifths (sampled from the 1536px header),
-   * so the sky above the picture carries on from it without a seam.
+   * The colour along the scene's top edge, left to right in fifths (sampled from the 1536px header), for the halo a
+   * link-preview card's words carry on the scene and the address's pill (site/scripts/og-cards.mts).
    */
   sky: readonly [string, string, string, string, string];
   /** The 1536px header's height: 576, or 512 for the whole-world panorama. */
@@ -25,8 +25,6 @@ export interface Scene {
    * so its shape is its own (ourostack/.github brand/AGENTS.md), and the picture follows it.
    */
   phoneHeight: number;
-  /** Where the sun rises in the wide scene, in percent across and down, for its glow. */
-  sun: readonly [number, number];
   /**
    * Where a short band of the wide scene sits, in percent down (CSS object-position): a docs page opens on about
    * three fifths of the scene's height, framed so its friends' heads are whole, Ouro's included.
@@ -37,6 +35,12 @@ export interface Scene {
    * the picture's top edge through mountains or a friend's head rather than sky.
    */
   shortY?: number;
+  /**
+   * The same scene at night, shown in dark mode (files named `<scene>-dark`, at the same widths): its phone crop's
+   * height, which is its own where the night crop was framed differently. It shares the scene's `alt` unless that names
+   * the time of day, when it has its own.
+   */
+  night: { phoneHeight: number; alt?: string };
 }
 
 export const SCENES: Record<SceneName, Scene> = {
@@ -45,49 +49,59 @@ export const SCENES: Record<SceneName, Scene> = {
     sky: ["#cfc0d0", "#c4c1da", "#cfcbdb", "#faceb4", "#fbd9b6"],
     height: 576,
     phoneHeight: 432,
-    sun: [86, 30],
     band: 27,
+    night: {
+      phoneHeight: 432,
+      alt: "A woman and a little white robot build a big green switch panel on a wooden workbench at night, while Ouro, a smiling green snake curled into an O, watches from the glowing trail.",
+    },
   },
   "ouro-ui-apple": {
     alt: "A little white robot leans over a phone, a tablet and a laptop on a garden bench, each showing the same green card with a switch, while Ouro smiles beside them.",
-    sky: ["#fcbdac", "#f9bda6", "#f9b39e", "#fdc794", "#fde893"],
+    sky: ["#fcb8a7", "#fab8a2", "#f9b19b", "#fdc08f", "#fde290"],
     height: 576,
     phoneHeight: 432,
-    sun: [87, 11],
     band: 8,
     shortY: 20,
+    night: { phoneHeight: 432 },
   },
   "ouro-ui-core": {
     alt: "Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.",
     sky: ["#edb6b1", "#f7c7b1", "#fac0a5", "#fcd693", "#fdec95"],
     height: 576,
     phoneHeight: 576,
-    sun: [86, 13],
     band: 24,
+    night: { phoneHeight: 576 },
   },
   "playwright-focus-proof": {
     alt: "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
     sky: ["#dac0c6", "#d1c5cf", "#d3ceda", "#f9cfb6", "#fbd6a7"],
     height: 576,
     phoneHeight: 320,
-    sun: [87, 28],
     band: 61,
+    night: {
+      phoneHeight: 300,
+      alt: "One night in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+    },
   },
   "ouroboros-skills": {
     alt: "A little robot reads an unrolled scroll beside a bookshelf full of ribboned scrolls and books, while Ouro hands another scroll to a second robot.",
     sky: ["#ebb7ae", "#f1c3a0", "#fcc4a8", "#fcda9d", "#fdeca2"],
     height: 576,
-    phoneHeight: 384,
-    sun: [86, 16],
-    band: 49,
+    phoneHeight: 320,
+    band: 12,
+    shortY: 8,
+    night: { phoneHeight: 320 },
   },
   ourostack: {
     alt: "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
     sky: ["#f8bcad", "#fabc9f", "#fbb59b", "#fdcb9d", "#fde99e"],
     height: 512,
     phoneHeight: 384,
-    sun: [86, 12],
     band: 65,
+    night: {
+      phoneHeight: 384,
+      alt: "Ouro's whole world at night: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+    },
   },
 };
 
@@ -110,12 +124,12 @@ export interface Card {
   size?: number;
   /**
    * Which stretch of the wide 1536px header to show, left to right, when the og crop cuts a figure off: it is drawn
-   * across the card's width under a band of the scene's own sky, which meets it on a hard edge.
+   * across the card's width under a band of the page's plain background, which meets it on a hard edge.
    */
   crop?: { from: number; to: number };
   /**
    * Where the site's address goes, clear of every drawn figure: a bottom corner (the words' side unless `addressSide`
-   * says otherwise), or, on a card with a band of sky, the band's other end.
+   * says otherwise), or, on a card with a band, the band's other end.
    */
   address?: "corner" | "band";
   addressSide?: "left" | "right";
@@ -158,10 +172,14 @@ export function cardAlt(card: Card): string {
   return `${card.kicker}: ${card.title}${/[.!?]$/.test(card.title) ? "" : "."} ${SCENES[card.scene].alt}`;
 }
 
-/** The srcsets a scene's picture offers: the phone crop, and the wide scene, each in AVIF and WebP. */
-export function sceneSources(scene: SceneName, at: (path: string) => string = (path) => `${STORYBOOK}${path}`) {
-  const phone = (type: "avif" | "webp") => `${at(`phone/${scene}-384.${type}`)} 384w, ${at(`phone/${scene}-768.${type}`)} 768w, ${at(`phone/${scene}-1152.${type}`)} 1152w, ${at(`phone/${scene}-1536.${type}`)} 1536w`;
+/**
+ * The srcsets a scene's picture offers: the phone crop, and the wide scene, each in AVIF and WebP. With `night`, the same
+ * scene at night, whose files carry `-dark` after the scene's name.
+ */
+export function sceneSources(scene: SceneName, at: (path: string) => string = (path) => `${STORYBOOK}${path}`, night = false) {
+  const name = night ? `${scene}-dark` : scene;
+  const phone = (type: "avif" | "webp") => `${at(`phone/${name}-384.${type}`)} 384w, ${at(`phone/${name}-768.${type}`)} 768w, ${at(`phone/${name}-1152.${type}`)} 1152w, ${at(`phone/${name}-1536.${type}`)} 1536w`;
   const wide = (type: "avif" | "webp") =>
-    `${at(`scenes/${scene}-640.${type}`)} 640w, ${at(`scenes/${scene}-960.${type}`)} 960w, ${type === "avif" ? at(`scenes/${scene}-1536.avif`) : at(`headers/${scene}.webp`)} 1536w, ${at(`scenes/${scene}-3072.${type}`)} 3072w`;
-  return { phone, wide };
+    `${at(`scenes/${name}-640.${type}`)} 640w, ${at(`scenes/${name}-960.${type}`)} 960w, ${type === "avif" ? at(`scenes/${name}-1536.avif`) : at(`headers/${name}.webp`)} 1536w, ${at(`scenes/${name}-3072.${type}`)} 3072w`;
+  return { phone, wide, header: at(`headers/${name}.webp`) };
 }

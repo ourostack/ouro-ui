@@ -61,7 +61,7 @@ const components = readComponents(root).map((entry) => entry.name);
 /** The helper items, one per file in lib/ouro, and the helpers that have tests. */
 const libFiles = readdirSync(join(root, "registry/ouro/lib/ouro")).filter((file) => /\.tsx?$/.test(file));
 const libs = libFiles.filter((file) => !/\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/\.d\.ts$|\.tsx?$/, "")}`).sort();
-const axRuntime = ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-precise-copy", "ax-problem", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
+const axRuntime = ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-effects", "ax-example", "ax-exit-codes", "ax-flows", "ax-lint", "ax-mcp", "ax-outcome", "ax-output", "ax-precise-copy", "ax-problem", "ax-surfaces", "ax-terminal", "ax-voice", "ax-wait", "ax-work-event", "ax-xray"];
 const libTests = [...new Set(libFiles.filter((file) => /\.test\.tsx?$/.test(file)).map((file) => `lib-${file.replace(/(\.touch)?\.test\.tsx?$/, "")}-tests`))].sort();
 /** The components this repository had when the manifests replaced the script's list: their order never changes. */
 const firstComponents = ["button", "text", "heading", "sheet", "dialog", "confirm-dialog", "field", "fieldset", "link", "text-field", "text-area"];
@@ -231,7 +231,7 @@ test("theme items come from the repository's CSS, in shadcn's cssVars format", (
   assert.equal(base.css[":root"]["--ouro-spring-duration"], "750ms");
   assert.match(base.css[":root"]["--ouro-ease-spring"], /^linear\(0, /);
   assert.equal(base.css[":root"]["--ouro-backdrop-color"], "#18181b");
-  assert.deepEqual(base.css[".dark"], { "--ouro-backdrop-color": "#000000" });
+  assert.equal(base.css[".dark"]["--ouro-backdrop-color"], "#000000");
   assert.equal(base.cssVars.theme["color-warning-foreground"], "var(--warning-foreground)");
   assert.match(base.css["@utility press"].transition, /scale var\(--ouro-duration-press\) var\(--ouro-ease-out\)/);
   assert.deepEqual(base.css["@keyframes ouro-spin"], { to: { rotate: "1turn" } });
@@ -240,7 +240,7 @@ test("theme items come from the repository's CSS, in shadcn's cssVars format", (
   const theme = item("ouro-theme");
   assert.equal(theme.type, "registry:theme");
   assert.equal(theme.cssVars.light.primary, "#0066cc");
-  assert.equal(theme.cssVars.light.radius, "0.75rem");
+  assert.equal(theme.cssVars.light.radius, "1.125rem");
   assert.equal(theme.cssVars.dark.primary, "#2997ff");
   assert.equal(theme.files, undefined);
 });
@@ -251,6 +251,9 @@ test("cssToItem converts rules and rejects what shadcn's format can't carry", ()
   assert.deepEqual(cssToItem(css), {
     cssVars: { light: { a: "1px" }, dark: { a: "2px" }, theme: { "color-a": "var(--a)" } },
     css: { ":root": { "--ouro-x": "2ms" }, ".dark": { "--ouro-x": "3ms" }, "@utility tap": { scale: "0.9" }, "@keyframes k": { from: { opacity: "0" } } },
+  });
+  assert.deepEqual(cssToItem("@supports not (corner-shape: squircle) { :root { --ouro-s: 0.7; } }").css, {
+    "@supports not (corner-shape: squircle)": { ":root": { "--ouro-s": "0.7" } },
   });
   assert.throws(() => cssToItem(":root { color: red; }"), /:root.*only custom properties/);
   assert.throws(() => cssToItem("@import 'x.css';"), /@import/);
@@ -282,10 +285,12 @@ test("helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro
   for (const name of libs) {
     assert.equal(item(name).type, "registry:lib");
     // One module each; lib-claims also ships the Node script that checks its claims.
-    assert.equal(item(name).files.filter((file) => !file.path.endsWith(".mjs")).length, 1, `${name} is one module`);
+    // lib-squircle-polyfill also ships its vendored engine (lib/ouro/squircle/).
+    const modules = item(name).files.filter((file) => !file.path.endsWith(".mjs") && !file.path.includes("/squircle/"));
+    assert.equal(modules.length, 1, `${name} is one module`);
     for (const file of item(name).files) {
       assert.equal(file.type, "registry:lib");
-      assert.match(file.target, /^@lib\/ouro\/[\w.-]+$/);
+      assert.match(file.target, /^@lib\/ouro\/(?:squircle\/)?[\w.-]+$/);
     }
   }
   assert.equal(item("ouro-lib").files, undefined);
@@ -313,6 +318,8 @@ test("every registry file ships in exactly one item, except the repository's own
   // The screen-reader lane's specs need VoiceOver or NVDA; they stay in this repository.
   assert.equal(itemForFile("registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts"), null);
   assert.equal(itemForFile("registry/ouro/e2e/screen-reader/screen-reader.ts"), null);
+  // The skeleton frame probe measures on a schedule; no app's tests run it.
+  assert.equal(itemForFile("registry/ouro/e2e/probes/skeleton-frames.spec.ts"), null);
   assert.equal(itemForFile("registry/ouro/e2e/ouro/story.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/lib/ouro/testing/act.ts"), "ouro-testing");
   assert.equal(itemForFile("registry/ouro/theme/theme.test.tsx"), null);
@@ -346,11 +353,11 @@ test("Ouro AX items depend on the ax items they import", () => {
   assert.equal(itemForFile("registry/ouro/ax/fixtures/flows-suite.mts"), "ax-flows-tests");
   assert.deepEqual(item("ax-problem").registryDependencies, undefined);
   assert.deepEqual(item("ax-outcome").registryDependencies, ["ax-effects", "ax-exit-codes", "ax-problem"].map(repo));
-  assert.deepEqual(item("ax-xray").registryDependencies, ["ax-checks", "ax-claims", "ax-component", "ax-dev-commands", "ax-outcome", "ax-precise-copy", "ax-terminal", "ax-wait", "ax-work-event"].map(repo));
+  assert.deepEqual(item("ax-xray").registryDependencies, ["ax-checks", "ax-claims", "ax-cli", "ax-command", "ax-component", "ax-dev-commands", "ax-exit-codes", "ax-outcome", "ax-precise-copy", "ax-problem", "ax-terminal", "ax-wait", "ax-work-event"].map(repo));
   assert.deepEqual(item("ax-checks").registryDependencies, ["ax-dev-commands", "ax-exit-codes", "ax-outcome", "ax-terminal"].map(repo));
   assert.deepEqual(item("ax-terminal").registryDependencies, ["ax-outcome", "ax-voice"].map(repo));
   assert.deepEqual(item("ax-voice").registryDependencies, ["ax-outcome"].map(repo));
-  assert.deepEqual(item("ax-flows").registryDependencies, undefined);
+  assert.deepEqual(item("ax-flows").registryDependencies, ["ax-cli", "ax-command", "ax-outcome", "ax-problem"].map(repo));
   for (const name of ["ax-cli", "ax-example", "ax-flows"]) assert.ok(item("ax-flows-tests").registryDependencies.includes(repo(name)), name);
   assert.deepEqual(item("ax-cli").files.map((file) => [file.path, file.type, file.target]), [
     ["registry/ouro/ax/cli.ts", "registry:lib", "@lib/ouro/ax/cli.ts"],
@@ -369,6 +376,13 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
   assert.deepEqual(item("button").dependencies, ["@base-ui/react@^1.8.0"]);
   // OuroProvider groups tooltips with Base UI's Tooltip.Provider.
   assert.deepEqual(item("lib-ouro-provider").dependencies, ["@base-ui/react@^1.8.0"]);
+  // The squircle polyfill is opt-in, and its engine is vendored source: no npm dependency, and no component or helper installs the item.
+  assert.equal(item("lib-squircle-polyfill").dependencies, undefined);
+  assert.ok(item("lib-squircle-polyfill").files.some((file) => file.path.endsWith("/squircle/register.ts")));
+  for (const entry of registry.items) {
+    assert.ok(!(entry.dependencies ?? []).some((dep) => dep.startsWith("hyperellipse")), `${entry.name} installs hyperellipse from npm`);
+    if (!/^(ouro-lib|ouro-tests|lib-squircle-polyfill)(-tests)?$/.test(entry.name)) assert.ok(!(entry.registryDependencies ?? []).some((dep) => dep.includes("squircle-polyfill")), `${entry.name} pulls in the polyfill`);
+  }
   assert.deepEqual(item("lib-cn").dependencies, ["clsx@^2.1.1", "tailwind-merge@^3.7.0"]);
   assert.equal(item("ouro-lib").dependencies, undefined);
   assert.ok(!JSON.stringify(registry).includes('"motion@'), "no item depends on motion");
@@ -381,6 +395,11 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
     }
     for (const dependency of entry.devDependencies ?? []) assert.doesNotMatch(dependency, /^react(-dom)?$/);
   }
+});
+
+test("Ouro check installs to @lib/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does", () => {
+  assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/check.ts").target, "@lib/ouro/check/check.ts");
+  for (const name of ["ax-cli", "ax-command", "ax-exit-codes", "ax-outcome", "ax-problem"]) assert.ok(item("ouro-check").registryDependencies.includes(repo(name)), name);
 });
 
 test("a helper's Node script names what it imports as devDependencies without a version, so lib-claims leaves the app's TypeScript alone", () => {

@@ -1,0 +1,1 @@
+- Changed: Avatar draws a person with rounder corners so a person reads apart from a team, and its presence dot sits on the edge of the curve with the avatar cut away round it, a plain colour on the small sizes and with its glyph on the larger ones.

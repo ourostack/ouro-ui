@@ -1,0 +1,1 @@
+- New: OuroMcpApp is the view an MCP server returns for agent-composed UI (MCP Apps). It shows the tool result's A2UI card with Ouro HX, and a pressed button calls its action's own tool through the host, once the person confirms when the action is consequential. `node scripts/mcp-app.mts build` makes it one HTML file with the app's catalog embedded.

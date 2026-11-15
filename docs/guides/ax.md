@@ -9,8 +9,8 @@ Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. O
 ## Install
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.14         # the kit and the X-ray
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.14   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.116         # the kit and the X-ray
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.116   # with their node:test tests
 ```
 
 The shadcn CLI copies the files into `lib/ouro/ax/` under your lib alias. Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]
@@ -74,6 +74,18 @@ Receipt: a-t1
 - A refusal is one line that ends with `Fix:` and the command to run instead, and exits with the usage code.
 - `--json` prints the outcome: its state, who can see it, the postcondition the tool checked, the receipt and the next commands.
 
+A tool with one thing to do defines `command` instead of `commands`. That command [takes no command word](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a tool with one command reads every token as the command's arguments and flags, with no command word)"), so every token is its own argument or flag: `images site/showcase --out x` runs it with `site/showcase`. `--help` shows the command, and `help` still gives the overview. A tool with `commands` still refuses a word it doesn't know.
+
+```ts
+const cli = defineCli({
+  name: "images",
+  about: ["images: writes the sizes a folder of pictures is written at."],
+  command: defineCommand({ name: "sizes", summary: "Write each picture at the sizes the site uses.", effect: "private", examples: ["images site/showcase"], args: [{ name: "folder", description: "The folder of pictures.", required: true }], run: (i) => ({ folder: i["folder"] }) }),
+});
+```
+
+A tool can also define `command` beside `commands`. That default [runs when no command word leads](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a tool with a default command runs it for any leading word that is not a command word, and a command word goes after --)"): in a tool with a `sizes` command, `images site/showcase` runs the default and `images sizes site/showcase` runs `sizes`. A target named like a command word goes after `--`. A flag may [repeat](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a repeat flag collects each value in order, in either form, and is absent when not given)"), as `--ready a --ready b`, and then its values come as a list.
+
 ## The items
 
 | Item | What it gives you |
@@ -92,6 +104,7 @@ Receipt: a-t1
 | [`ax-lint`](../ax/ax-lint.md) | Checks the declarations, and against your command inventory that the commands you register run through them. |
 | [`ax-dev-commands`](../ax/ax-dev-commands.md) | Finds a developer command or a repository path in a message for an agent or a person, which the person's installed tool can't run; a step marked `sourceCheckout: true` passes. |
 | [`ax-precise-copy`](../ax/ax-precise-copy.md) | Finds a vague failure ("couldn't", "something went wrong", a bare "Error") in a message for an agent or a person, with an allow-list of precise texts and their reasons. |
+| [`ax-surfaces`](../ax/ax-surfaces.md) | Checks the words an agent reads, from a JSON manifest any repository can produce: errors that open with their fix and carry a code, tool descriptions that say when and stay short, action replies that report an outcome, and a message that sends an agent to run a script. A baseline file keeps CI failing on a new finding and on a fixed one still listed. |
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
 | [`ax-checks`](../ax/ax-checks.md) | A doctor or self-check declared once: progress while it runs, the verdict first, the fix beside a problem, the same facts in `--json`, and the findings exit code. |
@@ -105,6 +118,8 @@ Receipt: a-t1
 An action returns an outcome rather than a bare "ok". Its `state` says what became of it: `done`, `queued`, `planned`, `needs-human`, `uncertain`, `refused` or `failed`. `postcondition` says whether the tool checked the effect apart from the transport's answer, and `receipt.id` finds the request again. `runCli` sets the exit code from the state.[^outcome-exit]
 
 A wait takes a reference the agent already holds, such as a conversation id from a list, and waits inside the tool. `waitFor()` reads the source as often as it must and returns what happened, or, when the time limit passes, the cursor and the exact command that resumes the wait. The agent makes one call instead of writing a polling loop.
+
+A command that returns data, such as a list or a report, prints it as it is under `--json`. Its `exit` names the exit code by its name in the tool's table, such as `unavailable`, and a name the table does not have is refused.[^data-exit] Without `exit`, the exit code is 0.[^data-exit]
 
 ## Say precisely why it failed
 
@@ -139,6 +154,12 @@ A surface that drives a browser for an agent meets pages that try to open a desk
 ```
 
 A read, such as a snapshot, follows nothing: it reports the launch and the option's ref, and leaves the click to the agent.
+
+## Check the words of a tool without the kit
+
+A repository that has not adopted the kit can still hold its agent-facing words to Ouro AX. `ax-surfaces` reads a manifest of them, `{ "ax": "surfaces/1", "tool": "notes", "errors": [...], "tools": [...], "replies": [...], "texts": [...] }`, and finds an error that does not open with what to do, an error with no stable `code`, a tool description that does not say when to use the tool or runs past 600 characters, an action reply with no field that says what happened, and any message that sends the agent to run a script.[^surfaces-checks] `node lib/ouro/ax/surfaces.ts extract src --tool notes --out surfaces.json` writes a first manifest from JavaScript or TypeScript source, as a start to edit.
+
+Record today's findings once, then let CI hold the line: `node lib/ouro/ax/surfaces.ts check surfaces.json --baseline surfaces-baseline.json --init` writes the baseline, and every later `check` with `--baseline` exits 3 on a finding the baseline does not list, and on a listed finding that is fixed, so the pull request that fixes one lowers its count (`--update`) and the count only goes down. The baseline counts findings per check and file, so rewording an error does not change it.[^surfaces-ratchet]
 
 ## A voice
 
@@ -272,7 +293,7 @@ export default defineSuite({ tool: "notes", flows: [send], cli: inProcess(main),
 node lib/ouro/ax/flows.ts run flows/suite.ts --out report --xray xray.json
 ```
 
-It writes `report/findings.jsonl`, one check a line, and `report/report.json` with the X-ray attached, in the `flow-review/0` format. Each call is checked for its exit code, JSON shape and fields, one-line errors that name the fix, time and size budgets, text it must have or must not, and the voice: plain stderr and JSON alone under `--json`.[^flows-checks] The runner also checks a flow for commands the overview leaves out, and a flow marked `readOnly` for a state that changed. Nothing runs until your guard proves the mock is a mock.[^flows-guard] A step marked `known` with its issue is reported and doesn't fail the run; once it passes, the run fails until the mark goes.[^flows-known] `fixtures/flows-suite.mts` is a whole suite over the example tool, with a reply that arrives partway through a wait.
+`--help` and `--json` come from the Ouro AX kit: under `--json`, stdout holds the outcome alone and each flow's line goes to stderr.[^flows-json] It writes `report/findings.jsonl`, one check a line, and `report/report.json` with the X-ray attached, in the `flow-review/0` format. Each call is checked for its exit code, JSON shape and fields, one-line errors that name the fix, time and size budgets, text it must have or must not, and the voice: plain stderr and JSON alone under `--json`.[^flows-checks] The runner also checks a flow for commands the overview leaves out, and a flow marked `readOnly` for a state that changed. Nothing runs until your guard proves the mock is a mock.[^flows-guard] A step marked `known` with its issue is reported and doesn't fail the run; once it passes, the run fails until the mark goes.[^flows-known] `fixtures/flows-suite.mts` is a whole suite over the example tool, with a reply that arrives partway through a wait.
 
 ## Adopting it in an existing tool
 
@@ -283,12 +304,14 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^tool]: test:scripts/ax.test.mjs::the guide shows the tasks tool as it is, and the answers it gives; test:registry/ouro/ax/xray.test.mts::the guide's tool conforms verify:testExists(scripts/ax.test.mjs::the guide shows the tasks tool as it is, and the answers it gives) verify:testExists(registry/ouro/ax/xray.test.mts::the guide's tool conforms)
 [^dry-run]: test:registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted verify:testExists(registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted)
 [^outcome-exit]: test:registry/ouro/ax/outcome.test.mts::outcomeExit: a refusal's own exit, else the state's name in the tool's table verify:testExists(registry/ouro/ax/outcome.test.mts::outcomeExit: a refusal's own exit, else the state's name in the tool's table)
+[^data-exit]: test:registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged verify:testExists(registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged)
 [^voice]: test:registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
 [^voice-line]: test:registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built verify:testExists(registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built)
 [^voice-order]: test:registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most; test:registry/ouro/ax/cli.test.mts::voice variants rotate from the memory a tool keeps between runs verify:testExists(registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most) verify:testExists(registry/ouro/ax/cli.test.mts::voice variants rotate from the memory a tool keeps between runs)
 [^flows-checks]: test:registry/ouro/ax/flows.test.mts::a call's checks: exit, shape, fields, error text, time, size, text and voice, each its own finding verify:testExists(registry/ouro/ax/flows.test.mts::a call's checks: exit, shape, fields, error text, time, size, text and voice, each its own finding)
 [^flows-guard]: test:registry/ouro/ax/flows.test.mts::nothing runs until the suite's guard passes verify:testExists(registry/ouro/ax/flows.test.mts::nothing runs until the suite's guard passes)
 [^flows-known]: test:registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage verify:testExists(registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage)
+[^flows-json]: test:registry/ouro/ax/flows.test.mts::--json prints the outcome alone on stdout, and each flow's line on stderr verify:testExists(registry/ouro/ax/flows.test.mts::--json prints the outcome alone on stdout, and each flow's line on stderr)
 [^component]: test:registry/ouro/ax/component.test.mts::an action is agent or person-only, exactly one, and every problem throws one line with its fix verify:testExists(registry/ouro/ax/component.test.mts::an action is agent or person-only, exactly one, and every problem throws one line with its fix)
 [^bind]: test:registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries; test:scripts/ax.test.mjs::the guide shows the calling components' declarations as they are verify:testExists(registry/ouro/ax/component.test.mts::bindAx needs a twin for every read and agent action, refuses one for a person-only action, and returns the inventory entries) verify:testExists(scripts/ax.test.mjs::the guide shows the calling components' declarations as they are)
 [^listening]: test:registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow verify:testExists(registry/ouro/ax/xray.test.mts::the calling components' twins conform: each twin is listed with its effect, person-only words refuse, and listening reads wait for a follow)
@@ -303,3 +326,5 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^lint]: test:registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command verify:testExists(registry/ouro/ax/lint.test.mts::against the tool's own inventory: a registered command with no declaration, and a declaration with no command)
 [^precise-failure]: test:registry/ouro/ax/xray.test.mts::a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through verify:testExists(registry/ouro/ax/xray.test.mts::a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through) verify:testExists(registry/ouro/ax/precise-copy.test.mts::walks a value, reading an outcome's error, human reason and summary and a checks report's findings, not the person's data)
 [^failure-allow]: test:registry/ouro/ax/precise-copy.test.mts::an allow-list needs a match and a reason in every entry verify:testExists(registry/ouro/ax/precise-copy.test.mts::an allow-list needs a match and a reason in every entry) verify:testExists(registry/ouro/ax/xray.test.mts::a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through)
+[^surfaces-checks]: test:registry/ouro/ax/surfaces.test.mts::error.leads-with-fix: says whether the fix is missing or only late verify:testExists(registry/ouro/ax/surfaces.test.mts::error.leads-with-fix: says whether the fix is missing or only late) verify:testExists(registry/ouro/ax/surfaces.test.mts::tool.says-when and tool.description-budget: when to use it, within the size budget) verify:testExists(registry/ouro/ax/surfaces.test.mts::reply.reports-outcome: an action's reply carries a field that says what happened; a read needs none) verify:testExists(registry/ouro/ax/surfaces.test.mts::text.no-script: no error, tool description or text sends the agent to a script)
+[^surfaces-ratchet]: test:registry/ouro/ax/surfaces.test.mts::a baseline is written once, fails what is new, and only ever shrinks verify:testExists(registry/ouro/ax/surfaces.test.mts::a baseline is written once, fails what is new, and only ever shrinks)

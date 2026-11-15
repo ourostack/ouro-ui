@@ -4,20 +4,23 @@ The same colours, motion and manners as this site, in Swift, for iPhone, iPad an
 
 ## What ships today
 
-Release [v0.3.4](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.3.4) meets core v0.3.0: its tokens are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core] Add it with Swift Package Manager:
+Release [v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0) meets core v0.8.0, and v0.9.0 for its A2UI conformance cases: its tokens are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core] Add it with Swift Package Manager:
 
 ```swift
-.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.3.4")
+.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.6.0")
 ```
+
+Version 0.5.0 adds `OuroA2UI`, which draws agent-composed UI from Ouro HX's A2UI catalog and is proved against all 10 of core v0.7.1's conformance cases.[^a2ui]
 
 It needs iOS 18 or macOS 15, and Swift 6.1.[^floor] In the box:[^products]
 
-- `OuroHX`, for your app: buttons, empty states, banners, sheets and toasts; `.ouroTheme(.pearl)`, colours and radii in the environment, contrast-aware colours, core's spring and curves (polite under Reduce Motion), one named table of haptics, and fold posture for foldable screens.
+- `OuroHX`, for your app: buttons, badges, cards, item rows and lists, empty states, banners, sheets and toasts; `.ouroTheme(.pearl)`, colours and radii in the environment, contrast-aware colours, core's spring and curves (polite under Reduce Motion), one named table of haptics, and fold posture for foldable screens.
 - `OuroHXTesting`, for your tests: snapshots in light, dark and increased contrast, `ouroAccessibilityAudit`, and a hinge you can fold from a UI test.
 - `OuroAX`, for your app: outcomes and problems shaped field for field like web's `ax-outcome` and `ax-problem`, shared exit codes, and entity queries with fuzzy matching.
 - `OuroAXTesting`, for your tests: Siri evaluation wordings and pass rates, and the App Intents X-ray's checks.
 - `ouro-ax-xray`, for you and CI: X-rays a built app's App Intents against Ouro AX for Apple's claims.
 - `OuroReins`, for your app's UI-free core and its agents: screens as state and actions, driven headless or over a debug-only socket.[^products]
+- `OuroFeel`, for your UI tests: checks for the way back, overlays, tap landing, flicker and settle time, among others.[^products]
 - `ouro-ax-skills` and `OuroAXSkillsLintPlugin`: a linter for an app's `Skills.skillsbundle`, from the command line or at build time, with errors pinned to the line.
 - `ouro-devicehub`, for a Mac CI job: presses the buttons in Xcode's Device Hub, so a test can fold the simulator.
 
@@ -44,10 +47,11 @@ These switch on when you build with the Siri AI SDK. Until then they are written
 - [Ouro AX for Apple's standard](https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md), in core.
 - [The Platforms page](README.md) and its version table.
 
-[^core]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.3.4; https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/core-provenance.json; https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/.github/workflows/ci.yml#L53-L70 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.3.4) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/.github/workflows/ci.yml#L53-L70)
-[^floor]: https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/Package.swift#L1-L9 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/Package.swift#L1-L9)
-[^products]: https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/README.md#whats-in-the-box; https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/Package.swift#L18-L35 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/README.md#whats-in-the-box) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/Package.swift#L18-L35)
+[^core]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0; https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/core-provenance.json; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96) verify:equals(scripts/parity-data/versions.json#apple.coreTag)=v0.8.0
+[^a2ui]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0; https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#agent-composed-ui-a2ui)
+[^floor]: https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/Package.swift#L1-L9 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/Package.swift#L1-L9)
+[^products]: https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box; https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/Package.swift#L19-L38 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/Package.swift#L19-L38)
 [^siri]: https://developer.apple.com/news/?id=gdk2umrf; https://developer.apple.com/documentation/appintents/siri-ai-developer-preview verify:urlOk(https://developer.apple.com/news/?id=gdk2umrf) verify:urlOk(https://developer.apple.com/documentation/appintents/siri-ai-developer-preview)
-[^fenced]: https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/README.md#siri-ai verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/README.md#siri-ai)
-[^xray]: https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md#how-each-claim-is-checked; https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/README.md#x-ray-your-apps-app-intents verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md#how-each-claim-is-checked) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/README.md#x-ray-your-apps-app-intents)
-[^evals]: https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/README.md#whats-in-the-box verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/fa490ba6696ce6199c92f0979943cceb61d2e15a/README.md#whats-in-the-box)
+[^fenced]: https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#siri-ai verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#siri-ai)
+[^xray]: https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md#how-each-claim-is-checked; https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#x-ray-your-apps-app-intents verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md#how-each-claim-is-checked) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#x-ray-your-apps-app-intents)
+[^evals]: https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box)

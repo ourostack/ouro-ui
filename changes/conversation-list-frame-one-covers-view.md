@@ -1,0 +1,1 @@
+- Fixed: ConversationList counts its first frame's rows from the estimates alone and adds overscan on the first scroll or size change, so frame one holds the rows the settled screen holds.

@@ -1,0 +1,52 @@
+{
+  "model": "claude-opus-5",
+  "modelId": "claude-opus-5",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "task": "add-item",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 1,
+  "toolsUsed": [
+    "add_item"
+  ],
+  "textReadChars": 29,
+  "wallMs": 4514,
+  "modelCalls": 2,
+  "tokens": {
+    "input": 2024,
+    "output": 128,
+    "cacheRead": 946,
+    "cacheWrite": 1074,
+    "reasoning": 0,
+    "total": 2152
+  },
+  "costAiu": 1.04055,
+  "costSource": "runtime",
+  "finalMessage": "Added 2 cartons of oat milk to your shopping list.",
+  "transcript": {
+    "messages": [
+      "I'll add that to your list.",
+      "Added 2 cartons of oat milk to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "add_item",
+        "args": {
+          "name": "oat milk",
+          "quantity": 2,
+          "unit": "carton"
+        },
+        "ms": 6,
+        "resultChars": 29,
+        "result": "{\"id\":\"i6\",\"name\":\"oat milk\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

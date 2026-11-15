@@ -1,0 +1,1 @@
+- Changed: the shipped Skeleton spec now [checks that no animation runs on a skeleton with `shimmer={false}`](registry/ouro/e2e/ouro/skeleton.spec.ts "verify:testExists(registry/ouro/e2e/ouro/skeleton.spec.ts::wheel scrolling a long scroller of loading skeletons with shimmer={false} runs no animation on them)"); its dropped-frame comparison moved to a repository-only probe.

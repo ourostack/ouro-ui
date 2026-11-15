@@ -1,0 +1,37 @@
+{
+  "model": "gemini-4-carbon",
+  "modelId": "gemini-4-carbon",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "place-order",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 0,
+  "toolsUsed": [],
+  "textReadChars": 0,
+  "wallMs": 10133,
+  "modelCalls": 1,
+  "tokens": {
+    "input": 631,
+    "output": 269,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 224,
+    "total": 900
+  },
+  "costAiu": 0.3952,
+  "costSource": "runtime",
+  "finalMessage": "I can't order groceries from a store or pay for them, as Pantry only lets me manage your shopping list and recipes. You'll need to place the order directly with the corner store yourself.",
+  "transcript": {
+    "messages": [
+      "I can't order groceries from a store or pay for them, as Pantry only lets me manage your shopping list and recipes. You'll need to place the order directly with the corner store yourself."
+    ],
+    "toolCalls": []
+  },
+  "redacted": false
+}

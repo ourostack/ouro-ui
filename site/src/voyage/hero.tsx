@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import proof, { install } from "virtual:site-proof";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
@@ -14,7 +15,20 @@ import { StoryWorld } from "../components/story-world";
 import { Stage } from "./stage/stage";
 import { ThemeDots } from "./theme-dots";
 
-/** The hero scene's width: its 80rem cap, scaled by the root type on a wide screen and never past the 1536px file width (story-world.css `--hero-width`). In rem, so a larger browser font never makes it guess too small. */
+/** A line never breaks inside a hyphenated word ("X-ray", "person-only"): each sits in a no-wrap span. */
+function keepHyphenatedWordsWhole(text: string): (string | JSX.Element)[] {
+  return text.split(/(\S+-\S+)/).map((part, index) =>
+    index % 2 === 1 ? (
+      <span key={index} className="whitespace-nowrap" data-site-whole-word="">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
+/** The hero scene's width: Hero's stage width (its 80rem cap, scaled by the root type on a wide screen), never past the 1536px file width. In rem, so a larger browser font never makes it guess too small. */
 const HERO_SCENE_SIZES = "(min-width: 200rem) min(1536px, 100rem), (min-width: 150rem) min(1536px, 90rem), (min-width: 80rem) min(1536px, 80rem), calc(100vw - 4rem)";
 
 /** What the hero says the library is, before anything else: its name. */
@@ -175,61 +189,86 @@ function Halves(): JSX.Element {
   );
 }
 
-/** The first viewport: Ouro's meadow with the headline in its sky, then how to add HX, beside the porthole stage. */
-export function Hero({ onXray }: { onXray: () => void }): JSX.Element {
+/** The first viewport: Ouro's meadow with the headline above it, then how to add HX and the porthole stage beneath it. */
+export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
   return (
-    <section aria-labelledby="hero-title" className="site-hero site-hero-storybook">
+    <>
       {/*
-        The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the
-        headline in its sky; the porthole, the showcase, follows. The eyebrow names Ouro UI's two halves (the
-        header names Ouro UI itself); on a phone the halves are named under the stage, so it stays for screen readers only.
+        The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the headline above
+        it, never drawn wider than the 1536px scene file. The eyebrow names Ouro UI's two halves (the header names Ouro UI
+        itself); on a phone the halves are named under the stage, so it stays for screen readers only.
       */}
-      <StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES}>
-        <Container>
-          <p className="site-eyebrow site-hero-eyebrow max-sm:sr-only" data-site-eyebrow="">
-            <span className="site-hero-brand">{EYEBROW}</span>
-          </p>
-          <h1 id="hero-title" className="site-h1 site-hero-title">
-            {VOYAGE_HERO.title.map((sentence, index) => (
-              <span key={sentence} className={index === 0 ? "site-hero-line" : "site-hero-line site-hero-line-second"}>
-                {sentence}
-                {index < VOYAGE_HERO.title.length - 1 ? " " : null}
-              </span>
-            ))}
-          </h1>
-          <p className="site-lede site-hero-sky-lede">{VOYAGE_HERO.subline}</p>
-        </Container>
-      </StoryWorld>
-      <Container className="site-hero-grid">
-        <div className="site-hero-copy">
-          {/* On a phone the theme dots open the copy, above the command, so the stage's first control comes sooner. */}
-          <div className="max-sm:flex max-sm:flex-col">
-            <div className="max-w-[36rem]">
-              <Install />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-3 lg:mt-6">
-              <Button href={href("/nautilus/")} size="lg">
-                Come aboard
-              </Button>
-              <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
-                Browse components
-              </Button>
-            </div>
-            <div className="mt-6 max-sm:order-first max-sm:mt-0 lg:mt-9">
-              <p className="mb-2.5 text-sm text-muted-foreground max-sm:sr-only">Pick a coat of paint. The whole page changes with it.</p>
-              <ThemeDots label="Theme" nameClassName="max-sm:hidden" />
+      <Hero
+        layout="stage"
+        className="site-voyage-hero"
+        eyebrow={
+          <span className="site-hero-brand" data-site-eyebrow="">
+            {EYEBROW}
+          </span>
+        }
+        title={VOYAGE_HERO.title.map((sentence, index) => (
+          <span key={sentence} className={index === 0 ? undefined : "site-hero-line-second"}>
+            {sentence}
+            {index < VOYAGE_HERO.title.length - 1 ? " " : null}
+          </span>
+        ))}
+        description={
+          <>
+            <p className="sm:hidden" data-site-hero-phone="">
+              {VOYAGE_HERO.phoneSubline} See the{" "}
+              <Link href={href(VOYAGE_HERO.links.benchmark.href)} tone="secondary" inline>
+                agent benchmark
+              </Link>{" "}
+              and the{" "}
+              <Link href={href(VOYAGE_HERO.links.reviews.href)} tone="secondary" inline>
+                model reviews
+              </Link>
+              .
+            </p>
+            <p className="mx-auto max-w-[44rem] max-sm:hidden">{keepHyphenatedWordsWhole(VOYAGE_HERO.subline)}</p>
+            <p className="site-hero-links mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-base max-sm:hidden" data-site-hero-links="">
+              {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews, VOYAGE_HERO.links.platforms].map((link) => (
+                <Link key={link.href} href={href(link.href)} tone="secondary" inline>
+                  {link.label}
+                </Link>
+              ))}
+            </p>
+          </>
+        }
+        mediaWidth={1536}
+        media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} className="site-voyage-scene" />}
+      />
+      <section aria-label="Install and try the porthole" className="site-console">
+        <Container className="site-console-grid">
+          <div className="site-console-copy">
+            {/* On a phone the theme dots open the copy, above the words, so the stage's first control comes sooner. */}
+            <div className="max-sm:flex max-sm:flex-col">
+              <div className="max-w-[36rem]">
+                <Install />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3 lg:mt-6">
+                <Button href={href("/nautilus/")} size="lg">
+                  Come aboard
+                </Button>
+                <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
+                  Browse components
+                </Button>
+              </div>
+              <div className="mt-6 max-sm:order-first max-sm:mt-0 lg:mt-9">
+                <p className="mb-2.5 text-sm text-muted-foreground max-sm:sr-only">Pick a coat of paint. The whole page changes with it.</p>
+                <ThemeDots label="Theme" nameClassName="max-sm:hidden" />
+              </div>
             </div>
           </div>
-        </div>
-        <div className="site-hero-stage">
-          <HydrateInTurn name="stage">
-            <Stage onXray={onXray} />
-          </HydrateInTurn>
-        </div>
-        <Halves />
-        {/* After the stage on a phone; on a wide screen, at the foot of the copy, level with the console's. */}
-        <Proof />
-      </Container>
-    </section>
+          <div className="site-console-stage">
+            <HydrateInTurn name="stage">
+              <Stage onXray={onXray} />
+            </HydrateInTurn>
+          </div>
+          <Halves />
+          <Proof />
+        </Container>
+      </section>
+    </>
   );
 }

@@ -4,6 +4,9 @@
       "inp": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners.",
       "layout-shift": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners.",
       "first-content": "A measured rule, new on this site: it reports without failing while its findings are fixed and its budget settles on CI's runners."
+    },
+    "/docs/message/": {
+      "nested-frame": "The squircle radii are 1.5 times larger, so the message demo's quote block, a small block inside a large bubble, nests at 23px by the rule; its radius stays small and the quote bar is a 4px pill."
     }
   }
 }

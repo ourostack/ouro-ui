@@ -202,13 +202,20 @@ function CloseIcon(): JSX.Element {
 const FOCUSABLE =
   "a[href], button:not(:disabled), input:not(:disabled):not([type='hidden']), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])";
 
+/** The fields a person types into or picks from. A footer's buttons are left out, so first focus is not on one that Return would press. */
+const TEXT_ENTRY =
+  "input:not(:disabled):not([type='hidden'], [type='button'], [type='submit'], [type='reset'], [type='image'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), select:not(:disabled), textarea:not(:disabled)";
+
 /**
- * The element a dialog gives first focus: the first control in its body that can be seen, else its
- * close button, else the popup itself. The body is skipped: while it scrolls it is a tab stop, and
- * Base UI would focus it first.
+ * The element a dialog gives first focus: the first control in its body that can be seen, else a
+ * field in its footer, else its close button, else the popup itself. The body is skipped: while it
+ * scrolls it is a tab stop, and Base UI would focus it first.
  */
 function firstFocus(popup: HTMLElement): HTMLElement {
-  const candidates = [...popup.querySelectorAll<HTMLElement>(`[data-ouro-dialog-content] :is(${FOCUSABLE}), [data-ouro-dialog-close]`), popup];
+  const candidates = [
+    ...popup.querySelectorAll<HTMLElement>(`[data-ouro-dialog-content] :is(${FOCUSABLE}), [data-ouro-footer] :is(${TEXT_ENTRY}), [data-ouro-dialog-close]`),
+    popup,
+  ];
   return candidates.find((element) => element.getClientRects().length > 0)!;
 }
 
@@ -228,6 +235,7 @@ function firstFocus(popup: HTMLElement): HTMLElement {
  * ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule
  * of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
  * Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
+ * An app that draws its own bar across the window's top sets `--ouro-inset-top` to that bar's height, and a centered dialog, its backdrop and a full-screen Lightbox open below it.
  *
  * Testing accessibility: in WebKit, Base UI's focus guards take `role="button"`
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
@@ -254,6 +262,8 @@ function firstFocus(popup: HTMLElement): HTMLElement {
  * @claim "Once open, a centered dialog" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog's top edge while its content changes > moves up only as far as it must when it grows past the screen's bottom margin)
  * @claim "It stacks above the page at" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog stacking above the app's fixed bars > puts the portal on the --ouro-layer level, as its own stacking context)
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
+ * @claim "a centered dialog, its backdrop and a full-screen Lightbox open below it" registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog below an app's own bar > starts the backdrop and the centered viewport below --ouro-inset-top, and centres in the space under it)
+ * @claim "a centered dialog, its backdrop and a full-screen Lightbox open below it" registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.mosaic.test.tsx::Lightbox full screen > starts below --ouro-inset-top and fills the rest of the window)
  * @claim "Testing accessibility: in WebKit, Base UI's" test/axe-exclude.test.tsx verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded the accessibility gate finds nothing)
  */
 export function Dialog(props: DialogProps): JSX.Element {

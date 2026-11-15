@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { href } from "../paths";
 import { Container } from "../voyage/layout";
@@ -7,7 +8,8 @@ import kit from "./kit.json";
 import { LayersBand } from "./layers";
 import { Loop } from "./loop";
 import { StoryOpener } from "../components/story-world";
-import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
+import { AppleBand, AppleMenu, NextPage } from "./shell";
+import { SystemBand } from "./system";
 import ouroMd from "./xray/ouro-md.json";
 import spoonjoy from "./xray/spoonjoy.json";
 
@@ -17,14 +19,30 @@ export default function AppleHome(): JSX.Element {
     <div id="apple-home" className="apple">
       <AppleMenu current="/apple/" />
       <StoryOpener scene="ouro-ui-apple" line="One green card on a phone, a tablet and a laptop. The robot checked: it feels the same on all three." />
-      <AppleHero
-        id="apple-home-title"
+      <Hero
+        layout="split"
         eyebrow="Ouro UI for Apple"
-        title={
-          <>
-            Same manners,
-            <br /> now in Swift.
-          </>
+        title="Same manners, now in Swift."
+        description={
+          <div className="grid gap-3">
+            <p>
+              Ouro HX is how an app feels in the hand: its springs, its taps, its colours. Ouro AX is how it reads to Siri and the other agents that come knocking. Both now
+              come for iPhone, iPad and Mac.
+            </p>
+            <p className="apple-fine">
+              {claim("One Swift package, for iOS 18 and macOS 15 or later.", {
+                source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L9" },
+                verify: [
+                  { equals: "site/src/apple/kit.json#requires.iOS", is: "18" },
+                  { equals: "site/src/apple/kit.json#requires.macOS", is: "15" },
+                ],
+              })}{" "}
+              {claim("Its colours and motion come from the same tokens as this website's, byte for byte.", {
+                source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L7" },
+                verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L7" },
+              })}
+            </p>
+          </div>
         }
         actions={
           <>
@@ -34,26 +52,8 @@ export default function AppleHome(): JSX.Element {
             </Button>
           </>
         }
-        media={<Loop clip="hx-themes" size="lg" className="apple-hero-media" />}
-      >
-        <p>
-          Ouro HX is how an app feels in the hand: its springs, its taps, its colours. Ouro AX is how it reads to Siri and the other agents that come knocking. Both now
-          come for iPhone, iPad and Mac.
-        </p>
-        <p className="apple-fine">
-          {claim("One Swift package, for iOS 18 and macOS 15 or later.", {
-            source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L9" },
-            verify: [
-              { equals: "site/src/apple/kit.json#requires.iOS", is: "18" },
-              { equals: "site/src/apple/kit.json#requires.macOS", is: "15" },
-            ],
-          })}{" "}
-          {claim("Its colours and motion come from the same tokens as this website's, byte for byte.", {
-            source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L7" },
-            verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/README.md#L7" },
-          })}
-        </p>
-      </AppleHero>
+        media={<Loop clip="hx-themes" size="lg" className="mx-auto" />}
+      />
 
       <AppleBand id="apple-halves" eyebrow="Two halves" title="One for the thumb, one for the agent.">
         <ul className="apple-doors">
@@ -212,16 +212,34 @@ export default function AppleHome(): JSX.Element {
         </div>
       </AppleBand>
 
+      <SystemBand />
+
       <LayersBand lede={<p>Ask the same app different questions, so neither people nor agents have to find out the hard way.</p>} />
 
       <Container className="apple-soon">
-        <p className="site-eyebrow">Coming up</p>
+        <p className="site-eyebrow">Where it stands</p>
         <p className="apple-soon-line">
-          Components are in the workshop. They ship when a taste panel is properly delighted by them on an Apple screen, and not a spring sooner.
+          {claim("Ouro UI for Apple 0.6.0 has eight components, the foundations, the X-ray, Ouro Feel, Ouro Reins and OuroA2UI (agent-composed UI). It is pre-1.0.", {
+            source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box" },
+            verify: [
+              { equals: "site/src/apple/kit.json#release", is: "0.6.0" },
+              { count: "site/src/apple/kit.json#components", is: 8 },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0" },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box" },
+            ],
+          })}
         </p>
         <p className="apple-fine">
-          Ouro UI for Apple {kit.release} has the foundations and the X-ray.{" "}
-          {kit.feelReinsRelease ? `Ouro Feel and Ouro Reins ship in ${kit.feelReinsRelease}.` : "Ouro Feel and Ouro Reins are on its main branch, and come in a later release."}
+          {claim("A CI check compares the Apple version on this site with ouro-ui-apple's latest release, and fails when they differ.", {
+            source: { spec: "https://github.com/ourostack/ouro-ui/blob/main/scripts/apple-release.mjs" },
+            verify: [
+              { testExists: "scripts/apple-release.test.mjs::the workflow runs hourly, on a change to the pages and by hand, and reports behind-ness, and only that, in one issue at most daily" },
+              { testExists: "scripts/apple-release.test.mjs::a page left on the old release is behind, with its place named and what to do" },
+            ],
+          })}{" "}
+          <a className="apple-inline-link" href={`${kit.repository}/releases`}>
+            Releases are on GitHub.
+          </a>
         </p>
       </Container>
       <NextPage current="/apple/" />

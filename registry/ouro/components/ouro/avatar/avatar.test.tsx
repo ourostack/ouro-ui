@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import axe from "axe-core";
@@ -36,6 +36,10 @@ const photo =
 const broken = "data:image/png;base64,broken";
 
 /** The letters an avatar or a group's count draws: its `::before` content, as the browser resolved it. */
+function surface(avatar: Element): HTMLElement {
+  return avatar.querySelector<HTMLElement>("[data-ouro-avatar-surface]")!;
+}
+
 function drawn(scope: Element): string {
   const letters = scope.querySelector("[data-ouro-avatar-initials], [data-ouro-avatar-count]");
   const content = letters ? getComputedStyle(letters, "::before").content : "none";
@@ -73,6 +77,15 @@ afterEach(async () => {
 });
 
 describe("Avatar", () => {
+  it("sets the squircle corner size of its surface by shape", async () => {
+    const circle = await render(<Avatar name="Ada Lovelace" />);
+    const square = await render(<Avatar name="Ada Lovelace" shape="square" />);
+    expect(surface(circle.avatar).className).toContain("[--ouro-sq-r:44%]");
+    expect(surface(circle.avatar).className).not.toContain("24%");
+    expect(surface(square.avatar).className).toContain("[--ouro-sq-r:24%]");
+    expect(surface(square.avatar).className).not.toContain("44%");
+  });
+
   it("shows initials from the name, and the name to screen readers", async () => {
     const { avatar } = await render(<Avatar name="Ana Rae Lind" />);
     expect(avatar.getAttribute("role")).toBe("img");
@@ -201,7 +214,7 @@ describe("Avatar", () => {
   it("keeps a loading avatar's edge in forced colours, in each shape", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
     try {
-      for (const shape of ["circle", "square", "hexagon"] as const) {
+      for (const shape of ["circle", "square", "agent"] as const) {
         const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
         const style = getComputedStyle(avatar.querySelector<HTMLElement>('[data-ouro="skeleton"]')!);
         expect(style.outlineStyle).toBe("solid");
@@ -213,7 +226,7 @@ describe("Avatar", () => {
   });
 
   it("shimmers in its own size and shape while the name loads, and says so", async () => {
-    for (const shape of ["circle", "square", "hexagon"] as const) {
+    for (const shape of ["circle", "square", "agent"] as const) {
       const named = (await render(<Avatar name="Ana Lind" size="lg" shape={shape} />)).avatar.getBoundingClientRect();
       const { avatar } = await render(<Avatar name={null} size="lg" shape={shape} />);
       expect(avatar.getAttribute("aria-label")).toBe("Name loading");
@@ -289,7 +302,7 @@ describe("Avatar colors", () => {
       </>,
     );
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
-    const backgrounds = avatars.map((avatar) => getComputedStyle(avatar).backgroundColor);
+    const backgrounds = avatars.map((avatar) => getComputedStyle(surface(avatar)).backgroundColor);
     expect(new Set(backgrounds.slice(0, names.length)).size).toBe(8);
     expect(backgrounds.at(-1)).toBe(backgrounds.at(-2));
     expect(backgrounds).not.toContain(token("secondary"));
@@ -326,7 +339,7 @@ describe("Avatar colors", () => {
       probe.style.color = `color-mix(in oklab, var(--avatar-${hue}) 70%, var(--foreground))`;
       document.body.append(probe);
       const want = getComputedStyle(probe);
-      expect(getComputedStyle(avatars[index]!).backgroundColor).toBe(want.backgroundColor);
+      expect(getComputedStyle(surface(avatars[index]!)).backgroundColor).toBe(want.backgroundColor);
       expect(getComputedStyle(avatars[index]!).color).toBe(want.color);
       probe.remove();
     }
@@ -342,7 +355,7 @@ describe("Avatar colors", () => {
         ))}
       </>,
     );
-    const backgrounds = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(avatar).backgroundColor);
+    const backgrounds = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(surface(avatar)).backgroundColor);
     expect(new Set(backgrounds.slice(0, 16)).size).toBe(8);
     expect(new Set(backgrounds.slice(16)).size).toBe(6);
   });
@@ -355,7 +368,7 @@ describe("Avatar colors", () => {
         ))}
       </>,
     );
-    const backgrounds = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(avatar).backgroundColor);
+    const backgrounds = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(surface(avatar)).backgroundColor);
     expect(new Set(backgrounds).size).toBeGreaterThan(1);
   });
 
@@ -372,7 +385,7 @@ describe("Avatar colors", () => {
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     for (const avatar of avatars) {
       const style = getComputedStyle(avatar);
-      expect(ratio(toRgb(style.color), toRgb(style.backgroundColor))).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(toRgb(style.color), toRgb(getComputedStyle(surface(avatar)).backgroundColor))).toBeGreaterThanOrEqual(4.5);
     }
   });
 
@@ -384,19 +397,37 @@ describe("Avatar colors", () => {
       </>,
     );
     const [brand, neutral] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(avatar));
+    const [brandFill, neutralFill] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => getComputedStyle(surface(avatar)).backgroundColor);
     const probe = document.createElement("i");
     probe.style.backgroundColor = "color-mix(in oklab, var(--primary) 18%, var(--background))";
     probe.style.color = "color-mix(in oklab, var(--primary) 70%, var(--foreground))";
     document.body.append(probe);
-    expect(brand!.backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    expect(brandFill).toBe(getComputedStyle(probe).backgroundColor);
     expect(brand!.color).toBe(getComputedStyle(probe).color);
     probe.remove();
-    expect(neutral!.backgroundColor).toBe(token("secondary"));
+    expect(neutralFill).toBe(token("secondary"));
     expect(neutral!.color).toBe(token("secondary-foreground"));
   });
 });
 
 describe("Avatar shapes and icons", () => {
+  it("draws a team's second edge and an agent's hairline, and the agent's glyph takes only the tint's ink", async () => {
+    const { host } = await render(
+      <>
+        <Avatar name="Design reviews" shape="square" size="lg" />
+        <Avatar name="Halden" shape="agent" color="brand" size="lg" />
+        <Avatar name="Halden" shape="circle" color="brand" size="lg" />
+        <Avatar name={null} shape="agent" color="brand" size="lg" />
+      </>,
+    );
+    const [square, agent, circle, loading] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    expect(getComputedStyle(square!).boxShadow).toMatch(/ 3\.36px -3\.36px 0px 0px$/);
+    expect(getComputedStyle(surface(agent!), "::after").content).toBe('""');
+    expect(getComputedStyle(agent!).color).toBe(getComputedStyle(circle!).color);
+    expect(getComputedStyle(surface(agent!)).backgroundColor).not.toBe(getComputedStyle(surface(circle!)).backgroundColor);
+    expect(getComputedStyle(loading!).color).not.toBe(getComputedStyle(agent!).color);
+  });
+
   it("is a circle by default and a rounded square for a team", async () => {
     const { host } = await render(
       <>
@@ -407,56 +438,69 @@ describe("Avatar shapes and icons", () => {
     const [circle, square] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     expect(circle!.getAttribute("data-shape")).toBe("circle");
     expect(square!.getAttribute("data-shape")).toBe("square");
-    // Only a hexagon is clipped.
-    expect(getComputedStyle(circle!).clipPath).toBe("none");
-    expect(getComputedStyle(square!).clipPath).toBe("none");
     expect(parseFloat(getComputedStyle(circle!).borderTopLeftRadius)).toBeGreaterThanOrEqual(24);
     const corner = parseFloat(getComputedStyle(square!).borderTopLeftRadius);
     expect(corner).toBeGreaterThan(0);
-    expect(corner).toBeLessThan(16);
+    expect(corner).toBeLessThan(34);
+    expect(getComputedStyle(circle!).borderTopLeftRadius).toBe("44%");
+    expect(getComputedStyle(square!).borderTopLeftRadius).toBe("24%");
+    for (const plain of [circle!, square!]) {
+      expect(getComputedStyle(plain, "::after").borderTopWidth).not.toBe("1px");
+      expect(getComputedStyle(surface(plain)).backgroundColor).not.toBe("rgb(255, 255, 255)");
+    }
   });
 
-  it("rounds a square's corners more as it grows", async () => {
-    const sizes = ["xs", "md", "xl", "3xl"] as const;
+  it("keeps every layer of an avatar exactly on its box, and a team's second edge behind its fill", async () => {
     const { host } = await render(
       <>
-        {sizes.map((size) => (
-          <Avatar key={size} name="Design reviews" shape="square" size={size} />
-        ))}
+        <Avatar name="Design reviews" shape="square" size="lg" />
+        <Avatar name="Design reviews" shape="square" size="lg" src={photo} />
+        <Avatar name="Halden" shape="agent" size="lg" presence="busy" presenceLabel="Busy" />
+        <Avatar name="Ana Lind" size="lg" presence="busy" presenceLabel="Busy" />
       </>,
     );
-    const corners = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => parseFloat(getComputedStyle(avatar).borderTopLeftRadius));
-    expect([...corners].sort((a, b) => a - b)).toEqual(corners);
-    expect(corners[0]).toBeLessThan(corners.at(-1)!);
+    for (const avatar of host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')) {
+      for (const layer of ["::before", "::after"]) {
+        const style = getComputedStyle(avatar, layer);
+        if (style.content === "none") continue;
+        for (const side of ["top", "right", "bottom", "left"] as const) expect(parseFloat(style[side])).toBe(0);
+      }
+    }
+    const square = host.querySelector<HTMLElement>('[data-shape="square"]')!;
+    const [ring, edge] = getComputedStyle(square).boxShadow.split(/, (?=[a-z])/).slice(-2);
+    expect(ring).toContain(" 1.4px");
+    expect(edge).not.toMatch(/ 0px 0px 0px/);
   });
 
-  it("draws an agent as a rounded hexagon at every size, its initials and picture inside it", async () => {
+  it("draws a team's cover art over its whole square, with its second edge and no presence", async () => {
+    const { host } = await render(<Avatar name="Design reviews" shape="square" size="lg" src={photo} />);
+    const avatar = host.querySelector<HTMLElement>('[data-shape="square"]')!;
+    await expect.poll(() => avatar.querySelector("img")?.getBoundingClientRect().width).toBe(avatar.getBoundingClientRect().width);
+    expect(avatar.querySelector("[data-ouro-avatar-presence]")).toBeNull();
+    expect(getComputedStyle(avatar).boxShadow).toMatch(/ 3\.36px -3\.36px 0px 0px$/);
+  });
+
+  it("draws an agent as a tile at every size, its initials and picture inside it", async () => {
     const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
     const { host } = await render(
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
         {sizes.map((size) => (
-          <Avatar key={size} name="Halden Agent" shape="hexagon" size={size} />
+          <Avatar key={size} name="Halden Agent" shape="agent" size={size} />
         ))}
-        <Avatar name="Halden Agent" shape="hexagon" size="xl" src={photo} />
+        <Avatar name="Halden Agent" shape="agent" size="xl" src={photo} />
       </div>,
     );
     await expect.poll(() => host.querySelector("img")).not.toBeNull();
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     for (const avatar of avatars) {
-      expect(avatar.getAttribute("data-shape")).toBe("hexagon");
-      expect(getComputedStyle(avatar).clipPath).toMatch(/^polygon\(/);
-      expect(getComputedStyle(avatar).borderTopLeftRadius).toBe("0px");
-      const box = avatar.getBoundingClientRect();
-      const at = (x: number, y: number) => document.elementFromPoint(box.left + box.width * x, box.top + box.height * y);
-      // Point up: the middle and the top point are inside; the four box corners are clipped away.
-      expect(avatar.contains(at(0.5, 0.5))).toBe(true);
-      expect(avatar.contains(at(0.5, 0.08))).toBe(true);
-      for (const [x, y] of [[0.08, 0.08], [0.92, 0.08], [0.08, 0.92], [0.92, 0.92]] as const) expect(avatar.contains(at(x, y)), `${box.width}px at ${x}, ${y}`).toBe(false);
+      expect(avatar.getAttribute("data-shape")).toBe("agent");
+      expect(getComputedStyle(avatar).borderTopLeftRadius).toBe("24%");
     }
     for (const avatar of avatars.slice(0, -1)) {
       const box = avatar.getBoundingClientRect();
-      const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-initials]")!.getBoundingClientRect();
-      expect(drawn(avatar)).toBe("HA");
+      const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-glyph]")!.getBoundingClientRect();
+      expect(avatar.querySelector("[data-ouro-avatar-initials]")).toBeNull();
+      expect(getComputedStyle(avatar.querySelector("[data-ouro-avatar-glyph]")!).fill).toBe(getComputedStyle(avatar).color);
       expect(Math.abs(letters.left + letters.width / 2 - (box.left + box.width / 2))).toBeLessThanOrEqual(0.5);
       expect(Math.abs(letters.top + letters.height / 2 - (box.top + box.height / 2))).toBeLessThanOrEqual(0.5);
     }
@@ -464,21 +508,28 @@ describe("Avatar shapes and icons", () => {
     expect(picture.querySelector("img")!.getBoundingClientRect().width).toBe(picture.getBoundingClientRect().width);
   });
 
-  it("shows no presence on a hexagon, and names the fix", async () => {
-    const { avatar } = await render(<Avatar name="Halden" shape="hexagon" presence="available" presenceLabel="Available" />);
+  it("shows no presence on a square, and names the fix", async () => {
+    const { avatar } = await render(<Avatar name="Design reviews" shape="square" presence="available" presenceLabel="Available" />);
     expect(avatar.querySelector("[data-ouro-avatar-presence]")).toBeNull();
     expect(avatar.hasAttribute("data-presence")).toBe(false);
-    expect(avatar.getAttribute("aria-label")).toBe("Halden");
+    expect(avatar.getAttribute("aria-label")).toBe("Design reviews");
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Avatar: an agent shows no presence, so a hexagon draws no dot. Fix: <Avatar name="Halden" shape="hexagon" />.');
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Avatar: a team shows no presence, so a square draws no dot. Fix: <Avatar name="Design reviews" shape="square" />.');
   });
 
-  it("asks nothing of a hexagon without presence, or of a circle with it", async () => {
+  it("gives an agent a presence dot, like a person", async () => {
+    const { avatar } = await render(<Avatar name="Halden" shape="agent" presence="busy" presenceLabel="Busy" />);
+    expect(avatar.querySelector("[data-ouro-avatar-presence]")).not.toBeNull();
+    expect(avatar.getAttribute("aria-label")).toBe("Halden, Busy");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("asks nothing of a square without presence, or of an agent or a circle with it", async () => {
     await render(
       <>
-        <Avatar name="Halden" shape="hexagon" />
+        <Avatar name="Design reviews" shape="square" />
         <Avatar name="Ana Lind" presence="busy" presenceLabel="Busy" />
-        <Avatar name="Design reviews" shape="square" presence="away" presenceLabel="Away" />
+        <Avatar name="Halden" shape="agent" presence="away" presenceLabel="Away" />
       </>,
     );
     expect(warn).not.toHaveBeenCalled();
@@ -622,7 +673,7 @@ describe("Avatar presence", () => {
     await expect.element(page.getByRole("img", { name: "Ana Lind, In a meeting" })).toBeVisible();
   });
 
-  it("sits on the lower end corner at every size, with a ring in the surface's color", async () => {
+  it("sits on the lower end corner at every size, with the avatar cut away round it", async () => {
     const { host } = await render(
       <>
         {sizes.map((size) => (
@@ -646,21 +697,88 @@ describe("Avatar presence", () => {
       expect(Math.abs(Math.hypot(center.x, center.y) - radius)).toBeLessThan(radius * 0.25);
       expect(center.x).toBeGreaterThan(0);
       expect(center.y).toBeGreaterThan(0);
-      expect(getComputedStyle(dots[index]!).backgroundColor).toBe(token("background"));
-      // The glyph fills the dot inside the ring.
+      expect(getComputedStyle(dots[index]!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+      // The ring is the avatar cut away, so the glyph fills the whole dot.
       const glyph = dots[index]!.querySelector("svg")!.getBoundingClientRect();
-      expect(glyph.width).toBeLessThan(dot.width);
-      expect(glyph.width).toBeGreaterThanOrEqual(dot.width - 6);
+      expect(glyph.width).toBe(dot.width);
     }
   });
 
-  it("takes the ring's color from --ouro-avatar-ring, as on a card", async () => {
+  it("draws a person much rounder than a team, and puts the dot on the person's edge at every size", async () => {
     const { host } = await render(
-      <div style={{ "--ouro-avatar-ring": "var(--card)" } as CSSProperties}>
-        <Avatar name="Ana Lind" presence="away" presenceLabel="Away" />
-      </div>,
+      <>
+        {sizes.map((size) => (
+          <Avatar key={size} name="Ana Lind" size={size} presence="available" presenceLabel="Available" />
+        ))}
+        <Avatar name="Design reviews" shape="square" />
+      </>,
     );
-    expect(getComputedStyle(host.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!).backgroundColor).toBe(token("card"));
+    const [team] = [...host.querySelectorAll<HTMLElement>('[data-shape="square"]')];
+    expect(getComputedStyle(team!).borderTopLeftRadius).toBe("24%");
+    for (const avatar of host.querySelectorAll<HTMLElement>('[data-shape="circle"]')) {
+      const box = avatar.getBoundingClientRect();
+      expect(getComputedStyle(avatar).borderTopLeftRadius).toBe("44%");
+      const dot = avatar.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!.getBoundingClientRect();
+      // The dot's center is on the edge's diagonal point: a squircle's lies 8% of the size in from the corner.
+      expect(Math.abs(box.right - (dot.left + dot.width / 2) - box.width * 0.08)).toBeLessThan(0.6);
+      expect(Math.abs(box.bottom - (dot.top + dot.height / 2) - box.width * 0.08)).toBeLessThan(0.6);
+    }
+  });
+
+  it("shows a state's glyph from 40px up, and only its colour below", async () => {
+    const { host } = await render(
+      <>
+        {sizes.map((size) => (
+          <Avatar key={size} name="Ana Lind" size={size} presence="away" presenceLabel="Away" />
+        ))}
+      </>,
+    );
+    const drawn = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')].map((avatar) => ({
+      size: avatar.getBoundingClientRect().width,
+      glyph: avatar.querySelector("[data-ouro-avatar-presence] path") !== null,
+    }));
+    expect(drawn.filter((one) => one.glyph).every((one) => one.size >= 40)).toBe(true);
+    expect(drawn.filter((one) => !one.glyph).every((one) => one.size < 40)).toBe(true);
+    expect(drawn.some((one) => one.glyph) && drawn.some((one) => !one.glyph)).toBe(true);
+  });
+
+  it("bites the dot out of the avatar's surface, so a non-plain background shows through the gap", async () => {
+    for (const dir of ["ltr", "rtl"] as const) {
+      const { host } = await render(
+        <div dir={dir} style={{ background: "rgb(255, 0, 0)", padding: 20 }}>
+          {sizes.map((size) => (
+            <Avatar key={size} name="Ana Lind" size={size} presence="away" presenceLabel="Away" />
+          ))}
+          {sizes.map((size) => (
+            <Avatar key={`a${size}`} name="Halden" shape="agent" size={size} presence="busy" presenceLabel="Busy" />
+          ))}
+        </div>,
+      );
+      for (const avatar of host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')) {
+        const fill = getComputedStyle(surface(avatar));
+        expect(fill.maskImage).toContain("radial-gradient");
+        const dot = avatar.querySelector<HTMLElement>("[data-ouro-avatar-presence]")!;
+        const style = getComputedStyle(dot);
+        expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+        expect(style.boxShadow).toBe("none");
+        const px = (name: string) => {
+          const probe = document.createElement("i");
+          probe.style.cssText = `position:absolute;width:var(${name})`;
+          surface(avatar).append(probe);
+          const width = probe.getBoundingClientRect().width;
+          probe.remove();
+          return width;
+        };
+        const box = avatar.getBoundingClientRect();
+        const at = dot.getBoundingClientRect();
+        const c = px("--ouro-bite-c");
+        const holeX = dir === "ltr" ? box.right - c : box.left + c;
+        expect(Math.abs(holeX - (at.left + at.width / 2))).toBeLessThan(0.51);
+        expect(Math.abs(box.bottom - c - (at.top + at.height / 2))).toBeLessThan(0.51);
+        // The cut-away ring is the gap: 1.5px at least, 5% of the avatar above 30px.
+        expect(Math.abs(px("--ouro-bite-r") - at.width / 2 - Math.max(1.5, box.width * 0.05))).toBeLessThan(0.51);
+      }
+    }
   });
 
   it("moves to the other corner right to left", async () => {
@@ -722,7 +840,7 @@ describe("Avatar presence", () => {
   });
 
   it("renders the dot in server HTML", () => {
-    const html = renderToString(<Avatar name="Ana Lind" presence="do-not-disturb" presenceLabel="Do not disturb" shape="square" />);
+    const html = renderToString(<Avatar name="Ana Lind" presence="do-not-disturb" presenceLabel="Do not disturb" shape="agent" />);
     expect(html).toContain('aria-label="Ana Lind, Do not disturb"');
     expect(html).toContain('data-presence="do-not-disturb"');
     expect(html).toContain("data-ouro-avatar-presence");
@@ -818,8 +936,8 @@ describe("Avatar development messages", () => {
   });
 
   it.each([
-    ["shape", { shape: "rounded" }, 'shape="rounded" is not a shape; use "circle", "square", "hexagon"', '<Avatar shape="square">'],
-    ["agent shape", { shape: "agent" }, 'shape="agent" is not a shape; use "circle", "square", "hexagon"', '<Avatar shape="hexagon">'],
+    ["shape", { shape: "rounded" }, 'shape="rounded" is not a shape; use "circle", "square", "agent"', '<Avatar shape="square">'],
+    ["hexagon shape", { shape: "hexagon" }, 'shape="hexagon" is not a shape; use "circle", "square", "agent"', '<Avatar shape="agent">'],
     ["color", { color: "blue" }, 'color="blue" is not a color; use "colorful", "brand", "neutral"', '<Avatar color="colorful">'],
     [
       "presence",
@@ -920,7 +1038,7 @@ describe("Avatar inside a link or button that has its own name", () => {
     ["initials it is given", <Avatar key="a" name="Ana Lind" initials="AnL" />],
     ["its initials and a presence dot", <Avatar key="a" name="Ana Lind" presence="busy" presenceLabel="In a meeting" />],
     ["a square's initials", <Avatar key="a" name="Ana Lind" shape="square" />],
-    ["an agent's hexagon and initials", <Avatar key="a" name="Ana Lind" shape="hexagon" />],
+    ["an agent's tile and glyph", <Avatar key="a" name="Ana Lind" shape="agent" />],
     ["its initials after the picture fails", <Avatar key="a" name="Ana Lind" src={broken} />],
   ])("a link named \"Ana Lind's profile\" around %s has no label-content-name-mismatch", async (_case, avatar) => {
     const { host } = await render(
@@ -929,7 +1047,7 @@ describe("Avatar inside a link or button that has its own name", () => {
       </a>,
     );
     await expect.poll(() => host.querySelector('[data-ouro="avatar"]')!.getAttribute("data-image")).not.toBe("loading");
-    expect(drawn(host)).not.toBe("");
+    expect(drawn(host) !== "" || host.querySelector("[data-ouro-avatar-glyph]") !== null).toBe(true);
     expect(await labelInName(host)).toEqual([]);
   });
 
@@ -995,7 +1113,7 @@ describe("Avatar's drawn letters", () => {
             <Avatar key={size} name="Grace Hopper" size={size} />
           ))}
           <Avatar name="Ana Lind" shape="square" color="brand" />
-          <Avatar name="Halden Agent" shape="hexagon" color="neutral" size="lg" />
+          <Avatar name="Halden Agent" shape="agent" color="neutral" size="lg" />
           <Avatar name="Émile Zola" presence="away" presenceLabel="Away" size="xl" />
           <Avatar name="😀 Smile" size="lg" />
           <AvatarGroup label="Cooks" max={2}>

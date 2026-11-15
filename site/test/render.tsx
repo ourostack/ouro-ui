@@ -9,9 +9,19 @@ import { audit, axeExclude, describeFindings, type GateFinding } from "@/registr
 
 let mounted: { root: Root; host: HTMLElement } | undefined;
 
+// The docs demos' modules, the ones the pages load lazily (src/docs/demos.tsx), by registry item name.
+const demoModules = Object.fromEntries(
+  Object.entries(import.meta.glob("../src/docs/demos/*.demo.tsx")).map(([file, load]) => [file.replace(/^.*\/(.+)\.demo\.tsx$/, "$1"), load]),
+);
+
 /** Client-renders a page and waits for real docs demo content, not its loading shell. */
 export async function renderPage(path: string): Promise<HTMLElement> {
   const Page = await loadPage(path);
+  const name = /^\/docs\/([^/]+)\/$/.exec(path)?.[1];
+  // A page's demo loads its module first, outside the wait below: the first time a run asks for it, Vite transforms
+  // and instruments its whole module graph, which on a loaded runner took longer than a poll's 10 s (#1280). Loaded
+  // here, that time counts against the test's own timeout, and the poll waits only for the demo to render.
+  if (name) await demoModules[name]?.();
   const host = await renderFixture(<App path={path} Page={Page} />);
   // The header is an island on the docs pages: the server's HTML has it, but a client render shows
   // it once its chunk loads, and it pushes the page down then. Wait for it, so nothing moves mid-test.
@@ -20,7 +30,6 @@ export async function renderPage(path: string): Promise<HTMLElement> {
   // body and exhibit, the Nautilus's chapters): a client render shows each once its chunk loads, in any order, which
   // adds its section and its headings. Wait for every one, so a scan never sees the page change under it.
   await expect.poll(waitingIslands).toEqual([]);
-  const name = /^\/docs\/([^/]+)\/$/.exec(path)?.[1];
   if (name && docsItems.some((item) => item.name === name)) {
     await expect.poll(() => host.querySelector(`[data-site-demo="${name}"]`)?.childElementCount ?? 0).toBeGreaterThan(0);
     expect(host.querySelector("[data-site-demo-loading]")).toBeNull();
@@ -32,6 +41,7 @@ export async function renderPage(path: string): Promise<HTMLElement> {
 const islandChunks: Record<string, () => Promise<unknown>[]> = {
   "/": () => [import("../src/voyage/home-reference"), import("../src/voyage/repaint")],
   "/ax/": () => [import("../src/ax/ax-page"), import("../src/ax/exhibit")],
+  "/adoption/": () => [import("../src/adoption/adoption")],
   "/nautilus/": () => [import("../src/voyage/chapters/chapter-one"), import("../src/voyage/chapters/chapter-two"), import("../src/voyage/chapters/chapter-three")],
 };
 

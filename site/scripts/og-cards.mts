@@ -1,7 +1,8 @@
 // Draws the link-preview cards (site/public/og/<page>.jpg, 1200×630; the og:image and twitter:image
 // of each page, site/src/head.ts): each page's storybook scene (the canonical og crop, copied byte
 // for byte into site/public/brand/storybook/og/) with the page's words set in its sky. The scene is
-// shown whole, never washed or faded: the words read on it by their own halo in the sky's colour.
+// shown whole, never washed or faded: the words read on it by their own halo in the sky's colour. A card that
+// shows a stretch of the wide header sets its words above it on the page's plain background, as the page heroes do.
 // Which page shows which scene, and the words, are in site/src/storybook.ts (CARDS). Rerun after a
 // card's words or scene change, look at every card, and commit them:
 //
@@ -20,6 +21,8 @@ mkdirSync(outDir, { recursive: true });
 
 const dataUrl = (file: string, type: string) => `data:${type};base64,${readFileSync(join(repo, file)).toString("base64")}`;
 const font = dataUrl("site/public/fonts/geist-5.3.0.woff2", "font/woff2");
+// The page's background in light mode (--background, registry/ouro/theme/ouro-theme.css).
+const PLAIN = "#ffffff";
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
 const browser = await chromium.launch();
@@ -29,14 +32,15 @@ try {
     const sky = SCENES[card.scene].sky;
     // The sky's own colour along the side the words sit on: the halo the words carry, so they read on the clouds.
     const near = card.side === "left" ? sky[0] : sky[4];
-    const halo = `0 0 2px color-mix(in oklab, ${near} 60%, white), 0 0 12px color-mix(in oklab, ${near} 70%, white), 0 1px 28px ${near}`;
-    // The og crop, whole; or a stretch of the wide header under a band of the sky's own colours, meeting it on a hard edge.
+    // A card with a band sets its words on the plain background, which needs no halo.
+    const halo = card.crop ? "none" : `0 0 2px color-mix(in oklab, ${near} 60%, white), 0 0 12px color-mix(in oklab, ${near} 70%, white), 0 1px 28px ${near}`;
+    // The og crop, whole; or a stretch of the wide header under a band of the page's plain background, meeting it on a hard edge.
     let background = `url(${dataUrl(`site/public/brand/storybook/og/${card.scene}.jpg`, "image/jpeg")}) center / cover`;
     if (card.crop) {
       const scale = 1200 / (card.crop.to - card.crop.from);
       const band = 630 - 576 * scale;
       const header = dataUrl(`site/public/brand/storybook/headers/${card.scene}.webp`, "image/webp");
-      background = `url(${header}) ${-card.crop.from * scale}px ${band}px / ${1536 * scale}px auto no-repeat, linear-gradient(90deg, ${sky.join(", ")})`;
+      background = `url(${header}) ${-card.crop.from * scale}px ${band}px / ${1536 * scale}px auto no-repeat, ${PLAIN}`;
     }
     await page.setContent(`<!doctype html>
 <html><head><style>

@@ -47,39 +47,6 @@ export function AppleMenu({ current }: { current: ApplePath }): JSX.Element {
   );
 }
 
-/** A page's hero: its eyebrow, its one heading, the words under it, what to do next, and a capture beside them. */
-export function AppleHero({
-  id,
-  eyebrow,
-  title,
-  children,
-  actions,
-  media,
-}: {
-  id: string;
-  eyebrow: string;
-  title: ReactNode;
-  children: ReactNode;
-  actions?: ReactNode;
-  media?: ReactNode;
-}): JSX.Element {
-  return (
-    <section aria-labelledby={id} className="site-hero apple-hero">
-      <Container className={cn("apple-hero-grid", media ? undefined : "apple-hero-solo")}>
-        <div className="apple-hero-copy">
-          <p className="site-eyebrow">{eyebrow}</p>
-          <h1 id={id} className="site-h1">
-            {title}
-          </h1>
-          <div className="site-lede apple-lede">{children}</div>
-          {actions ? <div className="apple-actions">{actions}</div> : null}
-        </div>
-        {media}
-      </Container>
-    </section>
-  );
-}
-
 /** A band of a page, with its heading. */
 export function AppleBand({
   id,

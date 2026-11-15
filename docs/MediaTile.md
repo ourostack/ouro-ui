@@ -140,12 +140,12 @@ interface AvatarOwnProps {
    */
   icon?: ReactNode | undefined;
   /**
-   * `"circle"` for a person, `"square"` (rounded on the theme's radius) for a team, a
-   * channel, an app or a bot, `"hexagon"` (with rounded corners) for an AI agent, as Teams
-   * draws agents. The initials, icon or picture fill the shape, centered. A hexagon shows no
-   * presence dot: an agent has no presence. @default "circle"
+   * `"circle"` for a person (a squircle), `"square"` for a team, a channel, an app or a bot (a
+   * squircle with a second edge peeking out behind it, and no presence dot), `"agent"` for an AI
+   * agent (a less-rounded tile, white in light mode, with the glyph in its own color and a
+   * presence dot). The initials, icon or picture fill the shape, centered. @default "circle"
    */
-  shape?: AvatarShape | (string & { 'Use "circle", "square" or "hexagon"; rounded is "square", an agent "hexagon"': never }) | undefined;
+  shape?: AvatarShape | (string & { 'Use "circle", "square" or "agent"; rounded is "square", hexagon is "agent"': never }) | undefined;
   /**
    * How the initials are colored. `"colorful"` picks one of eight hues from `idForColor`
    * (else `name`), so the same person always gets the same one, and the initials keep at
@@ -193,9 +193,9 @@ interface AvatarPresenceProps {
   /**
    * The person's presence, as a dot on the lower end corner. Each state has its own shape
    * and a named tone (available: success; busy and do not disturb: destructive; away:
-   * warning; offline: muted; out of office: primary). The dot's ring takes the surface's
-   * color, `--ouro-avatar-ring` (default `--background`): set it on a card,
-   * `[--ouro-avatar-ring:var(--card)]`. The dot lies over the corner and takes no room, so
+   * warning; offline: muted; out of office: primary). The avatar is cut away in a
+   * circle round the dot (a bite), so whatever lies behind the avatar, a photo or a gradient
+   * too, shows through the gap. The dot lies over the corner and takes no room, so
    * the initials, icon or picture stay in the middle with or without it, and the dot stays
    * below the letters at every size.
    */
@@ -220,10 +220,10 @@ type AvatarProps = Omit<HTMLAttributes<HTMLSpanElement>, keyof AvatarOwnProps | 
 
 ### `AvatarShape`
 
-Avatar's shapes: a circle for a person, a rounded square for a team, a channel, an app or a bot, and a rounded hexagon for an AI agent.
+Avatar's shapes: a squircle for a person, a squircle with a second edge behind it for a team, a channel, an app or a bot, and a less-rounded app tile for an AI agent.
 
 ```ts
-type AvatarShape = "circle" | "square" | "hexagon";
+type AvatarShape = "circle" | "square" | "agent";
 ```
 
 ### `AvatarSize`

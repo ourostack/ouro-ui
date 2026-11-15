@@ -102,6 +102,14 @@ function findImageFades(): PageIssue[] {
     };
     return sum();
   };
+  // Whether a radial layer's arguments cut a shape out of the picture (a bite or a hole): it is clear first and opaque
+  // for the rest, and turns from one to the other within 2px, so no edge of the picture dissolves.
+  const cutsHole = (args: string[], whole: number) => {
+    const stops = args.map((part) => /^rgba?\(([^)]*)\)\s+(\S.*)$/.exec(part)).filter((stop) => stop !== null);
+    if (stops.length !== 2) return false;
+    const alphas = stops.map((stop) => (stop[1]!.split(",").length === 4 ? Number(stop[1]!.split(",")[3]) : 1));
+    return alphas[1]! - alphas[0]! >= 0.99 && lengthOf(stops[1]![2]!, whole) - lengthOf(stops[0]![2]!, whole) <= 2;
+  };
   // Whether the gradient mask on `el` fades any of `picture`. Each linear layer is read along its line (to a side, or a
   // right angle) for the bands where it is not opaque, inside `el`'s box; a band of no width fades nothing. A mask it
   // can't read so (radial, diagonal, sized or placed) fades all of it.
@@ -112,6 +120,8 @@ function findImageFades(): PageIssue[] {
     if (!/^auto( auto)?(, auto( auto)?)*$/.test(read("mask-size")) || !/^0% 0%(, 0% 0%)*$/.test(read("mask-position"))) return true;
     const box = el.getBoundingClientRect();
     for (const layer of argsOf(read("mask-image"))) {
+      const radial = /^radial-gradient\((.*)\)$/.exec(layer);
+      if (radial && cutsHole(argsOf(radial[1]!), Math.max(box.width, box.height))) continue;
       const linear = /^linear-gradient\((.*)\)$/.exec(layer);
       if (!linear) return true;
       const parts = argsOf(linear[1]!);

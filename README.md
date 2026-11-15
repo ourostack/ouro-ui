@@ -4,7 +4,21 @@
 </p>
 <!-- ourostack:brand:end -->
 
-# Ouro HX
+# Ouro UI
+
+**A design system for people and agents.** Declare an action once, and a person presses it as a button while an agent calls it as a tool, with consent built in and an X-ray to check both:
+
+- **One action declaration.** Declare an action once, and core's generator writes its CLI command, MCP and WebMCP tools, web control, App Intent, SwiftUI button and Reins action, with a check that fails your CI when a generated file drifts.[^one-action]
+- **Consent built in.** An action declares its consent class. A consequential one asks the person to confirm what an agent prepared before it runs.[^consent-confirm] An action only the person may start, such as paying, is offered through no agent door, and each door answers an agent with a typed refusal.[^person-only]
+- **X-ray checks.** `ax-xray` calls an app's CLI, HTTP API or MCP server the way an agent would and reports which claims hold, and `ouro-ax-xray` checks an app's App Intents.[^xray]
+
+**Works with** [MCP Apps](https://github.com/modelcontextprotocol/ext-apps) and [A2UI](https://a2ui.org/), the formats agents compose interfaces in.[^works-with] When an agent composes a card for a person, Ouro HX draws it and each button follows its action's consent class: for MCP Apps, a view an MCP server returns for its host to show,[^mcp-app] and for A2UI, a catalog of HX components and renderers on the web and in SwiftUI.[^a2ui-render]
+
+See how agents do with it in the [agent benchmark](https://ui.ouroboros.bot/docs/agent-interfaces/), and what frontier models chose when they compared it with A2UI and other options in the [model reviews](https://ui.ouroboros.bot/docs/model-reviews/).
+
+Ouro UI runs on the web (this repository), on Apple ([ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple)) and on Windows ([ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows)). The Apple package has not reached 1.0.[^apple-pre-1] The Windows kit's [latest release](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1) is out.[^windows-first] There is no Android kit yet.[^no-kit] [The Android plan](docs/platforms/android.md) says what one needs, and [the Windows page](docs/platforms/windows.md) says what the kit ships and what it still lacks.
+
+## Ouro HX
 
 **React components for people, and for the agents who build them.** Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them.
 
@@ -12,15 +26,25 @@
 
 Ouro HX is the half of Ouro UI for the interfaces people use: React components you copy in with the shadcn CLI. **[Ouro AX](#ouro-ax)** is the other half, for the interfaces agents use.
 
+Ouro UI has a web half (this repository) and an Apple half ([ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple), a Swift package), with a side for people and a side for agents in both:
+
+| | Web | Apple |
+|---|---|---|
+| People (Ouro HX) | React components you copy in, below | SwiftUI `OuroButton`, `OuroEmptyState`, `OuroBanner`, `.ouroSheet` and toasts, with the spring, haptics and themes[^apple-box] |
+| Agents (Ouro AX) | [the kit and X-ray](#ouro-ax) for command lines, HTTP APIs and MCP servers | typed outcomes, an X-ray for an app's App Intents, and Ouro Reins to drive its screens[^apple-box] |
+| Both, from one declaration | a command line, MCP and WebMCP tools and a web control | an App Intent, a SwiftUI button and a Reins action[^actions] |
+
+[Web and Apple parity](https://ui.ouroboros.bot/apple/#parity) is a table built from ouro-ui-core's claim files, and it marks the gaps. The Apple half has [releases](https://github.com/ourostack/ouro-ui-apple/releases/latest) but has not reached a first stable version. The one action model is in [ouro-ui-core](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md): declare an action once, and its generator writes the surfaces above, with a check that fails your CI when a generated file drifts from the declaration.[^actions] Android is [open for a builder](docs/platforms/README.md), and Windows has its [first kit](docs/platforms/windows.md).[^windows-first]
+
 ```sh
 # In an app set up with shadcn init (see Quick start):
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.14  # once per app: the tokens
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.14     # then any component
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.116  # once per app: the tokens
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.116     # then any component
 ```
 
 New to shadcn? [Quick start](#quick-start) has the `init` line.
 
-Browse first with `npx shadcn@latest search 'ourostack/ouro-ui#v1.3.14'` (list the items) and `npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.14'` (read one). The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
+Browse first with `npx shadcn@latest search 'ourostack/ouro-ui#v1.3.116'` (list the items) and `npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.116'` (read one). The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
 
 Ouro HX is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes.[^tailwind-4] Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
 
@@ -43,8 +67,8 @@ These are the paths in your app once the CLI has installed a component, with you
 # Existing Vite/Next app with Tailwind CSS v4 and an "@/*" path alias:
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
 # Once per app, before your first component: the tokens every component needs.
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.14
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.14
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.116
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.116
 ```
 
 - Add `ouro-base` once, before your first component. It is the only item that writes to your stylesheet (apart from the optional `ouro-theme`), so no later add touches it (from v0.8.0; in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.8.0][^v0.7.0] [Installing](docs/guides/installing.md) says what it writes.
@@ -52,12 +76,12 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.14
 - Pass `--base base`: Ouro HX is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
 - New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias, and `"paths": { "@/*": ["./src/*"] }` in both `tsconfig.json` and `tsconfig.app.json` (no `baseUrl` on TypeScript 6) before `init`. shadcn reads the root file, and `tsc -b` builds the app one.
 - `--preset nova` lets `init` run without prompts. It sets shadcn's starting theme, font and icons (nova adds the Geist font, `lucide-react` and `tw-animate-css`), which Ouro components read like any shadcn theme. The install test runs `nova` and `vega`; other presets are untested.
-- A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.14`, `github:` and `/tree/` URLs don't work.
+- A GitHub source is `owner/repo#ref`; an item is `owner/repo/item#ref`. `@v1.3.116`, `github:` and `/tree/` URLs don't work.
 
 ### Check what you built
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.14
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.116
 node lib/ouro/check/check.ts dist   # your built folder
 ```
 
@@ -72,7 +96,7 @@ In a React Router app, `OuroProvider` needs a small adapter, because the router'
 `OuroProvider` routes `href`s through `next/link` and groups tooltips. It comes with every component that renders links (`button`, `link`, `card`, `item`, `table` and the navigation components) and with `tooltip`.[^provider-deps] With only other components installed, such as `dialog` above, add it by name (v0.7.0 has no such item: there it comes with every component):[^v0.7.0]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/lib-ouro-provider#v1.3.14
+npx shadcn@latest add ourostack/ouro-ui/lib-ouro-provider#v1.3.116
 ```
 
 Put it in a client file, because a Server Component can't pass `Link`, a function, to a client component. `app/providers.tsx`:
@@ -111,15 +135,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 ### Details
 
-- Every install needs a release tag: `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.14`, or the `@ouro` namespace below.[^main-no-registry] The CLI reads `registry.json` at this repository's root at the ref you give, and only a [release](https://github.com/ourostack/ouro-ui/releases) commit has one: a tag such as `#v1.3.14` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag.[^release-pins] Without a ref, or with a branch or a commit, the CLI stops with "did not return a root registry.json file", because `main` commits none.[^main-no-registry]
-- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ui.ouroboros.bot/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/ouro-base @ouro/dialog` (`@ouro/ouro-base` once per app, as above). The namespace serves the newest release, the same code as `#v1.3.14`.[^namespace]
+- Every install needs a release tag: `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.116`, or the `@ouro` namespace below.[^main-no-registry] The CLI reads `registry.json` at this repository's root at the ref you give, and only a [release](https://github.com/ourostack/ouro-ui/releases) commit has one: a tag such as `#v1.3.116` installs the item and every Ouro dependency (`ouro-lib`, `button` and so on) at that tag.[^release-pins] Without a ref, or with a branch or a commit, the CLI stops with "did not return a root registry.json file", because `main` commits none.[^main-no-registry]
+- Or add the `@ouro` namespace to `components.json` once, `"registries": { "@ouro": "https://ui.ouroboros.bot/r/{name}.json" }`, and run `npx shadcn@latest add @ouro/ouro-base @ouro/dialog` (`@ouro/ouro-base` once per app, as above). The namespace serves the newest release, the same code as `#v1.3.116`.[^namespace]
 - Components land in `components/ouro/<component>/`, beside shadcn's `components/ui/`, and the helpers they import in `lib/ouro/`, one file each: a component installs only the helpers it imports.[^lands] No component installs `ouro-base`; you add it once, as above.[^ouro-base-only] If you skip it, overlays have no backdrop or motion and fields no border, and in development the first Ouro HX component to mount logs the command to run.[^theme-check]
 - `init` is shadcn's: it writes `lib/utils.ts` and adds `cn`, `class-variance-authority`, `lucide-react` and `tw-animate-css`. Ouro HX doesn't use them; keep them for shadcn components. Ouro never writes to `components/ui/`, so don't pass `--overwrite` on a first install.[^not-ui]
-- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, with the tests of everything the component installs[^tests-closure]: `npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.14 ourostack/ouro-ui/dialog-tests#v1.3.14`. CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union (the [Testing guide](https://ui.ouroboros.bot/docs/testing/) lists the forms set).[^subsets] Other items receive their full test dependency closure but are not measured individually. `ouro-tests` adds every component with all of its tests in one command.[^ouro-tests] The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
+- Tests are optional. Each component's Vitest browser tests, type tests, stories and Playwright spec are its `-tests` item, with the tests of everything the component installs[^tests-closure]: `npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.116 ourostack/ouro-ui/dialog-tests#v1.3.116`. CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union (the [Testing guide](https://ui.ouroboros.bot/docs/testing/) lists the forms set).[^subsets] Other items receive their full test dependency closure but are not measured individually. `ouro-tests` adds every component with all of its tests in one command.[^ouro-tests] The install message of `ouro-testing` (the test kit the `-tests` items bring) lists the config files to add, then run `npx vitest run`.
 - The tests need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later.[^minimums] Ouro HX's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] A `-tests` item names those tools without a version, so the CLI installs one only when your app lacks it and never changes a version you have.[^test-versions] v0.7.0's items still carry versions: after `add`, restore every test-tool version you had pinned (`git diff package.json`).[^v0.7.0] [Testing](docs/guides/testing.md) has the requirements, what to do on Vitest 4, and how to find Ouro HX's fields in your own tests.[^testing-guide]
 - In a Vite or React Router app the components keep their `"use client";` line, which is harmless there. [Installing](docs/guides/installing.md#vite-and-react-router-apps-the-use-client-notice) says why, and how to drop Rollup's notice about it.
-- For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v1.3.14`. Skip it to keep your app's shadcn theme.
-- To update to the newest release, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.14 --dry-run` (or `@ouro/<item>`), review each one marked overwrite with `--diff <path>`, then add the item again at the same ref with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
+- For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v1.3.116`. Skip it to keep your app's shadcn theme.
+- To update to the newest release, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.116 --dry-run` (or `@ouro/<item>`), review each one marked overwrite with `--diff <path>`, then add the item again at the same ref with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
 
 ### Upgrading from v0.1.0
 
@@ -154,11 +178,40 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.3:** Avatar's initials and AvatarGroup's "+N" count are drawn with CSS from a data attribute and are no longer text in the page, so a link or button that wraps an avatar and names itself passes WCAG 2.5.3, Label in Name.[^upgrade-avatar-drawn] A test that found an avatar by its letters, `getByText("AL")`, or expected them in a row's text, now finds it by role and name, `getByRole("img", { name: "Ana Lind" })`, or reads `data-ouro-avatar-initials`.[^upgrade-avatar-drawn]
 
+- **After v1.3.4:** `ShowMore` no longer reads `estimate`, which it keeps only so an app that passes it still compiles; drop it when you like.[^upgrade-v1.3.5]
+
+- **After v1.3.5:** several default failure messages changed, so a test that matches the old words needs the new ones.[^upgrade-v1.3.6] `SyncStatus`'s `error` label is "Not saved: the server refused the changes". `CopyButton` and `ShareButton` show "Browser blocked copying" or "Browser blocked sharing" for two seconds, with a sentence their new `failedMessage` sets. `ImageCropper`'s `labels.openError` and `ImageField`'s refusal begin "The browser can't read". `EditSheet`'s rejected save says "Your changes were not saved: " with the error's own message, so reject `onSubmit` with a message a person can read, or pass `failureMessage`. `MessageList` draws one action bar for all its messages, on the message the pointer is over, so a test that looked for a bar inside each message finds that one; a `Message` outside a `MessageList` keeps its own.[^upgrade-v1.3.6]
+
+- **After v1.3.6:** `Moment`'s `quiet` is words only: the compact row drops its 40px art (a loading spinner stays), and `OuroProvider`'s `quiet` sets it for the whole app; for a compact moment with art, use `size="inline"` and its 24px art instead.[^upgrade-v1.3.7] `Celebrate`'s confetti stays inside its own box, so give it room with layout classes (`h-24 w-full`) for a wider burst. At phone width `Navbar` builds its menu sheet while the page is idle and keeps it hidden between opens, so a test that finds something in the bar by its label or text alone (`getByLabelText("Menu")`, `getByText("Recipes")`) also finds its copy in the sheet: find it by its role. `Porthole`'s fresh headline reads "Up to date", not "Updated just now"; pass `labels.fresh` for other words. The site and the `@ouro` namespace moved to https://ui.ouroboros.bot/, so set `"@ouro": "https://ui.ouroboros.bot/r/{name}.json"` in `components.json`; the old host forwards until you do.[^upgrade-v1.3.7]
+
 - **After v1.3.9:** Ouro check has new gated rules (`giant-picture`, `cramped-heading`, `nested-frame`, `baked-corner`, `type-scale`, `shadow-scale`, `grey-on-colour`, `heading-hierarchy`, `jank`, `repaint` and, for a site on the web, `https`), and `blurry-image` covers videos, so a run that passed can now report findings.[^upgrade-design-checks] Fix them, or let a rule report without failing while you do: waive it in `ouro-check.json` with the reason, and remove the waiver once its findings are fixed. `jank` walks every page at one size and theme; `"walk": false` turns it off.[^upgrade-design-checks]
+
+- **After v1.3.9 (Navbar):** on a page below a link, `Navbar` and `NavigationMenu` mark that link `aria-current="true"`, not `"page"`, so a test that expected `"page"` on a section's link finds `"true"`; the current page is underlined in the primary colour instead of a bar at the start edge.[^upgrade-v1.3.10]
 
 - **After v1.3.10:** Ouro check has new gated rules, `console-error` (an uncaught error, `console.error` or `console.warn` while a page loads), `failed-request` (a request to the page's own server that fails), `off-screen` (text or a control the screen cuts off), `duplicate-control` (the same control twice in view), `stray-scrollbar` (a region that scrolls by a few pixels), `leaked-value` (`undefined`, `NaN`, `[object Object]`, an id, a translation key or a `TODO:` on screen) and `odd-timestamp` (`Invalid Date`, `1 January 1970`, a raw or machine timestamp, a negative age) `stretched-image` (a picture or a video drawn out of its own shape), `focus-ring` (a control that shows no keyboard focus), `dark-miss` (a light surface left on a dark page) and `disabled-no-reason` (a disabled control with no reason tied to it), so a run that passed can now report findings.[^upgrade-text-checks] Fix them, or mark people's own words, such as a message list, with `data-ouro-allow="leaked-value odd-timestamp"` and a reason.[^upgrade-text-checks] `check.ts` imports four new files, `text-check.ts`, `layout-check.ts`, `theme-check.ts` and `interaction-check.ts`: if your app pins the check's files in a list, add `registry/ouro/check/text-check.ts`, `registry/ouro/check/layout-check.ts`, `registry/ouro/check/theme-check.ts` and `registry/ouro/check/interaction-check.ts` to it.[^upgrade-text-checks] `blurry-image` can no longer be waived: it holds a picture to exactly its file's pixels at the density, checks raster CSS backgrounds too, reports `data-ouro-allow="blurry-image"` as a finding of its own, and a waiver of it in `ouro-check.json` makes the check exit 2.[^upgrade-blurry] Give each picture it reports a larger source; `--images-report <file.json>` lists them with the width each needs. `ouro-images` refuses a picture too small to draw sharp, and exits 1 for it.[^upgrade-blurry]
 
-- **After v1.3.10 (Skeleton):** Skeleton's shimmer slides a band with `translate` on the keyframes `ouro-shimmer-band`, which only a fresh `ouro-base` adds (step 1 adds it again); without it the band holds still in the middle, as it does with reduced motion.[^upgrade-shimmer]
+- **After v1.3.76 (Skeleton):** Skeleton no longer sweeps a band across the placeholder: it holds still for its first second, then breathes, easing its opacity down and back on the keyframes `ouro-skeleton-breathe`, which only a fresh `ouro-base` adds (step 1 adds it again); without them it holds still.[^upgrade-shimmer] `shimmer={false}` still draws it with no breathing, and reduced motion holds it still too.[^upgrade-shimmer]
+
+- **After v1.3.11:** `Chart` draws its legend in a row below the plot, so a chart with a legend is one row taller.[^upgrade-v1.3.12] A centered `Dialog` whose body scrolls opens with focus on the body's first control, or its close button, not on the scrolling body.[^upgrade-v1.3.12]
+
+- **After v1.3.12:** an icon-only `Button` sizes its svg child as it sizes `startIcon`, unless the icon has a size class of its own, so an icon that kept its own fixed size now matches `startIcon`.[^upgrade-v1.3.13]
+
+- **After v1.3.14:** the testing kit keeps each test's media emulation (reduced motion, forced colours, colour scheme and contrast) to the test that set it, so a test that relied on one before it leaving reduced motion on now sets it itself, or in its file's `beforeAll`.[^upgrade-v1.3.15]
+
+- **After v1.3.16:** the testing kit moves the mouse off the page before each test in the mouse projects, so a test that relied on a hover left by the one before now hovers itself.[^upgrade-v1.3.17]
+
+- **After v1.3.19 (Hero):** `Hero`'s `picture` takes `{ light, dark }`, the same scene by day and at night, and no longer a single picture, so a hero that passed one picture fails to compile until it passes both; the dark one shows while the page is in dark mode.[^upgrade-hero-dark] Ouro check has a new gated rule, `hero-dark-art` (a hero whose picture has no night art), so a run that passed can now report it.[^upgrade-hero-dark-check]
+
+- **After v1.3.20:** `ouro-images` installs to `@lib/ouro/images/`, beside the Ouro AX kit it now runs on, where it was `~/lib/ouro/images/`, so re-adding it leaves the old copy behind: delete `lib/ouro/images/` at your project root once nothing imports it, and point any script that ran it at the new path.[^upgrade-images-ax] A refused option prints one line with the fix and exits 2.[^upgrade-images-ax]
+
+- **After v1.3.33:** `ouro-check` installs to `@lib/ouro/check/`, beside the Ouro AX kit it now runs on, where it was `~/lib/ouro/check/`, so delete `lib/ouro/check/` at your project root once nothing imports it, and point any script that ran it at the new path.[^upgrade-check-ax] Its `--help` and `--json` come from the kit, a refused option or target prints one line with the fix and exits 2, and a flag given twice is refused, except `--ready-event`, which repeats.[^upgrade-check-ax] `ax-flows` runs on the same kit: a refused option or suite module prints one line with the fix and exits 2 (a missing suite module or X-ray report used to stop with a stack trace and exit 1), and under `--json` stdout holds the outcome alone, with each flow's line on stderr.[^upgrade-flows-ax]
+
+- **After v1.3.34:** Ouro check has new gated rules for text that wraps by accident, `lone-word`, `tall-heading`, `one-word-line`, `hard-break` and `narrow-heading`, and `dark-art`, a dark page that shows its light theme's hero art, so a run that passed can now report findings.[^upgrade-wrap-checks] Balance headings and wrap prose pretty, give hero art a night twin, or mark a finding you keep on purpose with `data-ouro-allow` and a reason.[^upgrade-wrap-checks] `check.ts` imports a new file, `wrap-check.ts`: if your app pins the check's files in a list, add `registry/ouro/check/wrap-check.ts` to it.[^upgrade-wrap-checks]
+
+- **After v1.3.45:** `ax-xray` runs on the Ouro AX kit, and its `--json` report is unchanged, but under `--json` a refused option now prints its error as JSON on stdout, where it printed nothing, so a script that reads `xray.json` must gate on the exit code.[^upgrade-xray-ax]
+
+- **After v1.3.49 (Dialog):** a `Dialog` opened from the keyboard whose body has nothing to focus now gives first focus to a field in its footer (an input, a text area or a select), where it gave it to Close, so a test that expected Close there now finds the field.[^upgrade-dialog-footer-field]
+- **Surfaces (Button, Card, Dialog, TextField, Badge, Toggle):** where a browser lacks `corner-shape`, Button, Card, Dialog, TextField, Badge and Toggle paint their fill and border on a `[data-ouro-surface]` span inside the element. A `bg-*` or `border-*` class an app passes still wins, because the element then paints its own colour.[^upgrade-surface-override]
 
 #### 0. Commit first
 
@@ -170,10 +223,10 @@ Review the diff of your Tailwind CSS file too, the one `components.json` names i
 
 Update every Ouro component in your app, not only the items you typed: v0.1.0 added each component's dependencies too, so an app that added only `dialog` also has `button` and `sheet`. Each component is one `.tsx` file in your `components/ouro/` folder (`dialog/` holds `dialog` and `confirm-dialog`, and `text/` holds `text` and `heading`).[^upgrade-v0.1.0] Add each one as `<name>` and `<name>-tests`, plus `ouro-base`, in one command at the same ref, with `--overwrite` (without it the CLI stops to ask about each file). For the app that added only `dialog`, that is `ouro-base button button-tests dialog dialog-tests sheet sheet-tests`. No component installs `ouro-base` any more, so this is where your stylesheet gets the tokens added since v0.1.0.[^upgrade-v0.8.0]
 
-This command finds the components, prints them and adds them. If it finds none, it stops before adding anything[^upgrade-none]; run it in the folder with `components.json`. If you use the Ouro theme, add `ourostack/ouro-ui/ouro-theme#v1.3.14` to the `add` in it.
+This command finds the components, prints them and adds them. If it finds none, it stops before adding anything[^upgrade-none]; run it in the folder with `components.json`. If you use the Ouro theme, add `ourostack/ouro-ui/ouro-theme#v1.3.116` to the `add` in it.
 
 ```sh
-( p() { npx shadcn@latest info --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).config.resolvedPaths.$1"; }; ouro="$(p components)/ouro"; items=$(find "$ouro" -name '*.tsx' ! -name '*-parts.tsx' ! -name '*.test.tsx' ! -name '*.stories.tsx' 2>/dev/null | sed -E 's|.*/(.*)\.tsx$|\1|' | sort); [ -n "$items" ] || { echo "No Ouro components in $ouro. Run this in the folder with components.json." >&2; exit 1; }; echo "Updating: $(echo "$items" | paste -sd " " -)"; npx shadcn@latest add $(echo "$items" | sed -E 's|.*|ourostack/ouro-ui/&#v1.3.14 ourostack/ouro-ui/&-tests#v1.3.14|') ourostack/ouro-ui/ouro-base#v1.3.14 --overwrite )
+( p() { npx shadcn@latest info --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).config.resolvedPaths.$1"; }; ouro="$(p components)/ouro"; items=$(find "$ouro" -name '*.tsx' ! -name '*-parts.tsx' ! -name '*.test.tsx' ! -name '*.stories.tsx' 2>/dev/null | sed -E 's|.*/(.*)\.tsx$|\1|' | sort); [ -n "$items" ] || { echo "No Ouro components in $ouro. Run this in the folder with components.json." >&2; exit 1; }; echo "Updating: $(echo "$items" | paste -sd " " -)"; npx shadcn@latest add $(echo "$items" | sed -E 's|.*|ourostack/ouro-ui/&#v1.3.116 ourostack/ouro-ui/&-tests#v1.3.116|') ourostack/ouro-ui/ouro-base#v1.3.116 --overwrite )
 ```
 
 This keeps the tests v0.1.0 installed, deletes none of your files and adds no component you didn't have. shadcn may print `Skipped N files: (files might be identical, use --overwrite to overwrite)` even with `--overwrite`: those files already equal the release's, so nothing was missed.[^upgrade-shadcn-add] The `-tests` items name Vitest, Storybook and Playwright without a version, so the versions in your `package.json` stay as they are. v0.7.0's items still carry versions: after an add at v0.7.0, restore every test-tool version you had pinned (`git diff package.json`): Vitest and its companions, Playwright and Storybook.[^upgrade-v0.7.0] The tests need Vitest 4.1.11 or later, Playwright 1.58.1 or later and Storybook 10.2.10 or later; update those yourself if yours are older (the README's "Details" links the Testing page).[^upgrade-minimums] The specs in `e2e/ouro` now import `test` and `expect` from `e2e/ouro-fixtures.ts`, a file of yours: add it with the one line `export { expect, test } from "@playwright/test";`, or export your own fixtures from it.
@@ -246,13 +299,30 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-toast-announcer]: registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > renders an empty Notifications landmark in a portal, which holds its own live regions)
 [^upgrade-audit-leaves]: registry/ouro/lib/ouro/testing/axe.test.ts verify:testExists(registry/ouro/lib/ouro/testing/axe.test.ts::audit > fails, naming what changed, when its Tab walk closes a popup that focus leaving closes, which it cannot open again)
 [^upgrade-text-checks]: registry/ouro/check/text-check.ts verify:fileLine(registry/ouro/check/check.ts, /^  "odd-timestamp": "odd timestamp",$/) verify:testExists(test/check-text-in-page.test.ts::findTextIssues: leaked-value > finds each kind of value the program meant for itself, quoting what it shows)
-[^upgrade-blurry]: test:scripts/check/check.test.mts::Ouro check > never waives a blurry picture, and lists each one, with the file it needs, in the images report; test:scripts/images/images.test.mts::Ouro images' refusal of pictures too small to draw sharp > writes nothing for a refused picture, and the rest as before verify:testExists(scripts/check/check.test.mts::Ouro check > never waives a blurry picture, and lists each one, with the file it needs, in the images report) verify:testExists(scripts/images/images.test.mts::Ouro images' refusal of pictures too small to draw sharp > writes nothing for a refused picture, and the rest as before)
-[^upgrade-design-checks]: registry/ouro/check/check.ts verify:fileLine(registry/ouro/check/check.ts, /^  "giant-picture": "giant picture",$/) verify:testExists(scripts/check/check.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why)
-[^upgrade-shimmer]: registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /@keyframes ouro-shimmer-band/) verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > shimmers a band that moves by translate only, and holds it still in the middle with reduced motion)
+[^upgrade-blurry]: test:scripts/check/check-pages.test.mts::Ouro check > never waives a blurry picture, and lists each one, with the file it needs, in the images report; test:scripts/images/images.test.mts::Ouro images' refusal of pictures too small to draw sharp > writes nothing for a refused picture, and the rest as before verify:testExists(scripts/check/check-pages.test.mts::Ouro check > never waives a blurry picture, and lists each one, with the file it needs, in the images report) verify:testExists(scripts/images/images.test.mts::Ouro images' refusal of pictures too small to draw sharp > writes nothing for a refused picture, and the rest as before)
+[^upgrade-design-checks]: registry/ouro/check/check.ts verify:fileLine(registry/ouro/check/check.ts, /^  "giant-picture": "giant picture",$/) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why)
+[^upgrade-shimmer]: registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /@keyframes ouro-skeleton-breathe/) verify:testExists(registry/ouro/components/ouro/skeleton/skeleton.test.tsx::Skeleton > holds still for a second, then breathes by opacity only, and holds still with reduced motion)
 [^upgrade-avatar-colors]: registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--avatar-8:/) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar colors > picks the same hue for the same name, and spreads names across the hues)
 [^upgrade-avatar-dot]: registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar shapes and icons > clips a square's picture to its corners)
 [^upgrade-avatar-drawn]: registry/ouro/components/ouro/avatar/avatar.test.tsx verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar inside a link or button that has its own name > the same link around initials written as text fails the rule, so the check can fail) verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > shows initials from the name, and the name to screen readers)
 [^upgrade-toast-reachable]: registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::toast() > keeps every toast, its action and its dismiss button reachable by a screen reader while the stack rests collapsed)
+[^upgrade-v1.3.5]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5)
+[^upgrade-v1.3.6]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.6 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.6)
+[^upgrade-v1.3.7]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7)
+[^upgrade-v1.3.10]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.10 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.10)
+[^upgrade-v1.3.12]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.12 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.12)
+[^upgrade-hero-dark]: registry/ouro/components/ouro/hero/hero.test-d.ts verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the dark picture only while the page is in dark mode)
+[^upgrade-hero-dark-check]: test/check-theme-in-page.test.ts verify:testExists(test/check-theme-in-page.test.ts::findThemeIssues: hero-dark-art > finds a hero whose picture has no night art, in light mode too, named by its words)
+[^upgrade-v1.3.13]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13)
+[^upgrade-v1.3.15]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15)
+[^upgrade-v1.3.17]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17)
+[^upgrade-flows-ax]: registry/ouro/ax/flows.test.mts verify:testExists(registry/ouro/ax/flows.test.mts::the command's --help is the Ouro AX kit's, and an unknown flag is one line that names the fix, exit 2) verify:testExists(registry/ouro/ax/flows.test.mts::--json prints the outcome alone on stdout, and each flow's line on stderr) verify:testExists(registry/ouro/ax/flows.test.mts::the command runs a suite module: exit 0, 1 on an unknown failure or a known that passes, 2 on usage)
+[^upgrade-xray-ax]: registry/ouro/ax/xray.ts verify:fileLine(registry/ouro/ax/xray.ts, /return runCli\(tool, argv, io\);/) verify:testExists(registry/ouro/ax/xray.test.mts::the kit answers help, an unknown flag is one line with its fix, and repeat flags keep every value)
+[^upgrade-images-ax]: scripts/registry.mts; scripts/images/images.test.mts verify:fileLine(scripts/registry.mts, /@lib\/ouro\/images\//) verify:testExists(scripts/images/images.test.mts::Ouro images' command > refuses what it cannot run with one line that names the fix, and exits 2)
+[^upgrade-check-ax]: scripts/registry.mts; scripts/check/check.test.mts verify:fileLine(scripts/registry.mts, /@lib\/ouro\/check\//) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > reads every option, and refuses what it cannot run) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > prints the kit's help for --help, and refuses an unknown flag in one line that names its fix, with exit 2) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > refuses a target that is no folder or URL in one line that names the fix, and a mistyped merge names merge) verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > --json prints the outcome alone and exits 3 on gated findings, with the progress lines on stderr)
+[^upgrade-wrap-checks]: registry/ouro/check/wrap-check.ts verify:fileLine(registry/ouro/check/check.ts, /^import \{ findWrapIssues, readHeroArt, type HeroArt \} from "\.\/wrap-check\.ts";$/) verify:testExists(test/check-wrap-in-page.test.ts::findWrapIssues: lone-word > finds a block whose last line holds one word, a hyphen's piece included, in a scroller too, named by its words)
+[^upgrade-dialog-footer-field]: registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::first focus with a field in the footer > puts first focus on a footer field, not on Close, when the body has no control)
+[^upgrade-surface-override]: registry/ouro/theme/squircle-surface.test.tsx verify:testExists(registry/ouro/theme/squircle-surface.test.tsx::squircle surface where the engine has no corner-shape > lets an app's own fill and border classes on a Button win, with and without corner-shape)
 <!-- upgrade:end -->
 
 ### Items
@@ -261,6 +331,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 <!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->
 
 Components:
+`a2ui-surface`,
 `accordion`,
 `agent-presence`,
 `alert`,
@@ -289,6 +360,7 @@ Components:
 `color-scheme-toggle`,
 `combobox`,
 `command`,
+`composed-surface`,
 `composer`,
 `confirm-dialog`,
 `conversation-list`,
@@ -332,6 +404,7 @@ Components:
 `navigation-rail`,
 `number-field`,
 `otp-field`,
+`ouro-mcp-app`,
 `page-header`,
 `pagination`,
 `popover`,
@@ -369,6 +442,7 @@ Components:
 `text`,
 `text-area`,
 `text-field`,
+`thread-rail`,
 `thread-summary`,
 `time-grid`,
 `timer`,
@@ -377,7 +451,8 @@ Components:
 `toggle`,
 `toggle-group`,
 `toolbar`,
-`tooltip`.
+`tooltip`,
+`unread-dot`.
 
 Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs. `ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.
 
@@ -399,6 +474,7 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 `ax-output`,
 `ax-precise-copy`,
 `ax-problem`,
+`ax-surfaces`,
 `ax-terminal`,
 `ax-voice`,
 `ax-wait`,
@@ -408,6 +484,7 @@ Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `
 Guardrails, optional: `ouro-census`, which holds the pages and states your journeys list to a baseline of their visible controls, `ouro-source-rules`, which finds the controls your source still builds by hand, `ouro-check`, which finds what looks broken in your built pages, from a phone to a wide desktop, and `ouro-images`, which writes your pictures at the widths a srcset needs ([Guardrails guide](https://ui.ouroboros.bot/docs/guardrails/)).
 
 Helpers, one item per file in `lib/ouro`, each installed with the components that import it (you don't add them by name; `ouro-lib` is all of them, and a helper with tests has a `<name>-tests` item):
+`lib-a2ui-core`,
 `lib-announce`,
 `lib-appearance-hints`,
 `lib-celebration-cap`,
@@ -417,6 +494,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-color-scheme`,
 `lib-color-scheme-script`,
 `lib-control-ref`,
+`lib-css-panel`,
 `lib-current-path`,
 `lib-dev`,
 `lib-env`,
@@ -429,6 +507,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-keep-clear`,
 `lib-key-shortcuts`,
 `lib-last-input`,
+`lib-mcp-app`,
 `lib-measure-interaction`,
 `lib-navigation-key`,
 `lib-open-mode`,
@@ -444,6 +523,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-server-element`,
 `lib-share`,
 `lib-spring`,
+`lib-squircle-polyfill`,
 `lib-stretched-link`,
 `lib-toast`,
 `lib-tones`,
@@ -461,7 +541,8 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-person`,
 `lib-use-reduced-motion`,
 `lib-use-sheet-presentation`,
-`lib-use-timer`.
+`lib-use-timer`,
+`lib-use-until-found`.
 No component imports `lib-claims`: add it by name to mark your own copy's claims with `claim()`.
 <!-- items:end -->
 
@@ -596,6 +677,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Display
 
+- **A2UISurface** — Shows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it as ComposedSurface does, and sends a press as A2UI's action message. [Docs](docs/A2UISurface.md)
 - **Alert** — An inline message in the page: something saved, something failed, something to know before going on. [Docs](docs/Alert.md)
 - **Avatar** — A person's picture, or their initials until it loads or when it fails, in a color picked from the name. [Docs](docs/Avatar.md)
 - **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
@@ -603,13 +685,16 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Card** — A surface that groups one thing's content: a media slot across the top, a title with a description and an action, a body, and a footer. [Docs](docs/Card.md)
 - **Carousel** — A row of slides the user swipes or steps through with Previous and Next buttons: recipe photos, a few featured cards. [Docs](docs/Carousel.md)
 - **CodeBlock** — Code or a command on a muted surface in the theme's monospace font, with a caption and a button that copies it. [Docs](docs/CodeBlock.md)
+- **ComposedSurface** — Draws Ouro's composed tree with Ouro HX, whatever format it came in: core's `ComposedNode`, from A2UI messages, an MCP tool result's `structuredContent.ouro`, or your own code. [Docs](docs/ComposedSurface.md)
 - **DescriptionList** — One thing's details as pairs of a term and its value: a recipe's prep time and servings, an order's date and total, an account's email. [Docs](docs/DescriptionList.md)
 - **Empty** — What a list, search or page shows when it has nothing in it: an icon, a title that says what is empty, a sentence on what to do, and the action that does it. [Docs](docs/Empty.md)
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
 - **LiveCaptions** — A caption band for a live call or video: what people are saying, as they say it. [Docs](docs/LiveCaptions.md)
 - **MediaTile** — A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen. [Docs](docs/MediaTile.md)
+- **OuroMcpApp** — The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface, once it passes core's `validateTree` against the catalog, or A2UI messages in `structuredContent.a2ui` with `A2UISurface`. [Docs](docs/OuroMcpApp.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
-- **Skeleton** — A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. [Docs](docs/Skeleton.md)
+- **Skeleton** — A placeholder that breathes after a second in the shape and size of content that is still loading, so the content takes its place without moving anything. [Docs](docs/Skeleton.md)
+- **UnreadDot** — The dot that marks something unread: a small round dot in the theme's primary color, with a spoken label. [Docs](docs/UnreadDot.md)
 
 ### Lists
 
@@ -625,7 +710,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### Layout
 
 - **AspectRatio** — A frame that keeps an image, video or map at a fixed shape while its width follows the layout, so the page does not jump when the media loads. [Docs](docs/AspectRatio.md)
-- **Hero** — The top of a page: a headline with an optional line above it (`eyebrow`), a lede under it (`description`), the page's buttons (`actions`) and a big picture, or something live in its place (`media`), below. [Docs](docs/Hero.md)
+- **Hero** — The top of a page: a headline with an optional line above it (`eyebrow`) and a status beside that (`badge`), a trail above them (`breadcrumb`), a lede under the headline (`description`), the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or something live in its place (`media`), below. [Docs](docs/Hero.md)
 - **PageHeader** — The top of a page: its title with an optional line above it (`eyebrow`), a description under it, the page's actions beside it, and a trail and an image above. [Docs](docs/PageHeader.md)
 - **Resizable** — Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console. [Docs](docs/Resizable.md)
 - **ResizableHandle** — The draggable line between two panels in a `ResizablePanelGroup`, a focusable window splitter (`role="separator"`) for the panel before it. [Docs](docs/ResizableHandle.md)
@@ -677,6 +762,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)
 - **readFailure** — Whether a failed read's HTTP status is the service's (`"failed"`: no answer, signed out, throttled, timed out or failing, so every read waits) or this person's (`"missing"`: the service refused them alone, so they are kept as missing and no one waits). [Docs](docs/readFailure.md)
+- **ThreadRail** — A thread beside its conversation: a labelled landmark with a header and a close button. [Docs](docs/ThreadRail.md)
 - **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
 - **usePerson** — One person from a cache made with `createPeopleCache`, for a component that shows them, such as an avatar or a message's author: their entry, read while the component shows it and again whenever it runs out. [Docs](docs/usePerson.md)
 - **webStorage** — Storage for `createPeopleCache` in `localStorage`, or another `Storage`, under one key. [Docs](docs/webStorage.md)
@@ -716,11 +802,13 @@ Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, su
 - **The evaluation gate.** A claim is `must` only when an agent evaluation shows agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.14         # the kit and the X-ray, in lib/ouro/ax/
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.14   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.116         # the kit and the X-ray, in lib/ouro/ax/
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.116   # with their node:test tests
 ```
 
 Guides: [Ouro AX](docs/guides/ax.md), [make your CLI conformant](docs/guides/ax-adopt.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md) and [the evaluation](docs/guides/ax-eval.md). The items' pages are in [docs/ax](docs/ax/).
+
+**Build with it, and give back what you learn.** Interfaces that an agent or person uses, in your tools and your products alike, can follow Ouro UI's guidance: Ouro HX for screens, Ouro AX for agents. When an interface teaches you something general, contribute it back here as a principle, a component or a check with a test, kept generic, so the other products and tools that use Ouro UI get it too. A tool that needs an instruction booklet is a design bug: put the guidance in its surface (tool descriptions, replies, errors, automatic hooks).
 
 ## Where things live
 
@@ -772,5 +860,17 @@ MIT
 [^axe-guards]: registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu focus guards > reports a context menu's focus guards to plain axe, and the gate passes with them left out) verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu focus guards > reports a trigger menu's focus guards to plain axe, and the gate passes with them left out) verify:testExists(test/axe-exclude.test.tsx::matches the open dialog's focus guards, and with them excluded the accessibility gate finds nothing)
 [^host]: site/src/head.ts verify:fileLine(site/src/head.ts, /SITE = "https:\/\/ui\.ouroboros\.bot"/)
 [^spoonjoy]: site/scripts/spoonjoy.mts verify:fileLine(site/src/pages/docs.tsx, /<InSpoonjoy name=\{item\.name\} \/>/) verify:testExists(site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub)
-[^exit-codes]: test:scripts/check/check.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings verify:testExists(scripts/check/check.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings)
-[^long-lines]: test:scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements verify:testExists(scripts/check/check.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements)
+[^exit-codes]: test:scripts/check/check-command.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings)
+[^long-lines]: test:scripts/check/check-pages.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements verify:testExists(scripts/check/check-pages.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements)
+[^apple-box]: https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box)
+[^actions]: https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md)
+[^a2ui-render]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json; test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated; https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#agent-composed-ui-a2ui)
+[^works-with]: test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated; test:registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card)
+[^mcp-app]: docs/OuroMcpApp.md; test:registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card)
+[^one-action]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5)
+[^consent-confirm]: test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm)
+[^person-only]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45; test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > hands a person-only action to the app's own screen and never runs it verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > hands a person-only action to the app's own screen and never runs it)
+[^xray]: test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing; https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/701004b67c5cb9271b1fca89aeaae2470293db0b/README.md#whats-in-the-box)
+[^no-kit]: docs/platforms/README.md verify:fileLine(docs/platforms/README.md, /^\| For Android \| none yet/)
+[^windows-first]: https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1 verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1) verify:equals(scripts/parity-data/versions.json#windows.tag)=v0.1.1
+[^apple-pre-1]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0) verify:equals(site/src/apple/kit.json#release)=0.6.0

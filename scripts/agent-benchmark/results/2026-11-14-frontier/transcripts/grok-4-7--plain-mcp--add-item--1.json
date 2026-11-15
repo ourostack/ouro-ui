@@ -1,0 +1,51 @@
+{
+  "model": "grok-4-7",
+  "modelId": "grok-4.7",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "task": "add-item",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 1,
+  "toolsUsed": [
+    "add_item"
+  ],
+  "textReadChars": 29,
+  "wallMs": 2729,
+  "modelCalls": 2,
+  "tokens": {
+    "input": 4020,
+    "output": 82,
+    "cacheRead": 3456,
+    "cacheWrite": 0,
+    "reasoning": 46,
+    "total": 4102
+  },
+  "costAiu": 0.3348,
+  "costSource": "runtime",
+  "finalMessage": "I added 2 cartons of oat milk to your shopping list.",
+  "transcript": {
+    "messages": [
+      "I added 2 cartons of oat milk to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "add_item",
+        "args": {
+          "name": "oat milk",
+          "quantity": 2,
+          "unit": "cartons"
+        },
+        "ms": 0,
+        "resultChars": 29,
+        "result": "{\"id\":\"i6\",\"name\":\"oat milk\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

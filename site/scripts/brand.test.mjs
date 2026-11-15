@@ -70,23 +70,31 @@ test("every storybook file is listed in its provenance.json, byte-identical to t
   }
 });
 
-test("every scene the site shows is there at each width, with the phone crop and the og crop", async () => {
-  const { SCENES } = await import("../src/storybook.ts");
+test("every scene the site shows is there at each width, by day and at night, with the phone crop and the og crop", async () => {
+  const { SCENES, sceneSources } = await import("../src/storybook.ts");
   const have = new Set(storyFiles());
   for (const scene of Object.keys(SCENES)) {
-    const wanted = [`headers/${scene}.webp`, `scenes/${scene}-1536.avif`];
-    for (const width of [640, 960]) wanted.push(`scenes/${scene}-${width}.avif`, `scenes/${scene}-${width}.webp`);
-    for (const width of [384, 768]) wanted.push(`phone/${scene}-${width}.avif`, `phone/${scene}-${width}.webp`);
-    for (const file of wanted) assert.ok(have.has(file), `${file} is missing`);
+    for (const night of [false, true]) {
+      const { phone, wide, header } = sceneSources(scene, (path) => path, night);
+      const wanted = [header, ...[phone, wide].flatMap((sources) => ["avif", "webp"].flatMap((type) => sources(type).split(", ").map((entry) => entry.split(" ")[0])))];
+      for (const file of wanted) assert.ok(have.has(file), `${file} is missing`);
+    }
   }
   const { CARDS } = await import("../src/storybook.ts");
   for (const card of Object.values(CARDS)) assert.ok(have.has(`og/${card.scene}.jpg`), `og/${card.scene}.jpg, the card ${card.file}'s scene, is missing`);
-  // Each phone crop's shape is its own: the picture's height for it (SCENES[scene].phoneHeight) is the file's.
-  // A lossy WebP ("VP8 ") holds its width and height, 14 bits each, after its frame's start code.
-  for (const [scene, { phoneHeight }] of Object.entries(SCENES)) {
-    const webp = readFileSync(join(storybook, `phone/${scene}-768.webp`));
-    assert.equal(webp.toString("latin1", 12, 16), "VP8 ", scene);
-    assert.deepEqual([webp.readUInt16LE(26) & 0x3fff, webp.readUInt16LE(28) & 0x3fff], [768, phoneHeight], `phone/${scene}-768.webp`);
+  // Each phone crop's shape is its own: the picture's height for it (SCENES[scene].phoneHeight, and its night's) is the file's.
+  // A lossy WebP ("VP8 ") holds its width and height, 14 bits each, after its frame's start code. The night's wide
+  // scene is the day's size, so the page holds the same box whichever theme draws it.
+  const size = (file) => {
+    const webp = readFileSync(join(storybook, file));
+    assert.equal(webp.toString("latin1", 12, 16), "VP8 ", file);
+    return [webp.readUInt16LE(26) & 0x3fff, webp.readUInt16LE(28) & 0x3fff];
+  };
+  for (const [scene, { height, phoneHeight, night }] of Object.entries(SCENES)) {
+    assert.deepEqual(size(`phone/${scene}-768.webp`), [768, phoneHeight], `phone/${scene}-768.webp`);
+    assert.deepEqual(size(`phone/${scene}-dark-768.webp`), [768, night.phoneHeight], `phone/${scene}-dark-768.webp`);
+    assert.deepEqual(size(`headers/${scene}.webp`), [1536, height], `headers/${scene}.webp`);
+    assert.deepEqual(size(`headers/${scene}-dark.webp`), [1536, height], `headers/${scene}-dark.webp`);
   }
   for (const icon of ["icons/ouro-hx.svg", "icons/ouro-hx-180.png", "icons/ouro-hx-192.png", "icons/ouro-hx-512.png"]) assert.ok(have.has(icon), icon);
 });

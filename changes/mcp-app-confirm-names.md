@@ -1,0 +1,1 @@
+- New: OuroMcpApp takes a `label` prop, the app's own names for the ids on its confirm sheets, when you build the view in code. A built view shows the agent's names, with the id small beside them.

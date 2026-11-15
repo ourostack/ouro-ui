@@ -1,0 +1,1 @@
+- New: ThreadRail, a thread beside its conversation: a labelled landmark with a header, a close button and Escape, that takes focus when it opens and gives it back when it closes.

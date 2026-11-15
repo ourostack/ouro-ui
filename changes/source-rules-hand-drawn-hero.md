@@ -1,0 +1,1 @@
+- New: the source rules find a hero drawn by hand as a `section` or `header` with a hero class, so an app can move it to the registry's `Hero`.

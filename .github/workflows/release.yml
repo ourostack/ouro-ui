@@ -1,29 +1,26 @@
 name: Release
-# Cuts v<version> from the commit of main that a passing rehearsal of it (release-rehearsal.yml)
-# tested: main's head, or an earlier commit of main when merges came after the rehearsal; those go
-# out in the next release (scripts/rehearsal-evidence.mjs pick).
+# Cuts v<version> from a commit of main whose own push runs passed: CI and the other workflows
+# that report the checks main's rules require, and the screen-reader lane (screen-reader.yml, on
+# every push to main). Release auto (release-auto.yml) names the newest such commit; a run
+# dispatched by hand takes main's head. Nothing runs twice: the suite that tested the commit on
+# main is the proof, and only release-only steps run here.
 # The tag points at a release commit that main never receives: a branch
 # off green main whose registry.json pins every same-repo registryDependency to the tag
 # (scripts/registry.mts --release), so `shadcn add ourostack/ouro-ui/<item>#v<version>`
 # installs every Ouro dependency at that tag while main stays unpinned. The @ouro namespace
 # built from that commit must match its registry.json and files byte for byte
-# (scripts/public-registry.mjs verify-build). CI runs on that
-# commit (with the shadcn@latest install, ci.yml's install-latest job), then the screen-reader
-# lane (screen-reader.yml: VoiceOver and NVDA); when both pass, the commit is tagged, the
+# (scripts/public-registry.mjs verify-build). When that passes, the commit is tagged, the
 # GitHub release is created and the branch is deleted (the tag keeps the commit). Because
-# main never receives the release commit, the run then opens "Prepare main for the next release" against main: it deletes
-# the change fragments this release used (changes/*.md) and makes the tag the newest release
-# (package.json ouro.latestRelease, scripts/latest-release.mjs). The run queues that pull
-# request itself once its checks pass, follows it through the merge queue (the queue job, the
-# only one that may write commit statuses), runs CI on main's new tip unless the queue's run
-# already passed on it, deploys Pages (the publish job), and last
-# checks that the site's llms.txt and main's README name this release
-# (scripts/published-release.mjs), so no install command names the release before this one
-# after the run ends, and that Pages serves every @ouro item byte for byte as built from the
-# tag (scripts/public-registry.mjs verify-live). The next release refuses to start while changes/
-# lists no change or still lists this release's (scripts/changes.mjs). Rerunning is safe: a released tag exits
-# cleanly, a tag without a release fails with the fix, and a failed run deletes its
-# branch. A tag out without main and Pages following opens an issue (the finish job).
+# main never receives the release commit, main keeps its change fragments: a release's notes list
+# only the fragment lines the last release's notes lack (scripts/changes.mjs). Afterwards a pull
+# request points main's docs at the release (docs-pin.yml), which this run starts and never waits
+# for. The run deploys Pages (the pages job: Pages' build names the newest
+# release in the site, llms.txt and the @ouro namespace) and last checks that the site's llms.txt
+# names this release (scripts/published-release.mjs) and that Pages serves every @ouro item byte
+# for byte as built from the tag (scripts/public-registry.mjs verify-live). The next release
+# refuses to start while changes/ lists no change the last release lacks. Rerunning is safe: a
+# released tag exits cleanly, a tag without a release fails with the fix, and a failed run deletes
+# its branch. A tag out without Pages following opens an issue (the finish job).
 # Recovery: AGENTS.md, "Pages and releases".
 on:
   workflow_dispatch:
@@ -31,8 +28,10 @@ on:
       version:
         description: "Version to release, without the v (for example 0.1.0)"
         required: true
-# Each job asks for its own permissions; the queue job alone may write commit statuses, and it checks
-# nothing out and installs nothing.
+      sha:
+        description: "The commit of main to release (its full SHA); main's head when empty"
+        required: false
+# Each job asks for its own permissions.
 permissions: {}
 concurrency:
   group: release
@@ -42,23 +41,17 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # push the release branch and the tag, create the release
-      actions: write # run CI on the release branch and the screen-reader lane
-      pull-requests: write # open, approve CI on and queue the PR that prepares main for the next release
-      issues: write # report a screen-reader lane that failed twice on infrastructure (scripts/sr-infra-issue.sh)
-    # Two CI runs, 45 minutes each with the runner pool's queues, on the release commit (with the
-    # shadcn@latest install, beside CI's other jobs) and on the pull request that prepares main,
-    # and once more on the release commit for a quarantined test's retry; the screen-reader lane
-    # between them, 8 minutes, once more after an infrastructure failure; and the namespace checks,
-    # 2: 153, and 1.5 times that 230 (scripts/workflows.test.mjs, which holds the numbers). The
-    # merge queue, CI on main and Pages are later jobs with their own.
-    timeout-minutes: 230
+    # Waiting for none of main's runs: reading them, the install, the release commit and the
+    # namespace checks, 20 minutes, and 1.5 times that 30 (scripts/workflows.test.mjs, which holds
+    # the numbers). Pages is a later job with its own.
+    timeout-minutes: 30
     outputs:
       new: ${{ steps.check.outputs.new }}
-      number: ${{ steps.prepare.outputs.number }}
       producers: ${{ steps.check.outputs.producers }}
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
+      SHA: ${{ inputs.sha }}
       TAG: v${{ inputs.version }}
       BRANCH: release/v${{ inputs.version }}
     steps:
@@ -71,7 +64,7 @@ jobs:
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must be x.y.z, without the v"; exit 1; }
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
             if out=$(gh release view "$TAG" --json tagName 2>&1); then
-              echo "::notice::$TAG is already released. Nothing to do. If the 'Prepare main for the next release' PR is missing, open it by hand (AGENTS.md, 'Pages and releases')."
+              echo "::notice::$TAG is already released. Nothing to do."
               # The finish job reads this: a rerun for a released version pushed no tag of its own.
               echo "new=false" >> "$GITHUB_OUTPUT"
               exit 0
@@ -85,20 +78,20 @@ jobs:
             fi
             exit 1
           fi
-          # The commit a passing rehearsal of this version tested (scripts/rehearsal-evidence.mjs pick):
-          # main's head when its newest rehearsal passed, else the newest such commit of main, so
-          # merges while a rehearsal runs never make it stale; they go out in the next release.
-          # Everything below checks and releases that commit.
-          sha=$(node scripts/rehearsal-evidence.mjs pick "$TAG" "$(git rev-parse HEAD)") || { echo "::error::No passing rehearsal of $TAG on main to release. Run it first: gh workflow run release-rehearsal.yml -f version=$VERSION"; exit 1; }
+          # The commit to release: the one Release auto named, or main's head. It must be main's own,
+          # an earlier commit of it when merges came after.
+          sha=${SHA:-$(git rev-parse HEAD)}
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::sha must be a full 40-character commit SHA, not '$sha'."; exit 1; }
+          rel=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$sha" --jq .status) || { echo "::error::Could not compare $sha with main."; exit 1; }
+          [ "$rel" = identical ] || [ "$rel" = behind ] || { echo "::error::$sha is not a commit of main ($rel)."; exit 1; }
+          git fetch -q --depth=1 origin "$sha"
           git checkout -q --detach "$sha"
           # The workflows that report the checks main's rules require (CI, conformance exemptions:
           # scripts/required-producers.mjs), which this run dispatches where GITHUB_TOKEN starts none.
           producers=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique | .[]' | node scripts/required-producers.mjs) || { echo "::error::Could not tell which workflows report main's required checks."; exit 1; }
           echo "producers=$(echo $producers)" >> "$GITHUB_OUTPUT"
           echo "PRODUCERS=$(echo $producers)" >> "$GITHUB_ENV"
-          # Main's runs of each on this commit: a push run, the run the last release dispatched
-          # after it merged "Prepare main for the next release" (a merge made with a workflow's
-          # token starts no push run), and the merge queue's run, which tested this very commit
+          # Main's runs of each on this commit: a push run, a dispatch on main, and the merge queue's run, which tested this very commit
           # before main fast-forwarded to it (the push run after it then skips every job but
           # install-github). A check main's rules require passes when one of them passed it
           # (scripts/required-ci.sh), whatever the runs' overall conclusions, which ci-budget's
@@ -120,17 +113,15 @@ jobs:
             github=$(awk -F '\t' '$1 == "install-github" { print $2; exit }' <<<"$jobs")
             [ "$github" = success ] || { echo "::error::install-github is '${github:-not in the run}' in main's own CI run $own ($sha), not success: the install a user runs today must pass before a release."; exit 1; }
           fi
-          # A rehearsal of this version (release-rehearsal.yml) ran the full CI and the screen-reader
-          # lane on the release commit as this run will write it, so a check that fails only on a
-          # release commit stops there, before anything is cut. The newest rehearsal on this commit
-          # decides; with none, the newest on a commit of main at most 50 commits before it, started
-          # in the last 24 hours, decides, and holds only when this commit differs from that one in
-          # tests and records that ship nowhere alone (scripts/rehearsal-evidence.mjs). Checked
-          # after main's own CI on this commit above; any error refuses it. The run and the files
-          # go to the summary and, for the release notes, to $RUNNER_TEMP/rehearsal.md.
-          rehearsed=$(node scripts/rehearsal-evidence.mjs "$TAG" "$sha" --notes "$RUNNER_TEMP/rehearsal.md") || { echo "::error::No passing rehearsal of $TAG holds for main ($sha). Run it first: gh workflow run release-rehearsal.yml -f version=$VERSION"; exit 1; }
-          # What the rehearsal passed only on a quarantined test's retry (scripts/quarantine.mjs), shown here too.
-          node scripts/quarantine.mjs rehearsed "$rehearsed"
+          # The screen-reader lane, which main runs on every push (screen-reader.yml), passed on this commit.
+          lane=$(gh run list --workflow screen-reader.yml --commit "$sha" --event push --json databaseId,conclusion --jq '[.[] | select(.conclusion == "success")][0].databaseId // empty')
+          [ -n "$lane" ] || { echo "::error::The screen-reader lane has not passed on main ($sha): VoiceOver and NVDA must pass on the commit that is released."; exit 1; }
+          {
+            echo "Tagged from main's commit \`$sha\`, which main's own runs passed, so nothing ran twice:"
+            for id in $runs; do echo "- CI run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$id"; done
+            echo "- Screen-reader lane (VoiceOver and NVDA): $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$lane"
+          } > "$RUNNER_TEMP/proof.md"
+          cat "$RUNNER_TEMP/proof.md" >> "$GITHUB_STEP_SUMMARY"
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.new == 'true'
@@ -161,123 +152,19 @@ jobs:
           git commit -am "Release $TAG"
           git push --force origin "$BRANCH"
       - if: steps.check.outputs.new == 'true'
-        id: reuse
-        name: Reuse the rehearsal's proof when it tested this very tree
-        run: |
-          # The rehearsal wrote the release commit with the same script and ran CI and the
-          # screen-reader lane on it. When its commit has this commit's tree, that proof is for
-          # these bytes: the same checks are judged on its runs instead of being run again.
-          # Anything else, a different tree, a missing run or a check that did not pass, takes
-          # the full path below, unchanged.
-          echo "reuse=false" >> "$GITHUB_OUTPUT"
-          rbranch="release/$TAG-rehearsal"
-          tree=$(git rev-parse 'HEAD^{tree}')
-          shas=$(gh run list --workflow ci.yml --branch "$rbranch" --event workflow_dispatch --limit 20 --json headSha,createdAt --jq 'sort_by(.createdAt) | reverse | [.[].headSha] | unique | .[]') || shas=
-          for rsha in $shas; do
-            [ "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$rsha" --jq .tree.sha 2>/dev/null || true)" = "$tree" ] || continue
-            runs=
-            for workflow in $PRODUCERS; do
-              id=$(gh run list --workflow "$workflow" --branch "$rbranch" --event workflow_dispatch --commit "$rsha" --json databaseId,createdAt --jq 'sort_by(.createdAt) | last | .databaseId // empty')
-              runs="$runs $id"
-            done
-            [[ "$runs" != *"  "* && -n "${runs// }" ]] || continue
-            # shellcheck disable=SC2086 # one argument per run
-            scripts/required-ci.sh --also "install (shadcn@latest, nova)" $runs || continue
-            lane=$(gh run list --workflow screen-reader.yml --branch "$rbranch" --event workflow_dispatch --json databaseId,headSha,conclusion,createdAt --jq "[.[] | select(.headSha == \"$rsha\" and .conclusion == \"success\")] | sort_by(.createdAt) | last | .databaseId // empty")
-            [ -n "$lane" ] || continue
-            echo "reuse=true" >> "$GITHUB_OUTPUT"
-            {
-              echo "Reused the rehearsal's proof: its commit \`$rsha\` has this release commit's tree (\`$tree\`)."
-              for id in $runs; do echo "- CI run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$id"; done
-              echo "- Screen-reader lane: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$lane"
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          done
-          echo "No rehearsal commit has this tree with CI and the screen-reader lane passed: running both on the release commit."
-      - if: steps.check.outputs.new == 'true'
         name: Build and check the @ouro namespace for the release commit
         run: |
           # What Pages will serve at /r/ for this release: the namespace built from this commit
           # (scripts/namespace.sh), checked against the commit's registry.json and files byte for
-          # byte, every item and no other (scripts/public-registry.mjs), before CI, the
-          # screen-reader lane and the tag.
+          # byte, every item and no other (scripts/public-registry.mjs), before the tag.
           scripts/namespace.sh "$RUNNER_TEMP/ns" "$TAG"
           node scripts/public-registry.mjs verify-build "$RUNNER_TEMP/ns" HEAD
-      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
-        name: Start the screen-reader lane on the release commit
-        run: |
-          # Dispatched before CI, so the two run side by side; "Pass the screen-reader lane"
-          # waits for this run (SR_BEFORE marks the runs that came before it).
-          sha=$(git rev-parse HEAD)
-          before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
-          gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
-          echo "SR_BEFORE=$before" >> "$GITHUB_ENV"
-      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
-        name: Run CI on the release commit
-        run: |
-          sha=$(git rev-parse HEAD)
-          # CI and every other workflow that reports a check main's rules require, judged on those
-          # checks and on the release-only gates the rules cannot require, as main never runs them:
-          # ci.yml's install-latest job. ci-budget does not decide.
-          run=$(scripts/dispatch-required.sh "$BRANCH" "$sha")
-          # A check that failed only because of quarantined tests (.github/quarantine.json) is retried
-          # once, recorded, and judged again (scripts/quarantine.mjs); any other failure, or a second
-          # one, stops the release.
-          # shellcheck disable=SC2086 # one argument per run
-          if ! scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run; then
-            # shellcheck disable=SC2086 # one argument per run
-            node scripts/quarantine.mjs retry --also "install (shadcn@latest, nova)" $run || exit 1
-            # shellcheck disable=SC2086 # one argument per run
-            scripts/required-ci.sh --also "install (shadcn@latest, nova)" $run || { echo "- After the retry, CI still failed." >> "$GITHUB_STEP_SUMMARY"; exit 1; }
-            echo "- After the retry, CI passed the checks main's rules require." >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - if: steps.check.outputs.new == 'true' && steps.reuse.outputs.reuse != 'true'
-        name: Pass the screen-reader lane on the release commit
-        run: |
-          # The release commit is tagged only when VoiceOver and NVDA pass on that exact commit
-          # (screen-reader.yml, dispatched on the release branch with source_sha set to it, the
-          # first time alongside CI). An infrastructure failure (scripts/sr-classify.mjs) is
-          # dispatched once more; a second one, or an accessibility failure, stops the release.
-          sha=$(git rev-parse HEAD)
-          for attempt in 1 2; do
-            if [ "$attempt" = 1 ]; then
-              before=$SR_BEFORE
-            else
-              before=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --event workflow_dispatch --json databaseId --jq '[.[].databaseId] | max // 0')
-              gh workflow run screen-reader.yml --ref "$BRANCH" -f source_sha="$sha"
-            fi
-            run=
-            for _ in $(seq 60); do
-              # The newest dispatched run for this exact commit created after this dispatch.
-              run=$(gh run list --workflow screen-reader.yml --branch "$BRANCH" --json databaseId,headSha,event,createdAt --jq "[.[] | select(.event == \"workflow_dispatch\" and .headSha == \"$sha\" and .databaseId > $before)] | sort_by(.createdAt) | last | .databaseId // empty")
-              [ -n "$run" ] && break
-              sleep "${POLL_SECONDS:-5}"
-            done
-            [ -n "$run" ] || { echo "::error::The screen-reader lane did not start on $BRANCH ($sha)."; exit 1; }
-            url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run"
-            echo "Screen-reader lane, attempt $attempt: $url" >> "$GITHUB_STEP_SUMMARY"
-            if gh run watch "$run" --exit-status --interval 30 >/dev/null; then
-              verdict=$(gh run view "$run" --json conclusion,headSha --jq '"\(.conclusion) \(.headSha)"')
-              [ "$verdict" = "success $sha" ] || { echo "::error::Screen-reader run $url concluded '$verdict', not success for $sha."; exit 1; }
-              echo "VoiceOver and NVDA passed on $sha: $url"
-              exit 0
-            fi
-            classes=$(gh run view "$run" --log-failed | grep -o 'SR_CLASS=[a-z]*' | sort -u | tr '\n' ' ' | sed 's/ $//' || true)
-            if [ "$classes" != "SR_CLASS=infrastructure" ]; then
-              echo "::error::The screen-reader lane failed on $sha (${classes:-unclassified}): $url. An accessibility failure blocks the release; fix main and run Release again."
-              exit 1
-            fi
-            echo "::warning::The screen-reader lane could not drive its screen reader (attempt $attempt): $url"
-          done
-          issue=$(GH_REPO="$GITHUB_REPOSITORY" scripts/sr-infra-issue.sh "$url" "release $TAG" || true)
-          echo "::error::The screen-reader lane failed twice on infrastructure, so $TAG is not tagged: ${issue:-$url}"
-          exit 1
       - if: steps.check.outputs.new == 'true'
         name: Tag and publish the release
         run: |
-          # The rehearsal this release rests on, written by "Check the version, the tag and main's CI":
-          # without it nothing is tagged.
-          [ -s "$RUNNER_TEMP/rehearsal.md" ] || { echo "::error::$RUNNER_TEMP/rehearsal.md, the rehearsal this release rests on, is missing, so $TAG is not tagged."; exit 1; }
+          # The main runs this release rests on, written by "Check the version, the tag and main's CI":
+          # without them nothing is tagged.
+          [ -s "$RUNNER_TEMP/proof.md" ] || { echo "::error::$RUNNER_TEMP/proof.md, the main runs this release rests on, is missing, so $TAG is not tagged."; exit 1; }
           # The notes are assembled and measured before the tag exists: GitHub refuses a release
           # body over 125,000 characters, and a tag pushed without its release blocks a rerun.
           {
@@ -301,7 +188,7 @@ jobs:
             # the footnote mark that sources the title.
             sed -e '1s/^# \(.*\)\[\^[^]]*\]$/### \1/' -e '1s/^# /### /' -e '/^> \*\*Reading this file on GitHub?\*\*/,/^$/d' -e "s/{{latestRelease}}/$TAG/g" UPGRADING.md
             echo
-            echo 'Or through the `@ouro` namespace, which serves the newest release: this one, once main is prepared for the next release. Add it to `components.json` once:'
+            echo 'Or through the `@ouro` namespace, which serves the newest release: this one once Pages deploys. Add it to `components.json` once:'
             echo
             echo '```json'
             echo '"registries": { "@ouro": "https://ui.ouroboros.bot/r/{name}.json" }'
@@ -311,9 +198,8 @@ jobs:
             echo 'npx shadcn@latest add @ouro/ouro-base @ouro/dialog'
             echo '```'
             echo
-            # The rehearsal this release rests on and, when it ran on an earlier commit of main, the
-            # files this one changes since ("Check the version, the tag and main's CI").
-            cat "$RUNNER_TEMP/rehearsal.md"
+            # The main runs this release rests on ("Check the version, the tag and main's CI").
+            cat "$RUNNER_TEMP/proof.md"
             echo
             # By name only: with every description the list alone outgrew GitHub's limit.
             echo "Items, by name. The [docs](https://ui.ouroboros.bot/docs/) describe each component, and the tag's [registry.json](https://github.com/$GITHUB_REPOSITORY/blob/$TAG/registry.json) holds every item's description:"
@@ -330,99 +216,6 @@ jobs:
           git push origin "$TAG"
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
           git push origin --delete "$BRANCH"
-      - if: steps.check.outputs.new == 'true'
-        id: prepare
-        name: Prepare main for the next release
-        env:
-          NEXT_BRANCH: prepare/after-v${{ inputs.version }}
-        run: |
-          # Main still holds this release's change fragments and names the previous release,
-          # because the release commit never reaches it. Delete the fragments and make this tag
-          # the newest release (package.json ouro.latestRelease; `pnpm run docs` writes it into
-          # README.md, llms.txt and package.json), on a branch off the released main commit, so
-          # only the fragments this release used are deleted and one added to main during the
-          # release stays for the next. If this step fails, the release stands; open the PR by
-          # hand ("Check the changes" stops the next release until the fragments are deleted).
-          git switch -c "$NEXT_BRANCH" "$MAIN_SHA"
-          git rm --quiet -- 'changes/*.md'
-          node scripts/latest-release.mjs set "$TAG"
-          pnpm run docs
-          git commit -am "Prepare main for the next release"
-          git push --force origin "$NEXT_BRANCH"
-          gh pr create --base main --head "$NEXT_BRANCH" --title "Prepare main for the next release" \
-            --body "$TAG is released with these changes in its notes, so their fragments in changes/ are deleted for the next release, and $TAG becomes the newest release: the README, the site, llms.txt and the @ouro namespace move to it when this merges.[^latest] Merge this before adding the next release's changes.
-
-          [^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG"
-          # GitHub records a pull_request CI run for a PR a workflow opened with GITHUB_TOKEN,
-          # but holds it (`action_required`) with no jobs, and the ruleset's required checks
-          # count only pull_request-event checks, not a dispatched run (probe #142: a pull
-          # request stayed blocked with every required check green from a dispatched run). Approve the held run
-          # so the required checks report on the PR. GitHub documents the approve endpoint for
-          # fork PRs and names only OAuth and classic PAT tokens, so whether GITHUB_TOKEN may
-          # call it is untested here; when the approval fails, dispatch CI on the branch (a
-          # signal only; it does not satisfy the ruleset); the exact command for a person goes to the
-          # job summary and the PR body first, so a failed dispatch cannot hide it (AGENTS.md, "Pages and releases").
-          # The same holds for each workflow that reports a required check (conformance exemptions
-          # too): each one's held run is approved, and the required checks of all of them decide.
-          sha=$(git rev-parse HEAD)
-          runs=
-          approved=true
-          for workflow in $PRODUCERS; do
-            run=
-            for _ in $(seq 24); do
-              run=$(gh run list --workflow "$workflow" --branch "$NEXT_BRANCH" --commit "$sha" --event pull_request --json databaseId --jq '.[0].databaseId' || true)
-              [ -n "$run" ] && break
-              sleep "${POLL_SECONDS:-5}"
-            done
-            if [ -n "$run" ] && gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/approve" >/dev/null; then
-              runs="$runs $run"
-            else
-              approved=false
-              break
-            fi
-          done
-          if [ "$approved" = true ]; then
-            echo "Approved the runs$runs on $NEXT_BRANCH; their checks report on the pull request." >> "$GITHUB_STEP_SUMMARY"
-            # Queue it here once its checks pass, so main's README names this release before the
-            # run ends instead of when a person next looks; the queue job follows it through the
-            # merge queue and CI on main, and the publish job deploys Pages.
-            number=$(gh pr view "$NEXT_BRANCH" --json number --jq .number)
-            echo "number=$number" >> "$GITHUB_OUTPUT"
-            queue_state() { gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $number) { state isInMergeQueue } } }" --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue)"'; }
-            # shellcheck disable=SC2086 # one argument per run
-            scripts/required-ci.sh $runs || { echo "::error::CI on \"Prepare main for the next release\" did not pass the checks main's rules require; Pages will not deploy. Fix it, merge it, then pass main CI before deploying."; exit 1; }
-            gh pr merge "$NEXT_BRANCH" --squash || true
-            # With the merge queue on main, gh asks for auto-merge to queue a pull request, which
-            # this repository does not allow (probe #142): queue it directly, at the commit CI
-            # passed on, until GitHub says it is queued.
-            id=$(gh pr view "$NEXT_BRANCH" --json id --jq .id)
-            for attempt in 1 2 3 4 5; do
-              [ "$(queue_state)" = "OPEN false" ] || break
-              gh api graphql -f query="mutation { enqueuePullRequest(input: {pullRequestId: \"$id\", expectedHeadOid: \"$sha\", jump: true}) { clientMutationId } }" >/dev/null || echo "::warning::Could not add #$number to the merge queue (attempt $attempt)."
-              sleep "${POLL_SECONDS:-10}"
-            done
-            state=$(queue_state)
-            case "$state" in
-              "OPEN true") echo "Queued \"Prepare main for the next release\" (#$number)." >> "$GITHUB_STEP_SUMMARY" ;;
-              "MERGED "*) echo "Merged \"Prepare main for the next release\" (#$number)." >> "$GITHUB_STEP_SUMMARY" ;;
-              *) echo "::error::Could not queue \"Prepare main for the next release\" (#$number is $state); Pages will not deploy. Queue it by hand, then pass main CI before deploying."; exit 1 ;;
-            esac
-          else
-            cmd="gh api -X POST repos/$GITHUB_REPOSITORY/actions/runs/${run:-<run id of the pull_request run of $workflow on $NEXT_BRANCH>}/approve"
-            echo "::warning::Could not approve the held CI run on $NEXT_BRANCH; the required checks will not report until a person does."
-            printf '%s\n' "### Approve CI on the \"Prepare main for the next release\" PR" "" "The required checks run only after a person approves the held CI run:" "" '```sh' "$cmd" '```' >> "$GITHUB_STEP_SUMMARY"
-            pr_body=$(gh pr view "$NEXT_BRANCH" --json body --jq .body)
-            gh pr edit "$NEXT_BRANCH" --body "$pr_body
-
-          CI for this PR is held until a person approves it. Run:
-
-          \`\`\`sh
-          $cmd
-          \`\`\`"
-            for workflow in $PRODUCERS; do gh workflow run "$workflow" --ref "$NEXT_BRANCH" || echo "::warning::Could not dispatch $workflow on $NEXT_BRANCH either."; done
-            echo "::error::Main has not passed CI for $TAG; Pages will not deploy. Approve and merge the PR, then pass main CI before deploying."
-            exit 1
-          fi
       # Also when the job is cancelled, a timeout included.
       - if: (failure() || cancelled()) && steps.check.outputs.new == 'true'
         name: Clean up after a failure
@@ -435,168 +228,18 @@ jobs:
               echo "::error::Could not check the release for $TAG: $out"
             fi
           fi
-  queue:
-    # Follows "Prepare main for the next release" through the merge queue. A queue entry made with
-    # GITHUB_TOKEN starts no merge_group run, and the queue counts no check of a run started any
-    # other way: a dispatched run's failing check left an entry waiting, while a commit status of a
-    # required check's name ended it at once (probe #142). So this runs CI on the queue's branch by
-    # dispatch, and once it has finished reports the ruleset's required checks as commit statuses
-    # on the commit the queue builds, from that run's jobs of the same names. Each build of the
-    # entry has its own branch, gh-readonly-queue/main/pr-<number>-<base>, and a rebuild (an entry
-    # ahead dropped out) a new one, so it does so for every one that appears while the pull request
-    # is queued. Then main needs a passing run on its tip, which the queue's run is when main is
-    # that commit (the queue fast-forwards to it); otherwise this runs CI on main. Commit statuses
-    # vouch for any commit, so this job alone may write them, and it checks nothing out, installs
-    # nothing and runs no code from the repository.
+  pages:
+    # Deploys Pages as soon as the tag is out and checks the @ouro namespace it serves, Pages' build
+    # names GitHub's newest release, this one, whatever main says.
     needs: release
-    if: needs.release.outputs.number != ''
     runs-on: ubuntu-latest
     permissions:
-      actions: write # run CI on the merge queue's branches and on main
-      statuses: write # report CI's required checks on the commit the merge queue builds
-      pull-requests: read # follow the pull request through the queue
-      contents: read # read main's tip and the queue's branches
-    # The queue's CI run, one rebuild's, and CI on main when main moved past the queue's commit, each
-    # 45 minutes with the runner pool's queues: 135 (scripts/workflows.test.mjs). Usually it is the
-    # first alone: main is the queue's commit.
-    timeout-minutes: 150
-    outputs:
-      main_sha: ${{ steps.queue.outputs.main_sha }}
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      NUMBER: ${{ needs.release.outputs.number }}
-      # The workflows that report main's required checks (scripts/required-producers.mjs, in the release job).
-      PRODUCERS: ${{ needs.release.outputs.producers }}
-    steps:
-      - id: queue
-        name: Pass the merge queue and CI on main
-        run: |
-          queue_state() { gh api graphql -f query="query { repository(owner: \"${GITHUB_REPOSITORY%/*}\", name: \"${GITHUB_REPOSITORY#*/}\") { pullRequest(number: $NUMBER) { state isInMergeQueue } } }" --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue)"'; }
-          # The contexts main's ruleset requires: the only statuses this reports.
-          required=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | unique | .[]')
-          [ -n "$required" ] || { echo "::error::Main's ruleset requires no check; nothing to report."; exit 1; }
-          [ -n "$PRODUCERS" ] || { echo "::error::No workflow reports main's required checks; nothing to run."; exit 1; }
-          # The jobs of finished runs, each line the run, the job's name and its conclusion.
-          jobs_of() { for r in "$@"; do gh api "repos/$GITHUB_REPOSITORY/actions/runs/$r/jobs?per_page=100" --paginate --jq '.jobs[] | [.name, .conclusion] | @tsv' | awk -v run="$r" '{ print run "\t" $0 }' || return 1; done; }
-          # A required check's state in those jobs: a job of that name that passed, or one of the
-          # jobs that skip by design (install-latest, install-github); anything else, a missing job
-          # included, fails. As scripts/required-ci.sh, which this job, running no code from the
-          # repository, does not run.
-          state_of() {
-            local conclusion
-            conclusion=$(awk -F '\t' -v name="$1" '$2 == name { print $3; exit }' <<<"$2")
-            case "$conclusion" in
-              success) echo success ;;
-              skipped) case "$1" in install-latest | install-github) echo success ;; *) echo failure ;; esac ;;
-              *) echo failure ;;
-            esac
-          }
-          # Commits the queue built whose CI passed every required check.
-          green=" "
-          if [ "$(queue_state)" = "OPEN true" ]; then
-            dispatched=" "
-            branches=" "
-            reported=" "
-            for _ in $(seq 400); do
-              for ref in $(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/gh-readonly-queue/main/pr-$NUMBER-" --jq '.[].ref' || true); do
-                branch=${ref#refs/heads/}
-                for workflow in $PRODUCERS; do
-                  case "$dispatched" in *" $branch:$workflow "*) continue ;; esac
-                  if gh workflow run "$workflow" --ref "$branch"; then
-                    dispatched="$dispatched$branch:$workflow "
-                    case "$branches" in *" $branch "*) ;; *) branches="$branches$branch " ;; esac
-                    echo "Ran $workflow on $branch." >> "$GITHUB_STEP_SUMMARY"
-                  else
-                    echo "::warning::Could not run $workflow on $branch yet; trying again."
-                  fi
-                done
-              done
-              for branch in $branches; do
-                case "$reported" in *" $branch "*) continue ;; esac
-                # Every workflow's run on the branch, finished, before any check is reported.
-                runs=
-                ci_sha=
-                done_all=true
-                for workflow in $PRODUCERS; do
-                  case "$dispatched" in *" $branch:$workflow "*) ;; *) done_all=false; break ;; esac
-                  ci_status= ci_run= run_sha=
-                  read -r ci_run ci_status run_sha <<<"$(gh run list --workflow "$workflow" --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId,status,headSha --jq '.[0] | "\(.databaseId) \(.status) \(.headSha)"' || true)" || true
-                  [ "$ci_status" = completed ] || { done_all=false; break; }
-                  runs="$runs $ci_run"
-                  ci_sha=${ci_sha:-$run_sha}
-                done
-                [ "$done_all" = true ] || continue
-                # shellcheck disable=SC2086 # one argument per run
-                jobs=$(jobs_of $runs) || continue
-                first=${runs# }
-                first=${first%% *}
-                posted=true
-                passed=true
-                while IFS= read -r context; do
-                  conclusion=$(awk -F '\t' -v name="$context" '$2 == name { print $3; exit }' <<<"$jobs")
-                  run_of=$(awk -F '\t' -v name="$context" '$2 == name { print $1; exit }' <<<"$jobs")
-                  state=$(state_of "$context" "$jobs")
-                  [ "$state" = success ] || passed=false
-                  gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$ci_sha" -f state="$state" -f context="$context" -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${run_of:-$first}" -f description="CI run ${run_of:-$first} on the merge queue's branch: ${conclusion:-no such job}" >/dev/null || posted=false
-                done <<<"$required"
-                [ "$posted" = true ] || continue
-                reported="$reported$branch "
-                [ "$passed" = false ] || green="$green$ci_sha "
-                echo "Reported the required checks of runs$runs on $branch as commit statuses." >> "$GITHUB_STEP_SUMMARY"
-              done
-              [ "$(queue_state)" = "OPEN true" ] || break
-              sleep "${POLL_SECONDS:-15}"
-            done
-            [ "$dispatched" != " " ] || echo "::warning::No merge queue branch appeared for #$NUMBER to run CI on; the queue waits for its checks until it times out."
-          fi
-          [ "$(gh pr view "$NUMBER" --json state --jq .state)" = MERGED ] || { echo "::error::Could not merge \"Prepare main for the next release\" (#$NUMBER); Pages will not deploy. Merge it by hand, then pass main CI before deploying."; exit 1; }
-          echo "Merged \"Prepare main for the next release\" (#$NUMBER)." >> "$GITHUB_STEP_SUMMARY"
-          # Main's tip needs a passing CI run: the queue's, when main is the commit it built and
-          # passed (release.yml's check of main and ci.yml's push skip take that run too), or else
-          # one on main, since a merge made with this workflow's token starts no push run.
-          tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
-          case "$green" in
-            *" $tip "*) echo "Main is the merge queue's commit $tip, whose CI passed." >> "$GITHUB_STEP_SUMMARY" ;;
-            *)
-              runs=
-              for workflow in $PRODUCERS; do
-                gh workflow run "$workflow" --ref main || { echo "::error::Could not start $workflow on main; Pages will not deploy. Run it by hand (gh workflow run $workflow --ref main) and deploy Pages only after it passes."; exit 1; }
-                ci=
-                for _ in $(seq 24); do
-                  ci=$(gh run list --workflow "$workflow" --event workflow_dispatch --commit "$tip" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
-                  [ -n "$ci" ] && break
-                  sleep "${POLL_SECONDS:-5}"
-                done
-                [ -n "$ci" ] || { echo "::error::$workflow on main's tip did not start; Pages will not deploy. Run it on main and deploy Pages only after it passes."; exit 1; }
-                runs="$runs $ci"
-              done
-              # Judged on the checks main's rules require, not on each run's conclusion.
-              for ci in $runs; do gh run watch "$ci" --interval 30 >/dev/null || true; done
-              # shellcheck disable=SC2086 # one argument per run
-              jobs=$(jobs_of $runs) || { echo "::error::Could not read the jobs of CI on main's tip; Pages will not deploy."; exit 1; }
-              failed=
-              while IFS= read -r context; do
-                [ "$(state_of "$context" "$jobs")" = success ] || failed="$failed $context;"
-              done <<<"$required"
-              [ -z "$failed" ] || { echo "::error::CI on main's tip did not pass the checks main's rules require ($failed); Pages will not deploy. Fix main and pass CI before deploying."; exit 1; }
-              ;;
-          esac
-          echo "main_sha=$tip" >> "$GITHUB_OUTPUT"
-  publish:
-    # Deletes the branch that prepared main, deploys Pages from main's verified tip and checks what
-    # is published.
-    needs: [release, queue]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write # delete the branch that prepared main
       actions: write # deploy Pages
-    # The Pages deploy (5 minutes) and the two checks of what it serves, each waiting up to 15
-    # minutes: 35, and 1.5 times that 53 (scripts/workflows.test.mjs).
-    timeout-minutes: 55
+    # The Pages deploy (5 minutes) and the check of what it serves, waiting up to 15 minutes: 20,
+    # and 1.5 times that 30 (scripts/workflows.test.mjs).
+    timeout-minutes: 30
     env:
       TAG: v${{ inputs.version }}
-      NEXT_BRANCH: prepare/after-v${{ inputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -610,22 +253,11 @@ jobs:
       - name: Install dependencies for the public proofs
         run: |
           pnpm i --frozen-lockfile
-      - name: Delete the branch that prepared main
+      - name: Deploy Pages and check the namespace it serves
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$NEXT_BRANCH" >/dev/null || echo "::notice::Could not delete $NEXT_BRANCH; delete it by hand."
-      - name: Deploy Pages and check what is published
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERIFIED_MAIN_SHA: ${{ needs.queue.outputs.main_sha }}
-        run: |
-          # Pages follows CI on a push to main, and no push happened here, so deploy it now: its
-          # build names GitHub's newest release, this one. Then read what people and agents
-          # read, the site's llms.txt and main's README, and fail when an install command
-          # there still names another release.
-          tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
-          [ -n "$VERIFIED_MAIN_SHA" ] && [ "$tip" = "$VERIFIED_MAIN_SHA" ] || { echo "::error::Main moved or has no verified CI; Pages will not deploy. Pass CI on the current tip before deploying."; exit 1; }
+          # Pages follows CI on a push to main, and no push happened here, so deploy it now.
           before=$(gh run list --workflow pages.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')
           gh workflow run pages.yml --ref main
           run=
@@ -637,16 +269,40 @@ jobs:
           [ "$run" != "$before" ] || { echo "::error::Pages did not start. Run it by hand: gh workflow run pages.yml --ref main"; exit 1; }
           gh run watch "$run" --exit-status --interval 30
           unset GH_TOKEN
-          node scripts/published-release.mjs "$TAG" --wait 900
-          # And the @ouro namespace Pages now serves is this release, every item byte for byte
-          # as built from the tag.
+          # The @ouro namespace Pages now serves is this release, every item byte for byte as built
+          # from the tag.
           node scripts/public-registry.mjs verify-live "$TAG" --wait 900
+  publish:
+    # Checks what is published: the site's llms.txt.
+    needs: [release, pages]
+    runs-on: ubuntu-latest
+    permissions: {}
+    # The check of the published page, waiting up to 15 minutes: 20, and 1.5 times that 30
+    # (scripts/workflows.test.mjs).
+    timeout-minutes: 30
+    env:
+      TAG: v${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Check what is published
+        run: |
+          # What people and agents read, the site's llms.txt: fail when an install command
+          # there still names another release.
+          node scripts/published-release.mjs "$TAG" --wait 900
   finish:
     # A release whose tag is out but whose main or Pages did not follow (a failed or cancelled job,
     # a timeout included, after the tag): an issue says so, and the run fails. Nothing to do when
     # no tag was pushed (the release job cleans up after itself) or the tag was already released.
-    needs: [release, queue, publish]
-    if: ${{ always() && needs.release.outputs.new != 'false' && (needs.release.result != 'success' || needs.queue.result != 'success' || needs.publish.result != 'success') }}
+    needs: [release, pages, publish]
+    if: ${{ always() && needs.release.outputs.new != 'false' && (needs.release.result != 'success' || needs.pages.result != 'success' || needs.publish.result != 'success') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read # see whether the tag was pushed
@@ -656,13 +312,47 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: v${{ inputs.version }}
-      RESULTS: "release: ${{ needs.release.result }}, queue: ${{ needs.queue.result }}, publish: ${{ needs.publish.result }}"
+      RESULTS: "release: ${{ needs.release.result }}, pages: ${{ needs.pages.result }}, publish: ${{ needs.publish.result }}"
     steps:
       - name: Report a release main and Pages did not follow
         run: |
           gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1 || { echo "No $TAG tag was pushed; nothing is published."; exit 0; }
           url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          body="$TAG is tagged, but main or Pages did not follow ($RESULTS): $url. Finish it by hand: merge \"Prepare main for the next release\", pass CI on main, then deploy Pages (AGENTS.md, \"Pages and releases\")."
+          body="$TAG is tagged, but Pages did not follow ($RESULTS): $url. Finish it by hand: deploy Pages (AGENTS.md, \"Pages and releases\")."
           gh issue create --title "Release $TAG: main or Pages did not follow" --body "$body" || echo "::warning::Could not open the issue."
           echo "::error::$body"
           exit 1
+  next:
+    # A run that Release auto dispatched with GITHUB_TOKEN starts no workflow_run when it ends, so
+    # the release that follows is started from here once the tag is out; a release that failed before its tag starts nothing, so a failure cannot repeat itself, and the next push's green CI starts the next.
+    # The run id says this run no longer counts as a release in progress.
+    needs: [release, pages, publish]
+    if: ${{ needs.release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # start Release auto
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Start the next release
+        run: |
+          gh workflow run release-auto.yml --ref main -f after="$GITHUB_RUN_ID"
+  docs-pin:
+    # Starts docs-pin.yml, which points main's docs at this release through a pull request. Only the
+    # release's own result gates it, and nothing waits for it: a failure there changes no release.
+    needs: release
+    if: ${{ needs.release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # start Docs pin
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: v${{ inputs.version }}
+    steps:
+      - name: Start Docs pin
+        run: |
+          gh workflow run docs-pin.yml --ref main -f tag="$TAG"

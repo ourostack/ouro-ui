@@ -1,0 +1,1 @@
+- Pull requests run the install test and the heavy tier unless the plan proves the change cannot reach them ([ci.yml](.github/workflows/ci.yml "verify:testExists(scripts/workflows.test.mjs::a pull request into main skips the install test or the heavy tier only when the plan proves the change cannot reach it)")).

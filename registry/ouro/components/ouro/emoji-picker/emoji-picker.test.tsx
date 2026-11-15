@@ -851,12 +851,12 @@ describe("EmojiPicker search", () => {
   it("shows the first result's name, not the emoji the mouse was on, once the search changes", async () => {
     await open();
     await userEvent.hover(cell("pizza"));
-    expect(preview()).toBe("🍕pizza");
+    await expect.poll(preview).toBe("🍕pizza");
     await act(async () => {
       search().focus();
     });
     await userEvent.keyboard("thumb");
-    expect(preview()).toBe("👍thumbs up");
+    await expect.poll(preview).toBe("👍thumbs up");
   });
 
   it("keeps its height, and the search field where it is, while a search starts, finds nothing and ends", async () => {

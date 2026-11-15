@@ -1,0 +1,1 @@
+- ConversationList draws only the rows its view and overscan reach, from the first frame, in a long list, so the first frame is the finished screen and nothing is added after it.

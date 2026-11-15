@@ -10,6 +10,7 @@ import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 
+
 const roots: ReturnType<typeof createRoot>[] = [];
 afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));

@@ -108,6 +108,8 @@ export class MotionReporter implements Reporter {
     const worker = randomBytes(4).toString("hex");
     const byProject = new Map<string, MotionCase[]>();
     for (const module of testModules) {
+      // The squircle fallback projects run engine and shape tests that prove no motion.
+      if (module.project.name.startsWith("squircle-")) continue;
       const file = relative(root, module.moduleId);
       const cases = byProject.get(module.project.name) ?? [];
       for (const test of module.children.allTests()) {

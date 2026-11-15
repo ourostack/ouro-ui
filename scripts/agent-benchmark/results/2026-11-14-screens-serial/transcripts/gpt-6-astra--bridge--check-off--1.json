@@ -1,0 +1,69 @@
+{
+  "model": "gpt-6-astra",
+  "modelId": "gpt-6-astra",
+  "transport": "copilot",
+  "arm": "bridge",
+  "task": "check-off",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 2,
+  "toolsUsed": [
+    "snapshot",
+    "act"
+  ],
+  "textReadChars": 3047,
+  "wallMs": 6106,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 2107,
+    "output": 74,
+    "cacheRead": 0,
+    "cacheWrite": 1145,
+    "reasoning": 0,
+    "total": 2181
+  },
+  "costAiu": 2.76325,
+  "costSource": "runtime",
+  "finalMessage": "Ticked off the eggs and spinach on your shopping list.",
+  "transcript": {
+    "messages": [
+      "Ticked off the eggs and spinach on your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "snapshot",
+        "args": {},
+        "ms": 500,
+        "resultChars": 1460,
+        "result": "{\"page\":\"/\",\"text\":{\"title\":\"Shopping list\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"checkbox\",\"label\":\"Bought eggs\",\"row\":\"eggs (12)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c4\",\"component\":\"checkbox\",\"label\":\"Bought spinach\",\"row\":\"spinach (1 bag)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c5\",\"component\":\"checkbox\",\"label\":\"Bought lemons\",\"row\":\"lemons (3)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c6\",\"component\":\"checkbox\",\"label\":\"Bought parmesan\",\"row\":\"parmesan (100 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c7\",\"component\":\"checkbox\",\"label\":\"Bought olive oil\",\"row\":\"olive oil (1 bottle)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Item\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"number\",\"label\":\"Quantity\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c10\",\"component\":\"textbox\",\"label\":\"Unit\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c11\",\"component\":\"button\",\"label\":\"Add to list\",\"actions\":[\"press\"]},{\"ref\":\"c12\",\"component\":\"select\",\"label\":\"Store\",\"value\":\"corner\",\"items\":[{\"value\":\"corner\",\"label\":\"Corner store\"},{\"value\":\"market\",\"label\":\"Market\"}],\"actions\":[\"select\"]},{\"ref\":\"c13\",\"component\":\"button\",\"label\":\"Place order\",\"confirm\":\"Place this order and pay for it\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "c3",
+              "action": "setChecked",
+              "value": true
+            },
+            {
+              "target": "c4",
+              "action": "setChecked",
+              "value": true
+            }
+          ]
+        },
+        "ms": 203,
+        "resultChars": 1587,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c3\",\"result\":\"done\"},{\"step\":1,\"ref\":\"c4\",\"result\":\"done\"}],\"page\":\"/\",\"text\":{\"title\":\"Shopping list\",\"messages\":[\"Updated the list.\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Shopping list\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Recipes\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"checkbox\",\"label\":\"Bought eggs\",\"row\":\"eggs (12)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c4\",\"component\":\"checkbox\",\"label\":\"Bought spinach\",\"row\":\"spinach (1 bag)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c5\",\"component\":\"checkbox\",\"label\":\"Bought lemons\",\"row\":\"lemons (3)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c6\",\"component\":\"checkbox\",\"label\":\"Bought parmesan\",\"row\":\"parmesan (100 g)\",\"checked\":false,\"actions\":[\"setChecked\"]},{\"ref\":\"c7\",\"component\":\"checkbox\",\"label\":\"Bought olive oil\",\"row\":\"olive oil (1 bottle)\",\"checked\":true,\"actions\":[\"setChecked\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Item\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"number\",\"label\":\"Quantity\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c10\",\"component\":\"textbox\",\"label\":\"Unit\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c11\",\"component\":\"button\",\"label\":\"Add to list\",\"actions\":[\"press\"]},{\"ref\":\"c12\",\"component\":\"select\",\"label\":\"Store\",\"value\":\"corner\",\"items\":[{\"value\":\"corner\",\"label\":\"Corner store\"},{\"value\":\"market\",\"label\":\"Market\"}],\"actions\":[\"select\"]},{\"ref\":\"c13\",\"component\":\"button\",\"label\":\"Place order\",\"confirm\":\"Place this order and pay for it\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  },
+  "redacted": false
+}

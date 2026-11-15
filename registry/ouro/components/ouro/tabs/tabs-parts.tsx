@@ -1,7 +1,7 @@
 "use client";
 
 import { Tabs as BaseTabs } from "@base-ui/react/tabs";
-import { createContext, useContext, useEffect, useRef, type JSX, type ReactNode } from "react";
+import { createContext, memo, useContext, useEffect, useRef, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -105,7 +105,8 @@ function useEdgeFade(list: { current: HTMLElement | null }): void {
       const scrolled = Math.abs(element.scrollLeft);
       const before = horizontal && scrolled > 1;
       const after = horizontal && scrolled + element.clientWidth < element.scrollWidth - 1;
-      const rtl = getComputedStyle(element).direction === "rtl";
+      // The direction matters only when a side hides tabs, so a row that fits reads no style.
+      const rtl = (before || after) && getComputedStyle(element).direction === "rtl";
       const [left, right] = rtl ? [after, before] : [before, after];
       const fade = left && right ? "both" : left ? "left" : right ? "right" : null;
       if (fade) element.setAttribute("data-fade", fade);
@@ -196,10 +197,10 @@ export function TabsTab({ className, children, ...props }: TabsTabProps): JSX.El
 }
 
 /** Part: the line that slides to the selected tab. Put it last inside `TabsList`. */
-export function TabsIndicator(props: Omit<BaseTabs.Indicator.Props, "className">): JSX.Element {
+export const TabsIndicator = memo(function TabsIndicator(props: Omit<BaseTabs.Indicator.Props, "className">): JSX.Element {
   useTabsPart("TabsIndicator", "<TabsIndicator />");
   return <BaseTabs.Indicator {...props} data-ouro-tabs-indicator="" className={indicatorClass} />;
-}
+});
 
 /** Props for {@link TabsPanel}. */
 export type TabsPanelProps = Omit<BaseTabs.Panel.Props, "className"> & { className?: string | undefined };

@@ -469,11 +469,6 @@
   .reins-race[data-reduced] .reins-verdict[data-shown] {
     animation: none;
   }
-  /* The heroes hold still: their copy sits at the top, so a live demo beside it can't nudge it. */
-  .apple-hero-grid:has(.reins-hero-race, .feel-duel) {
-    align-items: start;
-  }
-
   /* Code gets the wide column: one block above the other, or code beside a narrow note. */
   .feel-reins-code {
     display: grid;

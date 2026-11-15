@@ -57,10 +57,14 @@ const DOCS_URL = "https://ui.ouroboros.bot/docs";
 const components = readComponents();
 
 /** Registry files that test this repository itself and never ship. */
-const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
+const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/radius-fallback.test.tsx", "registry/ouro/theme/squircle-surface.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
 
-/** Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA, which no app's CI has. */
-const repoOnlyDirs = ["registry/ouro/e2e/screen-reader/"];
+/**
+ * Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA,
+ * which no app's CI has, the MCP App host harness builds the view and starts the example server from this repository,
+ * and the probes (playwright.probes.config.ts) measure on a schedule, not in an app's tests.
+ */
+const repoOnlyDirs = ["registry/ouro/e2e/screen-reader/", "registry/ouro/e2e/mcp-app-host/", "registry/ouro/e2e/probes/"];
 
 /** Packages every app already has. */
 const appPackages = new Set(["react", "react-dom"]);
@@ -408,6 +412,9 @@ export function itemForFile(path: string): string | null {
     return "ouro-images";
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
     return "ouro-testing";
+  } else if (path.startsWith(`${libDir}squircle/`)) {
+    // The squircle polyfill's engine (hyperellipse, MIT), vendored with its tests and imported relatively.
+    return devFile.test(file) ? "lib-squircle-polyfill-tests" : "lib-squircle-polyfill";
   } else if (path.startsWith(libDir) && !path.slice(libDir.length).includes("/")) {
     return libItem(file);
   } else if (path.startsWith(e2eDir)) {
@@ -433,8 +440,8 @@ function fileEntry(path: string): RegistryFile {
   if (path.startsWith(e2eDir)) return { path, type: "registry:file", target: `~/e2e/ouro/${file}` };
   if (path.startsWith(censusDir)) return { path, type: "registry:file", target: `~/e2e/ouro-census/${file}` };
   if (path.startsWith(sourceRulesDir)) return { path, type: "registry:file", target: `~/scripts/ouro-${file}` };
-  if (path.startsWith(checkDir)) return { path, type: "registry:file", target: `~/lib/ouro/check/${file}` };
-  if (path.startsWith(imagesDir)) return { path, type: "registry:file", target: `~/lib/ouro/images/${file}` };
+  if (path.startsWith(checkDir)) return { path, type: "registry:lib", target: `@lib/ouro/check/${file}` };
+  if (path.startsWith(imagesDir)) return { path, type: "registry:lib", target: `@lib/ouro/images/${file}` };
   if (path.startsWith(libDir)) return { path, type: "registry:lib", target: `@lib/ouro/${path.slice(libDir.length)}` };
   if (path.startsWith(axDir)) return { path, type: "registry:lib", target: `@lib/ouro/ax/${path.slice(axDir.length)}` };
   const target = `@components/ouro/${path.slice(componentsDir.length)}`;
@@ -443,7 +450,7 @@ function fileEntry(path: string): RegistryFile {
 
 /**
  * Converts a theme CSS file to shadcn's item format: :root and .dark colors and @theme inline
- * to cssVars; --ouro-* tokens, @utility and @keyframes to css.
+ * to cssVars; --ouro-* tokens, @utility, @layer base and @keyframes to css.
  */
 export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
   const cssVars: Required<CssVars> = { light: {}, dark: {}, theme: {} };
@@ -477,6 +484,18 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
       Object.assign(cssVars.theme, declarations(node, "@theme inline", true));
     } else if (node.type === "atrule" && node.name === "utility") {
       css[`@utility ${node.params}`] = declarations(node, `@utility ${node.params}`, false);
+    } else if (node.type === "atrule" && node.name === "layer" && node.params === "base") {
+      const rules: CssTree = {};
+      node.each((rule) => {
+        if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@layer base ${rule.selector}`, false);
+      });
+      css["@layer base"] = rules;
+    } else if (node.type === "atrule" && node.name === "supports") {
+      const rules: CssTree = {};
+      node.each((rule) => {
+        if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@supports ${node.params} ${rule.selector}`, false);
+      });
+      css[`@supports ${node.params}`] = rules;
     } else if (node.type === "atrule" && node.name === "keyframes") {
       const frames: CssTree = {};
       node.each((frame) => {
@@ -485,7 +504,7 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
       css[`@keyframes ${node.params}`] = frames;
     } else {
       const name = node.type === "atrule" ? `@${node.name}` : node.type === "rule" ? node.selector : node.type;
-      throw new Error(`Unsupported CSS in a theme file: ${name}. shadcn items carry :root, .dark, @theme inline, @utility and @keyframes.`);
+      throw new Error(`Unsupported CSS in a theme file: ${name}. shadcn items carry :root, .dark, @theme inline, @utility, @layer base, @supports and @keyframes.`);
     }
   });
   const vars = Object.fromEntries(Object.entries(cssVars).filter(([, values]) => Object.keys(values).length > 0)) as CssVars;
@@ -683,8 +702,9 @@ export function buildRegistry(root: string): Registry {
       // tooltips. Any other app adds it by name (the README's Next.js steps do).
       if (entry.name === "lib-router-link" || entry.name === "tooltip") registryDeps.add("lib-ouro-provider");
       for (const specifier of importsOf(source)) {
-        // An ax file imports its siblings relatively, so Node runs the copied files as they are.
-        if (path.startsWith(axDir) && specifier.startsWith(".")) {
+        // An ax file imports its siblings relatively, so Node runs the copied files as they are. The images and check tools,
+        // which Node runs too, import the kit the same way.
+        if ((path.startsWith(axDir) || path.startsWith(imagesDir) || path.startsWith(checkDir)) && specifier.startsWith(".")) {
           const dependency = owner.get(join(dirname(path), specifier).split("\\").join("/"));
           if (!dependency) throw new Error(`${path} imports ${specifier}, which no item ships.`);
           if (dependency !== entry.name) registryDeps.add(dependency);

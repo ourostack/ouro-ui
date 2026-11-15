@@ -1,0 +1,1 @@
+- Changed: /adoption/ leads with its target, the products more than a day behind an Ouro UI release, and gives the total releases behind as context.

@@ -1,0 +1,1 @@
+- Fixed: the squircle polyfill stops re-measuring corners in a loop while idle, which slowed typing.

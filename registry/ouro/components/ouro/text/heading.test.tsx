@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -219,5 +219,29 @@ describe("Heading tracking", () => {
       return Math.round((spacing / Number.parseFloat(style.fontSize)) * 1000) / 1000;
     };
     expect([...host.children].map(em)).toEqual([0, -0.01, -0.015, -0.02, -0.025]);
+  });
+
+  it("scales the tightening by the theme's --ouro-heading-tracking, so a serif heading font can keep its own spacing", async () => {
+    const sizes = ["md", "lg", "xl", "2xl", "display"] as const;
+    const em = (el: Element) => {
+      const style = getComputedStyle(el);
+      const spacing = style.letterSpacing === "normal" ? 0 : Number.parseFloat(style.letterSpacing);
+      return Math.round((spacing / Number.parseFloat(style.fontSize)) * 10000) / 10000;
+    };
+    const set = async (factor?: string) => {
+      const { host } = await render(
+        <div style={factor === undefined ? undefined : ({ "--ouro-heading-tracking": factor } as CSSProperties)}>
+          {sizes.map((size) => (
+            <Heading key={size} level={2} size={size}>
+              {size}
+            </Heading>
+          ))}
+        </div>,
+      );
+      return [...host.firstElementChild!.children].map(em);
+    };
+    expect(await set()).toEqual([-0.01, -0.015, -0.02, -0.025, -0.035]);
+    expect(await set("0.5")).toEqual([-0.005, -0.0075, -0.01, -0.0125, -0.0175]);
+    expect((await set("0")).map(Math.abs)).toEqual([0, 0, 0, 0, 0]);
   });
 });

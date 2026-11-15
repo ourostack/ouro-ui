@@ -18,6 +18,7 @@ import {
   zonedClock,
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 // Runs in Chromium and WebKit. The grid's clock reads New York, where March 12, 2026 is a
 // Thursday in daylight saving time (UTC-4), and the clock is held at 10:41 that morning.
@@ -1543,6 +1544,30 @@ describe("TimeGrid background events", () => {
     expect(grid.querySelector("[data-ouro-time-grid-summary]")).toBeNull();
     expect(tall - head.offsetHeight).toBeGreaterThanOrEqual(40);
     expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe("5.25rem");
+  });
+});
+
+describe("TimeGrid day summaries", () => {
+  it("reads the header's and the viewport's size once, not on every commit", async () => {
+    const summary = (day: string) => <span style={{ display: "block", height: 16 }}>{day}</span>;
+    const { grid, rerender } = await render({ view: "work-week", events: [forum], renderDaySummary: summary });
+    const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    const viewport = grid.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const watch = watchLayoutReads();
+    await rerender({ view: "work-week", events: [{ ...forum }], renderDaySummary: summary });
+    await rerender({ view: "work-week", events: [{ ...forum }], renderDaySummary: (day) => summary(day) });
+    watch.stop();
+    expect(watch.reads.filter((read) => read.target === head || read.target === viewport)).toEqual([]);
+  });
+});
+
+describe("TimeGrid day summaries added later", () => {
+  it("measures the header once summaries appear on a grid that opened without them", async () => {
+    const { grid, rerender } = await render({ view: "work-week", events: [forum] });
+    await rerender({ view: "work-week", events: [forum], renderDaySummary: () => <span style={{ display: "block", height: 40 }}>Free</span> });
+    const head = grid.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    expect(grid.style.getPropertyValue("--ouro-time-grid-head")).toBe(`${head.offsetHeight}px`);
   });
 });
 

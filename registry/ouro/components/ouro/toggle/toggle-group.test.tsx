@@ -136,6 +136,98 @@ describe("ToggleGroup", () => {
     expect(document.activeElement).toBe(toggles[2]);
   });
 
+  it("jumps with Home and End, steps with Up and Down, skips disabled items, and ignores other keys and modified arrows", async () => {
+    const items = [align[0]!, { ...align[1]!, disabled: true }, align[2]!];
+    const { toggles, group } = await render(<ToggleGroup label="Alignment" items={items} />);
+    expect(toggles.map((toggle) => toggle.tabIndex)).toEqual([0, -1, -1]);
+    toggles[0]!.focus();
+    await userEvent.keyboard("{End}");
+    expect(document.activeElement).toBe(toggles[2]);
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(toggles[0]);
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(toggles[2]);
+    await userEvent.keyboard("{Home}");
+    expect(document.activeElement).toBe(toggles[0]);
+    await userEvent.keyboard("a{Shift>}{ArrowRight}{/Shift}");
+    expect(document.activeElement).toBe(toggles[0]);
+    await act(async () => {
+      group.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    expect(document.activeElement).toBe(toggles[0]);
+  });
+
+  it("keeps the tab stop on the focused item, else the pressed one, else the first", async () => {
+    const { toggles } = await render(<ToggleGroup label="Alignment" items={align} defaultValue="center" />);
+    expect(toggles.map((toggle) => toggle.tabIndex)).toEqual([-1, 0, -1]);
+    toggles[2]!.focus();
+    await act(async () => {});
+    expect(toggles.map((toggle) => toggle.tabIndex)).toEqual([-1, -1, 0]);
+  });
+
+  it("presses in multiple mode with no handler, and leaves arrows with Ctrl, Alt or Meta alone", async () => {
+    const { toggles } = await render(<ToggleGroup label="Text style" multiple items={styles} />);
+    await userEvent.click(toggles[0]!);
+    await userEvent.click(toggles[1]!);
+    expect(pressed(toggles).slice(0, 2)).toEqual([true, true]);
+    await userEvent.click(toggles[0]!);
+    expect(pressed(toggles).slice(0, 2)).toEqual([false, true]);
+    toggles[0]!.focus();
+    for (const key of ["Control", "Alt", "Meta"]) {
+      await userEvent.keyboard(`{${key}>}{ArrowRight}{/${key}}`);
+      expect(document.activeElement).toBe(toggles[0]);
+    }
+  });
+
+  it("has no tab stop when the whole group is disabled, and ignores keys aimed at the group itself", async () => {
+    const off = await render(<ToggleGroup label="Alignment" items={align} disabled />);
+    expect(off.toggles.map((toggle) => toggle.tabIndex)).toEqual([-1, -1, -1]);
+  });
+
+  it("leaves focus alone for a key pressed on the group, not an item", async () => {
+    const { toggles, group } = await render(<ToggleGroup label="Alignment" items={align} />);
+    toggles[1]!.focus();
+    await act(async () => {
+      group.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    expect(document.activeElement).toBe(toggles[1]);
+  });
+
+  it("steps back with ArrowUp and cancels the key it handles", async () => {
+    const { toggles } = await render(<ToggleGroup label="Alignment" items={align} />);
+    toggles[1]!.focus();
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(toggles[0]);
+    const event = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    await act(async () => {
+      toggles[0]!.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(toggles[1]);
+  });
+
+  it("mirrors arrows when the document itself is right to left", async () => {
+    const { toggles } = await render(<ToggleGroup label="Alignment" items={align} />);
+    document.documentElement.dir = "rtl";
+    try {
+      toggles[0]!.focus();
+      await userEvent.keyboard("{ArrowRight}");
+      expect(document.activeElement).toBe(toggles[2]);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
+  it("mirrors Left and Right in a right-to-left page", async () => {
+    const { toggles, host } = await render(<ToggleGroup label="Alignment" items={align} />);
+    host.setAttribute("dir", "rtl");
+    toggles[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(toggles[2]);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(toggles[0]);
+  });
+
   it("shows only the icons for items with hideLabel, keeping the labels as names", async () => {
     const items = styles.map((item) => ({ ...item, hideLabel: true }));
     const { toggles } = await render(<ToggleGroup label="Text style" multiple items={items} />);
@@ -255,7 +347,7 @@ describe("ToggleGroup development messages", () => {
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: variant="default" is not a variant. Fix: <ToggleGroup>.');
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: size="lg2" is not a size. Fix: <ToggleGroup size="md">.');
     expect(warn).toHaveBeenCalledWith('[ouro-ui] ToggleGroup: shape="round" is not a shape. Fix: <ToggleGroup shape="pill">.');
-    expect(toggles[0]!.className).toContain("border-transparent");
+    expect(toggles[0]!.className).toContain("[--ouro-bd:transparent]");
     expect(toggles[0]!.getAttribute("data-shape")).toBe("rect");
   });
 
@@ -304,5 +396,23 @@ describe("ToggleGroup server rendering", () => {
     expect(error).not.toHaveBeenCalled();
     await userEvent.click(host.querySelector("button")!);
     expect(host.querySelector("button")!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("gives a rect toggle the squircle marker and a hidden surface, and a pill neither", async () => {
+    const { host } = await render(
+      <>
+        <ToggleGroup label="Rect" items={align} />
+        <ToggleGroup label="Pill" items={align} shape="pill" />
+      </>,
+    );
+    const [rectGroup, pillGroup] = [...host.querySelectorAll<HTMLElement>('[data-ouro="toggle-group"]')];
+    const rect = rectGroup!.querySelector<HTMLElement>("[data-shape]");
+    const pill = pillGroup!.querySelector<HTMLElement>("[data-shape]");
+    const surface = rect!.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    expect(rect!.getAttribute("data-ouro-squircle")).toBe("");
+    expect(surface.getAttribute("aria-hidden")).toBe("true");
+    expect(surface.style.zIndex).toBe("-1");
+    expect(pill!.hasAttribute("data-ouro-squircle")).toBe(false);
+    expect(pill!.querySelector("[data-ouro-surface]")).toBeNull();
   });
 });

@@ -6,6 +6,9 @@ import { APPLE_PATHS } from "../paths";
 import { routes } from "../routes";
 import { CLIPS } from "./clips";
 import { tapsFor } from "./haptics";
+import actionClaims from "../../../scripts/parity-data/actions.claims.json";
+import componentClaims from "../../../scripts/parity-data/components.claims.json";
+import { cellText, componentRows, surfaceRows } from "../../../scripts/parity-rows.mjs";
 import kit from "./kit.json";
 import { TWIN } from "./spring-twin";
 import { FRESH, report, TAP_LOCK, tap } from "./feel-duel";
@@ -39,6 +42,25 @@ describe("Ouro UI for Apple", () => {
     const menu = page.getByRole("navigation", { name: "Ouro UI for Apple", includeHidden: true });
     expect(menu.element().querySelector('[aria-current="page"]')?.getAttribute("href")).toMatch(new RegExp(`${path}$`));
     expect(routes.some((route) => route.path === path)).toBe(true);
+  });
+
+  it("states the release the package has today, and no component is in the workshop", async () => {
+    await renderPage("/apple/");
+    const text = document.body.innerText;
+    expect(text).toContain(`Ouro UI for Apple ${kit.release} has eight components`);
+    expect(text).not.toContain("workshop");
+    expect(kit.packageLine).toContain(`from: "${kit.release}"`);
+    expect(kit.releaseUrl).toBe(`https://github.com/ourostack/ouro-ui-apple/releases/tag/v${kit.release}`);
+  });
+
+  it("shows web and Apple parity from core's claim files, gaps included", async () => {
+    await renderPage("/apple/");
+    const rows = componentRows(componentClaims);
+    const table = page.getByRole("region", { name: "Component promises, web and Apple" }).element();
+    const cells = [...table.querySelectorAll("tbody tr")].map((row) => [...row.querySelectorAll("th, td")].map((cell) => cell.textContent));
+    expect(cells).toEqual(rows.map((row) => [row.id, row.appliesTo.map((name) => name[0]!.toUpperCase() + name.slice(1)).join(", "), cellText(row.web), cellText(row.apple)]));
+    expect(cells.some((cell) => cell[2] === "Not yet")).toBe(true);
+    expect(surfaceRows(actionClaims).map((row) => row.id)).toEqual(["cli", "mcp", "webmcp", "web-control", "app-intent", "swiftui-button", "reins"]);
   });
 
   it("puts the X-ray's real numbers on the page, from the reports it shows", () => {
@@ -185,11 +207,21 @@ describe("Ouro UI for Apple", () => {
   });
 
   it("control: duel lets Feel double-tap both switches and reports the locked one failing", async () => {
+    await renderPage("/apple/feel/");
+    const go = page.getByRole("button", { name: "Let Feel double-tap both" });
+    await expect.element(go).toBeInTheDocument();
+    // The page settles on the real clock: with setTimeout faked from the render on, what it waits on to come to rest never
+    // ran, and the button stayed in motion under the header until the click timed out (ourostack/ouro-ui#1064). Feel's taps
+    // are timed from the press, so the clock is held from just before it.
+    go.element().scrollIntoView({ block: "center" });
+    const at = () => JSON.stringify(go.element().getBoundingClientRect());
+    await expect.poll(async () => {
+      const before = at();
+      await new Promise((frame) => requestAnimationFrame(() => requestAnimationFrame(frame)));
+      return at() === before;
+    }).toBe(true);
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
-      await renderPage("/apple/feel/");
-      const go = page.getByRole("button", { name: "Let Feel double-tap both" });
-      await expect.element(go).toBeInTheDocument();
       await userEvent.click(go);
       // The button stays focusable while Feel taps, so keyboard focus never falls to the page.
       expect(document.activeElement).toBe(go.element());

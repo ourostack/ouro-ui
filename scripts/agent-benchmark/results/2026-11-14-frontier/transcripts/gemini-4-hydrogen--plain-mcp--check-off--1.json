@@ -1,0 +1,69 @@
+{
+  "model": "gemini-4-hydrogen",
+  "modelId": "gemini-4-hydrogen",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "task": "check-off",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "list_items",
+    "update_item",
+    "update_item"
+  ],
+  "textReadChars": 448,
+  "wallMs": 7092,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 2033,
+    "output": 200,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 117,
+    "total": 2233
+  },
+  "costAiu": 0.45495,
+  "costSource": "runtime",
+  "finalMessage": "I've ticked off eggs and spinach from your shopping list.",
+  "transcript": {
+    "messages": [
+      "I've ticked off eggs and spinach from your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_items",
+        "args": {},
+        "ms": 0,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "update_item",
+        "args": {
+          "checked": true,
+          "id": "i1"
+        },
+        "ms": 4,
+        "resultChars": 2,
+        "result": "{}"
+      },
+      {
+        "name": "update_item",
+        "args": {
+          "checked": true,
+          "id": "i2"
+        },
+        "ms": 0,
+        "resultChars": 2,
+        "result": "{}"
+      }
+    ]
+  },
+  "redacted": false
+}

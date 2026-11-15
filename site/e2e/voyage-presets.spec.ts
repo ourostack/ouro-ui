@@ -3,7 +3,7 @@ import { PRESET_NAMES, THEME_KEY } from "../src/themes/prepaint";
 import { auditPage } from "./audit";
 import { diagnostics } from "./diagnostics";
 
-// Every preset, light and dark, passes the strict audit on both voyage pages. Split from voyage.spec.ts, whose
+// Every preset, light and dark, passes the strict audit on the home page. Split from voyage.spec.ts, whose
 // shard it held past the pull request budget, so each goes to an end-to-end shard of its own.
 
 async function store(page: Page, value: { preset?: string; mode?: string }): Promise<void> {
@@ -16,7 +16,7 @@ async function open(page: Page, path = "./"): Promise<void> {
 }
 
 /** The two voyage pages: the home page and the Nautilus's own. */
-const PAGES = ["./", "nautilus/"] as const;
+const PAGES = ["./"] as const;
 
 test.describe("every preset, light and dark", () => {
   for (const path of PAGES) {

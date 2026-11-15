@@ -6,16 +6,21 @@ import { latestRelease, upgrading } from "./release";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
-import { parse, sourceHref } from "./docs/markdown";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
-import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
+import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO, WORKS_WITH } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
+import { SCENES } from "./storybook";
 import shipComponents from "./docs/ship-components.json";
+import parity from "../../scripts/parity-data/parity.json";
+import provenance from "../../scripts/parity-data/provenance.json";
+import versions from "../../scripts/parity-data/versions.json";
 import { SHIP_PAGES } from "./docs/ships";
 import readme from "../../README.md?raw";
 import registry from "../../registry.json";
@@ -134,9 +139,36 @@ describe("home page", () => {
       expect(text).not.toMatch(/still being defined|coming soon/i);
     }
     expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
+    // The hero says what is Ouro UI's own (one action, consent built in, the X-ray), and links the benchmark, the model reviews and the platform gap.
+    expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).toContain(VOYAGE_HERO.subline);
+    // No line of it breaks inside a hyphenated word: "X-ray" once wrapped as "X-" / "ray".
+    expect([...document.querySelectorAll("[data-site-whole-word]")].map((word) => word.textContent)).toEqual(["person-only", "X-ray"]);
+    expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Agent benchmark", "/docs/agent-interfaces/"],
+      ["Model reviews", "/docs/model-reviews/"],
+      ["No Android kit yet", "/docs/platforms/"],
+    ]);
+    // On a phone, a lede no taller than the old one, so the porthole still starts on the first screen, with the same two links.
+    const phone = document.querySelector("[data-site-hero-phone]")!;
+    expect(phone.textContent).toContain(VOYAGE_HERO.phoneSubline);
+    expect([...phone.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(["/docs/agent-interfaces/", "/docs/model-reviews/"]);
     expect(routes[0]!.title).toBe("Ouro UI");
-    // The README opens with the ourostack brand mark every repository shares, then its title.
-    expect(readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "").startsWith("# Ouro HX\n")).toBe(true);
+    // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what is its own;
+    // the formats agents compose interfaces in come after, under "Works with".
+    const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
+    expect(opening.startsWith("# Ouro UI\n\n**A design system for people and agents.** Declare an action once")).toBe(true);
+    expect(opening.split("\n\n")[1]).not.toContain("A2UI");
+    expect(opening.indexOf("**Works with**")).toBeGreaterThan(opening.indexOf("**X-ray checks.**"));
+    expect(opening.indexOf("[A2UI](https://a2ui.org/)")).toBeGreaterThan(opening.indexOf("**Works with** [MCP Apps]"));
+    // The site home says the same below the fold, in the Ouro AX section, with each format linked to its renderer's docs.
+    const worksWith = document.querySelector("[data-site-works-with]")!;
+    expect(worksWith.closest("#ax-section")).not.toBeNull();
+    expect(worksWith.textContent).toContain(WORKS_WITH.lede);
+    expect([...worksWith.querySelectorAll("a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual(WORKS_WITH.formats.map((format) => [format.label, format.href]));
+    expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).not.toContain("A2UI");
+    for (const link of ["https://ui.ouroboros.bot/docs/agent-interfaces/", "https://ui.ouroboros.bot/docs/model-reviews/", "docs/platforms/android.md"]) {
+      expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
+    }
     expect(llms.startsWith("# Ouro HX\n")).toBe(true);
     for (const text of [readme, llms]) {
       expect(text).not.toMatch(/under construction/i);
@@ -229,6 +261,25 @@ describe("home page", () => {
     }
   });
 
+  it("shows each storybook scene at night in dark mode, from its own files, lazily, and only the shown one is drawn or heard", async () => {
+    await renderPage("/");
+    for (const scene of ["ouro-hx", "ourostack"]) {
+      const day = document.querySelector(`picture[data-brand-scene='${scene}']`)!;
+      const night = document.querySelector(`picture[data-brand-scene='${scene}-dark']`)!;
+      expect(night.parentElement).toBe(day.parentElement);
+      expect([...night.querySelectorAll("source")].every((source) => source.srcset.split(", ").every((entry) => entry.includes(`/${scene}-dark`)))).toBe(true);
+      const [dayImage, nightImage] = [day.querySelector("img")!, night.querySelector("img")!];
+      expect([nightImage.loading, nightImage.fetchPriority === "high"]).toEqual(["lazy", false]);
+      expect(nightImage.alt).toBe(dayImage.alt.replace(/\bat dawn\b/, "at night"));
+      const shown = () => [getComputedStyle(day).display, getComputedStyle(night).display];
+      document.documentElement.classList.remove("dark");
+      expect(shown()).toEqual(["block", "none"]);
+      document.documentElement.classList.add("dark");
+      expect(shown()).toEqual(["none", "block"]);
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
   it("lists what comes with every component beside the install steps, under hairlines", async () => {
     await renderPage("/");
     const install = document.getElementById("install")!;
@@ -262,6 +313,41 @@ describe("docs", () => {
     expect(comparison?.textContent).toContain("Comparison overview, scores, protocol and limits");
   });
 
+  it("opens a docs page on the registry Hero: its scene contained, by day and at night, a band on a component page and the whole scene on a platform page", async () => {
+    await page.viewport(1440, 900);
+    await renderPage("/docs/button/");
+    const opener = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"]')!;
+    expect(opener.querySelector('[data-ouro="hero"]')).not.toBeNull();
+    expect(getComputedStyle(opener).backgroundImage).toBe("none");
+    const shown = () => [...opener.querySelectorAll<HTMLElement>("picture[data-scheme]")].filter((picture) => getComputedStyle(picture).display !== "none").map((picture) => picture.dataset.scheme);
+    expect(shown()).toEqual(["light"]);
+    const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const { width, height } = media.getBoundingClientRect();
+    expect(width).toBeLessThanOrEqual(1280);
+    expect(width / height).toBeCloseTo(4, 1);
+    const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="image"]')];
+    expect(night!.getAttribute("src")).not.toBe(day!.getAttribute("src"));
+    setScheme("dark");
+    expect(shown()).toEqual(["dark"]);
+    await renderPage("/docs/platforms/apple/");
+    const whole = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"] [data-slot="media"]')!.getBoundingClientRect();
+    const art = document.querySelector<HTMLImageElement>('section[aria-labelledby="page-title"] img[data-slot="image"]')!;
+    expect(whole.width / whole.height).toBeCloseTo(Number(art.getAttribute("width")) / Number(art.getAttribute("height")), 1);
+  });
+
+  it("marks a docs page's opener with its brand scene, and on a phone shows the scene's phone crop at its own shape", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/");
+    const opener = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"]')!;
+    expect(opener.dataset.brandScene).toBe("ouro-ui-core");
+    const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="image"]')];
+    await expect.poll(() => day!.currentSrc).toMatch(/\/brand\/storybook\/phone\/ouro-ui-core-\d+\.(avif|webp)$/);
+    const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!.getBoundingClientRect();
+    expect(media.width / media.height).toBeCloseTo(768 / SCENES["ouro-ui-core"].phoneHeight, 1);
+    const nightPhone = night!.closest("picture")!.querySelector<HTMLSourceElement>('source[media="(max-width: 640px)"]')!;
+    expect(nightPhone.srcset).toContain("phone/ouro-ui-core-dark-768.");
+  });
+
   it("lists the components in the sidebar under a label per catalog group, with Start first, then Guides, and Platforms last", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/checklist/");
@@ -276,8 +362,7 @@ describe("docs", () => {
     const labels = docsSections().map((section) => section.label);
     expect(labels).toEqual(["Start", ...groups, "Guides", "Platforms"]);
     await expect.element(nav.getByRole("link", { name: "Checklist", exact: true })).toHaveAttribute("aria-current", "page");
-    // The sidebar scrolls on its own, opened where the current page shows: within its box, and above the window's foot,
-    // which cuts the box off while the page's scene sits above it.
+    // The sidebar scrolls on its own, opened where the current page shows: within its box, and above the window's foot.
     const scroller = nav.element().querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
     expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
     const shows = () => {
@@ -290,7 +375,7 @@ describe("docs", () => {
     expect(shows()(nav.getByRole("link", { name: "Checklist", exact: true }).element())).toBe(true);
   });
 
-  it("on a window too short to show the sidebar below a platform page's scene, opens it on the current page's group, never past its top", async () => {
+  it("on a window too short for the whole sidebar, opens it on the current page's group, never past its top", async () => {
     await page.viewport(1280, 640);
     await renderPage("/docs/platforms/windows/");
     await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
@@ -332,7 +417,7 @@ describe("docs", () => {
     }
   });
 
-  it("opens the sidebar with the current page in view on a platform page, though its taller scene pushes the sidebar below the window", async () => {
+  it("opens the sidebar with the current page in view on a platform page, the last group in it", async () => {
     await page.viewport(1280, 800);
     await renderPage("/docs/platforms/windows/");
     await expect.poll(() => document.querySelector("aside [data-ouro-sidebar-scroll]")).not.toBeNull();
@@ -448,7 +533,7 @@ describe("docs", () => {
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Switching from shadcn");
     await expect.element(page.getByText("components/ui/", { exact: true }).first()).toBeVisible();
     await renderPage("/docs/updating/");
-    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Updating installed components");
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Updating components");
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --dry-run", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet --diff src/components/ouro/sheet/sheet.tsx", { exact: true })).toBeVisible();
     await expect.element(page.getByText("npx shadcn@latest add @ouro/sheet @ouro/sheet-tests --overwrite", { exact: true })).toBeVisible();
@@ -618,9 +703,40 @@ describe("guides and exports without an item", () => {
   });
 });
 
+describe("docs running text", () => {
+  it("draws **bold** as strong text without its asterisks, with code and links inside it, and leaves asterisks in code alone", async () => {
+    const container = document.createElement("p");
+    container.innerHTML = renderToStaticMarkup(<>{prose("A **Browser driving (Playwright, `aria`):** 90, [see](x.md), and `**kept**` as written.")}</>);
+    const strong = container.querySelector("strong")!;
+    expect(strong.textContent).toBe("Browser driving (Playwright, aria):");
+    expect(strong.querySelector("code")?.textContent).toBe("aria");
+    expect(container.textContent).toBe("A Browser driving (Playwright, aria): 90, see, and **kept** as written.");
+    // A guide's list item and paragraph, as the docs pages draw them.
+    const page = document.createElement("div");
+    page.innerHTML = renderToStaticMarkup(<Markdown blocks={parse("- **Browser driving:** 90 of 120\n\nThen **read it** again.")} />);
+    expect(page.textContent).not.toContain("**");
+    expect([...page.querySelectorAll("li strong, p strong")].map((strong) => strong.textContent)).toEqual(["Browser driving:", "read it"]);
+  });
+
+  it("holds a paragraph's and a lead's last two words on one line, a hyphenated word whole, and leaves code, links and a long last word free", async () => {
+    const tail = (text: string) => {
+      const last = prose(text).at(-1);
+      return typeof last === "object" && last !== null && "props" in last ? (last.props as { className: string; children: string }) : null;
+    };
+    expect(tail("A helper is unused.")).toEqual({ className: "whitespace-nowrap", children: "is unused." });
+    expect(tail("Moving code pairs one-to-one.")).toEqual({ className: "whitespace-nowrap", children: "pairs one-to-one." });
+    expect(["Run `pnpm test`", "See lib/ouro/check/wrap-check.ts", "Read [the guide](form.md)", "Alone"].map((text) => tail(text)?.className === "whitespace-nowrap")).toEqual([false, false, false, false]);
+    await renderPage("/docs/updating/");
+    const paragraph = [...document.querySelectorAll("p")].find((p) => p.textContent!.startsWith("Before deleting anything"))!;
+    expect(paragraph.querySelector(":scope > span.whitespace-nowrap:last-child")?.textContent).toBe("is unused.");
+    await renderPage("/docs/sidebar-layout/");
+    expect(document.querySelector("main p span.whitespace-nowrap:last-child")?.textContent).toBe('content" link.');
+  });
+});
+
 describe("platforms", () => {
   it("has a page per file in docs/platforms at docs/platforms/<name>, the index at docs/platforms", () => {
-    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/windows", "platforms/your-platform", "platforms/contributing"]);
+    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/windows", "platforms/parity", "platforms/your-platform", "platforms/contributing"]);
     for (const doc of platformPages) {
       expect(doc.group).toBe("Platforms");
       expect(routes.find((route) => route.path === `/docs/${doc.name}/`)?.title).toBe(`${doc.title} · Ouro UI`);
@@ -629,11 +745,11 @@ describe("platforms", () => {
 
   it("lists the platforms last in the docs sidebar, a platform only ever after for", () => {
     const platforms = docsSections().find((section) => section.label === "Platforms")!;
-    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "For Windows", "For your platform", "A guide for platform builders"]);
+    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "For Windows", "Parity across platforms", "For your platform", "A guide for platform builders"]);
     expect(platforms.items.map((item) => ("href" in item ? item.href : ""))).toEqual(platformPages.map((doc) => href(`/docs/${doc.name}/`)));
   });
 
-  it("sets the platform after for in smaller, quieter type than the products' names", async () => {
+  it("sets the platform after for in smaller, quieter type than the products' names, which stay whole", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/platforms/apple/");
     const heading = page.getByRole("heading", { level: 1 });
@@ -641,6 +757,9 @@ describe("platforms", () => {
     const platform = heading.element().querySelector<HTMLElement>("[data-platform-for]")!;
     expect(platform.textContent).toBe("for Apple");
     expect(parseFloat(getComputedStyle(platform).fontSize)).toBeLessThan(parseFloat(getComputedStyle(heading.element()).fontSize));
+    // On a phone the products' names stay on one line, so "AX" is never left alone between them and the platform.
+    expect(platform.previousElementSibling?.textContent).toBe("Ouro HX & AX");
+    expect(getComputedStyle(platform.previousElementSibling!).whiteSpace).toBe("nowrap");
     await renderPage("/docs/platforms/contributing/");
     expect(page.getByRole("heading", { level: 1 }).element().querySelector("[data-platform-for]")).toBeNull();
   });
@@ -655,23 +774,22 @@ describe("platforms", () => {
     };
     const rows = [...document.querySelectorAll("main table tbody tr")].map((row) => [...row.querySelectorAll("td")].slice(0, 3).map(text));
     expect(rows).toEqual([
-      ["For web", "v1.3.3", "core v0.3.0, for its tokens"],
-      ["For Apple", "v0.3.4", "core v0.3.0"],
+      ["For web", parity.webTag, `core ${provenance.coreTag}, for its tokens`],
+      ["For Apple", versions.apple.tag, versions.apple.treeCoreTag === versions.apple.coreTag ? `core ${versions.apple.coreTag}` : `core ${versions.apple.coreTag}, and ${versions.apple.treeCoreTag} for its A2UI conformance cases`],
       ["For Android", "none yet", "none yet"],
-      ["For Windows", "none yet", "none yet"],
+      ["For Windows", versions.windows.tag, versions.windows.treeCoreTag === versions.windows.coreTag ? `core ${versions.windows.coreTag}` : `core ${versions.windows.coreTag}, and ${versions.windows.treeCoreTag} for its A2UI conformance cases`],
     ]);
   });
 
   it("gives the Apple page its install line, and what is coming with Siri AI", async () => {
     await renderPage("/docs/platforms/apple/");
-    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.3.4")');
+    expect(document.body.innerText).toContain('.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "0.6.0")');
     for (const name of ["What ships today", "What is coming"]) await expect.element(page.getByRole("heading", { level: 2, name })).toBeVisible();
     for (const words of ["Tool intents.", "App skills.", "SiriEvaluations.", "The App Intents X-ray."]) expect(document.body.innerText).toContain(words);
   });
 
   it.each([
     ["android", "AppFunctions", "docs/platforms/android.md", "ouro-ui-android"],
-    ["windows", "On-device Agent Registry", "docs/platforms/windows.md", "ouro-ui-windows"],
     ["your-platform", "MCP server", "docs/platforms/<platform>.md", "ouro-ui-<platform>"],
   ])("gives the %s page its agent door, the contract and the way to propose it", async (name, door, file, repository) => {
     await renderPage(`/docs/platforms/${name}/`);
@@ -692,7 +810,15 @@ describe("platforms", () => {
     ]);
   });
 
-  it.each(["/docs/platforms/android/", "/docs/platforms/windows/", "/docs/platforms/your-platform/", "/docs/platforms/contributing/", "/docs/ax-eval/", "/docs/testing/"])(
+  it("shows what the Windows kit ships, and what it still lacks", async () => {
+    await renderPage("/docs/platforms/windows/");
+    const text = document.body.innerText;
+    for (const name of ["OuroButton", "OuroBadge", "OuroCard", "OuroItem", "Ouro.Actions", "On-device Agent Registry"]) expect(text).toContain(name);
+    for (const name of ["What ships today", "What is still missing", "Contribute next"]) await expect.element(page.getByRole("heading", { level: 2, name })).toBeVisible();
+    expect(text).toContain("ourostack/ouro-ui-windows");
+  });
+
+  it.each(["/docs/platforms/android/", "/docs/platforms/your-platform/", "/docs/platforms/contributing/", "/docs/ax-eval/", "/docs/testing/"])(
     "renders %s's numbered steps as list items, with no step run into a paragraph",
     async (path) => {
       await renderPage(path);

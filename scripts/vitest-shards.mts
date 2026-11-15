@@ -7,7 +7,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { BaseSequencer, type Reporter, type TestModule, type TestSpecification, type Vitest } from "vitest/node";
-import { projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { browserBalance, readTimings, slicedSuites } from "./shard.mjs";
 
 export { slicedSuites };
 
@@ -34,8 +34,15 @@ export class TimedSequencer extends BaseSequencer {
     const key = (spec: TestSpecification) => timingKey(spec.project.name, config.root, spec.moduleId);
     const sliced = files.filter((spec) => slicedSuites.includes(path(spec)));
     const rest = files.filter((spec) => !slicedSuites.includes(path(spec)));
-    // Each project spread across the shards: Vitest runs the projects side by side.
-    const mine = new Set(shardKeys(rest.map(key), { index, count }, readTimings("vitest"), projectOf));
+    // With the installed-subset checks in the same split (scripts/subset-coverage.mjs), each project spread across the shards: Vitest runs the projects side by side.
+    const recorded = readTimings("vitest");
+    const mine = new Set(browserBalance(count, [])[index - 1]!.keys);
+    // A file with no recorded time takes its turn by name, so a run of only such files (the themes project's) spreads over the shards instead of piling onto the one a recorded weight leaves lightest.
+    rest
+      .map(key)
+      .filter((name) => !(name in recorded))
+      .sort()
+      .forEach((name, position) => position % count === index - 1 && mine.add(name));
     return [...sliced, ...rest.filter((spec) => mine.has(key(spec)))];
   }
 }
@@ -60,5 +67,15 @@ export class TimingsReporter implements Reporter {
     const dir = join(root, ".tmp/timings");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `vitest-${shard.index}of${shard.count}.json`), `${JSON.stringify(times, null, 2)}\n`);
+    // Each test of a sliced suite (one per story and check), so a split can weigh stories by cost.
+    const tests: Record<string, number> = {};
+    for (const module of testModules) {
+      if (!slicedSuites.includes(posix(relative(root, module.moduleId)))) continue;
+      for (const test of module.children.allTests()) {
+        const duration = test.result().state === "skipped" ? undefined : test.diagnostic()?.duration;
+        if (duration !== undefined) tests[`${module.project.name} ${test.fullName}`] = Math.round(duration);
+      }
+    }
+    writeFileSync(join(dir, `stories-${shard.index}of${shard.count}.json`), `${JSON.stringify(tests, null, 2)}\n`);
   }
 }

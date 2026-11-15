@@ -1,0 +1,1 @@
+- Fixed: Ouro check opens its blank page again when a navigation the page started itself wins over it, instead of stopping with "interrupted by another navigation".

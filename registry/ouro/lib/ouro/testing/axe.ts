@@ -726,16 +726,17 @@ async function screenshot(element: Element): Promise<CanvasRenderingContext2D> {
   const image = new Image();
   // `caret: "initial"`: hiding the caret, Playwright leaves an empty style attribute on the focused
   // field. The measuring rules hide the caret themselves.
-  const take = () => page.screenshot({ save: false, element, animations: "disabled", caret: "initial", timeout: 5000 });
+  const take = (timeout: number) => page.screenshot({ save: false, element, animations: "disabled", caret: "initial", timeout });
   let data: string;
   try {
-    data = await take();
+    data = await take(5000);
   } catch (error) {
     // Vitest's Node process, which runs Playwright, can stall for seconds on other work while the
     // page holds still, and the stall counts against the limit. A box that shows and holds still
-    // did not hold the screenshot up, so it gets one more try; a box with no area never shows.
+    // did not hold the screenshot up, so it gets one more try, with longer to wait out the runner;
+    // a box with no area never shows.
     if (!/Timeout/.test((error as Error).message) || !(await showsAndHoldsStill(element))) throw error;
-    data = await take();
+    data = await take(15_000);
   }
   image.src = `data:image/png;base64,${data}`;
   await image.decode();

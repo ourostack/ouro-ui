@@ -4,7 +4,7 @@ export type { CommandManifest, OverviewOptions };
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
-import { argUsage, BUILTIN_FLAGS, flagsOf, flagUsage, inputSchema, usageOf, type Cli, type CommandDef, type JsonSchema } from "./command.ts";
+import { argUsage, BUILTIN_FLAGS, flagsOf, flagUsage, inputSchema, invocation, usageOf, type Cli, type CommandDef, type JsonSchema } from "./command.ts";
 import { DRY_RUN_FLAG, WHY_FLAG } from "./effects.ts";
 import { voiceLines } from "./voice.ts";
 
@@ -46,7 +46,7 @@ interface OverviewOptions {
   footer?: readonly string[];
 }
 
-const listed = (cli: Cli) => cli.commands.filter((c) => !c.hidden);
+const listed = (cli: Cli) => cli.commands.filter((c) => !c.hidden && c !== cli.defaultCommand);
 
 /** Commands of one effect, one per row: a multi-word command ("draft set") shows under its first word once. */
 function rows(cli: Cli, effect: "private" | "others"): { name: string; summary: string }[] {
@@ -61,20 +61,35 @@ function rows(cli: Cli, effect: "private" | "others"): { name: string; summary: 
 
 /**
  * The overview: what the tool is, the commands under "Only you see these" and "Other people see these", the words only
- * the person acts on, the footer.
+ * the person acts on, the footer. A tool defined with `command` shows its one command's usage and summary in place of
+ * the command list; a tool with a default command lists the default's usage, arguments and flags under its heading.
  *
  * @claim "the words only the person acts on" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::person-only words are listed in the overview and in help --json, with the reason and how the person does it)
+ * @claim "shows its one command's usage and summary" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::a one-command tool's overview and command help name the tool and its usage, never a command word)
+ * @claim "lists the default's usage, arguments and flags" registry/ouro/ax/help.test.mts verify:testExists(registry/ouro/ax/help.test.mts::a default command is listed in the overview under its own heading, with its arguments and flags, and never as a command word)
  */
 function renderOverview(cli: Cli, options: OverviewOptions = {}): string {
   const width = options.width ?? DEFAULT_WIDTH;
+  const footer = options.footer ?? [...wrap(`Output: --json on every command. ${cli.exits.line()} Errors: one line that says what to do instead.`, 0, 0, width), `Details: ${cli.single ? `${cli.name} --help` : `${cli.name} help <command>`}`];
+  if (cli.single) {
+    const cmd = cli.commands[0]!;
+    const heading = cmd.effect === "others" ? `${cli.headings.others}${options.othersNote ?? ""}` : cli.headings.private;
+    return [...cli.about, "", heading, ...columns(usageOf(cli, cmd), cmd.summary, width), "", ...footer, ""].join("\n");
+  }
   const mine = rows(cli, "private");
   const theirs = rows(cli, "others");
   const pad = Math.max(...[...mine, ...theirs].map((r) => r.name.length)) + 2;
   const line = (r: { name: string; summary: string }) => `  ${r.name.padEnd(pad)} ${r.summary}`;
-  const footer = options.footer ?? [...wrap(`Output: --json on every command. ${cli.exits.line()} Errors: one line that says what to do instead.`, 0, 0, width), `Details: ${cli.name} help <command>`];
   const theirsOnly = Object.keys(cli.personOnly);
   const person = theirsOnly.length ? [...wrap(`Only the person does these, never you: ${theirsOnly.join(", ")}. Why and where: ${cli.name} help --json.`, 0, 0, width), ""] : [];
-  return [...cli.about, "", cli.headings.private, ...mine.map(line), "", `${cli.headings.others}${options.othersNote ?? ""}`, ...theirs.map(line), "", ...person, ...footer, ""].join("\n");
+  const def = cli.defaultCommand;
+  const defaultUnder = (effect: "private" | "others") => (def && !def.hidden && def.effect === effect ? defaultLines(cli, def, width) : []);
+  return [...cli.about, "", cli.headings.private, ...defaultUnder("private"), ...mine.map(line), "", `${cli.headings.others}${options.othersNote ?? ""}`, ...defaultUnder("others"), ...theirs.map(line), "", ...person, ...footer, ""].join("\n");
+}
+
+/** The default command's part of the overview: its usage and summary, then its arguments and flags with what they do. */
+function defaultLines(cli: Cli, cmd: CommandDef, width: number): string[] {
+  return [...columns(usageOf(cli, cmd), cmd.summary, width), ...argLines(cli, cmd, width), ...flagLines(cli, cmd, width)];
 }
 
 const COL = 34;
@@ -96,20 +111,24 @@ function columns(left: string, text: string, width: number): string[] {
 function flagLines(cli: Cli, cmd: CommandDef, width: number = DEFAULT_WIDTH): string[] {
   return Object.entries(flagsOf(cli, cmd))
     .filter(([name]) => !(name in BUILTIN_FLAGS) && !(name in cli.globalFlags))
-    .flatMap(([name, spec]) => columns(flagUsage(name, spec), `${spec.description}${spec.required ? (spec.unless === undefined ? " Required." : ` Required unless ${(typeof spec.unless === "string" ? [spec.unless] : spec.unless).map((u) => `--${u}`).join(" or ")}.`) : ""}${spec.stdin ? ' "-" reads it from stdin.' : ""}`, width));
+    .flatMap(([name, spec]) => columns(flagUsage(name, spec), `${spec.description}${spec.required ? (spec.unless === undefined ? " Required." : ` Required unless ${(typeof spec.unless === "string" ? [spec.unless] : spec.unless).map((u) => `--${u}`).join(" or ")}.`) : ""}${spec.repeat ? " Repeat it for each value." : ""}${spec.stdin ? ' "-" reads it from stdin.' : ""}`, width));
+}
+
+/** One line per argument: its usage on the left, what it is on the right. */
+function argLines(cli: Cli, cmd: CommandDef, width: number = DEFAULT_WIDTH): string[] {
+  return (cmd.args ?? []).flatMap((a) => columns(argUsage(a), `${a.description}${a.source ? ` "${cli.name} ${a.source}" lists them.` : ""}${a.stdin ? ' "-" reads it from stdin.' : ""}`, width));
 }
 
 /** The generated part of a command's help: its usage from the definition, its arguments and its flags. */
 function definitionLines(cli: Cli, cmd: CommandDef, width: number = DEFAULT_WIDTH): string[] {
-  const args = (cmd.args ?? []).flatMap((a) => columns(argUsage(a), `${a.description}${a.source ? ` "${cli.name} ${a.source}" lists them.` : ""}${a.stdin ? ' "-" reads it from stdin.' : ""}`, width));
-  return ["Definition", ...wrap(`${cli.name} ${usageOf(cli, cmd)}`, 4, 2, width), ...args, ...flagLines(cli, cmd, width)];
+  return ["Definition", ...wrap(`${cli.name} ${usageOf(cli, cmd)}`, 4, 2, width), ...argLines(cli, cmd, width), ...flagLines(cli, cmd, width)];
 }
 
 /** One command's whole help, from its definition alone. */
 function renderCommand(cli: Cli, cmd: CommandDef, width: number = DEFAULT_WIDTH): string {
   const lines = [
     ...(cmd.effect === "others" ? [...wrap(`${cli.headings.others}: run it only when a human asked you to, with --${WHY_FLAG}.`, 0, 0, width), ""] : []),
-    ...wrap(`${cli.name} ${cmd.name}: ${cmd.summary}`, 2, 0, width),
+    ...wrap(`${invocation(cli, cmd)}: ${cmd.summary}`, 2, 0, width),
     "",
     ...definitionLines(cli, cmd, width),
   ];
@@ -138,6 +157,11 @@ interface CommandManifest {
   hidden: boolean;
   /** `"self"` on a command an agent runs only on its own item (`--agent`); left out otherwise. */
   scope?: "self";
+  /**
+   * `true` on the word-less command: the one command of a tool defined with `command`, or the default command of one
+   * defined with both.
+   */
+  single?: true;
 }
 
 /** One command as data. */
@@ -159,6 +183,7 @@ function commandManifest(cli: Cli, cmd: CommandDef): CommandManifest {
     examples: cmd.examples ?? [],
     hidden: cmd.hidden === true,
     ...(cmd.self ? { scope: "self" as const } : {}),
+    ...(cmd === cli.defaultCommand ? { single: true as const } : {}),
   };
 }
 

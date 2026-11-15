@@ -1,0 +1,118 @@
+{
+  "model": "grok-4-7",
+  "modelId": "grok-4.7",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "task": "recipe-to-list",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 7,
+  "toolsUsed": [
+    "search_recipes",
+    "get_recipe",
+    "add_item",
+    "add_item",
+    "add_item",
+    "add_item",
+    "add_item"
+  ],
+  "textReadChars": 477,
+  "wallMs": 5991,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 8720,
+    "output": 311,
+    "cacheRead": 8064,
+    "cacheWrite": 0,
+    "reasoning": 146,
+    "total": 9031
+  },
+  "costAiu": 0.721,
+  "costSource": "runtime",
+  "finalMessage": "I added the Charred Lemon Orzo ingredients to your shopping list: 250 g orzo, 2 lemons, 3 cloves of garlic, 50 g parmesan, and 1 bunch of basil.",
+  "transcript": {
+    "messages": [
+      "I added the Charred Lemon Orzo ingredients to your shopping list: 250 g orzo, 2 lemons, 3 cloves of garlic, 50 g parmesan, and 1 bunch of basil."
+    ],
+    "toolCalls": [
+      {
+        "name": "search_recipes",
+        "args": {
+          "q": "Charred Lemon Orzo"
+        },
+        "ms": 7,
+        "resultChars": 64,
+        "result": "{\"recipes\":\"[{\\\"id\\\":\\\"r1\\\",\\\"title\\\":\\\"Charred Lemon Orzo\\\"}]\"}"
+      },
+      {
+        "name": "get_recipe",
+        "args": {
+          "id": "r1"
+        },
+        "ms": 0,
+        "resultChars": 278,
+        "result": "{\"id\":\"r1\",\"title\":\"Charred Lemon Orzo\",\"ingredients\":[{\"name\":\"orzo\",\"quantity\":250,\"unit\":\"g\"},{\"name\":\"lemons\",\"quantity\":2,\"unit\":null},{\"name\":\"garlic\",\"quantity\":3,\"unit\":\"cloves\"},{\"name\":\"parmesan\",\"quantity\":50,\"unit\":\"g\"},{\"name\":\"basil\",\"quantity\":1,\"unit\":\"bunch\"}]}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "orzo",
+          "quantity": 250,
+          "unit": "g"
+        },
+        "ms": 0,
+        "resultChars": 25,
+        "result": "{\"id\":\"i6\",\"name\":\"orzo\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "lemons",
+          "quantity": 2
+        },
+        "ms": 0,
+        "resultChars": 27,
+        "result": "{\"id\":\"i7\",\"name\":\"lemons\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "garlic",
+          "quantity": 3,
+          "unit": "cloves"
+        },
+        "ms": 0,
+        "resultChars": 27,
+        "result": "{\"id\":\"i8\",\"name\":\"garlic\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "parmesan",
+          "quantity": 50,
+          "unit": "g"
+        },
+        "ms": 0,
+        "resultChars": 29,
+        "result": "{\"id\":\"i9\",\"name\":\"parmesan\"}"
+      },
+      {
+        "name": "add_item",
+        "args": {
+          "name": "basil",
+          "quantity": 1,
+          "unit": "bunch"
+        },
+        "ms": 0,
+        "resultChars": 27,
+        "result": "{\"id\":\"i10\",\"name\":\"basil\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

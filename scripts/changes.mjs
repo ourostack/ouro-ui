@@ -2,20 +2,20 @@
 // holding `- ` lines), so pull requests that each add a change never edit the same file.
 // release.yml assembles them into the "Changes in this release" section of the release notes:
 //
-//   node scripts/changes.mjs assemble <changes dir>
+//   node scripts/changes.mjs assemble <changes dir> [<last release notes>]
 //
-// prints the section: the heading, then every fragment's `- ` lines, by file name.
+// prints the section: the heading, then every fragment's `- ` lines, by file name, less the
+// lines the last release's notes already hold.
 //
 //   node scripts/changes.mjs check <changes dir> <last release notes>
 //
 // fails (a GitHub ::error:: line, exit 1) when a fragment holds a line that is not a top-level
-// `- ` item (one line per change; anything else would not reach the notes), when the
-// fragments list no change, or when a change
-// they list is already in the last release's notes, which means the PR that deletes the
-// released fragments was never merged. release.yml runs it before it pushes anything, writes
-// the assembled section to CHANGES.md on the release commit (so the tag holds it; main keeps
-// fragments only), and after a release its "Prepare main for the next release" PR deletes the
-// fragments it used.
+// `- ` item (one line per change; anything else would not reach the notes), or when every
+// change the fragments list is already in the last release's notes. Fragments stay on main
+// after the release that used them: a line the last release's notes hold is not this
+// release's, so no pull request has to delete them. release.yml runs it before it pushes
+// anything and writes the assembled section to CHANGES.md on the release commit (so the tag
+// holds it; main keeps fragments only).
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,9 +29,10 @@ export function listed(markdown) {
 }
 
 /** The section the release notes show: the heading and every fragment's change lines, by file name. */
-export function assemble(dir) {
+export function assemble(dir, lastNotes = "") {
   const files = existsSync(dir) ? readdirSync(dir).filter((file) => file.endsWith(".md")).sort() : [];
-  const lines = files.flatMap((file) => listed(readFileSync(join(dir, file), "utf8")));
+  const released = new Set(lastNotes.split("\n"));
+  const lines = files.flatMap((file) => listed(readFileSync(join(dir, file), "utf8"))).filter((line) => !released.has(line));
   return lines.length === 0 ? `${HEADING}\n` : `${HEADING}\n\n${lines.join("\n")}\n`;
 }
 
@@ -50,18 +51,9 @@ export function fragmentProblems(dir) {
 
 /** Why the changes cannot be released as they are, or null. */
 export function changesProblem(markdown, lastNotes) {
-  const lines = listed(markdown);
-  if (lines.length === 0) {
-    return "changes/ lists no change. Add a changes/<name>.md file with a `- ` line for each change an app will see in this release, then run Release again.";
-  }
   const released = new Set(lastNotes.split("\n"));
-  const stale = lines.filter((line) => released.has(line));
-  if (stale.length > 0) {
-    return [
-      "changes/ still lists the last release's changes. Merge the open \"Prepare main for the next release\" PR",
-      "(or delete those fragments yourself), list this release's changes, then run Release again:",
-      ...stale,
-    ].join(" ");
+  if (listed(markdown).filter((line) => !released.has(line)).length === 0) {
+    return "changes/ lists no change that the last release's notes do not already hold. Add a changes/<name>.md file with a `- ` line for each change an app will see in this release, then run Release again.";
   }
   return null;
 }
@@ -79,9 +71,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       process.exit(1);
     }
   } else if (mode === "assemble" && dir) {
-    process.stdout.write(assemble(dir));
+    process.stdout.write(assemble(dir, notes && existsSync(notes) ? readFileSync(notes, "utf8") : ""));
   } else {
-    console.error("usage: changes.mjs check <changes dir> <last release notes> | assemble <changes dir>");
+    console.error("usage: changes.mjs check <changes dir> <last release notes> | assemble <changes dir> [<last release notes>]");
     process.exit(2);
   }
 }

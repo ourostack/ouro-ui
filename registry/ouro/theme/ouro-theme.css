@@ -6,7 +6,7 @@
  * https://ui.ouroboros.bot/ (site/src/themes/pearl.css).
  */
 :root {
-  --radius: 0.75rem;
+  --radius: 1.125rem;
   --background: #ffffff;
   --foreground: #1d1d1f;
   --card: #ffffff;

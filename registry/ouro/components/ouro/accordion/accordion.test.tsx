@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Accordion, type AccordionProps } from "@/registry/ouro/components/ouro/accordion/accordion";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
@@ -165,13 +166,26 @@ describe("Accordion", () => {
     expect(triggers[0]!.getAttribute("aria-expanded")).toBe("false");
   });
 
+  it("reads no style or layout when closed items mount, however many there are", async () => {
+    // The development theme check reads once per page; let it happen first.
+    await render(<Accordion items={items} />);
+    const many = Array.from({ length: 20 }, (_, i) => ({ value: `item-${i}`, title: `Item ${i}`, content: <p>Body {i}</p> }));
+    const watch = watchLayoutReads();
+    try {
+      await render(<Accordion items={many} />);
+    } finally {
+      watch.stop();
+    }
+    expect(watch.names()).toEqual([]);
+  });
+
   it("animates the panel to its measured height", async () => {
     const { triggers, host } = await render(<Accordion items={items} />);
     const panel = host.querySelector<HTMLElement>(`[role="region"][aria-labelledby="${triggers[0]!.id}"]`)!;
     expect(panel).not.toBeNull();
     let heightStarted = false;
     const record = (event: TransitionEvent) => {
-      if (event.target === panel && event.propertyName === "height") heightStarted = true;
+      if (event.target === panel && event.propertyName === "grid-template-rows") heightStarted = true;
     };
     panel.addEventListener("transitionrun", record);
     try {
@@ -193,7 +207,7 @@ describe("Accordion", () => {
     const { triggers, host } = await render(<Accordion items={items} />);
     await userEvent.click(triggers[0]!);
     const panel = host.querySelector<HTMLElement>(`[id="${triggers[0]!.getAttribute("aria-controls")}"]`)!;
-    expect(getComputedStyle(panel).transitionProperty).not.toMatch(/height/);
+    expect(getComputedStyle(panel).transitionProperty).not.toMatch(/grid-template-rows/);
   });
 
   it("rotates the chevron of an open item", async () => {

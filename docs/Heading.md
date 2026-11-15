@@ -32,7 +32,7 @@ Type: `HeadingProps`.
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mb-2`). Appearance classes warn in development; use `size` and `align`. |
 | `level` (required) | `1 \| 2 \| 3 \| 4 \| 5 \| 6` |  | Outline level: sets the tag (`level={2}` renders `<h2>`). Required, because the level is about document structure, not looks; use `size` to change how big it looks. |
 | `ref` | `Ref<HTMLHeadingElement>` |  | Reaches the rendered element. |
-| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "display"` | derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`) | Visual size, independent of the level. `display` is the hero headline of a landing page, tightly set and larger from the `sm` breakpoint: `<Heading level={1} size="display">`. |
+| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "display"` | derived from `level` (1 is `2xl`, 2 is `xl`, 3 is `lg`, 4 is `md`, 5 and 6 are `sm`) | Visual size, independent of the level. `display` is the hero headline of a landing page, tightly set and larger from the `sm` breakpoint: `<Heading level={1} size="display">`. Each size above `sm` is set tighter than the last. A theme whose `--font-heading` is a serif sets `--ouro-heading-tracking` below its default of `1`, such as `0.5`, to tighten by that share and keep more of the font's own spacing; `0` sets every size at the font's own spacing. |
 | `truncate` | `boolean` | `false` | Cuts the heading to one line with an ellipsis, as a list row or a title bar needs. A heading otherwise balances its lines, which would wrap it again, so `truncate` drops the balancing. |
 
 ## Native attributes

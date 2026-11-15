@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { defineChecks } from "./checks.ts";
 import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "./cli.ts";
-import { checkOwner, defineCli, defineCommand, parse, type Input, type Parsed, type RunContext } from "./command.ts";
+import { checkOwner, defineCli, defineCommand, parse, type Cli, type Input, type Parsed, type RunContext } from "./command.ts";
 import { commandManifest } from "./help.ts";
 import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "./example-cli.ts";
 import { nextStep, outcome } from "./outcome.ts";
@@ -144,6 +144,33 @@ test("a wait prints what happened or how to resume, with its state's exit code",
   const bad = await run(["watch", "abc123", "--timeout", "soon"]);
   assert.equal(bad.code, 2);
   assert.match(bad.err, /Fix: notes watch abc123 --timeout 2m\./);
+});
+
+test("a data result exits with the code its command names in the tool's table, and --json prints the data unchanged", async () => {
+  const t = defineCli({
+    name: "t",
+    about: ["t"],
+    exits,
+    commands: [
+      defineCommand({ name: "found", summary: "Finds.", effect: "private", run: () => ({ ok: false, n: 2 }), exit: (r) => ((r as { ok: boolean }).ok ? "ok" : "unavailable") }),
+      defineCommand({ name: "fine", summary: "Fine.", effect: "private", run: () => ({ ok: true, n: 1 }), exit: () => "ok" }),
+      defineCommand({ name: "plain", summary: "Plain.", effect: "private", run: () => ({ ok: false }) }),
+      defineCommand({ name: "wrong", summary: "Wrong.", effect: "private", run: () => ({}), exit: () => "missing" }),
+    ],
+  });
+  const a = io();
+  assert.equal(await runCli(t, ["found", "--json"], a.io), 3);
+  assert.equal(a.o.out, '{\n  "ok": false,\n  "n": 2\n}\n');
+  assert.equal(await runCli(t, ["found"], io().io), 3);
+  assert.equal(await runCli(t, ["fine", "--json"], io().io), 0);
+  assert.equal(await runCli(t, ["plain", "--json"], io().io), 0);
+  const d = io();
+  assert.equal(await runCli(t, ["wrong"], d.io), 1);
+  assert.equal(d.o.out, "");
+  assert.equal(d.o.err, 't: wrong: its exit "missing" is not one of the tool\'s exit codes. Fix: name one of ok, error, usage, unavailable.\n');
+  const e = io();
+  assert.equal(await runCli(t, ["wrong", "--json"], e.io), 1);
+  assert.equal(JSON.parse(e.o.out).error.code, "bad-exit");
 });
 
 test("dispatch runs the plan or run() with the tool's own context, and prints nothing", async () => {
@@ -472,4 +499,91 @@ test("a command that returns a checks report prints its verdict first, styled fo
   } finally {
     delete process.env["KIT_BROKEN"];
   }
+});
+
+async function runTool(tool: Cli, argv: string[]) {
+  let out = "";
+  let err = "";
+  const code = await runCli(tool, argv, { stdout: { write: (s) => (out += s) }, stderr: { write: (s) => (err += s) } });
+  return { code, out, err };
+}
+const imagesTool = () =>
+  defineCli({
+    name: "ouro-images",
+    about: ["Writes the sizes of a folder of pictures."],
+    command: defineCommand({
+      name: "images",
+      summary: "Write each picture at the sizes the site uses.",
+      effect: "private",
+      examples: ["ouro-images site/showcase --out site/public/showcase"],
+      args: [{ name: "folder", description: "The folder of pictures.", required: true }],
+      flags: { out: { type: "string", description: "Where the sizes go." } },
+      run: (i) => ({ folder: i["folder"], out: i["out"] ?? "." }),
+      text: (r) => `Wrote the sizes of ${String((r as { folder: string }).folder)} to ${String((r as { out: string }).out)}.`,
+    }),
+  });
+
+test("a tool with one command runs with no command word, and its output, help and refusals name none", async () => {
+  const tool = imagesTool();
+  assert.deepEqual(await runTool(tool, ["site/showcase", "--out", "public"]), { code: 0, out: "Wrote the sizes of site/showcase to public.\n", err: "" });
+  assert.deepEqual(JSON.parse((await runTool(tool, ["site/showcase", "--json"])).out), { folder: "site/showcase", out: "." });
+  const help = await runTool(tool, ["--help"]);
+  assert.equal(help.code, 0);
+  assert.match(help.out, /^ouro-images: Write each picture at the sizes the site uses\./);
+  assert.match(help.out, /ouro-images <folder> \[--out <out>\]/);
+  assert.doesNotMatch(help.out, /ouro-images images/);
+  const missing = await runTool(tool, []);
+  assert.deepEqual([missing.code, missing.out], [2, ""]);
+  assert.equal(missing.err, "ouro-images: images: needs <folder>. Fix: ouro-images <folder>.\n");
+});
+
+test("help answers for a one-command tool as for any tool: the overview, and help --json", async () => {
+  const tool = imagesTool();
+  const overview = await runTool(tool, ["help"]);
+  assert.equal(overview.code, 0);
+  assert.match(overview.out, /Only you see these\n {2}<folder> \[--out <out>\] +Write each picture/);
+  assert.match(overview.out, /Details: ouro-images --help/);
+  const json = JSON.parse((await runTool(tool, ["help", "--json"])).out);
+  assert.equal(json.commands[0].single, true);
+  assert.equal(json.commands[0].usage, "ouro-images <folder> [--out <out>]");
+  assert.deepEqual(await runTool(tool, ["help", "images"]), { code: 2, out: "", err: 'ouro-images: help: there is no help for "images". Fix: ouro-images --help.\n' });
+});
+
+test("a tool with one command that other people see asks for --why with no command word in the fix", async () => {
+  const tool = defineCli({
+    name: "ouro-post",
+    about: ["Posts a line for the team."],
+    command: defineCommand({
+      name: "post",
+      summary: "Post a line the team sees.",
+      effect: "others",
+      examples: ['ouro-post "Running late" --why "Jo asked"'],
+      args: [{ name: "text", description: "The line.", required: true }],
+      run: (i) => i,
+    }),
+  });
+  const refused = await runTool(tool, ["Running late"]);
+  assert.equal(refused.code, 2);
+  assert.equal(refused.err, 'ouro-post: post: other people will see this as the person\'s, so it needs --why: who asked you, and what they said. Fix: ouro-post "Running late" --why "<who asked you, and what they said>".\n');
+  const ran = await runTool(tool, ["Running late", "--why", "Jo asked", "--json"]);
+  assert.equal(ran.code, 0);
+});
+
+test("a tool with a default command runs it for a bare target, and a command word runs that command", async () => {
+  const tool = defineCli({
+    name: "ouro-check",
+    about: [],
+    command: defineCommand({
+      name: "check",
+      summary: "Checks.",
+      effect: "private",
+      args: [{ name: "target", description: "T.", rest: "list", required: true }],
+      flags: { ready: { type: "string", description: "R.", repeat: true } },
+      run: (input) => ({ ran: "check", input }),
+    }),
+    commands: [defineCommand({ name: "merge", summary: "Merges.", effect: "private", run: () => ({ ran: "merge" }) })],
+  });
+  assert.deepEqual(JSON.parse((await runTool(tool, ["site", "--ready", "a", "--ready=b", "--json"])).out), { ran: "check", input: { target: ["site"], ready: ["a", "b"], json: true } });
+  assert.deepEqual(JSON.parse((await runTool(tool, ["merge", "--json"])).out), { ran: "merge" });
+  assert.deepEqual(JSON.parse((await runTool(tool, ["--json", "--", "merge"])).out), { ran: "check", input: { target: ["merge"], json: true } });
 });

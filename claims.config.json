@@ -27,6 +27,21 @@
       "reason": "scripts/agent-usability/page.mts renders it from the scored runs in scripts/agent-usability/runs/; pnpm claims:check renders it again and compares"
     },
     {
+      "match": "^docs/guides/agent-interfaces\\.md$",
+      "mode": "generated",
+      "reason": "scripts/agent-benchmark/page.mjs renders it from the published runs in scripts/agent-benchmark/results/; pnpm claims:check renders it again and compares"
+    },
+    {
+      "match": "^registry/ouro/lib/ouro/squircle/",
+      "mode": "input",
+      "reason": "vendored source of ourostack/hyperellipse (MIT, from Mikhail Mogilnikov's hyperellipse): its comments describe the CSS Borders spec's geometry and the code's own steps, not the product, and its tests prove the behaviour"
+    },
+    {
+      "match": "^docs/guides/model-reviews\\.md$",
+      "mode": "generated",
+      "reason": "scripts/model-reviews/page.mjs renders it from the published runs in scripts/model-reviews/results/; pnpm claims:check renders it again and compares"
+    },
+    {
       "match": "^scripts/agent-usability/runs/",
       "mode": "evidence",
       "reason": "a scored run's record, written by the agent-usability harness"
@@ -45,6 +60,26 @@
       "match": "^docs/guides/evidence/",
       "mode": "evidence",
       "reason": "a guide's evidence: records copied as GitHub's API returned them, so a guide's claim about GitHub's behaviour can be checked"
+    },
+    {
+      "match": "^scripts/model-reviews/METHODOLOGY\\.md$",
+      "mode": "input",
+      "reason": "the rules of a measurement protocol, which scripts/model-reviews/model-reviews.test.mjs checks one by one; it states what the script does, so it makes no claim about the product"
+    },
+    {
+      "match": "^scripts/agent-benchmark/METHODOLOGY\\.md$",
+      "mode": "input",
+      "reason": "the rules of a measurement protocol, which scripts/agent-benchmark/agent-benchmark.test.mjs checks; it states what the harness does, so it makes no claim about the product"
+    },
+    {
+      "match": "^scripts/agent-benchmark/results/",
+      "mode": "evidence",
+      "reason": "an agent interface benchmark run's record (results.json and transcripts), written by scripts/agent-benchmark/run.mjs"
+    },
+    {
+      "match": "^scripts/model-reviews/results/",
+      "mode": "evidence",
+      "reason": "a model reviews run's record (run.json and transcripts), written by scripts/model-reviews/model-reviews.mjs and copied unchanged"
     },
     {
       "match": "^scripts/agent-usability/(screens|arms)/",
@@ -80,6 +115,11 @@
       "match": "^docs/decisions/2026-11-03-platforms-and-repositories/evidence/",
       "mode": "evidence",
       "reason": "the platforms decision's records: the native inventory, Apple's agent platform and prior-art research, the naming and repository notes, and the maintainer's rulings, copied as they were written"
+    },
+    {
+      "match": "^registry/ouro/lib/ouro/a2ui-core\\.ts$",
+      "mode": "input",
+      "reason": "core's A2UI module, vendored by scripts/core-bundle.mts from the ouro-ui-core release test/fixtures/a2ui/core.json pins; its claims are checked in ouro-ui-core, and an edit here fails test/a2ui.test.ts"
     },
     {
       "match": "^registry/ouro/ax/fixtures/",
@@ -171,16 +211,6 @@
       "reason": "the Nautilus story: Ned Land when you leave the crew"
     },
     {
-      "file": "registry/ouro/check/check.ts",
-      "sentence": "\" --out <folder> where the report goes (default ouro-check) --sizes WxH,… the screen sizes (default: from a phone to a wide desktop, and short landscape screens) --themes light,dark the colour schemes (default both) --shard k/n this job's share, the kth of n parallel jobs; merge their out folders after --before <report.json> an earlier report, to show a before and after of what was fixed since --config <file> the waivers and budgets (default ouro-check.json, when it exists) --no-axe skip axe-core --no-measured skip the measured rules, and press nothing --ready-event <name> an event the page fires once it has drawn, besides ouro:ready --images-report <file> also write, as JSON, each picture too small for where it is drawn: its page, a selector, the file it drew, that file's pixels, its drawn width, the density and the width it needs",
-      "reason": "Ouro check's --help lists its options; the \"no\" it reads as a claim is the --no-axe and --no-measured flags' names"
-    },
-    {
-      "file": "registry/ouro/check/check.ts",
-      "sentence": "Exit codes: 0 ok, 1 error (the check stopped before it finished, as when the browser would not start), 2 usage, 3 findings to fix.`;",
-      "reason": "Ouro check's --help names its exit codes, every Ouro tool's table, which scripts/check/check.test.mts asserts (Ouro check's command > exits as every Ouro tool does: …)"
-    },
-    {
       "file": "site/src/apple/feel.tsx",
       "sentence": "The robot double-taps every switch on the bench, hunting for jank.",
       "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
@@ -224,6 +254,16 @@
       "file": "site/src/storybook.ts",
       "sentence": "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "One night in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
+    },
+    {
+      "file": "site/src/storybook.ts",
+      "sentence": "Ouro's whole world at night: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
     }
   ],
   "instructionVerbs": [
@@ -383,10 +423,9 @@
       "reason": "scripts/images.test.mjs, in pnpm test:scripts, runs Ouro images' tests with coverage"
     },
     {
-      "match": "\\.test\\.m[jt]s$",
+      "match": "^(scripts|site/scripts)/.+\\.test\\.mjs$",
       "job": "ci",
-      "listedIn": "package.json#scripts.test:scripts",
-      "reason": "the ci job runs pnpm test:scripts, which lists each Node test file"
+      "reason": "the ci job runs pnpm test:scripts, which finds each Node test file under scripts/ and site/scripts/ (scripts/script-tests.mjs)"
     }
   ],
   "requiredChecks": ".github/required-checks.json",

@@ -28,7 +28,7 @@ import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 
 Use `trigger` for a dialog a button opens, or `open` with `onOpenChange` to control it.
 
-It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it.
+It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it. An app that draws its own bar across the window's top sets `--ouro-inset-top` to that bar's height, and a centered dialog, its backdrop and a full-screen Lightbox open below it.
 
 Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` without a name so VoiceOver's cursor stays trapped. Exclude them: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
 

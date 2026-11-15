@@ -12,6 +12,8 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
   describeHighlights,
   fitHeight,
+  fitHeightNative,
+  supportsFieldSizing,
   highlightLayerClass,
   highlightRuns,
   highlightTone,
@@ -292,19 +294,26 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // height autoGrow set, so `rows` applies again.
   const controlled = rest.value !== undefined;
   const grew = useRef(autoGrow);
+  const native = autoGrow && supportsFieldSizing();
   const fit = () => {
     const textarea = textareaRef.current!;
-    if (autoGrow) fitHeight(textarea, rows, maxRows);
+    if (autoGrow && native) fitHeightNative(textarea, rows, maxRows);
+    else if (autoGrow) fitHeight(textarea, rows, maxRows);
+    // Stryker disable next-line ConditionalExpression: clearing styles that were never set changes nothing.
     else if (grew.current) {
       textarea.style.height = "";
       textarea.style.overflowY = "";
+      textarea.style.removeProperty("field-sizing");
+      textarea.style.minHeight = "";
+      textarea.style.maxHeight = "";
     }
     grew.current = autoGrow;
   };
-  useLayoutEffect(fit, [autoGrow, rows, maxRows, size, variant, rest.value]);
+  const watched = native ? undefined : rest.value;
+  useLayoutEffect(fit, [autoGrow, native, rows, maxRows, size, variant, watched]);
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     // A controlled field fits once its value arrives, in the effect above.
-    if (autoGrow && !controlled) fitHeight(event.currentTarget, rows, maxRows);
+    if (autoGrow && !native && !controlled) fitHeight(event.currentTarget, rows, maxRows);
     // Without highlights there is nothing to move, so this only skips the work.
     // Stryker disable next-line ConditionalExpression: as above.
     if (highlights !== undefined) {
@@ -318,7 +327,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // observation the browser cannot deliver in the same frame, which it reports on the window
   // as "ResizeObserver loop completed with undelivered notifications".
   useEffect(() => {
-    if (!autoGrow) return;
+    // Stryker disable next-line ConditionalExpression: observing on the native path only refits to the same height.
+    if (!autoGrow || native) return;
     const textarea = textareaRef.current!;
     let width = textarea.offsetWidth;
     let frame = 0;
@@ -333,7 +343,9 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [autoGrow, rows, maxRows]);
+  },
+  // Stryker disable next-line ArrayDeclaration: an empty list keeps the first rows and maxRows, which the width refit tests change.
+  [autoGrow, native, rows, maxRows]);
 
   const setRef = useMergedRef(ref, textareaRef);
   const descriptionId = useId();

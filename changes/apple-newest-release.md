@@ -1,0 +1,1 @@
+- Changed: the Apple pages and the Platforms pages name the current Apple release.

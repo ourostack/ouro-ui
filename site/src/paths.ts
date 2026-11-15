@@ -27,8 +27,8 @@ export type ApplePath = (typeof APPLE_PAGES)[number]["path"];
  */
 export type PageKind = "voyage" | "docs";
 
-/** The paths the voyage module renders: the home page, the Nautilus's, Ouro AX's and the Ouro UI for Apple pages. */
-export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/", ...APPLE_PATHS] as const;
+/** The paths the voyage module renders: the home page, the Nautilus's, Ouro AX's, the Ouro UI for Apple pages and the adoption ledger. */
+export const VOYAGE_PATHS = ["/", "/nautilus/", "/ax/", ...APPLE_PATHS, "/adoption/"] as const;
 
 /** A site path with a trailing slash and no `index.html`. */
 export function normalizePath(path: string): string {

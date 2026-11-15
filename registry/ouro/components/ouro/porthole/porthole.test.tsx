@@ -1,3 +1,4 @@
+import { flushSync } from "react-dom";
 import { Profiler, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -9,6 +10,7 @@ import { PORTHOLE_ANNOUNCE_GAP_MS, PORTHOLE_HOVER_DELAY_MS, portholeAx } from "@
 import type { PortholeArea, PortholeItem, PortholeSnapshot, PortholeSource } from "@/registry/ouro/lib/ouro/porthole-view";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
@@ -32,6 +34,8 @@ async function render(node: ReactNode) {
     </Profiler>
   );
   await act(async () => root.render(counted(node)));
+  // The resize observer reports what the first commit laid out a frame later, and sets the width.
+  await act(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
   commits = 0;
   return {
     host,
@@ -428,6 +432,38 @@ describe("Porthole", () => {
     expect(pill.getAnimations().length).toBeGreaterThan(0);
   });
 
+  it("lays nothing out and renders once in its first commit, and paints its width in its first frame", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let renders = 0;
+    const reads = watchLayoutReads();
+    flushSync(() =>
+      root.render(
+        <Profiler id="first" onRender={() => void renders++}>
+          <Porthole label="Status" quiet={false} source={fixed([], { chats: area(Date.now() - 2 * SECOND, Date.now() - 6 * SECOND) })} />
+        </Profiler>,
+      ),
+    );
+    reads.stop();
+    expect(reads.names()).toEqual([]);
+    expect(renders).toBe(1);
+    // A resize observer made after the Porthole's runs after it in the same frame, before paint: what it sees is what the first frame paints.
+    await new Promise<void>((done) => {
+      const after = new ResizeObserver(() => {
+        after.disconnect();
+        done();
+      });
+      after.observe(host);
+    });
+    const pill = host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
+    expect(pill.style.width).toBe(`${Math.ceil(pill.firstElementChild!.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px`);
+    expect(host.querySelector<HTMLElement>('[data-ouro="porthole"]')!.style.getPropertyValue("--ouro-porthole-room")).not.toBe("");
+    expect(renders).toBe(1);
+  });
+
   it("gives a line of a fractional width its whole room, rounding the pill up, and never cuts it short", async () => {
     // Letter spacing of a third of a pixel makes the line's width fractional, as a 2x screen's text often is.
     const view = await render(
@@ -446,12 +482,24 @@ describe("Porthole", () => {
     expect(words.textContent).toBe("Updated less than a minute ago");
   });
 
-  it("sets its width as it mounts, before the size observer first reports", async () => {
-    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  it("sets its width when the size observer first reports, and measures at once after that", async () => {
+    let report = () => {};
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          report = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
     try {
       const view = await render(base(fixed()));
       const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
       const content = pill.firstElementChild as HTMLElement;
+      expect(pill.style.width).toBe("");
+      report();
       expect(pill.style.width).toBe(`${Math.ceil(content.getBoundingClientRect().width) + pill.offsetWidth - pill.clientWidth}px`);
       // A new line, and the lines opening, measure again at once, with no observer to report them.
       const before = parseFloat(pill.style.width);
@@ -540,6 +588,7 @@ describe("Porthole", () => {
       const column = view.host.firstElementChild as HTMLElement;
       const pill = view.host.querySelector<HTMLElement>('[data-porthole-part="pill"]')!;
       expect(observed).toEqual([pill.firstElementChild, view.host.querySelector('[data-porthole-part="sizer"]'), column]);
+      report();
       column.style.width = "500px";
       expect(view.porthole.style.getPropertyValue("--ouro-porthole-room")).toBe("336px");
       report();

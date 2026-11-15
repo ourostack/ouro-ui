@@ -282,11 +282,7 @@ test("X-ray outlines Chapter II's HX components", async ({ page }) => {
 });
 
 test("on a phone, the chart room and the catalogue work by touch, and nothing overflows", async ({ browser, browserName }) => {
-  // The handle and the Combobox's items cancel pointerdown. WebKit, as Playwright drives it, then
-  // raises no click from a tap, though Pointer Events keeps the click: microsoft/playwright#43569.
-  // So in WebKit those two steps are clicks; every other step, and every check, runs in both. The
-  // registry's own touch specs for both are the canaries that fail in WebKit while that stands.
-  const press = (target: Locator) => (browserName === "webkit" ? target.click() : target.tap());
+  const press = (target: Locator) => target.tap();
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName === "chromium", reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
   const page = await context.newPage();
   const errors = diagnostics(page);

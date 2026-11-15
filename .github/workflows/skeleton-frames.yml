@@ -1,0 +1,66 @@
+name: Skeleton frames
+# Probe: the WebKit frame comparison of the Skeleton story with shimmer={false} against the same page with its animation
+# stripped (registry/ouro/e2e/probes/skeleton-frames.spec.ts), which CI's e2e shards do not run: it takes about 15 minutes.
+# Runs daily and by hand. A failed scheduled run opens or comments on one issue; a dispatched run reports in its job summary.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: skeleton-frames
+  cancel-in-progress: false
+jobs:
+  frames:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image, as ci.yml's e2e shards are (see the note above jobs: there).
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      max-parallel: 1
+      matrix:
+        project: [webkit]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - id: measure
+        name: Measure
+        env:
+          CI: "true"
+          PROJECT: ${{ matrix.project }}
+        run: pnpm exec playwright test --config playwright.probes.config.ts --project "$PROJECT"
+      - if: always()
+        env:
+          PROJECT: ${{ matrix.project }}
+          OUTCOME: ${{ steps.measure.outcome }}
+        run: |
+          echo "Skeleton frames probe, $PROJECT: $OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+  report:
+    # One issue for a failed scheduled run, opened or commented on (scripts/scheduled-failure.sh).
+    needs: frames
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Skeleton frames probe failed" "The WebKit skeleton frame probe (skeleton-frames.yml) failed"

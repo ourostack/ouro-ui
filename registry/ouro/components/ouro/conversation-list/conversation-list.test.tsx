@@ -1,4 +1,5 @@
 import { useState, type MouseEvent, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -845,5 +846,32 @@ describe("ConversationList development messages", () => {
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] ConversationList: "bg-blue-500" sets appearance, and className is for layout only. Fix: remove "bg-blue-500"; ConversationList takes its colors from the theme.',
     );
+  });
+  it("paints a list taller than the view as its finished screen, with no row added or swapped after the first paint", async () => {
+    const many: ConversationListItem[] = Array.from({ length: 40 }, (_, i) => ({ id: `c${i}`, title: `Chat ${i}`, preview: "Hello", time: "9:41" }));
+    const host = document.createElement("div");
+    host.style.width = "360px";
+    host.style.height = "400px";
+    host.style.overflow = "auto";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const ids = () => [...host.querySelectorAll('[data-ouro-part="row"]')].map((row) => row.textContent);
+    const changes: string[] = [];
+    const watcher = new MutationObserver((records) => changes.push(...records.map((r) => r.target.nodeName)));
+    watcher.observe(host, { childList: true, subtree: true });
+    flushSync(() => root.render(<ConversationList label="Chats" items={many} onSelect={() => {}} />));
+    const first = ids();
+    watcher.takeRecords();
+    expect(first.length).toBeGreaterThan(0);
+    expect(first.length).toBeLessThan(40);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100))));
+    watcher.disconnect();
+    // Frame one holds the rows its estimates reach; the first measure drops those past the view and changes none within it.
+    const settled = ids();
+    expect(settled.length).toBeGreaterThan(0);
+    expect(first.slice(0, settled.length)).toEqual(settled);
+    expect(settled.length).toBeGreaterThan(Math.floor(400 / 80));
   });
 });

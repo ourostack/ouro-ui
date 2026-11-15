@@ -1,0 +1,1 @@
+- Changed: an avatar's presence dot is now bitten out of the avatar, so the background shows through the gap round it; a team's edge still reads `--ouro-avatar-ring`.

@@ -1,4 +1,4 @@
-export { BUDGETS, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, SIZES, summary, transportIssues };
+export { blank, BUDGETS, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, SIZES, summary, transportIssues };
 export type { Budgets, CheckOptions, CheckResult, Finding, Gate, ImageEntry, MergeOptions, Report };
 
 import { createHash } from "node:crypto";
@@ -20,6 +20,12 @@ import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
 import { findInteractionIssues } from "./interaction-check.ts";
+import { quietPipes, runCli } from "../ax/cli.ts";
+import { defineCli, defineCommand, parse, toArgv, type Cli, type CommandDef, type FlagSpec, type Input } from "../ax/command.ts";
+import { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE } from "../ax/exit-codes.ts";
+import { DEFAULT_OUTCOME_EXITS, outcome, type Outcome } from "../ax/outcome.ts";
+import { AxError, commandLine, didYouMean, isAxError } from "../ax/problem.ts";
+import { findWrapIssues, readHeroArt, type HeroArt } from "./wrap-check.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of
 // a dual-screen phone unfolded sideways, light and dark, at density 2 up to 3072px wide and 1 above. Pass and fail come from measurement, never from
@@ -222,7 +228,14 @@ const LABELS: Record<string, string> = {
   "stray-scrollbar": "stray scrollbar",
   "focus-ring": "no focus ring",
   "dark-miss": "missed dark mode",
+  "hero-dark-art": "hero without night art",
   "disabled-no-reason": "disabled, no reason",
+  "lone-word": "lone last word",
+  "tall-heading": "tall heading",
+  "one-word-line": "one-word line",
+  "hard-break": "hard break in a heading",
+  "narrow-heading": "narrow heading",
+  "dark-art": "no dark art",
   https: "no HTTPS",
 };
 const RULES = Object.keys(LABELS);
@@ -253,7 +266,14 @@ const HINTS: Record<string, string> = {
   "stray-scrollbar": "find what spills over by a few pixels (a margin, a border, a rounding) and fit it, or don't let the region scroll",
   "focus-ring": "give it a :focus-visible outline in a colour that stands out from what is behind it",
   "dark-miss": "fill it from a theme token that has a dark value, not a fixed light colour",
+  "hero-dark-art": "pass picture={{ light, dark }}, the same scene by day and at night",
   "disabled-no-reason": "say why beside it and tie the words to it with aria-describedby, or give it a title",
+  "lone-word": "wrap it with text-wrap: pretty (balance for a heading or centred text), or keep a short phrase together",
+  "tall-heading": "say it in fewer words, or draw it a step smaller on this screen",
+  "one-word-line": "balance it (text-wrap: balance), and give it the column's full width",
+  "hard-break": "take out the <br> or the block-level line spans, and let text-wrap: balance break it",
+  "narrow-heading": "take off the max-width, and let the heading span its column and balance",
+  "dark-art": "give the picture a night twin for the dark theme, as Hero's picture={{ light, dark }} does",
   https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
 };
 // The measured rules' budgets, which ouro-check.json's "budgets" can change: the thresholds browsers' own field data
@@ -292,6 +312,13 @@ const refused = (problem: Error): never => {
 };
 // The 75th percentile of some numbers, 0 for none.
 const p75 = (samples: number[]) => [...samples].sort((a, b) => a - b)[Math.ceil(samples.length * 0.75) - 1] ?? 0;
+// A first content over budget on both loads is reported once, at the lower of the two, from the first load's element; a
+// second load within budget leaves no finding.
+const lowerOfTwoLoads = (first: PageIssue, again: PageIssue | undefined): PageIssue | undefined => {
+  if (!again) return undefined;
+  const best = Math.min(first.value!, again.value!);
+  return { ...first, value: best, samples: [first.value!, again.value!], detail: `${best} ms to its largest content at best of two loads (${first.value} ms, then ${again.value} ms), over the budget of ${first.budget} ms` };
+};
 const keyOf = (f: Finding) => `${f.site}\u0000${f.page}\u0000${f.rule}\u0000${f.element}`;
 const spotOf = (f: Finding) => `${keyOf(f)}\u0000${f.width}x${f.height}\u0000${f.theme}`;
 const pageOf = (f: { site: string; page: string }) => `${f.site} ${f.page}`;
@@ -390,6 +417,22 @@ async function targetsOf(targets: string[], glob: string | undefined): Promise<{
   return { list, close: async () => void (await Promise.all(servers.map((s) => s.close()))) };
 }
 
+// Opens about:blank. A navigation the page started itself (a press that left it, its address still the old one until the
+// answer comes) can win over this one, which Playwright reports as interrupted: the page's navigation is let finish, and
+// the blank page opened again, a few times at most.
+async function blank(page: Pick<Page, "goto" | "waitForLoadState">): Promise<void> {
+  for (let attempt = 1; attempt < 3; attempt++) {
+    try {
+      await page.goto("about:blank");
+      return;
+    } catch (problem) {
+      if (!/is interrupted by another navigation/.test((problem as Error).message)) throw problem;
+      await page.waitForLoadState("load");
+    }
+  }
+  await page.goto("about:blank");
+}
+
 // Opens a page and waits for it to draw. Returns why it did not load (a status other than 2xx, or no answer at all),
 // and whether it said it was ready before readyTimeout ran out.
 async function open(page: Page, url: string, readyTimeout: number): Promise<{ failed: string | null; ready: boolean }> {
@@ -405,7 +448,7 @@ async function open(page: Page, url: string, readyTimeout: number): Promise<{ fa
   }
   // From a blank page, so each page loads afresh: goto answers null for a same-document move, as from an app's page to
   // one of its routes (the same address but its hash), and the app would keep what it held.
-  await page.goto("about:blank");
+  await blank(page);
   const response = (await page.goto(url, { waitUntil: "load" }))!;
   if (!response.ok()) return { failed: `answered ${response.status()}`, ready: true };
   await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => undefined);
@@ -559,41 +602,66 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await page.evaluate(outline, { ref, on: false });
   };
   // inp: presses each listed control in turn, a few times, and Escape after each press, to close what it opened. A
-  // press that leaves the page opens it again and ends that control's presses. The finding is the presses' 75th
-  // percentile, so one slow press on a busy machine does not make one; its photograph is the page after the presses.
+  // press that starts a navigation counts as leaving the page, even before the address changes: the page opens again
+  // and that control's presses end. The finding is the presses' 75th percentile, so one slow press on a busy machine
+  // does not make one; its photograph is the page after the presses.
   const press = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     let found = 0;
     let at = page.url();
-    const mark = () => page.evaluate(markPressables, { limit: MAX_PRESSES, press: config.press ?? [], never: NEVER_PRESS });
-    let controls = await mark();
-    // By index: a page opened again is marked again, in the same order.
-    for (let i = 0; i < controls.length; i++) {
-      const { ref, element } = controls[i]!;
-      const samples: number[] = [];
-      for (let n = 0; n < repeats; n++) {
-        const point = await page.evaluate(pressPoint, { ref, never: NEVER_PRESS });
-        if (!point) break;
-        const since = (await page.evaluate("performance.now()")) as number;
-        await page.mouse.click(point.x, point.y);
-        /* node:coverage ignore next */
-        const ms = await page.evaluate(interactionSince, since).catch(() => 0);
-        await page.keyboard.press("Escape");
-        if (page.url() !== at) {
-          await reach(page, target);
-          at = page.url();
-          controls = await mark();
-          break;
+    // Counts the navigations the page's main frame requests, which a press starts before the address changes.
+    let navigations = 0;
+    const onRequest = (request: Request) => {
+      if (request.isNavigationRequest() && request.frame() === page.mainFrame()) navigations++;
+    };
+    page.on("request", onRequest);
+    try {
+      const mark = () => page.evaluate(markPressables, { limit: MAX_PRESSES, press: config.press ?? [], never: NEVER_PRESS });
+      let controls = await mark();
+      const reopen = async () => {
+        await reach(page, target);
+        at = page.url();
+        controls = await mark();
+      };
+      // By index: a page opened again is marked again, in the same order.
+      for (let i = 0; i < controls.length; i++) {
+        const { ref, element } = controls[i]!;
+        const samples: number[] = [];
+        for (let n = 0; n < repeats; n++) {
+          let point;
+          try {
+            point = await page.evaluate(pressPoint, { ref, never: NEVER_PRESS });
+          /* node:coverage disable */
+          } catch (problem) {
+            // A navigation that committed before the listener saw its request ends the page's context, so the press left.
+            if (!/Execution context was destroyed|navigat/i.test((problem as Error).message)) throw problem;
+            await reopen();
+            break;
+          }
+          /* node:coverage enable */
+          if (!point) break;
+          const since = (await page.evaluate("performance.now()")) as number;
+          const requested = navigations;
+          await page.mouse.click(point.x, point.y);
+          /* node:coverage ignore next */
+          const ms = await page.evaluate(interactionSince, since).catch(() => 0);
+          await page.keyboard.press("Escape");
+          if (navigations !== requested || page.url() !== at) {
+            await reopen();
+            break;
+          }
+          samples.push(ms);
         }
-        samples.push(ms);
+        const value = p75(samples);
+        if (value > budgets.inp) {
+          found++;
+          const detail = `${value} ms from the press to its paint at the 75th percentile of ${samples.length} presses, over the budget of ${budgets.inp} ms`;
+          await record(page, target, { ref, rule: "inp", element, detail, value, budget: budgets.inp, unit: "ms", samples }, width, height, theme);
+        }
       }
-      const value = p75(samples);
-      if (value > budgets.inp) {
-        found++;
-        const detail = `${value} ms from the press to its paint at the 75th percentile of ${samples.length} presses, over the budget of ${budgets.inp} ms`;
-        await record(page, target, { ref, rule: "inp", element, detail, value, budget: budgets.inp, unit: "ms", samples }, width, height, theme);
-      }
+      return found;
+    } finally {
+      page.off("request", onRequest);
     }
-    return found;
   };
   // baked-corner: each picture and video as drawn, from its top, as far as the screen shows it, with the corners the
   // screen shows of it.
@@ -680,6 +748,22 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     }
     return found;
   };
+  // A first content over budget is measured again on a second load in a browser context of its own: one slow load on a
+  // busy runner is not the page. A second load that cannot reach the page keeps the first finding as it was, since
+  // nothing shows that the page was within budget.
+  const measureAgain = async (target: Target, width: number, height: number, theme: string, first: PageIssue): Promise<PageIssue | undefined> => {
+    const context = await contextFor(width, height, theme);
+    try {
+      const tab = await context.newPage();
+      if ((await reach(tab, target)).failed) return first;
+      const again = (await tab.evaluate(findLoadingIssues, budgets)).find((issue) => issue.rule === "first-content");
+      return lowerOfTwoLoads(first, again);
+    } finally {
+      await context.close();
+    }
+  };
+  // Each page's hero art in its light run, by page and size, for dark-art in its dark run.
+  const lightArt = new Map<string, HeroArt | null>();
   const checkPage = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     const runtime = listenForRuntime(page, target.url);
     const { failed, ready } = await reach(page, target);
@@ -690,7 +774,15 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       if (!ready) issues.push({ ref: "", rule: "not-ready", element: "the page", detail: `no ready signal in ${readyTimeout / 1000} s (ouro:ready, data-app-ready or a drawn h1)` });
       // The loading measures first, before any rule scrolls: a script's scroll doesn't end largest-contentful-paint as a
       // person's does, so a picture far down that a later rule scrolls to would otherwise read as the first content.
-      if (measured) issues.push(...(await page.evaluate(findLoadingIssues, budgets)));
+      if (measured) {
+        const loading = await page.evaluate(findLoadingIssues, budgets);
+        const first = loading.find((issue) => issue.rule === "first-content");
+        issues.push(...loading.filter((issue) => issue !== first));
+        if (first) {
+          const settled = await measureAgain(target, width, height, theme, first);
+          if (settled) issues.push(settled);
+        }
+      }
       // axe first: it names an element by its rarest attribute, which would otherwise be the other rules' marks, a new
       // one at each size.
       if (axe && axeAt.has(`${width}x${height}`)) {
@@ -706,6 +798,13 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       issues.push(...(await page.evaluate(findLayoutIssues, {})));
       issues.push(...(await page.evaluate(findThemeIssues, {})));
       issues.push(...(await page.evaluate(findInteractionIssues)));
+      issues.push(...(await page.evaluate(findWrapIssues, {})));
+      // dark-art: light runs before dark at each size, so the dark run compares with the light run's hero art.
+      const art = await page.evaluate(readHeroArt, {});
+      const artKey = `${target.site}\u0000${target.page}\u0000${width}x${height}`;
+      if (theme === "light") lightArt.set(artKey, art);
+      else if (theme === "dark" && art?.darkPage && lightArt.get(artKey)?.src === art.src)
+        issues.push({ ref: art.ref, rule: "dark-art", element: art.element, detail: `the dark theme shows the light theme's picture, ${art.src.split("/").pop()}` });
       issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
       issues.push(...runtime());
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
@@ -1006,94 +1105,115 @@ interface Args {
   merge: boolean;
   targets: string[];
   out: string;
-  pages?: string;
+  pages?: string | undefined;
   sizes: [number, number][];
   themes: string[];
   shard: [number, number];
-  before?: string;
-  config?: string;
+  before?: string | undefined;
+  config?: string | undefined;
   axe: boolean;
   measured: boolean;
   readyEvents: string[];
-  imagesReport?: string;
-  help: boolean;
+  imagesReport?: string | undefined;
 }
 
-const USAGE = `Usage: node lib/ouro/check/check.ts <url | built folder>… [options]
-       node lib/ouro/check/check.ts merge <out folder>… [--out <folder>] [--config <file>] [--images-report <file>]
+const ABOUT = [
+  "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; and long lines only where ouro-check.json declares a measure.",
+  "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
+];
 
-Checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched
-pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems,
-and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own
-corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one
-above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no
-one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to
-the page's own server that fail; content the screen cuts off, the same control twice in view and a region that
-scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason
-given; and long lines only where ouro-check.json declares a measure. A site on the web must move http:// to https://
-and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page
-(hovering cards, opening popups, scrolling and panning) against their budgets, and writes report.json, summary.md, a
-contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.
+const REPORT_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
+  out: { type: "string", placeholder: "<folder>", description: "Where the report goes (default ouro-check)." },
+  config: { type: "string", placeholder: "<file>", description: "The waivers and budgets (default ouro-check.json, when it exists)." },
+  "images-report": {
+    type: "string",
+    placeholder: "<file>",
+    description:
+      "Also write, as JSON, each picture too small for where it is drawn: its page, a selector, the file it drew, that file's pixels, its drawn width, the density and the width it needs.",
+  },
+});
 
-  --pages <glob>           only the built folder's pages the glob matches, such as "docs/**"
-  --out <folder>           where the report goes (default ouro-check)
-  --sizes WxH,…            the screen sizes (default: from a phone to a wide desktop, and short landscape screens)
-  --themes light,dark      the colour schemes (default both)
-  --shard k/n              this job's share, the kth of n parallel jobs; merge their out folders after
-  --before <report.json>   an earlier report, to show a before and after of what was fixed since
-  --config <file>          the waivers and budgets (default ouro-check.json, when it exists)
-  --no-axe                 skip axe-core
-  --no-measured            skip the measured rules, and press nothing
-  --ready-event <name>     an event the page fires once it has drawn, besides ouro:ready
-  --images-report <file>   also write, as JSON, each picture too small for where it is drawn: its page, a selector, the
-                           file it drew, that file's pixels, its drawn width, the density and the width it needs
+const CHECK_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
+  pages: { type: "string", placeholder: "<glob>", description: "Only the pages of the built folder that the glob matches, such as one section's pages." },
+  sizes: { type: "list", placeholder: "<WxH,…>", description: "The screen sizes (default: from a phone to a wide desktop, and short landscape screens)." },
+  themes: { type: "list", placeholder: "<light,dark>", description: "The colour schemes (default both)." },
+  shard: { type: "string", placeholder: "<k/n>", description: "This job's share, the kth of n parallel jobs; merge their out folders after." },
+  before: { type: "string", placeholder: "<report.json>", description: "An earlier report, to show a before and after of what was fixed since." },
+  "no-axe": { type: "boolean", description: "Skip axe-core." },
+  "no-measured": { type: "boolean", description: "Skip the measured rules, and press nothing." },
+  "ready-event": { type: "string", repeat: true, placeholder: "<name>", description: "An event the page fires once it has drawn, besides ouro:ready." },
+  ...REPORT_FLAGS,
+});
 
-Exit codes: 0 ok, 1 error (the check stopped before it finished, as when the browser would not start), 2 usage, 3 findings to fix.`;
+const URL_TARGET = /^https?:\/\//;
 
-// The command line, or the usage problem as a thrown Error.
+const isFolder = (path: string) => stat(path).then((s) => s.isDirectory(), () => false);
+
+const refusal = (code: string, thing: string, problem: string, fix: string | null) => new AxError({ code, exit: EXIT.usage, thing, problem, fix });
+
+// The command as typed, with some of its input replaced: the fix a refusal prints.
+const fixFor = (cli: Cli, cmd: CommandDef, input: Input, changes: Input) => commandLine([cli.name, ...toArgv(cli, cmd, { ...input, ...changes }).argv]);
+
+function sizesOf(cli: Cli, cmd: CommandDef, input: Input): [number, number][] {
+  const words = input["sizes"] as readonly string[] | undefined;
+  if (words === undefined) return SIZES;
+  const matches = words.map((word) => /^(\d+)x(\d+)$/.exec(word));
+  const bad = words.find((_, i) => matches[i] === null);
+  if (bad !== undefined || words.length === 0)
+    throw refusal("bad-value", "check --sizes", `takes WxH pairs such as 390x844,1440x900, not "${bad ?? ""}"`, fixFor(cli, cmd, input, { sizes: ["390x844", "1440x900"] }));
+  return matches.map((match) => [Number(match![1]), Number(match![2])] as [number, number]);
+}
+
+function themesOf(cli: Cli, cmd: CommandDef, input: Input): string[] {
+  const themes = (input["themes"] as readonly string[] | undefined) ?? ["light", "dark"];
+  const bad = themes.find((theme) => theme !== "light" && theme !== "dark");
+  if (bad !== undefined || themes.length === 0)
+    throw refusal("bad-value", "check --themes", `takes light, dark or both (light,dark), not "${bad ?? ""}"`, fixFor(cli, cmd, input, { themes: ["light", "dark"] }));
+  return [...themes];
+}
+
+function shardOf(cli: Cli, cmd: CommandDef, input: Input): [number, number] {
+  const text = input["shard"] as string | undefined;
+  if (text === undefined) return [1, 1];
+  const match = /^(\d+)\/(\d+)$/.exec(text);
+  const [k, n] = match ? [Number(match[1]), Number(match[2])] : [0, 0];
+  if (!(n >= 1 && k >= 1 && k <= n)) throw refusal("bad-value", "check --shard", `takes k/n, such as 1/4, not "${text}"`, fixFor(cli, cmd, input, { shard: "1/4" }));
+  return [k, n];
+}
+
+// The arguments a run takes, each checked; a value that is refused names the command as typed, with its fix.
+function argsOf(cli: Cli, cmd: CommandDef, input: Input): Args {
+  const text = (name: string) => input[name] as string | undefined;
+  const merging = cmd.name === "merge";
+  const targets = (input[merging ? "folder" : "target"] as readonly string[] | undefined) ?? [];
+  return {
+    merge: merging,
+    targets: [...targets],
+    out: text("out") ?? "ouro-check",
+    pages: text("pages"),
+    sizes: sizesOf(cli, cmd, input),
+    themes: themesOf(cli, cmd, input),
+    shard: shardOf(cli, cmd, input),
+    before: text("before"),
+    config: text("config"),
+    axe: input["no-axe"] !== true,
+    measured: input["no-measured"] !== true,
+    readyEvents: [...((input["ready-event"] as readonly string[] | undefined) ?? [])],
+    imagesReport: text("images-report"),
+  };
+}
+
+// A mistyped command word is a target, so it names the word it is closest to.
+function targetRefusal(cli: Cli, target: string): AxError {
+  const word = didYouMean(target, ["merge"]);
+  return refusal("not-a-target", "check", `"${target}" is not a folder or an http(s) URL`, word ? `${cli.name} merge <out folders>` : `${cli.name} <built folder or URL>`);
+}
+
+// The command line as the kit reads it: a run's arguments, checked. A help request reads the defaults.
 function parseArgs(argv: string[]): Args {
-  const args: Args = { merge: argv[0] === "merge", targets: [], out: "ouro-check", sizes: SIZES, themes: ["light", "dark"], shard: [1, 1], axe: true, measured: true, readyEvents: [], help: false };
-  for (let i = args.merge ? 1 : 0; i < argv.length; i++) {
-    const arg = argv[i]!;
-    const value = () => {
-      const next = argv[++i];
-      if (next === undefined || next.startsWith("--")) throw new Error(`${arg} needs a value.`);
-      return next;
-    };
-    const flag = args.merge && !["--help", "-h", "--out", "--config", "--images-report"].includes(arg) && arg.startsWith("-");
-    if (flag) throw new Error(`merge takes --out, --config and --images-report, not ${arg}.`);
-    if (arg === "--help" || arg === "-h") args.help = true;
-    else if (arg === "--no-axe") args.axe = false;
-    else if (arg === "--no-measured") args.measured = false;
-    else if (arg === "--out") args.out = value();
-    else if (arg === "--pages") args.pages = value();
-    else if (arg === "--before") args.before = value();
-    else if (arg === "--config") args.config = value();
-    else if (arg === "--images-report") args.imagesReport = value();
-    else if (arg === "--ready-event") args.readyEvents.push(value());
-    else if (arg === "--themes") {
-      args.themes = value().split(",").map((t) => t.trim());
-      const bad = args.themes.find((t) => t !== "light" && t !== "dark");
-      if (bad !== undefined) throw new Error(`--themes takes light, dark or both, not "${bad}".`);
-    } else if (arg === "--shard") {
-      const text = value();
-      const match = /^(\d+)\/(\d+)$/.exec(text);
-      const [k, n] = match ? [Number(match[1]), Number(match[2])] : [0, 0];
-      if (!(n >= 1 && k >= 1 && k <= n)) throw new Error(`--shard takes k/n, such as 1/4, not "${text}".`);
-      args.shard = [k, n];
-    } else if (arg === "--sizes") {
-      args.sizes = value()
-        .split(",")
-        .map((size) => {
-          const match = /^\s*(\d+)x(\d+)\s*$/.exec(size);
-          if (!match) throw new Error(`--sizes takes WxH pairs such as 390x844,1440x900, not "${size}".`);
-          return [Number(match[1]), Number(match[2])] as [number, number];
-        });
-    } else if (arg.startsWith("-")) throw new Error(`Unknown option ${arg}.`);
-    else args.targets.push(arg);
-  }
-  if (!args.help && !args.targets.length) throw new Error(args.merge ? "Name the out folders to merge." : "Name a URL or a built folder to check.");
-  return args;
+  const cli = checkTool({ cwd: process.cwd(), env: {}, log: console.log, error: console.error });
+  const parsed = parse(cli, argv);
+  return parsed.kind === "run" ? argsOf(cli, parsed.command, parsed.input) : argsOf(cli, cli.defaultCommand!, {});
 }
 
 interface Env {
@@ -1117,12 +1237,11 @@ function load(name: string, from: string[]): string | null {
   return null;
 }
 
-async function readJson<T>(file: string, error: (line: string) => void): Promise<T | null> {
+async function readJson<T>(file: string): Promise<T> {
   try {
     return JSON.parse(await readFile(file, "utf8")) as T;
   } catch (problem) {
-    error(`Reading ${file} stopped the check: ${(problem as Error).message}. Fix the file or its path, then run the check again.`);
-    return null;
+    throw refusal("unreadable-file", "check", `reading ${file} stopped the check: ${(problem as Error).message}`, "fix the file or its path, then run the check again");
   }
 }
 
@@ -1140,73 +1259,48 @@ function configProblem({ press, pressRepeat, states, waive }: Gate): string | nu
   return null;
 }
 
-// The command: returns the exit code.
-async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname(fileURLToPath(import.meta.url))] }: Env): Promise<number> {
-  let args: Args;
-  try {
-    args = parseArgs(argv);
-  } catch (problem) {
-    error(`${(problem as Error).message}\n\n${USAGE}`);
-    return EXIT.usage;
-  }
-  if (args.help) {
-    log(USAGE);
-    return EXIT.ok;
-  }
+// The check or the merge: its report, the step summary and the images report, then the outcome. Gated findings are the
+// person's to fix, so they are the needs-human outcome, which exits 3.
+async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, json: boolean): Promise<Outcome> {
+  const { cwd, env } = context;
+  // Under --json, stdout holds the outcome alone, so the progress lines go to stderr.
+  const log = json ? context.error : context.log;
+  const args = argsOf(cli, cmd, input);
+  const merging = args.merge;
+  const from = context.from ?? [cwd, dirname(fileURLToPath(import.meta.url))];
+  for (const target of args.targets) if (!merging && !URL_TARGET.test(target) && !(await isFolder(resolve(cwd, target)))) throw targetRefusal(cli, target);
   const playwright = env.PLAYWRIGHT_MODULE ?? ["playwright", "playwright-core"].map((name) => load(name, from)).find(Boolean);
-  if (!playwright) {
-    error("Ouro check needs Playwright: install playwright (npm i -D playwright), or set PLAYWRIGHT_MODULE to it.");
-    return EXIT.usage;
-  }
+  if (!playwright) throw refusal("no-playwright", "check", "needs Playwright", "install playwright (npm i -D playwright), or set PLAYWRIGHT_MODULE to it");
   const chromium = (createRequire(import.meta.url)(playwright) as { chromium: BrowserType }).chromium;
   const executable = env.BROWSER_EXECUTABLE ? { executablePath: env.BROWSER_EXECUTABLE } : {};
   const configFile = resolve(cwd, args.config ?? "ouro-check.json");
   const hasConfig = args.config !== undefined || (await readFile(configFile).then(() => true, () => false));
-  const config = hasConfig ? await readJson<Gate>(configFile, error) : {};
-  if (!config) return EXIT.usage;
+  const config: Gate = hasConfig ? await readJson<Gate>(configFile) : {};
   const wrong = configProblem(config);
-  if (wrong) {
-    error(`${configFile}: ${wrong}`);
-    return EXIT.usage;
-  }
-  if (config.measure !== undefined && (typeof config.measure !== "object" || config.measure === null || Array.isArray(config.measure))) {
-    error(`${configFile}: "measure" maps page globs and CSS selectors to measures, such as { "**": "100 chars" }.`);
-    return EXIT.usage;
-  }
+  if (wrong) throw refusal("bad-config", configFile, wrong, null);
+  if (config.measure !== undefined && (typeof config.measure !== "object" || config.measure === null || Array.isArray(config.measure)))
+    throw refusal("bad-config", configFile, '"measure" maps page globs and CSS selectors to measures', 'write it as an object, such as { "**": "100 chars" }');
   const unreadable = Object.entries(config.measure ?? {}).find(([, measure]) => typeof measure !== "string" || !MEASURE.test(measure.trim()));
-  if (unreadable) {
-    error(`${configFile}: the measure for "${unreadable[0]}" is ${JSON.stringify(unreadable[1])}; give a number of px, ch or chars, such as "800px", "75ch" or "100 chars".`);
-    return EXIT.usage;
-  }
-  // The check itself failing (no browser, a full disk) is no finding: it exits 3, never 1, which means "fix these".
+  if (unreadable)
+    throw refusal("bad-config", configFile, `the measure for "${unreadable[0]}" is ${JSON.stringify(unreadable[1])}`, 'give a number of px, ch or chars, such as "800px", "75ch" or "100 chars"');
+  // The check itself failing (no browser, a full disk) is no finding: it exits 1, never 3, which means "fix these".
+  const out = resolve(cwd, args.out);
   try {
-    const out = resolve(cwd, args.out);
     let result: CheckResult;
-    if (args.merge) {
+    if (merging) {
       const dirs = args.targets.map((dir) => resolve(cwd, dir));
-      for (const dir of dirs) if (!(await readJson<Report>(join(dir, "report.json"), error))) return EXIT.usage;
+      for (const dir of dirs) await readJson<Report>(join(dir, "report.json"));
       result = await merge({ dirs, out, ...(hasConfig ? { config } : {}), chromium, ...executable });
     } else {
-      const folders = args.targets.filter((t) => !/^https?:\/\//.test(t));
-      for (const folder of folders) {
-        if (!(await stat(resolve(cwd, folder)).then((s) => s.isDirectory(), () => false))) {
-          error(`${folder} is not a folder or an http(s) URL.\n\n${USAGE}`);
-          return EXIT.usage;
-        }
-      }
       let axe: string | false = false;
       if (args.axe) {
         const file = env.AXE_CORE ?? load("axe-core/axe.min.js", from);
-        if (!file) {
-          error("Ouro check runs axe-core: install it (npm i -D axe-core), set AXE_CORE to axe.min.js, or pass --no-axe.");
-          return EXIT.usage;
-        }
+        if (!file) throw refusal("no-axe", "check", "runs axe-core", "install it (npm i -D axe-core), set AXE_CORE to axe.min.js, or pass --no-axe");
         axe = await readFile(file, "utf8");
       }
-      const before = args.before === undefined ? { findings: [] } : await readJson<{ findings: Finding[] }>(resolve(cwd, args.before), error);
-      if (!before) return EXIT.usage;
+      const before = args.before === undefined ? { findings: [] } : await readJson<{ findings: Finding[] }>(resolve(cwd, args.before));
       result = await check({
-        targets: args.targets.map((t) => (/^https?:\/\//.test(t) ? t : resolve(cwd, t))),
+        targets: args.targets.map((t) => (URL_TARGET.test(t) ? t : resolve(cwd, t))),
         out,
         ...(args.pages === undefined ? {} : { pages: args.pages }),
         sizes: args.sizes,
@@ -1222,34 +1316,84 @@ async function main(argv: string[], { cwd, env, log, error, from = [cwd, dirname
         ...executable,
         log,
       });
-      if (!result.pages.length && args.shard[1] === 1) {
-        error(`No pages to check in ${args.targets.join(", ")}${args.pages === undefined ? "" : ` matching ${args.pages}`}.`);
-        return EXIT.usage;
-      }
+      if (!result.pages.length && args.shard[1] === 1)
+        throw refusal("no-pages", "check", `No pages to check in ${args.targets.join(", ")}${args.pages === undefined ? "" : ` matching ${args.pages}`}`, null);
     }
     if (env.GITHUB_STEP_SUMMARY) await appendFile(env.GITHUB_STEP_SUMMARY, summary(result));
+    const lines: string[] = [];
     if (args.imagesReport !== undefined) {
       const file = resolve(cwd, args.imagesReport);
       await mkdir(dirname(file), { recursive: true });
       const images = imagesReport(result.findings);
       await writeFile(file, `${JSON.stringify({ images }, null, 2)}\n`);
-      log(`Images report: ${images.length} picture(s) too small for where they are drawn, in ${relative(cwd, file)}`);
+      lines.push(`Images report: ${images.length} picture(s) too small for where they are drawn, in ${relative(cwd, file)}`);
     }
     const failing = group(result.gated);
-    log(`\n${group(result.findings).length} finding(s), ${failing.length} gated, ${result.fixed.length} fixed since --before. Report: ${relative(cwd, join(out, "report.json"))}`);
-    return failing.length ? EXIT.findings : EXIT.ok;
+    lines.push(`\n${group(result.findings).length} finding(s), ${failing.length} gated, ${result.fixed.length} fixed since --before. Report: ${relative(cwd, join(out, "report.json"))}`);
+    return outcome({ action: cmd.name, state: failing.length ? "needs-human" : "done", summary: lines.join("\n") });
   } catch (problem) {
-    if ((problem as { usage?: boolean }).usage) {
-      error(`${configFile}: ${(problem as Error).message}`);
-      return EXIT.usage;
-    }
-    error(`Ouro check stopped before it finished: ${(problem as Error).message}`);
-    return EXIT.error;
+    if (isAxError(problem)) throw problem;
+    const message = (problem as Error).message;
+    if ((problem as { usage?: boolean }).usage) throw refusal("bad-config", configFile, message, null);
+    throw new AxError({ code: "check-stopped", exit: EXIT.error, thing: "check", problem: `stopped before it finished: ${message}`, fix: null });
   }
+}
+
+// The tool: `check` is the default command, which runs for any leading word that is not `merge`; a target named like
+// `merge` goes after `--`.
+function checkTool(context: Env): Cli {
+  const checkCommand: CommandDef<Outcome> = defineCommand<Outcome>({
+    name: "check",
+    summary: "Checks every page of a built folder or a URL at every screen size, light and dark, and writes the report.",
+    effect: "private",
+    examples: ["ouro-check site/dist --pages /docs/button/ --no-axe"],
+    args: [{ name: "target", description: "A built folder or an http(s) URL to check.", required: true, rest: "list", missing: "Name a URL or a built folder to check." }],
+    flags: CHECK_FLAGS,
+    output: "an outcome: state needs-human when gated findings remain (exit 3), else done; its summary names report.json",
+    run: (input, ctx) => runCheck(context, cli, checkCommand, input, ctx.json),
+  });
+  const mergeCommand: CommandDef<Outcome> = defineCommand<Outcome>({
+    name: "merge",
+    summary: "Joins the out folders of a sharded run into one report.",
+    effect: "private",
+    examples: ["ouro-check merge ouro-check-1 ouro-check-2 --out ouro-check"],
+    args: [{ name: "folder", description: "An out folder of a sharded run, with its report.json.", required: true, rest: "list", missing: "Name the out folders to merge." }],
+    flags: REPORT_FLAGS,
+    output: "an outcome: state needs-human when gated findings remain (exit 3), else done; its summary names report.json",
+    run: (input, ctx) => runCheck(context, cli, mergeCommand, input, ctx.json),
+  });
+  const cli: Cli = defineCli({
+    name: "ouro-check",
+    about: ABOUT,
+    exits: defineExitCodes([...BASE_EXIT_CODES, FINDINGS_EXIT_CODE]),
+    outcomeExits: { ...DEFAULT_OUTCOME_EXITS, "needs-human": "findings" },
+    command: checkCommand,
+    commands: [mergeCommand],
+  });
+  return cli;
+}
+
+// The command: returns the exit code. The kit parses the arguments, prints the outcome or the one error line, and exits.
+async function main(argv: readonly string[], context: Env): Promise<number> {
+  return runCli(checkTool(context), argv, {
+    stdout: {
+      write: (text) => {
+        context.log(text.replace(/\n$/, ""));
+        return true;
+      },
+    },
+    stderr: {
+      write: (text) => {
+        context.error(text.replace(/\n$/, ""));
+        return true;
+      },
+    },
+  });
 }
 
 /* node:coverage disable */
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+  quietPipes(process);
   process.exitCode = await main(process.argv.slice(2), { cwd: process.cwd(), env: process.env, log: console.log, error: console.error });
 }
 /* node:coverage enable */

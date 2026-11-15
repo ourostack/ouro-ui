@@ -1,4 +1,4 @@
-export { headerClass, headingLevels, iconClass, itemClass, ownLook, panelClass, panelContentClass, rootClass, triggerClass };
+export { headerClass, headingLevels, iconClass, itemClass, ownLook, panelContentClass, rootClass, triggerClass };
 export type { AccordionHeadingLevel };
 
 // Class strings and value lists for Accordion, apart from the component so its file exports
@@ -67,21 +67,6 @@ const triggerClass =
 const iconClass =
   "size-4 shrink-0 text-muted-foreground transition-[rotate] duration-(--ouro-duration-base) ease-(--ouro-ease-out) " +
   "group-data-panel-open/trigger:rotate-180 motion-reduce:transition-none";
-
-/**
- * The panel: it grows from 0 to its measured height (Base UI's `--accordion-panel-height`)
- * and shrinks back; with reduced motion it opens and closes at once. Closed, it stays mounted
- * and hidden; where the browser supports `hidden="until-found"`, its page search finds and opens it.
- *
- * @internal
- * @claim "Closed, it stays mounted and hidden" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > lets the browser's page search find and open a closed item, and hides it plainly where until-found is unsupported)
- * @claim "The panel: it grows from 0" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > animates the panel to its measured height)
- * @claim "The panel: it grows from 0" registry/ouro/components/ouro/accordion/accordion.test.tsx verify:testExists(registry/ouro/components/ouro/accordion/accordion.test.tsx::Accordion > does not animate height with reduced motion)
- */
-const panelClass =
-  "h-(--accordion-panel-height) overflow-hidden " +
-  "transition-[height] duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none " +
-  "data-starting-style:h-0 data-ending-style:h-0 [&[hidden]:not([hidden=until-found])]:hidden";
 
 /** @internal */
 const panelContentClass = "pb-4 text-base sm:pointer-fine:text-sm";

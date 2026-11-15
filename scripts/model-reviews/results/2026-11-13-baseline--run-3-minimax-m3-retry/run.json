@@ -1,0 +1,229 @@
+{
+  "status": "complete",
+  "runId": "0467da47-6ec9-4b34-805e-de3268c78c77",
+  "startedAt": "2026-11-13T21:27:11.272Z",
+  "asOf": "2026-11-13T21:27:11.272Z",
+  "candidates": [
+    {
+      "name": "Ouro UI",
+      "url": "https://github.com/ourostack/ouro-ui",
+      "sha": "0ff924a85cabfd796f9055cf1c6152e59796b118",
+      "committedAt": "2026-11-13T19:24:39Z",
+      "capturedAt": "2026-11-13T21:27:20.711Z"
+    },
+    {
+      "name": "shadcn/ui",
+      "url": "https://github.com/shadcn-ui/ui",
+      "sha": "e62c9435fff729a175f38983dee73b2cb4f6a069",
+      "committedAt": "2026-11-13T10:57:41Z",
+      "capturedAt": "2026-11-13T21:27:20.709Z"
+    },
+    {
+      "name": "Vercel UI SDK",
+      "url": "https://github.com/vercel-labs/ui",
+      "sha": "724a7d6c2d0ca1251a8eb6172462ae220c484714",
+      "committedAt": "2026-11-13T17:27:28Z",
+      "capturedAt": "2026-11-13T21:27:20.710Z"
+    },
+    {
+      "name": "Agent-native (Builder.io)",
+      "url": "https://github.com/BuilderIO/agent-native",
+      "sha": "88c2e4b20c3670e6e68caa950bd524cb8a05664a",
+      "committedAt": "2026-11-13T20:40:02Z",
+      "capturedAt": "2026-11-13T21:27:20.683Z"
+    },
+    {
+      "name": "Radix UI",
+      "url": "https://github.com/radix-ui/primitives",
+      "sha": "eb3a2b7091293e27df8f9ba906632d8daa3d81a3",
+      "committedAt": "2026-10-14T19:06:36Z",
+      "capturedAt": "2026-11-13T21:27:20.708Z"
+    },
+    {
+      "name": "Base UI",
+      "url": "https://github.com/mui/base-ui",
+      "sha": "315eba7a3d8a0a53d47fe7b902cb75daa21f6814",
+      "committedAt": "2026-11-13T11:25:43Z",
+      "capturedAt": "2026-11-13T21:27:20.416Z"
+    },
+    {
+      "name": "React Aria and React Spectrum",
+      "url": "https://github.com/adobe/react-spectrum",
+      "sha": "360e35170568dfc99a2baaa78e6b7bdd36458d91",
+      "committedAt": "2026-11-13T19:32:08Z",
+      "capturedAt": "2026-11-13T21:27:20.416Z"
+    },
+    {
+      "name": "MUI",
+      "url": "https://github.com/mui/material-ui",
+      "sha": "212e2e351f01989d2002a74d059a80c8f4e310a7",
+      "committedAt": "2026-11-13T14:34:17Z",
+      "capturedAt": "2026-11-13T21:27:20.431Z"
+    },
+    {
+      "name": "Chakra UI",
+      "url": "https://github.com/chakra-ui/chakra-ui",
+      "sha": "4d3fda5dfd956188786a641ba47ec49dbe7dce93",
+      "committedAt": "2026-11-11T13:54:13Z",
+      "capturedAt": "2026-11-13T21:27:20.435Z"
+    },
+    {
+      "name": "Tamagui",
+      "url": "https://github.com/tamagui/tamagui",
+      "sha": "385dcd1463f91c66545c81d13f567305eb8a83ba",
+      "committedAt": "2026-11-13T12:03:34Z",
+      "capturedAt": "2026-11-13T21:27:20.436Z"
+    },
+    {
+      "name": "Flutter",
+      "url": "https://github.com/flutter/flutter",
+      "sha": "0c6b0fd432ccb2e3badedc82b9dca1b0bea7bb13",
+      "committedAt": "2026-11-13T20:48:47Z",
+      "capturedAt": "2026-11-13T21:27:20.712Z"
+    },
+    {
+      "name": "Fluent UI",
+      "url": "https://github.com/microsoft/fluentui",
+      "sha": "f9720c35ba893c9630f4c0389d07dc6d6fd6068d",
+      "committedAt": "2026-11-12T20:44:25Z",
+      "capturedAt": "2026-11-13T21:27:20.679Z"
+    },
+    {
+      "name": "Material 3 and Jetpack Compose",
+      "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+      "prefixes": [
+        "https://developer.android.com/develop/ui/compose",
+        "https://developer.android.com/jetpack/androidx/releases/compose-material3"
+      ],
+      "capturedAt": "2026-11-13T21:27:20.993Z",
+      "pageSha256": "c775dc1fa40dc62fd7bd043f142ada5948c63887647316e4e0017aa62db220f4"
+    },
+    {
+      "name": "SwiftUI and Apple Human Interface Guidelines",
+      "url": "https://developer.apple.com/documentation/swiftui",
+      "prefixes": [
+        "https://developer.apple.com/tutorials/data/documentation/swiftui",
+        "https://developer.apple.com/tutorials/data/design/human-interface-guidelines"
+      ],
+      "capturedAt": "2026-11-13T21:27:20.698Z",
+      "pageSha256": "1d369d808d6414c4cf243a79fc64253f4b78b272c703a89a504a4c592883eacc"
+    },
+    {
+      "name": "A2UI",
+      "url": "https://github.com/a2ui-project/a2ui",
+      "sha": "5f6d26c48a5c61bf845cf1ef2a02a47e31e8d9ba",
+      "committedAt": "2026-11-13T20:59:24Z",
+      "capturedAt": "2026-11-13T21:27:21.074Z"
+    },
+    {
+      "name": "OpenAI Apps SDK UI",
+      "url": "https://github.com/openai/apps-sdk-ui",
+      "sha": "0f00143c7a639906f1621fe58e1b6be7b5bea46d",
+      "committedAt": "2026-05-05T19:05:41Z",
+      "capturedAt": "2026-11-13T21:27:21.075Z"
+    },
+    {
+      "name": "MCP Apps",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161",
+      "committedAt": "2026-11-10T19:42:59Z",
+      "capturedAt": "2026-11-13T21:27:21.088Z"
+    },
+    {
+      "name": "json-render",
+      "url": "https://github.com/vercel-labs/json-render",
+      "sha": "f5c12405a19c45be5e0e90778ef888ed541b208f",
+      "committedAt": "2026-11-13T09:14:23Z",
+      "capturedAt": "2026-11-13T21:27:21.830Z"
+    },
+    {
+      "name": "AI Elements",
+      "url": "https://github.com/vercel/ai-elements",
+      "sha": "ca8be600bfd01b3131f9bf6134b51602a71f4374",
+      "committedAt": "2026-10-14T17:02:55Z",
+      "capturedAt": "2026-11-13T21:27:21.831Z"
+    },
+    {
+      "name": "CopilotKit",
+      "url": "https://github.com/CopilotKit/CopilotKit",
+      "sha": "6eb31152c62dcb7b20780336b2639cf525f40a57",
+      "committedAt": "2026-11-13T21:04:50Z",
+      "capturedAt": "2026-11-13T21:27:21.074Z"
+    }
+  ],
+  "runtime": {
+    "name": "GitHub Copilot CLI",
+    "version": "1.0.83",
+    "protocolVersion": 3,
+    "sdk": "@github/copilot-sdk",
+    "mode": "empty",
+    "inferenceMode": "copilot-first",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false
+  },
+  "failures": [],
+  "summary": {
+    "totalReviews": 1,
+    "picks": {
+      "A2UI": 1
+    },
+    "winner": "A2UI",
+    "subjectPicks": 0,
+    "subjectPositions": {
+      "minimax-m3": 19
+    }
+  },
+  "reviews": [
+    {
+      "provider": "minimax-m3",
+      "model": "MiniMax-M3",
+      "vendor": "MiniMax",
+      "displayName": "MiniMax M3",
+      "transport": "direct-api",
+      "runId": "0467da47-6ec9-4b34-805e-de3268c78c77",
+      "timestamp": "2026-11-13T21:32:44.824Z",
+      "verdict": "A2UI",
+      "pullQuote": "A2UI turns your design system's component catalog into the contract an agent and a human share — rendering natively on web, Flutter, SwiftUI, and Compose.",
+      "testimonial": "I'd pick A2UI because it makes the component catalog the shared contract: the agent negotiates renderer capabilities, the Agent SDK validates model output against your catalog before it reaches the screen, and first-party renderers draw it with native widgets — Flutter, SwiftUI, and Jetpack Compose's material3-a2ui alongside React, Lit, and Angular. Catalog negotiation plus the declarative-only data model is a genuine security boundary rather than a convention, and v1.0 deliberately drops branding from the wire so Material 3 or your own tokens still own the look. The honest trade-off versus json-render is catalog depth: A2UI's Basic Catalog is 18 components, so production means authoring a custom or hybrid catalog per platform, where json-render would simply let an agent compose the components you already ship. I accept that cost because json-render's native reach stops at React Native, while A2UI has first-party SwiftUI and Compose renderers.",
+      "evaluations": "**A2UI** — The only candidate whose central abstraction is literally the shared contract between an agent and a person: a JSON Schema catalog of components, properties, and local functions. The Agent SDK \"negotiates active Catalog definitions and protocol versions against the capabilities reported by the client renderer\" and compiles model output into wire messages only after validating it against that catalog, so a hallucinated component or a bad binding never reaches a screen. Renderer SDKs are first-party for Flutter, React, Lit, Angular, SwiftUI, and Jetpack Compose — the last one shipping as `androidx.compose.material3:material3-a2ui` — and the renderer maps protocol accessibility attributes onto Flutter, WAI-ARIA, SwiftUI, and Compose a11y APIs. v1.0's \"Decoupled Branding\" clause is the architecturally important bit for a design system: a `createSurface` carrying theme is invalid, so Material 3, the HIG, or your own tokens keep ownership of the look while the agent owns only structure and data. The spec adds bidirectional function RPC, the repo ships YAML conformance suites under `conformance/core` and `conformance/agent`, and the quickstart literally runs one Python server against a React and a Flutter client. The real cost: the Basic Catalog is only 18 components and 14 functions, so a production app means authoring a custom or hybrid catalog per platform, and there's no official React Native renderer (a community one exists at v0.8) — [v1.0 spec](https://a2ui.org/specification/v1.0-a2ui/), [SDK reference](https://a2ui.org/concepts/sdks/), [how it works](https://a2ui.org/concepts/overview/), [ecosystem](https://a2ui.org/ecosystem/renderers/).\n\n**json-render** — The closest runner-up and the best pure-JS option: `defineCatalog` with Zod schemas, `defineRegistry`, `<Renderer spec>`, streaming via `SpecStream`, expressions (`$state`, `$cond`, `$template`, `$computed`), state watchers, a devtools inspector, an MCP integration, and an unusually wide output matrix (React, Vue, Svelte, Solid, React Native, Remotion video, PDF, email, Slack/Teams/Discord cards, Ink terminal, Three.js). Its architectural difference from A2UI is ownership: json-render is application-owned, so the agent composes the components you already ship and the app defines interaction semantics; A2UI is agent-owned, with a live surface the agent updates across turns and structured `action` events flowing back. That also means json-render's \"native\" reach ends at React Native, whereas A2UI has first-party SwiftUI and Compose renderers. Worth noting it ships an A2UI adapter, so the two aren't rivals in practice — [README](https://github.com/vercel-labs/json-render), [A2UI ecosystem entry](https://a2ui.org/ecosystem/renderers/).\n\n**MCP Apps** — The best standardization for *shipping* agent UIs into chat hosts: `ui://` resources linked to tools, MCP JSON-RPC in both directions, mandatory iframe sandboxing, CSP and permission metadata, and a stable 2026-01-26 spec (SEP-1865) with nine-plus hosts including Claude, ChatGPT, VS Code, Goose, Postman, and MCPJam. The limitation is decisive for this brief: content type is `text/html;profile=mcp-app`, so the UI is HTML in a sandboxed iframe everywhere — never native, always with the host's surrounding chrome and theme — and the repo ships no supported host implementation beyond a reference `basic-host`. Use it as the delivery layer, not the rendering layer — [README](https://github.com/modelcontextprotocol/ext-apps), [specification](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx).\n\n**CopilotKit** — A complete agent-product stack: AG-UI streaming, shared state both sides can read and write, human-in-the-loop approval, frontend tools, React/Angular/Vue/React Native/Slack/Teams surfaces, and generative UI in three explicit modes (controlled components you register, declarative A2UI, sandboxed MCP Apps). It now speaks A2UI 1.0, which means it can sit on top of the layer I chose. What it is not is a design system — it leaves component choice, visual language, and native rendering to you, and its \"Intelligence\" tier is a commercial product. [README](https://github.com/CopilotKit/CopilotKit).\n\n**Vercel UI SDK** — The most interesting mechanism here for letting an agent *operate* a live interface rather than merely generate one: `createAgent` exposes `snapshot()` (components on the page with their state and available actions), `query()` (list items, fuzzy match), and `act()` (invoke a component's action), with `agentTools` publishing those three as JSON-Schema tool definitions, plus permissions, observe-changes, history/undo, and WebMCP. Behaviours (focus, selection, popups, drag-and-drop, lists, transitions) are shared across React, Vue, Svelte, Solid, and Web Components. The blockers are scope and stability: everything is DOM-based so there is no native path, and the README explicitly says it is in beta and \"the framework, APIs, documentation, and behavior may change before general availability.\" [README](https://github.com/vercel-labs/ui), [Connect an Agent](https://ui-sdk.dev/docs/agents/connect-an-agent).\n\n**Material 3 and Jetpack Compose** — Android's design system with the deepest native theming story of any candidate: color/typography/shape subsystems, dynamic Material You color, M3 Expressive, adaptive layouts and window size classes, semantics, and a large component set. Crucially for this brief, the same docs site now carries an \"Agentic capabilities\" section covering \"Create and customize catalogs,\" \"Render surfaces,\" \"Implement custom components,\" and \"Test A2UI interfaces\" — Google is shipping the A2UI/Compose bridge (Basic, Custom, and Hybrid catalog strategies) as `material3-a2ui`. Its limit is that it is Android-only; the thing that makes Material 3 reachable from a web or iOS agent is a protocol layer, which is exactly why I'd pick A2UI over the platform design system. [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3).\n\n**SwiftUI and Apple Human Interface Guidelines** — The most opinionated native design language, and the only candidate where \"native\" is a first-class guarantee: SwiftUI's View/App/Scene composition, system accessibility, previews, Liquid Glass, and a HIG that covers foundations, components, patterns, and per-platform idioms. A2UI ships an official SwiftUI renderer with BasicCatalogSwiftUI, and a community renderer covers UIKit/AppKit/tvOS/visionOS/watchOS. But the HIG is prose guidance for humans — there is no machine-addressable contract an agent can compose against — and it does not cross to web. [SwiftUI](https://developer.apple.com/documentation/swiftui), [HIG](https://developer.apple.com/design/human-interface-guidelines).\n\n**OpenAI Apps SDK UI** — A genuinely well-made first-party design system for apps inside ChatGPT: Tailwind 4 tokens across colors, typography, spacing, sizing, shadows, and surfaces, Radix-based accessible components, dark-mode and responsive utilities, MIT-licensed, with a full component inventory in its AGENTS.md and per-component Storybook. Its \"agents\" story, though, is being *in* ChatGPT rather than being addressed by one — the component set is web-only and scoped to the ChatGPT container, so it gives you a look and nothing else. [README](https://github.com/openai/apps-sdk-ui), [AGENTS.md](https://github.com/openai/apps-sdk-ui/blob/main/AGENTS.md).\n\n**Ouro UI** — The most literal \"both people and agents\" *design system* of the React candidates, split deliberately into Ouro HX (components for people) and Ouro AX (tools for agents: `ax-checks`, `ax-claims`, `ax-command`, `ax-cli`, `ax-component`, conformance tests). Typed props, discoverable source, explicit commands, machine-readable claims, an `llms.txt`, and `ouro-check`, which opens every page at 320–3840px in light and dark and reports overlap, sideways scroll, clipped text, axe-core violations, and design problems without relying on screenshots. The craft is excellent, but it is web-only (React + shadcn registry + Tailwind v4 + Base UI) and copy-in, so native is out of reach. [README](https://github.com/ourostack/ouro-ui).\n\n**shadcn/ui** — Copy-in components you own, with a registry/CLI, Tailwind, CSS variables, `llms.txt`, skills, an MCP registry server, and now a first-class AI Elements section of 25+ agentic patterns (Chat, Message, Reasoning, Tool, Task, Plan, Terminal, Sources, Confirmation, Subagent, Test Results, Checkpoint). This is the strongest \"agents build the interface\" story in ordinary React, and the destination for the retiring Vercel AI Elements. But every pattern is React/web only, code you paste in rather than a runtime library, and there is no path to native. [README](https://github.com/shadcn-ui/ui), [AI Elements](https://ui.shadcn.com/docs/ai-elements).\n\n**Agent-native (Builder.io)** — The sharpest idea for shared authority between a human and an agent: one `defineAction` with a Zod schema is simultaneously the agent's tool, a React hook (`useActionQuery`), an HTTP route, an MCP tool, an A2A command, and a CLI command, with shared data, shared application state, auth and permissions, skills and memory, automations, agent teams, PostgreSQL/PGlite, and a `/visual-edit` skill for editing a running app on a canvas. The catch for this brief: it is a web/Nitro application framework — the shared artifact with the agent is an action layer, not a rendered design system, and there is no native renderer or cross-platform UI contract. [README](https://github.com/BuilderIO/agent-native).\n\n**Tamagui** — The best web+React Native implementation engine of the traditional set: an optimizing compiler that flattens styled components into plain `div`s with atomic CSS on web or hoisted style objects on native, with typed tokens and a UI kit that adapts per platform. Its agent story is documentation-shaped rather than protocol-shaped: 2026 guidance points at Agent Skills and committing a project-specific prompt so coding agents understand your `tamagui.config.ts`, and independent commentary flags higher hallucination risk because agents must hold a large bespoke API in their head. Good engine, weak shared contract. [README](https://github.com/tamagui/tamagui).\n\n**React Aria and React Spectrum** — The most rigorous accessibility and internationalization of anything here: WAI-ARIA Authoring Practices conformance, full screen-reader and keyboard testing, 30+ locales with RTL, date and number formatting, and a clean separation of React Aria (unstyled behavior), React Stately (cross-platform state), and React Spectrum (styled Adobe design system). The portable piece is React Stately — the README notes it can be used independently on platforms like React Native — while React Aria Components itself is DOM-based, so there is no native renderer and no agent-addressable contract. [README](https://github.com/adobe/react-spectrum).\n\n**Base UI** — Unstyled, accessible primitives from the creators of Radix, Floating UI, and Material UI, MIT-licensed, with a deliberate \"bring your own styling\" model (Tailwind, CSS Modules, CSS-in-JS). An excellent substrate for a design system you own, and small stable APIs that agents can read from source. Two limits: it is React-only (`@base-ui/react`; official non-React renderers don't exist, community ports do), and it supplies no agent-facing contract — the catalog, the validation, and the protocol would all be yours to invent. [README](https://github.com/mui/base-ui).\n\n**Radix UI** — The primitive layer that much of this list is secretly built on (shadcn/ui and OpenAI's Apps SDK UI both build on it): unstyled, accessible, composable, incremental adoption, and a large installed base that makes agent-written code more likely to compile. But it is React/DOM only with no native story, and it offers no agent contract — you'd layer A2UI, MCP Apps, or a custom catalog on top yourself. [README](https://github.com/radix-ui/primitives).\n\n**Chakra UI** — A fast, accessible React component system with a styled-system token model, RSC support, and an MCP server installable straight from Cursor for agent-assisted coding. Solid for web velocity and a friendly API for agents to generate against. It stops at the web boundary (React + Emotion, no native), and its MCP server serves documentation to agents rather than defining an interface contract agents can drive. [README](https://github.com/chakra-ui/chakra-ui).\n\n**MUI** — The most battle-tested React design system, an independent implementation of Material Design with a decade of production use, a mature theming layer, and MUI X for data-heavy components. No agent story and no native; it also imposes Material's visual language, which fights teams wanting their own brand unless they override aggressively. [README](https://github.com/mui/material-ui).\n\n**Fluent UI** — Microsoft's Fluent 2 system for web: React v9 components, a separate Web Components implementation, Griffel for styling, token-driven theming, and a slots API that keeps DOM structure under your control. Enterprise-grade and used across Microsoft 365 — but it is web-only, and there is no agent-facing protocol; an agent would write Fluent code, not address Fluent components. [README](https://github.com/microsoft/fluentui).\n\n**Flutter** — The most complete \"one codebase, every platform\" answer in the set: a layered architecture, Impeller rendering, hot reload, Material *and* Cupertino widget sets, FFI and platform channels, and targets for iOS, Android, web, Windows, macOS, and Linux. A2UI ships an official Flutter renderer (`a2ui_flutter`), so the two compose well. Flutter's weakness for this brief is that it is a UI framework, not a contract: an agent must emit correct Dart widget code, with no schema boundary, no capability negotiation, and no validation of what the model produced. [README](https://github.com/flutter/flutter).\n\n**AI Elements** — Do not start here: the repository README states the project \"is moving to shadcn/ui\" and \"will be deprecated at the end of November 2026,\" with the shadcn version at ui.shadcn.com/docs/ai-elements as the replacement. Its substance — Conversation, Message, CodeBlock, Reasoning — is now maintained inside shadcn/ui, which is also web-only. [README](https://github.com/vercel/ai-elements).",
+      "candidateOrder": [
+        "Tamagui",
+        "Base UI",
+        "OpenAI Apps SDK UI",
+        "MCP Apps",
+        "CopilotKit",
+        "Material 3 and Jetpack Compose",
+        "React Aria and React Spectrum",
+        "json-render",
+        "SwiftUI and Apple Human Interface Guidelines",
+        "A2UI",
+        "Chakra UI",
+        "Flutter",
+        "Fluent UI",
+        "Agent-native (Builder.io)",
+        "MUI",
+        "shadcn/ui",
+        "Radix UI",
+        "Vercel UI SDK",
+        "Ouro UI",
+        "AI Elements"
+      ],
+      "promptSha256": "b4f3b740d7a91e4317b68b66414bb4d2b759be9c80fdd59a2d7e3a9af18b2c59",
+      "sourceSnapshotSha256": "a3033d35f866bb93ccda24efee122fe09b05163cfd83d5e38cffce41c90f9fd5",
+      "configuration": {
+        "contextTier": "default",
+        "reasoningEffort": "provider-default",
+        "infiniteSessions": false,
+        "largeOutputIndirection": false,
+        "systemMessageMode": "replace",
+        "tools": [
+          "search",
+          "fetch_url",
+          "final_verdict"
+        ]
+      },
+      "rounds": 31,
+      "transcriptFile": "transcripts/minimax-m3.json"
+    }
+  ]
+}

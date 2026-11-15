@@ -9,7 +9,8 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 // What windowing saves MessageList in a long conversation: 2,000 messages drawn whole (windowing={false}, as every
 // MessageList was before) and windowed. Each arm reports how many messages and elements are in the page, how long the
 // first draw takes (render to the frame after), how long the app drawing the list again takes (as when someone types in
-// the composer), and the longest frame while a page of 100 older messages goes in above a reader scrolled up.
+// the composer), and the longest frame while a page of 100 older messages goes in above a reader scrolled up. The redraw and
+// the page each run three times, and the middle of the three counts.
 //
 // Timings are this runner's, with React's development build, not a person's device or an app's production build: they
 // vary from run to run, so the test holds windowed to a share of whole rather than to a number, and reports the numbers
@@ -17,6 +18,9 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const COUNT = 2000;
 const PAGE = 100;
+/** How many times the redraw and the page of older messages run, for the middle of their timings. */
+const SAMPLES = 3;
+const middle = (samples: number[]) => samples.sort((a, b) => a - b)[Math.floor(samples.length / 2)]!;
 const roots: Root[] = [];
 let mounted: Element[] = [];
 
@@ -90,15 +94,26 @@ async function measure(windowing: boolean): Promise<Numbers> {
   const list = host.querySelector<HTMLElement>('[data-ouro="message-list"]')!;
   const messages = list.querySelectorAll('[data-ouro="message"]').length;
   const elements = list.querySelectorAll("*").length;
-  // The app draws again with the same messages.
-  const redrawStart = performance.now();
-  await act(async () => root.render(<Chat from={0} count={COUNT} windowing={windowing} />));
-  const redraw = performance.now() - redrawStart;
+  // The app draws again with the same messages, three times, and the middle of the three: one draw is one sample of a shared
+  // runner, which a slow moment (a garbage collection) can double in either arm.
+  const redraws: number[] = [];
+  for (let draw = 0; draw < SAMPLES; draw++) {
+    const redrawStart = performance.now();
+    await act(async () => root.render(<Chat from={0} count={COUNT} windowing={windowing} />));
+    redraws.push(performance.now() - redrawStart);
+    await frame();
+  }
+  const redraw = middle(redraws);
   // Up the conversation, a page of older messages loads above.
   const scroller = list.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
   await act(async () => void (scroller.scrollTop = scroller.scrollHeight / 2));
   for (let wait = 0; wait < 5; wait++) await frame();
-  const prependFrame = await longestFrame(() => act(async () => root.render(<Chat from={-PAGE} count={COUNT + PAGE} windowing={windowing} />)));
+  // Three pages in turn, and the middle of their longest frames, for the same reason.
+  const prependFrames: number[] = [];
+  for (let page = 1; page <= SAMPLES; page++) {
+    prependFrames.push(await longestFrame(() => act(async () => root.render(<Chat from={-PAGE * page} count={COUNT + PAGE * page} windowing={windowing} />))));
+  }
+  const prependFrame = middle(prependFrames);
   await act(async () => root.unmount());
   roots.splice(roots.indexOf(root), 1);
   return { messages, elements, firstDraw, redraw, prependFrame };
@@ -106,7 +121,7 @@ async function measure(windowing: boolean): Promise<Numbers> {
 
 const round = (value: number) => Math.round(value);
 const report = (name: string, numbers: Numbers) =>
-  `${name}: ${numbers.messages} messages and ${numbers.elements} elements in the page; first draw ${round(numbers.firstDraw)} ms; redraw ${round(numbers.redraw)} ms; longest frame as a page of ${PAGE} older messages goes in ${round(numbers.prependFrame)} ms (this runner and React's development build, not a person's device)`;
+  `${name}: ${numbers.messages} messages and ${numbers.elements} elements in the page; first draw ${round(numbers.firstDraw)} ms; redraw ${round(numbers.redraw)} ms; longest frame as a page of ${PAGE} older messages goes in ${round(numbers.prependFrame)} ms (each the middle of ${SAMPLES}) (this runner and React's development build, not a person's device)`;
 
 // One browser and a fine pointer: the timings compare like with like, and the touch project would only repeat them. Drawing
 // 2000 messages whole, more than once, takes longer than a test's usual 15 seconds on a slow runner.

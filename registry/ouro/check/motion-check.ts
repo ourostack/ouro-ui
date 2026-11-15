@@ -83,7 +83,7 @@ function listenForMotion(): void {
 // repaint: an endless animation that makes the browser paint every frame while nothing else moves, so a page at rest is
 // never at rest. Only transform, opacity, translate, rotate and scale run on the compositor; anything else (a dash
 // offset, a background position, a colour) repaints, and so does any animation inside an SVG drawing. Read from
-// document.getAnimations(), so it needs no timing. Found by the Tandem plan map's smoothness work, where three such
+// document.getAnimations(), so it needs no timing. Found by a consuming app's plan map smoothness work, where three such
 // animations painted 180 times in 1.5 s at rest.
 function findRepaints(): { ref: string; rule: string; element: string; detail: string }[] {
   const counter = window as unknown as { __ouroCheckRef?: number };

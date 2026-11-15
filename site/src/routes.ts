@@ -19,7 +19,7 @@ export interface Route {
 /** Old addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
 export const redirects: Array<{ from: string; to: string }> = [{ from: "/voyage/", to: "/" }];
 
-const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline} Ouro AX is Ouro UI's other half, for the tools agents use.`;
+const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline}`;
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
 const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on a far-off island. Help him get her ready, then sail with him. A story told with Ouro HX components: build the Nautilus, plan her voyage, and meet a very friendly squid.`;
 
@@ -37,6 +37,7 @@ export const routes: Route[] = [
   { path: "/apple/ax/", title: "Ouro AX for Apple", description: "The App Intents X-ray reads a built app from outside and checks it against Apple's side of the Ouro AX standard. Browse the real reports from Spoonjoy and Ouro MD, before and after." },
   { path: "/apple/reins/", title: "Ouro Reins · Ouro UI for Apple", description: "Agents drive an app's screens as state and actions with ls and do: headless, in milliseconds, with the network blocked. Drive a pretend kitchen in your browser and race the simulator." },
   { path: "/apple/start/", title: "Get started · Ouro UI for Apple", description: "Add one Swift package, set a theme, animate with the shared spring, play a named haptic, and X-ray your App Intents in CI." },
+  { path: "/adoption/", title: "Adoption · Ouro UI", description: "Who uses Ouro UI, and who gives back to it: our maintained products, measured from GitHub and CI hourly, furthest from confirmed first." },
   {
     path: "/docs/",
     title: "Components · Ouro HX",
@@ -63,7 +64,7 @@ export const routes: Route[] = [
   },
   {
     path: "/docs/updating/",
-    title: "Updating installed components · Ouro HX",
+    title: "Updating components · Ouro HX",
     description: "Review upstream changes with add --diff, then overwrite and reapply your edits.",
   },
 ];

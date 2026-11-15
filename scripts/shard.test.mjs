@@ -4,8 +4,9 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, scriptTestFiles, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
 import { shardArgument, TimedSequencer } from "./vitest-shards.mts";
 
@@ -53,10 +54,7 @@ test("the script tests that drive a browser are those that import Playwright's r
   assert.equal(drivesBrowser("scripts/touch-kit-frames.test.mjs"), false);
   const cli = (...args) => spawnSync(process.execPath, [join(root, "scripts/shard.mjs"), ...args], { cwd: root, encoding: "utf8" }).stdout.trim().split("\n");
   const browser = cli("scripts-browser");
-  const shards = [cli("scripts", "1/2"), cli("scripts", "2/2")].flat();
   assert.ok(browser.includes("scripts/agent-usability/score.test.mjs"));
-  assert.deepEqual([...shards, ...browser].sort(), scriptTestFiles().sort());
-  assert.equal(new Set([...shards, ...browser]).size, scriptTestFiles().length);
 });
 
 test("with groups, each group's files spread as evenly as the shards allow, then the least in all", () => {
@@ -103,7 +101,7 @@ test("refresh reads every timing report under a folder, keeping the longer time 
   writeFileSync(join(dir, "timings-browser-2/other.json"), JSON.stringify({ ignored: 1 }));
   mkdirSync(join(dir, "timings-e2e-3"), { recursive: true });
   writeFileSync(join(dir, "timings-e2e-3/e2e-3of3.json"), JSON.stringify({ "site/e2e/stage.spec.ts": 2000 }));
-  assert.deepEqual(collectTimings(dir), { vitest: { "ouro-chromium a.test.tsx": 10, "site site.test.tsx": 7 }, scripts: { "scripts/a.test.mjs": 3 }, e2e: { "site/e2e/stage.spec.ts": 2000 } });
+  assert.deepEqual(collectTimings(dir), { vitest: { "ouro-chromium a.test.tsx": 10, "site site.test.tsx": 7 }, scripts: { "scripts/a.test.mjs": 3 }, e2e: { "site/e2e/stage.spec.ts": 2000 }, subset: {} });
   const file = join(dir, "timings.json");
   writeFileSync(file, JSON.stringify({ vitest: { x: 1 } }));
   assert.deepEqual(readTimings("vitest", file), { x: 1 });
@@ -111,18 +109,13 @@ test("refresh reads every timing report under a folder, keeping the longer time 
   assert.deepEqual(readTimings("scripts", join(dir, "missing.json")), {});
 });
 
-test("every script test file is in pnpm test:scripts, so one of the script test shards runs it", () => {
-  const listed = scriptTestFiles();
-  const found = ["scripts", "site/scripts"].flatMap((dir) =>
-    treeFiles(join(root, dir))
-      .filter((file) => file.endsWith(".test.mjs"))
-      .map((file) => `${dir}/${file}`)
-      // The kits' tests run inside scripts/kits.test.mjs, under Node's coverage.
-      .filter((file) => !file.startsWith("scripts/kits/")),
-  );
-  assert.deepEqual([...listed].sort(), [...new Set(found)].sort());
-  // CI's two shards each take some of them.
-  for (const index of [1, 2]) assert.ok(shardKeys(listed, { index, count: 2 }, readTimings("scripts")).length > 0);
+test("every script test file the runner finds runs in exactly one scripts shard, and the shards run nothing else", () => {
+  const found = scriptTestFiles();
+  const cli = (...args) => spawnSync(process.execPath, [join(root, "scripts/shard.mjs"), ...args], { cwd: root, encoding: "utf8" }).stdout.trim().split("\n");
+  // CI runs three script shards side by side; scripts-browser runs the files that drive a browser.
+  const ran = [cli("scripts", "1/3"), cli("scripts", "2/3"), cli("scripts", "3/3"), cli("scripts-browser")].flat();
+  // Sorted and compared whole, so a file in two shards, or a file no shard runs, fails.
+  assert.deepEqual(ran.sort(), found);
 });
 
 /** A test file as Vitest's sequencer sees it. */
@@ -135,6 +128,13 @@ test("a browser shard runs its share of the files, by measured time, and every s
   for (const shard of shards) assert.deepEqual(paths(shard).slice(0, 2), ["test/stories.test.tsx", "site/src/site.test.tsx"]);
   const rest = shards.flatMap((shard) => paths(shard).slice(2));
   assert.deepEqual(rest.sort(), ["a", "b", "c", "d", "e"].map((name) => `registry/${name}.test.tsx`));
+});
+
+test("files with no recorded time spread over the shards by name, each in exactly one", async () => {
+  const files = ["a", "b", "c", "d", "e", "f"].map((name) => spec("themes (chromium)", `test/themes/${name}.test.ts`));
+  const shards = await Promise.all([1, 2, 3].map((index) => new TimedSequencer({ config: { root, shard: { index, count: 3 } } }).shard(files)));
+  assert.deepEqual(shards.map((shard) => shard.length), [2, 2, 2]);
+  assert.equal(new Set(shards.flat().map((entry) => entry.moduleId)).size, 6);
 });
 
 test("the sliced suites are exactly the browser tests that slice what they iterate (test/slice.ts)", () => {
@@ -172,6 +172,22 @@ test("a sliced check runs each item exactly once across the shards, in each proj
   }
   // The same check in the same project starts at the same shard on every run.
   assert.equal(offsetOf("webkit stories: axe", 16), offsetOf("webkit stories: axe", 16));
+});
+
+test("a sliced check gives every shard its share of the measured cost, longest items first, the same on every shard (test/story-costs.json)", async () => {
+  const { sliceOf } = await import("../test/slice-core.ts");
+  const costs = JSON.parse(readFileSync(join(root, "test/story-costs.json"), "utf8"));
+  const items = Object.entries(costs).map(([id, ms]) => ({ id, ms }));
+  assert.ok(items.length > 500, "the table covers the stories and pages");
+  for (const count of [4, 6, 12]) {
+    const loads = Array.from({ length: count }, (_, index) => sliceOf(items, index + 1, count, "chromium stories: axe").reduce((sum, item) => sum + item.ms, 0));
+    const total = loads.reduce((sum, load) => sum + load, 0);
+    const heaviest = Math.max(...items.map((item) => item.ms));
+    assert.ok(Math.max(...loads) <= total / count + heaviest, `${count} shards: the heaviest slice stays within one item of an even share (${loads.join(", ")})`);
+  }
+  // An item the table doesn't know still runs once.
+  const unknown = ["a", "b", "c", "d", "e"];
+  assert.deepEqual([1, 2, 3].flatMap((index) => sliceOf(unknown, index, 3, "k")).toSorted(), unknown);
 });
 
 test("an install shard takes the app's shipped files by the time each took here, over every Vitest project", () => {

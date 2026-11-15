@@ -928,6 +928,26 @@ describe("Toolbar hidden", () => {
     expect(isHidden(toolbar)).toBe(true);
   });
 
+  it("keeps the rest its own return started when the app passes hidden={false} back late", async () => {
+    function Call() {
+      const [hidden, setHidden] = useState(false);
+      return <Toolbar label="Call controls" autoHide={1000} hidden={hidden} onHiddenChange={setHidden} items={controls} />;
+    }
+    const { toolbar, picture } = await render(<Call />);
+    await wait(1000);
+    expect(isHidden(toolbar)).toBe(true);
+    // The move shows the bar and starts its rest at once. The app's render that passes hidden={false}
+    // back comes after time has moved on, as on a loaded page; that echo is no new return.
+    picture.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, composed: true, clientX: 20, clientY: 20 }));
+    vi.advanceTimersByTime(500);
+    await act(async () => {});
+    expect(isHidden(toolbar)).toBe(false);
+    await wait(499);
+    expect(isHidden(toolbar)).toBe(false);
+    await wait(1);
+    expect(isHidden(toolbar)).toBe(true);
+  });
+
   it("starts a new rest each time the app sets hidden to false", async () => {
     const onHiddenChange = vi.fn();
     const { rerender } = await render(<Toolbar label="Call controls" autoHide={1000} hidden onHiddenChange={onHiddenChange} items={controls} />);
@@ -942,10 +962,14 @@ describe("Toolbar hidden", () => {
 
   it("does nothing without autoHide", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { toolbar } = await render(<Toolbar label="Call controls" hidden onHiddenChange={() => {}} items={controls} />);
+    const { toolbar, rerender } = await render(<Toolbar label="Call controls" hidden onHiddenChange={() => {}} items={controls} />);
     await wait(5000);
     expect(isHidden(toolbar)).toBe(false);
     expect(parseDuration(getComputedStyle(toolbar).transitionDuration)).toBe(0);
+    // The app showing it starts no rest, since there is none to start.
+    await rerender(<Toolbar label="Call controls" hidden={false} onHiddenChange={() => {}} items={controls} />);
+    await wait(5000);
+    expect(isHidden(toolbar)).toBe(false);
   });
 });
 

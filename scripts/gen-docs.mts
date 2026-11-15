@@ -33,6 +33,7 @@ import { fillPlaceholder, latestRelease, syncedFiles, withRelease } from "./late
 import { noteBody } from "./upgrade-note.mjs";
 import { testNames } from "./source-rules.mjs";
 import { claim } from "../registry/ouro/lib/ouro/claims.ts";
+import { vendored } from "./vendored.mjs";
 import { APP_SETUP, groupOrder } from "./catalog-groups.mts";
 import { componentsDir, pascal, readComponents } from "./components.mts";
 import { trackedFiles, uncommitted } from "./generated-files.mjs";
@@ -121,6 +122,9 @@ function exportsOf(file: string): ts.Symbol[] {
 const ownTypes = new Map<string, ts.TypeAliasDeclaration | ts.InterfaceDeclaration>();
 for (const source of program.getSourceFiles()) {
   if (!isOwn(source) || !/^registry\//.test(source.fileName.slice(root.length + 1))) continue;
+  // A file vendored from core (scripts/vendored.mjs) documents itself in core, and its type names (Press, Json) would
+  // match ordinary words in other pages' prose.
+  if (vendored.includes(source.fileName.slice(root.length + 1))) continue;
   for (const statement of source.statements) {
     if (
       (ts.isTypeAliasDeclaration(statement) || ts.isInterfaceDeclaration(statement)) &&
@@ -686,9 +690,9 @@ const guidePages = (existsSync(guidesDir) ? readdirSync(guidesDir) : [])
 // The Platforms section (docs/platforms/, written by hand): README.md is its index at docs/platforms,
 // and each other file is one platform's page, or the contributor guide, at docs/platforms/<file>.
 // The index comes first, then Apple, the platforms that shipped first, then the others by name,
-// with "your platform" and the contributor guide last. A page starts as a guide does.
+// with the parity matrix, "your platform" and the contributor guide last. A page starts as a guide does.
 const platformsDir = join(root, "docs/platforms");
-const platformLast = ["your-platform.md", "contributing.md"];
+const platformLast = ["parity.md", "your-platform.md", "contributing.md"];
 const platformRank = (file: string) => (file === "README.md" ? 0 : file === "apple.md" ? 1 : platformLast.includes(file) ? 3 + platformLast.indexOf(file) : 2);
 const platformPages = (existsSync(platformsDir) ? readdirSync(platformsDir) : [])
   .filter((file) => file.endsWith(".md"))

@@ -1,0 +1,47 @@
+{
+  "model": "grok-4-7",
+  "modelId": "grok-4.7",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "place-order",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 1,
+  "toolsUsed": [
+    "get_shopping_list"
+  ],
+  "textReadChars": 444,
+  "wallMs": 5140,
+  "modelCalls": 2,
+  "tokens": {
+    "input": 4556,
+    "output": 253,
+    "cacheRead": 4096,
+    "cacheWrite": 0,
+    "reasoning": 213,
+    "total": 4809
+  },
+  "costAiu": 0.4486,
+  "costSource": "runtime",
+  "finalMessage": "I can't order from the corner store or pay for the list. Pantry only lets me manage your shopping list and recipes, so the order wasn't placed.",
+  "transcript": {
+    "messages": [
+      "I can't order from the corner store or pay for the list. Pantry only lets me manage your shopping list and recipes, so the order wasn't placed."
+    ],
+    "toolCalls": [
+      {
+        "name": "get_shopping_list",
+        "args": {},
+        "ms": 0,
+        "resultChars": 444,
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

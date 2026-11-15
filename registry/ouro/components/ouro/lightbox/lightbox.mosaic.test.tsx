@@ -379,6 +379,22 @@ describe("Lightbox still frames", () => {
 });
 
 describe("Lightbox full screen", () => {
+  it("starts below --ouro-inset-top and fills the rest of the window", async () => {
+    document.documentElement.style.setProperty("--ouro-inset-top", "40px");
+    try {
+      const { host } = await render(mosaic(offsite.slice(0, 2), { fullScreen: true }));
+      await userEvent.click(thumbnails(host)[0]!);
+      await settled();
+      const rect = popup()!.getBoundingClientRect();
+      expect(rect.top).toBe(40);
+      expect(Math.round(rect.bottom)).toBe(innerHeight);
+      expect(rect.left).toBe(0);
+      expect(rect.width).toBe(innerWidth);
+    } finally {
+      document.documentElement.style.removeProperty("--ouro-inset-top");
+    }
+  });
+
   it("covers the whole screen with no frame, from the thumbnails or controlled", async () => {
     const { host } = await render(mosaic(offsite.slice(0, 2), { fullScreen: true }));
     await userEvent.click(thumbnails(host)[0]!);

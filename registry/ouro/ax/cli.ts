@@ -5,7 +5,7 @@ export type { CliIo, RunOptions };
 // first statement, which would take the JSDoc below with it.
 
 import { checksText, isChecksReport } from "./checks.ts";
-import { checkOwner, flagsOf, findCommand, parse, type ArgSpec, type Cli, type CommandDef, type Input, type InputValue, type Parsed, type RunContext } from "./command.ts";
+import { checkOwner, flagsOf, findCommand, invocation, parse, type ArgSpec, type Cli, type CommandDef, type Input, type InputValue, type Parsed, type RunContext } from "./command.ts";
 import { DRY_RUN_FLAG } from "./effects.ts";
 import { AxError, errorJson, errorLine, errorMessage, isAxError, type AxErrorShape } from "./problem.ts";
 import { commandManifest, helpJson, renderCommand, renderOverview, type OverviewOptions } from "./help.ts";
@@ -52,7 +52,7 @@ async function withStdin(cli: Cli, cmd: CommandDef, input: Input, stdin: () => P
   const out: Record<string, InputValue> = { ...input };
   const stdinNames = [...(cmd.args ?? []).filter((a: ArgSpec) => a.stdin).map((a) => a.name), ...Object.entries(flagsOf(cli, cmd)).filter(([, s]) => s.stdin).map(([n]) => n)];
   const dashes = stdinNames.filter((n) => out[n] === "-");
-  if (dashes.length > 1) throw new AxError({ code: "two-stdin", exit: cli.exits.code("usage"), thing: cmd.name, problem: `only one "-" (stdin) per command, and ${dashes.map((n) => n).join(" and ")} both ask for it`, fix: `${cli.name} ${cmd.name} ... with the shorter text on the command line` });
+  if (dashes.length > 1) throw new AxError({ code: "two-stdin", exit: cli.exits.code("usage"), thing: cmd.name, problem: `only one "-" (stdin) per command, and ${dashes.map((n) => n).join(" and ")} both ask for it`, fix: `${invocation(cli, cmd)} ... with the shorter text on the command line` });
   for (const n of dashes) out[n] = (await stdin()).replace(/\r?\n$/, "");
   return out;
 }
@@ -84,7 +84,8 @@ function isEmptyResult(result: unknown): boolean {
 /**
  * Prints a command's result as runCli does and returns the exit code: an outcome by its state (a refusal or failure in
  * text is the one error line on stderr), a wait by its state, a checks report (ax-checks) by its verdict, with its text
- * styled for stdout and every check under `--verbose`, anything else as its text or `--json`. A report whose checks
+ * styled for stdout and every check under `--verbose`, anything else as its text or `--json`, with the exit code its
+ * command's `exit` names (0 when it names none). A report whose checks
  * all ran and passed may get the voice's `healthy` line. Given the
  * process's voice, a voice line may follow the text on stdout, never before it: after a done or queued outcome, an
  * empty list, or the summary command.
@@ -119,18 +120,31 @@ function printResult(
   if (isChecksReport(result)) {
     const style = terminalStyle(io.stdout, env);
     // The --verbose hint is offered only by a command that takes the flag.
-    const command = "verbose" in flagsOf(cli, cmd) ? { command: `${cli.name} ${cmd.name}` } : {};
+    const command = "verbose" in flagsOf(cli, cmd) ? { command: invocation(cli, cmd) } : {};
     io.stdout.write(render(result, { json, text: (r) => checksText(r, style, { ...command, verbose: input["verbose"] === true }) }));
     if (result.verdict === "passed" && result.counts.passed && !result.counts.skipped) say("healthy");
     return result.exitCode;
   }
   const own = cmd.text;
   const text = own ? (r: unknown) => own.call(cmd, r, input) : isWait(result) ? () => waitText(result) : undefined;
+  const exit = isWait(result) ? waitExit(result, cli.exits, cli.waitExits) : dataExit(cli, cmd, result, input);
   io.stdout.write(render(result, { json, ...(text ? { text } : {}) }));
-  if (isWait(result)) return waitExit(result, cli.exits, cli.waitExits);
+  if (isWait(result)) return exit;
   if (isEmptyResult(result)) say("empty");
   else if (cmd.summarizes) say("summary");
-  return 0;
+  return exit;
+}
+
+/**
+ * The exit code a data result's command names in the tool's table, or 0 when it names none.
+ *
+ * @claim "or 0 when it names none" registry/ouro/ax/cli.test.mts verify:testExists(registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged)
+ */
+function dataExit(cli: Cli, cmd: CommandDef, result: unknown, input: Input): number {
+  if (!cmd.exit) return 0;
+  const name = cmd.exit(result, input);
+  if (!cli.exits.has(name)) throw new AxError({ code: "bad-exit", exit: cli.exits.code("error"), thing: cmd.name, problem: `its exit "${name}" is not one of the tool's exit codes`, fix: `name one of ${cli.exits.codes.map((code) => code.name).join(", ")}` });
+  return cli.exits.code(name);
 }
 
 /** The process's environment, read without Node's types so the kit also type-checks without them. */
@@ -160,7 +174,7 @@ async function runCli(cli: Cli, argv: readonly string[], io: CliIo, options: Run
         }
         return 0;
       }
-      const found = findCommand(cli, topic.split(" "));
+      const found = parsed.command ? { command: parsed.command } : cli.single ? null : findCommand(cli, topic.split(" "));
       if (found) {
         io.stdout.write(parsed.json ? `${JSON.stringify(commandManifest(cli, found.command), null, 2)}\n` : renderCommand(cli, found.command));
         return 0;

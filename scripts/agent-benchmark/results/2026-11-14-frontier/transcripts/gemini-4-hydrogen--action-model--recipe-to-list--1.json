@@ -1,0 +1,59 @@
+{
+  "model": "gemini-4-hydrogen",
+  "modelId": "gemini-4-hydrogen",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "recipe-to-list",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 2,
+  "toolsUsed": [
+    "search_recipes",
+    "add_recipe_to_shopping_list"
+  ],
+  "textReadChars": 75,
+  "wallMs": 7431,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 2282,
+    "output": 212,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 131,
+    "total": 2494
+  },
+  "costAiu": 0.5013,
+  "costSource": "runtime",
+  "finalMessage": "I've added all 5 ingredients from your Charred Lemon Orzo recipe to your shopping list.",
+  "transcript": {
+    "messages": [
+      "I've added all 5 ingredients from your Charred Lemon Orzo recipe to your shopping list."
+    ],
+    "toolCalls": [
+      {
+        "name": "search_recipes",
+        "args": {
+          "query": "Charred Lemon Orzo"
+        },
+        "ms": 8,
+        "resultChars": 64,
+        "result": "{\"recipes\":\"[{\\\"id\\\":\\\"r1\\\",\\\"title\\\":\\\"Charred Lemon Orzo\\\"}]\"}"
+      },
+      {
+        "name": "add_recipe_to_shopping_list",
+        "args": {
+          "recipeId": "r1"
+        },
+        "ms": 2,
+        "resultChars": 11,
+        "result": "{\"added\":5}"
+      }
+    ]
+  },
+  "redacted": false
+}

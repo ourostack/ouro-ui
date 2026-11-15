@@ -2,7 +2,7 @@
 
 # Text
 
-Body text in the theme's type scale and colors. Renders a `<p>` by default.
+Body text in the theme's type scale and colors. Renders a `<p>` by default. It wraps with `text-wrap: pretty`, so a paragraph does not end on one stranded word.
 
 ```tsx
 import { Text } from "@/registry/ouro/components/ouro/text/text";

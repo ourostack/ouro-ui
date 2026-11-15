@@ -1,0 +1,1 @@
+- ToggleGroup keeps its own roving focus instead of Base UI's composite, so mounting it reads computed style less often, even on an unpatched Base UI.

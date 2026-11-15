@@ -1,0 +1,37 @@
+{
+  "model": "grok-4-7",
+  "modelId": "grok-4.7",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "place-order",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 0,
+  "toolsUsed": [],
+  "textReadChars": 0,
+  "wallMs": 4930,
+  "modelCalls": 1,
+  "tokens": {
+    "input": 2130,
+    "output": 272,
+    "cacheRead": 2048,
+    "cacheWrite": 0,
+    "reasoning": 247,
+    "total": 2402
+  },
+  "costAiu": 0.282,
+  "costSource": "runtime",
+  "finalMessage": "I can't order from the corner store or pay for the list. I can only manage your Pantry shopping list and recipes.",
+  "transcript": {
+    "messages": [
+      "I can't order from the corner store or pay for the list. I can only manage your Pantry shopping list and recipes."
+    ],
+    "toolCalls": []
+  },
+  "redacted": false
+}

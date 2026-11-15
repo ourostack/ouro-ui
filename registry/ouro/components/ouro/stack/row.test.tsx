@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { Row } from "@/registry/ouro/components/ouro/stack/row";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { computedValue } from "@/registry/ouro/lib/ouro/testing/computed";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -72,7 +73,7 @@ describe("Row", () => {
     ["baseline", "baseline"],
   ] as const)("align=%s sets align-items %s", async (align, value) => {
     const { el } = await render(<Row align={align}>{boxes}</Row>);
-    expect(getComputedStyle(el).alignItems).toBe(value);
+    expect(getComputedStyle(el).alignItems).toBe(computedValue("align-items", value));
   });
 
   it.each([
@@ -82,7 +83,7 @@ describe("Row", () => {
     ["between", "space-between"],
   ] as const)("justify=%s sets justify-content %s", async (justify, value) => {
     const { el } = await render(<Row justify={justify}>{boxes}</Row>);
-    expect(getComputedStyle(el).justifyContent).toBe(value);
+    expect(getComputedStyle(el).justifyContent).toBe(computedValue("justify-content", value));
   });
 
   it("wraps with wrap", async () => {

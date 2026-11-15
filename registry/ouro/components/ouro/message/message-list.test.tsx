@@ -168,7 +168,7 @@ describe("MessageList", () => {
           <p>{"A long note. ".repeat(300)}</p>
         </MessageList>,
       );
-      expect(scroller.getAttribute("tabindex")).toBe("0");
+      await expect.poll(() => scroller.getAttribute("tabindex")).toBe("0");
       expect(getComputedStyle(scroller).outlineStyle).toBe("solid");
       expect(parseFloat(getComputedStyle(scroller).outlineWidth)).toBeGreaterThan(0);
     } finally {
@@ -768,6 +768,76 @@ describe("MessageList", () => {
     expect(moved).toBeLessThanOrEqual(1);
     expect(Math.max(...added)).toBeLessThanOrEqual(20);
     expect(shifts.reduce((sum, shift) => sum + shift, 0)).toBeLessThan(0.01);
+  });
+
+  it("holds older messages in a translate between the events of a wheel that turns slowly, and pays it once the wheel rests", async () => {
+    let items = history(200);
+    const { scroller, rerender } = await render(<Found items={items} windowing={false} />);
+    await settle(scroller);
+    scroller.scrollTop = 3000;
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const reading = firstVisible(scroller);
+    const top = scroller.scrollTop;
+    // Wheel events 150 ms apart, as a page drawing slowly hands them over. The clock is held so each gap is exact: a gap under
+    // 2 × 150 ms keeps the wheel turning, and 150 ms after an event is past the 80 ms rest.
+    const clock = vi.spyOn(performance, "now");
+    const turn = (at: number) => {
+      clock.mockReturnValue(at);
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true }));
+    };
+    // Lets the rest timer and its frame run, with the clock where the test holds it.
+    const frames = async (count = 10) => {
+      for (let frame = 0; frame < count; frame++) await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    };
+    try {
+      // The first event has no gap before it to count, so the second is the first to tell the wheel turns slowly.
+      turn(1000);
+      for (let page = 1; page <= 3; page++) {
+        const at = 1000 + 150 * page;
+        turn(at);
+        items = [...history(20, -20 * page), ...items];
+        await rerender(<Found items={items} windowing={false} />);
+        // The page goes in while the wheel turns: the content is drawn up by it, and the scroll position is not written.
+        clock.mockReturnValue(at + 150);
+        await frames();
+        expect(content.style.translate).not.toBe("");
+        expect(scroller.scrollTop).toBe(top);
+        expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+      }
+      // The wheel rests, 400 ms on: the carried pages go into the scroll position in one move.
+      clock.mockReturnValue(1450 + 400);
+      await expect.poll(() => content.style.translate).toBe("");
+    } finally {
+      clock.mockRestore();
+    }
+    await settle(scroller);
+    expect(scroller.scrollTop).toBeGreaterThan(top);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("takes a gap of exactly the bound between two wheel events as a new turn, which pays the carried pages once the wheel rests", async () => {
+    const items = history(200);
+    const { scroller, rerender } = await render(<Found items={items} windowing={false} />);
+    await settle(scroller);
+    scroller.scrollTop = 3000;
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    // The list reads the clock at the wheel's events and at each frame's check: held here, so the gap is exactly 320 ms (4 × the 80 ms rest).
+    const clock = vi.spyOn(performance, "now");
+    try {
+      clock.mockReturnValue(1000);
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true }));
+      clock.mockReturnValue(1320);
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true }));
+      await rerender(<Found items={[...history(20, -20), ...items]} windowing={false} />);
+      expect(content.style.translate).not.toBe("");
+      // 100 ms after the last event: past the rest, and no turn still going on.
+      clock.mockReturnValue(1420);
+      await expect.poll(() => content.style.translate).toBe("");
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   it("puts a few older messages in at once", async () => {
@@ -2517,7 +2587,7 @@ describe("MessageList keyboard", () => {
       </Channel>
     );
     const { scroller, rerender } = await render(notes(false));
-    expect(scroller.getAttribute("tabindex")).toBe("0");
+    await expect.poll(() => scroller.getAttribute("tabindex")).toBe("0");
     // Shift+Tab arrives on its last control, as without the list.
     button("After").focus();
     await pressTab({ shift: true });

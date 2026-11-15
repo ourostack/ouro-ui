@@ -34,7 +34,7 @@ try {
   const page = await context.newPage();
   await page.goto(`https://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { level: 1 }).waitFor();
-  await page.locator(".site-hero-stage svg").first().waitFor();
+  await page.locator(".site-console-stage svg").first().waitFor();
   // Wait until every transition that ends has ended, so the frame is the same on each run. The sea's
   // own loops run on even with motion reduced, so they are not waited for.
   await page.waitForFunction(() => document.getAnimations().every((animation) => animation.effect?.getTiming().iterations === Infinity));

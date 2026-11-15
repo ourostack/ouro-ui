@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { formsSet, sets, setsTouching, shardSets, subset } from "./subset-coverage.mjs";
+import { browserBalance, readTimings } from "./shard.mjs";
+import { formsSet, setKey, sets, setsTouching, shardSets, subset } from "./subset-coverage.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
@@ -62,5 +63,17 @@ test("CI's browser test shards share the sets out: each set in exactly one shard
     const shards = Array.from({ length: count }, (_, position) => shardSets(sets, { index: position + 1, count }));
     assert.equal(shards.flat().length, sets.length);
     for (const set of sets) assert.equal(shards.filter((shard) => shard.includes(set)).length, 1, `${set.join(",")} with ${count} shards`);
+  }
+});
+
+test("every set has a recorded time, and the browser shards stay within their share with the sets in the split", () => {
+  assert.deepEqual(Object.keys(readTimings("subset")).sort(), sets.map(setKey).sort());
+  for (const count of [6, 10]) {
+    const shards = browserBalance(count);
+    const mean = shards.reduce((sum, shard) => sum + shard.weight, 0) / count;
+    for (const shard of shards) assert.ok(shard.weight <= mean * 1.25, `a shard of ${count} weighs ${Math.round(shard.weight / 1000)} s, over its share of ${Math.round(mean / 1000)} s: refresh scripts/shard-timings.json`);
+    // Each set is placed once, by the same split the test files use.
+    const placed = shards.flatMap((shard) => shard.keys).filter((key) => key in readTimings("subset"));
+    assert.deepEqual(placed.sort(), sets.map(setKey).sort());
   }
 });

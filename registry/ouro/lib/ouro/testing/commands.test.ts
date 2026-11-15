@@ -48,6 +48,29 @@ test("emulateMedia throws, naming the query, when the frame never matches it", a
   }
 }, 20_000);
 
+test("emulateMedia names the query the frame never matched, even when its last read does not answer", async () => {
+  // The query never matches, and the first read after 6 s holds the frame until 14 s after the start, as a loaded runner
+  // can: past the 10 s wait and the 3 s a read may take, however late in the wait that read began.
+  const real = window.matchMedia;
+  const start = performance.now();
+  let stalled = false;
+  window.matchMedia = ((query: string) => {
+    if (query !== "(prefers-reduced-motion: reduce)") return real.call(window, query);
+    if (!stalled && performance.now() - start > 6000) {
+      stalled = true;
+      while (performance.now() < start + 14_000);
+    }
+    return { matches: false };
+  }) as typeof window.matchMedia;
+  try {
+    await expect(commands.emulateMedia({ reducedMotion: "reduce" })).rejects.toThrow("does not match (prefers-reduced-motion: reduce)");
+    expect(stalled).toBe(true);
+  } finally {
+    window.matchMedia = real;
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+  }
+}, 30_000);
+
 test("emulateMedia returns while the test's fake timers are on", async () => {
   // The frame's timers are faked, so a wait that relied on them would never end.
   vi.useFakeTimers();

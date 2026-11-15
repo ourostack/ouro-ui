@@ -50,7 +50,7 @@ export const RESERVE = 200;
 export function decide(jobs, attempt) {
   const current = jobs.filter((job) => (job.run_attempt === undefined || Number(job.run_attempt) === Number(attempt)));
   if (current.some((job) => job.name === LAST && job.status === "completed")) return { kind: "done" };
-  const failed = current.filter((job) => !TOLERATED.includes(job.name) && !RERUN_ALONE.includes(job.name) && job.status === "completed" && FAILED.includes(job.conclusion ?? ""));
+  const failed = current.filter((job) => !TOLERATED.includes(job.name) && !RERUN_ALONE.includes(job.name.replace(/ \(\d+\/\d+\)$/, "")) && job.status === "completed" && FAILED.includes(job.conclusion ?? ""));
   if (failed.length > 0) return { kind: "cancel", failed: failed.map((job) => job.name).sort() };
   return { kind: "wait" };
 }

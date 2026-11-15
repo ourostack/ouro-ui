@@ -1,0 +1,178 @@
+{
+  "status": "partial",
+  "runId": "e7e45746-b1a8-4f9d-a73d-8cdc71297362",
+  "startedAt": "2026-11-13T21:16:19.420Z",
+  "asOf": "2026-11-13T21:16:19.420Z",
+  "candidates": [
+    {
+      "name": "Ouro UI",
+      "url": "https://github.com/ourostack/ouro-ui",
+      "sha": "0ff924a85cabfd796f9055cf1c6152e59796b118",
+      "committedAt": "2026-11-13T19:24:39Z",
+      "capturedAt": "2026-11-13T21:16:26.728Z"
+    },
+    {
+      "name": "shadcn/ui",
+      "url": "https://github.com/shadcn-ui/ui",
+      "sha": "e62c9435fff729a175f38983dee73b2cb4f6a069",
+      "committedAt": "2026-11-13T10:57:41Z",
+      "capturedAt": "2026-11-13T21:16:26.795Z"
+    },
+    {
+      "name": "Vercel UI SDK",
+      "url": "https://github.com/vercel-labs/ui",
+      "sha": "724a7d6c2d0ca1251a8eb6172462ae220c484714",
+      "committedAt": "2026-11-13T17:27:28Z",
+      "capturedAt": "2026-11-13T21:16:26.775Z"
+    },
+    {
+      "name": "Agent-native (Builder.io)",
+      "url": "https://github.com/BuilderIO/agent-native",
+      "sha": "88c2e4b20c3670e6e68caa950bd524cb8a05664a",
+      "committedAt": "2026-11-13T20:40:02Z",
+      "capturedAt": "2026-11-13T21:16:26.776Z"
+    },
+    {
+      "name": "Radix UI",
+      "url": "https://github.com/radix-ui/primitives",
+      "sha": "eb3a2b7091293e27df8f9ba906632d8daa3d81a3",
+      "committedAt": "2026-10-14T19:06:36Z",
+      "capturedAt": "2026-11-13T21:16:27.098Z"
+    },
+    {
+      "name": "Base UI",
+      "url": "https://github.com/mui/base-ui",
+      "sha": "315eba7a3d8a0a53d47fe7b902cb75daa21f6814",
+      "committedAt": "2026-11-13T11:25:43Z",
+      "capturedAt": "2026-11-13T21:16:26.780Z"
+    },
+    {
+      "name": "React Aria and React Spectrum",
+      "url": "https://github.com/adobe/react-spectrum",
+      "sha": "360e35170568dfc99a2baaa78e6b7bdd36458d91",
+      "committedAt": "2026-11-13T19:32:08Z",
+      "capturedAt": "2026-11-13T21:16:26.773Z"
+    },
+    {
+      "name": "MUI",
+      "url": "https://github.com/mui/material-ui",
+      "sha": "212e2e351f01989d2002a74d059a80c8f4e310a7",
+      "committedAt": "2026-11-13T14:34:17Z",
+      "capturedAt": "2026-11-13T21:16:26.779Z"
+    },
+    {
+      "name": "Chakra UI",
+      "url": "https://github.com/chakra-ui/chakra-ui",
+      "sha": "4d3fda5dfd956188786a641ba47ec49dbe7dce93",
+      "committedAt": "2026-11-11T13:54:13Z",
+      "capturedAt": "2026-11-13T21:16:27.030Z"
+    },
+    {
+      "name": "Tamagui",
+      "url": "https://github.com/tamagui/tamagui",
+      "sha": "385dcd1463f91c66545c81d13f567305eb8a83ba",
+      "committedAt": "2026-11-13T12:03:34Z",
+      "capturedAt": "2026-11-13T21:16:27.248Z"
+    },
+    {
+      "name": "Flutter",
+      "url": "https://github.com/flutter/flutter",
+      "sha": "3c78d839c1a9cbe285ed5da8cd497722dd99d6fe",
+      "committedAt": "2026-11-13T20:09:50Z",
+      "capturedAt": "2026-11-13T21:16:27.271Z"
+    },
+    {
+      "name": "Fluent UI",
+      "url": "https://github.com/microsoft/fluentui",
+      "sha": "f9720c35ba893c9630f4c0389d07dc6d6fd6068d",
+      "committedAt": "2026-11-12T20:44:25Z",
+      "capturedAt": "2026-11-13T21:16:27.114Z"
+    },
+    {
+      "name": "Material 3 and Jetpack Compose",
+      "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+      "prefixes": [
+        "https://developer.android.com/develop/ui/compose",
+        "https://developer.android.com/jetpack/androidx/releases/compose-material3"
+      ],
+      "capturedAt": "2026-11-13T21:16:27.591Z",
+      "pageSha256": "70f5708fe3176ec407787a0528666fc9458cf38f25d50241066734f5e7f2dcde"
+    },
+    {
+      "name": "SwiftUI and Apple Human Interface Guidelines",
+      "url": "https://developer.apple.com/documentation/swiftui",
+      "prefixes": [
+        "https://developer.apple.com/tutorials/data/documentation/swiftui",
+        "https://developer.apple.com/tutorials/data/design/human-interface-guidelines"
+      ],
+      "capturedAt": "2026-11-13T21:16:27.252Z",
+      "pageSha256": "1d369d808d6414c4cf243a79fc64253f4b78b272c703a89a504a4c592883eacc"
+    },
+    {
+      "name": "A2UI",
+      "url": "https://github.com/a2ui-project/a2ui",
+      "sha": "5f6d26c48a5c61bf845cf1ef2a02a47e31e8d9ba",
+      "committedAt": "2026-11-13T20:59:24Z",
+      "capturedAt": "2026-11-13T21:16:27.138Z"
+    },
+    {
+      "name": "OpenAI Apps SDK UI",
+      "url": "https://github.com/openai/apps-sdk-ui",
+      "sha": "0f00143c7a639906f1621fe58e1b6be7b5bea46d",
+      "committedAt": "2026-05-05T19:05:41Z",
+      "capturedAt": "2026-11-13T21:16:27.138Z"
+    },
+    {
+      "name": "MCP Apps",
+      "url": "https://github.com/modelcontextprotocol/ext-apps",
+      "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161",
+      "committedAt": "2026-11-10T19:42:59Z",
+      "capturedAt": "2026-11-13T21:16:27.102Z"
+    },
+    {
+      "name": "json-render",
+      "url": "https://github.com/vercel-labs/json-render",
+      "sha": "f5c12405a19c45be5e0e90778ef888ed541b208f",
+      "committedAt": "2026-11-13T09:14:23Z",
+      "capturedAt": "2026-11-13T21:16:27.138Z"
+    },
+    {
+      "name": "AI Elements",
+      "url": "https://github.com/vercel/ai-elements",
+      "sha": "ca8be600bfd01b3131f9bf6134b51602a71f4374",
+      "committedAt": "2026-10-14T17:02:55Z",
+      "capturedAt": "2026-11-13T21:16:27.243Z"
+    },
+    {
+      "name": "CopilotKit",
+      "url": "https://github.com/CopilotKit/CopilotKit",
+      "sha": "6eb31152c62dcb7b20780336b2639cf525f40a57",
+      "committedAt": "2026-11-13T21:04:50Z",
+      "capturedAt": "2026-11-13T21:16:27.149Z"
+    }
+  ],
+  "runtime": {
+    "name": "GitHub Copilot CLI",
+    "version": "1.0.83",
+    "protocolVersion": 3,
+    "sdk": "@github/copilot-sdk",
+    "mode": "empty",
+    "inferenceMode": "copilot-first",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false
+  },
+  "failures": [
+    {
+      "provider": "gemini-4-carbon",
+      "error": "Session compacted; refusing to keep a transcript with hidden replacement context"
+    }
+  ],
+  "summary": {
+    "totalReviews": 0,
+    "picks": {},
+    "winner": null,
+    "subjectPicks": 0,
+    "subjectPositions": {}
+  },
+  "reviews": []
+}

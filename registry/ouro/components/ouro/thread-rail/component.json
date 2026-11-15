@@ -1,0 +1,9 @@
+{
+  "order": 2670,
+  "components": ["thread-rail"],
+  "controls": {
+    "thread-rail": [
+      {"part": "close", "role": "button", "portal": false}
+    ]
+  }
+}

@@ -244,7 +244,9 @@ export function Navbar(props: NavbarProps): JSX.Element {
     // Stryker disable next-line ObjectLiteral: the timeout only bounds a page that is never idle, which no test page is.
     const idle = requestIdleCallback(build, { timeout: 2000 });
     return () => cancelIdleCallback(idle);
-  }, [collapsed, built, filled]);
+    // `round` too: a close sets `filled` back, which changes nothing when the last content's transition had not committed
+    // yet (a loaded runner), and the fresh sheet must still ask for its content's turn.
+  }, [collapsed, built, filled, round]);
 
   // Before paint, so a client mount never shows a row that does not fit.
   useLayoutEffect(() => {

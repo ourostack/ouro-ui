@@ -1,0 +1,1 @@
+- Button draws a true squircle in Safari and other engines that lack `corner-shape`, using a `[data-ouro-surface]` layer that paints the fill and the border ring through a clip-path, while the element keeps a reduced radius for its shadow and focus ring.

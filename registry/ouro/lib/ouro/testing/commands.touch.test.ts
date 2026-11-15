@@ -76,10 +76,21 @@ test("lifts the finger in finally when a step throws mid-gesture, so the next to
       }
     })(),
   ).rejects.toThrow("mid-gesture");
-  const before = element.scrollLeft;
+  // The lifted finger can fling the scroller on to its end, where the next swipe has nowhere to go:
+  // let the fling stop (two reads agree), then start the scroller from the left again.
+  let last = -1;
+  await expect
+    .poll(() => {
+      const now = element.scrollLeft;
+      const still = now === last;
+      last = now;
+      return still;
+    })
+    .toBe(true);
+  element.scrollLeft = 0;
   const starts = watchStarts();
   await swipe();
-  await expect.poll(() => element.scrollLeft).toBeGreaterThan(before + 100);
+  await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
   expect(starts()).toEqual(["pointerdown", "touchstart"]);
 });
 
@@ -537,6 +548,10 @@ test("a lift into a frame that has gone is sent all the same, and throws naming 
   await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
 });
 
+// A test that waits out a step's full 5 s for the page to answer, then swipes again: on a loaded runner the rest can
+// take more than the 10 s the default limit leaves it.
+const SITS_OUT_A_STEP = 30_000;
+
 test("a missing touch event remains bounded while the page clock is frozen", async () => {
   const element = scroller();
   const suppress = (event: TouchEvent) => event.stopImmediatePropagation();
@@ -554,7 +569,7 @@ test("a missing touch event remains bounded while the page clock is frozen", asy
   }
   await swipe();
   await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
-});
+}, SITS_OUT_A_STEP);
 
 test("a missing later touchmove rejects while the page clock is frozen", async () => {
   const element = scroller();
@@ -583,7 +598,7 @@ test("a missing later touchmove rejects while the page clock is frozen", async (
   }
   await swipe();
   await expect.poll(() => element.scrollLeft).toBeGreaterThan(100);
-});
+}, SITS_OUT_A_STEP);
 
 test("a restarted watcher cannot acknowledge first-move slop without the gesture's touchstart", async () => {
   const element = scroller();

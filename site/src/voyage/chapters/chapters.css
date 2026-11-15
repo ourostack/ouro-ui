@@ -62,10 +62,6 @@
 [data-done] > .site-step-mark {
   color: var(--primary);
 }
-/* A button that waits for the work (Launch) stays readable: it is the next thing to do. */
-#chapter-one button:disabled {
-  opacity: 0.72;
-}
 /*
  * Chapter II as the server draws it: the chart room's map (voyage-chart.svg, inlined by
  * chapter-two.tsx) with the route on it, the leagues counter and the rail's compass. Every colour

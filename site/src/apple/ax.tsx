@@ -1,12 +1,13 @@
 import type { JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { CodeBlock, Command } from "../components/code";
 import { href } from "../paths";
 import { Angler } from "./angler";
 import { LayersBand } from "./layers";
 import { StoryOpener } from "../components/story-world";
-import { AppleBand, AppleHero, AppleMenu, NextPage } from "./shell";
+import { AppleBand, AppleMenu, NextPage } from "./shell";
 import { XrayExplorer } from "./xray-explorer";
 
 const TOOL_CODE = `@AppIntent(.tool)
@@ -45,11 +46,11 @@ export default function AppleAx(): JSX.Element {
     <div id="apple-ax" className="apple">
       <AppleMenu current="/apple/ax/" />
       <StoryOpener scene="ouro-ui-apple" line="Agents wander up the hill to ask the card what it can do. It tells them, in App Intents." />
-      <AppleHero
-        id="apple-ax-title"
+      <Hero
+        layout="column"
         eyebrow="Ouro AX for Apple"
         title="Siri reads your app like a manual. Write a good one."
-        media={<Angler />}
+        description="On Apple's platforms, an agent meets your app through App Intents. Siri picks what to call from titles and descriptions, finds your things by name, and follows your skills. Ouro AX for Apple is the checklist for getting that right, and an X-ray that checks it for you."
         actions={
           <>
             <Button href="#xray">Browse the X-ray</Button>
@@ -58,12 +59,8 @@ export default function AppleAx(): JSX.Element {
             </Button>
           </>
         }
-      >
-        <p>
-          On Apple's platforms, an agent meets your app through App Intents. Siri picks what to call from titles and descriptions, finds your things by name, and follows
-          your skills. Ouro AX for Apple is the checklist for getting that right, and an X-ray that checks it for you.
-        </p>
-      </AppleHero>
+        media={<Angler />}
+      />
 
       <AppleBand id="surfaces" eyebrow="The door" title="What Siri sees when it looks at your app.">
         <ul className="apple-quad">

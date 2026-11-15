@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { readMotion } from "./components.mts";
 import { checkCoverage, mergePartitions, parseExpect, readPartitions } from "./motion-coverage.mts";
 import { partitionFile, partitionOf, projectNames, writePartition } from "./motion-reporter.mts";
+import { scriptTestFiles } from "./script-tests.mjs";
 
 // The motion evidence: each Vitest run writes one partition per project and shard
 // (.tmp/motion/<project>.<shard>.<worker>.json, scripts/motion-reporter.mts) holding the tests it
@@ -295,5 +296,6 @@ test("motion:coverage merges the partitions under a folder and checks the reposi
 test("pnpm motion:coverage runs the checker", () => {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   assert.equal(pkg.scripts["motion:coverage"], "node scripts/motion-coverage.mts");
-  assert.match(pkg.scripts["test:scripts"], /scripts\/motion\.test\.mjs scripts\/motion-coverage\.test\.mjs/);
+  const found = scriptTestFiles();
+  assert.ok(found.includes("scripts/motion.test.mjs") && found.includes("scripts/motion-coverage.test.mjs"));
 });

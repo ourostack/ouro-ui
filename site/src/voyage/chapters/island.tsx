@@ -180,4 +180,6 @@ export const AppleHxIsland = island("apple-hx", () => import("../../apple/hx"));
 export const AppleFeelIsland = island("apple-feel", () => import("../../apple/feel"));
 export const AppleAxIsland = island("apple-ax", () => import("../../apple/ax"));
 export const AppleReinsIsland = island("apple-reins", () => import("../../apple/reins"));
+/** The adoption ledger (adoption/): its data and page load only on /adoption/. */
+export const AdoptionIsland = island("adoption", () => import("../../adoption/adoption"));
 export const AppleStartIsland = island("apple-start", () => import("../../apple/start"));

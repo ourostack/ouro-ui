@@ -3,7 +3,6 @@
 import {
   memo,
   useCallback,
-  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -18,6 +17,7 @@ import {
   type Ref,
 } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { UnreadDot } from "@/registry/ouro/components/ouro/unread-dot/unread-dot";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -200,13 +200,15 @@ const moves: Readonly<Record<string, (index: number, last: number) => number>> =
 const shown = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
 
 // Above this many conversations the list renders only the rows near the view, so a long list costs what a screenful does.
-const windowAbove = 60;
+const windowAbove = 20;
 // How far past the view's top and bottom edges rows still render, in pixels, so a scroll shows rows already drawn.
 const overscan = 320;
 // How much of the list renders before the view is known, as in server HTML, in pixels.
 const firstView = 1000;
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
+// The shortest a row is assumed to be on the first frame, in pixels: rows shorter than the estimates still fill the view, so the window never grows once measured.
+const shortest = 40;
 const noHeights: ReadonlyMap<string, number> = new Map();
 // The default for sections: one array, so the rows are put in order again only when they or their sections change.
 const noSections: readonly ConversationListSection[] = [];
@@ -253,23 +255,6 @@ function reveal(controls: ReadonlyMap<string, HTMLElement>, key: string, block: 
   controls.get(key)?.scrollIntoView({ block });
 }
 
-/** The unread dot, or only its spoken label when a mark takes its place. */
-function Unread({ label, dot }: { label: string; dot: boolean }): JSX.Element {
-  // Without its dot it is only words for screen readers, out of the line's flow, so it adds no gap.
-  if (!dot)
-    return (
-      <span data-ouro-conversation-unread="" className="sr-only">
-        {label}
-      </span>
-    );
-  return (
-    <span data-ouro-conversation-unread="" className="flex shrink-0 items-center">
-      <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
-      <span className="sr-only">{label}</span>
-    </span>
-  );
-}
-
 /** A chevron that points at the rows when the section is open, and along the header when it is closed. */
 function Chevron({ open }: { open: boolean }): JSX.Element {
   return (
@@ -288,7 +273,7 @@ type RowProps = {
   selected: boolean;
   tabStop: boolean;
   windowed: boolean;
-  top: number;
+  top: number | undefined;
   slotClass?: string | undefined;
   position: number;
   count: number;
@@ -316,7 +301,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
           {item.mark}
         </span>
       )}
-      {item.unread && <Unread label={unreadLabel} dot={!hasMark} />}
+      {item.unread && <UnreadDot data-ouro-conversation-unread="" label={unreadLabel} dot={!hasMark} />}
     </>
   );
   return (
@@ -429,7 +414,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
  * is a single stop for the Tab key, which lands on the open conversation; Up and Down arrows
  * move between rows, Home and End jump to the first and last, and Enter, Space or a click
  * calls `onSelect`. Rows can group under `sections`, whose headers open and close them.
- * A list of more than 60 conversations renders only the rows near the view, and the Tab stop and the open row,
+ * A list of more than 20 conversations renders only the rows near the view, and the Tab stop and the open row,
  * each placed where it would be in the whole list and measured as it renders, so a long list costs about what a
  * screenful does. The arrow keys, Home and End still reach every row, and the open conversation's row scrolls
  * into view. A long list's other rows are not in the page, so code that reads the rows from the page, and the
@@ -450,9 +435,9 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
  * @claim "The open conversation's row is" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > keeps the open conversation highlighted under the pointer)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > is one Tab stop, which lands on the open conversation)
  * @claim "is a single stop for the" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > moves focus with the arrow keys, Home and End)
- * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > keeps a list of 60 conversations whole, as a short list always was)
- * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders only the rows near the view of a long list, in a list as tall as all of them)
- * @claim "A list of more than 60" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders the rows a scroll reaches, in order, and drops the rows it leaves)
+ * @claim "A list of more than 20" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > keeps a list of 20 conversations whole, as a short list always was)
+ * @claim "A list of more than 20" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders only the rows near the view of a long list, in a list as tall as all of them)
+ * @claim "A list of more than 20" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders the rows a scroll reaches, in order, and drops the rows it leaves)
  * @claim "The arrow keys, Home and End still reach every row" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > moves focus to the last row with End and back with Home, rendering and showing the row it reaches)
  * @claim "The arrow keys, Home and End still reach every row" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > walks down past the rows first rendered with the Down arrow, scrolling only as far as the row with focus needs)
  * @claim "A long list's other rows are not in the page" registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.windowing.test.tsx::ConversationList windowing > renders only the rows near the view of a long list, in a list as tall as all of them)
@@ -493,23 +478,25 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [measured, setMeasured] = useState<{ density: ConversationListDensity; heights: ReadonlyMap<string, number> } | null>(null);
   const [range, setRange] = useState<readonly [number, number] | null>(null);
   const [reach, setReach] = useState<string | null>(null);
-  // A short list's first render holds only the rows the first view reaches; the rest render once it has painted.
-  const [settled, setSettled] = useState(false);
-  useEffect(
-    () => queueMicrotask(() => setSettled(true)),
-    // Stryker disable next-line ArrayDeclaration: the effect reads nothing, so rerunning it only sets the state again.
-    [],
-  );
   const controls = useRef(new Map<string, HTMLButtonElement>());
   const latest = useRef<Laid | null>(null);
   const clips = useRef<HTMLElement[] | null>(null);
   const scroller = useRef<Element | null>(null);
+  // Whether the list has been scrolled since it mounted.
+  const scrolled = useRef(false);
+  const seenTop = useRef(0);
+  const viewSize = useRef("");
+  const selectionFrame = useRef(0);
   // What every render, scroll and resize runs, from the latest render; set before any scroll or resize can call it.
   const sync = useRef<(() => void) | null>(null);
+  // Stryker disable next-line ArrowFunction,ArrayDeclaration,CallExpression: the cleanup only stops a late frame reading a gone list; no test can observe it.
+  useLayoutEffect(() => () => cancelAnimationFrame(selectionFrame.current), []);
   // What the last sync ran for, and the observer that reports a row's change of size once the page is laid out.
-  const synced = useRef<{ inputs: string; heights: ReadonlyMap<string, number> } | null>(null);
+  const synced = useRef<{ inputs: string; places: string; heights: ReadonlyMap<string, number> } | null>(null);
   const rows = useRef<ResizeObserver | null>(null);
   const revealed = useRef<string | null>(null);
+  // Whether the open row changed since the last sync, which then checks it is in view.
+  const opening = useRef(false);
   const focusNext = useRef<string | null>(null);
   // The row to keep in view while the heights around it settle, and where in the view.
   const keepInView = useRef<{ key: string; block: "nearest" | "center" } | null>(null);
@@ -565,21 +552,29 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
 
   const heights = measured?.density === density ? measured.heights : noHeights;
   const { offsets, total } = useMemo(() => place(keys, heights, estimates[density]), [keys, heights, density]);
+  // The first frame counts its rows from the estimates alone: counting from measured heights would grow the window after the first measurement.
+  const guessed = place(keys, noHeights, Math.min(estimates[density], shortest)).offsets;
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
-  const firstRows = offsets.filter((offset) => offset < firstView).length;
+  const firstRows = guessed.filter((offset) => offset < firstView).length;
   const [start, end] = range ?? [0, firstRows];
   const indexes = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
   const kept = useMemo(() => new Set([tabStop, current, reach]), [tabStop, current, reach]);
   const rendered = (key: string) => {
     const index = indexes.get(key)!;
-    if (!windowed) return settled || index < firstRows || kept.has(key);
+    if (!windowed) return true;
     return (index >= start && index < end) || kept.has(key);
   };
   // In a windowed list a control's slot is placed where it would be, with the gap before it as padding, and says
   // where it is in its list, since screen readers cannot count the rows that are not there.
+  // Until the first measurement, and while the view has not moved, the slots of the first window sit in normal flow, so
+  // their places are the ones the measured heights give: nothing estimated lies above a row in view.
+  const flow = windowed && start === 0;
   const slot = (key: string) => {
     const index = indexes.get(key)!;
-    return { className: cn("absolute inset-x-0", index > 0 && (kindOf(key) === "section" ? "pt-2.5" : "pt-0.5")), style: { top: offsets[index] } };
+    const gap = index > 0 && (kindOf(key) === "section" ? "pt-2.5" : "pt-0.5");
+    // Stryker disable next-line EqualityOperator: a kept row at index end follows the last flowed row, so flow and its absolute place agree.
+    if (flow && index < end) return { className: cn(gap), style: undefined };
+    return { className: cn("absolute inset-x-0", gap), style: { top: offsets[index] } };
   };
   const register = useCallback((key: string, node: HTMLButtonElement | null) => {
     if (node) controls.current.set(key, node);
@@ -605,6 +600,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const update = () => {
     const { offsets: at, total: height, range: was } = latest.current!;
     const { top, bottom } = view();
+    // A scroll that moved the view without a scroll event reaching the list, as a focus scroll can, counts too.
+    // Stryker disable next-line ConditionalExpression: the scroll event, the key path and a size change also set it.
+    if (scroller.current!.scrollTop !== seenTop.current) scrolled.current = true;
+    seenTop.current = scroller.current!.scrollTop;
     let first = at.length;
     let last = 0;
     at.forEach((offset, index) => {
@@ -613,6 +612,19 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         last = index + 1;
       }
     });
+    // Until the first scroll, rows rendered on the first frame stay: measuring narrows the window, and a row or section
+    // that unmounts after the first paint would make the first frame differ from the finished screen.
+    // Stryker disable next-line EqualityOperator: an empty window (nothing reaches the view) keeps the last one either way.
+    // Stryker disable next-line ConditionalExpression: with an empty range the unions below leave the window as it was.
+    if (!scrolled.current && last > 0) {
+      // Stryker disable next-line MethodExpression: the first frame's window starts at the top, so min and max agree until a scroll.
+      first = Math.min(first, was[0]);
+      last = Math.max(last, was[1]);
+      // A first window that already covers the view does not grow once measured rows are shorter than the estimates.
+      // Stryker disable next-line ConditionalExpression: a window ending exactly at the view's bottom covers it either way.
+      // Stryker disable next-line EqualityOperator: a window ending exactly at the view's bottom covers it either way.
+      if ((at[was[1]] as number) >= bottom) last = was[1];
+    }
     if (was[0] !== first || was[1] !== last) setRange([first, last]);
   };
   // Measures the rendered slots; says whether a height changed.
@@ -643,30 +655,70 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       // is (Home on the first row) brings no render to wait for.
       control.focus({ preventScroll: true });
       reveal(controls.current, key, "nearest");
+      // The scroll's own event may land late, so the window follows the key's scroll from the next frame.
+      // Stryker disable next-line BooleanLiteral: the frame's own scrollTop check sets it too.
+      scrolled.current = true;
+      // Stryker disable next-line CallExpression: cancelling a frame that already ran is a no-op.
+      cancelAnimationFrame(selectionFrame.current);
+      // Stryker disable next-line ArrowFunction: the observer's next callback makes the same sync.
+      selectionFrame.current = requestAnimationFrame(() => sync.current!());
     } else control.focus();
   };
 
   // The boxes that clip the list, which scroll it and whose size sets its view, and the box that scrolls it.
+  // Nothing is read while the list mounts: the first rows render in flow at their estimates, and the observer's first
+  // callback, which comes with the page already laid out, finds the boxes, measures the rows and sets the window.
   useLayoutEffect(() => {
     if (!windowed) return;
     const list = listRef.current!;
-    const found: HTMLElement[] = [];
-    for (let node = list.parentElement; node; node = node.parentElement) if (getComputedStyle(node).overflowY !== "visible") found.push(node);
-    clips.current = found;
-    scroller.current = found.find((clip) => /auto|scroll/.test(getComputedStyle(clip).overflowY)) ?? document.scrollingElement;
+    let found: HTMLElement[] = [];
+    let frame = 0;
     const onScroll = (event: Event) => {
       // Stryker disable next-line ConditionalExpression: a scroll elsewhere would only read a view that has not changed.
-      if (event.target === document || found.includes(event.target as HTMLElement)) sync.current!();
+      if (event.target === document || found.includes(event.target as HTMLElement)) {
+        scrolled.current = true;
+        sync.current!();
+      }
     };
-    const onResize = () => sync.current!();
-    document.addEventListener("scroll", onScroll, { capture: true });
-    addEventListener("resize", onResize);
+    const onResize = () => {
+      // Stryker disable next-line ConditionalExpression: finding the clips again would find the same boxes, which `found` already holds
+      if (!clips.current) {
+        let scrolls: HTMLElement | undefined;
+        for (let node = list.parentElement; node; node = node.parentElement) {
+          const { overflowY } = getComputedStyle(node);
+          if (overflowY === "visible") continue;
+          found.push(node);
+          // Stryker disable next-line LogicalOperator: the window reads the list's rectangle against each clip, so which scroller is kept changes only where scroll events are filtered
+          // Stryker disable next-line ConditionalExpression: same reason, the kept scroller does not change what the window shows
+          if (!scrolls && /auto|scroll/.test(overflowY)) scrolls = node;
+        }
+        clips.current = found;
+        scroller.current = scrolls ?? document.scrollingElement;
+        document.addEventListener("scroll", onScroll, { capture: true });
+        addEventListener("resize", onResize);
+        // Boxes above the list are observed after this frame, or the observer reports their first sizes as a loop.
+        frame = requestAnimationFrame(() => {
+          for (const clip of found) resizes.observe(clip);
+        });
+      }
+      // A change in the view's size, as opposed to the rows', lets the window narrow again.
+      const size = `${innerHeight}:${clips.current.map((clip) => clip.clientHeight).join()}`;
+      if (viewSize.current && viewSize.current !== size) scrolled.current = true;
+      viewSize.current = size;
+      sync.current!();
+    };
     const resizes = new ResizeObserver(onResize);
-    for (const clip of found) resizes.observe(clip);
+    // Stryker disable next-line CallExpression: the rows observed on the first sync also deliver the first callback; observing the list only adds its own later resizes
+    resizes.observe(list);
     rows.current = resizes;
     return () => {
       rows.current = null;
       synced.current = null;
+      clips.current = null;
+      // Stryker disable next-line ArrayDeclaration: the effect re-runs with a fresh array; cleanup only drops references
+      found = [];
+      // Stryker disable next-line CallExpression: a frame cancelled late observes boxes of a disconnected observer, which does nothing
+      cancelAnimationFrame(frame);
       document.removeEventListener("scroll", onScroll, { capture: true });
       removeEventListener("resize", onResize);
       resizes.disconnect();
@@ -680,17 +732,19 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     if (!windowed) return;
     // The open conversation's row comes to the middle of the view when it opens out of view, as it may not have
     // rendered yet; one that opens in view stays where it is.
-    if (opened !== current) {
-      const row = controls.current.get(current)?.getBoundingClientRect();
-      const listTop = listRef.current!.getBoundingClientRect().top;
-      const { top, bottom } = view();
-      if (row && (row.top - listTop < top || row.bottom - listTop > bottom)) {
-        keepInView.current = { key: current, block: "center" };
-      }
-    }
+    if (opened !== current) opening.current = true;
     // Measures what rendered, moves focus to the row the keyboard reached once it has, keeps a row that must show in
     // view while the heights around it settle, and renders the slots in view; on every render, scroll and resize.
     sync.current = () => {
+      if (opening.current) {
+        opening.current = false;
+        const row = controls.current.get(current)?.getBoundingClientRect();
+        const listTop = listRef.current!.getBoundingClientRect().top;
+        const { top, bottom } = view();
+        if (row && (row.top - listTop < top || row.bottom - listTop > bottom)) {
+          keepInView.current = { key: current, block: "center" };
+        }
+      }
       const changed = measure();
       const reached = focusNext.current && controls.current.get(focusNext.current);
       if (reached) {
@@ -706,11 +760,23 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     // A sync reads layout, which inside a commit lays the page out at once, so a render runs it only when what it
     // places changed: the rows, the window, the heights, the open, reached or focusable row. A row that changes size otherwise
     // (new text) is reported by the observer, once the page is laid out, where reads are free.
-    const inputs = JSON.stringify([keys, start, end, density, current, reach, tabStop]);
+    const places = JSON.stringify([keys, start, end, density, reach]);
+    const inputs = JSON.stringify([places, current, tabStop]);
     for (const control of controls.current.values()) rows.current!.observe(control.parentElement!);
     if (synced.current?.inputs === inputs && synced.current.heights === heights) return;
-    synced.current = { inputs, heights };
-    sync.current();
+    // Stryker disable next-line ConditionalExpression: a changed place with equal heights also gets its sync from the observer and the scroll listener, so skipping it in the commit shows in no test.
+    const selectionOnly = !focusNext.current && synced.current?.places === places && synced.current.heights === heights;
+    synced.current = { inputs, places, heights };
+    // Switching the open row moves nothing: its reveal, if it needs one, reads after the commit instead of in it.
+    if (selectionOnly) {
+      // Stryker disable next-line CallExpression: cancelling a frame that already ran is a no-op; it matters only when a newer switch arrives first.
+      cancelAnimationFrame(selectionFrame.current);
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,ArrowFunction,EqualityOperator: the frame only repeats a reveal the observer's next callback also makes, so tests cannot tell the two apart.
+      if ((opening.current || keepInView.current) && clips.current) selectionFrame.current = requestAnimationFrame(() => sync.current!());
+      return;
+    }
+    // Until the observer's first callback has found the boxes around the list, nothing is read.
+    if (clips.current) sync.current();
   });
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
@@ -748,7 +814,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         selected={item.id === selectedId}
         tabStop={key === tabStop}
         windowed={windowed}
-        top={windowed ? offsets[indexes.get(key)!]! : 0}
+        top={windowed ? slot(key).style?.top : 0}
         slotClass={windowed ? slot(key).className : undefined}
         position={position}
         count={count}
@@ -815,7 +881,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 )}
                 {!open && rows.some((item) => item.unread) && (
                   <span className="ms-auto flex shrink-0 items-center">
-                    <Unread label={unreadLabel} dot />
+                    <UnreadDot data-ouro-conversation-unread="" label={unreadLabel} />
                   </span>
                 )}
               </button>
@@ -829,11 +895,16 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 className={windowed ? "m-0 p-0" : "m-0 p-0 not-first:mt-2"}
               >
                 {!windowed ? header : rendered(key) && <div {...slot(key)}>{header}</div>}
-                {open && (
-                  <ul id={groupId} aria-label={section.title} className={windowed ? "m-0 list-none p-0" : cn(listClass, "mt-0.5")}>
-                    {shownRows}
-                  </ul>
-                )}
+                {open &&
+                  // Stryker disable next-line ConditionalExpression,EqualityOperator: an empty <div> and an empty <ul> differ only for assistive tech, which the accessibility-tree test covers for open sections with rows outside the window
+                  (shownRows.length > 0 ? (
+                    <ul id={groupId} aria-label={section.title} className={windowed ? "m-0 list-none p-0" : cn(listClass, "mt-0.5")}>
+                      {shownRows}
+                    </ul>
+                  ) : (
+                    // The section's rows are all outside the window: no list, so none reads as empty, but the header's aria-controls still finds this.
+                    <div id={groupId} />
+                  ))}
               </li>
             );
           })}

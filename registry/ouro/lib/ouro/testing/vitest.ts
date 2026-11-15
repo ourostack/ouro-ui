@@ -77,6 +77,7 @@ export function ouroTestProjects({
   page,
 }: OuroTestOptions): TestProjectInlineConfiguration[] {
   const setupFiles = [css, fileURLToPath(new URL("./setup.ts", import.meta.url))];
+  const mouseSetupFiles = [...setupFiles, fileURLToPath(new URL("./pointer-setup.ts", import.meta.url))];
   const touchInclude = include.map((glob) => glob.replace(/\.test\.(\{[^}]*\}|\w+)$/, ".touch.test.$1"));
   const exclude = [...configDefaults.exclude, "**/*.touch.test.{ts,tsx}", "**/*.visual.test.{ts,tsx}"];
   // Tests wait on conditions (`expect.poll`), never on fixed timers. A loaded CI runner
@@ -87,7 +88,7 @@ export function ouroTestProjects({
       extends: true as const,
       test: {
         name: `ouro-${browser}`,
-        setupFiles,
+        setupFiles: mouseSetupFiles,
         expect: expectOptions,
         include,
         exclude,

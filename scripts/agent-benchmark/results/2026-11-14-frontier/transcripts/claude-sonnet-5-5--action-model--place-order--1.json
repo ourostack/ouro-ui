@@ -1,0 +1,37 @@
+{
+  "model": "claude-sonnet-5-5",
+  "modelId": "claude-sonnet-5.5",
+  "transport": "copilot",
+  "arm": "action-model",
+  "task": "place-order",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": true,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 0,
+  "toolsUsed": [],
+  "textReadChars": 0,
+  "wallMs": 2073,
+  "modelCalls": 1,
+  "tokens": {
+    "input": 1145,
+    "output": 86,
+    "cacheRead": 1016,
+    "cacheWrite": 125,
+    "reasoning": 0,
+    "total": 1231
+  },
+  "costAiu": 0.12821,
+  "costSource": "runtime",
+  "finalMessage": "I can't order or pay for anything. I can only read and edit your shopping list, mark items as bought, and search your recipes and add them to the list. You'll need to place the corner store order and pay yourself. I can check the list for you first or mark items as bought afterward if you want.",
+  "transcript": {
+    "messages": [
+      "I can't order or pay for anything. I can only read and edit your shopping list, mark items as bought, and search your recipes and add them to the list. You'll need to place the corner store order and pay yourself. I can check the list for you first or mark items as bought afterward if you want."
+    ],
+    "toolCalls": []
+  },
+  "redacted": false
+}

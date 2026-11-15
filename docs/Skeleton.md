@@ -2,7 +2,7 @@
 
 # Skeleton
 
-A shimmering placeholder in the shape and size of content that is still loading, so the content takes its place without moving anything. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion the shimmer holds still.
+A placeholder that breathes after a second in the shape and size of content that is still loading, so the content takes its place without moving anything. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion, or `shimmer={false}`, it holds still.
 
 ```tsx
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
@@ -32,10 +32,11 @@ Pick the shape of what is coming: `shape="text"` with `lines` and Text's `size` 
 
 The props the modes share. Type: `SkeletonProps`.
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `className` | `string` | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
-| `ref` | `Ref<HTMLSpanElement>` | Reaches the rendered element. |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Layout only: size, margins and placement (`h-32`, `w-1/2`). The color and corners come from the theme and `shape`. |
+| `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
+| `shimmer` | `boolean` | `true` | Whether the placeholder breathes once it has been loading for a second. `false` draws it still, as reduced motion does. Only the first placeholders mounted at once breathe; the rest of a long list hold still, which keeps WebKit's wheel scrolling smooth. Choose it for a long list of pictures loading at once, where animating each may slow scrolling. |
 
 ## Modes
 
@@ -105,7 +106,7 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
-- `animation`: Not a prop. Skeleton shimmers, and holds still with reduced motion.
+- `animation`: Not a prop. Skeleton breathes, and holds still with reduced motion.
 - `height`: Not a prop. Size it with a layout class, or give `shape="text"` its `lines`: `<Skeleton className="h-6">`.
 - `variant`: Not a prop. Ouro UI uses `shape`: `<Skeleton shape="circle">`.
 - `width`: Not a prop. Size it with a layout class: `<Skeleton className="w-32">`.

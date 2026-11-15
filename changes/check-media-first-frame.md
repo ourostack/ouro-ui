@@ -1,0 +1,1 @@
+- Fix: Ouro check seeks a played video back to its first frame again when WebKit reports where playback stopped after the first seek, so it photographs the first frame.

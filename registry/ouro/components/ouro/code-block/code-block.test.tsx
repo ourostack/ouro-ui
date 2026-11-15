@@ -6,6 +6,7 @@ import { page, server, userEvent } from "vitest/browser";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
@@ -73,6 +74,11 @@ describe("CodeBlock", () => {
     const style = getComputedStyle(block);
     expect(style.backgroundColor).toBe(probe("backgroundColor", "var(--muted)"));
     expect(style.borderTopColor).toBe(probe("borderColor", "var(--border)"));
+    const rule = block.querySelector<HTMLElement>('[data-slot="rule"]')!;
+    expect(getComputedStyle(rule).borderTopColor).toBe(probe("borderColor", "var(--border)"));
+    // The code's own top border stays, transparent, so the code keeps its place under the rule.
+    expect(getComputedStyle(pre).borderTopWidth).toBe("1px");
+    expect(getComputedStyle(pre).borderTopColor).toBe(probe("borderColor", "transparent"));
     expect(getComputedStyle(pre).color).toBe(probe("color", "var(--foreground)"));
     expect(getComputedStyle(pre).whiteSpace).toBe("pre");
     const mono = document.createElement("span");
@@ -187,8 +193,8 @@ describe("CodeBlock", () => {
     expect(pre.hasAttribute("tabindex")).toBe(false);
   });
 
-  it("fades out at the side where a long line goes on, with its focus ring over the fade", async () => {
-    const { host, pre } = await render(
+  it("fades out at the side where a long line goes on, with its focus ring outside the fade", async () => {
+    const { block, pre } = await render(
       <div style={{ width: 320 }}>
         <CodeBlock code={long} language="ts" />
       </div>,
@@ -196,28 +202,73 @@ describe("CodeBlock", () => {
     await expect.poll(() => pre.hasAttribute("data-ouro-scroll-fade")).toBe(true);
     expect(getComputedStyle(pre).maskImage).toContain("linear-gradient");
     expect(pre.style.getPropertyValue("--ouro-scroll-fade-left")).toBe("0px");
-    const ring = host.querySelector<HTMLElement>('[data-slot="focus-ring"]')!;
-    expect(ring.getAttribute("aria-hidden")).toBe("true");
-    expect(ring.getBoundingClientRect().toJSON()).toEqual(pre.getBoundingClientRect().toJSON());
-    expect(getComputedStyle(ring).outlineStyle).toBe("none");
+    // The ring is the block's own outline, outside the box the fade masks.
+    expect(getComputedStyle(block).maskImage).toBe("none");
+    expect(getComputedStyle(block).outlineStyle).toBe("none");
     await pressTab();
     await pressTab();
     expect(document.activeElement).toBe(pre);
     expect(getComputedStyle(pre).outlineStyle).toBe("none");
-    expect(getComputedStyle(ring).outlineStyle).toBe("solid");
+    expect(getComputedStyle(block).outlineStyle).toBe("solid");
+    expect(getComputedStyle(block).outlineWidth).toBe("2px");
     // WebKit under Playwright scrolls a focused box with no arrow key, masked or not, so it scrolls by script there.
     if (server.browser === "chromium") await userEvent.keyboard("{ArrowRight}");
     else pre.scrollLeft = 40;
     await expect.poll(() => pre.style.getPropertyValue("--ouro-scroll-fade-left")).not.toBe("0px");
-    // Without a bar, the ring still covers the code.
-    const bare = await render(<div style={{ width: 320 }}><CodeBlock code={long} copy={false} /></div>);
-    expect(bare.host.querySelector('[data-slot="focus-ring"]')!.getBoundingClientRect().toJSON()).toEqual(bare.pre.getBoundingClientRect().toJSON());
     // Short code and wrapped code don't fade.
     for (const node of [<CodeBlock key="short" code="short" />, <CodeBlock key="wrap" code={long} wrap />]) {
       const { pre: plain } = await render(<div style={{ width: 320 }}>{node}</div>);
       await act(async () => new Promise(requestAnimationFrame));
       expect(plain.hasAttribute("data-ouro-scroll-fade")).toBe(false);
       expect(getComputedStyle(plain).maskImage).toBe("none");
+    }
+  });
+
+  it("draws the hairline under its bar from border to border, outside the fade, when a line overflows", async () => {
+    const { block, pre } = await render(
+      <div style={{ width: 320 }}>
+        <CodeBlock code={long} language="ts" />
+      </div>,
+    );
+    await expect.poll(() => pre.hasAttribute("data-ouro-scroll-fade")).toBe(true);
+    const rule = block.querySelector<HTMLElement>('[data-slot="rule"]')!;
+    expect(pre.contains(rule)).toBe(false);
+    expect(getComputedStyle(rule).maskImage).toBe("none");
+    const figure = block.getBoundingClientRect();
+    const style = getComputedStyle(block);
+    const box = rule.getBoundingClientRect();
+    const near = (actual: number, expected: number) => expect(Math.abs(actual - expected)).toBeLessThanOrEqual(0.5);
+    near(box.left, figure.left + parseFloat(style.borderLeftWidth));
+    near(box.right, figure.right - parseFloat(style.borderRightWidth));
+    near(box.top, pre.getBoundingClientRect().top);
+    near(box.height, 1);
+  });
+
+  it("draws no hairline without a bar", async () => {
+    const { block } = await render(<CodeBlock code="ok" copy={false} />);
+    expect(block.querySelector('[data-slot="rule"]')).toBeNull();
+  });
+
+  it("audits a page of many overflowing code blocks without screenshotting their code, within a time budget", async () => {
+    const { host } = await render(
+      <div>
+        {Array.from({ length: 35 }, (_, index) => (
+          <div key={index} style={{ width: 320, marginBottom: 12 }}>
+            <CodeBlock code={`// ${index}\n${long}`} language="ts" />
+          </div>
+        ))}
+      </div>,
+    );
+    await expect.poll(() => host.querySelectorAll("[data-ouro-scroll-fade]").length).toBe(35);
+    const screenshot = vi.spyOn(page, "screenshot");
+    try {
+      const started = performance.now();
+      const findings = await audit({ include: [host] });
+      expect(describeFindings(findings)).toBe("");
+      expect(screenshot).not.toHaveBeenCalled();
+      expect(performance.now() - started).toBeLessThan(10_000);
+    } finally {
+      screenshot.mockRestore();
     }
   });
 

@@ -1,0 +1,47 @@
+{
+  "model": "oracle",
+  "arm": "plain-mcp",
+  "task": "check-off",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "steps": 3,
+  "toolsUsed": [
+    "list_items",
+    "update_item",
+    "update_item"
+  ],
+  "textReadChars": 448,
+  "wallMs": 0,
+  "tokens": null,
+  "costAiu": 0,
+  "transcript": {
+    "messages": [],
+    "toolCalls": [
+      {
+        "name": "list_items",
+        "args": {},
+        "result": "{\"items\":\"[{\\\"id\\\":\\\"i1\\\",\\\"name\\\":\\\"eggs\\\",\\\"quantity\\\":12,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i2\\\",\\\"name\\\":\\\"spinach\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bag\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i3\\\",\\\"name\\\":\\\"lemons\\\",\\\"quantity\\\":3,\\\"unit\\\":null,\\\"checked\\\":false},{\\\"id\\\":\\\"i4\\\",\\\"name\\\":\\\"parmesan\\\",\\\"quantity\\\":100,\\\"unit\\\":\\\"g\\\",\\\"checked\\\":false},{\\\"id\\\":\\\"i5\\\",\\\"name\\\":\\\"olive oil\\\",\\\"quantity\\\":1,\\\"unit\\\":\\\"bottle\\\",\\\"checked\\\":true}]\"}"
+      },
+      {
+        "name": "update_item",
+        "args": {
+          "id": "i1",
+          "checked": true
+        },
+        "result": "{}"
+      },
+      {
+        "name": "update_item",
+        "args": {
+          "id": "i2",
+          "checked": true
+        },
+        "result": "{}"
+      }
+    ]
+  }
+}

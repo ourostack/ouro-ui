@@ -1,0 +1,39 @@
+{
+  "model": "oracle",
+  "arm": "action-model",
+  "task": "recipe-to-list",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "steps": 2,
+  "toolsUsed": [
+    "search_recipes",
+    "add_recipe_to_shopping_list"
+  ],
+  "textReadChars": 75,
+  "wallMs": 0,
+  "tokens": null,
+  "costAiu": 0,
+  "transcript": {
+    "messages": [],
+    "toolCalls": [
+      {
+        "name": "search_recipes",
+        "args": {
+          "query": "charred lemon orzo"
+        },
+        "result": "{\"recipes\":\"[{\\\"id\\\":\\\"r1\\\",\\\"title\\\":\\\"Charred Lemon Orzo\\\"}]\"}"
+      },
+      {
+        "name": "add_recipe_to_shopping_list",
+        "args": {
+          "recipeId": "r1"
+        },
+        "result": "{\"added\":5}"
+      }
+    ]
+  }
+}

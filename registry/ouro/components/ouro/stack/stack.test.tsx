@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Stack } from "@/registry/ouro/components/ouro/stack/stack";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { computedValue } from "@/registry/ouro/lib/ouro/testing/computed";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -68,7 +69,7 @@ describe("Stack", () => {
     ["stretch", "stretch"],
   ] as const)("align=%s sets align-items %s", async (align, value) => {
     const { el } = await render(<Stack align={align}>{boxes}</Stack>);
-    expect(getComputedStyle(el).alignItems).toBe(value);
+    expect(getComputedStyle(el).alignItems).toBe(computedValue("align-items", value));
   });
 
   it.each([
@@ -78,7 +79,7 @@ describe("Stack", () => {
     ["between", "space-between"],
   ] as const)("justify=%s sets justify-content %s", async (justify, value) => {
     const { el } = await render(<Stack justify={justify}>{boxes}</Stack>);
-    expect(getComputedStyle(el).justifyContent).toBe(value);
+    expect(getComputedStyle(el).justifyContent).toBe(computedValue("justify-content", value));
   });
 
   it.each(["section", "ul", "ol", "nav", "header", "footer", "main", "aside", "form", "fieldset"] as const)("renders as %s", async (as) => {
