@@ -14,7 +14,10 @@ export default class TimingsReporter {
   }
 
   onTestEnd(test, result) {
-    const file = relative(process.cwd(), test.location.file).split("\\").join("/");
+    // The spec file the test belongs to, not the helper that defines it (a sweep's describe lives in site/e2e/*-sweep.ts).
+    let suite = test.parent;
+    while (suite && suite.type !== "file") suite = suite.parent;
+    const file = relative(process.cwd(), suite?.location?.file ?? test.location.file).split("\\").join("/");
     this.#times[file] = Math.round((this.#times[file] ?? 0) + result.duration);
   }
 
