@@ -6,6 +6,7 @@ export const FOOTER_LINKS: readonly { label: string; url: string }[] = [
   { label: "Ouro HX", url: href("/docs/") },
   { label: "Ouro AX", url: href("/ax/") },
   { label: "Adoption", url: href("/adoption/") },
+  { label: "Ouro Current", url: href("/current/") },
   { label: "Storybook", url: "https://ui.ouroboros.bot/storybook/" },
   { label: "Ouro UI on GitHub", url: GITHUB },
   { label: "llms.txt", url: href("/llms.txt") },

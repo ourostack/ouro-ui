@@ -144,6 +144,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 - In a Vite or React Router app the components keep their `"use client";` line, which is harmless there. [Installing](docs/guides/installing.md#vite-and-react-router-apps-the-use-client-notice) says why, and how to drop Rollup's notice about it.
 - For the Ouro look, add `ourostack/ouro-ui/ouro-theme#v1.3.181`. Skip it to keep your app's shadcn theme.
 - To update to the newest release, list the changed files with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.181 --dry-run` (or `@ouro/<item>`), review each one marked overwrite with `--diff <path>`, then add the item again at the same ref with `--overwrite` (with its `-tests` item if you have it: `add <item> <item>-tests --overwrite`) and reapply your edits. Coming from v0.1.0? Follow [Upgrading from v0.1.0](#upgrading-from-v010) instead.
+- To have updates come to you instead, install [Ouro Current](https://ui.ouroboros.bot/current/), our own Dependabot for Ouro UI: when Ouro UI, Ouro UI core or Ouro UI for Apple releases, it opens one pull request, "Update to Ouro UI vX", with auto-merge on, and your checks decide whether it merges.[^ouro-current] How it finds and moves the pins: [scripts/current](scripts/current/README.md).
 
 ### Upgrading from v0.1.0
 
@@ -273,6 +274,7 @@ Delete a helper and its own tests only after verifying that no remaining app fil
 
 Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with these commands read from this file (`scripts/install-test.sh upgrade`).[^upgrade-test]
 
+[^ouro-current]: test:scripts/current/current.test.mjs::one pull request per repository: opened once, left alone when nothing changed, and updated in place verify:testExists(scripts/current/current.test.mjs::one pull request per repository: opened once, left alone when nothing changed, and updated in place)
 [^upgrade-test]: scripts/install-test.sh; scripts/upgrade-note.mjs verify:testExists(scripts/upgrade-note.test.mjs::the upgrade install test runs the note's commands and copies none) verify:ciJob(install-upgrade)
 [^upgrade-releases]: https://github.com/ourostack/ouro-ui/releases; .github/workflows/release.yml; scripts/release-commit.sh verify:urlOk(https://github.com/ourostack/ouro-ui/releases) verify:fileLine(.github/workflows/release.yml, /scripts\/release-commit\.sh "\$VERSION"/) verify:fileLine(scripts/release-commit.sh, /changes\.mjs assemble/)
 [^upgrade-v0.1.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0)

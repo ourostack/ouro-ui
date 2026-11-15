@@ -182,4 +182,6 @@ export const AppleAxIsland = island("apple-ax", () => import("../../apple/ax"));
 export const AppleReinsIsland = island("apple-reins", () => import("../../apple/reins"));
 /** The adoption ledger (adoption/): its data and page load only on /adoption/. */
 export const AdoptionIsland = island("adoption", () => import("../../adoption/adoption"));
+/** Ouro Current (current/): its list and page load only on /current/. */
+export const CurrentIsland = island("current", () => import("../../current/current"));
 export const AppleStartIsland = island("apple-start", () => import("../../apple/start"));

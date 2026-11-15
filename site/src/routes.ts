@@ -38,6 +38,7 @@ export const routes: Route[] = [
   { path: "/apple/reins/", title: "Ouro Reins · Ouro UI for Apple", description: "Agents drive an app's screens as state and actions with ls and do: headless, in milliseconds, with the network blocked. Drive a pretend kitchen in your browser and race the simulator." },
   { path: "/apple/start/", title: "Get started · Ouro UI for Apple", description: "Add one Swift package, set a theme, animate with the shared spring, play a named haptic, and X-ray your App Intents in CI." },
   { path: "/adoption/", title: "Adoption · Ouro UI", description: "Who uses Ouro UI, and who gives back to it: our maintained products, measured from GitHub and CI hourly, furthest from confirmed first." },
+  { path: "/current/", title: "Ouro Current · Ouro UI", description: "Our own Dependabot for Ouro UI: install the GitHub App, and Ouro UI releases arrive as one pull request with auto-merge on." },
   {
     path: "/docs/",
     title: "Components · Ouro HX",
