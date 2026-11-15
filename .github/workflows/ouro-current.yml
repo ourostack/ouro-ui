@@ -1,0 +1,78 @@
+name: Ouro Current
+# Our own Dependabot for Ouro UI pins (scripts/current/README.md). On every Ouro UI release, and every half hour for core and
+# Apple releases (a release in another repository cannot start this one), the Ouro Current GitHub App walks each repository
+# it is installed on, finds its Ouro UI pin files, and opens or updates one "Update to Ouro UI vX" pull request with
+# auto-merge on. The list of who it keeps current is published as current.json on the `adoption-data` branch, which
+# https://ui.ouroboros.bot/current/ reads. A repository it could not update opens or comments on one issue here.
+on:
+  release:
+    types: [published]
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [ouro-ui-release]
+permissions:
+  contents: read
+concurrency:
+  group: ouro-current
+  cancel-in-progress: false
+jobs:
+  current:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # current.json on the adoption-data branch
+      issues: write # the issue for a repository it could not update (scripts/scheduled-failure.sh)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Keep every installation current
+        id: keep
+        env:
+          OURO_CURRENT_APP_ID: ${{ vars.OURO_CURRENT_APP_ID }}
+          OURO_CURRENT_PRIVATE_KEY: ${{ secrets.OURO_CURRENT_PRIVATE_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/current/current.mjs --out "$RUNNER_TEMP/current.json"
+      - name: Publish who it keeps current
+        if: always() && hashFiles(format('{0}/current.json', runner.temp)) != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          [ -f "$RUNNER_TEMP/current.json" ] || { echo "No report was written."; exit 0; }
+          if ! gh api "repos/$REPO/branches/adoption-data" >/dev/null 2>&1; then
+            sha=$(gh api "repos/$REPO/git/ref/heads/main" --jq .object.sha)
+            gh api "repos/$REPO/git/refs" -f ref=refs/heads/adoption-data -f sha="$sha" >/dev/null
+          fi
+          for attempt in 1 2 3; do
+            current=$(gh api "repos/$REPO/contents/current.json?ref=adoption-data" --jq .sha 2>/dev/null || true)
+            args=(-X PUT "repos/$REPO/contents/current.json" -f message="Ouro Current $(date -u +%Y-%m-%dT%H:%MZ)" -f branch=adoption-data -f content="$(base64 < "$RUNNER_TEMP/current.json" | tr -d '\n')")
+            [ -z "$current" ] || args+=(-f sha="$current")
+            if gh api "${args[@]}" >/dev/null; then echo "Published current.json."; exit 0; fi
+            sleep $((attempt * 5))
+          done
+          exit 1
+      - name: Report a repository it could not update
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          QUIET_HOURS: 6
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Ouro Current could not update a repository" "Ouro Current could not open or update an Ouro UI update pull request; the run's log names each repository and why (a private one is not named)"
+      - name: Close the issue once every repository is current or has its pull request
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          title="Ouro Current could not update a repository"
+          number=$(gh issue list --state open --search "in:title \"$title\"" --json number,title --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          [ -z "$number" ] || gh issue close "$number" --comment "Every repository updated in ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
