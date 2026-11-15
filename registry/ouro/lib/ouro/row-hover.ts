@@ -230,7 +230,7 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
     if (via !== "pointer" && via !== "touch") return;
     // A scroll that left the row where it was (the list keeping its place as the content above it changes size) moved
     // nothing under the pointer.
-    if (Math.abs(row!.getBoundingClientRect().top - at) < 0.5) return;
+    if (row!.getBoundingClientRect().top === at) return;
     hide();
     // Shown again where the pointer is once it moves: the rows moved under it, and no pointerover says so.
     root.addEventListener("pointermove", over);
