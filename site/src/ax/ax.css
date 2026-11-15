@@ -277,6 +277,7 @@
     overflow-y: auto;
   }
   .ax-reward {
+    --duo-fill: var(--card);
     max-width: 18rem;
     color: var(--foreground);
   }
@@ -341,17 +342,22 @@
   /*
    * The drawing between the hero and the morning (art/morning-with-an-agent.svg): its lines take the text colour, and
    * the person keeps the drawing's own amber and the agent its teal in every theme, so the page sets neither.
-   * Its content sits in the middle of a 1200 by 500 view box, so a phone shows a centred 4:3 crop of it.
+   * Its content sits in the middle of a 1200 by 500 view box. A phone shows it cropped tight to the duo, the window and
+   * the room (the 620 by 280 stretch from (300, 50), down to the desk's top), so the pair is drawn as large as the
+   * phone allows; wider screens show the whole band. Mittens fill with the page's background (--duo-fill unset).
    */
   .ax-art {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 31 / 14;
     overflow: hidden;
     color: var(--foreground);
   }
   .ax-art > svg {
     display: block;
-    width: 100%;
-    height: 100%;
+    width: calc(100% * 1200 / 620);
+    height: auto;
+    aspect-ratio: 1200 / 500;
+    margin-top: calc(-100% * 50 / 620);
+    margin-left: calc(-100% * 300 / 620);
   }
 
   /* Layout: the Ouro AX page's bands, beats and pairs (Tailwind's breakpoints: sm 40rem, md 48rem, lg 64rem, xl 80rem). */
@@ -376,6 +382,11 @@
   @media (width >= 40rem) {
     .ax-art {
       aspect-ratio: 12 / 5;
+    }
+    .ax-art > svg {
+      width: 100%;
+      height: 100%;
+      margin: 0;
     }
     .ax-finding {
       grid-template-columns: auto minmax(0, 1fr);
