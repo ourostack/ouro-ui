@@ -1009,6 +1009,18 @@ describe("Message rows", () => {
     }
   });
 
+  it("keeps 4px between a message and its thread in the default layout, and lifts the avatar 2px off the row's foot", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Ouro" thread={chips("t")}>
+        Hi
+      </Message>,
+    );
+    const thread = message.querySelector("[data-ouro-message-thread]")!;
+    expect(thread.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+    const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
+    expect(message.getBoundingClientRect().bottom - avatar.getBoundingClientRect().bottom).toBeCloseTo(2, 0);
+  });
+
   it("leaves out the attachments row when there are none", async () => {
     const { host } = await render(
       <>
