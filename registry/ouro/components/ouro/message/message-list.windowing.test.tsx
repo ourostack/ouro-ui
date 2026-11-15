@@ -112,6 +112,12 @@ async function settle(scroller: HTMLElement) {
     .toBe(true);
 }
 
+/**
+ * The time a test that takes dozens of real steps in a row (key presses, scrolls) has: in CI it shares the runner with the
+ * site and story suites, and one such walk, which takes about a second there on its own, ran past 15 s while they ran (#1475).
+ */
+const LONG_WALK = 45_000;
+
 /** Scrolls the list in code, as a reader would by any means, and waits for it to settle. */
 async function scrollTo(scroller: HTMLElement, top: number) {
   await act(async () => void (scroller.scrollTop = top));
@@ -715,7 +721,7 @@ describe("MessageList windowing", () => {
     expect(distanceFromBottom(list)).toBeLessThanOrEqual(1);
     expect(last).not.toBeNull();
     expect(worst).toBeLessThanOrEqual(1);
-  });
+  }, LONG_WALK);
 
   it("keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was", async () => {
     const heightOf = (id: number) => 60 + ((id * 37) % 81);
@@ -1193,7 +1199,7 @@ describe("MessageList windowing", () => {
     expect(inView(scroller, "m359")).toBe(true);
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(() => document.activeElement?.id).toBe("m360");
-  });
+  }, LONG_WALK);
 
   it("keeps the message with focus drawn, and focus on it, as the reader scrolls far away", async () => {
     const { scroller } = await render(<Chat items={conversation(1000, 0, true)} />);
