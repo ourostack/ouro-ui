@@ -15,6 +15,8 @@ function CookbookList(): JSX.Element {
           <li key={name}>
             <Button
               fullWidth
+              // A list's rows start at the leading edge; a button centres its label by default.
+              className="justify-start"
               variant={on ? "soft" : "outline"}
               tone={on ? "primary" : "secondary"}
               startIcon={on ? CheckIcon : PlusIcon}
