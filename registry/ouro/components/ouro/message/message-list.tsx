@@ -2299,35 +2299,45 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   return (
     <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", className)}>
-      {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so
-          parts placed absolutely inside it (screen-reader text, the list's edges) stay in its overflow, not its
-          ancestors': there they would let focus or scrollIntoView scroll the page around the list. */}
-      <div
-        ref={setScroller}
-        role="region"
-        aria-label={label}
-        data-ouro-message-list-scroller=""
-        data-ouro-control="message-list"
-        data-ouro-part="scroller"
-        onKeyDown={(event) => keyHandler.current!(event)}
-        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
-      >
-        <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
+      {/* Holds the scroller and its focus ring, drawn over it, so content that sticks to an edge never covers the ring. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so
+            parts placed absolutely inside it (screen-reader text, the list's edges) stay in its overflow, not its
+            ancestors': there they would let focus or scrollIntoView scroll the page around the list. */}
         <div
-          ref={contentRef}
-          data-ouro-message-list-content=""
-          className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-3"
-          style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
+          ref={setScroller}
+          role="region"
+          aria-label={label}
+          data-ouro-message-list-scroller=""
+          data-ouro-control="message-list"
+          data-ouro-part="scroller"
+          onKeyDown={(event) => keyHandler.current!(event)}
+          // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the scroller, under the ring.
+          className="peer relative min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-none focus-visible:isolate forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
         >
-          {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
-          {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
-          <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{slots}</RowLayerContext.Provider>
+          <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
+          <div
+            ref={contentRef}
+            data-ouro-message-list-content=""
+            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-3"
+            style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
+          >
+            {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
+            {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
+            <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{slots}</RowLayerContext.Provider>
+          </div>
+          <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
+          {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
+              in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
+          {Layer && <Layer scroller={scrollerRef} layer={layer} />}
+          <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
         </div>
-        <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
-        {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
-            in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
-        {Layer && <Layer scroller={scrollerRef} layer={layer} />}
-        <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
+        {/* There only while the scroller has focus: at rest nothing lies over the content, so a contrast check sees the text's own background. */}
+        <span
+          aria-hidden="true"
+          data-ouro-message-list-focus-ring=""
+          className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
+        />
       </div>
       {/* Read politely, outside the scrolling content, so new messages are heard once. */}
       <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">
