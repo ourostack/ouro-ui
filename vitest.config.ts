@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { writeMatrices } from "./scripts/control-matrix.mts";
 import { MotionReporter } from "./scripts/motion-reporter.mts";
 import { shardArgument, TimedSequencer, TimingsReporter } from "./scripts/vitest-shards.mts";
+import { WarmStories } from "./test/warm-stories.ts";
 import { StallReporter } from "./scripts/stall-reporter.mts";
 import { proofPlugin } from "./site/scripts/proof.mts";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
@@ -109,7 +110,7 @@ export default defineConfig({
     // motion and writes none, so it leaves `pnpm test`'s partitions as they were. A shard also writes
     // how long each file took, for the next split (`node scripts/shard.mjs refresh`).
     // A shard also fails a stall in minutes, naming the tests in flight (scripts/stall-reporter.mts, issue #671).
-    reporters: [...configDefaults.reporters, ...(themes || conformance ? [] : [new MotionReporter()]), ...(shard && !themes && !conformance ? [new TimingsReporter(), new StallReporter()] : [])],
+    reporters: [...configDefaults.reporters, ...(browserShard ? [new WarmStories()] : []), ...(themes || conformance ? [] : [new MotionReporter()]), ...(shard && !themes && !conformance ? [new TimingsReporter(), new StallReporter()] : [])],
     coverage: {
       provider: "istanbul",
       // The census kit's in-page collector is JavaScript an app's Playwright runs in the page; its
