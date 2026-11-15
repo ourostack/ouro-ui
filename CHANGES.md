@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: a ReactionBar's pressable reactions share [one tooltip root](registry/ouro/components/ouro/tooltip/tooltip.test.tsx "verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > shows each trigger's own content, on its own side, from one tooltip for them all)") rather than mounting one each, so a message with reactions mounts faster; each still shows its own words, on hover and keyboard focus.
