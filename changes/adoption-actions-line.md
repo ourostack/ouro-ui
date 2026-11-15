@@ -1,0 +1,1 @@
+- Changed: /adoption/ says a missing action set in a few words, with the detail behind its link.
