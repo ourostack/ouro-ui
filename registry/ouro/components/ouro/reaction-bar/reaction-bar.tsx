@@ -4,7 +4,7 @@ import { useId, type HTMLAttributes, type JSX, type MouseEvent, type ReactNode, 
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Emoji, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { catalogueIndex } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
-import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
+import { Tooltip, TooltipGroup } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -220,8 +220,8 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
 
   const offered = onReact ? quickOptions.filter((option) => !shown.some((reaction) => reaction.key === option.key)) : [];
   if (shown.length === 0 && offered.length === 0 && !onMore) return null;
-  return (
-    <div {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
+  const buttons = (
+    <>
       {/* One keyed list, counts then quick reactions: a quick reaction once chosen, or the last one
           taken back, keeps its button, so keyboard focus stays on it. */}
       {[...shown, ...offered].map((entry, index) => {
@@ -280,6 +280,16 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
             <span className="sr-only">{moreLabel}</span>
           </Badge>
         </Tooltip>
+      )}
+    </>
+  );
+  return (
+    <div {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
+      {onReact ? (
+        // One tooltip root for the whole bar, which each pressable reaction (and Add reaction) joins.
+        <TooltipGroup>{buttons}</TooltipGroup>
+      ) : (
+        buttons
       )}
     </div>
   );
