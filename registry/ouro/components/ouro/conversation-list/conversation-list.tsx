@@ -909,8 +909,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   useLayoutEffect(() => {
     // Stryker disable next-line ConditionalExpression: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
     if (withMenus) void loadMenu();
-    // Stryker disable next-line ArrayDeclaration: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
-  }, [withMenus]);
+  },
+  // Stryker disable next-line ArrayDeclaration: Menu's code, once loaded by any list, stays loaded, so no test can tell when this one asked for it.
+  [withMenus]);
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
     // Shift+F10 and the Menu key open a row's menu beside it, as a right-click does at the pointer.

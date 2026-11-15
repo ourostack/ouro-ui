@@ -978,8 +978,12 @@ describe("ConversationList row menu", () => {
     await expect.poll(() => document.activeElement).toBe(row("Ana Lind"));
   });
 
-  it("leaves focus where a chosen entry moved it", async () => {
-    const items: ConversationListItem[] = [{ id: "ana", title: "Ana Lind", menu: [{ label: "Write a note", onClick: () => document.querySelector<HTMLInputElement>("#note")!.focus() }] }];
+  it.each([
+    ["at once", (focus: () => void) => focus()],
+    ["once the menu has closed", (focus: () => void) => void setTimeout(focus)],
+  ])("leaves focus where a chosen entry moved it, %s", async (_, when) => {
+    const note = () => document.querySelector<HTMLInputElement>("#note")!.focus();
+    const items: ConversationListItem[] = [{ id: "ana", title: "Ana Lind", menu: [{ label: "Write a note", onClick: () => when(note) }] }];
     await render(
       <>
         <input id="note" aria-label="Note" />
