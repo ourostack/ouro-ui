@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: a ReactionBar reaction draws its emoji, name and count, and Badge its icon and label, without fragments around them, so a chat message with reactions draws [fewer components](registry/ouro/components/ouro/reaction-bar/reaction-bar.weight.test.tsx "verify:testExists(registry/ouro/components/ouro/reaction-bar/reaction-bar.weight.test.tsx::ReactionBar's weight > draws $variant in no more than $elements elements and $components components)").
