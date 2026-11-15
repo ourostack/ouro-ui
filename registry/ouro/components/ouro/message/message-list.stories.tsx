@@ -261,7 +261,7 @@ export const OpenedAtMessage: Story = {
   args: { label: "Conversation with Ouro", children: null },
   render: () => (
     <Surface>
-      <ChatHistory items={longChat.slice(0, 20)} initialAnchor="found-10" />
+      <ChatHistory items={longChat} initialAnchor="found-20" />
     </Surface>
   ),
 };
