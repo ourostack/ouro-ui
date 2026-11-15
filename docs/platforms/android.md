@@ -2,7 +2,7 @@
 
 Ouro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).
 
-Nobody here owns an Android phone or tablet. Everything the kit claims is checked on emulators in GitHub's CI, never on a real device, so if you have one and want to help, you're very welcome.[^devices]
+Nobody here owns an Android phone or tablet. The kit is checked on emulators in GitHub's CI, not on a real device, so if you have one and want to help, you're very welcome.[^devices]
 
 ## What ships today
 
@@ -10,7 +10,7 @@ Release [v0.1.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.
 
 The kit has four of core's components as composables, where web has [122 components](registry.json "verify:count(registry:ui)=122"): `OuroButton`, `OuroBadge`, `OuroCard` and `OuroItem`, inside `OuroTheme`, which carries core's six themes in light and dark, increased contrast and reduced motion.[^readme]
 
-`ouro-actions` is the runtime behind every action, so a person's press and an agent's AppFunction call take one path. A person-only action gets no AppFunction and refuses agents with core's typed refusal. A consequential one is refused until the app's `confirm` asks the person, because Android has no system prompt for it.[^decision]
+`ouro-actions` is the runtime the actions run on, so a person's press and an agent's AppFunction call take one path. In the sample, place order is person-only: it has a person door and a typed refusal for agents, in place of an AppFunction. A consequential action is refused until the app's `confirm` asks the person, because Android has no system prompt for it.[^decision]
 
 Declare actions once in TypeScript with core's `defineAction`, then run core's `ouro-actions-android.mts` to write `OuroActions.kt` (one AppFunction per action an agent may call) and `doors.json` (which door carries each action, and why not). The sample, Ouro Shop, does exactly that.[^readme]
 
@@ -32,7 +32,7 @@ AppFunctions need compileSdk 37 and AGP 9.1 or later, and Google still calls the
 
 ## How it is checked
 
-The `build` job runs core's claims for every component in Robolectric (names and roles in the semantics tree, 48 dp touch targets, reduced motion, text that reflows at 200% and contrast in all six themes, with pixels sampled), and checks the snapshots in light, dark, increased contrast and 200% text. The `emulator` job runs the sample's X-ray on an Android 17 emulator: what AppFunctions Android indexed against the declarations, the buttons on screen, an agent's add through the handler a person presses, and both refusals. The `generated` job checks the vendored core files' hashes and that the sample's generated Kotlin matches its declarations.[^ci]
+The `build` job runs core's component claims in Robolectric, reading the semantics tree and sampling pixels, and checks the snapshots. The `emulator` job runs the sample's X-ray on an Android emulator: the AppFunctions Android indexed against the declarations, the buttons on screen, an agent's add through the handler a person presses, and the refusals. The `generated` job checks the vendored core files' hashes and that the sample's generated Kotlin matches its declarations.[^ci]
 
 ## Contribute next
 
