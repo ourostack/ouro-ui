@@ -1,0 +1,1 @@
+- Fixed: a touch after a lift into a frame that has gone is no longer refused for want of a watcher, because [a lift's late tidying](scripts/touch-kit-frames.test.mjs "verify:testExists(scripts/touch-kit-frames.test.mjs::a lift's late tidying of a frame never clears the watch the next gesture armed there)") leaves the watch the next gesture armed alone.
