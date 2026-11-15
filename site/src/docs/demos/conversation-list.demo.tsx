@@ -26,5 +26,21 @@ const conversations: ConversationListItem[] = [
 
 export default function ConversationListDemo(): JSX.Element {
   const [openId, setOpenId] = useState<string | null>("ana");
-  return <ConversationList label="Conversations" items={conversations} sections={sections} selectedId={openId} onSelect={setOpenId} className="max-w-sm" />;
+  // Each row's own menu: right-click it, press it long, or Shift+F10 on it.
+  const [read, setRead] = useState<Record<string, boolean>>({});
+  const [pinned, setPinned] = useState<Record<string, boolean>>({});
+  const items = conversations.map((chat) => {
+    const unread = read[chat.id] === undefined ? chat.unread : !read[chat.id];
+    const pin = pinned[chat.id] ?? chat.section === "pinned";
+    return {
+      ...chat,
+      unread,
+      section: pin ? "pinned" : "recent",
+      menu: [
+        { label: unread ? "Mark as read" : "Mark as unread", onClick: () => setRead((all) => ({ ...all, [chat.id]: !!unread })) },
+        { label: pin ? "Unpin" : "Pin", onClick: () => setPinned((all) => ({ ...all, [chat.id]: !pin })) },
+      ],
+    };
+  });
+  return <ConversationList label="Conversations" items={items} sections={sections} selectedId={openId} onSelect={setOpenId} className="max-w-sm" />;
 }

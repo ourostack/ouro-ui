@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
+import { commands, page } from "vitest/browser";
 import { ConversationList } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -39,4 +40,41 @@ it("gives each ConversationList row and section header a target at least 44px ta
     expect(rect.height).toBeGreaterThanOrEqual(44);
     expect(rect.width).toBeGreaterThanOrEqual(44);
   }
+});
+
+it("opens a row's menu on a long press, where the finger rests, and the press selects nothing; a tap still selects", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  const selected: string[] = [];
+  await act(async () =>
+    root!.render(
+      <ConversationList
+        label="Conversations"
+        items={[
+          { id: "ana", title: "Ana Lind", menu: [{ label: "Pin", onClick: () => {} }] },
+          { id: "trail", title: "Trail crew" },
+        ]}
+        onSelect={(id) => selected.push(id)}
+      />,
+    ),
+  );
+  const box = host.querySelector('[data-ouro-part="row"]')!.getBoundingClientRect();
+  const at = { x: Math.round(box.left + 40), y: Math.round(box.top + box.height / 2) };
+  await commands.touchStep({ type: "touchStart", ...at });
+  try {
+    await expect.element(page.getByRole("menu", { name: "Ana Lind" })).toBeVisible();
+  } finally {
+    await commands.touchStep({ type: "touchEnd" });
+  }
+  const menu = document.querySelector<HTMLElement>('[role="menu"]')!.getBoundingClientRect();
+  // At the finger: the menu's corner is where it rests.
+  expect(Math.abs(menu.left - at.x)).toBeLessThanOrEqual(8);
+  expect(selected).toEqual([]);
+  // A tap, once the menu is gone, selects as before.
+  await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+  await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+  await commands.tap('[data-ouro-part="row"][tabindex="0"]');
+  await expect.poll(() => selected).toEqual(["ana"]);
 });

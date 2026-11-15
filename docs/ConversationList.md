@@ -145,6 +145,13 @@ interface ConversationListItemFields {
   avatar?: string | ReactElement | false | undefined;
   /** The `id` of the section in `sections` the row shows under. Rows without a section come first, before the headers. */
   section?: string | undefined;
+  /**
+   * The row's own menu, as `Menu` entries: what a right-click, a long press, Shift+F10 or the Menu key on the row opens, such
+   * as Mark as read, Pin and Mute. It opens at the pointer, or beside the row from the keyboard, and focus goes back to the
+   * row when it closes. A row the list stops drawing while its menu is open (scrolled far away) keeps the menu where it
+   * opened. A row without one keeps the browser's own menu.
+   */
+  menu?: readonly MenuEntry[] | undefined;
 }
 ```
 
@@ -177,6 +184,121 @@ interface ConversationListTextTitle {
   title: string;
   /** The name screen readers hear in place of `title`, and the avatar's initials come from. @default the title */
   name?: string | undefined;
+}
+```
+
+### `MenuCheckboxEntry`
+
+A menu entry for `items`: an on/off setting that stays in the menu when toggled.
+
+```ts
+interface MenuCheckboxEntry {
+  type: "checkbox";
+  label: string;
+  checked?: boolean | undefined;
+  defaultChecked?: boolean | undefined;
+  onCheckedChange?: ((checked: boolean) => void) | undefined;
+  shortcut?: MenuShortcut | undefined;
+  disabled?: boolean | undefined;
+  /** The id of the agent action it performs, set as `data-ax-action` on it, as on an item. */
+  axAction?: string | undefined;
+}
+```
+
+### `MenuEntry`
+
+One entry in a Menu's `items`: an item (the default `type`), a checkbox, a radio group, a group, a submenu or a separator.
+
+```ts
+type MenuEntry =
+  | MenuItemEntry
+  | MenuCheckboxEntry
+  | MenuRadioEntry
+  | MenuGroupEntry
+  | MenuSubmenuEntry
+  | { type: "separator" };
+```
+
+### `MenuGroupEntry`
+
+A menu entry for `items`: entries under a label.
+
+```ts
+interface MenuGroupEntry {
+  type: "group";
+  label: string;
+  items: readonly MenuEntry[];
+}
+```
+
+### `MenuItemEntry`
+
+A menu entry for `items`: an action, or a link with `href`.
+
+```ts
+interface MenuItemEntry {
+  type?: "item" | undefined;
+  /** The item's text. */
+  label: string;
+  /**
+   * An icon before the text, as a `MenuItem` shows one in its children: an `<svg>` drawn at 16px
+   * in the item's color. It is decoration: screen readers hear the label alone.
+   */
+  icon?: ReactNode;
+  /** Runs when the item is chosen, by click, tap or Enter. The menu then closes. */
+  onClick?: (() => void) | undefined;
+  /** Makes the item a link, through `OuroProvider`'s router link for an internal path. */
+  href?: string | undefined;
+  /** The keys of the item's shortcut, shown at its end: `["mod", "e"]`. It does not bind them. */
+  shortcut?: MenuShortcut | undefined;
+  /** `"destructive"` for an action that deletes or cannot be undone. */
+  tone?: "destructive" | undefined;
+  /** Shown, but cannot be chosen. */
+  disabled?: boolean | undefined;
+  /**
+   * The id of the agent action this item performs, set as `data-ax-action` on it, so the component
+   * that declares the action finds its control: `axAction: "mute"`.
+   */
+  axAction?: string | undefined;
+}
+```
+
+### `MenuRadioEntry`
+
+A menu entry for `items`: one choice of several, as radio items under an optional label.
+
+```ts
+interface MenuRadioEntry {
+  type: "radio";
+  /** Names the group: "Sort by". */
+  label?: string | undefined;
+  value?: string | undefined;
+  defaultValue?: string | undefined;
+  onValueChange?: ((value: string) => void) | undefined;
+  options: ReadonlyArray<{ value: string; label: string; shortcut?: MenuShortcut | undefined; disabled?: boolean | undefined }>;
+}
+```
+
+### `MenuShortcut`
+
+Keys for a shortcut, as `Kbd` takes them: `["mod", "e"]` shows ⌘E on Apple platforms and Ctrl+E elsewhere.
+
+```ts
+type MenuShortcut = readonly string[] | (string & { 'Use an array: shortcut={["mod", "k"]}': never });
+```
+
+### `MenuSubmenuEntry`
+
+A menu entry for `items`: an item that opens a nested menu.
+
+```ts
+interface MenuSubmenuEntry {
+  type: "submenu";
+  label: string;
+  items: readonly MenuEntry[];
+  disabled?: boolean | undefined;
+  /** The text of the item that goes back from the submenu in the phone sheet. Default "Back". */
+  backLabel?: string | undefined;
 }
 ```
 

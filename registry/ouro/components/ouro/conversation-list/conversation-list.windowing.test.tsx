@@ -164,6 +164,43 @@ describe("ConversationList windowing", () => {
     expect(rows().some((row) => row.querySelector("[data-ouro-conversation-title]")!.textContent === "n5")).toBe(false);
   });
 
+  it("keeps a row's menu open where it opened while the row scrolls out of the window, and puts focus back on the row, drawn again", async () => {
+    const view = await render(<ConversationList label="Chats" items={many(200, () => ({ menu: [{ label: "Pin", onClick: () => {} }] }))} onSelect={() => {}} />);
+    const row = view.rows()[2]!;
+    await act(async () => row.focus());
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+    const menu = page.getByRole("menu", { name: "c2" });
+    await expect.element(menu).toBeVisible();
+    const at = (menu.element() as HTMLElement).getBoundingClientRect().top;
+    await scrollPane(view.pane, 4000);
+    await frames();
+    expect(row.isConnected).toBe(false);
+    await expect.element(menu).toBeVisible();
+    expect((menu.element() as HTMLElement).getBoundingClientRect().top).toBe(at);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement?.querySelector("[data-ouro-conversation-title]")?.textContent).toBe("c2");
+    expect(inView(document.activeElement!, view.pane)).toBe(true);
+  });
+
+  it("forces no layout while a windowed list whose rows have menus mounts", async () => {
+    const warm = document.createElement("div");
+    document.body.append(warm);
+    mounted.push(warm);
+    const warmRoot = createRoot(warm);
+    roots.push(warmRoot);
+    await act(async () => warmRoot.render(<ConversationList label="Warm" items={many(2)} onSelect={() => {}} />));
+    const pane = document.createElement("div");
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    const reads = watchLayoutReads();
+    flushSync(() => root.render(<ConversationList label="Chats" items={many(200, () => ({ menu: [{ label: "Pin", onClick: () => {} }] }))} onSelect={() => {}} />));
+    const mount = reads.names();
+    reads.stop();
+    expect(mount).toEqual([]);
+  });
+
   it("forces no style or layout while a list with many sections mounts", async () => {
     const warm = document.createElement("div");
     document.body.append(warm);

@@ -1,0 +1,1 @@
+- New: a ConversationList item takes a `menu`, opened by a right-click, a long press, Shift+F10 or the Menu key on its row, with focus back on the row when it closes.
