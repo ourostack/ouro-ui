@@ -693,6 +693,19 @@ describe("MessageList windowing", () => {
     expect(start.filter((message) => message.isConnected)).toEqual([]);
   });
 
+  it("lets the far messages go as the reader turns the wheel up through them", async () => {
+    const { scroller } = await render(<Chat items={conversation(1000, 0, true)} />);
+    const start = messages(scroller).filter((message) => message.id !== "m999");
+    for (let step = 0; step < 8; step++) {
+      await act(async () => {
+        scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -400 }));
+        scroller.scrollTop -= 400;
+      });
+      await settle(scroller);
+    }
+    expect(start.filter((message) => message.isConnected)).toEqual([]);
+  });
+
   it("draws only the window around a far message that code jumps to, and none of the messages between", async () => {
     const { scroller } = await render(<Chat items={conversation(1000, 0, true)} />);
     // A jump past the messages drawn, though nearer than code's keep distance, lets them go too.
