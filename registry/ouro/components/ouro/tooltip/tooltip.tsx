@@ -252,8 +252,10 @@ export function Tooltip(props: TooltipProps): JSX.Element {
 /**
  * One tooltip for every Tooltip inside it: each trigger hands it its content as it opens, so a row
  * of many triggers, such as a message's reactions, mounts one tooltip rather than one each. It
- * opens, closes, waits and skips touch as each Tooltip's own would.
+ * closes as its container hides and never opens after a touch, as a Tooltip does.
  *
+ * @claim "One tooltip for every Tooltip" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > shows each trigger's own content, on its own side, from one tooltip for them all)
+ * @claim "It closes as its container hides" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > closes as the container it is in hides) verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > never opens after a touch on a trigger)
  * @internal
  * @example
  * <TooltipGroup>{reactions.map((r) => <Tooltip key={r.key} content={r.label}><Badge>{r.emoji}</Badge></Tooltip>)}</TooltipGroup>

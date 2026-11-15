@@ -285,8 +285,8 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
   );
   return (
     <div {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
-      {onReact || onMore ? (
-        // One tooltip for the whole bar, which each pressable reaction hands its words as it opens.
+      {onReact ? (
+        // One tooltip for the whole bar, which each pressable reaction (and Add reaction) hands its words as it opens.
         <TooltipGroup>{buttons}</TooltipGroup>
       ) : (
         buttons
