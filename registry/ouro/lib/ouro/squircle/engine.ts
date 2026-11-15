@@ -99,13 +99,13 @@ export const createEngine = (doc: Document, options: EngineOptions): Engine => {
   let rafId = 0;
   let destroyed = false;
 
-  const pendingSheet = createManagedSheet(doc, "pending");
-  const baseSheet = createManagedSheet(doc, "base");
+  const pendingSheet = createManagedSheet(doc);
+  const baseSheet = createManagedSheet(doc);
   baseSheet.update(PSEUDO_BASE_CSS);
   // Enabled only during the read phase: neutralizes SSR radius reduction
   // (`--corner-scale` from the `@supports` snippet) so geometry uses the
   // full radius. `!important` also wins over scoped declarations on ancestors.
-  const readSheet = createManagedSheet(doc, "read");
+  const readSheet = createManagedSheet(doc);
   readSheet.update(`[${READ_ATTR}]{${CORNER_SCALE_VAR}:1 !important;}`);
   readSheet.setDisabled(true);
 

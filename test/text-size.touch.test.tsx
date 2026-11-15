@@ -127,6 +127,15 @@ const subjects = [...storySubjects, ...demoSubjects];
  */
 const scanned = sliced(subjects.filter((subject) => (subject.demo ? stemSelected(subject.id.split("/").at(-1)!) : storySelected(subject.id))), "text size");
 
+/**
+ * The openers the scan follows. A list's row layer (MessageList's one action bar) is on whichever row a pointer last
+ * moved over, and a scroll of the list hides it, so whether a render has it depends on where a pointer happened to be
+ * and when the list last scrolled. The scan renders the subject again for each opener it follows and finds the opener
+ * by its place in this list, so an opener one render has and the next lacks threw there (#1459). Its menu holds no
+ * field, and the stories that open it (MessageList/ActionsMenu) have it open in the page the scan reads.
+ */
+const scanOpeners = (...args: Parameters<typeof overlayOpeners>) => overlayOpeners(...args).filter((opener) => !opener.trigger?.closest("[data-ouro-row-layer]"));
+
 const visiblePopups = () => [...document.querySelectorAll<HTMLElement>(popupSelector)].filter(isVisible);
 
 /**
@@ -169,12 +178,21 @@ async function scan(subject: Subject, path: number[] = [], depth = maxDepth, opt
     let scope: ParentNode[] = [host];
     let where = subject.id;
     for (const [level, index] of path.entries()) {
-      const opener = overlayOpeners(subject.id, scope, subject.parameters, level === 0)[index]!;
-      scope = await openVia(opener, where, options.openTimeout ?? openTimeout);
-      where += ` with "${opener.name}" open`;
+      // A subject can draw more after its first paint (a windowed list draws the rows past its view in the next task), so wait
+      // for the opener this path counted on the earlier render instead of reading a list that has not caught up yet.
+      let opener: Opener | undefined;
+      await vi.waitFor(
+        () => {
+          opener = scanOpeners(subject.id, scope, subject.parameters, level === 0)[index];
+          if (!opener) throw new Error(`${where}: overlay opener ${index} did not render again`);
+        },
+        { timeout: openTimeout, interval: 20 },
+      );
+      scope = await openVia(opener!, where, options.openTimeout ?? openTimeout);
+      where += ` with "${opener!.name}" open`;
     }
     const found = smallControls(where, path.length === 0 ? [document] : scope);
-    const children = overlayOpeners(subject.id, scope, subject.parameters, path.length === 0);
+    const children = scanOpeners(subject.id, scope, subject.parameters, path.length === 0);
     await cleanupStories();
     // An overlay that outlived the unmount, or a page an overlay left inert or hidden, would hide the next path's controls from the scan.
     const left = [...document.body.querySelectorAll(`${popupSelector}, [inert], [data-base-ui-inert]`), ...[document.documentElement, document.body].filter((root) => root.inert || root.hasAttribute("aria-hidden"))];
@@ -433,6 +451,35 @@ describe("the 16px detector", () => {
     const start = performance.now();
     await expect(scan(subject, [], maxDepth, { openTimeout: 500 })).rejects.toThrow('Fixture/Dead: opening "Nothing" showed no dialog, listbox, menu or panel');
     expect(performance.now() - start).toBeLessThan(5_000);
+  });
+
+  it("follows the same openers on every render, leaving out a row layer that only one render has", async () => {
+    let renders = 0;
+    function Layered() {
+      const [first] = useState(() => ++renders === 1);
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          {/* A list's row layer, on a row the pointer happened to be over when the scan first rendered the story. */}
+          {first && (
+            <div data-ouro-row-layer="">
+              <button aria-haspopup="menu">More actions</button>
+            </div>
+          )}
+          <button aria-haspopup="dialog" onClick={() => setOpen(true)}>
+            Edit
+          </button>
+          {open && (
+            <div role="dialog" aria-label="Edit">
+              <input aria-label="Name" style={px14} />
+            </div>
+          )}
+        </>
+      );
+    }
+    const subject: Subject = { id: "Fixture/Layered", Subject: Layered, parameters: {}, demo: false };
+    expect((await scan(subject)).map((line) => line.replace(/ is 14px.*$/, ""))).toEqual(['Fixture/Layered with "Edit" open: input[type=text] "Name"']);
+    expect(renders).toBeGreaterThan(1);
   });
 
   it("scans an overlay without waiting out its motion, which does not change a font size", async () => {

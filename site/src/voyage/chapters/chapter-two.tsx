@@ -1,4 +1,4 @@
-import { createContext, memo, startTransition, use, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
+import { createContext, memo, startTransition, use, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { DatePicker } from "@/registry/ouro/components/ouro/calendar/date-picker";
@@ -276,7 +276,7 @@ function ChartRoom(): JSX.Element {
   const shown = useDeferredValue(route);
   useEffect(() => store.set({ route: shown }), [store, shown]);
   const days = arrivals(route, day);
-  const say = (next: CrewLine) => startTransition(() => setLine(next));
+  const say = useCallback((next: CrewLine) => startTransition(() => setLine(next)), []);
 
   const reorder = (ids: string[]) => {
     const next = ids as PortId[];
@@ -286,12 +286,15 @@ function ChartRoom(): JSX.Element {
     else say(ROUTE.longer(writeLeagues(routeLeagues(next) - SHORTEST)));
   };
   // A typed day that is not a date yet reports "": the plan keeps the last good day until it is one.
-  const pickDay = (value: string) => {
-    if (!value) return;
-    setDay(value);
-    store.set({ day: value });
-    say(ROUTE.day(writeDay(value)));
-  };
+  const pickDay = useCallback(
+    (value: string) => {
+      if (!value) return;
+      setDay(value);
+      store.set({ day: value });
+      say(ROUTE.day(writeDay(value)));
+    },
+    [say, store],
+  );
   return (
     <div>
       <RouteMap route={shown} />
@@ -303,9 +306,7 @@ function ChartRoom(): JSX.Element {
           <Reorderable label={CHART_ROOM.ports} items={route.map((id, index) => ({ id, label: portNamed(id).name, content: <PortRow id={id} day={days[index]!} first={index === 0} /> }))} onReorder={reorder} />
         </div>
         <div className="grid content-start gap-6">
-          <div data-chapter-control="departure">
-            <DatePicker label={CHART_ROOM.departure} defaultValue={START_DAY} min="1867-01-01" max="1869-12-31" locale="en-GB" onValueChange={pickDay} />
-          </div>
+          <Departure onPick={pickDay} />
           <Total route={shown} last={writeDay(days.at(-1)!)} />
         </div>
       </div>
@@ -318,6 +319,18 @@ function ChartRoom(): JSX.Element {
     </div>
   );
 }
+
+/**
+ * The departure day, HX DatePicker, which keeps its own value. Memoized with a stable onPick, so a reorder
+ * (which re-renders the chart room) does not re-render the picker and re-parse its value before the paint.
+ */
+const Departure = memo(function Departure({ onPick }: { onPick: (value: string) => void }): JSX.Element {
+  return (
+    <div data-chapter-control="departure">
+      <DatePicker label={CHART_ROOM.departure} defaultValue={START_DAY} min="1867-01-01" max="1869-12-31" locale="en-GB" onValueChange={onPick} />
+    </div>
+  );
+});
 
 /** The leagues counter: the whole route, Conseil's best beside it, and the day the last port is reached. */
 function Total({ route, last }: { route: readonly PortId[]; last: string }): JSX.Element {

@@ -66,7 +66,7 @@ export const registerHyperellipse = (
   const supported = detectSupport();
 
   if (supported && !options?.force) {
-    const bridge = createManagedSheet(document, "bridge");
+    const bridge = createManagedSheet(document);
     bridge.update(NATIVE_BRIDGE_CSS);
     const controller: HyperellipseController = {
       supported,

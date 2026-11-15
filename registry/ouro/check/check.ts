@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Browser, BrowserType, Page, Request } from "playwright";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
-import { ALIASES, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
+import { ALIASES, behindModal, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
 import { findOverlaps } from "./overlap-check.ts";
@@ -789,23 +789,30 @@ async function check(options: CheckOptions): Promise<CheckResult> {
         await page.evaluate(axe);
         issues.push(...(await page.evaluate(runAxe)));
       }
-      issues.push(...(await page.evaluate(findOverlaps, {})));
+      // The layout, text and design rules read what a person sees. While a modal is open, the page behind it is out of
+      // reach and laid out for the modal (its scroll locked), so its findings are left to the page's own run.
+      const shown: typeof issues = [];
+      shown.push(...(await page.evaluate(findOverlaps, {})));
       await page.evaluate(decodeImages);
-      issues.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
-      issues.push(...(await page.evaluate(findImageFades)));
-      issues.push(...(await page.evaluate(findDesignIssues, {})));
-      issues.push(...(await page.evaluate(findTextIssues)));
-      issues.push(...(await page.evaluate(findLayoutIssues, {})));
-      issues.push(...(await page.evaluate(findThemeIssues, {})));
-      issues.push(...(await page.evaluate(findInteractionIssues)));
-      issues.push(...(await page.evaluate(findWrapIssues, {})));
+      shown.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
+      shown.push(...(await page.evaluate(findImageFades)));
+      shown.push(...(await page.evaluate(findDesignIssues, {})));
+      shown.push(...(await page.evaluate(findTextIssues)));
+      shown.push(...(await page.evaluate(findLayoutIssues, {})));
+      shown.push(...(await page.evaluate(findThemeIssues, {})));
+      shown.push(...(await page.evaluate(findInteractionIssues)));
+      shown.push(...(await page.evaluate(findWrapIssues, {})));
+      const behind = new Set(await page.evaluate(behindModal, [...new Set(shown.map((issue) => issue.ref))]));
+      issues.push(...shown.filter((issue) => !behind.has(issue.ref)));
       // dark-art: light runs before dark at each size, so the dark run compares with the light run's hero art.
       const art = await page.evaluate(readHeroArt, {});
       const artKey = `${target.site}\u0000${target.page}\u0000${width}x${height}`;
       if (theme === "light") lightArt.set(artKey, art);
       else if (theme === "dark" && art?.darkPage && lightArt.get(artKey)?.src === art.src)
         issues.push({ ref: art.ref, rule: "dark-art", element: art.element, detail: `the dark theme shows the light theme's picture, ${art.src.split("/").pop()}` });
-      issues.push(...(await page.evaluate(readCorners, await cornerShots(page, height))));
+      const corners = await page.evaluate(readCorners, await cornerShots(page, height));
+      const cornersBehind = new Set(await page.evaluate(behindModal, [...new Set(corners.map((issue) => issue.ref))]));
+      issues.push(...corners.filter((issue) => !cornersBehind.has(issue.ref)));
       issues.push(...runtime());
       for (const a of await page.evaluate(listAllowances, ALIASES)) {
         const key = JSON.stringify([target.site, target.page, a.rules, a.element, a.reason]);

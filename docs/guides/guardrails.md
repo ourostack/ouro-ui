@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.116 ourostack/ouro-ui/ouro-source-rules#v1.3.116
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.158 ourostack/ouro-ui/ouro-source-rules#v1.3.158
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -170,6 +170,9 @@ The source rule's `gated-load` category finds the loads that wait.[^gated-load] 
 
 The screen check (`ouro-check`) opens every page of your built app in headless Chromium at every screen size from a 320px phone to a 3840px screen, and four short landscape screens, light and dark, at density 2 up to 3072px wide, the widest real 2x screen, and 1 above it, so a 3840 screen asks for the pictures a 4K monitor shows.[^check-sizes] Each finding records the density it was found at.[^check-sizes] It finds six things, by measurement rather than by looking at pictures:[^check-rules]
 
+
+While a modal is open (`aria-modal="true"` or a modal `<dialog>`), the layout, text and design rules check only the modal: the page behind it is out of reach and laid out for the modal, so its findings are left to the page's own run, as it is once the modal closes.[^check-behind-modal]
+
 | Rule | What it finds |
 | --- | --- |
 | `overlap` | A line of text drawn over another line, or over a picture, in the same section. The part of a picture a clipping box cuts away doesn't count, and a label on an opaque backing of its own, such as a chip on a picture, reads.[^check-overlap-picture] An opaque overlay (an open dialog, menu, listbox, popover or tooltip, or a panel of 120×48 or more floating over the page, not a badge) covers the page text under it, as a sticky bar does.[^check-overlay] |
@@ -314,7 +317,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.116
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.158
 node lib/ouro/check/check.ts dist
 ```
 
@@ -386,7 +389,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.116
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.158
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -396,7 +399,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.116
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.158
         with:
           merge: "true"
 ```
@@ -416,7 +419,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.116
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.158
 node lib/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -524,6 +527,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [^check-text-slot]: test:test/check-text-in-page.test.ts::findTextIssues: leaked-value > finds undefined and null where a value goes: alone, after a label, twice, after a greeting, beside a number; test:test/check-text-in-page.test.ts::findTextIssues: leaked-value > passes words in a sentence, names, versions, domains and file names, code, hidden text and allowed elements, and an allow needs its reason; test:test/check-text-in-page.test.ts::findTextIssues: odd-timestamp > passes times for people, numbers that aren't times, dates far from the epoch, code and allowed elements verify:testExists(test/check-text-in-page.test.ts::findTextIssues: leaked-value > finds undefined and null where a value goes: alone, after a label, twice, after a greeting, beside a number) verify:testExists(test/check-text-in-page.test.ts::findTextIssues: leaked-value > passes words in a sentence, names, versions, domains and file names, code, hidden text and allowed elements, and an allow needs its reason) verify:testExists(test/check-text-in-page.test.ts::findTextIssues: odd-timestamp > passes times for people, numbers that aren't times, dates far from the epoch, code and allowed elements)
 [^check-text-kinds]: registry/ouro/check/text-check.ts verify:fileLine(registry/ouro/check/text-check.ts, /\[0-9a-f\]\{24,\}/) verify:fileLine(registry/ouro/check/text-check.ts, /31 Dec\(\?:ember\)\? 1969/) verify:fileLine(registry/ouro/check/text-check.ts, /0000\|0001\|9999/) verify:fileLine(registry/ouro/check/text-check.ts, /1\[5-9\]\\d\{8\}\(\?:\\d\{3\}\)\?/) verify:testExists(test/check-text-in-page.test.ts::findTextIssues: odd-timestamp > finds each kind of time no person should read, quoting what it shows)
 [^check-overlay]: test:test/check-in-page.test.ts::findOverlaps > passes page text under an opaque overlay: a dialog, a menu, a popover or a floating panel, on a fill of its own or a box in it; test:test/check-in-page.test.ts::findSizeIssues: clipped-text > passes an ellipsis behind an open modal, which hides the page on purpose, but not one the modal itself hides verify:testExists(test/check-in-page.test.ts::findOverlaps > passes page text under an opaque overlay: a dialog, a menu, a popover or a floating panel, on a fill of its own or a box in it) verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text > passes an ellipsis behind an open modal, which hides the page on purpose, but not one the modal itself hides)
+[^check-behind-modal]: test:scripts/check/check-pages.test.mts::Ouro check > leaves the page behind an open modal to the page's own run, and checks the modal verify:testExists(scripts/check/check-pages.test.mts::Ouro check > leaves the page behind an open modal to the page's own run, and checks the modal)
 [^check-guards]: test:test/check-in-page.test.ts::runAxe > leaves out Base UI's focus guards, as Ouro's axe kit does, but not another focusable element under aria-hidden verify:testExists(test/check-in-page.test.ts::runAxe > leaves out Base UI's focus guards, as Ouro's axe kit does, but not another focusable element under aria-hidden)
 [^check-runtime]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/check.ts, /^function listenForRuntime/)
 [^check-layout]: test:test/check-layout-in-page.test.ts::findLayoutIssues: off-screen > finds a control or text the screen cuts off at either edge, once for a nest, named by its words; test:test/check-layout-in-page.test.ts::findLayoutIssues: duplicate-control > finds two controls in view with the same role and name, once a pair, marking both; test:test/check-layout-in-page.test.ts::findLayoutIssues: stray-scrollbar > finds a region that scrolls by a few pixels, either way, and a page a few pixels taller than the screen verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: off-screen > finds a control or text the screen cuts off at either edge, once for a nest, named by its words) verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: duplicate-control > finds two controls in view with the same role and name, once a pair, marking both) verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: stray-scrollbar > finds a region that scrolls by a few pixels, either way, and a page a few pixels taller than the screen)

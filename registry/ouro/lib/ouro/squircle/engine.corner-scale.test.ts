@@ -222,12 +222,11 @@ describe("engine corner-scale lifecycle", () => {
   });
 
   it("reads sources through a rule scoped to the dirty elements, never the whole document", async () => {
-    const readStyle = document.querySelector<HTMLStyleElement>(
-      'style[data-hyperellipse="read"]'
-    );
-    expect(readStyle).not.toBeNull();
-    expect(readStyle?.textContent).not.toMatch(/(^|[\s,}])\*\s*\{/);
-    expect(readStyle?.textContent).toContain("data-hyperellipse-reading");
+    const readText = document.adoptedStyleSheets
+      .map((sheet) => [...sheet.cssRules].map((rule) => rule.cssText).join("\n"))
+      .find((text) => text.includes("data-hyperellipse-reading"));
+    expect(readText).toBeDefined();
+    expect(readText).not.toMatch(/(^|[\s,}])\*\s*\{/);
   });
   it("skips the read phase for a class change no rule's corner inputs use, and runs it for one that is", async () => {
     const style = document.createElement("style");
