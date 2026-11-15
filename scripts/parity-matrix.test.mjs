@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { appleComponents, claimMatrix, componentMatrix, gather, pinnedDrift, PAGE, readData, renderMatrix, renderPage, windowsComponents } from "./parity-matrix.mjs";
+import { appleComponents, claimMatrix, componentMatrix, gather, pinnedDrift, PAGE, readData, renderMatrix, renderPage, kitClaims, windowsComponents } from "./parity-matrix.mjs";
 
 const real = (path) => readFileSync(path, "utf8");
 
@@ -81,12 +81,15 @@ test("a claim is covered where core names a platform's check, or where an action
     ["b", "none", "checked", "none", "none"],
     ["c", "checked", "checked", "none", "none"],
   ]);
+  const windowsRows = claimMatrix({ claims: [{ id: "a", tier: "must", checks: {} }] }, { claims: [{ id: "c", tier: "must", appliesTo: ["cli"] }] }, { windows: { claims: ["a", "c"] } });
+  assert.deepEqual(windowsRows.map((row) => [row.id, row.windows]), [["a", "checked"], ["c", "none"]]);
+  assert.deepEqual(kitClaims({ "a.spec.json": '{"claims":["target.touch","name.spoken"]}', "b.spec.json": '{"claims":["name.spoken"]}', "c.spec.json": "{}" }), ["name.spoken", "target.touch"]);
   const page = renderMatrix({ web: { names: ["button"] }, platforms: { apple: { repo: "o/apple", tag: "v1.0.0", components: [] }, android: { repo: "o/android", tag: null }, windows: { repo: "o/windows", tag: null } }, componentClaims: { claims: [] }, actionClaims: { claims: [] } });
   assert.match(page, /^\| \[button\]\(https:\/\/ui\.ouroboros\.bot\/docs\/button\/\) \| `button` \| Not yet \| Not yet \| Not yet \|$/m);
   assert.match(page, /Not yet: \[o\/android\]/);
 });
 
-test("gather reads Apple's components at the recorded commit, and Windows's at its newest release's commit, and notes a kit whose repository does not exist", async () => {
+test("gather reads Apple's components at the recorded commit, and Windows's components and claims at its newest release's commit, and notes a kit whose repository does not exist", async () => {
   const fetch = async (url) => {
     const body = (value, status = 200) => ({ ok: status === 200, status, json: async () => value, text: async () => value });
     if (url.includes("/git/trees/abc")) return body({ tree: [{ path: "Sources/OuroHX/Components/OuroButton.swift" }, { path: "Sources/OuroHX/Color/OuroColor.swift" }] });
@@ -95,7 +98,8 @@ test("gather reads Apple's components at the recorded commit, and Windows's at i
     if (url.endsWith("ouro-ui-windows")) return body({ name: "ouro-ui-windows" });
     if (url.endsWith("ouro-ui-windows/releases/latest")) return body({ tag_name: "v0.1.0" });
     if (url.endsWith("ouro-ui-windows/commits/v0.1.0")) return body({ sha: "def" });
-    if (url.includes("/git/trees/def")) return body({ tree: [{ path: "src/Ouro.UI.Windows/OuroBadge.cs" }, { path: "src/Ouro.UI.Windows/OuroPaint.cs" }, { path: "tests/Ouro.Tests/RuntimeTests.cs" }] });
+    if (url.includes("/git/trees/def")) return body({ tree: [{ path: "src/Ouro.UI.Windows/OuroBadge.cs" }, { path: "src/Ouro.UI.Windows/OuroPaint.cs" }, { path: "tests/Ouro.Tests/RuntimeTests.cs" }, { path: "vendor/core/components/badge.spec.json" }] });
+    if (url.endsWith("/def/vendor/core/components/badge.spec.json")) return body('{"claims":["contrast.text"]}');
     if (url.endsWith("/def/src/Ouro.UI.Windows/OuroBadge.cs")) return body("public sealed partial class OuroBadge : Control\n{\n}");
     if (url.endsWith("/def/src/Ouro.UI.Windows/OuroPaint.cs")) return body("public static class OuroPaint\n{\n}");
     return body(null, 500);
@@ -108,4 +112,6 @@ test("gather reads Apple's components at the recorded commit, and Windows's at i
   assert.equal(facts.windows.tag, "v0.1.0");
   assert.equal(facts.windows.commit, "def");
   assert.deepEqual(facts.windows.components, [{ name: "OuroBadge", web: "badge" }]);
+  assert.deepEqual(facts.windows.claims, ["contrast.text"]);
+  assert.equal(facts.android.claims, undefined);
 });

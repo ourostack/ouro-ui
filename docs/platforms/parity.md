@@ -12,9 +12,9 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 Components: Web has 122 of 122, Apple has 8 of 122, Android has 0 of 122, Windows has 4 of 122.[^matrix]
 
-Claims covered: Web 7 of 13, Apple 13 of 13, Android 0 of 13, Windows 0 of 13.[^matrix]
+Claims covered: Web 7 of 13, Apple 13 of 13, Android 0 of 13, Windows 5 of 13.[^matrix]
 
-Gap cells: 386.[^matrix]
+Gap cells: 381.[^matrix]
 
 ### Components
 
@@ -147,11 +147,11 @@ Gap cells: 386.[^matrix]
 
 | Claim | Tier | Kind | Web | Apple | Android | Windows |
 |---|---|---|---|---|---|---|
-| `target.touch` | must | component | Partly | Covered | Not yet | Not yet |
-| `motion.reduced` | must | component | Partly | Covered | Not yet | Not yet |
-| `name.spoken` | must | component | Partly | Covered | Not yet | Not yet |
-| `text.reflows` | must | component | Not yet | Covered | Not yet | Not yet |
-| `contrast.text` | must | component | Partly | Covered | Not yet | Not yet |
+| `target.touch` | must | component | Partly | Covered | Not yet | Covered |
+| `motion.reduced` | must | component | Partly | Covered | Not yet | Covered |
+| `name.spoken` | must | component | Partly | Covered | Not yet | Covered |
+| `text.reflows` | must | component | Not yet | Covered | Not yet | Covered |
+| `contrast.text` | must | component | Partly | Covered | Not yet | Covered |
 | `announce.urgency` | should | component | Partly | Covered | Not yet | Not yet |
 | `toast.action-stays` | must | component | Covered | Covered | Not yet | Not yet |
 | `dismiss.reachable` | must | component | Covered | Covered | Not yet | Not yet |
