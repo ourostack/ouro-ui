@@ -754,11 +754,33 @@ export function Menu(props: MenuProps): JSX.Element {
       ) : (
         <BaseMenu.Trigger ref={triggerRef} render={trigger} {...holdPageAtPress.listButton} />
       )}
-      <MenuSurface sheet={sheet} context={false} side={side} align={align} className={className} closeLabel={closeLabel}>
+      <MenuSurface
+        sheet={sheet}
+        context={false}
+        side={side}
+        align={align}
+        className={className}
+        closeLabel={closeLabel}
+        finalFocus={backToTrigger}
+      >
         {body}
       </MenuSurface>
     </BaseMenu.Root>
   );
+}
+
+/**
+ * Where a dropdown, or a menubar's menu, gives focus as it leaves the page: back to its trigger, as Base UI does, unless
+ * focus has gone on elsewhere or another menu has opened while it closed. That menu closes when
+ * focus lands outside it, so a press on its trigger, which takes no focus in Safari, would open it
+ * only for this one's focus return to close it again.
+ */
+function backToTrigger(): boolean {
+  if (document.querySelector('[data-ouro="menu"][data-open]') !== null) return false;
+  // The body when nothing has focus: a menu's page always has one.
+  const active = document.activeElement ?? document.body;
+  // Stryker disable next-line ConditionalExpression: React takes the popup out of the page before Base UI asks, so focus that was in it is on the body by then; this keeps a popup still in the page returning focus too.
+  return active === document.body || active.closest('[data-ouro="menu"]') !== null;
 }
 
 /**
