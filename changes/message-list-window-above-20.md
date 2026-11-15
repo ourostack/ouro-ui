@@ -1,0 +1,1 @@
+- Changed: MessageList windows a conversation from [more than 20 children](registry/ouro/components/ouro/message/message-list.tsx "verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /^const WINDOW_ABOVE = 20;$/)"), not 60, so a cached page of up to 60 messages that comes at once draws only the rows near the view.

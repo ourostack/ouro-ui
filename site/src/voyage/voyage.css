@@ -149,7 +149,7 @@
   }
   /*
    * The meadow is the Hero's media: the Hero frames it and caps it at the file's 1536px, so the scene drops its own
-   * wide-screen window. Above a phone it is the 8:3 window; on a phone the 16:9 crop keeps its own shape.
+   * wide-screen window. Above a phone it is the 3:1 window, the file's own shape; on a phone the 16:9 crop keeps its own shape.
    */
   .site-voyage-scene.story-world {
     max-width: none;
@@ -158,7 +158,7 @@
   }
   @media (width > 40rem) {
     .site-voyage-scene .story-world-img {
-      aspect-ratio: 8 / 3;
+      aspect-ratio: 3 / 1;
     }
   }
   /*

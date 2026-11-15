@@ -41,7 +41,7 @@ The props the modes share. Type: `SheetProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The body. It scrolls when it is taller than the sheet. |
 | `className` | `string` |  | Layout only, applied to the sheet panel: width and margins (`max-w-lg`, `mx-auto`). Your classes win over Ouro UI's. Appearance classes warn in development. |
-| `closeLabel` | `string` | `"Close"` | The label of the sheet's close button. The button is the last control in the sheet, hidden until it has keyboard focus, so screen-reader users on phones (who have no Escape key) can always close the sheet. |
+| `closeLabel` | `string` | `"Close"` | The label of the sheet's close button: an icon button in the top corner, in view, with a 44px target on a touch screen, as Dialog's is, so a mouse user sees how to close the sheet and a phone's screen reader (which has no Escape key) can always close it. It is the last control in the sheet. Escape and a press on the backdrop close it too. With `hideTitle` the button sits over the body's top corner, so leave that corner clear. |
 | `description` | `ReactNode` |  | A short line under the title, read out when the sheet opens. |
 | `footer` | `ReactNode` |  | The actions row, stacked full width on phones; primary action last. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the dialog for screen readers. |

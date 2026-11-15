@@ -44,7 +44,7 @@ The props the modes share. Type: `DialogProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The body. It scrolls when the dialog is taller than the screen. |
 | `className` | `string` |  | Layout only, applied to the panel: margins (`mt-4`). Use `size` for width. Your classes win over Ouro UI's. Appearance classes warn in development. |
-| `closeLabel` | `string` | `"Close"` | The label of the close button. A centered dialog shows it as an icon button in the top corner; as a sheet it is hidden until it has keyboard focus. Screen-reader users on phones (who have no Escape key) can always reach it. |
+| `closeLabel` | `string` | `"Close"` | The label of the close button, an icon button in the top corner, centered or as a sheet. Screen-reader users on phones (who have no Escape key) can always reach it. |
 | `description` | `ReactNode` |  | A short line under the title, read out when the dialog opens. |
 | `footer` | `ReactNode` |  | The actions row: a row at the end on wider screens, stacked full width on phones. Put the primary action last, so it sits on the right on wider screens and at the bottom, nearest the thumb, on phones: `footer={<><Button variant="outline" tone="secondary">Cancel</Button><Button>Save</Button></>}`. Mark the primary action `default` (`<Button default onClick={save}>Save</Button>`) and Return presses it from the dialog's fields, as a Mac dialog's default button does. |
 | `hideTitle` | `boolean` |  | Hides the title visually. It still names the dialog for screen readers. |

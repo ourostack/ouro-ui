@@ -16,6 +16,7 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 <Link href="/mcp" reloadDocument>MCP server metadata</Link>
 <Text>Read the <Link href="/terms">terms</Link> first.</Text>
 <Text size="sm"><Link href="/forgot" inline={false}>Forgot password?</Link></Text>
+<Link href="/guide/2" current>Chapter 2</Link>
 ```
 
 ## Usage
@@ -23,6 +24,8 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 Link is for text links only: it sets the text color and the underline, so wrapping a card, a list row or a tab in it restyles their text. Inside running text, put the Link in a `Text`.
 
 On a touch screen a link that stands alone is a box at least 44px tall and wide, with its text centred, so it is easy to tap and never overlaps a neighbour. A link in running text (a `<p>`, a `<label>`, a `Text`, a field's description or error) stays as tall as its line; `inline` says the same anywhere else. With a mouse every link is as tall as its text.
+
+In a list of chapters, steps or sections, `current` marks the one you are on (`aria-current="page"`) with the same look as `Navbar`'s current link.
 
 Keyboard focus draws an outline around a link that stands alone.
 
@@ -41,6 +44,7 @@ Type: `LinkProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The link text. Make it say where the link goes: "Browse recipes", not "click here". |
 | `className` | `string` |  | Layout only: margins, display, grid placement (`ms-2`). Appearance classes warn in development; use `tone`. |
+| `current` | `boolean \| "page" \| "step" \| "location" \| "date" \| "time" \| "true"` |  | Marks this link as the current one: the page you are on in a list of chapters, steps or sections. `true` sets `aria-current="page"`; pass another value (`"step"`, `"location"`, `"true"`) for a link that is not a page of its own. The link is then drawn as `Navbar` and `NavigationMenu` draw their current link: semibold, in the page's text colour, with a 2px underline in the primary colour, so a reader tells it from the others at a glance. Under forced colours it takes the selection's colours. `false` or unset marks nothing. |
 | `external` | `boolean` |  | Opens the link in a new tab: sets `target="_blank"`, adds `rel="noopener noreferrer"` (keeping your own `rel` tokens) and an icon, and tells screen readers "opens in a new tab". |
 | `href` (required) | `string` |  | Where the link goes. Internal paths render through `OuroProvider`'s `linkComponent` (your router's link), so navigation stays client-side; `http(s)://`, `mailto:` and other absolute URLs render as a plain `<a>`. Router links that take `to` take `href` here: the adapter maps it. |
 | `inline` | `boolean` |  | Whether the link sits in running text. On a touch screen a link that stands alone ("Forgot password?", "Back to recipes", a link in a list item or a table cell) is a box at least 44px tall and wide with its text centred, which takes its room in the layout; a link in running text stays as tall as its line. Unset, a link is in running text inside a `<p>`, a `<label>`, a `<dt>` or `<dd>`, a `Text`, and Ouro's own text (a field's description and error, a Form's message, an Alert's text, an Item's description). Pass `inline` for a sentence in another element, and `inline={false}` for a link that is alone in its `Text`. |
@@ -56,7 +60,9 @@ Also accepts the attributes in React's `AnchorHTMLAttributes` and `HTMLAttribute
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
+- `active`: Not a prop. Ouro UI uses `current`: `<Link href="/chapter-2" current>`.
 - `color`: Not a prop. Ouro UI uses `tone`: `<Link tone="destructive">`.
+- `isActive`: Not a prop. Ouro UI uses `current`: `<Link href="/chapter-2" current>`.
 - `isExternal`: Not a prop. Ouro UI uses `external`: `<Link href="https://…" external>`.
 - `to`: Not a prop. Ouro UI uses `href`, for router links too: `<Link href="/recipes">`.
 

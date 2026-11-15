@@ -1,0 +1,1 @@
+- Changed: the Ouro UI home hero is redrawn as lit glass art, with a light and a dark version and a phone crop that keeps Ouro's face inside the frame.

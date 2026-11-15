@@ -187,8 +187,10 @@ export interface CommandBaseProps {
    */
   empty?: ReactNode;
   /**
-   * The label of the close button, hidden until it has keyboard focus, so screen-reader
-   * users on phones (who have no Escape key) can always close the palette. @default "Close"
+   * The label of the close button, so screen-reader users on phones (who have no Escape key)
+   * can always close the palette. In the dialog it is hidden until it has keyboard focus, as a
+   * palette closes on Escape or a press outside; on a phone it is the sheet's icon button in the
+   * top corner. @default "Close"
    * @claim "The label of the close button" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > labels the search input and its close button, translated)
    */
   closeLabel?: string | undefined;

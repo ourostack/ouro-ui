@@ -632,11 +632,22 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   useLayoutEffect(() => {
     const viewport = rootRef.current!.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const body = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
-    // Stryker disable next-line EqualityOperator: a scroll of exactly a pixel is a rounding either way.
-    if (opened.current?.key === scrollKey && Math.abs(viewport.scrollTop - opened.current.top) > 1) return;
-    const minutes = todayIndex < 0 ? workingHours.start * 60 - 30 : firstToday > nowAt!.minutes ? Math.max(nowAt!.minutes - 90, firstToday - 30) : nowAt!.minutes - 90;
-    viewport.scrollTop = (between(0, minutes, dayLength) / dayLength) * body.offsetHeight;
-    opened.current = { key: scrollKey, top: viewport.scrollTop };
+    // The observer's first callback runs after layout and before the first paint, so the grid opens scrolled and the commit reads nothing.
+    const open = () => {
+      // Stryker disable next-line EqualityOperator: a scroll of exactly a pixel is a rounding either way.
+      if (opened.current?.key === scrollKey && Math.abs(viewport.scrollTop - opened.current.top) > 1) return;
+      const minutes = todayIndex < 0 ? workingHours.start * 60 - 30 : firstToday > nowAt!.minutes ? Math.max(nowAt!.minutes - 90, firstToday - 30) : nowAt!.minutes - 90;
+      viewport.scrollTop = (between(0, minutes, dayLength) / dayLength) * body.offsetHeight;
+      opened.current = { key: scrollKey, top: viewport.scrollTop };
+    };
+    const observer = new ResizeObserver(() => {
+      // Stryker disable next-line CallExpression: a later resize that runs open again lands on the place the reader left, which its guard keeps.
+      observer.disconnect();
+      open();
+    });
+    observer.observe(body);
+    // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
+    return () => observer.disconnect();
     // Only the days shown, whether today is among them, and whether today has events move the scroll.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollKey, noneToday]);
@@ -654,8 +665,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       if (summaries) root.style.setProperty("--ouro-time-grid-head", `${headHeight}px`);
       root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - headHeight) / 24}px`);
     };
-    // Stryker disable next-line CallExpression: the observer measures as it starts observing, before the first paint; this only measures sooner.
-    fill();
     const observer = new ResizeObserver(fill);
     // Stryker disable next-line CallExpression: a change that resizes the room in a test resizes the header's sticky box with it, which measures again.
     observer.observe(viewport);
@@ -671,8 +680,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     if (!hasLane) return;
     const lane = rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-background]")!;
     const measure = () => setLaneWidth(lane.getBoundingClientRect().width);
-    // Stryker disable next-line CallExpression: the observer measures as it starts observing, before the first paint; this only measures sooner.
-    measure();
     const observer = new ResizeObserver(measure);
     observer.observe(lane);
     // Stryker disable next-line ArrowFunction: once the lane is gone, nothing reads what the observer would set.
