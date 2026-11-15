@@ -192,3 +192,54 @@ describe("a Dialog where the engine has no corner-shape", () => {
     expect(getComputedStyle(square).getPropertyValue("--ouro-sq-r")).toBe("24%");
   });
 });
+
+describe("the squircle edge where the engine has no corner-shape", () => {
+  /** The largest distance from a surface's drawn outline to the n=4 superellipse, as a share of its corner size. */
+  it("follows the curve to within 0.4% of the corner size, so the edge is smooth", async () => {
+    applyFallback();
+    const host = document.createElement("div");
+    host.innerHTML = '<div style="position:relative;width:400px;height:400px"><span data-ouro-surface style="--ouro-sq-r:200px;--ouro-sq-w:1px"></span></div>';
+    document.body.append(host);
+    const surface = host.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    const points = getComputedStyle(surface)
+      .getPropertyValue("--ouro-sq-o")
+      .replaceAll("var(--ouro-sq-r)", "200")
+      .replaceAll("100%", "400")
+      .split(",")
+      .map((point) => {
+        const terms: string[] = [];
+        let depth = 0;
+        let term = "";
+        for (const ch of point.trim()) {
+          if (ch === "(") depth++;
+          if (ch === ")") depth--;
+          if (ch === " " && depth === 0) {
+            terms.push(term);
+            term = "";
+          } else term += ch;
+        }
+        terms.push(term);
+        const [x, y] = terms.map((t) => Function(`return ${t.replaceAll("calc", "").replaceAll("px", "")}`)() as number);
+        return [x!, y!] as const;
+      });
+    host.remove();
+    expect(points.length).toBeGreaterThanOrEqual(40);
+    const r = 200;
+    let worst = 0;
+    for (let i = 0; i < points.length; i++) {
+      const [x1, y1] = points[i]!;
+      const [x2, y2] = points[(i + 1) % points.length]!;
+      for (let s = 0; s <= 8; s++) {
+        const x = x1 + ((x2 - x1) * s) / 8;
+        const y = y1 + ((y2 - y1) * s) / 8;
+        const cx = Math.min(x, 400 - x);
+        const cy = Math.min(y, 400 - y);
+        if (cx >= r || cy >= r) continue;
+        const dx = (r - cx) / r;
+        const dy = (r - cy) / r;
+        worst = Math.max(worst, Math.abs((dx ** 4 + dy ** 4) ** 0.25 - 1));
+      }
+    }
+    expect(worst).toBeLessThan(0.004);
+  });
+});
