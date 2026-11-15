@@ -1673,7 +1673,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       springsRef.current?.moved(scroller.scrollTop - before);
     };
     windowSync.current = (scrolled) => {
-      const { windowed, keys, measured, reach, sizeOf } = viewRef.current;
+      const { windowed, keys, measured, band, reach, sizeOf } = viewRef.current;
       // A list inside a hidden panel draws nothing to measure or place; it does once it shows, and resizes.
       if (windowed && content.getClientRects().length === 0) return;
       if (windowed && !scrolled) {
@@ -1778,6 +1778,20 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let to = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
       while (starts[to]! >= viewBottom + over) to--;
+      // Children already drawn stay drawn until they are twice the overscan from the view: a scroll back and forth, or code that
+      // brings one message after another into view (a contrast check measuring each), finds them still in the page.
+      const keep = 2 * over;
+      let keepFrom = 0;
+      // Stryker disable next-line EqualityOperator: a child that ends exactly at twice the overscan stays or goes, and the next scroll settles it.
+      while (starts[keepFrom]! + extent(keepFrom) <= viewTop - keep) keepFrom++;
+      let keepTo = keys.length - 1;
+      // Stryker disable next-line EqualityOperator: a child that starts exactly at twice the overscan stays or goes, and the next scroll settles it.
+      while (starts[keepTo]! >= viewBottom + keep) keepTo--;
+      // The band drawn now, by index: NaN, which no keep range holds, where there is none or its edge went.
+      const drawnFrom = band === null ? NaN : (indexes.get(band.from) ?? NaN);
+      const drawnTo = band === null ? NaN : (indexes.get(band.to) ?? NaN);
+      if (drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
+      if (drawnTo <= keepTo) to = Math.max(to, drawnTo);
       const inBand = keys.slice(from, to + 1);
       // Stryker disable next-line StringLiteral: keys joined with no separator tell two bands apart too, but for keys that run into each other.
       const id = inBand.join("\n");

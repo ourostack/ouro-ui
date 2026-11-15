@@ -283,6 +283,8 @@ export interface Opener {
   open: () => Promise<void>;
   /** The trigger or plain button `open` clicks; absent for a shortcut and for a trigger opened from the keyboard. */
   element?: HTMLElement;
+  /** The trigger or plain button, however `open` reaches it; absent for a shortcut. */
+  trigger?: HTMLElement;
 }
 
 /** Whether a trigger is there for screen readers and the keyboard only: clipped to a pixel, so no tap or click can land on it. */
@@ -355,14 +357,14 @@ export function overlayOpeners(
     .map((element) =>
       // A trigger that lets taps through until shown (a message's action bar on a touch screen) is opened from the keyboard too.
       clipped(element) || getComputedStyle(element).pointerEvents === "none"
-        ? { name: accessibleName(element), open: () => openFromKeyboard(element) }
-        : { name: accessibleName(element), open: () => clickExactly(element), element },
+        ? { name: accessibleName(element), open: () => openFromKeyboard(element), trigger: element }
+        : { name: accessibleName(element), open: () => clickExactly(element), element, trigger: element },
     );
   if (!top) return triggers;
   const plain = (parameters.plainOpeners ?? []).map((label) => {
     const button = roots.flatMap((root) => [...root.querySelectorAll<HTMLElement>("button")]).find((item) => accessibleName(item) === label);
     if (!button) throw new Error(`${id}: no button named "${label}" (parameters.plainOpeners)`);
-    return { name: label, open: () => clickExactly(button), element: button };
+    return { name: label, open: () => clickExactly(button), element: button, trigger: button };
   });
   const shortcut = parameters.openShortcut;
   return [...triggers, ...plain, ...(shortcut ? [{ name: shortcut, open: () => userEvent.keyboard(shortcut) }] : [])];
