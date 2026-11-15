@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@d211ba3fbc5b3b7f8eb87b6650b719deb437e375:brand/",
+  "origin": "ourostack/.github@a3e90ade682ef87af4fedc6ac4a4b91cfb0c72b2:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -13,11 +13,11 @@
     },
     {
       "file": "headers/ouro-ui-apple-dark.webp",
-      "sha256": "682ef7a91b2bd86d8a7cde0063c3c61d376343a2627522c309b358921ef23062"
+      "sha256": "78437fea309300943f56aa93ec2510a6591dae0193695af1ba3b5ae0d7bb08e3"
     },
     {
       "file": "headers/ouro-ui-apple.webp",
-      "sha256": "d95da240ee6a20b67b1fbe3a886a994b90483846c196bbe5c937f0025120cf59"
+      "sha256": "41add52e666a35823f36283f61e424540677c736340833ae1dbb57838c171cd8"
     },
     {
       "file": "headers/ouro-ui-core-dark.webp",
@@ -45,7 +45,7 @@
     },
     {
       "file": "headers/playwright-focus-proof-dark.webp",
-      "sha256": "904de3f25da204a527db7f77d5f4d434070dca2e550c9be1336d52c31bb82cee"
+      "sha256": "e12457ae377476a6b1aba95255a71256a97226801d69586ed5af104f7d681c25"
     },
     {
       "file": "headers/playwright-focus-proof.webp",
@@ -73,7 +73,7 @@
     },
     {
       "file": "og/ouro-ui-apple.jpg",
-      "sha256": "64bb91682f72619872e2b1a7db2b18aeafa0649e92f063d20ff0e6f02a7ac7a4"
+      "sha256": "eb0b2a5a1255a5bb16ede41a20bc1c9372c8976e033d1a996e9f09a6eb5ade3c"
     },
     {
       "file": "og/ouro-ui-core.jpg",
@@ -153,67 +153,67 @@
     },
     {
       "file": "phone/ouro-ui-apple-1152.avif",
-      "sha256": "77c4840034d2c46ce2a9e74494602ff84f17ad87bdbd234a34ca93c4ba8ba5d5"
+      "sha256": "20d459aa7c68dabb3529df52deac1846e506787daca57d8990525840961f29ab"
     },
     {
       "file": "phone/ouro-ui-apple-1152.webp",
-      "sha256": "6f40a8a1f856c66c17e28db85b1726c9ade20af8612580d1037daedb2bd924a7"
+      "sha256": "f447556d27a14ff319ebed195fe12ac66fff76d6803475ad3bdcf4a4084fe9b6"
     },
     {
       "file": "phone/ouro-ui-apple-1536.avif",
-      "sha256": "0abe9b2e632a3d0963cbbe9205a04b7b5bcb97560861d9ad3f8949850a0c3d6d"
+      "sha256": "f661c1db29df2fd3343ad7a542cf87a158f61c00e35f29b17fe60c3277d6d120"
     },
     {
       "file": "phone/ouro-ui-apple-1536.webp",
-      "sha256": "072bd8a01f04930ee0073430fffbf83f48299b00ad6f786d4739a7957df6f426"
+      "sha256": "a25871ced889c8dae21b80dd7271df816930280e74605083b37395d34b75e5d5"
     },
     {
       "file": "phone/ouro-ui-apple-384.avif",
-      "sha256": "d9a1e0d3bcc0d3d9aa697016ef7a0e21fdd6c50b3bdffc9c8239e5172642c8e4"
+      "sha256": "891edaf7e5696f314477316078cd1cb7f3007c9fb8e7385cd5790bdf3d57f56d"
     },
     {
       "file": "phone/ouro-ui-apple-384.webp",
-      "sha256": "f1cf1815fcb7ec2219574bab10d78930dbf3e6943d96067a49c543f5a881d344"
+      "sha256": "3de680e7cf49aee5724499534f0c2229f76dbd2eebb1daef6964fb09d8053d1d"
     },
     {
       "file": "phone/ouro-ui-apple-768.avif",
-      "sha256": "51226d0d1441f11487a4c97bccf315a6ab324becd7886e64740920c19778e254"
+      "sha256": "93e6e999e12df0d12a4f8f5f2d4f36794efe290f1ab53da1e1d32139ea3a4d7b"
     },
     {
       "file": "phone/ouro-ui-apple-768.webp",
-      "sha256": "cc237725a691d77ca88394dc92d4e50e8713cdf3ad07a635a9a0e9914a329aeb"
+      "sha256": "fb809589581a3da030782e8b88f8278fb68b20dbff5869b85b167285a80d1d8c"
     },
     {
       "file": "phone/ouro-ui-apple-dark-1152.avif",
-      "sha256": "ac21d5ceb1788fb1fb3b0cc2fd101fe902e7db3aa05d8a74a929a86409b556c0"
+      "sha256": "1c772ab0137a9530e63df93295240810bdd980694c3750318167438309452288"
     },
     {
       "file": "phone/ouro-ui-apple-dark-1152.webp",
-      "sha256": "197979e3b084997a1d4f84d636c9894469960bb72d9172d0461c92035dd9bef3"
+      "sha256": "c46990d2707daf4a407e1937ca1cbc7f2faa501c9115dc0b4ba050ef43f2605b"
     },
     {
       "file": "phone/ouro-ui-apple-dark-1536.avif",
-      "sha256": "34942416c67e4a921fdfaf9c72fe97ce08335013dc14f7ff0dfe9af820bf4edd"
+      "sha256": "f0817add5497db5ee7b90b6f5ac67a864c3e8a2fd48d6f8ad34d6d6a41350db0"
     },
     {
       "file": "phone/ouro-ui-apple-dark-1536.webp",
-      "sha256": "da7edb17e9cf54127a871c247131d391d4d444bd5bbeaeb5fb9b4dd9e54ad734"
+      "sha256": "188ee1e62f3d9b4a477210a56b7f5426740d1975993f14bbfa899a0d5ec5c282"
     },
     {
       "file": "phone/ouro-ui-apple-dark-384.avif",
-      "sha256": "e430a1a410f534aba83866207aa7349ee2059b4ddb83de5cc7e25f8811c3e73e"
+      "sha256": "868c7058c4b17f8d3e2c2f39a743cf65e5efef03f6bb580df8d49343e007e231"
     },
     {
       "file": "phone/ouro-ui-apple-dark-384.webp",
-      "sha256": "bd6af6de9b3a9df531bbf7e814ba5b0dc1b63c2b1a5e6ceadd968da2aacfc2ff"
+      "sha256": "eaef92fe36541fda224c67439ac9b49d8a97e08257b77626a99ac40bcccf297f"
     },
     {
       "file": "phone/ouro-ui-apple-dark-768.avif",
-      "sha256": "4ccab50f0a6ce1b86f321f1e2f16254a9bbc229550d7fdeeb0dbbbebb2c5f74a"
+      "sha256": "47d32e4fed2db60f8578e9829f474385e2bf5cb8ed80f6b71430bb6676954e29"
     },
     {
       "file": "phone/ouro-ui-apple-dark-768.webp",
-      "sha256": "b2a78e4430f85e99befeff82c7088b510d9e4892fb229e9b996a4f2044ec949a"
+      "sha256": "18c5ef23438bde7991a36a186c2b67c0ab4c5d7da12dfd0d31382ba234d286c2"
     },
     {
       "file": "phone/ouro-ui-core-1152.avif",
@@ -441,35 +441,35 @@
     },
     {
       "file": "phone/playwright-focus-proof-dark-1152.avif",
-      "sha256": "6ed3b68d2e539d0e36c07a8ecdde0b8d30ad05a2440fb64d7041d809404b7ddc"
+      "sha256": "68524769f882ef5b858dc636c4e6614e98b6767ee282bcf9f6cec2cd5fbe942f"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1152.webp",
-      "sha256": "fec347bd89ae1ddf91e2efa60ffe18aa77f6c9f541f107631d9ab936a3d80baf"
+      "sha256": "223e3efc239d876f3c1170b98f78de63a7dc877a16536ed02163ff27a5b669b4"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1536.avif",
-      "sha256": "41a86aaa3da6ee144f68fbc0f8d07df49fc72c43df36169fb33ee8efbf2f87df"
+      "sha256": "11a06de1c1d6ce51c2c1b7a672a9783c75eb317a4442ece17815aaf8238259c7"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1536.webp",
-      "sha256": "90c95dd397e58d15f81a72499ffb0f646ec256c38132dd7b78e133bc358930be"
+      "sha256": "4ce3ced22190082883fc557809d352d21215384a3bd0caef9b0939d200d96e5f"
     },
     {
       "file": "phone/playwright-focus-proof-dark-384.avif",
-      "sha256": "e7700a3050a97a2492c14d6faaf8de10f3135946e520342508677c3f9f8d5784"
+      "sha256": "9f04f39aefe215593bbfe956325d301dc941b3725303feefe088ab74587e1594"
     },
     {
       "file": "phone/playwright-focus-proof-dark-384.webp",
-      "sha256": "3fdf8fed9d0ef3c97c660fd443f933f03a9944de4af4e51d5bd5bd5f9bd1674f"
+      "sha256": "3ee4621e99825e422454d592c668dfbd17b2d0465347cacce06f8873e15b47c7"
     },
     {
       "file": "phone/playwright-focus-proof-dark-768.avif",
-      "sha256": "026eae896892632234b9ff33df0b34a9971d346ccbfda6ee730ef3f5fb38c1ec"
+      "sha256": "6b62b9d68547a40b1d34bb363b5814ee9cd6c929f267d643b72371bb15148405"
     },
     {
       "file": "phone/playwright-focus-proof-dark-768.webp",
-      "sha256": "4c5ce7f9d880861769efa5601abe24dbbc44ddbb0f99ba5ac95ec8d416166bbf"
+      "sha256": "83c20716f63d3d119948f3f4c4705e485fe9f7e09ffdea872cc9cb8546831629"
     },
     {
       "file": "scenes/ouro-hx-1536.avif",
@@ -529,59 +529,59 @@
     },
     {
       "file": "scenes/ouro-ui-apple-1536.avif",
-      "sha256": "03d5a30ba6971167fd436e0e93d4c9388a39d61f6b2234b3c98f0c4c1b0dc3f9"
+      "sha256": "0ab70af55c312ed713d6ed2952c7cc058dc39f428e1c64a37959ac511209e692"
     },
     {
       "file": "scenes/ouro-ui-apple-3072.avif",
-      "sha256": "571a74aa211bd1563d0671992ae39a4581583e592317001e2166eb06e7a88d58"
+      "sha256": "db40a8579944f9e3b1dd30751ac8245de497e94881f6a2955727affdbccb0142"
     },
     {
       "file": "scenes/ouro-ui-apple-3072.webp",
-      "sha256": "9994e0099cb2ef72e56231d0bca9c67a7ee1f22b000adbcc8641c7f72866dea4"
+      "sha256": "d8f1475e05753423f95b022ab7ca9f8aee1dd49a412415f2062651e526938094"
     },
     {
       "file": "scenes/ouro-ui-apple-640.avif",
-      "sha256": "7dbdd9b811c4d8bd4f39f66797d0a8c39529a6fc367d99ef62cf708f3c72dbd1"
+      "sha256": "9daa04911368a40f0cf26eb91f3024f02292ecb3ce9528888deedcb32b475c57"
     },
     {
       "file": "scenes/ouro-ui-apple-640.webp",
-      "sha256": "4c64ff5172c9130e7f286f1196ff793652fa95c17f096fd0a976c5761653569e"
+      "sha256": "3ba3d4cc15864fca8bb2ae3ba866a58c40c516bcd11bc69fec9e67095e01b11e"
     },
     {
       "file": "scenes/ouro-ui-apple-960.avif",
-      "sha256": "07d923bf52c3b7c58a1ec65533a2ddbcbb05daee316bde5a17570dc4f1cf4838"
+      "sha256": "94c01ff9859b73bf8179ed5db73289d13300198bf8fc65f243c747ae41b3cd4d"
     },
     {
       "file": "scenes/ouro-ui-apple-960.webp",
-      "sha256": "d32bc8558bbfd77f1d3a5ab427440edbf09b26858fc03a4c72f2b8cb7f288ff8"
+      "sha256": "cb5f54c6b0a653337f70f7356b5873ed3e1c56a97739f68922e9f38a178e27ff"
     },
     {
       "file": "scenes/ouro-ui-apple-dark-1536.avif",
-      "sha256": "c275259cf816bb8031bcc8db013a3b1746b31b7427b019d88ca7d15b3dc62891"
+      "sha256": "cc6c22adee835f0f95d8c5ef46d303079ae6a37e5af2853c897b4079cf2b8535"
     },
     {
       "file": "scenes/ouro-ui-apple-dark-3072.avif",
-      "sha256": "46d6fa968dcdeb489db36bd5eb5e88cf2c0a9e30b19f142da2a12c40b2d3ed38"
+      "sha256": "6b5659258ed8b05580e70f3a50ad03343fd8e8b389a96289319f64dd3a8e63a1"
     },
     {
       "file": "scenes/ouro-ui-apple-dark-3072.webp",
-      "sha256": "945c2b12f33a71e342f849a65d48b5356605568777ed653b09eac835bd46ca5f"
+      "sha256": "d6332161d3a0def2db3dd41a3aa2c9f30fd8f08588fb42cfe4e9e8a9100b27e0"
     },
     {
       "file": "scenes/ouro-ui-apple-dark-640.avif",
-      "sha256": "c9fa793bfa2cc381baacfb979bf623504fd4fb89332d57d69c578126d175e8aa"
+      "sha256": "2950ba5f00ef25795b2c409430ce3f57508b79f5a40915e39d41a161bd2004ed"
     },
     {
       "file": "scenes/ouro-ui-apple-dark-640.webp",
-      "sha256": "5e8f1810c06af02b4b48f9634f5591f1ca27bd7be81bd2ce8a9f7b0c60d52e39"
+      "sha256": "1d61fe3cfa0ce9f18673dd5f1ec23bb116f0c4b095cf5bb30e3cfce54dddf8ec"
     },
     {
       "file": "scenes/ouro-ui-apple-dark-960.avif",
-      "sha256": "0097079b04e4ed38a82f89d6b0634cea26521ebefc95739f9ce99a3bfe985f10"
+      "sha256": "2017a0a6caba52e2313663f15b410c97197608bf8c806564195cbda2914a0ab7"
     },
     {
       "file": "scenes/ouro-ui-apple-dark-960.webp",
-      "sha256": "83130fbdd1600fe44fd251366b7198da76bb412049991f5d346f3ae416d9059c"
+      "sha256": "d55ffd9c094ae12eaab3a006701acc1f85b209f4917feba088b236b72744529a"
     },
     {
       "file": "scenes/ouro-ui-core-1536.avif",
@@ -781,31 +781,31 @@
     },
     {
       "file": "scenes/playwright-focus-proof-dark-1536.avif",
-      "sha256": "ceefc11f07de7c362acdf334a7ef44cf301dcd4bfd5cabbedeb6e6ef37dab85b"
+      "sha256": "2b052e989f58c67ff9992d82da352774848e134f23713230f5c608abd108cc29"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-3072.avif",
-      "sha256": "226c074662dce0b67873453a6fbe45b3905a3e54bc8be2ec8568cd93fd41e4f1"
+      "sha256": "d1fc091dca6081fc0b348abef15fb204f5e27e78742e8885767fc1cfb49a0287"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-3072.webp",
-      "sha256": "181d6c836725c6b0ba4851c1e86dde7cc1036b3d33edad07de50438b502ed276"
+      "sha256": "a69f53746af8637e4e37bf44c08070153b413c36afb0ae60460709b355994e1d"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-640.avif",
-      "sha256": "0d642888ff47a500aaf091a29b7f8939e766749350b30abe18ea6977275d2683"
+      "sha256": "5aafa368d2ec58645e2170d73958f3503659d64905c950592b4c8a7c39016170"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-640.webp",
-      "sha256": "7a2d08a34e1af0e4ab68efe1a1b1ac69be04c60026b059efd026eba359baaf28"
+      "sha256": "419c3e74e24ecbc713c473731388b7fd8edc9994168bf276b6e14df15cd096de"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-960.avif",
-      "sha256": "03eefa0e42caf82864f7f43f22b12f3bb3eb160aab5051a098405db5bfa6c917"
+      "sha256": "8b0e5575ad1dde8fb9a114380d9ae31e75440d9a46814928ae547fd09a9fe759"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-960.webp",
-      "sha256": "fdf14d2ed3ecefe7a3f09c91dd3cd8209afba78d1cb0443c37fe68edb0d1634b"
+      "sha256": "3fc2024474cdb95f5f5fc597f82052217327bc5571d427b189e3a13ca459f644"
     }
   ]
 }
