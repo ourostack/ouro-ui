@@ -275,3 +275,52 @@ export const Drafts: Story = {
     </Surface>
   ),
 };
+
+/**
+ * Each row's own menu: right-click a row, press it long on a phone, or Shift+F10 or the Menu key on the focused row. Focus
+ * goes back to the row as it closes. A row without one keeps the browser's own menu.
+ */
+function RowMenus() {
+  const [chats, setChats] = useState([
+    { id: "trail", title: "Trail crew", preview: "Meet at the north gate at eight.", time: "9:41", unread: true, pinned: true },
+    { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "8:15", unread: false, pinned: false },
+    { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Tue", unread: false, pinned: false },
+  ]);
+  const change = (id: string, fields: Partial<(typeof chats)[number]>) => setChats((all) => all.map((chat) => (chat.id === id ? { ...chat, ...fields } : chat)));
+  return (
+    <Surface>
+      <ConversationList
+        label="Conversations"
+        sections={[
+          { id: "pinned", title: "Pinned" },
+          { id: "recent", title: "Recent" },
+        ]}
+        items={chats.map(({ pinned, ...chat }) => ({
+          ...chat,
+          section: pinned ? "pinned" : "recent",
+          menu: [
+            { label: chat.unread ? "Mark as read" : "Mark as unread", onClick: () => change(chat.id, { unread: !chat.unread }) },
+            { label: pinned ? "Unpin" : "Pin", onClick: () => change(chat.id, { pinned: !pinned }) },
+          ],
+        }))}
+        selectedId="ana"
+        onSelect={() => {}}
+      />
+    </Surface>
+  );
+}
+
+/** A row's menu, open from a right-click on "Ana Lind". */
+export const RowMenu: Story = {
+  render: () => <RowMenus />,
+  play: async ({ canvasElement }) => {
+    const row = [...canvasElement.querySelectorAll<HTMLElement>('[data-ouro-part="row"]')].find((button) => button.textContent?.includes("Ana Lind"))!;
+    const box = row.getBoundingClientRect();
+    row.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.left + 40, clientY: box.top + box.height / 2 }));
+    await new Promise<void>((resolve) => {
+      const check = () => (document.querySelector('[role="menu"]') ? resolve() : requestAnimationFrame(check));
+      check();
+    });
+  },
+};
+

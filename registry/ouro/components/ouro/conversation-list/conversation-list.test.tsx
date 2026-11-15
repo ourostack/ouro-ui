@@ -895,3 +895,44 @@ describe("ConversationList development messages", () => {
     expect(settled.length).toBeGreaterThan(Math.floor(400 / 80));
   });
 });
+
+describe("ConversationList row menu", () => {
+  const withMenu = (pick: (label: string) => void): ConversationListItem[] => [
+    { id: "ana", title: "Ana Lind", menu: [{ label: "Mark as read", onClick: () => pick("read") }, { label: "Pin", onClick: () => pick("pin") }] },
+    { id: "trail", title: "Trail crew" },
+  ];
+  const row = (name: string) => page.getByRole("button", { name: new RegExp(`^${name}`) }).element() as HTMLElement;
+
+  it("opens a row's menu at the pointer on a right-click, runs the chosen entry and puts focus back on the row", async () => {
+    const picked: string[] = [];
+    await render(<ConversationList label="Chats" items={withMenu((label) => picked.push(label))} onSelect={() => {}} />);
+    await userEvent.click(row("Ana Lind"), { button: "right" });
+    const menu = page.getByRole("menu", { name: "Ana Lind" });
+    await expect.element(menu).toBeVisible();
+    await userEvent.click(page.getByRole("menuitem", { name: "Pin" }));
+    expect(picked).toEqual(["pin"]);
+    await expect.poll(() => document.activeElement).toBe(row("Ana Lind"));
+  });
+
+  it("leaves the browser's own menu to a row without one", async () => {
+    await render(<ConversationList label="Chats" items={withMenu(() => {})} onSelect={() => {}} />);
+    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    row("Trail crew").dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(page.getByRole("menu").query()).toBeNull();
+  });
+
+  it.each([
+    ["Shift+F10", "{Shift>}{F10}{/Shift}"],
+    ["the Menu key", "{ContextMenu}"],
+  ])("opens a focused row's menu beside it with %s, and Escape puts focus back on the row", async (_, keys) => {
+    await render(<ConversationList label="Chats" items={withMenu(() => {})} onSelect={() => {}} />);
+    await act(async () => row("Ana Lind").focus());
+    await userEvent.keyboard(keys);
+    await expect.element(page.getByRole("menu", { name: "Ana Lind" })).toBeVisible();
+    await expect.poll(() => document.activeElement?.closest('[role="menu"]') !== null).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(row("Ana Lind"));
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+  });
+});

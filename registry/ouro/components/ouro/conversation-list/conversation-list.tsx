@@ -12,15 +12,38 @@ import {
   type JSX,
   type KeyboardEvent,
   type MouseEvent,
+  type PointerEvent,
   type ReactElement,
   type ReactNode,
   type Ref,
 } from "react";
+import { flushSync } from "react-dom";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import type { MenuAnchor, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import { UnreadDot } from "@/registry/ouro/components/ouro/unread-dot/unread-dot";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+
+type MenuModule = typeof import("@/registry/ouro/components/ouro/menu/menu");
+
+// Menu's code, loaded once, as the first row with a menu renders, so a press opens the menu at once.
+let menuModule: Promise<MenuModule> | undefined;
+let menuLoaded: MenuModule | undefined;
+const loadMenu = () => (menuModule ??= import("@/registry/ouro/components/ouro/menu/menu").then((module) => (menuLoaded = module)));
+
+// How long a finger rests on a row, in ms, before its menu opens, as a long press does on a phone.
+const LONG_PRESS = 500;
+// How far a finger may drift, in px, and still be pressing rather than scrolling.
+const PRESS_SLOP = 10;
+
+const hasMenu = (item: ConversationListItem) => item.menu !== undefined && item.menu.length > 0;
+
+/** An element's box as it is now, for a menu that stays where it opened after the row goes. */
+function frozen(element: Element): MenuAnchor {
+  const box = element.getBoundingClientRect();
+  return { getBoundingClientRect: () => box };
+}
 
 /** What a {@link ConversationList} row shows of a conversation, whichever way its title comes. */
 export interface ConversationListItemFields {
@@ -84,6 +107,13 @@ export interface ConversationListItemFields {
   avatar?: string | ReactElement | false | undefined;
   /** The `id` of the section in `sections` the row shows under. Rows without a section come first, before the headers. */
   section?: string | undefined;
+  /**
+   * The row's own menu, as `Menu` entries: what a right-click, a long press, Shift+F10 or the Menu key on the row opens, such
+   * as Mark as read, Pin and Mute. It opens at the pointer, or beside the row from the keyboard, and focus goes back to the
+   * row when it closes. A row the list stops drawing while its menu is open (scrolled far away) keeps the menu where it
+   * opened. A row without one keeps the browser's own menu.
+   */
+  menu?: readonly MenuEntry[] | undefined;
 }
 
 /** A conversation whose title is text. */
@@ -323,7 +353,8 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
         onClick={(event) => onPick(item.id, event)}
         onKeyDown={(event) => onKey(event, key)}
         onFocus={() => onActive(key)}
-        className={cn(controlClass, rowClass, selected && currentClass, density === "compact" ? "py-1.5" : "py-2")}
+        // A row with a menu opens it on a long press, in place of the phone's own callout.
+        className={cn(controlClass, rowClass, selected && currentClass, density === "compact" ? "py-1.5" : "py-2", hasMenu(item) && "[-webkit-touch-callout:none]")}
       >
         {item.avatar === false ? null : typeof item.avatar === "object" ? (
           <span data-ouro-conversation-avatar="" className="flex shrink-0">
@@ -790,7 +821,86 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     if (clips.current && (!flow || focusNext.current)) sync.current();
   });
 
+  // The row menu that opened, with Menu's code, and the row it belongs to: by its key, as the row may stop being drawn.
+  const [menu, setMenu] = useState<{ M: MenuModule; key: string; name: string; entries: readonly MenuEntry[]; anchor: MenuAnchor; open: boolean } | null>(null);
+  const itemOf = (key: string) => items.find((item) => `row:${item.id}` === key);
+  const rowAt = (target: EventTarget | null) => {
+    const row = (target as Element | null)?.closest?.('[data-ouro-part="row"]');
+    for (const [key, control] of controls.current) if (control === row) return key;
+    return undefined;
+  };
+  const openMenu = (item: ConversationListItem, key: string, anchor: MenuAnchor) => {
+    const open = (M: MenuModule) => setMenu({ M, key, name: item.name ?? (item.title as string), entries: item.menu!, anchor, open: true });
+    // Loaded already (the first row with a menu loads it), it opens within the event, before the next frame.
+    if (menuLoaded) flushSync(() => open(menuLoaded!));
+    else void loadMenu().then(open);
+  };
+  const closeMenu = () => {
+    const key = menu!.key;
+    setMenu((previous) => previous && { ...previous, open: false });
+    // Back to the row once Menu has finished closing, unless the chosen item moved focus elsewhere; drawn again first if it
+    // was scrolled out of the window.
+    setTimeout(() => {
+      const active = document.activeElement as Element;
+      if (active === document.body || active.closest('[data-ouro="menu-positioner"]') !== null) focusKey(key);
+    });
+  };
+  // A finger resting on a row: where, and the timer that opens its menu. The click that ends a press that opened one is the menu's.
+  const press = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const pressed = useRef(false);
+  const endPress = () => {
+    if (press.current) clearTimeout(press.current.timer);
+    press.current = null;
+  };
+  const onPointerDown = (event: PointerEvent<HTMLUListElement>) => {
+    endPress();
+    pressed.current = false;
+    if (event.pointerType === "mouse") return;
+    const key = rowAt(event.target);
+    const item = key === undefined ? undefined : itemOf(key);
+    if (item === undefined || !hasMenu(item)) return;
+    const { clientX: x, clientY: y } = event;
+    press.current = {
+      x,
+      y,
+      timer: setTimeout(() => {
+        press.current = null;
+        pressed.current = true;
+        openMenu(item, key!, { x, y });
+      }, LONG_PRESS),
+    };
+  };
+  const onPointerMove = (event: PointerEvent<HTMLUListElement>) => {
+    if (press.current && Math.hypot(event.clientX - press.current.x, event.clientY - press.current.y) > PRESS_SLOP) endPress();
+  };
+  const onContextMenu = (event: MouseEvent<HTMLUListElement>) => {
+    const key = rowAt(event.target);
+    const item = key === undefined ? undefined : itemOf(key);
+    if (item === undefined || !hasMenu(item)) return;
+    event.preventDefault();
+    // A long press that already opened the menu: the browser's own context menu event for the same press opens nothing more.
+    if (pressed.current || menu?.open) return;
+    openMenu(item, key!, { x: event.clientX, y: event.clientY });
+  };
+  const onClickCapture = (event: MouseEvent<HTMLUListElement>) => {
+    if (!pressed.current) return;
+    pressed.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const withMenus = items.some(hasMenu);
+  useLayoutEffect(() => {
+    if (withMenus) void loadMenu();
+  }, [withMenus]);
+
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
+    // Shift+F10 and the Menu key open a row's menu beside it, as a right-click does at the pointer.
+    if ((event.key === "F10" && event.shiftKey) || event.key === "ContextMenu") {
+      const item = itemOf(key);
+      if (item === undefined || !hasMenu(item)) return;
+      event.preventDefault();
+      return openMenu(item, key, frozen(event.currentTarget));
+    }
     const to = moves[event.key];
     if (!to) return;
     event.preventDefault();
@@ -852,6 +962,12 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
             // Stryker disable next-line StringLiteral: no control's key is this string, which is all "nothing has focus" needs.
             if (!listRef.current!.contains(document.activeElement)) setActive("");
           }}
+          onContextMenu={onContextMenu}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endPress}
+          onPointerCancel={endPress}
+          onClickCapture={onClickCapture}
           className={cn(listClass, windowed && "relative block")}
           style={windowed ? { height: total } : undefined}
         >
@@ -921,6 +1037,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
           })}
         </ul>
       )}
+      {menu !== null && <menu.M.Menu anchor={menu.anchor} open={menu.open} onOpenChange={(open) => !open && closeMenu()} aria-label={menu.name} items={menu.entries} />}
     </div>
   );
 }
