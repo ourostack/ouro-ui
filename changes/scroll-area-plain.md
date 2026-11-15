@@ -1,1 +1,1 @@
-- ScrollArea is a plain overflow container with no Base UI, so mounting it reads no layout; the scrollbar is now the browser's own thin one, the edge fade, keyboard and wheel scrolling stay.
+- ScrollArea is a plain overflow container instead of Base UI's, so mounting it stays off the layout path; the scrollbar is now the browser's own thin one, and the edge fade, keyboard and wheel scrolling stay.

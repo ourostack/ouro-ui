@@ -46,7 +46,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `height`: Not a prop. Set the height with a class: `<ScrollArea className="h-72">`.
 - `maxHeight`: Not a prop. Set the height with a class: `<ScrollArea className="max-h-80">`.
-- `type`: Not a prop. The scrollbar is the browser's own, thin and in the theme's color, on every device.
+- `type`: Not a prop. The scrollbar is the browser's own, thin and in the theme's color, with a mouse or a finger.
 
 ## `className` is for layout only
 

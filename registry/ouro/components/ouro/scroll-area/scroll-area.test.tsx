@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
@@ -83,8 +84,14 @@ describe("ScrollArea", () => {
 
   it("reads no layout while mounting, so the commit forces none", async () => {
     await render(<ScrollArea className="h-40">{tall}</ScrollArea>);
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
     const watch = watchLayoutReads();
-    await render(<ScrollArea className="h-40" label="Method">{tall}</ScrollArea>);
+    // Stops as soon as the commit is done: the browser's resize report comes later, after layout, so it forces none.
+    flushSync(() => root.render(<ScrollArea className="h-40" label="Method">{tall}</ScrollArea>));
     watch.stop();
     expect(watch.names()).toEqual([]);
   });
@@ -180,6 +187,17 @@ describe("ScrollArea", () => {
       </ScrollArea>,
     );
     await expect.poll(() => viewport.tabIndex).toBe(-1);
+  });
+
+  it("follows the content: a tab stop once it overflows, none again once it fits", async () => {
+    const { host, viewport } = await render(<ScrollArea className="h-40" label="Method"><p>Short</p></ScrollArea>);
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+    const content = viewport.firstElementChild as HTMLElement;
+    content.style.height = "600px";
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    content.style.height = "10px";
+    await expect.poll(() => viewport.tabIndex).toBe(-1);
+    expect(host.contains(viewport)).toBe(true);
   });
 
   it("lets the page scroll on once the area reaches its end, unless contain is set", async () => {

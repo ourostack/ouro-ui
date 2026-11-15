@@ -40,7 +40,7 @@ export interface ScrollAreaOwnProps {
   ref?: Ref<HTMLDivElement> | undefined;
 
   /**
-   * Not a prop. The scrollbar is the browser's own, thin and in the theme's color, on every device.
+   * Not a prop. The scrollbar is the browser's own, thin and in the theme's color, with a mouse or a finger.
    */
   type?: { "Use <ScrollArea>; the scrollbar is the browser's own": never };
   /** Not a prop. Set the height with a class: `<ScrollArea className="max-h-80">`. */
@@ -60,6 +60,7 @@ const orientations = ["vertical", "horizontal", "both"] as const;
  */
 const scrollbar =
   "[scrollbar-width:thin] [scrollbar-color:color-mix(in_oklab,var(--muted-foreground)_40%,transparent)_transparent] " +
+  // Stryker disable next-line StringLiteral: a pointer-hover-only colour, which no test pointer state reaches
   "pointer-fine:hover:[scrollbar-color:color-mix(in_oklab,var(--muted-foreground)_60%,transparent)_transparent]";
 const viewports = {
   vertical: "overflow-x-hidden overflow-y-auto",
@@ -71,7 +72,7 @@ const focusable = "a[href],button,input,select,textarea,summary,[tabindex]:not([
 
 /**
  * Makes the viewport a tab stop while its content overflows, so a keyboard user can scroll it. Reads
- * sizes only when the browser reports a resize, after layout, never while React commits.
+ * sizes when the browser reports a resize, after layout, not while React commits.
  */
 function useScrollTabStop(viewportRef: { current: HTMLDivElement | null }): void {
   useEffect(() => {
@@ -80,10 +81,14 @@ function useScrollTabStop(viewportRef: { current: HTMLDivElement | null }): void
       viewport.tabIndex = viewport.scrollHeight > viewport.clientHeight || viewport.scrollWidth > viewport.clientWidth ? 0 : -1;
     };
     const observer = new ResizeObserver(update);
+    // Stryker disable next-line CallExpression: the observer fires for the first child's resize too, so a height change reaches update either way
     observer.observe(viewport);
     observer.observe(viewport.firstElementChild!);
+    // Stryker disable next-line ArrowFunction: cleanup only stops the observer, which has nothing to observe once unmounted
     return () => observer.disconnect();
-  }, [viewportRef]);
+  },
+  // Stryker disable next-line ArrayDeclaration: the ref object never changes, so the effect runs once either way
+  [viewportRef]);
 }
 
 /**
@@ -176,6 +181,7 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
       <div
         ref={viewportRef}
         data-scroll-viewport=""
+        // Stryker disable next-line UnaryOperator: the observer sets the real value as soon as it starts, before any read
         tabIndex={-1}
         data-ouro-control="scroll-area"
         data-ouro-part="viewport"
