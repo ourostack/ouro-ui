@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
-import { build, createContext, gaveBack, isCurrent, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, createContext, gaveBack, isCurrent, measureActions, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
 
 const NOW = new Date("2026-11-13T22:00:00Z");
 const releases = {
@@ -16,6 +16,7 @@ const releases = {
     { tag_name: "v0.2.1", published_at: "2026-11-01T10:00:00Z", html_url: "https://example.test/a0", draft: false, prerelease: false },
   ],
 };
+const declared = { generator: "ouro-actions 0.6.1", set: "shopping", tool: "web", actions: [{ id: "add_item" }, { id: "list_items" }, { id: "approve_access" }] };
 const b64 = (value) => JSON.stringify({ content: Buffer.from(typeof value === "string" ? value : JSON.stringify(value)).toString("base64") });
 
 function fakeGh(calls = []) {
@@ -26,8 +27,9 @@ function fakeGh(calls = []) {
     if (release) return releases[release[1]].map((item) => JSON.stringify({ tag: item.tag_name, at: item.published_at, url: item.html_url })).join("\n");
     if (line.includes("contents/.github/ouro-hx-installed.json")) return b64({ tag: "v1.2.13" });
     if (line.includes("contents/Package.resolved")) return b64('{"identity":"ouro-ui-apple","state":{"version":"0.4.1"}}');
+    if (line.includes("contents/actions/generated/actions.json")) return b64(declared);
     if (line.includes("contents/")) throw new Error("gh api: Not Found");
-    if (line.includes("git/trees")) return JSON.stringify({ truncated: false, tree: ["app/components/ouro/button/button.tsx", "app/components/ouro/alert/alert.tsx", "app/components/ouro/alert/alert.test.tsx", "registry/ouro/components/ouro/a/x.tsx", "registry/ouro/components/ouro/b/x.tsx"].map((path) => ({ type: "blob", path })) });
+    if (line.includes("git/trees")) return JSON.stringify({ truncated: false, tree: ["actions/generated/actions.json", "test/fixtures/actions/actions.json", "scripts/agent-benchmark/fixture/generated/actions.json", "app/components/ouro/button/button.tsx", "app/components/ouro/alert/alert.tsx", "app/components/ouro/alert/alert.test.tsx", "registry/ouro/components/ouro/a/x.tsx", "registry/ouro/components/ouro/b/x.tsx"].map((path) => ({ type: "blob", path })) });
     if (args[0] === "issue") {
       return JSON.stringify([
         { number: 5, title: "Adoption: one", body: "<!-- adoption:card=card-one -->", state: "OPEN", url: "https://example.test/i/5", updatedAt: "2026-11-13T00:00:00Z" },
@@ -146,7 +148,7 @@ test("the ledger measures every cell, counts confirmed, and leaves unknowns null
   const web = ledger.surfaces.find((surface) => surface.id === "web");
   assert.equal(web.cells.hx.value, "partial", "two installed components is fewer than the ten that make it full");
   assert.equal(web.cells.ax.value, "yes");
-  assert.equal(web.cells.actions.value, 0);
+  assert.equal(web.cells.actions.value, 3, "the actions come from the declaration, not from the program's steps");
   assert.equal(web.cells.xray.value, null);
   assert.match(web.cells.xray.note, /^not measured/);
   assert.equal(web.cells.tracking.value[0].number, 5);
@@ -213,4 +215,41 @@ test("code search waits as long as GitHub says on an HTTP 429, within a cap", ()
   });
   assert.equal(context.search("q", "o/r").total, 1);
   assert.deepEqual(waits.filter((ms) => ms !== 6500).slice(-3), [15980, 90000, 1588]);
+});
+
+test("actions count what ouro-actions generated, once each, and leave out fixtures and benchmark copies", () => {
+  const calls = [];
+  const cellValue = measureActions(ctx(calls), config.surfaces[0]);
+  assert.equal(cellValue.value, 3);
+  assert.match(cellValue.note, /3 in the "shopping" set \(actions\/generated\/actions\.json, ouro-actions 0\.6\.1\)/);
+  assert.equal(cellValue.source, "https://github.com/org/web/blob/HEAD/actions/generated/actions.json");
+  assert.ok(!calls.some((call) => call.includes("fixture")), "a fixture's or benchmark's actions.json is never read");
+});
+
+test("a product with no declaration has no actions on the model, and one whose file list was cut short is not measured", () => {
+  const tree = (truncated, paths) => (args) => {
+    const line = args.join(" ");
+    if (line.includes("git/trees")) return JSON.stringify({ truncated, tree: paths.map((path) => ({ type: "blob", path })) });
+    if (line.includes("contents/actions.json")) return b64({ name: "not from the generator", actions: [{ id: "x" }] });
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+  const make = (gh) => createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 });
+  const none = measureActions(make(tree(false, ["src/index.ts", "actions.json"])), config.surfaces[0]);
+  assert.equal(none.value, 0, "an actions.json the generator did not write is not a declaration");
+  assert.match(none.note, /No actions declared/);
+  const cut = measureActions(make(tree(true, ["src/index.ts"])), config.surfaces[0]);
+  assert.equal(cut.value, null);
+  assert.match(cut.note, /^not measured: .*truncated/);
+});
+
+test("the upstream has nothing to give back to, so that condition holds and its cell is not counted as unmeasured", () => {
+  const upstream = { ...config.surfaces[0], id: "upstream", upstream: true };
+  const ledger = build(ctx([]), { ...config, surfaces: [upstream] });
+  const surface = ledger.surfaces[0];
+  assert.equal(surface.cells.giveBack.value, null);
+  assert.match(surface.cells.giveBack.note, /^n\/a/);
+  assert.equal(surface.conditions.gaveBack.met, true);
+  const nulls = Object.entries(surface.cells).filter(([, value]) => value.value === null).map(([key]) => key);
+  assert.ok(nulls.includes("giveBack"));
+  assert.equal(ledger.summary.unmeasuredCells, nulls.length - 1);
 });
