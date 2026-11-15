@@ -37,7 +37,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
  * and the hard ceiling one run fails at: `ceilingMinutes`, or `ceilingFactor` times main's
  * baseline, whichever is more.
  */
-export const budget = { targetMinutes: 10, margin: 0.2, baselineRuns: 5, regressionMinutes: 3, ceilingMinutes: 15, ceilingFactor: 1.5 };
+export const budget = { targetMinutes: 10, margin: 0.2, baselineRuns: 5, regressionMinutes: 3, ceilingMinutes: 10, ceilingFactor: 1.5 };
 
 /**
  * The steps that set a job up rather than do its work: the runner's own, the checkout, pnpm and
