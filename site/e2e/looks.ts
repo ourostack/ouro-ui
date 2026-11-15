@@ -112,6 +112,20 @@ export function describe(arg: { selector: string; only?: number }): Described {
       escapes.push(`${owner}|${el.dataset["ouroPart"] ?? el.tagName.toLowerCase()}|${Math.round(rect.width)}x${Math.round(rect.height)}: round part (radius ${Math.round(radius)}px) is drawn ${shape}`);
     }
   }
+  // Each element described is marked with its index, and picture() finds it by the mark: the page can add elements
+  // between the two (an island that loads as the scroll nears it), which moved a position-based lookup onto another
+  // element (#1463). A mark is written only when it changes, and a mark another element still holds for the same index
+  // goes, so one index names one element.
+  const marked = new Set<Element>();
+  all.forEach((el, index) => {
+    if (arg.only !== undefined && arg.only !== index) return;
+    if (el.getAttribute("data-sweep-look") !== String(index)) el.setAttribute("data-sweep-look", String(index));
+    marked.add(el);
+  });
+  for (const other of document.querySelectorAll("[data-sweep-look]")) {
+    if (marked.has(other)) continue;
+    if (arg.only === undefined || other.getAttribute("data-sweep-look") === String(arg.only)) other.removeAttribute("data-sweep-look");
+  }
   all.forEach((el, index) => {
     if (arg.only !== undefined && arg.only !== index) return;
     const root = el.closest<HTMLElement>("[data-ouro]");
@@ -260,9 +274,9 @@ export function routeGuard(context: BrowserContext, first: Page, ms = 60_000) {
   return { visit, skipped };
 }
 
-export async function picture(page: Page, index: number): Promise<{ data: Buffer; width: number; height: number } | null> {
-  const target = page.locator(LOOK_SELECTOR).nth(index);
-  // The page can change between counting and picturing; an element that is gone has no picture.
+export async function picture(page: Page, index: number): Promise<Crop | null> {
+  const target = page.locator(`[data-sweep-look="${index}"]`);
+  // The page can change between describing and picturing; an element that is gone has no picture.
   const handle = await target.elementHandle({ timeout: 2_000 }).catch(() => null);
   if (!handle) return null;
   // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the cover check reads
@@ -286,7 +300,16 @@ export async function picture(page: Page, index: number): Promise<{ data: Buffer
   const png = await handle.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
   if (!png) return null;
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  return { data, width: info.width, height: info.height };
+  const scale = await page.evaluate(() => devicePixelRatio).catch(() => 1);
+  return { data, width: info.width, height: info.height, scale };
+}
+
+/** An element's picture: its pixels, and how many of them make a CSS pixel. */
+interface Crop {
+  data: Buffer;
+  width: number;
+  height: number;
+  scale: number;
 }
 
 interface Sample {
@@ -294,14 +317,14 @@ interface Sample {
   sig: string;
   /** Which instance on the page: its label, so a log can tell two on one page apart. */
   label?: string;
-  crop?: { id: string; data: Buffer; width: number; height: number };
+  crop?: Crop & { id: string };
 }
 
 export class Looks {
   private readonly groups = new Map<string, Sample[]>();
   private readonly pictures = new Map<string, Sample[]>();
 
-  add(where: string, look: Look, crop?: { data: Buffer; width: number; height: number } | null, label?: string): void {
+  add(where: string, look: Look, crop?: Crop | null, label?: string): void {
     const list = this.groups.get(look.key) ?? [];
     this.groups.set(look.key, list);
     list.push({ where, sig: look.sig, ...(label ? { label } : {}) });
@@ -390,14 +413,16 @@ export class Looks {
   }
 }
 
-function same(a: { data: Buffer; width: number; height: number }, b: { data: Buffer; width: number; height: number }): boolean {
-  if (Math.abs(a.width - b.width) > 2 || Math.abs(a.height - b.height) > 2) return false;
+function same(a: Crop, b: Crop): boolean {
+  // A CSS pixel is `scale` pixels of the picture (2 in the WebKit project, Desktop Safari), so the slack is in CSS pixels.
+  const reach = Math.max(1, Math.round(Math.max(a.scale, b.scale)));
+  if (Math.abs(a.width - b.width) > 2 * reach || Math.abs(a.height - b.height) > 2 * reach) return false;
   // Fractional sizes round to a pixel apart; compare the part both have.
   const w = Math.min(a.width, b.width);
   const h = Math.min(a.height, b.height);
-  // A layout that lands a pixel over (fractional positions) is not a break, so the best of nine one-pixel shifts counts.
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
+  // A layout that lands a pixel over (fractional positions) is not a break, so the best of the shifts up to one CSS pixel counts.
+  for (let dy = -reach; dy <= reach; dy++) {
+    for (let dx = -reach; dx <= reach; dx++) {
       let off = 0;
       let seen = 0;
       for (let y = Math.max(0, dy); y < Math.min(h, h + dy); y++) {
