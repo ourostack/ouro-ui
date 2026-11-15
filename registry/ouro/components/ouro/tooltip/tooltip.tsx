@@ -1,7 +1,8 @@
 "use client";
 
+import { mergeProps } from "@base-ui/react/merge-props";
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
+import { cloneElement, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import {
   floatingAlign,
@@ -15,7 +16,8 @@ import {
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { PortalScope, TooltipsHidden, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { PortalScope, TooltipsGrouped, TooltipsHidden, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
+import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 
 export type { FloatingAlign as TooltipAlign, FloatingSide as TooltipSide } from "@/registry/ouro/lib/ouro/floating";
 
@@ -63,16 +65,15 @@ const popupClass =
   floatingMotionClass +
   " box-border max-w-xs rounded-md bg-foreground px-2 py-1 text-xs leading-4 text-balance text-background [--ouro-floating-duration:var(--ouro-duration-fast)] data-instant:duration-0";
 
-// Never after a touch: a tap that focuses the trigger would otherwise show it, and a phone has no way to hover it away.
-const neverAfterTouch = (next: boolean, details: BaseTooltip.Root.ChangeEventDetails) => {
-  if (next && lastInput() === "touch") details.cancel();
-};
+// Base UI's delay before a tooltip opens under a resting pointer, and how long after one closes a neighbour inside
+// OuroProvider still opens at once.
+const OPEN_DELAY = 600;
+const GROUP_TIMEOUT = 400;
+// Long enough to cross the gap from the trigger onto the tooltip, which keeps it open, as Base UI's tooltips allow.
+const CLOSE_DELAY = 100;
 
-/** What a trigger in a TooltipGroup hands the group's one tooltip as it opens: its content and where it sits. */
-type SharedPayload = { content: ReactNode; side: FloatingSide; align: FloatingAlign; check: (element: HTMLElement | null) => void };
-
-// Whether a Tooltip is inside a TooltipGroup, whose one tooltip root each Tooltip's trigger joins.
-const SharedTooltip = createContext(false);
+// The page's tooltips: how many show, and when the last one went, so a neighbour opens at once inside OuroProvider.
+const shown = { count: 0, closedAt: Number.NEGATIVE_INFINITY };
 
 /**
  * A link or control inside the content, which no one can reach: the tooltip closes when the pointer leaves the trigger for it.
@@ -146,7 +147,9 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   const align = floatingAlign(alignProp);
   const key = useRef({});
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const mergedRef = useMergedRef(ref, triggerRef);
+  // The child's own ref, a parent trigger's (Popover's), and the tooltip's own.
+  const child = serverElement(children);
+  const mergedRef = useMergedRef((child.props as { ref?: Ref<HTMLButtonElement> }).ref, useMergedRef(ref, triggerRef));
 
   useDevWarnings(
     "Tooltip",
@@ -214,78 +217,110 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     }
   }, []);
 
+  // The tooltip mounts only once someone may want it: on the trigger's first hover or keyboard focus. Until then the
+  // trigger is the child itself with a few handlers, so a row of many (a message's reactions) mounts no tooltips. The
+  // child is never wrapped or drawn again as it arms, so focus and the pointer stay on it.
+  const grouped = useContext(TooltipsGrouped);
+  const [armed, setArmed] = useState(false);
+  const [open, setOpen] = useState<false | "delay" | "focus" | "now">(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const show = (how: "delay" | "focus" | "now") => {
+    // Never after a touch: a tap that focuses the trigger would otherwise show it, and a phone has no way to hover it away.
+    if (lastInput() !== "touch") setOpen(how);
+  };
+  const after = (delay: number, act: () => void) => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(act, delay);
+  };
+  const close = () => {
+    clearTimeout(timer.current);
+    setOpen(false);
+  };
+  useEffect(() => {
+    if (!open) return;
+    shown.count += 1;
+    return () => {
+      shown.count -= 1;
+      shown.closedAt = performance.now();
+    };
+  }, [open]);
+
   // Closed as the container it is in hides, such as a toolbar that fades out. A layout effect, so
   // the close is asked in the same commit that hides the container, not a frame later.
   const hidden = useContext(TooltipsHidden);
-  const actions = useRef<BaseTooltip.Root.Actions>(null);
-  const shared = useContext(SharedTooltip);
   useLayoutEffect(() => {
-    if (hidden && !shared) actions.current!.close();
-  }, [hidden, shared]);
-
-  const portal = usePortalContainer("Tooltip");
-  // In a TooltipGroup, the trigger alone: the group draws one tooltip for all its triggers.
-  if (shared) return <BaseTooltip.Trigger {...forwarded} payload={{ content, side, align, check: checkContent }} render={children} ref={mergedRef} />;
-  return (
-    <BaseTooltip.Root
-      actionsRef={actions}
-      onOpenChange={neverAfterTouch}
-    >
-      <BaseTooltip.Trigger {...forwarded} render={children} ref={mergedRef} />
-      <BaseTooltip.Portal {...portal} data-ouro="tooltip-portal" className={floatingPortalClass}>
-        <PortalScope>
-          <BaseTooltip.Positioner side={side} align={align} sideOffset={6} collisionPadding={8} data-ouro="tooltip-positioner">
-            <BaseTooltip.Popup
-              ref={checkContent}
-              data-ouro="tooltip"
-              className={popupClass}
-            >
-              {content}
-            </BaseTooltip.Popup>
-          </BaseTooltip.Positioner>
-        </PortalScope>
-      </BaseTooltip.Portal>
-    </BaseTooltip.Root>
-  );
-}
-
-/**
- * One tooltip for every Tooltip inside it: each trigger hands it its content as it opens, so a row
- * of many triggers, such as a message's reactions, mounts one tooltip rather than one each. It
- * closes as its container hides and never opens after a touch, as a Tooltip does.
- *
- * @claim "One tooltip for every Tooltip" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > shows each trigger's own content, on its own side, from one tooltip for them all)
- * @claim "It closes as its container hides" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > closes as the container it is in hides, and stays open when it shows again) verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::TooltipGroup > never opens after a touch on a trigger)
- * @internal
- * @example
- * <TooltipGroup>{reactions.map((r) => <Tooltip key={r.key} content={r.label}><Badge>{r.emoji}</Badge></Tooltip>)}</TooltipGroup>
- */
-export function TooltipGroup({ children }: { children: ReactNode }): JSX.Element {
-  const hidden = useContext(TooltipsHidden);
-  const actions = useRef<BaseTooltip.Root.Actions>(null);
-  useLayoutEffect(() => {
-    if (hidden) actions.current!.close();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (hidden) close();
   }, [hidden]);
+
   const portal = usePortalContainer("Tooltip");
+  const trigger = cloneElement(
+    child,
+    // The child takes the merged ref and handlers, none of which run during render. A parent trigger's
+    // props come first, so the child's own (a toolbar control's tabIndex) win, as Base UI's render does.
+    // eslint-disable-next-line react-hooks/refs
+    mergeProps(forwarded as object, child.props as object, {
+      ref: mergedRef,
+      // Stryker disable next-line StringLiteral: read by the attribute alone, as Base UI's open trigger is.
+      "data-popup-open": open ? "" : undefined,
+      // Marks the trigger as Base UI's own tooltip trigger did, so a nested trigger and tests still find it.
+      // Stryker disable next-line StringLiteral: read by the attribute alone.
+      "data-base-ui-tooltip-trigger": "",
+      onPointerEnter: (event: { pointerType: string; timeStamp: number }) => {
+        if (event.pointerType === "touch") return;
+        setArmed(true);
+        // Inside OuroProvider a neighbour opens at once while one shows, or a moment after it went.
+        if (grouped && (shown.count > 0 || event.timeStamp - shown.closedAt < GROUP_TIMEOUT)) show("delay");
+        else after(OPEN_DELAY, () => show("now"));
+      },
+      onPointerLeave: () => after(CLOSE_DELAY, () => setOpen(false)),
+      onFocus: (event: { currentTarget: Element }) => {
+        if (!event.currentTarget.matches(":focus-visible")) return;
+        setArmed(true);
+        clearTimeout(timer.current);
+        show("focus");
+      },
+      onBlur: close,
+      // Escape on the trigger closes an open tooltip and goes no further, so a popover or rail around it stays: the
+      // tooltip takes the first Escape, as Base UI's does.
+      onKeyDown: (event: { key: string; preventDefault: () => void; stopPropagation: () => void }) => {
+        if (event.key !== "Escape" || !open) return;
+        close();
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      // A press closes it, and keeps a pending one from opening.
+      onPointerDown: close,
+    }) as Record<string, unknown>,
+  );
+  if (!armed) return trigger;
   return (
-    <SharedTooltip value>
-      {/* One root for every trigger inside it: a root costs as much to mount as its trigger. */}
-      <BaseTooltip.Root<SharedPayload> actionsRef={actions} onOpenChange={neverAfterTouch}>
-        {({ payload }) => (
-          <>
-            {children}
-            <BaseTooltip.Portal {...portal} data-ouro="tooltip-portal" className={floatingPortalClass}>
-              <PortalScope>
-                <BaseTooltip.Positioner side={payload?.side} align={payload?.align} sideOffset={6} collisionPadding={8} data-ouro="tooltip-positioner">
-                  <BaseTooltip.Popup ref={payload?.check} data-ouro="tooltip" className={popupClass}>
-                    {payload?.content}
-                  </BaseTooltip.Popup>
-                </BaseTooltip.Positioner>
-              </PortalScope>
-            </BaseTooltip.Portal>
-          </>
-        )}
+    <>
+      {trigger}
+      <BaseTooltip.Root
+        open={open !== false}
+        // Base UI asks only to close a tooltip it holds no trigger for: on Escape or a press outside it.
+        onOpenChange={close}
+      >
+        <BaseTooltip.Portal {...portal} data-ouro="tooltip-portal" className={floatingPortalClass}>
+          <PortalScope>
+            <BaseTooltip.Positioner anchor={triggerRef} side={side} align={align} sideOffset={6} collisionPadding={8} data-ouro="tooltip-positioner">
+              <BaseTooltip.Popup
+                ref={checkContent}
+                data-ouro="tooltip"
+                // Opened by keyboard focus, or at once beside one already shown: no entrance, as Base UI does.
+                data-instant={open === "focus" || open === "delay" ? open : undefined}
+                // The pointer may cross from the trigger onto the tooltip and stay.
+                onPointerEnter={() => clearTimeout(timer.current)}
+                onPointerLeave={() => after(CLOSE_DELAY, () => setOpen(false))}
+                className={popupClass}
+              >
+                {content}
+              </BaseTooltip.Popup>
+            </BaseTooltip.Positioner>
+          </PortalScope>
+        </BaseTooltip.Portal>
       </BaseTooltip.Root>
-    </SharedTooltip>
+    </>
   );
 }

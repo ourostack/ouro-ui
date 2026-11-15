@@ -37,7 +37,7 @@ const variants: { variant: string; message: ReactElement; inList?: true; element
     variant: "a message with reactions",
     message: <Message role="assistant" variant="chat" name="Ana" footer={<ReactionBar reactions={reactions} onReact={() => {}} />}>Hello there</Message>,
     elements: 21,
-    components: 23,
+    components: 14,
   },
   {
     variant: "a message of a picture",
