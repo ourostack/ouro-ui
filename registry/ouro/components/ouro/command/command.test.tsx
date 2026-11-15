@@ -968,26 +968,25 @@ describe("Command kept mounted", () => {
     if (keepMounted) expect(document.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!.value).toBe("");
   });
 
-  it("holds the width it draws at each opening, so a reopening with wider commands is wider", async () => {
+  it("lets go of the width it held and holds the width it draws at each opening", async () => {
     const seen = { focus: null as Element | null };
-    const narrow: CommandEntry[] = [{ label: "Go", onSelect: () => {} }];
-    const wide: CommandEntry[] = [{ label: "Go to the weekly sync with the design and engineering leads, every Monday", onSelect: () => {} }];
-    const host = await render(<KeyOpened keepMounted seen={seen} items={narrow} />);
+    await render(<KeyOpened keepMounted seen={seen} />);
     const open = async () => {
       document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
       await userEvent.keyboard("k");
       await expect.element(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
-      const element = popup()!;
-      await expect.poll(() => element.style.width).toMatch(/^min\(100%, \d+(\.\d+)?px\)$/);
-      return element.getBoundingClientRect().width;
     };
-    const first = await open();
+    await open();
+    const element = popup()!;
+    await expect.poll(() => element.style.width).toMatch(/^min\(100%, \d+(\.\d+)?px\)$/);
+    const drawn = element.style.width;
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
-    await act(async () => roots.at(-1)!.render(<KeyOpened keepMounted seen={seen} items={wide} />));
-    void host;
-    const second = await open();
-    expect(second).toBeGreaterThan(first);
+    // A width held from an earlier opening, when the commands were fewer or the screen narrower.
+    element.style.width = "min(100%, 300px)";
+    await open();
+    expect(popup()).toBe(element);
+    await expect.poll(() => element.style.width).toBe(drawn);
   });
 });
 

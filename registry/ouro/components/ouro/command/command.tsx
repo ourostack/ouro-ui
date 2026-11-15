@@ -250,7 +250,7 @@ export interface CommandBaseProps {
    * often. The search is emptied once the dialog has closed (with `onQueryChange("")`), so the next
    * opening shows the empty search's rows already drawn. The phone sheet mounts as it opens.
    * @default false
-   * @claim "Keeps the dialog and its rows mounted while closed" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command kept mounted > holds the width it draws at each opening, so a reopening with wider commands is wider)
+   * @claim "Keeps the dialog and its rows mounted while closed" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command kept mounted > lets go of the width it held and holds the width it draws at each opening)
    * @claim "Keeps the dialog and its rows mounted while closed" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command kept mounted > keeps its rows mounted and hidden while closed, with no dialog role, and opens them at once)
    * @claim "The search is emptied once the dialog has closed" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command kept mounted > empties the search once it has closed, asking the app for the empty search's results, only when kept mounted (%s))
    */
