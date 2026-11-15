@@ -48,10 +48,10 @@ export const SCENES: Record<SceneName, Scene> = {
     alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, work an oak-and-brass console on a dawn hilltop, while Ouro, a smiling emerald glass snake curled into an O, watches beside them.",
     sky: ["#cfc0d0", "#c4c1da", "#cfcbdb", "#faceb4", "#fbd9b6"],
     height: 576,
-    phoneHeight: 349,
+    phoneHeight: 352,
     band: 27,
     night: {
-      phoneHeight: 349,
+      phoneHeight: 352,
       alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, work an oak-and-brass console on a moonlit hilltop, while Ouro, a smiling emerald glass snake curled into an O, watches beside them.",
     },
   },
