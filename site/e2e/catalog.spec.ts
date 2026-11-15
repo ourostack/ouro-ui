@@ -99,7 +99,9 @@ const CEILINGS = { voyage: 279 * 1024, docs: 167_396 + 1024 } as const;
 // the home page's switch carries: 42,616 bytes with them, on CI at 952542bd.
 // The docs' rose to 45 KiB for Carousel's pager of links (#1483), which a slide deck driven by the address needs and
 // whose classes the docs' Tailwind build carries: 45,087 bytes with them, on CI merged with main at 1f5b9ec4.
-const CSS_CEILINGS = { voyage: 43 * 1024, docs: 45 * 1024 } as const;
+// The voyage's rose to 44 KiB for ouro-base's disclosure for pages without a script (#1594), which every page's
+// stylesheet carries with ouro-base: 44,171 bytes with it, on CI merged with main at e7570178.
+const CSS_CEILINGS = { voyage: 44 * 1024, docs: 45 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())

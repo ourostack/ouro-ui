@@ -263,3 +263,65 @@ describe("focus and row classes for plain markup", () => {
     }
   });
 });
+
+describe("disclosure classes for pages with no script", () => {
+  const disclosure =
+    '<button id="start">Start</button>' +
+    '<button class="outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid">Control</button>' +
+    '<span class="rounded-md">Corner</span>' +
+    '<details class="ouro-disclosure"><summary class="ouro-disclosure-summary">Why it matters</summary><div class="ouro-disclosure-panel">Because</div></details>';
+  const parts = (host: HTMLElement) => ({
+    control: host.children[1] as HTMLElement,
+    corner: host.children[2] as HTMLElement,
+    details: host.querySelector("details")!,
+    summary: host.querySelector("summary")!,
+    panel: host.querySelector<HTMLElement>(".ouro-disclosure-panel")!,
+  });
+  const chevron = (summary: Element) => {
+    const style = getComputedStyle(summary, "::after");
+    return [style.rotate, style.translate].join(" ");
+  };
+  const settled = () => expect.poll(() => document.getAnimations().length).toBe(0);
+
+  it("draws the title as Collapsible does, with no browser marker, and opens on Enter with no script, turning the chevron over", async () => {
+    const host = mount(disclosure);
+    const { control, corner, details, summary, panel } = parts(host);
+    const text = document.createRange();
+    text.selectNodeContents(summary);
+    expect(text.getClientRects()[0]!.left).toBeCloseTo(summary.getBoundingClientRect().left, 0);
+    expect(getComputedStyle(summary).borderRadius).toBe(getComputedStyle(corner).borderRadius);
+    const fine = matchMedia("(min-width: 640px) and (pointer: fine)").matches;
+    expect(summary.getBoundingClientRect().height).toBeGreaterThanOrEqual(fine ? 36 : 44);
+    expect(getComputedStyle(summary, "::after").borderRightColor).toBe(color("muted-foreground"));
+    expect(chevron(summary)).toBe("45deg 0px -20%");
+    expect(panel.checkVisibility()).toBe(false);
+    host.querySelector<HTMLElement>("#start")!.focus();
+    await pressTab();
+    const ring = [getComputedStyle(control).outlineStyle, getComputedStyle(control).outlineWidth, getComputedStyle(control).outlineColor, getComputedStyle(control).outlineOffset].join(" ");
+    await pressTab();
+    expect(document.activeElement).toBe(summary);
+    expect([getComputedStyle(summary).outlineStyle, getComputedStyle(summary).outlineWidth, getComputedStyle(summary).outlineColor, getComputedStyle(summary).outlineOffset].join(" ")).toBe(ring);
+    await userEvent.keyboard("{Enter}");
+    expect(details.open).toBe(true);
+    await settled();
+    expect(panel.checkVisibility()).toBe(true);
+    expect(chevron(summary)).toBe("225deg 0px 20%");
+  });
+
+  it("turns the chevron on the motion tokens, and snaps it under reduced motion", async () => {
+    const { details, summary } = parts(mount(disclosure));
+    expect(chevron(summary)).toMatch(/^45deg /);
+    details.open = true;
+    expect(document.getAnimations().map((animation) => (animation as CSSTransition).transitionProperty).sort()).toEqual(["rotate", "translate"]);
+    expect(getComputedStyle(summary, "::after").transitionDuration).toBe("0.2s, 0.2s");
+    await settled();
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      details.open = false;
+      expect(document.getAnimations()).toHaveLength(0);
+      expect(chevron(summary)).toMatch(/^45deg /);
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  });
+});

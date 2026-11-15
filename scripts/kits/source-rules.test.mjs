@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_BASE_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_BASE_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -1589,6 +1589,28 @@ describe("Ouro's focus and row classes for plain markup", () => {
         expect(FOCUS_RING_FIX).toContain('class="ouro-row"');
         const selected = compareWithBaseline([{ fingerprint: 'app/app.css::(stylesheet)::control-state-style::.tab[aria-selected="true"]::', file: "app/app.css", line: 3 }], {});
         expect(formatComparison(selected)[0]).toMatch(/^New hand-rolled control: /);
+    });
+});
+describe("ouro-base's disclosure for pages with no script", () => {
+    it("counts <details class=\"ouro-disclosure\"> and its <summary class=\"ouro-disclosure-summary\"> as Ouro's, and names them as the fix for a hand-drawn one", () => {
+        const ours = 'export const More = () => <details className="ouro-disclosure more"><summary className="ouro-disclosure-summary">Why</summary><div className="ouro-disclosure-panel">Because</div></details>;';
+        expect(categories(ours)).not.toContain("details-summary");
+        const found = findOffendersInSource("app/x.tsx", 'export const More = () => <details className="more"><summary>Why</summary></details>;');
+        expect(found.map((offender) => offender.category)).toEqual(["details-summary", "details-summary"]);
+        const lines = formatComparison(compareWithBaseline(found, {}));
+        expect(lines[0]).toBe(`New <details> or <summary> drawn by hand: app/x.tsx::More::details-summary::details:: (+1) at app/x.tsx:1. ${DISCLOSURE_FIX}`);
+        expect(DISCLOSURE_FIX).toContain('<details class="ouro-disclosure">');
+    });
+    it("counts a row laid out by whether the Ouro disclosure inside it is open as Ouro's, and still counts an open state the app draws itself", () => {
+        const ours = "@media (max-width: 71.99rem) {\n  tbody tr:has(.ouro-disclosure[open]) .stop { display: none; }\n  tbody tr:not(:has(.ouro-disclosure[open])) .cell + .cell { border-left: 1px solid; }\n}";
+        expect(findOffendersInSource("app/app.css", ours)).toEqual([]);
+        const found = findOffendersInSource("app/app.css", "tbody tr:has(.more[open]) .stop { display: none; }\n.ouro-disclosure[open] > .title { color: red; }\ntr:has(.ouro-disclosure-x[open]) .stop { display: none; }");
+        expect(found.map((offender) => offender.fingerprint)).toEqual([
+            "app/app.css::(stylesheet)::control-state-style::tbody tr:has(.more[open]) .stop::",
+            "app/app.css::(stylesheet)::control-state-style::.ouro-disclosure[open] > .title::",
+            "app/app.css::(stylesheet)::control-state-style::tr:has(.ouro-disclosure-x[open]) .stop::",
+        ]);
+        expect(formatComparison(compareWithBaseline(found.slice(0, 1), {}))[0]).toBe(`New open state written by hand: app/app.css::(stylesheet)::control-state-style::tbody tr:has(.more[open]) .stop:: (+1) at app/app.css:1. ${DISCLOSURE_FIX}`);
     });
 });
 describe("findOffendersInSource: stylesheets", () => {
