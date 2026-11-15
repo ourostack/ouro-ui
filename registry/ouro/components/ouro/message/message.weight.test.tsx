@@ -50,7 +50,7 @@ const variants: { variant: string; message: ReactElement; inList?: true; element
     variant: "a message with actions, in a list",
     message: <Message role="assistant" variant="chat" name="Ana" actions={actions}>Hello there</Message>,
     inList: true,
-    elements: 11,
+    elements: 10,
     components: 2,
   },
   { variant: "a message still being written", message: <Message role="assistant" variant="chat" name="Ana" streaming />, elements: 14, components: 2 },
