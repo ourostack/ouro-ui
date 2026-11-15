@@ -790,8 +790,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
   return {
     moved(by) {
       top += by;
-      // A write that moved nothing sends no scroll event to wait for.
-      if (by !== 0) own = scroller.scrollTop;
+      own = scroller.scrollTop;
     },
     stop() {
       // Stryker disable next-line all: a frame left after this finds no message moving, and asks for none.

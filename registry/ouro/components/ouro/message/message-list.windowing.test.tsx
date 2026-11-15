@@ -2,7 +2,7 @@ import { Fragment, createRef, useLayoutEffect, useRef, type CSSProperties, type 
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
@@ -50,6 +50,7 @@ function Chat({
   onQuote?: (id: number) => void;
   initialAnchor?: string;
   windowing?: boolean;
+  springy?: boolean;
   /** What to put before the message with this id, such as a day's heading. */
   before?: (id: number) => ReactNode;
   style?: CSSProperties;
@@ -436,6 +437,56 @@ describe("MessageList windowing", () => {
     await settle(scroller);
     // Where the reader's scroll took it, the growth above taken out.
     expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top + 300))).toBeLessThanOrEqual(ROUNDING);
+  });
+
+  it("counts as the wheel's only the first scroll a turn starts, or any while it turns, never the list's own, as WebKit sends no scrollend after either", async () => {
+    // As in WebKit: no scrollend from the browser, so a scroll wrongly counted as the wheel's would hold the reader's place by
+    // drawing the content up, for good.
+    const browsers = (event: Event) => void (event.isTrusted && event.stopImmediatePropagation());
+    window.addEventListener("scrollend", browsers, { capture: true });
+    onTestFinished(() => window.removeEventListener("scrollend", browsers, { capture: true }));
+    // No springs: this clock holds them still, drawn away from where the place is held.
+    let items = conversation(500);
+    const { scroller, root } = await render(<Chat items={items} springy={false} />);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const turn = (deltaY: number) => scroller.dispatchEvent(new WheelEvent("wheel", { deltaY }));
+    const scrolled = () => new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
+    // A message above the reader grows: held by writing the scroll position, the wheel at rest, so nothing is drawn up.
+    const heldByScrolling = async () => {
+      const reading = firstVisible(scroller);
+      const above = Number(reading.message.id.slice(1)) - 1;
+      items = items.map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(40) } : item));
+      await act(async () => root.render(<Chat items={items} springy={false} />));
+      await settle(scroller);
+      expect(content.style.translate).toBe("");
+      expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    };
+    // At the end, a turn down scrolls nothing, and the list follows a new message there: its own scroll, not the wheel's.
+    turn(20);
+    const followed = scrolled();
+    items = [...items, { id: 500, text: "Message 500" }];
+    await act(async () => root.render(<Chat items={items} springy={false} />));
+    await followed;
+    now += 10_000;
+    await scrollTo(scroller, 3000);
+    await heldByScrolling();
+    // A turn's scroll is the wheel's until it ends; a scrollbar's 200ms after that is not.
+    turn(-20);
+    const wheels = scrolled();
+    scroller.scrollTop -= 50;
+    await wheels;
+    scroller.dispatchEvent(new Event("scrollend"));
+    now += 200;
+    await scrollTo(scroller, 2500);
+    await heldByScrolling();
+    // The first scroll a whole second after a turn is not the turn's.
+    now += 10_000;
+    turn(-20);
+    now += 1000;
+    await scrollTo(scroller, 2000);
+    await heldByScrolling();
   });
 
   it("pays what it holds as the reader nears either end, so what went in above is in reach while the wheel still turns", async () => {
@@ -947,6 +998,45 @@ describe("MessageList windowing", () => {
     } finally {
       await page.viewport(width, height);
     }
+  });
+
+  it("remembers no view from a list given no height, so the next list's first render still fills its view, with no second render to fill it", async () => {
+    await render(<Chat items={conversation(100)} style={{ height: 400, width: 360 }} />);
+    // A list laid out with no height (a pane collapsed to nothing): it windows, and has no view to remember.
+    const { scroller: empty } = await render(<Chat items={conversation(100)} style={{ height: 0, width: 360 }} />);
+    expect(empty.clientHeight).toBe(0);
+    // The messages in the page as the newest one's layout effect runs: the first render's, before the list's own effects.
+    let first = 0;
+    function Newest() {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        first = ref.current!.closest("[data-ouro-message-list-content]")!.querySelectorAll('[data-ouro="message"]').length;
+      }, []);
+      return (
+        <Message id="m299" role="assistant" name="Ouro" style={{ height: 80, boxSizing: "border-box" }}>
+          <div ref={ref}>Message 299</div>
+        </Message>
+      );
+    }
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () =>
+      root.render(
+        <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+          {Array.from({ length: 299 }, (_, id) => (
+            <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 80, boxSizing: "border-box" }}>
+              {`Message ${id}`}
+            </Message>
+          ))}
+          <Newest key={299} />
+        </MessageList>,
+      ),
+    );
+    // A row is 80px and the gap 16px: the 400px view the first list measured, filled.
+    expect(first).toBeGreaterThanOrEqual(Math.floor(400 / 96));
   });
 
   it("keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was", async () => {
