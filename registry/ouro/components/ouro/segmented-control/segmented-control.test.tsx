@@ -190,6 +190,101 @@ describe("SegmentedControl", () => {
     expect(segments[2]!.getAttribute("aria-checked")).toBe("true");
   });
 
+  it("moves focus to the segment the app checks, so the ring and the thumb mark one segment", async () => {
+    const theme = [
+      { value: "system", label: "Match my computer" },
+      { value: "light", label: "Light" },
+      { value: "dark", label: "Dark" },
+    ];
+    const r = await render(
+      <>
+        <button type="button">Before</button>
+        <SegmentedControl label="Theme" items={theme} value="system" onValueChange={() => {}} />
+      </>,
+    );
+    r.host.querySelector("button")!.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(r.segments[0]);
+    // The setting changes elsewhere while the segment has focus.
+    await r.rerender(
+      <>
+        <button type="button">Before</button>
+        <SegmentedControl label="Theme" items={theme} value="light" onValueChange={() => {}} />
+      </>,
+    );
+    expect(document.activeElement).toBe(r.segments[1]);
+    expect(r.segments[1]!.matches(":focus-visible")).toBe(true);
+    expect(r.segments[1]!.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("draws a focused segment the app left unchecked with a ring alone, its fill as at rest", async () => {
+    const r = await render(<SegmentedControl label="View" items={items} value="grid" onValueChange={() => {}} />);
+    const look = (segment: HTMLElement) => {
+      const style = getComputedStyle(segment);
+      return { background: style.backgroundColor, shadow: style.boxShadow, color: style.color };
+    };
+    const atRest = look(r.segments[0]!);
+    r.segments[1]!.focus();
+    // The app keeps "grid": focus is on List, unchecked.
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(r.segments[0]);
+    expect(r.segments[0]!.getAttribute("aria-checked")).toBe("false");
+    expect(getComputedStyle(r.segments[0]!).outlineStyle).toBe("solid");
+    expect(look(r.segments[0]!)).toEqual(atRest);
+  });
+
+  it("leaves focus where the arrow keys put it when the app checks their earlier segment late", async () => {
+    const changes: string[] = [];
+    const r = await render(<SegmentedControl label="View" items={items} value="list" onValueChange={(next) => changes.push(next)} />);
+    r.segments[0]!.focus();
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(changes).toEqual(["grid", "map"]);
+    expect(document.activeElement).toBe(r.segments[2]);
+    await r.rerender(<SegmentedControl label="View" items={items} value="grid" onValueChange={(next) => changes.push(next)} />);
+    expect(document.activeElement).toBe(r.segments[2]);
+  });
+
+  it("follows a check from the app again once focus has left and come back", async () => {
+    const r = await render(
+      <>
+        <button type="button">Before</button>
+        <SegmentedControl label="View" items={items} value="list" onValueChange={() => {}} />
+      </>,
+    );
+    r.segments[0]!.focus();
+    // The app keeps "list" when the arrow key asks for "grid".
+    await userEvent.keyboard("{ArrowRight}");
+    r.host.querySelector("button")!.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(r.segments[0]);
+    await r.rerender(
+      <>
+        <button type="button">Before</button>
+        <SegmentedControl label="View" items={items} value="grid" onValueChange={() => {}} />
+      </>,
+    );
+    expect(document.activeElement).toBe(r.segments[1]);
+  });
+
+  it("leaves focus alone when it is outside the control, or no segment has the new value", async () => {
+    const two = (first: string, second: string) => (
+      <>
+        <SegmentedControl label="View" items={items} value={first} onValueChange={() => {}} />
+        <SegmentedControl label="Sort" items={items} value={second} onValueChange={() => {}} />
+      </>
+    );
+    const r = await render(two("list", "list"));
+    r.segments[0]!.focus();
+    await r.rerender(two("list", "map"));
+    expect(document.activeElement).toBe(r.segments[0]);
+    await r.rerender(two("table", "map"));
+    expect(document.activeElement).toBe(r.segments[0]);
+    expect(warn).toHaveBeenCalled();
+    r.segments[0]!.blur();
+    await r.rerender(two("grid", "map"));
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it("submits the checked value with a form when given a name", async () => {
     const { host, segments } = await render(
       <form>

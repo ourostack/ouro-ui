@@ -327,6 +327,27 @@ export class Looks {
     return this.rawDifferences().filter((line) => !waived(line));
   }
 
+  // Both sides of each difference that is not waived, in the order the samples were taken, so a log names the look each
+  // side had: with two samples, the first one taken stands for the majority, and the line above can blame the right one.
+  sides(): string[] {
+    const out: string[] = [];
+    const shown = this.rawDifferences().filter((line) => !waived(line));
+    for (const [key, samples] of this.groups) {
+      const bySig = new Map<string, number[]>();
+      samples.forEach((s, n) => bySig.set(s.sig, [...(bySig.get(s.sig) ?? []), n]));
+      if (bySig.size < 2) continue;
+      const sigs = [...bySig.keys()];
+      const parts = sigs.map((sig) => sig.split(" ; "));
+      const described = sigs.map((sig, n) => {
+        const own = parts[n]!.filter((p) => parts.some((other, m) => m !== n && !other.includes(p)));
+        const taken = bySig.get(sig)!.map((i) => `#${i + 1} ${samples[i]!.where}`).join(", ");
+        return `${taken}: ${own.join(" ; ")}`;
+      });
+      if (shown.some((line) => line.startsWith(`${key} on `))) out.push(`${key} (${samples.length} samples) | ${described.join(" | ")}`);
+    }
+    return out;
+  }
+
   rawDifferences(): string[] {
     const out: string[] = [];
     for (const [key, samples] of this.groups) {

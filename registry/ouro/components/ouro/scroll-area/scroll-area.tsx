@@ -68,24 +68,48 @@ const viewports = {
   both: "overflow-auto",
 } as const;
 
+/** The mask for the top and bottom fade, set only while the viewport scrolls. */
+const verticalFade =
+  "data-ouro-scroll-fade-y:[mask-image:linear-gradient(to_bottom,transparent,#000_min(var(--scroll-area-overflow-y-start),2rem),#000_calc(100%-min(var(--scroll-area-overflow-y-end),2rem)),transparent)]"; // fade-ok: fades a scrolling list of rows, not a picture
+
 const focusable = "a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex='-1']),[contenteditable='true']";
 
 /**
- * Makes the viewport a tab stop while its content overflows, so a keyboard user can scroll it. Reads
- * sizes when the browser reports a resize, after layout, not while React commits.
+ * Makes the viewport a tab stop while its content overflows, so a keyboard user can scroll it, and
+ * says how far it hides content above and below: `data-overflow-y-start` and `data-overflow-y-end`
+ * while that side hides more, with `--scroll-area-overflow-y-start` and `--scroll-area-overflow-y-end`
+ * in pixels. Reads sizes when the browser reports a resize or a scroll, after layout, not while React commits.
  */
 function useScrollTabStop(viewportRef: { current: HTMLDivElement | null }): void {
   useEffect(() => {
     const viewport = viewportRef.current!;
     const update = () => {
       viewport.tabIndex = viewport.scrollHeight > viewport.clientHeight || viewport.scrollWidth > viewport.clientWidth ? 0 : -1;
+      const hidden = viewport.scrollHeight - viewport.clientHeight;
+      const start = Math.max(0, viewport.scrollTop);
+      const end = Math.max(0, hidden - start);
+      // Stryker disable next-line EqualityOperator: a one pixel threshold only absorbs rounding; no test can make content exactly one pixel taller
+      const scrolls = hidden > 1 && getComputedStyle(viewport).overflowY !== "hidden";
+      viewport.toggleAttribute("data-ouro-scroll-fade-y", scrolls);
+      // Stryker disable next-line EqualityOperator: a one pixel threshold only absorbs rounding; no test can place a scroll offset at exactly one pixel
+      viewport.toggleAttribute("data-overflow-y-start", scrolls && start > 1);
+      // Stryker disable next-line EqualityOperator: a one pixel threshold only absorbs rounding; no test can place a scroll offset at exactly one pixel
+      viewport.toggleAttribute("data-overflow-y-end", scrolls && end > 1);
+      viewport.style.setProperty("--scroll-area-overflow-y-start", `${scrolls ? start : 0}px`);
+      viewport.style.setProperty("--scroll-area-overflow-y-end", `${scrolls ? end : 0}px`);
     };
     const observer = new ResizeObserver(update);
     // Stryker disable next-line CallExpression: the observer fires for the first child's resize too, so a height change reaches update either way
     observer.observe(viewport);
     observer.observe(viewport.firstElementChild!);
-    // Stryker disable next-line ArrowFunction: cleanup only stops the observer, which has nothing to observe once unmounted
-    return () => observer.disconnect();
+    viewport.addEventListener("scroll", update);
+    // Stryker disable next-line BlockStatement,CallExpression,StringLiteral: cleanup only releases listeners on an element that is going away, which nothing can observe
+    return () => {
+      // Stryker disable next-line CallExpression: cleanup only releases an observer on an element that is going away, which nothing can observe
+      observer.disconnect();
+      // Stryker disable next-line CallExpression,StringLiteral: cleanup only releases a listener on an element that is going away, which nothing can observe
+      viewport.removeEventListener("scroll", update);
+    };
   },
   // Stryker disable next-line ArrayDeclaration: the ref object never changes, so the effect runs once either way
   [viewportRef]);
@@ -121,9 +145,12 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  * A scrolling region with a thin scrollbar in the theme's color, inside a height you set.
  * It keeps the browser's own scrolling, so touch, the mouse wheel, the keyboard and
  * momentum all work; Content
- * wider than the area fades out at the side where it goes on, so at rest it reads as more
- * to scroll to, not as cut off. Its focus ring is drawn over the content, so a header that sticks
- * to the top never hides an edge of it.
+ * wider than the area fades out at the side where it goes on, and a vertical area fades at the
+ * top and bottom edge that hides more, so at rest it reads as more to scroll to, not as cut off.
+ * A vertical area also marks the viewport with `data-overflow-y-start` and `data-overflow-y-end`
+ * while that edge hides content, and sets `--scroll-area-overflow-y-start` and `--scroll-area-overflow-y-end`
+ * (pixels hidden), so a parent can draw a hairline once it is scrolled from the start. Its focus ring
+ * is drawn over the content, so a header that sticks to the top never hides an edge of it.
  *
  * Use plain page scrolling instead for a page's main content, and `Dialog` or `Sheet`,
  * which scroll their own bodies, for long content in an overlay.
@@ -169,6 +196,8 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // Stryker disable next-line ConditionalExpression: the mask needs the data attribute, which only a vertical area gets
+  const fadeY = orientation === "vertical" && verticalFade;
   return (
     <div
       {...rest}
@@ -189,7 +218,7 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         aria-label={label}
         // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the viewport, under the
         // focus ring. Only then: at rest the content stacks with the page, as it always has.
-        className={cn("peer min-h-0 focus-visible:isolate flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, scrollFadeClass, contain && "overscroll-contain")}
+        className={cn("peer min-h-0 focus-visible:isolate flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, scrollFadeClass, fadeY, contain && "overscroll-contain")}
       >
         <div className={orientation === "vertical" ? "min-w-0" : "min-w-fit"}>{children}</div>
       </div>

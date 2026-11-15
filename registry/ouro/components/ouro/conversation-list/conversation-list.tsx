@@ -36,6 +36,10 @@ export interface ConversationListItemFields {
   /**
    * A muted name after the title, on its line, such as the team a channel belongs to: "Design
    * reviews · Launch team". Text, or content such as `<EmojiText>` to draw its emoji as pictures.
+   * It shows whole or not at all: when the row has no room for it, the title keeps the room and the
+   * where is hidden, never cut to a fragment; screen readers still read it. Leave it out where a
+   * section's title already names it.
+   * @claim "It shows whole or not at all" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList > shows the where whole or not at all, never cut, and gives it up before the title)
    */
   where?: ReactNode;
   /** A second line under the title, such as the group a topic belongs to. */
@@ -353,9 +357,13 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
                 </span>
               )}
               {shown(item.where) && (
-                <span data-ouro-conversation-where="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-sm pointer-fine:text-xs", quiet)}>
-                  <span aria-hidden="true">· </span>
-                  {item.where}
+                // One line tall: the where wraps past the empty first item when it does not fit, and the wrapped line is clipped.
+                <span data-ouro-conversation-where="" className={cn("flex h-lh min-w-0 max-w-max flex-[1_1_0%] flex-wrap overflow-hidden text-sm pointer-fine:text-xs", quiet)}>
+                  <span className="h-lh w-0" />
+                  <span className="whitespace-nowrap">
+                    <span aria-hidden="true">· </span>
+                    {item.where}
+                  </span>
                 </span>
               )}
               {item.badges}

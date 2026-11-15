@@ -124,6 +124,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
     }
     console.log(`${browserName} ${mode}: ${looks.keys} control states, ${looks.crops} pictures`);
     for (const f of [...new Set(found), ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
+    for (const side of looks.sides()) console.log(`SIDES ${browserName} ${mode}: ${side}`);
     expect.soft(guard.skipped.length, `routes skipped as too slow: ${guard.skipped.join(", ")}`).toBeLessThanOrEqual(3);
     recordMatched(`states-${mode}-${chunk}-${browserName}`);
     expect.soft([...new Set(found)], "a control leaves its shape in a state").toEqual([]);

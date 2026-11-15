@@ -1,0 +1,1 @@
+- ScrollArea fades at the top and bottom edge that hides more, and sets data-overflow-y-start, data-overflow-y-end and the --scroll-area-overflow-y-start and --scroll-area-overflow-y-end variables from the scroll event, not at mount.

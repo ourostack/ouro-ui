@@ -376,6 +376,13 @@ const CACHED_WIDTH = "\0width";
  * The width, in CSS pixels, rounded to a multiple of this, that a height is cached for.
  */
 const BUCKET = 8;
+/** The children drawn around the view, by key: its first, its last and those it held when it was set (`id` joins them). */
+interface Band {
+  id: string;
+  from: string;
+  to: string;
+  held: ReadonlySet<string>;
+}
 /** A message to draw and bring into view: by key, the element with `id` in it or its first or last message, and whether to focus it. */
 interface Reach {
   key: string;
@@ -1067,8 +1074,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   useLayoutEffect(() => {
     cacheRef.current = cache;
   });
-  // The children drawn around the view: the first and last, by key, as `<first>\0<last>`, so setting the same band again changes nothing.
-  const [band, setBand] = useState<string | null>(null);
+  // The children drawn around the view, by key: the first, the last and every one between them when the band was set.
+  const [band, setBand] = useState<Band | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
   // What a `reveal` waits on: told whether its message came into view, once it has or another took its place.
   const revealed = useRef<((found: boolean) => void) | null>(null);
@@ -1099,12 +1106,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
   if (windowed) {
     const last = keys.length - 1;
     let range: readonly [number, number];
+    let held: ReadonlySet<string> | null = null;
     if (band !== null) {
       // A band whose edge was deleted draws none of it: the window finds itself again, from what is drawn, before the browser
       // draws, and the space kept for what went keeps the rest where it was.
-      const [from, to] = band.split("\0");
       // Stryker disable next-line LogicalOperator,UnaryOperator: whatever range a band with a deleted edge draws, the window finds itself again before the browser draws.
-      range = [indexes.get(from!) ?? last, indexes.get(to!) ?? -1];
+      range = [indexes.get(band.from) ?? last, indexes.get(band.to) ?? -1];
+      // Children that went in between its edges since (a page of older messages after a first child that is no message) draw as
+      // space, as above the band: the window then draws those the view reaches, before the browser draws. Children that took the
+      // place of ones that went (a message's key changed in place) draw.
+      // Stryker disable next-line ArithmeticOperator: a child more or less between the edges is one the window draws, or not, before the browser draws.
+      if (range[1] - range[0] + 1 > band.held.size) held = band.held;
     } else if (showJump && indexes.has(String(edge.drawn))) {
       // A list the reader scrolled up in that grows long (older history loading above, newer messages after) draws, to begin
       // with, no more than the WINDOW_ABOVE children it drew whole, from the first of them: the rest, and what came with the
@@ -1124,7 +1136,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const props = child.props as { streaming?: unknown; "aria-busy"?: unknown };
       if (props.streaming === true || props["aria-busy"] === true || props["aria-busy"] === "true") kept.push(index);
     });
-    draws = (index) => (index >= range[0] && index <= range[1]) || kept.includes(index);
+    draws = (index) => (index >= range[0] && index <= range[1] && (held === null || held.has(keys[index]!))) || kept.includes(index);
   }
   // The slots, with space kept for each run of children not drawn: their heights and the gaps between them, less the gap the
   // list puts before the space itself.
@@ -1644,7 +1656,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // How many messages each child drawn holds: a child that starts the conversation holds none.
   const counts = useRef(new Map<string, number>());
   // What the window last read, so a render that changed none of it (the app drawing again as someone types) reads no layout.
-  const synced = useRef<{ keys: readonly string[]; band: string | null; measured: Measured; reach: Reach | null; windowed: boolean } | null>(null);
+  const synced = useRef<{ keys: readonly string[]; band: Band | null; measured: Measured; reach: Reach | null; windowed: boolean } | null>(null);
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
@@ -1769,7 +1781,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let to = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
       while (starts[to]! >= viewBottom + over) to--;
-      setBand(`${keys[from]}\0${keys[to]}`);
+      const inBand = keys.slice(from, to + 1);
+      // Stryker disable next-line StringLiteral: keys joined with no separator tell two bands apart too, but for keys that run into each other.
+      const id = inBand.join("\n");
+      // The same band again changes nothing.
+      setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
     };
     const now = viewRef.current;
     const last = synced.current;

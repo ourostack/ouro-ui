@@ -2,7 +2,7 @@
 
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { useId, useRef, useState, type CSSProperties, type JSX, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -83,7 +83,9 @@ function duplicateValue(items: readonly SegmentedControlItem[]): string | undefi
  * to the checked one, for switching how one view shows its content in place, such as list
  * or grid. Exactly one segment is checked. Screen readers hear a radio group, and the arrow
  * keys check the next segment as they do for radio buttons. Segments are 44px tall on touch
- * screens, and `name` submits the value with a form.
+ * screens, and `name` submits the value with a form. Keyboard focus stays on the checked
+ * segment: when the app checks another one while a segment has focus, focus moves to it, so
+ * the ring and the thumb never mark two segments.
  *
  * Use `Tabs` instead when each choice shows different content with its own panel. Use links
  * in a `<nav>` instead when each choice is its own page. Use a `RadioGroup` instead for a
@@ -103,6 +105,7 @@ function duplicateValue(items: readonly SegmentedControlItem[]): string | undefi
  *   value={view}
  *   onValueChange={setView}
  * />
+ * @claim "Keyboard focus stays on the checked" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > moves focus to the segment the app checks, so the ring and the thumb mark one segment)
  * @claim "Segments are 44px tall on touch" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > submits the checked value with a form when given a name)
  * @claim "Segments are 44px tall on touch" registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx::keeps 44px segments with 16px text on a phone, also in landscape)
  */
@@ -166,12 +169,24 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
   // Set while an arrow, Home or End key moves focus, so the segment it lands on gets checked,
   // as a radio button does. Tab and pointer focus leave the value alone.
   const arrowed = useRef(false);
+  // The values this control asked for since focus came in, so one the app checks late, after a
+  // quicker key, still counts as the person's own and does not pull focus back.
+  const asked = useRef(new Set<string | undefined>());
   const choose = (pressed: string) => {
     // Never report the value that is already checked.
     if (pressed === selected) return;
+    asked.current.add(pressed);
     setOwn(pressed);
     onValueChange?.(pressed);
   };
+  useEffect(() => {
+    // The app checked another segment (a setting changed elsewhere) while a segment has focus:
+    // focus follows the check, so the ring is never on a segment beside the thumb's.
+    const group = document.activeElement!.closest(`[aria-labelledby="${labelId}"]`);
+    if (!group || asked.current.has(selected)) return;
+    const checked = group.querySelector<HTMLElement>('[data-ouro-segment][aria-checked="true"]');
+    if (checked) checked.focus();
+  }, [selected, labelId]);
   const thumbStyle = {
     "--ouro-segment-count": items.length,
     "--ouro-segment-index": Math.max(index, 0),
@@ -205,6 +220,8 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         onBlurCapture={(event) => {
           // Focus leaving the group (by pointer, say) ends the arrow key's move.
           if (!event.currentTarget.contains(event.relatedTarget)) arrowed.current = false;
+          // It also ends what the person asked for here: a check the app makes after this is its own.
+          if (!event.currentTarget.contains(event.relatedTarget)) asked.current.clear();
         }}
         disabled={disabled}
         className={cn(groupClass, fullWidth && "grid w-full")}
