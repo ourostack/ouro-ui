@@ -13,8 +13,9 @@ test("Command reads each command the arrow keys reach from the search, which kee
   await said(sr, () => page.keyboard.press("Enter"), "as the palette opens");
   const search = page.getByRole("combobox", { name: "Search commands" });
   await expect(search).toBeFocused();
-  await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => inOneSentence(phrase, /\bnew recipe\b/i), '"New recipe", the first command');
-  await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => inOneSentence(phrase, /\bimport from a link\b/i), '"Import from a link", the next command');
+  // The palette opens on its first command, New recipe: each ArrowDown reads the next.
+  await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => inOneSentence(phrase, /\bimport from a link\b/i), '"Import from a link", the second command');
+  await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => inOneSentence(phrase, /\bopen shopping list\b/i), '"Open shopping list", the third command');
   // The list is the search's own popup: the arrow keys move through it, and focus stays in the search.
   await expect(search).toBeFocused();
 });
