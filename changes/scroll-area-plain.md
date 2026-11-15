@@ -1,0 +1,1 @@
+- ScrollArea is a plain overflow container with no Base UI, so mounting it reads no layout; the scrollbar is now the browser's own thin one, the edge fade, keyboard and wheel scrolling stay.
