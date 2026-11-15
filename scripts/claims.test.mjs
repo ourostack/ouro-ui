@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join } from "node:path";
@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { scratchDir } from "./scratch.mjs";
 import {
   applyAllowed,
+  branchFragments,
   checkClaims,
   classify,
   hooks,
@@ -15,6 +16,7 @@ import {
   loadConfig,
   policyProblems,
   urlCacheReview,
+  withBranchFragments,
   isInstruction,
   lintMarkdown,
   lintPlain,
@@ -78,6 +80,80 @@ test("triggers: spelled-out numbers, each, no and zero, always and never, and fu
   assert.deepEqual(kinds("The specs in e2e/ouro open the stories in an h1."), []);
   assert.deepEqual(kinds("Release v2 is x4 faster."), ["number"]);
   assert.deepEqual(kinds("Rows are 44px tall."), ["number"]);
+});
+
+test("triggers: issue and pull request references are not numbers, and other numbers beside them still are", () => {
+  assert.deepEqual(kinds("Fixes #1074."), []);
+  assert.deepEqual(kinds("Stacked on #1100, so it merges once that lands."), []);
+  assert.deepEqual(kinds("Closes ourostack/ouro-ui#1162."), []);
+  assert.deepEqual(kinds("Closes https://github.com/ourostack/ouro-ui/issues/1162."), []);
+  assert.deepEqual(kinds("The issues (#1011 to #1026) are tracked."), []);
+  assert.deepEqual(lintMarkdown("Stacked on #1100, so it merges once that lands.\n", { file: "a.md" }), []);
+  assert.deepEqual(kinds("Fixes #1074 and adds 3 tests."), ["number"]);
+  assert.deepEqual(triggers("Fixes #1074 and adds 3 tests.")[0].words, ["3"]);
+});
+
+test("triggers: a digit inside a word is not a number, and a number after that word still is", () => {
+  assert.deepEqual(kinds("Main p95 is under budget."), []);
+  assert.deepEqual(kinds("The p99 and h100 timings hold."), []);
+  assert.deepEqual(triggers("p95 of 40 ms.")[0].words, ["40"]);
+  assert.deepEqual(kinds("Key-to-paint p95 in the consuming app."), []);
+});
+
+test("triggers: no longer and hyphenated no-compounds are not universal negatives, but other no and none are", () => {
+  assert.deepEqual(kinds("The test no longer depends on real time."), []);
+  assert.deepEqual(kinds("A no-break space is a noun."), []);
+  assert.deepEqual(kinds("It no longer runs, and no test covers it."), ["no"]);
+  assert.deepEqual(kinds("Porthole: no forced layout in the first commit."), ["no"]);
+  assert.deepEqual(kinds("Mount reads no layout."), ["no"]);
+  assert.deepEqual(kinds("None of the tests fail."), ["no"]);
+});
+
+test("the lint command takes a pull request's title and body as options, and reads the body from a file", () => {
+  const root = fixture({ "body.md": "Moves focus back to the trigger.\n", "claim.md": "Every test passes now.\n" });
+  const lint = (args) => spawnSync(process.execPath, [join(repo, "registry/ouro/lib/ouro/claims-check.mjs"), "lint", "--pr", "--root", root, ...args], { encoding: "utf8", cwd: root });
+  assert.equal(lint(["--title", "Fix the dialog's focus", "--body-file", "body.md"]).status, 0);
+  const body = lint(["--title", "Fix the dialog's focus", "--body-file", "claim.md"]);
+  assert.equal(body.status, 1);
+  assert.match(body.stderr, /^pull request body:1: "Every test passes now\." makes a universal claim/m);
+  const title = lint(["--title", "Every test passes now.", "--body-file", "body.md"]);
+  assert.equal(title.status, 1);
+  assert.match(title.stderr, /^pull request title:1: "Every test passes now\." makes a universal claim/m);
+  const missing = lint(["--title", "Fix the dialog's focus", "--body-file", "gone.md"]);
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /--body-file: .*gone\.md/);
+});
+
+test("branchFragments: the change fragments a branch adds or changes, against origin/main or else main", () => {
+  const root = fixture({});
+  const git = (...args) => execFileSync("git", ["-c", "user.name=claims", "-c", "user.email=claims@example.com", "-c", "commit.gpgsign=false", ...args], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  const write = (file, text = "- Change\n") => {
+    mkdirSync(dirname(join(root, file)), { recursive: true });
+    writeFileSync(join(root, file), text);
+  };
+  git("init", "-q");
+  write("changes/kept.md");
+  write("changes/old.md");
+  git("add", "-A");
+  git("commit", "-qm", "main");
+  git("branch", "-M", "main");
+  git("checkout", "-qb", "feature");
+  write("changes/new.md");
+  write("changes/kept.md", "- Changed\n");
+  write("docs/notes.md");
+  git("rm", "-q", "changes/old.md");
+  git("add", "-A");
+  git("commit", "-qm", "feature");
+  assert.deepEqual(branchFragments(root), { base: "main", files: ["changes/kept.md", "changes/new.md"] });
+  git("update-ref", "refs/remotes/origin/main", "main");
+  assert.deepEqual(branchFragments(root), { base: "origin/main", files: ["changes/kept.md", "changes/new.md"] });
+  assert.deepEqual(withBranchFragments(["lint", "--pr"], root), ["lint", "--pr", "changes/kept.md", "changes/new.md"]);
+  assert.deepEqual(withBranchFragments(["lint", "--pr", "changes/new.md"], root), ["lint", "--pr", "changes/new.md", "changes/kept.md"]);
+  assert.deepEqual(withBranchFragments(["lint", "docs/notes.md"], root), ["lint", "docs/notes.md"]);
+  git("checkout", "-q", "--orphan", "work");
+  git("update-ref", "-d", "refs/remotes/origin/main");
+  git("branch", "-D", "main");
+  assert.deepEqual(branchFragments(root), { base: undefined, files: [] });
 });
 
 test("bypasses: noun-verbs, quotations, headings and spelled-out claims are caught", () => {

@@ -2,9 +2,11 @@
 // over claims.config.json, with two checks only this repository has (docs/guides/claims.md):
 //
 //   pnpm claims:check              lints every surface and runs every claim's checks
-//   pnpm claims:lint <file>…       the same for some files; --pr lints a pull request's
-//                                  title and body (PR_TITLE, PR_BODY), --stdin reads a draft
+//   pnpm claims:lint <file>…       the same for some files; --pr lints a pull request's title and
+//                                  body (PR_TITLE, PR_BODY, or --title and --body-file) and the change
+//                                  fragments its branch adds or changes, --stdin reads a draft
 //   pnpm claims:show <file>        lists the file's claims, their sources and each check's result
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -86,6 +88,35 @@ export function vendorText(env) {
 }
 Object.assign(process.env, vendorText(process.env));
 
+/** A git command's output, or undefined when git fails (a ref that does not exist). */
+function git(root, args) {
+  try {
+    return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The change fragments (changes/*.md) the branch adds or changes, against origin/main or, when the
+ * checkout has no origin/main, main. With neither (a checkout that fetched only the merge commit,
+ * as CI's pull request does), there is nothing to compare, so `base` is undefined and no file is listed.
+ */
+export function branchFragments(root) {
+  const base = ["origin/main", "main"].find((ref) => git(root, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]) !== undefined);
+  if (!base) return { base, files: [] };
+  const changed = git(root, ["diff", "--name-only", "--no-renames", "--diff-filter=AM", `${base}...HEAD`, "--", "changes/"]) ?? "";
+  return { base, files: changed.split("\n").filter((file) => /^changes\/.+\.md$/.test(file) && existsSync(join(root, file))) };
+}
+
+/** `lint --pr` lints the branch's change fragments too: a fragment with a claim fails the full check later, so the pull request's text command reads them now. */
+export function withBranchFragments(args, root) {
+  if (args[0] !== "lint" || !args.includes("--pr")) return args;
+  const { base, files } = branchFragments(root);
+  if (!base) process.stderr.write("No origin/main or main to compare with, so the branch's change fragments are not read here; pnpm claims:check reads every fragment.\n");
+  return [...args, ...files.filter((file) => !args.includes(file))];
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.exitCode = await main(process.argv.slice(2), { root: repoRoot, hooks, guide: "docs/guides/claims.md" });
+  process.exitCode = await main(withBranchFragments(process.argv.slice(2), repoRoot), { root: repoRoot, hooks, guide: "docs/guides/claims.md" });
 }

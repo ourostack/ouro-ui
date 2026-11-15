@@ -1,0 +1,1 @@
+- Changed: The claims linter no longer reads issue and pull request references, or a digit inside a word, as numbers, and no longer reads "no longer" as a negative. `pnpm claims:lint --pr` takes `--title` and `--body-file`, and lints the change fragments its branch adds.
