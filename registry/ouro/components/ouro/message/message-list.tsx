@@ -1532,11 +1532,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The frame the wheel last turned in. Where a frame takes longer than the rest (a slow machine drawing much), the wheel's next
     // events wait behind it, so the wheel turns until the time has passed and a later frame has begun.
     let wheelFrame: CSSNumberish | null = null;
-    // The scroll a wheel started goes on as long as its scroll events keep coming (WebKit animates a wheel's scroll after its
-    // last event): each one that comes while the wheel turns keeps it turning for another rest.
-    let wheelScrollAt = Number.NEGATIVE_INFINITY;
-    const turning = () =>
-      performance.now() - wheelScrollAt < WHEEL_REST || performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
+    // The scroll a wheel started goes on until the browser says it ended (`scrollend`): WebKit animates a wheel's scroll after
+    // its last event, over frames a loaded machine draws slowly, and a scroll position written meanwhile stops it.
+    let wheelScrolling = false;
+    const turning = () => wheelScrolling || performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
     let resting: ReturnType<typeof setTimeout> | undefined;
     let restFrame = 0;
     // How close to an end, in px, the reader comes before the scroll position takes what is carried: a few frames of a fast wheel.
@@ -1657,8 +1656,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (pinned.current ? farthest() !== end || floorMoved() : touched) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
-    const onScroll = () => {
-      if (turning()) wheelScrollAt = performance.now();
+    const onScroll = (event: Event) => {
+      // Only the browser's own scroll, where it says when it ends.
+      if (event.isTrusted && "onscrollend" in scroller && turning()) wheelScrolling = true;
       // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
       pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.
@@ -1668,8 +1668,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
+    const onScrollEnd = () => void (wheelScrolling = false);
+    scroller.addEventListener("scrollend", onScrollEnd);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
