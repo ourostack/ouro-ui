@@ -146,11 +146,12 @@ describe("ScrollArea", () => {
     expect(viewport.style.getPropertyValue("--ouro-scroll-fade-right")).toBe(`${900 - viewport.clientWidth}px`);
     expect(getComputedStyle(viewport).maskImage).toContain("linear-gradient");
     await expect.poll(() => viewport.tabIndex).toBe(0);
-    expect(getComputedStyle(area).outlineStyle).toBe("none");
+    const ring = area.querySelector<HTMLElement>("[data-scroll-focus-ring]")!;
+    expect(getComputedStyle(ring).outlineStyle).toBe("none");
     viewport.focus();
     expect(getComputedStyle(viewport).outlineStyle).toBe("none");
-    expect(getComputedStyle(area).outlineStyle).toBe("solid");
-    expect(getComputedStyle(area).outlineWidth).toBe("2px");
+    expect(getComputedStyle(ring).outlineStyle).toBe("solid");
+    expect(getComputedStyle(ring).outlineWidth).toBe("2px");
     // WebKit under Playwright scrolls a focused box with no arrow key, masked or not, so it scrolls by script there.
     if (server.browser === "chromium") await userEvent.keyboard("{ArrowRight}");
     else viewport.scrollLeft = 40;
@@ -165,6 +166,50 @@ describe("ScrollArea", () => {
     await act(async () => new Promise(requestAnimationFrame));
     expect(fits.hasAttribute("data-ouro-scroll-fade")).toBe(false);
     expect(getComputedStyle(fits).maskImage).toBe("none");
+  });
+
+  it("draws its focus ring whole over content that sticks to an edge, and leaves the pointer to the content", async () => {
+    const { area, viewport } = await render(
+      <ScrollArea className="h-40" label="Chats">
+        <div style={{ position: "sticky", top: 0, zIndex: 10, height: 40, background: "var(--background)" }}>Chats</div>
+        {tall}
+      </ScrollArea>,
+    );
+    await expect.poll(() => viewport.tabIndex).toBe(0);
+    // At rest nothing lies over the content, so a contrast check sees the text's own background.
+    const overlay = area.querySelector<HTMLElement>("[data-scroll-focus-ring]")!;
+    expect(getComputedStyle(overlay).display).toBe("none");
+    viewport.focus();
+    expect(getComputedStyle(overlay).display).toBe("block");
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    // The ring's colour as pixels, and the area's pixels as the screen shows them.
+    const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+    probe.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ring");
+    probe.fillRect(0, 0, 1, 1);
+    const ring = [...probe.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+    const image = new Image();
+    image.src = `data:image/png;base64,${await page.screenshot({ save: false, element: area, animations: "disabled" })}`;
+    await image.decode();
+    const shot = document.createElement("canvas");
+    shot.width = image.naturalWidth;
+    shot.height = image.naturalHeight;
+    const context = shot.getContext("2d", { willReadFrequently: true })!;
+    context.drawImage(image, 0, 0);
+    const scale = image.naturalWidth / area.getBoundingClientRect().width;
+    const { width, height } = area.getBoundingClientRect();
+    // One pixel in from the middle of each edge, inside the 2px ring.
+    const edges = { top: [width / 2, 1], bottom: [width / 2, height - 1], start: [1, height / 2], end: [width - 1, height / 2] };
+    const shown = Object.fromEntries(
+      Object.entries(edges).map(([edge, [x, y]]) => {
+        const pixel = [...context.getImageData(Math.floor(x! * scale), Math.floor(y! * scale), 1, 1).data.slice(0, 3)];
+        return [edge, pixel.every((value, index) => Math.abs(value - ring[index]!) <= 24)];
+      }),
+    );
+    expect(shown).toEqual({ top: true, bottom: true, start: true, end: true });
+    // The ring takes no pointer: a press on the sticky header lands on the header.
+    const header = viewport.querySelector<HTMLElement>("[style*='sticky']")!;
+    const box = header.getBoundingClientRect();
+    expect(document.elementFromPoint(box.left + box.width / 2, box.top + 1)).toBe(header);
   });
 
   it("fades the top and bottom edge that hides more, and says how far it is scrolled, from the scroll event", async () => {
@@ -201,7 +246,7 @@ describe("ScrollArea", () => {
     expect(region.element()).toBe(viewport);
     await expect.poll(() => viewport.tabIndex).toBe(0);
     viewport.focus();
-    expect(getComputedStyle(area).outlineStyle).toBe("solid");
+    expect(getComputedStyle(area.querySelector("[data-scroll-focus-ring]")!).outlineStyle).toBe("solid");
     await userEvent.keyboard("{PageDown}");
     await expect.poll(() => viewport.scrollTop).toBeGreaterThan(0);
   });

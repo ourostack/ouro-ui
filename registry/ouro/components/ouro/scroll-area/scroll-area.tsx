@@ -149,7 +149,8 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  * top and bottom edge that hides more, so at rest it reads as more to scroll to, not as cut off.
  * A vertical area also marks the viewport with `data-overflow-y-start` and `data-overflow-y-end`
  * while that edge hides content, and sets `--scroll-area-overflow-y-start` and `--scroll-area-overflow-y-end`
- * (pixels hidden), so a parent can draw a hairline once it is scrolled from the start.
+ * (pixels hidden), so a parent can draw a hairline once it is scrolled from the start. Its focus ring
+ * is drawn over the content, so a header that sticks to the top never hides an edge of it.
  *
  * Use plain page scrolling instead for a page's main content, and `Dialog` or `Sheet`,
  * which scroll their own bodies, for long content in an overlay.
@@ -165,6 +166,7 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  *   <Row gap="sm">{tags.map((tag) => <Badge key={tag}>{tag}</Badge>)}</Row>
  * </ScrollArea>
  * @claim "Content wider than the area fades out" registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > fades out at the side that hides more, drawing its focus ring over the fade, and keeps keyboard scrolling)
+ * @claim "Its focus ring is drawn over the content" registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > draws its focus ring whole over content that sticks to an edge, and leaves the pointer to the content)
  * @claim "It keeps the browser's own scrolling" registry/ouro/components/ouro/scroll-area/scroll-area.touch.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.touch.test.tsx::leaves touch scrolling to the browser: the viewport is a native scroll container)
  * @claim "It keeps the browser's own scrolling" registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > draws a thin native scrollbar in the theme's muted color, and scrolls only the way it is asked to)
  */
@@ -202,8 +204,6 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
       data-ouro="scroll-area"
       className={cn(
         "group/scroll-area relative flex min-h-0 min-w-0 flex-col overflow-hidden",
-        // The focus ring is the root's, drawn over the viewport, so the viewport's edge fade never hides it.
-        "outline-ring -outline-offset-2 has-[>[data-scroll-viewport]:focus-visible]:outline-2 has-[>[data-scroll-viewport]:focus-visible]:outline-solid",
         className,
       )}
     >
@@ -216,10 +216,19 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         data-ouro-part="viewport"
         role={label ? "region" : undefined}
         aria-label={label}
-        className={cn("min-h-0 flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, scrollFadeClass, fadeY, contain && "overscroll-contain")}
+        // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the viewport, under the
+        // focus ring. Only then: at rest the content stacks with the page, as it always has.
+        className={cn("peer min-h-0 focus-visible:isolate flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, scrollFadeClass, fadeY, contain && "overscroll-contain")}
       >
         <div className={orientation === "vertical" ? "min-w-0" : "min-w-fit"}>{children}</div>
       </div>
+      {/* The viewport's focus ring, drawn over it, so neither the edge fade nor content that sticks to an edge covers it. It is
+          there only while the viewport has focus: at rest nothing lies over the content, so a contrast check sees the text's own background. */}
+      <span
+        aria-hidden="true"
+        data-scroll-focus-ring=""
+        className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
+      />
     </div>
   );
 }
