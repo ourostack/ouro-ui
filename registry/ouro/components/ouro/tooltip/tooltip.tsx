@@ -73,6 +73,7 @@ const GROUP_TIMEOUT = 400;
 const CLOSE_DELAY = 100;
 
 // The page's tooltips: how many show, and when the last one went, so a neighbour opens at once inside OuroProvider.
+// Stryker disable next-line ObjectLiteral: equivalent; read once at import, before mutants switch, and each test's tooltips leave the count where they found it.
 const shown = { count: 0, closedAt: Number.NEGATIVE_INFINITY };
 
 /**
@@ -249,6 +250,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   // the close is asked in the same commit that hides the container, not a frame later.
   const hidden = useContext(TooltipsHidden);
   useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: equivalent; the effect also runs at mount and as the container shows again, when the tooltip is already closed.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (hidden) close();
   }, [hidden]);
