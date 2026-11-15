@@ -42,9 +42,11 @@ export interface CardOwnProps {
   /**
    * With `href` and `description`: on a screen with a mouse the description waits, transparent
    * and keeping its room, until the pointer rests on the card or keyboard focus is in it, then
-   * fades in. On a touch screen it always shows. Screen readers always read it, and the link
-   * names it as its description, so a person who tabs to the card hears it.
-   * @claim "On a touch screen it always" registry/ouro/components/ouro/card/card.touch.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.touch.test.tsx::shows a revealDescription card's description on a touch screen)
+   * fades in. On a touch screen it shows from the start. Screen readers read it while it is
+   * transparent too, and the link names it as its description, so a person who tabs to the card
+   * hears it.
+   * @claim "Screen readers read it while it" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href, zoomMedia and revealDescription > shows the description on hover or keyboard focus, keeping its room, and names it as the link's description)
+   * @claim "On a touch screen it shows" registry/ouro/components/ouro/card/card.touch.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.touch.test.tsx::shows a revealDescription card's description on a touch screen)
    * @claim "on a screen with a mouse" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href, zoomMedia and revealDescription > shows the description on hover or keyboard focus, keeping its room, and names it as the link's description)
    */
   revealDescription?: boolean | undefined;
@@ -169,7 +171,7 @@ function cardHint(token: string): string {
  * description and an action, a body, and a footer. With `href` the whole card is one link,
  * named by its title, with one tab stop, and its action and footer controls stay their own.
  *
- * A linked card can answer the pointer and the keyboard: `zoomMedia` grows its pictures by 3%
+ * A linked card can answer the pointer and the keyboard: `zoomMedia` grows its pictures a little
  * inside their frame, and `revealDescription` keeps its description back until the card is
  * hovered or focused, on a screen with a mouse. Both honour reduced motion.
  *

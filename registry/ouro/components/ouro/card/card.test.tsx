@@ -464,6 +464,8 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     const reveal = card.querySelector<HTMLElement>("[data-card-reveal]")!;
     const link = card.querySelector<HTMLAnchorElement>("[data-card-link]")!;
     const height = card.getBoundingClientRect().height;
+    expect(reveal.getAttribute("data-card-reveal")).toBe("");
+    expect(link.getAttribute("aria-describedby")).toBe(reveal.id);
     expect(getComputedStyle(reveal).opacity).toBe("0");
     expect(reveal.getBoundingClientRect().height).toBeGreaterThan(0);
     await expect.element(page.getByRole("link", { name: "Braising" })).toHaveAccessibleDescription("Low heat, a lid, and time");
@@ -481,19 +483,22 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     await settled(reveal, () => getComputedStyle(reveal).opacity).toBe("1");
   });
 
-  it("leaves a card without href, media or a description as it is", async () => {
-    const { host } = await render(
-      <>
-        <Card title="Static" description="Here" media={<img src={pixel} alt="" />} zoomMedia revealDescription />
-        <Card href="#x" title="No media" zoomMedia />
-      </>,
-    );
-    expect(host.querySelector("[data-card-reveal]")).toBeNull();
-    expect(host.querySelector(".group\\/card")).toBeNull();
-    expect(warn).toHaveBeenCalledWith('[ouro-ui] Card: zoomMedia needs href, a title and media. Fix: <Card href="/path" title="…" media={…} zoomMedia>.');
-    expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Card: revealDescription needs href, a title and a description. Fix: <Card href="/path" title="…" description="…" revealDescription>.',
-    );
+  it.each([
+    ["no href", { title: "Static", description: "Here", media: <img src={pixel} alt="" />, zoomMedia: true, revealDescription: true }, ["zoomMedia", "revealDescription"]],
+    ["no media", { href: "#x", title: "No media", description: "Here", zoomMedia: true }, ["zoomMedia"]],
+    ["no description", { href: "#x", title: "No description", media: <img src={pixel} alt="" />, revealDescription: true }, ["revealDescription"]],
+    ["neither prop", { href: "#x", title: "Plain", description: "Here", media: <img src={pixel} alt="" /> }, []],
+  ] as const)("leaves a card with %s as it is, and says what each prop needs", async (_name, props, warned) => {
+    const { card } = await render(<Card {...(props as Parameters<typeof Card>[0])} />);
+    expect(card.classList.contains("group/card")).toBe(false);
+    expect(card.querySelector("[data-card-reveal]")).toBeNull();
+    expect(card.querySelector("[aria-describedby]")).toBeNull();
+    const messages = {
+      zoomMedia: '[ouro-ui] Card: zoomMedia needs href, a title and media. Fix: <Card href="/path" title="…" media={…} zoomMedia>.',
+      revealDescription:
+        '[ouro-ui] Card: revealDescription needs href, a title and a description. Fix: <Card href="/path" title="…" description="…" revealDescription>.',
+    };
+    expect(warn.mock.calls.map(([message]) => message)).toEqual(warned.map((name) => messages[name]));
   });
 });
 

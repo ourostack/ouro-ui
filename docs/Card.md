@@ -32,7 +32,7 @@ import { Card } from "@/registry/ouro/components/ouro/card/card";
 
 ## Usage
 
-A linked card can answer the pointer and the keyboard: `zoomMedia` grows its pictures by 3% inside their frame, and `revealDescription` keeps its description back until the card is hovered or focused, on a screen with a mouse. Both honour reduced motion.
+A linked card can answer the pointer and the keyboard: `zoomMedia` grows its pictures a little inside their frame, and `revealDescription` keeps its description back until the card is hovered or focused, on a screen with a mouse. Both honour reduced motion.
 
 ## Use instead when
 
@@ -56,7 +56,7 @@ Type: `CardProps`.
 | `linkRef` | `Ref<HTMLAnchorElement>` |  | With `href`: a ref to the link's `<a>`, to move focus to it (as a "Show more" does for the first new card). |
 | `media` | `ReactNode` |  | An image or video across the top, edge to edge: usually an `AspectRatio` around an `<img>`, so the card keeps its shape while the image loads. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
-| `revealDescription` | `boolean` |  | With `href` and `description`: on a screen with a mouse the description waits, transparent and keeping its room, until the pointer rests on the card or keyboard focus is in it, then fades in. On a touch screen it always shows. Screen readers always read it, and the link names it as its description, so a person who tabs to the card hears it. |
+| `revealDescription` | `boolean` |  | With `href` and `description`: on a screen with a mouse the description waits, transparent and keeping its room, until the pointer rests on the card or keyboard focus is in it, then fades in. On a touch screen it shows from the start. Screen readers read it while it is transparent too, and the link names it as its description, so a person who tabs to the card hears it. |
 | `size` | `"sm" \| "md"` | `"md"` | Padding: `md` is 24px, `sm` 16px for dense grids. |
 | `stackBelow` | `"sm" \| "md"` |  | Below this breakpoint the `action` drops under the title and description, as in a settings panel on a phone. Without it the action stays beside the title at every width. |
 | `title` | `ReactNode` |  | The card's title, as a heading. With `href` it is the link's text, so a linked card needs one. |
