@@ -1,5 +1,5 @@
 {
-  "generator": "ouro-actions 0.7.2",
+  "generator": "ouro-actions 0.13.1",
   "set": "pantry",
   "tool": "pantry",
   "commands": [
